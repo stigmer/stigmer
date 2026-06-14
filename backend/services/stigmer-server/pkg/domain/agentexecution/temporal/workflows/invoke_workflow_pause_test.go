@@ -8,7 +8,9 @@ import (
 	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	enums "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/testsuite"
 )
 
@@ -238,6 +240,75 @@ func TestMultiplePauseResumeCycles(t *testing.T) {
 	require.True(t, env.IsWorkflowCompleted())
 	require.NoError(t, env.GetWorkflowError())
 	require.Equal(t, 1, resumeCallCount, "only the final post-resume invocation completes (first two cancelled by pause)")
+}
+
+// TestRecoverableInterruptionResumesFromState verifies that a transient
+// heartbeat-timeout interruption (worker died / machine slept mid-run) triggers
+// the bounded recovery branch: the workflow re-invokes the activity from
+// persisted state rather than dead-ending, and completes once the activity
+// succeeds on the retry.
+func TestRecoverableInterruptionResumesFromState(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-abc"
+	const executionID = "exec-recover"
+	registerCommonMocks(env, threadID)
+
+	callCount := 0
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
+		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+			callCount++
+			if callCount == 1 {
+				// Simulate the worker being reaped mid-run: a heartbeat timeout.
+				return nil, temporal.NewTimeoutError(enums.TIMEOUT_TYPE_HEARTBEAT, nil)
+			}
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
+		})
+
+	input := &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+	}
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError())
+	require.Equal(t, 2, callCount, "activity should be re-invoked once after a recoverable interruption")
+}
+
+// TestRecoveryIsBoundedByMaxCycles verifies that a persistently interrupting
+// activity does not loop forever: after MaxRecoveryCycles re-invocations the
+// workflow surfaces the failure instead of spinning.
+func TestRecoveryIsBoundedByMaxCycles(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-abc"
+	const executionID = "exec-recover-bound"
+	registerCommonMocks(env, threadID)
+
+	callCount := 0
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
+		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+			callCount++
+			return nil, temporal.NewTimeoutError(enums.TIMEOUT_TYPE_HEARTBEAT, nil)
+		})
+
+	input := &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+	}
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.Error(t, env.GetWorkflowError(), "exhausted recovery should surface the failure")
+	// Initial invocation + MaxRecoveryCycles re-invocations before giving up.
+	require.Equal(t, MaxRecoveryCycles+1, callCount)
 }
 
 func TestFailedActivityPropagatesError(t *testing.T) {

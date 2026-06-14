@@ -18,6 +18,7 @@ import type { RecentActivityGroup, RecentActivityEntry } from "@stigmer/react";
 import { ScrollArea } from "../ui/scroll-area";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
+import { useRunner } from "../hooks/EmbeddedRunnerContext";
 
 export function Sidebar() {
   const sidebar = useSidebarOpen();
@@ -37,6 +38,16 @@ export function Sidebar() {
     location.pathname === "/" || location.pathname.startsWith("/sessions/");
 
   const { entries, isLoading, error, refetch, prependOptimistic } = useRecentActivity();
+
+  // Sessions whose runner worker is still alive but which are NOT the one being
+  // viewed: with the deferred-teardown invariant in the runner, a worker stays
+  // up only while an execution is in flight, so this set is "running in the
+  // background". Drives the pulse indicator in the recents list.
+  const { activeSessions } = useRunner();
+  const backgroundSessionIds = useMemo(
+    () => new Set(activeSessions.filter((id) => id !== activeSessionId)),
+    [activeSessions, activeSessionId],
+  );
 
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
@@ -163,6 +174,7 @@ export function Sidebar() {
             groups={groups}
             activeSessionId={activeSessionId}
             activePath={location.pathname}
+            backgroundSessionIds={backgroundSessionIds}
             onNavigate={navigate}
           />
         )}
@@ -184,11 +196,13 @@ function ActivityGroupList({
   groups,
   activeSessionId,
   activePath,
+  backgroundSessionIds,
   onNavigate,
 }: {
   groups: readonly RecentActivityGroup[];
   activeSessionId: string | null;
   activePath: string;
+  backgroundSessionIds: ReadonlySet<string>;
   onNavigate: (path: string) => void;
 }) {
   return (
@@ -205,6 +219,9 @@ function ActivityGroupList({
                 entry={entry}
                 activeSessionId={activeSessionId}
                 activePath={activePath}
+                runningInBackground={
+                  entry.type === "session" && backgroundSessionIds.has(entry.id)
+                }
                 onNavigate={onNavigate}
               />
             ))}
@@ -219,11 +236,13 @@ const ActivityEntry = memo(function ActivityEntry({
   entry,
   activeSessionId,
   activePath,
+  runningInBackground,
   onNavigate,
 }: {
   entry: RecentActivityEntry;
   activeSessionId: string | null;
   activePath: string;
+  runningInBackground: boolean;
   onNavigate: (path: string) => void;
 }) {
   const isSession = entry.type === "session";
@@ -248,11 +267,31 @@ const ActivityEntry = memo(function ActivityEntry({
         )}
       >
         <TypeIcon className="mt-0.5 size-3 shrink-0 opacity-50" aria-hidden="true" />
-        <span className="line-clamp-2">{entry.subject}</span>
+        <span className="line-clamp-2 flex-1">{entry.subject}</span>
+        {runningInBackground ? <BackgroundRunDot /> : null}
       </button>
     </li>
   );
 });
+
+/**
+ * Pulsing dot shown on a recents row whose execution is still running in the
+ * background (its session worker is kept alive by an in-flight activity even
+ * though the user navigated away).
+ */
+function BackgroundRunDot() {
+  return (
+    <span
+      role="status"
+      aria-label="Running in background"
+      title="Running in background"
+      className="relative mt-1 flex size-2 shrink-0"
+    >
+      <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+      <span className="relative inline-flex size-2 rounded-full bg-primary" />
+    </span>
+  );
+}
 
 function RecentsSkeletons() {
   return (

@@ -14,7 +14,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/message.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_message: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIoICCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIIpoFCghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABEhIKCnN0YXJ0ZWRfYXQYByABKAkSFAoMY29tcGxldGVkX2F0GAggASgJEg0KBWVycm9yGAkgASgJEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAogASgIEhgKEGFwcHJvdmFsX21lc3NhZ2UYCyABKAkSHQoVYXBwcm92YWxfcmVxdWVzdGVkX2F0GAwgASgJEhsKE2FwcHJvdmFsX2RlY2lkZWRfYXQYDSABKAkSEwoLYXBwcm92ZWRfYnkYDiABKAkSTQoPYXBwcm92YWxfYWN0aW9uGA8gASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uEhQKDGlzX3N0cmVhbWluZxgQIAEoCBJXChBzdHJlYW1pbmdfc291cmNlGBMgASgOMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsU3RyZWFtaW5nU291cmNlEhcKD21jcF9zZXJ2ZXJfc2x1ZxgRIAEoCRIUCgxhcmdzX3ByZXZpZXcYEiABKAkSQQoJdG9vbF9raW5kGBQgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xLaW5kYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIoICCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIIucFCghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABEhIKCnN0YXJ0ZWRfYXQYByABKAkSFAoMY29tcGxldGVkX2F0GAggASgJEg0KBWVycm9yGAkgASgJEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAogASgIEhgKEGFwcHJvdmFsX21lc3NhZ2UYCyABKAkSHQoVYXBwcm92YWxfcmVxdWVzdGVkX2F0GAwgASgJEhsKE2FwcHJvdmFsX2RlY2lkZWRfYXQYDSABKAkSEwoLYXBwcm92ZWRfYnkYDiABKAkSTQoPYXBwcm92YWxfYWN0aW9uGA8gASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uEhQKDGlzX3N0cmVhbWluZxgQIAEoCBJXChBzdHJlYW1pbmdfc291cmNlGBMgASgOMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsU3RyZWFtaW5nU291cmNlEhcKD21jcF9zZXJ2ZXJfc2x1ZxgRIAEoCRIUCgxhcmdzX3ByZXZpZXcYEiABKAkSQQoJdG9vbF9raW5kGBQgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xLaW5kEksKCm91dHB1dF9yZWYYFSABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxPdXRwdXRSZWYiqAEKEVRvb2xDYWxsT3V0cHV0UmVmEhMKC3N0b3JhZ2Vfa2V5GAEgASgJEhQKDGRvd25sb2FkX3VybBgCIAEoCRISCgpzaXplX2J5dGVzGAMgASgDEhQKDGNvbnRlbnRfaGFzaBgEIAEoCRIRCgltaW1lX3R5cGUYBSABKAkSEAoIaXNfaW1hZ2UYBiABKAgSGQoRdHJ1bmNhdGVkX3ByZXZpZXcYByABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * Represents a single message in the agent conversation.
@@ -283,6 +283,29 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCall"> 
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 20;
    */
   toolKind: ToolKind;
+
+  /**
+   * ─────────────────────────────────────────────────────────────────────────────
+   * Offloaded Output (large tool results)
+   *
+   * When a tool's output exceeds a size threshold, the runner spills the full
+   * bytes to artifact storage and records a reference here instead of inlining
+   * megabytes into `result` on every status update. Without this, a single
+   * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+   * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+   * persistence fails silently and the live UI freezes mid-execution.
+   *
+   * When set, `result` holds only a short human-readable head/preview (so
+   * consumers that read `result` still render something sensible) and
+   * output_ref points at the full content. Empty for the overwhelming majority
+   * of tool calls — only populated when output crosses the offload threshold.
+   * See ToolCallOutputRef.
+   *
+   * Field 21: appended after tool_kind (20), the prior maximum.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21;
+   */
+  outputRef?: ToolCallOutputRef;
 };
 
 /**
@@ -291,4 +314,84 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCall"> 
  */
 export const ToolCallSchema: GenMessage<ToolCall> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_message, 1);
+
+/**
+ * ToolCallOutputRef points to a tool call's full output after the runner
+ * offloaded it to artifact storage to keep AgentExecutionStatus under the gRPC
+ * message-size limit.
+ *
+ * This is deliberately distinct from ExecutionArtifact (a file the agent
+ * publishes for the user to download via publish_artifact): an output ref is
+ * internal spillover of a tool's result, not a user-facing deliverable. The
+ * bytes live in artifact storage (R2 in the cloud, locally served in dev);
+ * only this reference is persisted in the execution status.
+ *
+ * @since Durable Executions (tool-output offload)
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
+ */
+export type ToolCallOutputRef = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef"> & {
+  /**
+   * Storage location of the full output bytes.
+   * Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+   *
+   * @generated from field: string storage_key = 1;
+   */
+  storageKey: string;
+
+  /**
+   * URL for fetching the full output — pre-signed in the cloud, locally served
+   * in dev. May be refreshed via the artifact download endpoint if expired.
+   *
+   * @generated from field: string download_url = 2;
+   */
+  downloadUrl: string;
+
+  /**
+   * Size in bytes of the full (original, pre-truncation) output.
+   *
+   * @generated from field: int64 size_bytes = 3;
+   */
+  sizeBytes: bigint;
+
+  /**
+   * SHA-256 hex digest of the full output bytes. Lets the runner dedupe
+   * uploads (skip re-uploading identical content across repeated persists) and
+   * lets clients invalidate caches when content changes under a stable key.
+   *
+   * @generated from field: string content_hash = 4;
+   */
+  contentHash: string;
+
+  /**
+   * MIME type of the offloaded content.
+   * Examples: "image/png", "text/plain", "application/json".
+   *
+   * @generated from field: string mime_type = 5;
+   */
+  mimeType: string;
+
+  /**
+   * True when the offloaded content is an image the UI should render inline
+   * (e.g. a screenshot from a computer-use MCP server).
+   *
+   * @generated from field: bool is_image = 6;
+   */
+  isImage: boolean;
+
+  /**
+   * Short head of the original text content, kept inline for an at-a-glance
+   * preview without fetching the full artifact. Empty for image content.
+   *
+   * @generated from field: string truncated_preview = 7;
+   */
+  truncatedPreview: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.
+ * Use `create(ToolCallOutputRefSchema)` to create a new message.
+ */
+export const ToolCallOutputRefSchema: GenMessage<ToolCallOutputRef> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_message, 2);
 

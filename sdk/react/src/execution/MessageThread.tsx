@@ -881,11 +881,28 @@ function FailedUserMessage({
 // ---------------------------------------------------------------------------
 
 /**
+ * Recognizes a recoverable *interruption* (worker reaped / heartbeat timeout /
+ * stall) as opposed to a genuine application failure. The runner stamps these
+ * with a stable signature ("[StallTimeoutError]", "Execution interrupted",
+ * "Retry or resume."), and the workflow auto-resumes them while recovery cycles
+ * remain; by the time one reaches the UI as terminal it is resumable from the
+ * session's persisted harness_state_id rather than a dead end.
+ */
+function isInterruptedError(error: string): boolean {
+  return /\[StallTimeoutError\]|execution interrupted|retry or resume/i.test(error);
+}
+
+/**
  * Renders the server-reported failure reason (`AgentExecutionStatus.error`)
  * for an execution that died — typically before producing any messages. The
  * reason can be a long Temporal error, so it is clamped by default with a
- * Show more / Show less toggle. An optional Retry resends the originating
- * message as a fresh execution.
+ * Show more / Show less toggle.
+ *
+ * A genuine failure renders as a destructive alert with a Retry. A *recoverable
+ * interruption* renders as a neutral notice with a Resume — both resend the
+ * originating message, which the server continues from the session's persisted
+ * harness_state_id (the same data path; the framing differs so an interruption
+ * never looks like a dead-end crash).
  */
 function ExecutionErrorNotice({
   error,
@@ -898,15 +915,20 @@ function ExecutionErrorNotice({
 }) {
   const [expanded, setExpanded] = useState(false);
   const canRetry = !!onRetry && !!retryMessage;
+  const interrupted = isInterruptedError(error);
 
   return (
     <div
-      role="alert"
-      className="mx-4 flex flex-col gap-1.5 rounded-md bg-destructive-subtle px-3 py-2"
+      role={interrupted ? "status" : "alert"}
+      className={cn(
+        "mx-4 flex flex-col gap-1.5 rounded-md px-3 py-2",
+        interrupted ? "bg-muted" : "bg-destructive-subtle",
+      )}
     >
       <p
         className={cn(
-          "text-xs whitespace-pre-wrap break-words text-destructive",
+          "text-xs whitespace-pre-wrap break-words",
+          interrupted ? "text-foreground" : "text-destructive",
           !expanded && "line-clamp-3",
         )}
       >
@@ -926,7 +948,7 @@ function ExecutionErrorNotice({
             onClick={() => onRetry!(retryMessage!)}
             className="font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Retry
+            {interrupted ? "Resume" : "Retry"}
           </button>
         )}
       </div>

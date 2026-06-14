@@ -55,8 +55,71 @@ export function McpToolDetail({ toolCall, className }: McpToolDetailProps) {
         <McpArgsView args={toolCall.args as Record<string, unknown>} />
       )}
 
-      {toolCall.result && (
-        <McpResultView result={toolCall.result} />
+      {toolCall.outputRef?.downloadUrl ? (
+        <McpOffloadedOutputView outputRef={toolCall.outputRef} />
+      ) : (
+        toolCall.result && <McpResultView result={toolCall.result} />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Offloaded output (ToolCallOutputRef)
+// ---------------------------------------------------------------------------
+
+function formatBytes(n: number): string {
+  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${n} B`;
+}
+
+/**
+ * Renders an MCP result whose bytes were offloaded to artifact storage (e.g. a
+ * computer-use screenshot). Images render inline; other large output shows its
+ * preview head plus a link to the full content. Mirrors ResultView's outputRef
+ * treatment so MCP and non-MCP offloads look consistent.
+ */
+function McpOffloadedOutputView({
+  outputRef,
+}: {
+  readonly outputRef: NonNullable<ToolCall["outputRef"]>;
+}) {
+  const size = Number(outputRef.sizeBytes);
+  return (
+    <div className="space-y-1">
+      <span className="font-medium text-muted-foreground">Result</span>
+      {outputRef.isImage ? (
+        <a
+          href={outputRef.downloadUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <img
+            src={outputRef.downloadUrl}
+            alt="Tool output screenshot"
+            loading="lazy"
+            className="max-h-96 w-auto rounded-md border border-border"
+          />
+        </a>
+      ) : (
+        <div className="space-y-1">
+          {outputRef.truncatedPreview && (
+            <CollapsiblePre
+              content={outputRef.truncatedPreview}
+              className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle p-2 text-foreground"
+            />
+          )}
+          <a
+            href={outputRef.downloadUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            View full output{size ? ` (${formatBytes(size)})` : ""}
+          </a>
+        </div>
       )}
     </div>
   );

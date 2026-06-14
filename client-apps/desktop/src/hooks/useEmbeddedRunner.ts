@@ -52,6 +52,13 @@ export interface UseEmbeddedRunnerResult {
   addWorkflowExecution: (executionId: string) => Promise<string>;
   removeWorkflowExecution: (executionId: string) => Promise<void>;
   updateRunnerToken: (token: string | null) => Promise<void>;
+  /**
+   * Re-read the runner's live session/execution state. Used to reflect the
+   * runner's truth after a remove (which may defer teardown while an execution
+   * runs in the background) and by periodic polling so background-run
+   * indicators clear once a run drains.
+   */
+  refreshStatus: () => Promise<void>;
   error: string | null;
 }
 
@@ -169,10 +176,25 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     return taskQueue;
   }, [ensureRunning]);
 
+  const refreshStatus = useCallback(async (): Promise<void> => {
+    try {
+      const status = await invoke<RunnerStatus>("runner_status");
+      setIsRunning(status.running);
+      setActiveSessions(status.activeSessions);
+      setActiveWorkflowExecutions(status.activeWorkflowExecutions ?? []);
+    } catch {
+      // Status polling is best-effort; a transient IPC failure must not surface.
+    }
+  }, []);
+
   const removeSession = useCallback(async (sessionId: string): Promise<void> => {
     await invoke("remove_session", { sessionId });
-    setActiveSessions((prev) => prev.filter((id) => id !== sessionId));
-  }, []);
+    // The runner keeps the worker alive in the background when an execution is
+    // still in flight (deferred teardown), so reconcile from the runner's truth
+    // rather than optimistically dropping the session — a backgrounded run must
+    // stay visible (and drives the "running in background" indicator).
+    await refreshStatus();
+  }, [refreshStatus]);
 
   const addWorkflowExecution = useCallback(async (executionId: string): Promise<string> => {
     await ensureRunning();
@@ -203,6 +225,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     addWorkflowExecution,
     removeWorkflowExecution,
     updateRunnerToken,
+    refreshStatus,
     error,
   };
 }

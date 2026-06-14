@@ -928,6 +928,92 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentexecution.v1.ToolKind.UNRECOGNIZED : result;
   }
 
+  public static final int OUTPUT_REF_FIELD_NUMBER = 21;
+  private ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef outputRef_;
+  /**
+   * <pre>
+   * ─────────────────────────────────────────────────────────────────────────────
+   * Offloaded Output (large tool results)
+   *
+   * When a tool's output exceeds a size threshold, the runner spills the full
+   * bytes to artifact storage and records a reference here instead of inlining
+   * megabytes into `result` on every status update. Without this, a single
+   * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+   * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+   * persistence fails silently and the live UI freezes mid-execution.
+   *
+   * When set, `result` holds only a short human-readable head/preview (so
+   * consumers that read `result` still render something sensible) and
+   * output_ref points at the full content. Empty for the overwhelming majority
+   * of tool calls — only populated when output crosses the offload threshold.
+   * See ToolCallOutputRef.
+   *
+   * Field 21: appended after tool_kind (20), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+   * @return Whether the outputRef field is set.
+   */
+  @java.lang.Override
+  public boolean hasOutputRef() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * ─────────────────────────────────────────────────────────────────────────────
+   * Offloaded Output (large tool results)
+   *
+   * When a tool's output exceeds a size threshold, the runner spills the full
+   * bytes to artifact storage and records a reference here instead of inlining
+   * megabytes into `result` on every status update. Without this, a single
+   * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+   * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+   * persistence fails silently and the live UI freezes mid-execution.
+   *
+   * When set, `result` holds only a short human-readable head/preview (so
+   * consumers that read `result` still render something sensible) and
+   * output_ref points at the full content. Empty for the overwhelming majority
+   * of tool calls — only populated when output crosses the offload threshold.
+   * See ToolCallOutputRef.
+   *
+   * Field 21: appended after tool_kind (20), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+   * @return The outputRef.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef getOutputRef() {
+    return outputRef_ == null ? ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.getDefaultInstance() : outputRef_;
+  }
+  /**
+   * <pre>
+   * ─────────────────────────────────────────────────────────────────────────────
+   * Offloaded Output (large tool results)
+   *
+   * When a tool's output exceeds a size threshold, the runner spills the full
+   * bytes to artifact storage and records a reference here instead of inlining
+   * megabytes into `result` on every status update. Without this, a single
+   * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+   * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+   * persistence fails silently and the live UI freezes mid-execution.
+   *
+   * When set, `result` holds only a short human-readable head/preview (so
+   * consumers that read `result` still render something sensible) and
+   * output_ref points at the full content. Empty for the overwhelming majority
+   * of tool calls — only populated when output crosses the offload threshold.
+   * See ToolCallOutputRef.
+   *
+   * Field 21: appended after tool_kind (20), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefOrBuilder getOutputRefOrBuilder() {
+    return outputRef_ == null ? ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.getDefaultInstance() : outputRef_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -998,6 +1084,9 @@ private static final long serialVersionUID = 0L;
     }
     if (toolKind_ != ai.stigmer.agentic.agentexecution.v1.ToolKind.TOOL_KIND_UNSPECIFIED.getNumber()) {
       output.writeEnum(20, toolKind_);
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(21, getOutputRef());
     }
     getUnknownFields().writeTo(output);
   }
@@ -1072,6 +1161,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(20, toolKind_);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(21, getOutputRef());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1124,6 +1217,11 @@ private static final long serialVersionUID = 0L;
     if (!getArgsPreview()
         .equals(other.getArgsPreview())) return false;
     if (toolKind_ != other.toolKind_) return false;
+    if (hasOutputRef() != other.hasOutputRef()) return false;
+    if (hasOutputRef()) {
+      if (!getOutputRef()
+          .equals(other.getOutputRef())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1177,6 +1275,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getArgsPreview().hashCode();
     hash = (37 * hash) + TOOL_KIND_FIELD_NUMBER;
     hash = (53 * hash) + toolKind_;
+    if (hasOutputRef()) {
+      hash = (37 * hash) + OUTPUT_REF_FIELD_NUMBER;
+      hash = (53 * hash) + getOutputRef().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1312,6 +1414,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetArgsFieldBuilder();
+        internalGetOutputRefFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1341,6 +1444,11 @@ private static final long serialVersionUID = 0L;
       mcpServerSlug_ = "";
       argsPreview_ = "";
       toolKind_ = 0;
+      outputRef_ = null;
+      if (outputRefBuilder_ != null) {
+        outputRefBuilder_.dispose();
+        outputRefBuilder_ = null;
+      }
       return this;
     }
 
@@ -1434,6 +1542,12 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00040000) != 0)) {
         result.toolKind_ = toolKind_;
+      }
+      if (((from_bitField0_ & 0x00080000) != 0)) {
+        result.outputRef_ = outputRefBuilder_ == null
+            ? outputRef_
+            : outputRefBuilder_.build();
+        to_bitField0_ |= 0x00000002;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1530,6 +1644,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.toolKind_ != 0) {
         setToolKindValue(other.getToolKindValue());
+      }
+      if (other.hasOutputRef()) {
+        mergeOutputRef(other.getOutputRef());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1654,6 +1771,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00040000;
               break;
             } // case 160
+            case 170: {
+              input.readMessage(
+                  internalGetOutputRefFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00080000;
+              break;
+            } // case 170
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3621,6 +3745,307 @@ private static final long serialVersionUID = 0L;
       toolKind_ = 0;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef outputRef_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef, ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.Builder, ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefOrBuilder> outputRefBuilder_;
+    /**
+     * <pre>
+     * ─────────────────────────────────────────────────────────────────────────────
+     * Offloaded Output (large tool results)
+     *
+     * When a tool's output exceeds a size threshold, the runner spills the full
+     * bytes to artifact storage and records a reference here instead of inlining
+     * megabytes into `result` on every status update. Without this, a single
+     * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+     * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+     * persistence fails silently and the live UI freezes mid-execution.
+     *
+     * When set, `result` holds only a short human-readable head/preview (so
+     * consumers that read `result` still render something sensible) and
+     * output_ref points at the full content. Empty for the overwhelming majority
+     * of tool calls — only populated when output crosses the offload threshold.
+     * See ToolCallOutputRef.
+     *
+     * Field 21: appended after tool_kind (20), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+     * @return Whether the outputRef field is set.
+     */
+    public boolean hasOutputRef() {
+      return ((bitField0_ & 0x00080000) != 0);
+    }
+    /**
+     * <pre>
+     * ─────────────────────────────────────────────────────────────────────────────
+     * Offloaded Output (large tool results)
+     *
+     * When a tool's output exceeds a size threshold, the runner spills the full
+     * bytes to artifact storage and records a reference here instead of inlining
+     * megabytes into `result` on every status update. Without this, a single
+     * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+     * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+     * persistence fails silently and the live UI freezes mid-execution.
+     *
+     * When set, `result` holds only a short human-readable head/preview (so
+     * consumers that read `result` still render something sensible) and
+     * output_ref points at the full content. Empty for the overwhelming majority
+     * of tool calls — only populated when output crosses the offload threshold.
+     * See ToolCallOutputRef.
+     *
+     * Field 21: appended after tool_kind (20), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+     * @return The outputRef.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef getOutputRef() {
+      if (outputRefBuilder_ == null) {
+        return outputRef_ == null ? ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.getDefaultInstance() : outputRef_;
+      } else {
+        return outputRefBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * ─────────────────────────────────────────────────────────────────────────────
+     * Offloaded Output (large tool results)
+     *
+     * When a tool's output exceeds a size threshold, the runner spills the full
+     * bytes to artifact storage and records a reference here instead of inlining
+     * megabytes into `result` on every status update. Without this, a single
+     * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+     * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+     * persistence fails silently and the live UI freezes mid-execution.
+     *
+     * When set, `result` holds only a short human-readable head/preview (so
+     * consumers that read `result` still render something sensible) and
+     * output_ref points at the full content. Empty for the overwhelming majority
+     * of tool calls — only populated when output crosses the offload threshold.
+     * See ToolCallOutputRef.
+     *
+     * Field 21: appended after tool_kind (20), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+     */
+    public Builder setOutputRef(ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef value) {
+      if (outputRefBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        outputRef_ = value;
+      } else {
+        outputRefBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00080000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ─────────────────────────────────────────────────────────────────────────────
+     * Offloaded Output (large tool results)
+     *
+     * When a tool's output exceeds a size threshold, the runner spills the full
+     * bytes to artifact storage and records a reference here instead of inlining
+     * megabytes into `result` on every status update. Without this, a single
+     * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+     * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+     * persistence fails silently and the live UI freezes mid-execution.
+     *
+     * When set, `result` holds only a short human-readable head/preview (so
+     * consumers that read `result` still render something sensible) and
+     * output_ref points at the full content. Empty for the overwhelming majority
+     * of tool calls — only populated when output crosses the offload threshold.
+     * See ToolCallOutputRef.
+     *
+     * Field 21: appended after tool_kind (20), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+     */
+    public Builder setOutputRef(
+        ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.Builder builderForValue) {
+      if (outputRefBuilder_ == null) {
+        outputRef_ = builderForValue.build();
+      } else {
+        outputRefBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00080000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ─────────────────────────────────────────────────────────────────────────────
+     * Offloaded Output (large tool results)
+     *
+     * When a tool's output exceeds a size threshold, the runner spills the full
+     * bytes to artifact storage and records a reference here instead of inlining
+     * megabytes into `result` on every status update. Without this, a single
+     * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+     * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+     * persistence fails silently and the live UI freezes mid-execution.
+     *
+     * When set, `result` holds only a short human-readable head/preview (so
+     * consumers that read `result` still render something sensible) and
+     * output_ref points at the full content. Empty for the overwhelming majority
+     * of tool calls — only populated when output crosses the offload threshold.
+     * See ToolCallOutputRef.
+     *
+     * Field 21: appended after tool_kind (20), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+     */
+    public Builder mergeOutputRef(ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef value) {
+      if (outputRefBuilder_ == null) {
+        if (((bitField0_ & 0x00080000) != 0) &&
+          outputRef_ != null &&
+          outputRef_ != ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.getDefaultInstance()) {
+          getOutputRefBuilder().mergeFrom(value);
+        } else {
+          outputRef_ = value;
+        }
+      } else {
+        outputRefBuilder_.mergeFrom(value);
+      }
+      if (outputRef_ != null) {
+        bitField0_ |= 0x00080000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * ─────────────────────────────────────────────────────────────────────────────
+     * Offloaded Output (large tool results)
+     *
+     * When a tool's output exceeds a size threshold, the runner spills the full
+     * bytes to artifact storage and records a reference here instead of inlining
+     * megabytes into `result` on every status update. Without this, a single
+     * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+     * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+     * persistence fails silently and the live UI freezes mid-execution.
+     *
+     * When set, `result` holds only a short human-readable head/preview (so
+     * consumers that read `result` still render something sensible) and
+     * output_ref points at the full content. Empty for the overwhelming majority
+     * of tool calls — only populated when output crosses the offload threshold.
+     * See ToolCallOutputRef.
+     *
+     * Field 21: appended after tool_kind (20), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+     */
+    public Builder clearOutputRef() {
+      bitField0_ = (bitField0_ & ~0x00080000);
+      outputRef_ = null;
+      if (outputRefBuilder_ != null) {
+        outputRefBuilder_.dispose();
+        outputRefBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ─────────────────────────────────────────────────────────────────────────────
+     * Offloaded Output (large tool results)
+     *
+     * When a tool's output exceeds a size threshold, the runner spills the full
+     * bytes to artifact storage and records a reference here instead of inlining
+     * megabytes into `result` on every status update. Without this, a single
+     * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+     * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+     * persistence fails silently and the live UI freezes mid-execution.
+     *
+     * When set, `result` holds only a short human-readable head/preview (so
+     * consumers that read `result` still render something sensible) and
+     * output_ref points at the full content. Empty for the overwhelming majority
+     * of tool calls — only populated when output crosses the offload threshold.
+     * See ToolCallOutputRef.
+     *
+     * Field 21: appended after tool_kind (20), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.Builder getOutputRefBuilder() {
+      bitField0_ |= 0x00080000;
+      onChanged();
+      return internalGetOutputRefFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * ─────────────────────────────────────────────────────────────────────────────
+     * Offloaded Output (large tool results)
+     *
+     * When a tool's output exceeds a size threshold, the runner spills the full
+     * bytes to artifact storage and records a reference here instead of inlining
+     * megabytes into `result` on every status update. Without this, a single
+     * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+     * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+     * persistence fails silently and the live UI freezes mid-execution.
+     *
+     * When set, `result` holds only a short human-readable head/preview (so
+     * consumers that read `result` still render something sensible) and
+     * output_ref points at the full content. Empty for the overwhelming majority
+     * of tool calls — only populated when output crosses the offload threshold.
+     * See ToolCallOutputRef.
+     *
+     * Field 21: appended after tool_kind (20), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefOrBuilder getOutputRefOrBuilder() {
+      if (outputRefBuilder_ != null) {
+        return outputRefBuilder_.getMessageOrBuilder();
+      } else {
+        return outputRef_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.getDefaultInstance() : outputRef_;
+      }
+    }
+    /**
+     * <pre>
+     * ─────────────────────────────────────────────────────────────────────────────
+     * Offloaded Output (large tool results)
+     *
+     * When a tool's output exceeds a size threshold, the runner spills the full
+     * bytes to artifact storage and records a reference here instead of inlining
+     * megabytes into `result` on every status update. Without this, a single
+     * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+     * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+     * persistence fails silently and the live UI freezes mid-execution.
+     *
+     * When set, `result` holds only a short human-readable head/preview (so
+     * consumers that read `result` still render something sensible) and
+     * output_ref points at the full content. Empty for the overwhelming majority
+     * of tool calls — only populated when output crosses the offload threshold.
+     * See ToolCallOutputRef.
+     *
+     * Field 21: appended after tool_kind (20), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef, ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.Builder, ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefOrBuilder> 
+        internalGetOutputRefFieldBuilder() {
+      if (outputRefBuilder_ == null) {
+        outputRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef, ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.Builder, ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefOrBuilder>(
+                getOutputRef(),
+                getParentForChildren(),
+                isClean());
+        outputRef_ = null;
+      }
+      return outputRefBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.ToolCall)

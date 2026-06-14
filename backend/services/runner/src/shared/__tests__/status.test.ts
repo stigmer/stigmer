@@ -123,6 +123,57 @@ describe("persistStatus", () => {
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
+
+  it("hard-elides and retries once on a resource_exhausted (code 8) failure", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const updateStatus = vi
+      .fn()
+      .mockRejectedValueOnce({ code: 8, message: "resource_exhausted: exceeds maximum size" })
+      .mockResolvedValueOnce({ signal: ExecutionControlSignal.STOP });
+    const mockClient = { updateStatus } as any;
+    const status = create(AgentExecutionStatusSchema, {
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+
+    const signal = await persistStatus(mockClient, "exec-too-big", status);
+    expect(signal).toBe(ExecutionControlSignal.STOP);
+    expect(updateStatus).toHaveBeenCalledTimes(2);
+    consoleSpy.mockRestore();
+  });
+
+  it("offloads oversized tool outputs before persisting when given an offload context", async () => {
+    const uploaded: string[] = [];
+    const offload = {
+      executionId: "exec-off",
+      artifactStorage: {
+        upload: vi.fn(async (key: string) => { uploaded.push(key); return key; }),
+        getDownloadUrl: vi.fn(async (key: string) => `https://artifacts.local/${key}`),
+        exists: vi.fn(async () => true),
+      },
+      maxInlineBytes: 256,
+    };
+    const mockClient = {
+      updateStatus: vi.fn().mockResolvedValue({ signal: ExecutionControlSignal.UNSPECIFIED }),
+    } as any;
+    const { AgentMessageSchema, ToolCallSchema } = await import(
+      "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb"
+    );
+    const status = create(AgentExecutionStatusSchema, {
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      messages: [
+        create(AgentMessageSchema, {
+          toolCalls: [create(ToolCallSchema, { id: "t", name: "Shell", result: "X".repeat(5000) })],
+        }),
+      ],
+    });
+
+    await persistStatus(mockClient, "exec-off", status, offload);
+
+    expect(uploaded).toHaveLength(1);
+    const [, persisted] = mockClient.updateStatus.mock.calls[0];
+    expect(persisted.messages[0].toolCalls[0].outputRef).toBeDefined();
+    expect(persisted.messages[0].toolCalls[0].result.length).toBeLessThan(5000);
+  });
 });
 
 describe("reportSetupProgress", () => {
