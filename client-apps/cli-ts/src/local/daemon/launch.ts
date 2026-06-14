@@ -91,7 +91,41 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
 
   await waitForTcp({ port: SERVER_PORT, timeoutMs: READY_TIMEOUT_MS, label: "stigmer-server" });
 
+  await applySeedpackBestEffort(home);
+
   saveStartupConfig(data, buildStartupConfig(data, logs, temporal.address, config, daemonPid, options));
+}
+
+/**
+ * Bootstrap the system seedpack into the freshly-started local backend (the TS
+ * equivalent of the Go daemon's EnsureSeedpackBootstrapped). Idempotent via a
+ * content-hash marker, so repeated `up`s are cheap. Best-effort: the stack is
+ * already serving by this point, so a seedpack failure is surfaced as a warning
+ * with a retry hint rather than tearing the stack down.
+ */
+async function applySeedpackBestEffort(home: string): Promise<void> {
+  try {
+    const [{ connectBackend }, { applySeedpack }] = await Promise.all([
+      import("../../backend.js"),
+      import("../seedpack/apply.js"),
+    ]);
+    const client = connectBackend();
+    const result = await applySeedpack(
+      {
+        controller: client.controller,
+        stigmer: client.stigmer,
+        info: (line) => process.stderr.write(`${line}\n`),
+        warn: (line) => process.stderr.write(`${line}\n`),
+      },
+      { markerDir: dataDir(home), home },
+    );
+    log.debug("seedpack bootstrap complete", { applied: result.applied, hash: result.hash, org: result.org });
+  } catch (err) {
+    log.warn("seedpack bootstrap failed", { error: String(err) });
+    process.stderr.write(
+      "Warning: failed to apply system resources (seedpack). Run 'stigmer seedpack apply' to retry.\n",
+    );
+  }
 }
 
 /** Stop the local stack. Returns false if nothing was running. */

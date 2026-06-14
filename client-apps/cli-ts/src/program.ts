@@ -29,6 +29,7 @@ import { registerReset } from "./commands/reset.js";
 import { registerResume } from "./commands/resume.js";
 import { registerRun } from "./commands/run.js";
 import { registerSearch } from "./commands/search.js";
+import { registerSeedpack } from "./commands/seedpack.js";
 import { registerSetup } from "./commands/setup.js";
 import { registerStatus } from "./commands/status.js";
 import { registerTag } from "./commands/tag.js";
@@ -90,6 +91,7 @@ export function buildProgram(): Command {
   registerDown(program);
   registerStatus(program);
   registerLogs(program);
+  registerSeedpack(program);
   registerSetup(program);
   registerReset(program);
   registerInternalDaemon(program);

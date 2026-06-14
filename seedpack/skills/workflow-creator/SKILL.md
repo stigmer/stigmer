@@ -1,5 +1,6 @@
 ---
 name: workflow-creator
+visibility: public
 description: >
   Create, refine, and diagnose Stigmer Workflow YAML files conforming to the
   agentic.stigmer.ai/v1 API. Use this skill whenever the user wants to build a
