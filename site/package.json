@@ -19,6 +19,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "test:demos": "playwright test --project=desktop",
     "test:demos:visibility": "playwright test e2e/demos/demo-visibility.spec.ts --project=desktop --project=ipad",
     "test:demos:all-viewports": "playwright test --project=desktop --project=ipad",
@@ -70,6 +72,8 @@
     "@playwright/test": "^1.59.1",
     "@scenar/cli": "0.1.19",
     "@tailwindcss/postcss": "^4.0.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22.10.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -78,11 +82,13 @@
     "eslint": "^9.17.0",
     "eslint-config-next": "15.3.9",
     "gray-matter": "^4.0.3",
+    "happy-dom": "^20.8.4",
     "msw": "^2.7.3",
     "png-to-ico": "^3.0.1",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
   }
 }

@@ -7,7 +7,7 @@ import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { ImageZoom } from "fumadocs-ui/components/image-zoom";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Card, Cards } from "fumadocs-ui/components/card";
-import { DemoAgentCreationTour, DemoAgentDetail, DemoApiKeySetup, DemoApprovalFlowPlayback, DemoAuthenticationFlowPlayback, DemoByoaSetup, DemoConnectPlayback, DemoConnectToolsTour, DemoCreateAgentTour, DemoFederationOverviewTour, DemoFirstSkillTour, DemoMarketplaceConnectTour, DemoMcpServerCreationTour, DemoMcpServerDetail, DemoMultiTenantJitPlayback, DemoMultiTenantSetupPlayback, DemoOAuthConnectFlow, DemoPlatformClientSetupTour, DemoPlatformClientTokenFlow, DemoProvisionGrantPlayback, DemoQuickstartPlayback, DemoQuickstartTour, DemoRegisterIdpPlayback, DemoSkillCreationTour, DemoSkillDetail, DemoSsoLoginPlayback, DemoToolCallsPlayback, Mermaid, ReactSdkDomains, SDKTabs, Term } from "@/components/docs";
+import { DemoAgentCreationTour, DemoAgentDetail, DemoApiKeySetup, DemoApprovalFlowPlayback, DemoAuthenticationFlowPlayback, DemoByoaSetup, DemoConnectPlayback, DemoConnectToolsTour, DemoCreateAgentTour, DemoFederationOverviewTour, DemoFirstSkillTour, DemoMarketplaceConnectTour, DemoMcpServerCreationTour, DemoMcpServerDetail, DemoMultiTenantJitPlayback, DemoMultiTenantSetupPlayback, DemoOAuthConnectFlow, DemoPlatformClientSetupTour, DemoPlatformClientTokenFlow, DemoProvisionGrantPlayback, DemoQuickstartPlayback, DemoQuickstartTour, DemoRegisterIdpPlayback, DemoSkillCreationTour, DemoSkillDetail, DemoSsoLoginPlayback, DemoToolCallsPlayback, Mermaid, ReactSdkDomains, ScenarEmbed, SDKTabs, Term } from "@/components/docs";
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
@@ -54,6 +54,7 @@ export function getMDXComponents(components?: MDXComponents) {
     DemoToolCallsPlayback,
     Mermaid,
     ReactSdkDomains,
+    ScenarEmbed,
     SDKTabs,
     Term,
     ...components,
