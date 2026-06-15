@@ -524,4 +524,74 @@ describe("streamExecutionV3", () => {
       expect(status.streamingUsage!.inputTokens).toBe(10n);
     });
   });
+
+  describe("image offload through the persist chokepoint", () => {
+    it("offloads an MCP image tool result to a renderable ToolCallOutputRef", async () => {
+      // End-to-end: a tool returns image content blocks; the builder stores them
+      // faithfully (no truncation), and the persist chokepoint offloads the image
+      // to artifact storage so the persisted ToolCall carries outputRef.isImage.
+      const uploads: { key: string; size: number; contentType?: string }[] = [];
+      const artifactStorage = {
+        upload: vi.fn(async (key: string, content: Buffer, contentType?: string) => {
+          uploads.push({ key, size: content.length, contentType });
+          return key;
+        }),
+        getDownloadUrl: vi.fn(async (key: string) => `https://artifacts.local/${key}`),
+        exists: vi.fn(async () => true),
+      } as any;
+
+      const base64 = Buffer.from("PNGBYTES".repeat(64)).toString("base64");
+      const imageEnvelope = {
+        lc: 1,
+        type: "constructor",
+        id: ["langchain_core", "messages", "ToolMessage"],
+        kwargs: {
+          status: "success",
+          content: [{ type: "image", data: base64, mimeType: "image/png" }],
+          tool_call_id: "toolu_1",
+        },
+      };
+
+      const events = [
+        makeEvent(0, "messages", { event: "message-start", run_id: "r1" }),
+        makeToolStartedEvent(1, "screenshot", {}),
+        makeEvent(2, "tools", {
+          event: "tool-finished",
+          tool_call_id: "toolu_1",
+          output: imageEnvelope,
+        }, { namespace: ["tools:toolu_1"] }),
+        makeEvent(3, "messages", { event: "message-finish", run_id: "r1" }),
+      ];
+      const graph = mockV3Graph(events, { messages: [] });
+
+      const persisted: any[] = [];
+      const updateStatus = vi.fn(async (_id: string, status: any) => {
+        persisted.push(status);
+        return { signal: 0 };
+      });
+
+      const promise = streamExecutionV3(baseDeps({
+        agentGraph: graph,
+        client: { updateStatus } as any,
+        offload: { artifactStorage, executionId: "exec-v3-test" },
+      }));
+      await vi.runAllTimersAsync();
+      await promise;
+
+      // Find a persisted snapshot whose tool call carries the image ref.
+      const refTc = persisted
+        .flatMap((s) => s.messages)
+        .flatMap((m: any) => m.toolCalls)
+        .find((tc: any) => tc?.id === "toolu_1" && tc?.outputRef);
+
+      expect(refTc).toBeDefined();
+      expect(refTc.outputRef.isImage).toBe(true);
+      expect(refTc.outputRef.mimeType).toBe("image/png");
+      expect(refTc.outputRef.downloadUrl).toContain("artifacts/exec-v3-test/toolcalls/toolu_1.png");
+      // The base64 must not survive inline on the persisted result.
+      expect(refTc.result).not.toContain(base64);
+      expect(uploads).toHaveLength(1);
+      expect(uploads[0].contentType).toBe("image/png");
+    });
+  });
 });

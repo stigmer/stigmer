@@ -150,7 +150,7 @@ async function executeCursorInner(
   // single size-bounding guard (offload + aggregate elision) is unforgeable and
   // a future call site cannot accidentally skip it.
   const persist = (s: AgentExecutionStatus = status) =>
-    persistStatus(client, executionId, s, statusOffload);
+    persistStatus(client, executionId, s, { offload: statusOffload });
 
   let sessionId: string | undefined;
   let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;

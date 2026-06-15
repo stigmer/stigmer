@@ -69,14 +69,34 @@ export function toBigInt(value: unknown): bigint {
 
 // ── Tool Result Extraction ─────────────────────────────────────────
 
-export const MAX_TOOL_RESULT_CHARS = 50_000;
+/**
+ * Serialize a LangChain message `content` field into the canonical tool-result
+ * string.
+ *
+ * Text-only content is a plain string and passes through unchanged. Multimodal
+ * content (image, or mixed text+image — e.g. a computer-use screenshot) is an
+ * array of content blocks; we serialize the blocks array ITSELF, not the
+ * surrounding message envelope, so the result lands in the exact top-level-array
+ * shape the persist-time offload (`detectImagePayload`/`contentBlocks` in
+ * status-offload.ts) consumes to lift the image out into a renderable
+ * `ToolCallOutputRef`. Serializing the envelope instead would bury the base64
+ * one level deeper and defeat that detection.
+ *
+ * Returns undefined when `content` is neither a string nor an array, letting the
+ * caller fall back to serializing whatever else it holds.
+ */
+function serializeToolContent(content: unknown): string | undefined {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) return JSON.stringify(content);
+  return undefined;
+}
 
 export function extractToolResult(data: Record<string, unknown>): string {
   const output = data.output;
   if (typeof output === "string") return output;
   if (typeof output === "object" && output !== null) {
-    const content = (output as Record<string, unknown>).content;
-    if (typeof content === "string") return content;
+    const fromContent = serializeToolContent((output as Record<string, unknown>).content);
+    if (fromContent !== undefined) return fromContent;
   }
   try {
     return JSON.stringify(output ?? data);
@@ -96,9 +116,11 @@ export function extractToolResultV3(output: unknown): string {
     const obj = output as Record<string, unknown>;
     const kwargs = obj.kwargs as Record<string, unknown> | undefined;
     if (kwargs) {
-      if (typeof kwargs.content === "string") return kwargs.content;
+      const fromKwargs = serializeToolContent(kwargs.content);
+      if (fromKwargs !== undefined) return fromKwargs;
     }
-    if (typeof obj.content === "string") return obj.content;
+    const fromContent = serializeToolContent(obj.content);
+    if (fromContent !== undefined) return fromContent;
   }
   try {
     return JSON.stringify(output);

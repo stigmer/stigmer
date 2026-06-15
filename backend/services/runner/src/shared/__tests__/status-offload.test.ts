@@ -57,6 +57,21 @@ describe("detectImagePayload", () => {
   it("returns null for plain text", () => {
     expect(detectImagePayload("just some logs")).toBeNull();
   });
+
+  it("extracts an image from a serialized LangChain envelope (kwargs.content)", () => {
+    // Defensive shape: blocks nested under kwargs.content rather than a
+    // top-level array. The extractor normalizes to a top-level array, but
+    // detection must still cope if that ever drifts.
+    const result = JSON.stringify({
+      lc: 1,
+      type: "constructor",
+      id: ["langchain_core", "messages", "ToolMessage"],
+      kwargs: { content: [{ type: "image", data: BIG_BASE64_IMAGE, mimeType: "image/png" }] },
+    });
+    const img = detectImagePayload(result);
+    expect(img?.mimeType).toBe("image/png");
+    expect(img?.base64).toBe(BIG_BASE64_IMAGE);
+  });
 });
 
 describe("offloadOversizedToolOutputs", () => {
@@ -104,6 +119,32 @@ describe("offloadOversizedToolOutputs", () => {
     expect(out.result).toContain("view full output");
     expect(uploads).toHaveLength(1);
     expect(uploads[0].contentType).toBe("text/plain");
+  });
+
+  it("offloads a SMALL image regardless of size (output_ref is the only render path)", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    // A tiny image, far below the inline byte budget. It must still offload,
+    // because the UI can only render an image through ToolCallOutputRef.
+    const smallImage = Buffer.from("tiny-png").toString("base64");
+    const result = JSON.stringify([
+      { type: "image", data: smallImage, mimeType: "image/png" },
+    ]);
+    const tc = create(ToolCallSchema, { id: "tc-img", name: "screenshot", result });
+    const status = statusWithToolCall(tc);
+    expect(result.length).toBeLessThan(256);
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineBytes: 256,
+    });
+
+    const out = status.messages[0].toolCalls[0];
+    expect(out.outputRef?.isImage).toBe(true);
+    expect(out.outputRef?.downloadUrl).toContain("artifacts/exec-1/toolcalls/tc-img.png");
+    expect(out.result).not.toContain(smallImage);
+    expect(uploads).toHaveLength(1);
+    expect(uploads[0].contentType).toBe("image/png");
   });
 
   it("leaves small results untouched (no artifact, no ref)", async () => {

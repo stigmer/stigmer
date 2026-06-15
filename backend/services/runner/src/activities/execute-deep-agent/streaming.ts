@@ -33,8 +33,9 @@ import {
   StreamingUpdateScheduler,
   type StreamingConfig,
 } from "./streaming-scheduler.js";
-import { persistWithRetry, type RetryOptions } from "../../shared/grpc-retry.js";
-import { slimStatus, utcTimestamp } from "../../shared/status.js";
+import { type RetryOptions } from "../../shared/grpc-retry.js";
+import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
+import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
 import type { InlinePublisher } from "./inline-publisher.js";
@@ -59,6 +60,13 @@ export interface StreamDependencies {
   readonly initialStatus: AgentExecutionStatus;
   readonly streamingConfig?: StreamingConfig;
   readonly retryOptions?: RetryOptions;
+  /**
+   * Offload context for the persist chokepoint. When set, oversized tool
+   * outputs (e.g. computer-use screenshots) are spilled to artifact storage so
+   * the UI can render them; when omitted, the aggregate size backstop still
+   * keeps the payload under the gRPC cap.
+   */
+  readonly offload?: ToolOutputOffloadContext;
   readonly stallTimeoutMs?: number;
   /** Temporal heartbeat. Injected so the loop is testable without Temporal. */
   readonly heartbeatFn?: (details: Record<string, unknown>) => void;
@@ -112,6 +120,7 @@ async function streamExecutionV2(
     initialStatus,
     streamingConfig,
     retryOptions,
+    offload,
     stallTimeoutMs = DEFAULT_STALL_TIMEOUT_MS,
     heartbeatFn,
     isCancelledFn,
@@ -179,11 +188,11 @@ async function streamExecutionV2(
           statusBuilder.clearForceFlag();
         }
 
-        const signal = await persistWithRetry(
+        const signal = await persistStatus(
           client,
           executionId,
           statusBuilder.currentStatus,
-          retryOptions,
+          { offload, retry: retryOptions },
         );
         scheduler.markUpdateSent(eventsProcessed);
 

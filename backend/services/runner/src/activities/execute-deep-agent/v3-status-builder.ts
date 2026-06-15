@@ -36,7 +36,6 @@ import {
   UsageAccumulator,
   extractToolResultV3,
   sanitizeArgsPreview,
-  MAX_TOOL_RESULT_CHARS,
 } from "./status-builder-shared.js";
 import { SubAgentTracker } from "./subagent-tracker.js";
 
@@ -296,11 +295,12 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     const tc = this.state.toolCalls.get(callId);
     if (!tc) return;
 
-    const result = extractToolResultV3(output);
+    // Store the faithful result; bounding the gRPC payload is owned solely by
+    // the persist chokepoint (offload + enforce in status.ts/status-offload.ts).
+    // Truncating here would corrupt binary content (e.g. a screenshot's base64)
+    // before offload can lift it into a renderable ToolCallOutputRef.
     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-    tc.result = result.length > MAX_TOOL_RESULT_CHARS
-      ? result.slice(0, MAX_TOOL_RESULT_CHARS) + `\n[truncated: ${result.length} chars total]`
-      : result;
+    tc.result = extractToolResultV3(output);
     tc.completedAt = utcTimestamp();
     tc.isStreaming = false;
     this.state.toolStartTimes.delete(callId);

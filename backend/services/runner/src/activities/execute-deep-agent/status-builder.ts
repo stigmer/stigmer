@@ -34,7 +34,6 @@ import {
   UsageAccumulator,
   extractToolResult,
   sanitizeArgsPreview,
-  MAX_TOOL_RESULT_CHARS,
 } from "./status-builder-shared.js";
 
 /** Minimal LangGraph streamEvents v2 event shape. */
@@ -290,11 +289,10 @@ export class StatusBuilder {
       tc.status = ToolCallStatus.TOOL_CALL_FAILED;
       tc.error = errorMsg;
     } else {
+      // Faithful result only; payload size is bounded at the persist chokepoint
+      // (see v3 builder note). Truncating here would corrupt image base64.
       tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-      const result = extractToolResult(event.data);
-      tc.result = result.length > MAX_TOOL_RESULT_CHARS
-        ? result.slice(0, MAX_TOOL_RESULT_CHARS) + `\n[truncated: ${result.length} chars total]`
-        : result;
+      tc.result = extractToolResult(event.data);
     }
 
     tc.completedAt = utcTimestamp();

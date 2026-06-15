@@ -118,8 +118,16 @@ function matchDataUrl(s: string): ImagePayload | null {
 function contentBlocks(parsed: unknown): unknown[] {
   if (Array.isArray(parsed)) return parsed;
   if (parsed && typeof parsed === "object") {
-    const c = (parsed as Record<string, unknown>).content;
-    if (Array.isArray(c)) return c;
+    const obj = parsed as Record<string, unknown>;
+    if (Array.isArray(obj.content)) return obj.content;
+    // Defensive: a serialized LangChain ToolMessage envelope nests its blocks
+    // under kwargs.content. The deep-agent extractor already normalizes image
+    // results to a top-level array (status-builder-shared.ts), so this branch is
+    // insurance against future shape drift — not the primary path.
+    const kwargs = obj.kwargs;
+    if (kwargs && typeof kwargs === "object" && Array.isArray((kwargs as Record<string, unknown>).content)) {
+      return (kwargs as Record<string, unknown>).content as unknown[];
+    }
   }
   return [];
 }
@@ -187,7 +195,7 @@ async function maybeOffloadToolCall(
   maxBytes: number,
 ): Promise<void> {
   const result = tc.result;
-  if (!result || byteLen(result) <= maxBytes) return;
+  if (!result) return;
 
   const hash = sha256(result);
 
@@ -199,6 +207,10 @@ async function maybeOffloadToolCall(
     return;
   }
 
+  // Images are offloaded regardless of size, BEFORE the size gate below: a
+  // `ToolCallOutputRef` is the only path the UI has to render an image inline,
+  // so even a sub-threshold screenshot must be lifted out of `result` into a
+  // renderable ref. Non-image text only offloads when it exceeds maxBytes.
   const image = detectImagePayload(result);
   if (image) {
     const bytes = Buffer.from(image.base64, "base64");
@@ -217,6 +229,10 @@ async function maybeOffloadToolCall(
     tc.result = collapsedResultFor(tc.outputRef);
     return;
   }
+
+  // Non-image text below the inline budget stays inline; only oversized text is
+  // spilled (with a head preview) to keep the persisted payload bounded.
+  if (byteLen(result) <= maxBytes) return;
 
   const content = Buffer.from(result, "utf8");
   const key = `artifacts/${ctx.executionId}/toolcalls/${tc.id}.txt`;

@@ -300,7 +300,10 @@ describe("StatusBuilder", () => {
       expect(tc.error).toBe("permission denied");
     });
 
-    it("truncates long results", () => {
+    it("stores the full result faithfully (no builder-level truncation)", () => {
+      // Size-bounding is owned by the persist chokepoint (offload + enforce),
+      // not the builder. The builder must reflect the stream verbatim so binary
+      // content (e.g. a screenshot's base64) survives intact for offload.
       const sb = makeBuilder();
       sb.processEvent(chatStreamEvent("run-1", "text"));
       sb.processEvent(toolStartEvent("tool-run-1", "read"));
@@ -309,8 +312,8 @@ describe("StatusBuilder", () => {
       sb.processEvent(toolEndEvent("tool-run-1", longResult));
 
       const tc = sb.currentStatus.messages[0].toolCalls[0];
-      expect(tc.result.length).toBeLessThan(longResult.length);
-      expect(tc.result).toContain("[truncated:");
+      expect(tc.result).toBe(longResult);
+      expect(tc.result).not.toContain("[truncated:");
     });
 
     it("sets forceNextUpdate", () => {

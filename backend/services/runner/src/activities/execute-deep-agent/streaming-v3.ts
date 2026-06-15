@@ -17,8 +17,7 @@ import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder
 import { normalize } from "./v3-protocol-normalizer.js";
 import { V3StatusBuilder } from "./v3-status-builder.js";
 import { StreamingUpdateScheduler } from "./streaming-scheduler.js";
-import { persistWithRetry } from "../../shared/grpc-retry.js";
-import { slimStatus } from "../../shared/status.js";
+import { persistStatus, slimStatus } from "../../shared/status.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import {
   handlePause,
@@ -49,6 +48,7 @@ export async function streamExecutionV3(
     initialStatus,
     streamingConfig,
     retryOptions,
+    offload,
     stallTimeoutMs = DEFAULT_STALL_TIMEOUT_MS,
     heartbeatFn,
     isCancelledFn,
@@ -118,11 +118,11 @@ export async function streamExecutionV3(
         }
 
         statusBuilder.syncSubAgentExecutions();
-        const signal = await persistWithRetry(
+        const signal = await persistStatus(
           client,
           executionId,
           statusBuilder.currentStatus,
-          retryOptions,
+          { offload, retry: retryOptions },
         );
         scheduler.markUpdateSent(eventsProcessed);
 
