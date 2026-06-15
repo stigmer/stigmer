@@ -74,7 +74,7 @@ export interface ProjectInput {
   members?: ResourceRef[];
 }
 
-function buildProjectProto(input: ProjectInput): Project {
+export function buildProjectProto(input: ProjectInput): Project {
   const members = input.members?.map(r => create(ApiResourceReferenceSchema, r));
   return Object.assign(create(ProjectSchema), {
     apiVersion: "tenancy.stigmer.ai/v1",

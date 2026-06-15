@@ -1007,7 +1007,10 @@ func generateTSBuildProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 		}
 	}
 
-	fmt.Fprintf(buf, "function build%sProto(input: %s): %s {\n", cfg.protoResType, inputName, cfg.protoResType)
+	// Exported (not re-exported from index.ts) so the package-internal synth/
+	// layer can construct full protos from the ergonomic *Input without
+	// duplicating the field mapping (DD-009 §4).
+	fmt.Fprintf(buf, "export function build%sProto(input: %s): %s {\n", cfg.protoResType, inputName, cfg.protoResType)
 
 	for _, f := range preComputed {
 		emitTSPreComputeField(buf, f, typeMap, imports)

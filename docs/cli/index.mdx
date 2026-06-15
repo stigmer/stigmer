@@ -27,8 +27,9 @@ curl -fsSL https://get.stigmer.ai | sh
 
 ```bash
 git clone https://github.com/stigmer/stigmer.git
-cd stigmer/client-apps/cli
-go install ./cmd/stigmer/
+cd stigmer
+npm install
+npm start -w @stigmer/cli -- --help
 ```
 
 ## Backend modes

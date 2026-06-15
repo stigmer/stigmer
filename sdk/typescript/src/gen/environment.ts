@@ -101,7 +101,7 @@ export interface EnvironmentInput {
   data?: Record<string, EnvVarInput>;
 }
 
-function buildEnvironmentProto(input: EnvironmentInput): Environment {
+export function buildEnvironmentProto(input: EnvironmentInput): Environment {
   let data;
   if (input.data) {
     data = Object.fromEntries(Object.entries(input.data).map(([k, v]) =>

@@ -110,13 +110,6 @@ backend/services/*/agent-runner
 backend/services/*/cmd/*/server
 backend/services/*/server
 
-# CLI binaries (build artifacts, not committed)
-/cli
-client-apps/cli/embedded/binaries/
-
-# Embedded web console assets (built from client-apps/web via `make web-console-build`)
-client-apps/cli/embedded/webconsole/out/
-
 # Bazel build outputs
 bazel-*
 /MODULE.bazel.lock

@@ -1,0 +1,18 @@
+# Stigmer project (SDK synthesis track).
+#
+# Because `spec.entry_point` is set, `stigmer apply` runs the entry point to
+# synthesize resources programmatically (rather than scanning for YAML files).
+# The runtime is inferred from the entry point's extension (.ts -> node), so
+# there is no separate `runtime` field.
+
+apiVersion: tenancy.stigmer.ai/v1
+kind: Project
+
+metadata:
+  name: typescript-quickstart
+  # org is optional here; `stigmer apply --org <org>` or your CLI context
+  # supplies it, and the SDK reads STIGMER_ORG_ID during synthesis.
+
+spec:
+  entry_point: index.ts
+  description: Minimal TypeScript project using @stigmer/sdk/synth

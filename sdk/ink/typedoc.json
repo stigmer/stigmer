@@ -34,7 +34,9 @@
       "isTerminalPhase": "/docs/sdk/react/execution",
       "formatCost": "/docs/sdk/react/usage",
       "formatTokenCount": "/docs/sdk/react/usage",
-      "useContextWindow": "/docs/sdk/react/execution"
+      "useContextWindow": "/docs/sdk/react/execution",
+      "useAgentSearch": "/docs/sdk/react/agent",
+      "useSessionList": "/docs/sdk/react/session"
     },
     "@stigmer/protos": {
       "AgentExecution": "/docs/sdk/resources/agent-execution",
@@ -46,7 +48,9 @@
       "ExecutionPhase": "/docs/sdk/resources/agent-execution",
       "ToolCallStatus": "/docs/sdk/resources/agent-execution",
       "ApprovalAction": "/docs/sdk/resources/agent-execution",
-      "MessageType": "/docs/sdk/resources/agent-execution"
+      "MessageType": "/docs/sdk/resources/agent-execution",
+      "SearchResult": "/docs/sdk/resources/search",
+      "Session": "/docs/sdk/resources/session"
     }
   }
 }

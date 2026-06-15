@@ -100,19 +100,14 @@ Runs in parallel:
 - `build-darwin-amd64` (macOS Intel, cross-compiled)
 - `build-linux-amd64` (Linux x86_64)
 
-Each job builds three binaries:
+Each job builds the **`stigmer-server`** binary (API server for local mode),
+compiled from `backend/services/stigmer-server/cmd/server` with OAuth client
+credentials injected via `-ldflags`, packaged into a tarball with a checksum and
+uploaded as artifacts.
 
-1. **`stigmer`** (CLI) — sets up Go, downloads proto stubs, syncs agent-runner
-   Python source into embed directory (`sync.sh`), compiles with
-   `-tags embed_agentrunner embed_webconsole`.
-2. **`stigmer-server`** (API server for local mode) — compiled from
-   `backend/services/stigmer-server/cmd/server` with OAuth client credentials
-   injected via `-ldflags`.
-3. **`stigmer-workflow-runner`** (Temporal worker for local mode) — compiled
-   from `backend/services/workflow-runner` root package.
-
-All three are packaged into a single tarball with a checksum and uploaded as
-artifacts.
+The `stigmer` CLI itself is no longer a Go binary: it ships as the
+`@stigmer/cli` npm package (published by `release.npm-libs.yaml`) and downloads
+the matching `stigmer-server` asset on demand.
 
 ### Stage 3: Release (Conditional)
 Only runs if `should_release == true`:
@@ -126,13 +121,11 @@ Only runs if `should_release == true`:
 
 ### Tarball Contents
 
-Each tarball contains three binaries:
+Each tarball contains the server binary:
 
 | Binary | Source | Purpose |
 |--------|--------|---------|
-| `stigmer` | `client-apps/cli` | CLI (embeds agent-runner + web console) |
 | `stigmer-server` | `backend/services/stigmer-server/cmd/server` | API server for local mode |
-| `stigmer-workflow-runner` | `backend/services/workflow-runner` | Temporal worker for local mode |
 
 ### For Test Builds
 Artifacts (temporary, 90 days):
@@ -228,15 +221,6 @@ Mark as pre-release in GitHub Actions or manually edit the release.
 - Fix the code
 - Push to main (creates new test build)
 - No tags were created, nothing to clean up
-
-### Agent-Runner Sync Error
-
-**Problem:** `sync.sh` fails or agent-runner source is missing in the binary
-
-**Solution:**
-- Verify `backend/services/agent-runner/main.py` exists
-- Run `sync.sh` manually to check for errors: `cd client-apps/cli/embedded/agentrunner && ./sync.sh`
-- Ensure proto stubs are generated first (`make protos`)
 
 ### Tag Already Exists
 

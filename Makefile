@@ -4,7 +4,6 @@ GO_MODULES := \
 	apis/stubs/go \
 	backend/libs/go \
 	backend/services/stigmer-server \
-	client-apps/cli \
 	sdk/go \
 	seedpack \
 	tools
@@ -81,10 +80,9 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 .PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
 build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
-	cd client-apps/cli && go build -o ../../bin/stigmer .
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 	@echo ""
-	@echo "built: bin/stigmer, bin/stigmer-server"
+	@echo "built: bin/stigmer-server (the CLI ships as the @stigmer/cli npm package)"
 
 build-java-protos: ## Install Java proto stubs to local Maven repo
 	@echo "mvn install  apis/stubs/java"
@@ -236,12 +234,12 @@ gen-ink-sdk-docs-check: ## Verify Ink SDK docs are up to date (CI)
 	echo "✓ Ink SDK docs are up to date"
 
 gen-cli-docs: ## Generate CLI reference docs from the TypeScript command tree
-	cd client-apps/cli-ts && npx tsx scripts/gen-cli-docs.ts --output ../../docs/cli/commands/
+	cd client-apps/cli && npx tsx scripts/gen-cli-docs.ts --output ../../docs/cli/commands/
 	npx prettier --write --prose-wrap always docs/cli/commands/
 
 gen-cli-docs-check: ## Verify CLI docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
-	(cd client-apps/cli-ts && npx tsx scripts/gen-cli-docs.ts --output "$$tmpdir") && \
+	(cd client-apps/cli && npx tsx scripts/gen-cli-docs.ts --output "$$tmpdir") && \
 	for f in "$$tmpdir"/*; do \
 		bn=$$(basename "$$f"); \
 		npx prettier --stdin-filepath "docs/cli/commands/$$bn" < "$$f" > "$$f.fmt" 2>/dev/null && mv "$$f.fmt" "$$f"; \
@@ -410,7 +408,7 @@ benchmark-cursor-modes: ## Compare Cursor local vs cloud runtime latency and tok
 .PHONY: test-seedpack-static test-seedpack-transport test-seedpack-canary
 
 test-seedpack-static: ## Run seedpack static validation tests (fast, no network)
-	cd seedpack && go test -v -run TestMcpServers -count=1 ./...
+	cd seedpack && go test -v -count=1 ./...
 
 test-seedpack-transport: ## Run seedpack transport reachability tests (network required, nightly)
 	cd test/integration && go test -v -tags integration -run TestSeedpack -timeout 300s -count=1 ./...
@@ -431,7 +429,6 @@ tidy: ## Run go mod tidy on all Go modules
 
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
-       build-cli install-cli release-cli-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
        test-web test-desktop test-runner-host test-e2e check check-all \
        check-prep check-go check-node check-site check-rust check-java
@@ -559,23 +556,6 @@ release-desktop-local: ## Debug build + install to /Applications
 	@du -sh "client-apps/desktop/src-tauri/target/debug/bundle/macos/Stigmer.app" | awk '{print "  .app bundle: " $$1}'
 	@du -sh "client-apps/desktop/src-tauri/target/debug/stigmer" | awk '{print "  binary:      " $$1}'
 
-# ─── Client Apps: CLI (Go) ───────────────────
-
-build-cli: ## Build CLI binary
-	@mkdir -p bin
-	cd client-apps/cli && go build -o ../../bin/stigmer .
-	@echo "built: bin/stigmer"
-
-install-cli: ## Build CLI with dev flags + install to ~/bin
-	@mkdir -p bin $(HOME)/bin
-	@cd client-apps/cli && go build -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
-	@cp bin/stigmer $(HOME)/bin/
-	@chmod +x $(HOME)/bin/stigmer
-	@echo "installed: $(HOME)/bin/stigmer"
-	@stigmer --version 2>/dev/null || echo "cli: development build"
-
-release-cli-local: install-cli ## Alias for install-cli
-
 # ─── Client Apps: Backward-Compat Aliases ────
 
 web-build: build-web
@@ -657,7 +637,6 @@ check-go: ## check bucket: Go vet/test/build + buf lint + binaries
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
 	@mkdir -p bin
-	cd client-apps/cli && go build -o ../../bin/stigmer .
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 
 check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner)
@@ -745,38 +724,24 @@ check-deps: ## Verify runner LangChain dependency hygiene (no duplicate @langcha
 
 # ─── Local Dev ────────────────────────────────
 
-DEV_LDFLAGS :=
-
 .PHONY: local
-local: ## Build + install CLI and server for local development
-	@rm -f $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server 2>/dev/null || true
-	@rm -f /usr/local/bin/stigmer bin/stigmer bin/stigmer-server 2>/dev/null || true
-	@$(MAKE) web-console-build
-	@mkdir -p bin $(HOME)/bin
-	@cd client-apps/cli && go build -tags 'embed_webconsole' -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
+local: ## Build the local stigmer-server for development (the CLI runs from the @stigmer/cli workspace)
+	@rm -f $(HOME)/bin/stigmer 2>/dev/null || true
+	@rm -f bin/stigmer 2>/dev/null || true
+	@mkdir -p bin
 	@cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
-	@cp bin/stigmer bin/stigmer-server $(HOME)/bin/
-	@chmod +x $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server
-	@echo "installed: $(HOME)/bin/stigmer, stigmer-server"
-	@stigmer --version 2>/dev/null || echo "cli: development build"
+	@echo "built: bin/stigmer-server"
 	@echo ""
-	@echo "stigmer server will auto-detect API keys from your environment."
+	@echo "Run the CLI from source (resolves this server build automatically):"
+	@echo "  npm start -w @stigmer/cli -- up        # start the local stack"
+	@echo "  npm start -w @stigmer/cli -- --help"
+	@echo ""
+	@echo "stigmer up will auto-detect API keys from your environment."
 	@echo ""
 	@echo "  Option 1 (recommended):       export ANTHROPIC_API_KEY=sk-ant-..."
 	@echo "  Option 2:                      export OPENAI_API_KEY=sk-..."
 	@echo "  Option 3 (local, lower quality): brew install ollama && ollama serve"
 	@echo ""
-	@echo "Then run:  stigmer server"
-	@echo ""
-
-web-console-build:
-	@if [ ! -d node_modules ]; then \
-		echo "error: node_modules not found — run 'npm install' first"; exit 1; \
-	fi
-	npm run build -w client-apps/web
-	@rm -rf client-apps/cli/embedded/webconsole/out
-	@cp -r client-apps/web/out client-apps/cli/embedded/webconsole/out
-	@echo "copied: client-apps/web/out -> client-apps/cli/embedded/webconsole/out"
 
 # ─── Site ─────────────────────────────────────
 
@@ -880,8 +845,5 @@ publish-dev-maven-local: ## Local dev publish, Maven only (alias for publish-dev
 clean: ## Remove all build artifacts
 	rm -rf bin/ coverage/ coverage.txt coverage.html
 	rm -rf backend/services/stigmer-server/bin/
-	rm -rf client-apps/cli/embedded/agentrunner/source/
-	rm -rf client-apps/cli/embedded/cursorrunner/source/
-	rm -rf client-apps/cli/embedded/webconsole/out/
 	rm -rf client-apps/web/out/ client-apps/web/.next/
 	$(MAKE) -C apis clean

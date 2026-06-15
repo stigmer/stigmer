@@ -25,10 +25,8 @@ metadata:
     - typescript
 
 spec:
-  runtime: node
-  
-  # Node.js projects commonly use TypeScript with index.ts as the entry point.
-  # The SDK synthesis supports .ts, .js, .mjs, and .mts extensions.
+  # The runtime is inferred from the entry_point extension; .ts/.js/.mts/.mjs
+  # run on Node. There is no separate `runtime` field.
   entry_point: src/index.ts
   
   description: |
@@ -45,48 +43,36 @@ spec:
 
 # Node.js Runtime Details:
 #
-# Execution: The CLI runs `npx ts-node src/index.ts` for TypeScript entry points
-#            or `node src/index.js` for JavaScript entry points
+# Execution: The CLI runs `npx tsx src/index.ts` for TypeScript entry points
+#            or `node src/index.js` for JavaScript entry points.
 #
 # TypeScript Support:
-# - Automatic detection of .ts/.mts files
-# - Transpilation handled by ts-node during synthesis
+# - .ts/.mts entries are executed with tsx (no separate build step)
 # - Your tsconfig.json is respected
 #
-# Example src/index.ts structure:
+# Example src/index.ts structure (see ../typescript-quickstart for a runnable
+# version):
 #
-#   import { Context, run } from '@stigmer/sdk';
-#   import { Agent } from '@stigmer/sdk/agent';
-#   import { Workflow } from '@stigmer/sdk/workflow';
-#   
-#   async function defineResources(ctx: Context) {
-#       // Define notification routing agent
-#       const router = new Agent(ctx, {
-#           name: 'notification-router',
-#           instructions: `
-#               Route notifications to appropriate channels based on:
-#               - User preferences
-#               - Message priority
-#               - Channel availability
-#           `,
-#           mcpServers: ['slack', 'sendgrid', 'twilio']
-#       });
-#       
-#       // Define delivery workflow
-#       const deliveryWorkflow = new Workflow(ctx, {
-#           name: 'notification-delivery',
-#           tasks: [
-#               // Workflow definition...
-#           ]
-#       });
-#   }
-#   
-#   run(defineResources);
+#   import { defineProject } from "@stigmer/sdk/synth";
+#
+#   const project = defineProject((ctx) => {
+#     ctx.agent({
+#       name: "notification-router",
+#       org: process.env.STIGMER_ORG_ID ?? "",
+#       instructions: "Route notifications to the right channel by priority.",
+#     });
+#     ctx.workflow({
+#       name: "notification-delivery",
+#       org: process.env.STIGMER_ORG_ID ?? "",
+#       document: { namespace: "platform", name: "notification-delivery", version: "1.0.0" },
+#     });
+#   });
+#
+#   await project.synth();
 #
 # Package Management:
-# - Dependencies in package.json are auto-installed before synthesis
-# - Use npm, yarn, or pnpm - the SDK respects your lock files
-# - Dev dependencies are available during synthesis
+# - Declare @stigmer/sdk (and tsx) in package.json and run `npm install` before
+#   `stigmer apply`; the CLI requires node_modules to be present.
 
 # Microservice Architecture Notes:
 #

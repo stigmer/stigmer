@@ -570,6 +570,7 @@ function makeConfig() {
     checkpointerType: "memory" as const,
     checkpointerProxyEndpoint: null,
     primaryModel: "gpt-4.1",
+    cursorStreamStallTimeoutMs: 180000,
   };
 }
 

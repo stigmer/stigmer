@@ -24,6 +24,11 @@ export { FollowUpInput, type FollowUpInputProps } from "./components/FollowUpInp
 export { UsageWidget, type UsageWidgetProps } from "./components/UsageWidget.js";
 export { ContextGauge, type ContextGaugeProps } from "./components/ContextGauge.js";
 
+// Pickers (interactive search-and-select)
+export { ResourcePicker, type ResourcePickerProps, type PickerItem } from "./components/ResourcePicker.js";
+export { AgentPicker, type AgentPickerProps } from "./components/AgentPicker.js";
+export { SessionPicker, type SessionPickerProps } from "./components/SessionPicker.js";
+
 // Composed views
 export { SessionView, type SessionViewProps, type InteractionMode } from "./app/SessionView.js";
 export { SessionApp, type SessionAppProps } from "./app/SessionApp.js";

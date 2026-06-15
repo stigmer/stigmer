@@ -93,7 +93,7 @@ function buildRetentionPolicyProto(input: RetentionPolicyInput) {
   }));
 }
 
-function buildArtifactProto(input: ArtifactInput): Artifact {
+export function buildArtifactProto(input: ArtifactInput): Artifact {
   const source = input.source ? buildArtifactSourceProto(input.source) : undefined;
   const retention = input.retention ? buildRetentionPolicyProto(input.retention) : undefined;
   return Object.assign(create(ArtifactSchema), {

@@ -242,7 +242,7 @@ function buildMcpServerAuthProto(input: McpServerAuthInput) {
   return msg;
 }
 
-function buildMcpServerProto(input: McpServerInput): McpServer {
+export function buildMcpServerProto(input: McpServerInput): McpServer {
   let env;
   if (input.env) {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));

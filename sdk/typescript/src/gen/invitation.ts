@@ -73,7 +73,7 @@ export interface InvitationInput {
   label?: string;
 }
 
-function buildInvitationProto(input: InvitationInput): Invitation {
+export function buildInvitationProto(input: InvitationInput): Invitation {
   const expiresAt = input.expiresAt !== undefined ? toTimestamp(input.expiresAt) : undefined;
   return Object.assign(create(InvitationSchema), {
     apiVersion: "iam.stigmer.ai/v1",

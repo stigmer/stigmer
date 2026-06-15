@@ -58,7 +58,7 @@ export const PACKAGES = [
   // above it, so it publishes last with its deps already resolved. It pins itself
   // off `latest` via `stigmerPublish.tag` until its local-stack surface reaches
   // parity (see resolvePackageTag below).
-  "client-apps/cli-ts",
+  "client-apps/cli",
 ];
 
 function run(cmd, cwd = root) {

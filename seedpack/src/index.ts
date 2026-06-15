@@ -20,8 +20,9 @@ import { fileURLToPath } from "node:url";
 /**
  * The seedpack entries that constitute the bootstrappable project, in apply-safe
  * order. Mirrors the `//go:embed` set in `seedpack/embed.go` exactly — `tools/`
- * (build-time regeneration scripts) and `icons/` (UI assets) are deliberately
- * excluded so the content set is identical across the Go and TS delivery paths.
+ * (build-time regeneration scripts), `icons/` (UI assets), and `canary/` (CI
+ * canary-credential tracking metadata, not a resource) are deliberately excluded
+ * so the content set is identical across the Go and TS delivery paths.
  */
 export const SEEDPACK_ENTRIES = [
   "stigmer.yaml",

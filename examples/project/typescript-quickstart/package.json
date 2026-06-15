@@ -1,0 +1,12 @@
+{
+  "name": "stigmer-typescript-quickstart",
+  "private": true,
+  "type": "module",
+  "description": "Minimal Stigmer SDK-synthesis project (TypeScript)",
+  "dependencies": {
+    "@stigmer/sdk": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

@@ -291,7 +291,6 @@ go_library(
         "mcp-servers/webflow.yaml",
         "mcp-servers/wix.yaml",
         "mcp-servers/aws-iac.yaml",
-        "mcp-servers/credential-manifest.yaml",
     ],
     importpath = "github.com/stigmer/stigmer/seedpack",
     visibility = ["//visibility:public"],
@@ -303,9 +302,16 @@ go_library(
 go_test(
     name = "seedpack_test",
     srcs = [
+        "content_test.go",
         "mcp_servers_test.go",
         "seedpack_test.go",
     ],
     embed = [":seedpack"],
+    # Run via `go test` (e.g. `make test-seedpack-static`), not Bazel. The canary
+    # manifest is read from disk via runtime.Caller (it is not embedded — see
+    # embed.go), which resolves a workspace-relative path that the Bazel sandbox
+    # does not stage. Tagged "manual" so wildcard `bazel test //...` skips it,
+    # matching the go-test-only convention used by test/integration.
+    tags = ["manual"],
     deps = ["@in_gopkg_yaml_v3//:yaml_v3"],
 )

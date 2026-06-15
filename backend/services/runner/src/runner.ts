@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
+import { DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
 import { resolveRunnerBootstrap } from "./bootstrap.js";
 
@@ -64,6 +65,9 @@ export interface StigmerRunnerOptions {
 
   /** Default LLM model identifier. @default "gpt-4.1" */
   readonly primaryModel?: string;
+
+  /** No-progress bound for the Cursor harness stream (ms). @default 180000 */
+  readonly cursorStreamStallTimeoutMs?: number;
 
   /** Checkpointer type for LangGraph agent state. @default "memory" (or "http" if proxyEndpoint is set) */
   readonly checkpointerType?: "memory" | "http";
@@ -268,6 +272,8 @@ export function mapOptionsToConfig(options: StigmerRunnerOptions): Config {
       ?? options.proxyEndpoint
       ?? null,
     primaryModel: options.primaryModel ?? "gpt-4.1",
+    cursorStreamStallTimeoutMs:
+      options.cursorStreamStallTimeoutMs ?? DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
   };
 }
 

@@ -100,7 +100,7 @@ export interface IdentityProviderInput {
   tenantOrgClaim?: string;
 }
 
-function buildIdentityProviderProto(input: IdentityProviderInput): IdentityProvider {
+export function buildIdentityProviderProto(input: IdentityProviderInput): IdentityProvider {
   return Object.assign(create(IdentityProviderSchema), {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityProvider",

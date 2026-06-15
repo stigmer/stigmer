@@ -12,8 +12,10 @@
 //   - workflows/: System workflow YAML definitions
 //   - mcp-servers/: MCP server YAML definitions
 //
-// Excluded:
+// Excluded (not embedded, so they never reach the bootstrap apply path):
 //   - tools/: Build-time regeneration scripts, not runtime content
+//   - icons/: UI assets, not runtime content
+//   - canary/: CI canary-credential tracking metadata (no kind), not a resource
 package seedpack
 
 import "embed"

@@ -30,7 +30,8 @@ Three identifiers are in play, and they must line up:
    stable identifier the platform stores and that everything else
    references. Do **not** set a slug manually.
 3. **File name** — must be `{slug}.yaml` (e.g., `github.yaml`). The static
-   tests and the `credential-manifest.yaml` key off the file name.
+   tests and the canary `credential-manifest.yaml` (in `seedpack/canary/`) key
+   off the file name.
 
 > **Referencing a server from an agent.** An agent's `mcp_server_ref.slug`
 > must be the **derived slug**, not the file name with any prefix. For a

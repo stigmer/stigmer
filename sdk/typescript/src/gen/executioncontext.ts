@@ -77,7 +77,7 @@ export interface ExecutionContextInput {
   data?: Record<string, EnvVarInput>;
 }
 
-function buildExecutionContextProto(input: ExecutionContextInput): ExecutionContext {
+export function buildExecutionContextProto(input: ExecutionContextInput): ExecutionContext {
   let data;
   if (input.data) {
     data = Object.fromEntries(Object.entries(input.data).map(([k, v]) =>

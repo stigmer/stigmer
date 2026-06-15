@@ -91,7 +91,7 @@ export interface OAuthAppInput {
   vendorApprovalDocsUrl?: string;
 }
 
-function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
+export function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
   return Object.assign(create(OAuthAppSchema), {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "OAuthApp",

@@ -7,7 +7,8 @@
  * compiled index.js needs the content beside it: contentDir() resolves by
  * walking up to stigmer.yaml, which then lives at dist/stigmer.yaml. Only the
  * canonical entries are copied — kept in sync with SEEDPACK_ENTRIES in
- * src/index.ts and the //go:embed set in embed.go.
+ * src/index.ts and the //go:embed set in embed.go. Non-content siblings (tools/,
+ * icons/, canary/) are excluded by omission, so they never ship in the package.
  */
 
 import { cpSync, existsSync, mkdirSync } from "node:fs";

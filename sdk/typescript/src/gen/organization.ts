@@ -90,7 +90,7 @@ export interface OrganizationInput {
   isPersonal?: boolean;
 }
 
-function buildOrganizationProto(input: OrganizationInput): Organization {
+export function buildOrganizationProto(input: OrganizationInput): Organization {
   const identityProviderRef = (input.identityProviderRef?.slug || input.identityProviderRef?.org) ? create(ApiResourceReferenceSchema, input.identityProviderRef) : undefined;
   return Object.assign(create(OrganizationSchema), {
     apiVersion: "tenancy.stigmer.ai/v1",

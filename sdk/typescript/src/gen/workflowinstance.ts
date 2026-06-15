@@ -93,7 +93,7 @@ export interface WorkflowInstanceInput {
   executionVisibility?: WorkflowExecutionVisibility;
 }
 
-function buildWorkflowInstanceProto(input: WorkflowInstanceInput): WorkflowInstance {
+export function buildWorkflowInstanceProto(input: WorkflowInstanceInput): WorkflowInstance {
   const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
   return Object.assign(create(WorkflowInstanceSchema), {
     apiVersion: "agentic.stigmer.ai/v1",

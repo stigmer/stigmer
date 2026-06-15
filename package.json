@@ -9,7 +9,7 @@
     "sdk/ink",
     "mcp-server",
     "seedpack",
-    "client-apps/cli-ts",
+    "client-apps/cli",
     "client-apps/web",
     "client-apps/desktop",
     "tools/eslint-plugin-stigmer",

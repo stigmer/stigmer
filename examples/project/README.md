@@ -6,7 +6,15 @@ This directory contains example `stigmer.yaml` configurations demonstrating the 
 
 A Stigmer project is a directory containing a `stigmer.yaml` file that defines how your resources (agents, workflows, skills, MCP servers) are synthesized and deployed.
 
-Think of it as "Infrastructure as Code" for agentic systems. Instead of manually writing YAML for each resource, you write code in your preferred language (Go, Python, or Node.js), and Stigmer automatically discovers, validates, and deploys everything.
+Think of it as "Infrastructure as Code" for agentic systems. Instead of manually writing YAML for each resource, you write code that defines resources, and Stigmer automatically discovers, validates, and deploys everything.
+
+> **Status / runtime note.** The runtime is **inferred from the `entry_point`
+> extension** (`.ts`/`.js`/`.mts`/`.mjs` → Node, `.go` → Go, `.py` → Python) —
+> there is no separate `runtime:` field. Today the **TypeScript** SDK
+> (`@stigmer/sdk/synth`) is the implemented authoring API; Go and Python SDK
+> synthesis libraries are planned follow-ups. For a complete, runnable project,
+> start with [`typescript-quickstart/`](./typescript-quickstart). The Go/Python
+> `.yaml` files here illustrate the project *configuration* shape.
 
 ### The Big Picture
 
@@ -80,7 +88,7 @@ metadata:
   name: my-project
   org: my-org
 spec:
-  runtime: go
+  entry_point: index.ts
 ```
 
 That's it! Everything else has sensible defaults.
@@ -111,10 +119,8 @@ metadata:
     - daily-job
 
 spec:
-  # Required: SDK runtime (go | python | node)
-  runtime: python
-  
-  # Optional: Entry point file (defaults: main.go, main.py, index.ts)
+  # Required: Entry point file. The runtime is inferred from its extension
+  # (.ts/.js/.mts/.mjs -> Node, .go -> Go, .py -> Python).
   entry_point: pipelines/main.py
   
   # Optional: Human-readable description
@@ -198,29 +204,19 @@ tags:
 - **Labels**: Structured (key-value), for filtering and organization
 - **Tags**: Unstructured (strings), for flexible categorization
 
-#### spec.runtime
-
-**Type**: enum (required)  
-**Values**: `go` | `python` | `node`
-
-Determines how your entry_point is executed:
-- `go`: Runs `go run <entry_point>`
-- `python`: Runs `python <entry_point>`
-- `node`: Runs `npx ts-node <entry_point>` (TypeScript) or `node <entry_point>` (JavaScript)
-
-**Default entry points:**
-- `go` → `main.go`
-- `python` → `main.py`
-- `node` → `index.ts`
-
-See [multi-runtime-comparison.md](multi-runtime-comparison.md) for detailed comparison.
-
 #### spec.entry_point
 
-**Type**: string (optional)  
-**Default**: Runtime-specific (main.go, main.py, index.ts)
+**Type**: string (required for the SDK track)
 
-Path to the file that will be executed for SDK synthesis.
+Path to the file that will be executed for SDK synthesis. The **runtime is
+inferred from its extension** — there is no separate `runtime:` field:
+
+- `.go` → `go run <entry_point>`
+- `.py` → `python3 <entry_point>`
+- `.ts` / `.mts` → `npx tsx <entry_point>`
+- `.js` / `.mjs` → `node <entry_point>`
+
+See [multi-runtime-comparison.md](multi-runtime-comparison.md) for a comparison.
 
 **Validation rules:**
 - Must be a relative path (absolute paths rejected for security)
@@ -232,19 +228,16 @@ Path to the file that will be executed for SDK synthesis.
 
 **Examples:**
 ```yaml
-# Go with cmd/ directory structure
+# Go with cmd/ directory structure (runtime inferred: Go)
 spec:
-  runtime: go
   entry_point: cmd/deploy/main.go
 
-# Python with src/ layout
+# Python with src/ layout (runtime inferred: Python)
 spec:
-  runtime: python
   entry_point: src/workflows.py
 
-# Node.js TypeScript project
+# Node.js TypeScript project (runtime inferred: Node)
 spec:
-  runtime: node
   entry_point: src/index.ts
 ```
 
@@ -341,31 +334,22 @@ metadata:
   name: my-project
   org: my-org
 spec:
-  runtime: go  # or python, node
+  entry_point: index.ts  # runtime inferred from the extension
 ```
 
-3. **Create entry point** (e.g., main.go for Go):
-```go
-package main
+3. **Create the entry point** (`index.ts`):
+```typescript
+import { defineProject } from "@stigmer/sdk/synth";
 
-import (
-    "log"
-    "github.com/stigmer/stigmer-sdk/go/stigmer"
-    "github.com/stigmer/stigmer-sdk/go/agent"
-)
+const project = defineProject((ctx) => {
+  ctx.agent({
+    name: "my-agent",
+    org: process.env.STIGMER_ORG_ID ?? "",
+    instructions: "You are a helpful assistant...",
+  });
+});
 
-func main() {
-    err := stigmer.Run(func(ctx *stigmer.Context) error {
-        agent.New(ctx,
-            agent.WithName("my-agent"),
-            agent.WithInstructions("You are a helpful assistant..."),
-        )
-        return nil
-    })
-    if err != nil {
-        log.Fatal(err)
-    }
-}
+await project.synth();
 ```
 
 4. **Validate configuration:**
@@ -431,7 +415,7 @@ metadata:
   name: api-gateway
   # org not specified - use --org flag for different environments
 spec:
-  runtime: go
+  entry_point: index.ts
 ```
 
 ```bash
@@ -530,19 +514,17 @@ Business logic validation:
 
 ### Common Validation Errors
 
-**Error**: `entry_point extension .py incompatible with runtime go`
+**Error**: `cannot infer runtime from entry point 'main.rb' (extension '.rb')`
 ```yaml
-# ❌ Wrong extension for runtime
+# ❌ Unsupported extension
 spec:
-  runtime: go
-  entry_point: main.py  # Should be .go
+  entry_point: main.rb
 ```
 
-**Fix**:
+**Fix** (use a supported extension — `.go`, `.py`, `.ts`, `.js`, `.mts`, `.mjs`):
 ```yaml
 # ✅ Correct
 spec:
-  runtime: go
   entry_point: main.go
 ```
 
@@ -611,24 +593,21 @@ metadata:
 
 ### Entry Point Patterns
 
-**Simple projects** (default entry points):
+**Simple projects:**
 ```yaml
 spec:
-  runtime: go
-  # entry_point: main.go (implicit)
+  entry_point: index.ts
 ```
 
 **Organized codebases** (custom entry points):
 ```yaml
 spec:
-  runtime: python
-  entry_point: src/workflows.py  # Explicit path
+  entry_point: src/workflows.py  # runtime inferred: Python
 ```
 
 **Monorepo patterns** (scoped entry points):
 ```yaml
 spec:
-  runtime: node
   entry_point: packages/notifications/src/index.ts
 ```
 
@@ -704,11 +683,10 @@ Error: yaml: line 5: mapping values are not allowed in this context
 **Example:**
 ```yaml
 spec:
-  runtime: python
-  entry_point: main.go  # Wrong extension
+  entry_point: main.rb  # Unsupported extension
 ```
 
-**Solution**: Match extension to runtime
+**Solution**: Use a supported extension (the runtime is inferred from it)
 - Go: `.go`
 - Python: `.py`
 - Node.js: `.ts`, `.js`, `.mjs`, `.mts`
@@ -788,12 +766,15 @@ stigmer apply
      instructions: "..."
    ```
    
-   ```go
-   // New: main.go
-   agent.New(ctx,
-       agent.WithName("support-bot"),
-       agent.WithInstructions("..."),
-   )
+   ```typescript
+   // New: index.ts
+   import { defineProject } from "@stigmer/sdk/synth";
+
+   const project = defineProject((ctx) => {
+     ctx.agent({ name: "support-bot", org: process.env.STIGMER_ORG_ID ?? "", instructions: "..." });
+   });
+
+   await project.synth();
    ```
 
 4. **Run `stigmer apply`** to deploy from SDK
@@ -847,7 +828,7 @@ metadata:
   labels:
     tier: critical
 spec:
-  runtime: go
+  entry_point: index.ts
 ```
 
 ```bash
@@ -861,10 +842,10 @@ stigmer apply --org production-team
 ```
 
 SDK code can check environment variables for environment-specific behavior:
-```go
-env := os.Getenv("ENVIRONMENT")  // Set in CI/CD
-if env == "production" {
-    // Production-specific configuration
+```typescript
+const env = process.env.ENVIRONMENT; // Set in CI/CD
+if (env === "production") {
+  // Production-specific configuration
 }
 ```
 

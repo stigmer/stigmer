@@ -110,7 +110,7 @@ export interface SkillInput {
   description?: string;
 }
 
-function buildSkillProto(input: SkillInput): Skill {
+export function buildSkillProto(input: SkillInput): Skill {
   return Object.assign(create(SkillSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Skill",

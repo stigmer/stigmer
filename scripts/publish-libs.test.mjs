@@ -20,8 +20,8 @@ test("PACKAGES publishes @stigmer/seedpack before the CLI that acquires it", () 
   // the build:libs order and the acquire relationship.
   assert.ok(PACKAGES.includes("seedpack"), "seedpack must be in PACKAGES");
   assert.ok(
-    PACKAGES.indexOf("seedpack") < PACKAGES.indexOf("client-apps/cli-ts"),
-    "seedpack must publish before client-apps/cli-ts",
+    PACKAGES.indexOf("seedpack") < PACKAGES.indexOf("client-apps/cli"),
+    "seedpack must publish before client-apps/cli",
   );
 });
 

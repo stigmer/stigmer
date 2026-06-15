@@ -20,14 +20,15 @@ Use this mapping to decide which targets to run. A file matching **any** row tri
 | File pattern | Make target | What it checks |
 |---|---|---|
 | `apis/**` | `make -C apis lint` | Proto linting (buf lint) |
-| `backend/**/*.go`, `client-apps/cli/**/*.go`, `mcp-server/**/*.go`, `sdk/go/**/*.go`, `tools/**/*.go` | `make tidy && make lint` (Go portions only: `go vet` + `gofmt`) | Go vet, format, mod tidy |
+| `backend/**/*.go`, `mcp-server/**/*.go`, `sdk/go/**/*.go`, `tools/**/*.go` | `make tidy && make lint` (Go portions only: `go vet` + `gofmt`) | Go vet, format, mod tidy |
 | `backend/services/agent-runner/**/*.py`, `backend/libs/python/**/*.py` | Python lint from `make lint` (`ruff check`, `mypy`) | Python lint + type check |
 | `sdk/typescript/src/**` | `npm run typecheck -w @stigmer/sdk` | SDK TypeScript type check |
 | `sdk/react/src/**` | `npm run lint -w @stigmer/react && npm run typecheck -w @stigmer/react` | React SDK lint + type check |
 | `sdk/ink/src/**` | `npm run typecheck -w @stigmer/ink` | Ink SDK type check |
 | `client-apps/web/src/**` | `npm run lint -w client-apps/web` | Web console lint (includes theme token rules) |
 | `client-apps/desktop/src/**`, `client-apps/desktop/src-tauri/**` | `make verify-desktop` | Desktop lint + typecheck + cargo check |
-| `client-apps/cli/**/*.go` | `make build` (CLI binary) | CLI builds cleanly |
+| `client-apps/cli/src/**`, `client-apps/cli/scripts/**` | `npm run typecheck -w @stigmer/cli && npm run test -w @stigmer/cli` | CLI type check + tests |
+| `client-apps/cli/docs/**`, `client-apps/cli/src/**` | `make gen-cli-docs-check` | CLI reference docs are up to date |
 | `backend/services/stigmer-server/**/*.go` | `make build` (server binary) | Server builds cleanly |
 | `docs/**/*.md`, `docs/**/*.mdx` | `make lint-docs && make format-docs-check` | Vale prose lint + Prettier format |
 | `site/**` | `make -C site lint && make -C site typecheck` | Site lint + typecheck |

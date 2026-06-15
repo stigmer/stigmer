@@ -1,0 +1,83 @@
+{
+  "name": "@stigmer/cli",
+  "version": "0.0.0-dev",
+  "description": "Stigmer command-line interface — manage agents, workflows, MCP servers, skills, and executions from the terminal",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "stigmer": "./dist/cli/stigmer.js"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/cli/stigmer.ts",
+    "typecheck": "tsc --noEmit",
+    "gen-docs": "tsx scripts/gen-cli-docs.ts --output ../../docs/cli/commands/",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "keywords": [
+    "stigmer",
+    "cli",
+    "ai-agents",
+    "workflows",
+    "grpc"
+  ],
+  "stigmerPublish": {
+    "tag": "next"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "bin": {
+      "stigmer": "./dist/cli/stigmer.js"
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "client-apps/cli"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.0.0",
+    "@connectrpc/connect": "^2.0.0",
+    "@connectrpc/connect-node": "^2.1.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@stigmer/ink": "*",
+    "@stigmer/mcp-server": "*",
+    "@stigmer/protos": "*",
+    "@stigmer/sdk": "*",
+    "commander": "^12.1.0",
+    "fflate": "^0.8.3",
+    "ink": "^7.0.0",
+    "open": "^10.1.0",
+    "react": "^19.0.0",
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19",
+    "ink-testing-library": "^4.0.0",
+    "tsx": "^4.19.4",
+    "vitest": "^3.2.4"
+  }
+}

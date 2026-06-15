@@ -20,10 +20,14 @@ describe("listContentFiles", () => {
     expect([...files]).toEqual([...files].sort());
   });
 
-  it("only lists files under the canonical entries (no tools/ or icons/)", () => {
+  it("only lists files under the canonical entries (no tools/, icons/, or canary/)", () => {
     const files = listContentFiles();
     expect(files.some((f) => f.startsWith("tools/"))).toBe(false);
     expect(files.some((f) => f.startsWith("icons/"))).toBe(false);
+    expect(files.some((f) => f.startsWith("canary/"))).toBe(false);
+    // The CI canary manifest is a non-resource (no kind); it must never enter the
+    // content set, or the declarative-apply bootstrap rejects it as kind-less.
+    expect(files.some((f) => f.endsWith("credential-manifest.yaml"))).toBe(false);
   });
 });
 

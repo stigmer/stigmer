@@ -18,23 +18,17 @@ metadata:
   org: my-org
 
 spec:
-  # Runtime determines how your entry_point is executed.
-  # Options: go | python | node
-  # Each runtime has different default entry points (see below).
-  runtime: go
-  
-  # Optional: Entry point file for SDK synthesis.
-  # If omitted, defaults are: main.go (go), main.py (python), index.ts (node)
-  # 
-  # The entry_point must:
-  # - Exist in your project directory
-  # - Have an extension matching the runtime (.go for go, .py for python, .js/.ts for node)
-  # - Contain SDK code that defines resources (agents, workflows, etc.)
+  # Entry point file for SDK synthesis. The runtime is inferred from the
+  # extension (.go -> Go, .py -> Python, .ts/.js/.mts/.mjs -> Node); there is no
+  # separate `runtime` field.
   #
-  # entry_point: main.go  # This is the default for Go, so we can omit it
-  
+  # NOTE: the Go SDK synthesis library is a planned follow-up. Today only the
+  # TypeScript SDK (@stigmer/sdk/synth) can author an entry point end to end —
+  # see ../typescript-quickstart for a runnable example. This file illustrates
+  # the project *configuration* shape.
+  entry_point: main.go
+
   # Optional: Human-readable description of what this project does.
-  # Shown in project listings and helps team members understand the project's purpose.
   description: Minimal Go project showing essential configuration
 
 # What happens when you run 'stigmer apply':

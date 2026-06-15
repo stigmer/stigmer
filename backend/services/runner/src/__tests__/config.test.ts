@@ -32,6 +32,14 @@ describe("loadConfig", () => {
     expect(config.cursorApiKey).toBe("test-key");
     expect(config.proxyEndpoint).toBeNull();
     expect(config.maxConcurrentActivities).toBe(5);
+    expect(config.cursorStreamStallTimeoutMs).toBe(180000);
+  });
+
+  it("respects CURSOR_STREAM_STALL_TIMEOUT_MS", () => {
+    process.env.CURSOR_API_KEY = "test-key";
+    process.env.CURSOR_STREAM_STALL_TIMEOUT_MS = "90000";
+    const config = loadConfig();
+    expect(config.cursorStreamStallTimeoutMs).toBe(90000);
   });
 
   it("respects STIGMER_TASK_QUEUE", () => {
