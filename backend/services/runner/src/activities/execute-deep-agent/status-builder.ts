@@ -67,6 +67,14 @@ export class StatusBuilder {
     this.executionId = executionId;
     this.state = new ExecutionState(initialStatus);
 
+    // Resume path: when constructed from a persisted transcript (status seeded
+    // in index.ts on a durable-checkpoint resume), rebuild the tool-call index
+    // so resumed tool events reconcile to the existing calls instead of
+    // duplicating them. A first run carries no messages, so this is a no-op.
+    if (initialStatus.messages.length > 0) {
+      this.state.rebuildToolCallIndex();
+    }
+
     initialStatus.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
     if (!initialStatus.startedAt) {
       initialStatus.startedAt = utcTimestamp();
@@ -198,11 +206,29 @@ export class StatusBuilder {
   }
 
   private handleToolStart(event: StreamEvent, namespace: string): void {
+    const toolName = event.name ?? "unknown_tool";
+
+    // Resume reconciliation (v2): the seeded WAITING_APPROVAL tool call was
+    // indexed by its tool_call_id, but a resumed on_tool_start carries a fresh
+    // LangGraph run_id and exposes no tool_call_id. Match by tool name +
+    // pending-approval status so the existing call is resolved in place rather
+    // than duplicated, then re-key it under run_id so handleToolEnd resolves the
+    // same object. This name match is a v2-only fallback — v3 (the default) keys
+    // by the exact tool_call_id; it resolves the first pending call of that
+    // name, which is unambiguous for the single-gate resume the workflow drives.
+    const seeded = this.findResumableSeededToolCall(toolName);
+    if (seeded) {
+      seeded.status = ToolCallStatus.TOOL_CALL_RUNNING;
+      this.state.toolCalls.set(event.run_id, seeded);
+      this.state.toolStartTimes.set(event.run_id, performance.now());
+      this._forceNextUpdate = true;
+      return;
+    }
+
     const parentMsg = this.state.currentAiMessage.get(namespace)
       ?? this.ensureAiMessageForToolCall(event.run_id, namespace);
     if (!parentMsg) return;
 
-    const toolName = event.name ?? "unknown_tool";
     const rawArgs = event.data?.input as Record<string, unknown> | undefined;
     const args = rawArgs ?? {};
 
@@ -246,6 +272,23 @@ export class StatusBuilder {
     this.state.toolStartTimes.set(event.run_id, performance.now());
 
     this._forceNextUpdate = true;
+  }
+
+  /**
+   * Find a seeded tool call awaiting approval for the given name, for v2 resume
+   * reconciliation. Returns the first WAITING_APPROVAL call of that name in the
+   * rebuilt index, or undefined when none is pending (the normal first-run path).
+   */
+  private findResumableSeededToolCall(toolName: string): ToolCall | undefined {
+    for (const tc of this.state.toolCalls.values()) {
+      if (
+        tc.name === toolName &&
+        tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+      ) {
+        return tc;
+      }
+    }
+    return undefined;
   }
 
   private checkApprovalRequirement(

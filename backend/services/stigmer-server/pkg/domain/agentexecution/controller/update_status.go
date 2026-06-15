@@ -158,9 +158,27 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 	// CRITICAL: Merge status from input (for progressive updates from agent-runner)
 	// Following Java implementation's merge strategy
 
-	// Merge messages (replace with latest from request)
+	// Merge messages (replace with latest from request).
+	//
+	// Append-only guard: the runner owns the transcript and only ever grows it,
+	// so a shorter incoming list for a non-terminal execution signals a
+	// regressed/partial write (e.g. a durable-checkpoint resume that rebuilt
+	// status from an empty proto). Replacing wholesale in that case would wipe
+	// history — the failure this guard makes structurally impossible at the
+	// single persistence chokepoint. The runner-side seed is the real fix; this
+	// is defense-in-depth that never merges per-message, preserving the runner's
+	// sole ownership of message structure.
 	if len(requestStatus.Messages) > 0 {
-		updated.Status.Messages = requestStatus.Messages
+		existingCount := len(existing.Status.GetMessages())
+		if !isTerminalPhase(existing.Status.GetPhase()) && len(requestStatus.Messages) < existingCount {
+			log.Warn().
+				Str("execution_id", input.ExecutionId).
+				Int("existing_messages", existingCount).
+				Int("incoming_messages", len(requestStatus.Messages)).
+				Msg("Rejected status update that would shrink the message transcript for a non-terminal execution; keeping existing messages")
+		} else {
+			updated.Status.Messages = requestStatus.Messages
+		}
 	}
 
 	// Merge sub_agent_executions (replace with latest from request)

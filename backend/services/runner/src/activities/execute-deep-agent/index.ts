@@ -10,8 +10,9 @@
  */
 
 import { Context, CancelledFailure } from "@temporalio/activity";
-import { create, type JsonObject } from "@bufbuild/protobuf";
+import { create, clone, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionPhase, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
@@ -28,7 +29,7 @@ import { StatusBuilder } from "./status-builder.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { WriteBackCoordinator } from "./writeback-coordinator.js";
 import { processPostStream } from "./post-stream.js";
-import { resolveResumeInput } from "./hitl.js";
+import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 
 export function createDeepAgentActivities(config: Config) {
   const client = new StigmerClient({
@@ -59,7 +60,21 @@ export function createDeepAgentActivities(config: Config) {
           executionId,
         };
 
-        const initialStatus = create(AgentExecutionStatusSchema, {});
+        // One read of the graph checkpoint drives two decisions below: whether
+        // this invocation resumes an existing durable checkpoint (so status must
+        // be seeded from the persisted transcript instead of starting empty),
+        // and how any pending approval interrupt resolves. Reading once avoids a
+        // redundant round-trip on the durable (http) saver.
+        const graphState: GraphStateSnapshot = await setup.agentGraph.getState(setup.langgraphConfig);
+
+        // Seed from the persisted transcript when resuming an existing
+        // checkpoint; otherwise start empty. On a first run — and under the
+        // memory checkpointer (recreated empty per invocation, so the graph
+        // replays from scratch) — there are no prior checkpoint turns, so this
+        // is a no-op and the original start-from-empty behavior is preserved.
+        const initialStatus = shouldSeedFromCheckpoint(graphState, setup.execution)
+          ? seedStatusFromExecution(setup.execution)
+          : create(AgentExecutionStatusSchema, {});
         const statusBuilder = new StatusBuilder(executionId, initialStatus);
 
         statusBuilder.setApprovalProvider({
@@ -68,10 +83,9 @@ export function createDeepAgentActivities(config: Config) {
           autoApproveAll: setup.autoApproveAll,
         });
 
-        const resume = await resolveResumeInput(
+        const resume = resolveResumeInput(
           setup.execution,
-          setup.agentGraph,
-          setup.langgraphConfig,
+          graphState,
           setup.execution.spec!.message,
         );
 
@@ -338,6 +352,45 @@ export function createDeepAgentActivities(config: Config) {
       }
     },
   };
+}
+
+/**
+ * Whether this invocation resumes an existing durable checkpoint.
+ *
+ * The Temporal workflow re-invokes ExecuteDeepAgent with the same thread_id on
+ * three triggers — HITL approval, pause/resume, and transient recovery. With a
+ * durable (http) checkpointer the graph resumes from its checkpoint and
+ * streamEvents re-emits ONLY post-checkpoint events, so a status rebuilt from
+ * empty would silently drop the prior transcript.
+ *
+ * The resume is detected from the checkpoint itself — prior message turns are
+ * present in graph state — which holds for every resume trigger (not just HITL)
+ * and is false both on a first run and under the memory checkpointer (recreated
+ * empty per invocation, so the graph replays). Requiring persisted history too
+ * guarantees seeding never runs ahead of a transcript to seed from.
+ */
+function shouldSeedFromCheckpoint(
+  graphState: GraphStateSnapshot,
+  execution: AgentExecution,
+): boolean {
+  const checkpointMessages = (graphState.values as { messages?: unknown }).messages;
+  const checkpointHasPriorTurns =
+    Array.isArray(checkpointMessages) && checkpointMessages.length > 0;
+  const persistedHasHistory = (execution.status?.messages.length ?? 0) > 0;
+  return checkpointHasPriorTurns && persistedHasHistory;
+}
+
+/**
+ * Seed a fresh status from the persisted execution transcript so streamed
+ * deltas append onto existing history rather than replacing it. The clone keeps
+ * the persisted proto immutable. Terminal fields are cleared because the resumed
+ * run is in progress again; the StatusBuilder constructor re-sets the phase.
+ */
+function seedStatusFromExecution(execution: AgentExecution): AgentExecutionStatus {
+  const seeded = clone(AgentExecutionStatusSchema, execution.status!);
+  seeded.completedAt = "";
+  seeded.error = "";
+  return seeded;
 }
 
 async function cleanup(setup: SetupResult | null): Promise<void> {

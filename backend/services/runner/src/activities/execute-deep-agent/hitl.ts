@@ -61,15 +61,17 @@ export interface InterruptValue {
  * Returns a `Command(resume=...)` if there are pending interrupts with
  * matching approval decisions, or a fresh user message input if this is
  * not a resume scenario.
+ *
+ * The graph checkpoint snapshot is read once by the caller and passed in: the
+ * same snapshot also decides whether status must be seeded from the persisted
+ * transcript (see `index.ts`), and on the durable (http) saver an extra
+ * `getState` is a network round-trip best avoided.
  */
-export async function resolveResumeInput(
+export function resolveResumeInput(
   execution: AgentExecution,
-  agentGraph: { getState(config: Record<string, unknown>): Promise<GraphStateSnapshot> },
-  langgraphConfig: Record<string, unknown>,
+  graphState: GraphStateSnapshot,
   userMessage: string,
-): Promise<ResumeResult> {
-  const graphState = await agentGraph.getState(langgraphConfig);
-
+): ResumeResult {
   const pendingInterrupts = extractPendingInterrupts(graphState);
   if (pendingInterrupts.length === 0) {
     return {

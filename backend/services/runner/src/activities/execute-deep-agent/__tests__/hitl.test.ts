@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { Command } from "@langchain/langgraph";
 import { resolveResumeInput, reconcileToolCallStatuses } from "../hitl.js";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -70,19 +70,12 @@ function makeGraphState(
   };
 }
 
-function makeAgentGraph(state: GraphStateSnapshot) {
-  return {
-    getState: vi.fn().mockResolvedValue(state),
-  };
-}
-
 describe("resolveResumeInput", () => {
-  it("returns fresh input when no interrupts exist", async () => {
+  it("returns fresh input when no interrupts exist", () => {
     const execution = makeExecution([]);
-    const graph = makeAgentGraph({ values: {}, tasks: [] });
-    const config = { configurable: { thread_id: "t1" } };
+    const state: GraphStateSnapshot = { values: {}, tasks: [] };
 
-    const result = await resolveResumeInput(execution, graph, config, "hello");
+    const result = resolveResumeInput(execution, state, "hello");
 
     expect(result.isResumeFromApproval).toBe(false);
     expect(result.hasRejection).toBe(false);
@@ -91,19 +84,16 @@ describe("resolveResumeInput", () => {
     });
   });
 
-  it("returns fresh input when interrupts exist but no decisions", async () => {
+  it("returns fresh input when interrupts exist but no decisions", () => {
     const execution = makeExecution([]);
     const state = makeGraphState([{ taskId: "task-1", toolCallId: "call-1" }]);
-    const graph = makeAgentGraph(state);
 
-    const result = await resolveResumeInput(
-      execution, graph, { configurable: { thread_id: "t1" } }, "hello",
-    );
+    const result = resolveResumeInput(execution, state, "hello");
 
     expect(result.isResumeFromApproval).toBe(false);
   });
 
-  it("builds Command(resume) when interrupts match decisions", async () => {
+  it("builds Command(resume) when interrupts match decisions", () => {
     const execution = makeExecution([{
       id: "call-1",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
@@ -111,18 +101,15 @@ describe("resolveResumeInput", () => {
     }]);
 
     const state = makeGraphState([{ taskId: "task-1", toolCallId: "call-1" }]);
-    const graph = makeAgentGraph(state);
 
-    const result = await resolveResumeInput(
-      execution, graph, { configurable: { thread_id: "t1" } }, "hello",
-    );
+    const result = resolveResumeInput(execution, state, "hello");
 
     expect(result.isResumeFromApproval).toBe(true);
     expect(result.hasRejection).toBe(false);
     expect(result.graphInput).toBeInstanceOf(Command);
   });
 
-  it("detects rejection when a decision is REJECT", async () => {
+  it("detects rejection when a decision is REJECT", () => {
     const execution = makeExecution([{
       id: "call-1",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
@@ -130,18 +117,15 @@ describe("resolveResumeInput", () => {
     }]);
 
     const state = makeGraphState([{ taskId: "task-1", toolCallId: "call-1" }]);
-    const graph = makeAgentGraph(state);
 
-    const result = await resolveResumeInput(
-      execution, graph, { configurable: { thread_id: "t1" } }, "hello",
-    );
+    const result = resolveResumeInput(execution, state, "hello");
 
     expect(result.isResumeFromApproval).toBe(true);
     expect(result.hasRejection).toBe(true);
     expect(result.rejectionReason).toContain("Rejected by user");
   });
 
-  it("handles multiple interrupts with mixed decisions", async () => {
+  it("handles multiple interrupts with mixed decisions", () => {
     const execution = makeExecution([
       {
         id: "call-1",
@@ -159,17 +143,14 @@ describe("resolveResumeInput", () => {
       { taskId: "task-1", toolCallId: "call-1" },
       { taskId: "task-2", toolCallId: "call-2" },
     ]);
-    const graph = makeAgentGraph(state);
 
-    const result = await resolveResumeInput(
-      execution, graph, { configurable: { thread_id: "t1" } }, "hello",
-    );
+    const result = resolveResumeInput(execution, state, "hello");
 
     expect(result.isResumeFromApproval).toBe(true);
     expect(result.hasRejection).toBe(false);
   });
 
-  it("skips already-resumed interrupts", async () => {
+  it("skips already-resumed interrupts", () => {
     const execution = makeExecution([{
       id: "call-1",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
@@ -179,11 +160,8 @@ describe("resolveResumeInput", () => {
     const state = makeGraphState([
       { taskId: "task-1", toolCallId: "call-1", hasResume: true },
     ]);
-    const graph = makeAgentGraph(state);
 
-    const result = await resolveResumeInput(
-      execution, graph, { configurable: { thread_id: "t1" } }, "hello",
-    );
+    const result = resolveResumeInput(execution, state, "hello");
 
     expect(result.isResumeFromApproval).toBe(false);
   });

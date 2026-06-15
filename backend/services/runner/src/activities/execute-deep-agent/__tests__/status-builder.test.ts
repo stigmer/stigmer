@@ -2,6 +2,11 @@ import { describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
+  AgentMessageSchema,
+  ToolCallSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import {
+  ApprovalAction,
   ExecutionPhase,
   MessageType,
   ToolCallStatus,
@@ -1769,6 +1774,81 @@ describe("StatusBuilder", () => {
         expect(usage.outputTokens).toBe(50n);
         expect(usage.turnCount).toBe(3);
       });
+    });
+  });
+
+  // Durable-checkpoint resume on the legacy v2 path. The activity seeds the
+  // builder from the persisted transcript (see seedStatusFromExecution in
+  // index.ts); the resumed stream re-emits the gated tool's lifecycle with a
+  // FRESH LangGraph run_id that does not match the seeded tool_call_id. The
+  // builder must reconcile by name so the existing call is resolved in place,
+  // preserving history with no duplicate (the documented v2 fallback; v3, the
+  // default, matches by the exact tool_call_id).
+  describe("resume reconciliation (durable checkpoint)", () => {
+    const GATED_ID = "toolu_seeded_01";
+
+    function seededBuilder(): StatusBuilder {
+      const status = create(AgentExecutionStatusSchema, {
+        phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        messages: [
+          create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_AI,
+            content: "I'll call the gated tool.",
+            toolCalls: [
+              create(ToolCallSchema, {
+                id: GATED_ID,
+                name: "dangerous_tool",
+                status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+                requiresApproval: true,
+                approvalAction: ApprovalAction.APPROVE,
+                mcpServerSlug: "my-server",
+              }),
+            ],
+          }),
+        ],
+      });
+      const sb = new StatusBuilder("exec-resume", status);
+      sb.setApprovalProvider({
+        policies: new Map([
+          ["my-server/dangerous_tool", {
+            toolName: "dangerous_tool",
+            mcpServerSlug: "my-server",
+            requiresApproval: true,
+            approvalMessage: "Execute dangerous_tool",
+          }],
+        ]),
+        toolServerMap: new Map([["dangerous_tool", "my-server"]]),
+        autoApproveAll: false,
+      });
+      return sb;
+    }
+
+    it("resolves the seeded gated tool call in place — no duplicate, history kept", () => {
+      const sb = seededBuilder();
+
+      // Resumed lifecycle: fresh run_id, no tool_call_id available in v2.
+      sb.processEvent(toolStartEvent("run-fresh-99", "dangerous_tool", { target: "prod" }));
+      sb.processEvent(toolEndEvent("run-fresh-99", "tool executed ok"));
+
+      // Following assistant turn appends after the seeded message.
+      sb.processEvent(chatStreamEvent("llm-after", "All done."));
+      sb.processEvent(chatEndEvent("llm-after"));
+
+      const status = sb.currentStatus;
+
+      const gated = status.messages
+        .flatMap(m => m.toolCalls)
+        .filter(tc => tc.id === GATED_ID);
+      expect(gated).toHaveLength(1);
+      expect(gated[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+      expect(gated[0].result).toContain("tool executed ok");
+
+      const allText = status.messages.map(m => m.content).join("\n");
+      expect(allText).toContain("I'll call the gated tool.");
+      expect(allText).toContain("All done.");
+
+      // No re-gate: the resumed tool must not flip the run back to waiting.
+      expect(status.phase).not.toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
     });
   });
 });

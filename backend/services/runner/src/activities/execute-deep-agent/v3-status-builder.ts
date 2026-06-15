@@ -54,6 +54,15 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     this.executionId = executionId;
     this.state = new ExecutionState(initialStatus);
 
+    // Resume path: when constructed from a persisted transcript (status seeded
+    // in index.ts on a durable-checkpoint resume), rebuild the tool-call index
+    // so resumed tool_started/tool_finished events reconcile to the existing
+    // calls instead of duplicating them. A first run carries no messages, so
+    // this is a no-op.
+    if (initialStatus.messages.length > 0) {
+      this.state.rebuildToolCallIndex();
+    }
+
     initialStatus.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
     if (!initialStatus.startedAt) {
       initialStatus.startedAt = utcTimestamp();
@@ -244,6 +253,25 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     input: Record<string, unknown>,
     namespace: string,
   ): void {
+    // Resume reconciliation: the gated tool call already exists, seeded from the
+    // persisted transcript of a prior invocation (seedStatusFromExecution in
+    // index.ts). The durable checkpoint re-emits tool_started now that approval
+    // is granted — flip the existing call to RUNNING in place rather than
+    // appending a duplicate or re-triggering the approval gate. v3 keys by
+    // tool_call_id, so this is an exact match (no name heuristics needed).
+    const existing = this.state.toolCalls.get(callId);
+    if (existing) {
+      if (existing.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
+        existing.status = ToolCallStatus.TOOL_CALL_RUNNING;
+      }
+      if (Object.keys(input).length > 0 && !existing.args) {
+        existing.args = input as JsonObject;
+      }
+      this.state.toolStartTimes.set(callId, performance.now());
+      this._forceNextUpdate = true;
+      return;
+    }
+
     const agentNs = this.resolveAgentNamespace(namespace);
     const parentMsg = this.state.currentAiMessage.get(agentNs)
       ?? this.ensureAiMessageForToolCall(agentNs);
