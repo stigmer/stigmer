@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Stigmer, DeploymentMode } from "@stigmer/sdk";
 import { cn, resolvePresetClass } from "@stigmer/theme";
 import type { ThemePresetId } from "@stigmer/theme";
@@ -174,7 +181,8 @@ export function StigmerProvider({
 
   const presetClass = preset ? resolvePresetClass(preset) : "";
 
-  const portalContainer = usePortalContainer(resolvedMode, presetClass);
+  const scope = useThemeScope(resolvedMode, presetClass, className);
+  const portalContainer = usePortalContainer(scope);
   const registryState = useModelRegistryFetch(client);
   const taskKindRegistryState = useTaskKindRegistryFetch(client);
 
@@ -188,8 +196,8 @@ export function StigmerProvider({
                 <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
                   <PortalContainerContext.Provider value={portalContainer}>
                     <div
-                      className={cn("stgm", presetClass, className)}
-                      data-stgm-color-mode={resolvedMode}
+                      className={scope.className}
+                      data-stgm-color-mode={scope.colorMode}
                     >
                       {children}
                     </div>
@@ -481,32 +489,71 @@ function useTaskKindRegistryFetch(client: Stigmer): TaskKindRegistryState {
 }
 
 /**
+ * The single scoping contract every Stigmer surface must carry so that
+ * `--stgm-*` tokens, preset overrides, dark-mode values, AND host
+ * `className` overrides resolve identically — whether a surface renders
+ * inline in the provider subtree or is portaled onto `document.body`.
+ */
+interface ThemeScope {
+  /** Class string: `stgm` + preset class + host `className`. */
+  readonly className: string;
+  /** Resolved color mode set as `data-stgm-color-mode`. */
+  readonly colorMode: ResolvedColorMode;
+}
+
+/**
+ * Computes the {@link ThemeScope} once per render input.
+ *
+ * Both the in-tree provider container and the managed portal container
+ * derive their class + `data-stgm-color-mode` from this single source,
+ * so the two can never drift apart — the cause of #182, where the portal
+ * container omitted the host `className` and portaled surfaces (popovers,
+ * dialogs, menus) lost host token overrides scoped to that class.
+ *
+ * The returned object is referentially stable until an input changes,
+ * which keeps {@link usePortalContainer}'s sync effect from re-running
+ * on every render.
+ */
+function useThemeScope(
+  resolvedMode: ResolvedColorMode,
+  presetClass: string,
+  className: string | undefined,
+): ThemeScope {
+  return useMemo(
+    () => ({
+      className: cn("stgm", presetClass, className),
+      colorMode: resolvedMode,
+    }),
+    [resolvedMode, presetClass, className],
+  );
+}
+
+/**
  * Creates and manages a portal container `<div>` appended to
- * `document.body` that mirrors the scoping attributes of the main
- * provider container.
+ * `document.body` that carries the identical {@link ThemeScope} as the
+ * main provider container.
  *
- * Portaled content (popovers, dialogs, menus) that targets this
- * element will inherit the correct `--stgm-*` token values —
- * including dark-mode overrides — because the container carries
- * `data-stgm-color-mode` and the preset class.
+ * Portaled content (popovers, dialogs, menus) that targets this element
+ * inherits the correct `--stgm-*` token values — including dark-mode
+ * overrides and any host `className` token overrides — because the
+ * container carries the same class and `data-stgm-color-mode` attribute
+ * as the in-tree scope. The node lives outside the provider subtree, so
+ * these must be set on the node directly rather than inherited via the
+ * DOM cascade.
  *
- * The element is created once on mount and removed on unmount.
- * Attribute values are kept in sync with prop changes via a
- * separate effect.
+ * The element is created once on mount and removed on unmount. Scope
+ * values are kept in sync with `scope` changes via a separate effect.
  *
  * Returns `null` during SSR (no `document`).
  */
-function usePortalContainer(
-  colorMode: ResolvedColorMode,
-  presetClass: string,
-): HTMLElement | null {
+function usePortalContainer(scope: ThemeScope): HTMLElement | null {
   const elRef = useRef<HTMLDivElement | null>(null);
   const [container, setContainer] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     const el = document.createElement("div");
-    el.className = cn("stgm", presetClass);
-    el.setAttribute("data-stgm-color-mode", colorMode);
+    el.className = scope.className;
+    el.setAttribute("data-stgm-color-mode", scope.colorMode);
     el.setAttribute("data-stgm-portal", "");
     document.body.appendChild(el);
     elRef.current = el;
@@ -517,15 +564,15 @@ function usePortalContainer(
       elRef.current = null;
     };
   // Intentionally empty deps: create once on mount, remove on unmount.
-  // Attribute syncing is handled by the effect below.
+  // Scope syncing is handled by the effect below.
   }, []);
 
   useEffect(() => {
     const el = elRef.current;
     if (!el) return;
-    el.className = cn("stgm", presetClass);
-    el.setAttribute("data-stgm-color-mode", colorMode);
-  }, [colorMode, presetClass]);
+    el.className = scope.className;
+    el.setAttribute("data-stgm-color-mode", scope.colorMode);
+  }, [scope]);
 
   return container;
 }

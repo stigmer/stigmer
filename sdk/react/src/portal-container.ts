@@ -5,12 +5,15 @@ import { createContext, useContext } from "react";
 /**
  * React context that holds a reference to the managed portal container.
  *
- * `StigmerProvider` creates a `<div>` appended to `document.body` with
- * the same scoping attributes (`class="stgm [preset]"`,
- * `data-stgm-color-mode`) as the main provider container. This ensures
- * that portaled content (popovers, dialogs, menus) inherits the correct
- * design token values — including dark-mode overrides — even though it
- * lives outside the provider's DOM subtree.
+ * `StigmerProvider` creates a `<div>` appended to `document.body` that
+ * carries the identical theme scope as the main provider container —
+ * the same class (`stgm` + preset class + any host `className`) and the
+ * same `data-stgm-color-mode`. Both containers derive this from a single
+ * source (`useThemeScope` in `provider.tsx`), so they cannot drift apart.
+ * This ensures portaled content (popovers, dialogs, menus) inherits the
+ * correct design token values — including dark-mode overrides and host
+ * `className`-scoped token overrides — even though it lives outside the
+ * provider's DOM subtree (where the cascade would otherwise not reach it).
  *
  * Defaults to `null` so components rendered outside a `StigmerProvider`
  * fall back to the browser's default portal target (`document.body`).
