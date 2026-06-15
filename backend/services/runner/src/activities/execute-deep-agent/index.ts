@@ -23,7 +23,7 @@ import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
 import { performSetup, type SetupResult } from "./setup.js";
 import { streamExecution, type StreamResult } from "./streaming.js";
-import { loadStreamingConfig } from "./streaming-scheduler.js";
+import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { StatusBuilder } from "./status-builder.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { WriteBackCoordinator } from "./writeback-coordinator.js";

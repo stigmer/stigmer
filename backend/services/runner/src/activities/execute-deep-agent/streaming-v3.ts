@@ -16,7 +16,7 @@ import { ExecutionControlSignal, ExecutionPhase } from "@stigmer/protos/ai/stigm
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
 import { normalize } from "./v3-protocol-normalizer.js";
 import { V3StatusBuilder } from "./v3-status-builder.js";
-import { StreamingUpdateScheduler } from "./streaming-scheduler.js";
+import { StreamingUpdateScheduler } from "../../shared/streaming-scheduler.js";
 import { persistStatus, slimStatus } from "../../shared/status.js";
 import { StreamingSideEffects } from "./streaming-side-effects.js";
 import {

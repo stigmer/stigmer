@@ -225,13 +225,28 @@ export type ThreadItem =
       readonly planArtifact?: ExecutionArtifact;
     };
 
-function hasAiMessages(execution: AgentExecution): boolean {
+/**
+ * True once the agent has produced any real, renderable response for this turn —
+ * assistant text, a tool call (running or terminal), or streamed model thinking.
+ *
+ * Gates the synthetic "Thinking…" setup placeholder (see usage below): the
+ * placeholder is only for the genuine pre-first-content window and must yield the
+ * moment any of these stream in, otherwise it would render *alongside* the real
+ * ThinkingMessage / ToolCallGroup cards (the GitHub #179 duplicate-spinner).
+ */
+function hasStartedResponding(execution: AgentExecution): boolean {
   const messages = execution.status?.messages;
   if (!messages || messages.length === 0) return false;
-  return messages.some(
-    (m) =>
-      m.type === MessageType.MESSAGE_AI && (m.content.trim() || m.toolCalls.length > 0),
-  );
+  return messages.some((m) => {
+    // Any tool call — RUNNING or terminal — is visible activity, regardless of
+    // which message type hosts it.
+    if (m.toolCalls.length > 0) return true;
+    if (m.type === MessageType.MESSAGE_AI && m.content.trim().length > 0) return true;
+    // Streamed reasoning renders in its own collapsible ThinkingMessage card, so
+    // it counts as "responding" even before the first assistant token arrives.
+    if (m.type === MessageType.MESSAGE_THINKING && m.content.trim().length > 0) return true;
+    return false;
+  });
 }
 
 /**
@@ -396,7 +411,7 @@ export function buildThreadItems(
   const lastPhase =
     lastExec?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 
-  if (activeStreamExecution && !hasAiMessages(activeStreamExecution)) {
+  if (activeStreamExecution && !hasStartedResponding(activeStreamExecution)) {
     const isPending =
       lastPhase === ExecutionPhase.EXECUTION_PENDING ||
       lastPhase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;

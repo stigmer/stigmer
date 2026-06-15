@@ -58,6 +58,18 @@ function assistantEvent(
   };
 }
 
+function thinkingEvent(
+  runId: string,
+  text: string,
+): Extract<SDKMessage, { type: "thinking" }> {
+  return {
+    type: "thinking",
+    agent_id: "agent-1",
+    run_id: runId,
+    text,
+  };
+}
+
 function countToolCallsWithId(messages: AgentMessage[], callId: string): number {
   let count = 0;
   for (const msg of messages) {
@@ -237,9 +249,9 @@ describe("MessageAccumulator tool call status transitions", () => {
     expect(acc.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_IN_PROGRESS);
   });
 
-  it("subAgentDirty starts false and is set when a sub-agent is created", () => {
+  it("isDirty starts false and is set when a sub-agent is created", () => {
     const acc = new MessageAccumulator([]);
-    expect(acc.subAgentDirty).toBe(false);
+    expect(acc.isDirty).toBe(false);
 
     acc.trackSubAgentExecution(
       toolCallEvent("tc-dirty1", "task", "running", "r1", {
@@ -247,10 +259,10 @@ describe("MessageAccumulator tool call status transitions", () => {
       }),
     );
 
-    expect(acc.subAgentDirty).toBe(true);
+    expect(acc.isDirty).toBe(true);
   });
 
-  it("markSubAgentPersisted clears the dirty flag, and an update re-marks it", () => {
+  it("markPersisted clears the dirty flag, and a sub-agent update re-marks it", () => {
     const acc = new MessageAccumulator([]);
 
     acc.trackSubAgentExecution(
@@ -258,17 +270,17 @@ describe("MessageAccumulator tool call status transitions", () => {
         args: { description: "Research", prompt: "Go" },
       }),
     );
-    expect(acc.subAgentDirty).toBe(true);
+    expect(acc.isDirty).toBe(true);
 
-    acc.markSubAgentPersisted();
-    expect(acc.subAgentDirty).toBe(false);
+    acc.markPersisted();
+    expect(acc.isDirty).toBe(false);
 
     // The completion transition (IN_PROGRESS -> COMPLETED) must re-mark dirty
     // so the terminal sub-agent state is persisted to the live stream.
     acc.trackSubAgentExecution(
       toolCallEvent("tc-dirty2", "task", "completed", "r1", { result: "Done" }),
     );
-    expect(acc.subAgentDirty).toBe(true);
+    expect(acc.isDirty).toBe(true);
     expect(acc.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
   });
 
@@ -291,8 +303,8 @@ describe("MessageAccumulator tool call status transitions", () => {
       toolCallEvent("tc-done", "task", "completed", "r1", { result: "Found it" }),
     );
 
-    acc.markSubAgentPersisted();
-    expect(acc.subAgentDirty).toBe(false);
+    acc.markPersisted();
+    expect(acc.isDirty).toBe(false);
 
     acc.cancelInProgressSubAgents();
 
@@ -303,14 +315,14 @@ describe("MessageAccumulator tool call status transitions", () => {
     expect(running.completedAt).not.toBe("");
     expect(done.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
     // The transition must mark dirty so the cancellation is persisted.
-    expect(acc.subAgentDirty).toBe(true);
+    expect(acc.isDirty).toBe(true);
   });
 
   it("cancelInProgressSubAgents is a no-op when there are no running sub-agents", () => {
     const acc = new MessageAccumulator([]);
     acc.cancelInProgressSubAgents();
     expect(acc.subAgentExecutions).toHaveLength(0);
-    expect(acc.subAgentDirty).toBe(false);
+    expect(acc.isDirty).toBe(false);
   });
 
   it("sub-agent name extraction handles object subagentType", () => {
@@ -707,6 +719,106 @@ describe("MessageAccumulator tool call status transitions", () => {
       expect(countToolCallsWithId(messages, "tc-explore")).toBe(1);
       expect(acc.subAgentExecutions).toHaveLength(1);
       expect(acc.subAgentExecutions[0].id).toBe("tc-explore");
+    });
+  });
+
+  // Issue #179: the live thinking/tool-call trace was starved because the Cursor
+  // loop's persist cadence had no force-flush for tool-call lifecycle. The
+  // accumulator's isDirty signal is now the force-flush source: it MUST fire on
+  // the discrete, user-visible events (tool start, tool finish, sub-agent
+  // delegation) and MUST NOT fire on high-frequency token deltas (assistant
+  // text, model thinking), which ride the StreamingUpdateScheduler time cadence.
+  describe("streaming force-flush signal (issue #179 cadence)", () => {
+    it("flags dirty the instant a tool call is created", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Let me search."));
+      expect(acc.isDirty).toBe(false); // assistant text alone does not force-flush
+
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "running", "r1"));
+      expect(acc.isDirty).toBe(true);
+    });
+
+    it("flags dirty when a tool call transitions to a terminal status", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Running."));
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "running", "r1"));
+      acc.markPersisted();
+      expect(acc.isDirty).toBe(false);
+
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "completed", "r1", { result: "OK" }));
+      expect(acc.isDirty).toBe(true);
+    });
+
+    it("does NOT re-flag dirty on a redundant terminal re-emit", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Running."));
+      acc.processEvent(toolCallEvent("tc-1", "read", "running", "r1"));
+      acc.processEvent(toolCallEvent("tc-1", "read", "completed", "r1", { result: "data" }));
+      acc.markPersisted();
+      expect(acc.isDirty).toBe(false);
+
+      // An already-terminal call re-emitting is noise, not a state change.
+      acc.processEvent(toolCallEvent("tc-1", "read", "completed", "r1", { result: "" }));
+      expect(acc.isDirty).toBe(false);
+    });
+
+    it("does NOT flag dirty on model thinking deltas (they ride the scheduler cadence)", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(thinkingEvent("r1", "Let me reason about this"));
+      acc.processEvent(thinkingEvent("r1", " step by step..."));
+      expect(acc.isDirty).toBe(false);
+    });
+
+    it("does NOT flag dirty on assistant text deltas", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Here is "));
+      acc.processEvent(assistantEvent("r1", "the answer."));
+      expect(acc.isDirty).toBe(false);
+    });
+
+    it("suppressed todo tools do NOT flag dirty (TodoTracker owns that signal)", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Planning."));
+      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "running", "r1", {
+        args: { todos: [{ content: "Step 1", status: "pending" }] },
+      }));
+      expect(acc.isDirty).toBe(false);
+    });
+
+    it("markPersisted clears a tool-call dirty flag", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Running."));
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "running", "r1"));
+      expect(acc.isDirty).toBe(true);
+
+      acc.markPersisted();
+      expect(acc.isDirty).toBe(false);
+    });
+
+    // The user-facing symptom: a short thinking+tool turn (< 20 stream events).
+    // The old `eventCount % 20` gate never fired, so the whole trace landed only
+    // at the final persist. With the force-flush signal, the tool lifecycle is
+    // observable mid-turn — each discrete event leaves isDirty set for the loop.
+    it("a short thinking+tool turn produces force-flush points mid-turn", () => {
+      const acc = new MessageAccumulator([]);
+      const flushPoints: string[] = [];
+      const step = (label: string, ev: SDKMessage) => {
+        acc.processEvent(ev);
+        if (acc.isDirty) {
+          flushPoints.push(label);
+          acc.markPersisted();
+        }
+      };
+
+      step("thinking", thinkingEvent("r1", "Thinking about the task..."));
+      step("assistant", assistantEvent("r1", "I'll check the file."));
+      step("tool-start", toolCallEvent("tc-1", "read", "running", "r1"));
+      step("tool-done", toolCallEvent("tc-1", "read", "completed", "r1", { result: "contents" }));
+      step("assistant-2", assistantEvent("r1", "Done."));
+
+      // Tool start and tool completion are the discrete moments the live UI must
+      // see immediately; thinking/assistant deltas are carried by the scheduler.
+      expect(flushPoints).toEqual(["tool-start", "tool-done"]);
     });
   });
 

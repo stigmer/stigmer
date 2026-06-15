@@ -32,7 +32,7 @@ import {
 import {
   StreamingUpdateScheduler,
   type StreamingConfig,
-} from "./streaming-scheduler.js";
+} from "../../shared/streaming-scheduler.js";
 import { type RetryOptions } from "../../shared/grpc-retry.js";
 import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
 import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";

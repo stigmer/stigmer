@@ -48,6 +48,8 @@ import { createArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage 
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
+import { shouldPersistStreamingStatus } from "./persist-decision.js";
+import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
 import { resolveMcpServers, validateMcpServerEnv } from "./mcp-resolver.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
@@ -617,6 +619,10 @@ async function executeCursorInner(
     });
 
     const accumulator = new MessageAccumulator(status.messages, { mergedPolicies });
+    // Shared cadence with the native harness: discrete state changes force a
+    // flush; high-frequency token deltas ride this scheduler's time cadence
+    // (env-tunable via STREAMING_* — see loadStreamingConfig).
+    const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
     let eventCount = 0;
 
     try {
@@ -657,8 +663,15 @@ async function executeCursorInner(
         }
       }
 
-      const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty ||
-        todoTracker.isDirty || accumulator.subAgentDirty;
+      const shouldPersist = shouldPersistStreamingStatus(
+        {
+          deltaEnricherDirty: deltaEnricher.isDirty,
+          todosDirty: todoTracker.isDirty,
+          contentDirty: accumulator.isDirty,
+        },
+        scheduler,
+        eventCount,
+      );
       if (usageAccumulator.hasTurns) {
         status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
       }
@@ -673,7 +686,8 @@ async function executeCursorInner(
         const signal = await persist(status);
         deltaEnricher.markPersisted();
         todoTracker.markPersisted();
-        accumulator.markSubAgentPersisted();
+        accumulator.markPersisted();
+        scheduler.markUpdateSent(eventCount);
         heartbeat();
         if (signal === ExecutionControlSignal.STOP) {
           platformStopSignaled = true;

@@ -597,7 +597,7 @@ export class MessageAccumulator {
   private readonly subAgentMap = new Map<string, SubAgentExecution>();
   private readonly mergedPolicies?: Map<string, MergedToolPolicy>;
   private readonly toolCallIndex = new Map<string, ToolCall>();
-  private _subAgentDirty = false;
+  private _dirty = false;
 
   constructor(messages: AgentMessage[], options?: MessageAccumulatorOptions) {
     this.messages = messages;
@@ -609,19 +609,26 @@ export class MessageAccumulator {
   }
 
   /**
-   * True when a sub-agent execution has been created or updated since the last
-   * markSubAgentPersisted(). The streaming loop uses this to trigger a persist
-   * promptly when delegation begins (the "task" running event), so the live UI
-   * surfaces the sub-agent's IN_PROGRESS state instead of showing no activity
-   * until the parent finalizes.
+   * True when a discrete, user-visible state change has accumulated since the
+   * last markPersisted(): a tool call created or transitioned to a terminal
+   * status, or a sub-agent execution created or updated. The streaming loop
+   * treats this as a force-flush signal so the live UI surfaces a tool call the
+   * instant it starts and completes, and a sub-agent's IN_PROGRESS state the
+   * instant delegation begins — instead of waiting for the scheduler's time
+   * cadence or the parent finalizing.
+   *
+   * High-frequency token deltas (assistant text, model thinking) deliberately do
+   * NOT set this flag; they ride the StreamingUpdateScheduler's time cadence so
+   * we avoid a per-token persist storm — matching the native harness, which only
+   * force-flushes on discrete tool start/end events.
    */
-  get subAgentDirty(): boolean {
-    return this._subAgentDirty;
+  get isDirty(): boolean {
+    return this._dirty;
   }
 
-  /** Clears the sub-agent dirty flag after the latest status has been persisted. */
-  markSubAgentPersisted(): void {
-    this._subAgentDirty = false;
+  /** Clears the dirty flag after the latest status has been persisted. */
+  markPersisted(): void {
+    this._dirty = false;
   }
 
   /**
@@ -634,7 +641,7 @@ export class MessageAccumulator {
    */
   cancelInProgressSubAgents(): void {
     if (cancelInProgressSubAgentProtos(this._subAgentExecutions)) {
-      this._subAgentDirty = true;
+      this._dirty = true;
     }
   }
 
@@ -693,6 +700,9 @@ export class MessageAccumulator {
       const tc = buildToolCallProto(event, this.mergedPolicies);
       this.findOrCreateLastAiMessage().toolCalls.push(tc);
       this.toolCallIndex.set(event.call_id, tc);
+      // A new tool call is a discrete, user-visible event — force a prompt
+      // flush so the live UI surfaces it the instant it starts.
+      this._dirty = true;
       return;
     }
 
@@ -712,6 +722,7 @@ export class MessageAccumulator {
     event: Extract<SDKMessage, { type: "tool_call" }>,
   ): void {
     const status = mapToolCallStatus(event.status);
+    const wasTerminal = isTerminalToolStatus(existing.status);
 
     // Status advances monotonically: once terminal (completed/failed/skipped)
     // a later "running" re-emit must not regress it back to RUNNING.
@@ -720,6 +731,14 @@ export class MessageAccumulator {
     }
     if (isTerminalToolStatus(status) && !existing.completedAt) {
       existing.completedAt = utcTimestamp();
+    }
+
+    // The running -> terminal transition is the user-visible "tool finished"
+    // moment — force a prompt flush so the result appears live rather than at
+    // the next scheduler tick. Repeated terminal re-emits (already terminal) do
+    // not re-flag: that would be noise, not a state change.
+    if (!wasTerminal && isTerminalToolStatus(status)) {
+      this._dirty = true;
     }
     if (!existing.startedAt && status === ToolCallStatus.TOOL_CALL_RUNNING) {
       existing.startedAt = utcTimestamp();
@@ -786,7 +805,7 @@ export class MessageAccumulator {
           ? event.result
           : "Sub-agent failed";
       }
-      this._subAgentDirty = true;
+      this._dirty = true;
       return existing;
     }
 
@@ -800,7 +819,7 @@ export class MessageAccumulator {
     });
     this._subAgentExecutions.push(sub);
     this.subAgentMap.set(event.call_id, sub);
-    this._subAgentDirty = true;
+    this._dirty = true;
     return sub;
   }
 

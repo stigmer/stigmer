@@ -11,12 +11,16 @@ import {
   ExecutionConfigSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import {
   ExecutionPhase,
   InteractionMode,
   MessageType,
+  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { MessageThread } from "../MessageThread";
 
@@ -374,6 +378,86 @@ describe("MessageThread", () => {
 
     fireEvent.click(editBtns[0]);
     expect(onEditMessage).toHaveBeenCalledWith("new turn");
+  });
+
+  // Issue #179: while a turn streams, the synthetic "Thinking…" setup
+  // placeholder must yield the moment real content (streamed reasoning or a tool
+  // call) arrives — otherwise it renders *alongside* the real cards.
+  describe("streaming trace replaces the synthetic placeholder (issue #179)", () => {
+    function makeStreamingExecution(
+      messages: ReturnType<typeof create<typeof AgentMessageSchema>>[],
+    ): AgentExecution {
+      const exec = create(AgentExecutionSchema);
+      const meta = create(ApiResourceMetadataSchema);
+      meta.id = "exec-streaming";
+      exec.metadata = meta;
+      const spec = create(AgentExecutionSpecSchema);
+      spec.message = "Do the thing";
+      exec.spec = spec;
+      const status = create(AgentExecutionStatusSchema);
+      status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
+      status.messages = messages;
+      exec.status = status;
+      return exec;
+    }
+
+    function humanMessage(text: string) {
+      const m = create(AgentMessageSchema);
+      m.type = MessageType.MESSAGE_HUMAN;
+      m.content = text;
+      return m;
+    }
+
+    function thinkingMessage(text: string) {
+      const m = create(AgentMessageSchema);
+      m.type = MessageType.MESSAGE_THINKING;
+      m.content = text;
+      m.isStreaming = true;
+      return m;
+    }
+
+    it("streamed reasoning (no AI text yet) hides the synthetic 'Thinking…' placeholder", () => {
+      const active = makeStreamingExecution([
+        humanMessage("Do the thing"),
+        thinkingMessage("Let me reason about the request"),
+      ]);
+
+      render(<MessageThread executions={[]} activeStreamExecution={active} />);
+
+      // The real reasoning card is shown...
+      expect(
+        screen.getByRole("article", { name: "Model thinking" }),
+      ).toBeTruthy();
+      // ...and the synthetic placeholder (ellipsis "Thinking…") is gone. Before
+      // the fix, hasAiMessages ignored MESSAGE_THINKING and both rendered.
+      expect(screen.queryByText("Thinking\u2026")).toBeNull();
+    });
+
+    it("renders thinking + a running tool call mid-turn without the placeholder", () => {
+      const aiWithTool = create(AgentMessageSchema);
+      aiWithTool.type = MessageType.MESSAGE_AI;
+      aiWithTool.content = "";
+      aiWithTool.toolCalls = [
+        create(ToolCallSchema, {
+          id: "tc-1",
+          name: "read",
+          status: ToolCallStatus.TOOL_CALL_RUNNING,
+        }),
+      ];
+
+      const active = makeStreamingExecution([
+        humanMessage("Do the thing"),
+        thinkingMessage("Planning the edit"),
+        aiWithTool,
+      ]);
+
+      render(<MessageThread executions={[]} activeStreamExecution={active} />);
+
+      expect(
+        screen.getByRole("article", { name: "Model thinking" }),
+      ).toBeTruthy();
+      expect(screen.queryByText("Thinking\u2026")).toBeNull();
+    });
   });
 
   it("renders plan-completion card when last execution is completed Plan mode", () => {
