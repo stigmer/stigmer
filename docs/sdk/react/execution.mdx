@@ -7,6 +7,61 @@ description: Hooks and components for real-time streaming, tool calls, approvals
 
 ## Hooks
 
+### useAgentExecutionActions
+
+Behavior hook that encapsulates agent execution lifecycle actions.
+
+The agent-execution analog of [`useWorkflowExecutionActions`](/docs/sdk/react/workflow#useworkflowexecutionactions): each
+action calls the corresponding RPC and returns the updated execution, or
+`null` on failure (with `error` populated).
+
+Pass `null` for `executionId` to disable all actions (they become no-ops
+that return `null`).
+
+Headless by design — embedders can wire a custom Stop/Cancel control
+directly to this hook. The session chat uses it via
+[`useSessionConversation`](/docs/sdk/react/session#usesessionconversation)'s `stop` / `isStoppable`.
+
+**Signature**
+
+```tsx
+function useAgentExecutionActions(executionId: string | null, options?: UseAgentExecutionActionsOptions): UseAgentExecutionActionsReturn
+```
+
+<TypeTable
+  type={{
+    executionId: { type: "string | null", description: "", required: true },
+    options: { type: "UseAgentExecutionActionsOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseAgentExecutionActionsReturn`
+
+<TypeTable
+  type={{
+    cancel: { type: "(reason?: string) => Promise<AgentExecution | null>", description: "Cancel a running execution gracefully (PENDING or IN_PROGRESS only)." },
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed action, or `null`." },
+    isSubmitting: { type: "boolean", description: "`true` while any action is in flight." },
+    pause: { type: "(reason?: string) => Promise<AgentExecution | null>", description: "Pause a running execution (PENDING or IN_PROGRESS only)." },
+    resume: { type: "() => Promise<AgentExecution | null>", description: "Resume a paused execution." },
+    stop: { type: "(reason?: string) => Promise<AgentExecution | null>", description: "Stop a running execution with progressive escalation.  The first call gracefully cancels — the agent gets a chance to checkpoint and clean up. If the user presses Stop again because the run is still winding down, this escalates to a forceful terminate. The escalation state is keyed to the execution id, so a fresh execution always starts from a graceful cancel." },
+    terminate: { type: "(reason?: string) => Promise<AgentExecution | null>", description: "Terminate a running execution immediately (PENDING or IN_PROGRESS only)." },
+  }}
+/>
+
+```tsx
+const actions = useAgentExecutionActions(executionId, {
+  onSuccess: () => refetch(),
+});
+
+// A single Stop button that escalates on repeat press.
+<button onClick={() => actions.stop()} disabled={actions.isSubmitting}>
+  Stop
+</button>
+```
+
+
 ### useArtifactContent
 
 Data hook that fetches the text content of a single execution artifact
@@ -268,7 +323,18 @@ updates via `stigmer.agentExecution.subscribe()`.
 
 Manages the full subscription lifecycle through a finite state
 machine: connection establishment, rAF-coalesced snapshot streaming,
-terminal-phase detection, error handling, and manual reconnection.
+terminal-phase detection, automatic reconnection with exponential
+backoff on transient drops, and manual reconnection as the fallback.
+
+**Resilience:** a non-terminal stream drop — whether a thrown transport
+error (WebKit "Load failed", `fetch failed`, `Unavailable`) or a graceful
+server close mid-run (idle timeout, load-balancer recycle) — is retried
+automatically with backoff. The last snapshot stays visible
+(`isReconnecting`), the access token is re-read on each attempt via the
+per-request interceptor, and `error` is surfaced only once attempts are
+exhausted. Completion is decided by the terminal phase, never by the
+stream merely ending (a graceful close of a running execution reconnects
+rather than falsely reporting "complete"). Opt out via `autoReconnect: false`.
 
 **Performance characteristics:**
 - Non-terminal snapshots are coalesced via `requestAnimationFrame`
@@ -298,12 +364,16 @@ function useExecutionStream(executionId: string | null, options?: UseExecutionSt
 
 <TypeTable
   type={{
-    error: { type: "Error | null", description: "Error from the last failed stream attempt, or `null` when healthy." },
+    connectTimedOut: { type: "boolean", description: "`true` when the stream opened but no first snapshot arrived within the connect-timeout window, even after one silent self-heal. Distinct from `error` (a thrown/closed stream that auto-reconnect retries): this is the *silent* hang the retry loop can never observe. Surface an actionable \"the agent hasn't started — Retry\" affordance wired to `reconnect()`. Cleared by the next snapshot or a manual `reconnect()`. Never auto-aborts." },
+    error: { type: "Error | null", description: "Error from the last failed stream attempt, or `null` when healthy.  Only set once auto-reconnect has exhausted its attempts (or for a non-transient failure that is not retried). It stays `null` throughout background reconnection so a recoverable hiccup never shows as an error." },
     execution: { type: "AgentExecution | null", description: "Latest full execution snapshot from the stream, or `null` before the first update arrives." },
     isConnecting: { type: "boolean", description: "`true` after subscription starts but before the first snapshot arrives." },
+    isReconnecting: { type: "boolean", description: "`true` while a transient drop is being retried automatically in the background. The last snapshot stays visible and `error` remains `null` — surface a subtle \"Reconnecting…\" affordance, not an error. Becomes `false` once a snapshot is received (back to `isStreaming`) or retries are exhausted (then `error` is set)." },
+    isSlow: { type: "boolean", description: "`true` when a non-terminal stream has produced no new snapshot for the slow-stall window. Purely informational (\"still working — taking longer than usual\"); cleared by the next snapshot. Never an error, never aborts." },
     isStreaming: { type: "boolean", description: "`true` while receiving non-terminal updates from the server stream." },
     phase: { type: "ExecutionPhase", description: "Convenience extraction of `execution.status.phase`.  Derived from `execution` — always consistent with the current snapshot. Returns `EXECUTION_PHASE_UNSPECIFIED` when `execution` is `null`." },
-    reconnect: { type: "() => void", description: "Reset error state and re-establish the stream subscription.  Works in any lifecycle state — error, complete, or mid-stream. Uses the `connectKey` counter pattern consistent with `refetch()` in other SDK hooks." },
+    reconnect: { type: "() => void", description: "Reset error state and re-establish the stream subscription.  The fallback after auto-reconnect exhausts, and a manual escape hatch in any lifecycle state — error, complete, or mid-stream. Resets the retry counter and preserves the last snapshot (no flash to empty). Uses the `connectKey` counter pattern consistent with `refetch()` in other SDK hooks." },
+    reconnectAttempt: { type: "number", description: "1-based count of the in-flight reconnect attempt; `0` when not reconnecting." },
   }}
 />
 
@@ -947,8 +1017,12 @@ All visual properties flow through `--stgm-*` tokens.
     formatToolCallSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom formatter for tool call summary labels. Passed through to each ToolCallGroup." },
     onApprovalSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Callback for approval actions. When provided and the active execution has pending approvals, ApprovalCards are rendered as thread items. When omitted, no approval UI is shown (backward compatible)." },
     onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode execution's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode execution completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered. Backward compatible — existing consumers see no change." },
+    onEditMessage: { type: "(text: string) => void", description: "When provided, the in-flight human turn (the active execution's prompt) shows a hover \"Edit\" affordance. Clicking it invokes this callback with the message text — the session chat stops the running execution and pre-fills the composer for an edit-and-resubmit.  Provide this only while the active execution is stoppable; the SDK marks exactly the active-stream human turn editable. When omitted, no edit control is shown (backward compatible)." },
     onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => void", description: "Optional override for file path click behavior. Platform builders use this to integrate their own file viewer or navigation instead of the default open-URL / copy-to-clipboard." },
+    onRetryExecution: { type: "(message: string) => void", description: "Retry handler for a terminal-failed execution that exposed a server error reason. Receives the originating message; the consumer typically resends it as a new execution. When omitted, no Retry control is shown beside the surfaced failure reason." },
+    onRetrySend: { type: "() => void", description: "Retry handler for a failed pending message. Wired to the inline \"Retry\" control when pendingMessageFailed is `true`." },
     org: { type: "string", description: "Organization slug. Required for the plan completion card's \"Review plan\" action, which opens the shared artifact preview modal (the modal needs `org` for its detection/apply pipeline)." },
+    pendingMessageFailed: { type: "boolean", description: "Marks the pending user message as failed-to-send. The optimistic bubble renders an inline \"Couldn't send — Retry\" affordance instead of the sending indicator, so a failed follow-up never silently vanishes. Pair with onRetrySend." },
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown at the end of the thread before the stream delivers the real message. Rendered as a human message with a sending indicator. Clear this prop once the stream delivers its first snapshot." },
     planActionsDisabled: { type: "boolean", description: "Disables the plan completion card's actions (Implement / Review). Defense in depth for the brief windows where a follow-up cannot be sent (e.g. an execution is streaming); the composer also no-ops a disabled submit." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
@@ -1738,6 +1812,7 @@ Props for [`MessageEntry`](#messageentry).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     message: { type: "AgentMessage", description: "The agent message to render.", required: true },
+    onEdit: { type: "() => void", description: "When provided on a `MESSAGE_HUMAN` entry, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for non-human messages." },
   }}
 />
 
@@ -2180,6 +2255,17 @@ Optional per-kind overrides for label and summary.
   type={{
     label: { type: "(toolCall: ToolCall) => string", description: "Overrides the display label (e.g. \"Shell\" -> \"Run command\")." },
     summary: { type: "(toolCall: ToolCall, result: ToolResultView) => string | null", description: "Overrides the one-line result summary suffix." },
+  }}
+/>
+
+
+### UseAgentExecutionActionsOptions
+
+Options for [`useAgentExecutionActions`](#useagentexecutionactions).
+
+<TypeTable
+  type={{
+    onSuccess: { type: "(execution: AgentExecution) => void", description: "Called after any lifecycle action (cancel, terminate, pause, resume) succeeds. Receives the updated execution returned by the server. Useful for triggering a refetch so the UI reflects the new phase." },
   }}
 />
 

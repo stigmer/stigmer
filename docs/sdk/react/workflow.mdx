@@ -1075,8 +1075,10 @@ exposes its state via `useSyncExternalStore` for efficient React
 integration.
 
 For running executions: subscribes via `subscribeEvents` with
-replay+live-tail. On disconnect, reconnects from the last received
-sequence number.
+replay+live-tail. A transient drop auto-reconnects with exponential
+backoff, resuming from the last received sequence number so no events are
+lost; `error` is surfaced only once retries are exhausted. A clean stream
+end is the server's completion signal and is never retried.
 
 For terminal executions: loads the full event log via paginated
 `getEventLog` calls.
@@ -1111,11 +1113,13 @@ function useWorkflowExecutionEventStream(executionId: string | null, options?: U
 <TypeTable
   type={{
     costSummary: { type: "DerivedCostSummary", description: "Derived cost/budget summary from the latest checkpoint or aggregation." },
-    error: { type: "Error | null", description: "Error from the last failed stream attempt, or `null`." },
+    error: { type: "Error | null", description: "Error from the last failed stream attempt, or `null`. Set only once auto-reconnect exhausts its attempts (or for a non-transient failure)." },
     events: { type: "readonly WorkflowExecutionEvent[]", description: "All accumulated events, ordered by sequence_number ascending." },
     isConnecting: { type: "boolean", description: "`true` while connecting to the event stream." },
+    isReconnecting: { type: "boolean", description: "`true` while a transient drop is being retried automatically. Accumulated events stay visible and `error` remains `null`; on success the subscription resumes from the last sequence number with no events lost." },
     isStreaming: { type: "boolean", description: "`true` while receiving live events." },
-    reconnect: { type: "() => void", description: "Re-establish the stream subscription." },
+    reconnect: { type: "() => void", description: "Re-establish the stream subscription (manual fallback)." },
+    reconnectAttempt: { type: "number", description: "1-based count of the in-flight reconnect attempt; `0` when not reconnecting." },
     streamState: { type: "WorkflowEventStreamState", description: "Stream lifecycle state." },
     taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Derived task states from the event log." },
     totalTasks: { type: "number", description: "Total tasks declared in the execution_started event." },
@@ -2900,8 +2904,10 @@ Options for [`useWorkflowExecutionEventStream`](#useworkflowexecutioneventstream
 
 <TypeTable
   type={{
+    autoReconnect: { type: "boolean", description: "Automatically re-establish the live subscription with exponential backoff when it drops with a transient transport error, resuming from the last received `sequence_number` (no events lost). Defaults to `true`." },
     eventTypes: { type: "readonly WorkflowEventType[]", description: "Filter to specific event types for the subscription." },
     executionPhase: { type: "ExecutionPhase", description: "The current execution phase. When provided, the hook uses this to decide between live streaming (non-terminal) and batch loading (terminal). When omitted, defaults to live streaming." },
+    reconnectOptions: { type: "BackoffOptions & { maxAttempts?: number }", description: "Tune the auto-reconnect backoff schedule and attempt cap. Omitted fields fall back to SDK defaults (base 1s, ×2, max 30s, 10 attempts)." },
     store: { type: "WorkflowExecutionEventStore", description: "External store instance. When provided, the hook writes to this store instead of creating an internal one. Useful for sharing event state across multiple components." },
   }}
 />
