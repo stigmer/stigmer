@@ -42,8 +42,13 @@ export interface WorkflowExecutionViewerProps {
    * application handles navigation to the workflow editor (DD-004).
    */
   readonly onNavigateToWorkflowEditor?: (yaml: string, workflowSlug: string) => void;
-  /** Additional action elements to render in the header. */
+  /** Additional action elements to render in the sidebar inspector footer. */
   readonly additionalActions?: ReactNode;
+  /**
+   * Host-supplied action elements rendered in the header action group
+   * (e.g. a Share control). Routing/auth-agnostic per DD-004.
+   */
+  readonly headerActions?: ReactNode;
   /**
    * Whether task nodes in the execution graph can be dragged to
    * rearrange the layout for presentations. Drag positions are
@@ -80,6 +85,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   onNavigateToAgentExecution,
   onNavigateToWorkflowEditor,
   additionalActions,
+  headerActions,
   nodesDraggable,
   className,
 }: WorkflowExecutionViewerProps) {
@@ -268,6 +274,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         onDiagnose={org ? handleDiagnose : undefined}
         isDiagnosing={showDiagnosis}
         onCompare={handleOpenComparePicker}
+        headerActions={headerActions}
       />
 
       {/* Comparison picker dialog */}

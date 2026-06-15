@@ -1,54 +1,37 @@
-# Multi-stage Docker build for mcp-server-stigmer.
+# Docker image for the TypeScript mcp-server-stigmer.
 #
-# Proto stubs live inside the mcp-server module (mcp-server/proto/), so the
-# build context only needs the mcp-server/ directory.
+# The image is the published npm package: we install @stigmer/mcp-server from
+# the registry so the container runs byte-for-byte what `npx @stigmer/mcp-server`
+# runs. The package's publishConfig repoints @stigmer/* deps at their built
+# ./dist entry points, so a plain `node` runtime resolves them correctly (a
+# source build cannot — the workspace package.json mains point at ./src/*.ts).
 #
-#   docker build -f mcp-server/Dockerfile -t mcp-server-stigmer .
+# Release ordering: this build requires @stigmer/mcp-server@<version> to already
+# be on npm. release.mcp-server waits for it (see the wait-for-npm step) and
+# release.dev runs publish-mcp after publish-npm.
 #
-# ---- Build stage ----
-# Pin the builder to the *native* build platform (always the amd64 runner) and
-# cross-compile to the target arch. Go is a native cross-compiler, so this
-# avoids running the toolchain under slow QEMU emulation for arm64.
-FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
+#   docker build -f mcp-server/Dockerfile \
+#     --build-arg MCP_SERVER_VERSION=<npm-version-or-dist-tag> -t mcp-server-stigmer .
+FROM public.ecr.aws/docker/library/node:22-alpine
 
-ARG BUILD_VERSION=docker
-ARG TARGETOS
-ARG TARGETARCH
+LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer"
+LABEL org.opencontainers.image.vendor="Stigmer"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
 
-WORKDIR /build
-
-# Copy module files first for better layer caching.
-COPY mcp-server/go.mod mcp-server/go.sum mcp-server/
-RUN --mount=type=cache,target=/go/pkg/mod \
-    cd mcp-server && go mod download
-
-# Copy the MCP server source (includes proto/ stubs).
-COPY mcp-server/ mcp-server/
-
-# Build a statically linked binary, cross-compiling to the requested target.
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    cd mcp-server && \
-    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
-    -ldflags="-s -w -X github.com/stigmer/stigmer/mcp-server/internal/server.buildVersion=${BUILD_VERSION}" \
-    -o /mcp-server-stigmer \
-    ./cmd/mcp-server-stigmer
-
-# ---- Runtime stage ----
-FROM alpine:3.19
-
-# CA certificates are needed for TLS connections to stigmer-server.
-RUN apk --no-cache add ca-certificates
-
-# Run as a non-root user.
-RUN addgroup -g 1000 stigmer && \
-    adduser -D -u 1000 -G stigmer stigmer
+# The npm version (e.g. 1.2.3) or dist-tag (e.g. dev) to install. Also reported
+# by the server itself via STIGMER_MCP_VERSION (server.ts).
+ARG MCP_SERVER_VERSION=latest
+ENV STIGMER_MCP_VERSION=$MCP_SERVER_VERSION
+ENV NODE_ENV=production
 
 WORKDIR /app
-COPY --from=builder /mcp-server-stigmer .
-RUN chown -R stigmer:stigmer /app
 
-USER stigmer
+# Install the published package globally; this pulls its full runtime dependency
+# tree and exposes the `mcp-server-stigmer` bin on PATH.
+RUN npm install --global --omit=dev "@stigmer/mcp-server@${MCP_SERVER_VERSION}"
+
+# Run as the non-root user shipped with the node:alpine base.
+USER node
 
 # Default HTTP port (overridable via STIGMER_MCP_HTTP_PORT).
 EXPOSE 8080
@@ -57,4 +40,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD wget -qO- http://localhost:8080/health || exit 1
 
-ENTRYPOINT ["./mcp-server-stigmer"]
+ENTRYPOINT ["mcp-server-stigmer"]

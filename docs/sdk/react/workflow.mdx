@@ -534,6 +534,33 @@ const handleSave = async () => {
 ```
 
 
+### useUpdateWorkflowInstanceExecutionVisibility
+
+Mutation hook that updates the execution (run) visibility of a
+WorkflowInstance.
+
+Wraps `stigmer.workflowInstance.updateExecutionVisibility()` with
+loading/error state. The caller is responsible for refreshing the instance
+after a successful update.
+
+**Signature**
+
+```tsx
+function useUpdateWorkflowInstanceExecutionVisibility(): UseUpdateWorkflowInstanceExecutionVisibilityReturn
+```
+
+**Returns** — `UseUpdateWorkflowInstanceExecutionVisibilityReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Clear the error state." },
+    error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    updateExecutionVisibility: { type: "(resourceId: string, executionVisibility: WorkflowExecutionVisibility) => Promise<WorkflowInstance>", description: "Update who can observe the runs (executions) of a workflow instance.  This is distinct from the instance's own visibility: it controls run observability via the `workflow_instance#execution_viewer` relation, letting an owner keep the instance private while opting all org members into watching its executions." },
+  }}
+/>
+
+
 ### useWorkflow
 
 Data hook that fetches a single Workflow blueprint by organization and slug.
@@ -1048,8 +1075,10 @@ exposes its state via `useSyncExternalStore` for efficient React
 integration.
 
 For running executions: subscribes via `subscribeEvents` with
-replay+live-tail. On disconnect, reconnects from the last received
-sequence number.
+replay+live-tail. A transient drop auto-reconnects with exponential
+backoff, resuming from the last received sequence number so no events are
+lost; `error` is surfaced only once retries are exhausted. A clean stream
+end is the server's completion signal and is never retried.
 
 For terminal executions: loads the full event log via paginated
 `getEventLog` calls.
@@ -1084,11 +1113,13 @@ function useWorkflowExecutionEventStream(executionId: string | null, options?: U
 <TypeTable
   type={{
     costSummary: { type: "DerivedCostSummary", description: "Derived cost/budget summary from the latest checkpoint or aggregation." },
-    error: { type: "Error | null", description: "Error from the last failed stream attempt, or `null`." },
+    error: { type: "Error | null", description: "Error from the last failed stream attempt, or `null`. Set only once auto-reconnect exhausts its attempts (or for a non-transient failure)." },
     events: { type: "readonly WorkflowExecutionEvent[]", description: "All accumulated events, ordered by sequence_number ascending." },
     isConnecting: { type: "boolean", description: "`true` while connecting to the event stream." },
+    isReconnecting: { type: "boolean", description: "`true` while a transient drop is being retried automatically. Accumulated events stay visible and `error` remains `null`; on success the subscription resumes from the last sequence number with no events lost." },
     isStreaming: { type: "boolean", description: "`true` while receiving live events." },
-    reconnect: { type: "() => void", description: "Re-establish the stream subscription." },
+    reconnect: { type: "() => void", description: "Re-establish the stream subscription (manual fallback)." },
+    reconnectAttempt: { type: "number", description: "1-based count of the in-flight reconnect attempt; `0` when not reconnecting." },
     streamState: { type: "WorkflowEventStreamState", description: "Stream lifecycle state." },
     taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Derived task states from the event log." },
     totalTasks: { type: "number", description: "Total tasks declared in the execution_started event." },
@@ -1415,6 +1446,31 @@ Uses native `<dialog>` element for proper focus trapping and escape handling.
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
     org: { type: "string", description: "Organization slug.", required: true },
     workflowId: { type: "string", description: "Workflow ID to bind the new instance to.", required: true },
+  }}
+/>
+
+
+### RunVisibilityControl
+
+Segmented control for an instance's run (execution) visibility — a separate
+axis from the instance's own visibility: an owner can keep the instance
+private while letting the whole org observe its runs.
+
+Writes the `execution_visibility` spec field via the dedicated RPC, which
+reconciles the dormant `workflow_instance#execution_viewer` FGA relation in
+Cloud mode. `unspecified` is treated as private (the default).
+
+Only meaningful while the instance itself is private; an ORG/PUBLIC instance
+already exposes its runs to org members by inheritance, so callers should
+render this only in the private case.
+
+**Props** — `RunVisibilityControlProps`
+
+<TypeTable
+  type={{
+    executionVisibility: { type: "WorkflowExecutionVisibility", description: "Current `execution_visibility` from the instance spec.", required: true },
+    instanceId: { type: "string", description: "Id of the workflow instance whose run visibility is edited.", required: true },
+    onChanged: { type: "() => void", description: "Called after a successful change so the host can refresh the instance." },
   }}
 />
 
@@ -2848,8 +2904,10 @@ Options for [`useWorkflowExecutionEventStream`](#useworkflowexecutioneventstream
 
 <TypeTable
   type={{
+    autoReconnect: { type: "boolean", description: "Automatically re-establish the live subscription with exponential backoff when it drops with a transient transport error, resuming from the last received `sequence_number` (no events lost). Defaults to `true`." },
     eventTypes: { type: "readonly WorkflowEventType[]", description: "Filter to specific event types for the subscription." },
     executionPhase: { type: "ExecutionPhase", description: "The current execution phase. When provided, the hook uses this to decide between live streaming (non-terminal) and batch loading (terminal). When omitted, defaults to live streaming." },
+    reconnectOptions: { type: "BackoffOptions & { maxAttempts?: number }", description: "Tune the auto-reconnect backoff schedule and attempt cap. Omitted fields fall back to SDK defaults (base 1s, ×2, max 30s, 10 attempts)." },
     store: { type: "WorkflowExecutionEventStore", description: "External store instance. When provided, the hook writes to this store instead of creating an internal one. Useful for sharing event state across multiple components." },
   }}
 />
@@ -3099,6 +3157,7 @@ Props for [`WorkflowExecutionHeader`](#workflowexecutionheader).
     className: { type: "string", description: "" },
     costSummary: { type: "DerivedCostSummary", description: "", required: true },
     execution: { type: "WorkflowExecution", description: "", required: true, typeDescriptionLink: "/docs/sdk/resources/workflow-execution" },
+    headerActions: { type: "ReactNode", description: "Host-supplied action elements rendered at the trailing edge of the header (e.g. a Share control). Kept routing/auth-agnostic per DD-004 — the SDK renders the slot; the host owns its behavior." },
     isDiagnosing: { type: "boolean", description: "Whether the diagnosis panel is currently active." },
     onCompare: { type: "() => void", description: "Called when the user clicks \"Compare with...\" on a terminal execution." },
     onDiagnose: { type: "() => void", description: "Called when the user clicks \"Diagnose with AI\" on a failed execution." },
@@ -3255,9 +3314,10 @@ Props for [`WorkflowExecutionViewer`](#workflowexecutionviewer).
 
 <TypeTable
   type={{
-    additionalActions: { type: "ReactNode", description: "Additional action elements to render in the header." },
+    additionalActions: { type: "ReactNode", description: "Additional action elements to render in the sidebar inspector footer." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     executionId: { type: "string", description: "ID of the workflow execution to display.", required: true },
+    headerActions: { type: "ReactNode", description: "Host-supplied action elements rendered in the header action group (e.g. a Share control). Routing/auth-agnostic per DD-004." },
     nodesDraggable: { type: "boolean", description: "Whether task nodes in the execution graph can be dragged to rearrange the layout for presentations. Drag positions are ephemeral and not persisted." },
     onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Callback when the user clicks a link to a child agent execution. Receives the AgentExecution ID. The host application is responsible for navigation — this keeps the component routing-agnostic (DD-004)." },
     onNavigateToWorkflowEditor: { type: "(yaml: string, workflowSlug: string) => void", description: "Callback when the user clicks \"Apply Fix\" in the repair card. Receives the suggested YAML and the workflow slug. The host application handles navigation to the workflow editor (DD-004)." },

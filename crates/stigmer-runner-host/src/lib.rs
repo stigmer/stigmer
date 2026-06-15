@@ -20,7 +20,12 @@
 //! let host = RunnerHost::new();
 //! host.start(RunnerConfig {
 //!     node_binary: "node".into(),
-//!     runner_entry: "resources/runner/dist/main.js".into(),
+//!     // Absolute path. In a packaged app, resolve it from the resource directory
+//!     // (e.g. Tauri's `app.path().resolve(.., BaseDirectory::Resource)`): `node`
+//!     // resolves a relative entry against the working directory, which is `/` for a
+//!     // GUI app — see the embedding guide. A path that does not resolve fails fast
+//!     // with `RunnerHostError::RunnerEntryNotFound`.
+//!     runner_entry: "/path/to/resources/runner/dist/main.js".into(),
 //!     temporal_address: None, // discovered from the control plane via the token
 //!     stigmer_endpoint: "https://api.stigmer.ai".into(),
 //!     temporal_namespace: None,

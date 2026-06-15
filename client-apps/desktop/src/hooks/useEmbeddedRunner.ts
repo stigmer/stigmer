@@ -19,6 +19,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { resolveResource } from "@tauri-apps/api/path";
 import { loadTokens } from "../auth/token-store";
 
 interface RunnerConfig {
@@ -38,6 +39,8 @@ interface RunnerStatus {
   running: boolean;
   activeSessions: string[];
   activeWorkflowExecutions: string[];
+  /** OS pid of the runner (null when not running); exposed by the host for diagnostics. */
+  pid?: number | null;
 }
 
 export interface UseEmbeddedRunnerResult {
@@ -49,6 +52,13 @@ export interface UseEmbeddedRunnerResult {
   addWorkflowExecution: (executionId: string) => Promise<string>;
   removeWorkflowExecution: (executionId: string) => Promise<void>;
   updateRunnerToken: (token: string | null) => Promise<void>;
+  /**
+   * Re-read the runner's live session/execution state. Used to reflect the
+   * runner's truth after a remove (which may defer teardown while an execution
+   * runs in the background) and by periodic polling so background-run
+   * indicators clear once a run drains.
+   */
+  refreshStatus: () => Promise<void>;
   error: string | null;
 }
 
@@ -59,7 +69,7 @@ function normalizeToUrl(endpoint: string): string {
   return endpoint.endsWith(":443") ? `https://${endpoint}` : `http://${endpoint}`;
 }
 
-function getRunnerConfig(): RunnerConfig {
+async function getRunnerConfig(): Promise<RunnerConfig> {
   // The runner's control-plane endpoint. In local dev this is the grpcwebproxy
   // sidecar; in production it is the Stigmer Cloud API. Falling back to
   // VITE_STIGMER_API_URL (not localhost) is what lets the production desktop —
@@ -99,9 +109,16 @@ function getRunnerConfig(): RunnerConfig {
        || normalizeToUrl(stigmerEndpoint))
     : undefined;
 
+  // Resolve the staged runner to an ABSOLUTE path. `node` resolves a relative
+  // script argument against the process working directory, which for a packaged
+  // app launched from Finder/dock is `/`, not the bundle's resource directory.
+  // `resolveResource` resolves against the resource dir in both dev and packaged
+  // builds (the dev tree symlinks resources/runner to the in-repo runner).
+  const runnerEntry = await resolveResource("resources/runner/dist/main.js");
+
   return {
     nodeBinary: "node",
-    runnerEntry: "resources/runner/dist/main.js",
+    runnerEntry,
     // Omitted unless explicitly overridden — the runner self-discovers it.
     ...(temporalAddress ? { temporalAddress } : {}),
     stigmerEndpoint,
@@ -132,7 +149,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     }
 
     const startPromise = (async () => {
-      const config = getRunnerConfig();
+      const config = await getRunnerConfig();
       await invoke("start_runner", { config });
       setIsRunning(true);
       setError(null);
@@ -159,10 +176,25 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     return taskQueue;
   }, [ensureRunning]);
 
+  const refreshStatus = useCallback(async (): Promise<void> => {
+    try {
+      const status = await invoke<RunnerStatus>("runner_status");
+      setIsRunning(status.running);
+      setActiveSessions(status.activeSessions);
+      setActiveWorkflowExecutions(status.activeWorkflowExecutions ?? []);
+    } catch {
+      // Status polling is best-effort; a transient IPC failure must not surface.
+    }
+  }, []);
+
   const removeSession = useCallback(async (sessionId: string): Promise<void> => {
     await invoke("remove_session", { sessionId });
-    setActiveSessions((prev) => prev.filter((id) => id !== sessionId));
-  }, []);
+    // The runner keeps the worker alive in the background when an execution is
+    // still in flight (deferred teardown), so reconcile from the runner's truth
+    // rather than optimistically dropping the session — a backgrounded run must
+    // stay visible (and drives the "running in background" indicator).
+    await refreshStatus();
+  }, [refreshStatus]);
 
   const addWorkflowExecution = useCallback(async (executionId: string): Promise<string> => {
     await ensureRunning();
@@ -193,6 +225,7 @@ export function useEmbeddedRunner(): UseEmbeddedRunnerResult {
     addWorkflowExecution,
     removeWorkflowExecution,
     updateRunnerToken,
+    refreshStatus,
     error,
   };
 }

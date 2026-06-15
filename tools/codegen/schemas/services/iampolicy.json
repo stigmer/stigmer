@@ -730,6 +730,33 @@
           "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
         }
       ]
+    },
+    {
+      "name": "IdentityAccountProvisioningMode",
+      "description": "IdentityAccountProvisioningMode defines how an identity account was created.\n\n @internal\n Unspecified is the default for legacy accounts created before this enum was introduced.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode",
+      "values": [
+        {
+          "name": "direct",
+          "number": 1,
+          "description": "User signed up directly via Stigmer's own authentication tenant."
+        },
+        {
+          "name": "federated",
+          "number": 2,
+          "description": "Account was created by the platform for federated authentication via an IdentityProvider."
+        },
+        {
+          "name": "machine",
+          "number": 3,
+          "description": "Machine-to-machine client credentials account for inter-service communication."
+        },
+        {
+          "name": "platform_client",
+          "number": 4,
+          "description": "Account provisioned via a PlatformClient's mintUserToken endpoint.\n\n The idp_id for these accounts uses the composite encoding\n \"stgm_pc|{platform_client_id}|{external_user_id}\", where platform_client_id\n is the PlatformClient's permanent client_id (stgm_cid_*) and external_user_id\n is the user identifier supplied by the platform builder. The composite is\n globally unique by construction — no additional scope field is needed.\n\n Unlike federated accounts, PlatformClient is not an ongoing authentication\n authority. Stigmer signs its own JWTs for these users; the PlatformClient\n is the admission credential used at mint time only."
+        }
+      ]
     }
   ],
   "resourceDescription": "IamPolicy represents a binding between a principal (who), a resource (what),\n and a relation/permission (how).\n\n An IAM policy grants a specific permission (relation) to a principal on a resource.\n For example: \"Grant 'admin' permission to user 'john@example.com' on VPC 'vpc-123'\"\n\n The policy is the source of truth for authorization and is synced to the\n authorization backend (OpenFGA) as FGA tuples."

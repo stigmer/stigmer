@@ -4,8 +4,6 @@ use (
 	./apis/stubs/go
 	./backend/libs/go
 	./backend/services/stigmer-server
-	./client-apps/cli
-	./mcp-server
 	./sdk/go
 	./seedpack
 	./test/integration

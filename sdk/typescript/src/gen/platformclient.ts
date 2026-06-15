@@ -100,7 +100,7 @@ export interface PlatformClientInput {
   allowedOrigins?: string[];
 }
 
-function buildPlatformClientProto(input: PlatformClientInput): PlatformClient {
+export function buildPlatformClientProto(input: PlatformClientInput): PlatformClient {
   const expiresAt = input.expiresAt !== undefined ? toTimestamp(input.expiresAt) : undefined;
   return Object.assign(create(PlatformClientSchema), {
     apiVersion: "iam.stigmer.ai/v1",

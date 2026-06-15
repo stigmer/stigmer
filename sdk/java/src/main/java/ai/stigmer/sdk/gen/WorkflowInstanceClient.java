@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest;
+import ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput;
 import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance;
 import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandControllerGrpc;
 import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId;
@@ -44,6 +45,12 @@ public final class WorkflowInstanceClient {
     public WorkflowInstance updateVisibility(UpdateVisibilityInput input) {
         try {
             return command.updateVisibility(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public WorkflowInstance updateExecutionVisibility(UpdateExecutionVisibilityInput input) {
+        try {
+            return command.updateExecutionVisibility(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

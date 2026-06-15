@@ -1,0 +1,65 @@
+Configure the LLM provider for agent execution.
+
+`stigmer setup` configures which LLM provider agents use when they run on the
+local stack. Run it without flags for an interactive menu, or pass `--provider`
+(with the related flags) for a non-interactive setup suitable for scripts and
+CI. Either path writes to your local configuration, preserving every other
+setting.
+
+Supported providers: `anthropic`, `openai`, `ollama`, and `skip`.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Interactive setup
+stigmer setup
+
+# Non-interactive: configure Anthropic
+stigmer setup --provider anthropic --api-key sk-ant-xxx
+
+# Point at a local Ollama endpoint
+stigmer setup --provider ollama --base-url http://localhost:11434
+```
+
+{/* AUTO_FLAGS */}
+
+## Examples
+
+### Interactive provider selection
+
+```bash
+stigmer setup
+```
+
+A menu walks you through choosing a provider and entering credentials.
+
+### Non-interactive configuration for CI
+
+```bash
+stigmer setup --provider openai --api-key "$OPENAI_API_KEY" --model gpt-4o
+```
+
+### Apply a new provider to a running stack
+
+```bash
+stigmer setup --provider anthropic --api-key sk-ant-xxx
+stigmer down && stigmer up
+```
+
+The stack must be restarted to pick up a new LLM configuration.
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer up`](./up) | Start the local stack |
+| [`stigmer config`](./config) | Read and write CLI configuration |
+| [`stigmer status`](./status) | Show the effective LLM configuration |
+
+## See also
+
+- [Command Reference](./) — All available commands

@@ -32,13 +32,13 @@ spec:
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server
-        slug: mcp-server-brave-search
+        slug: brave-search
     - mcp_server_ref:
         kind: mcp_server
-        slug: mcp-server-exa
+        slug: exa
     - mcp_server_ref:
         kind: mcp_server
-        slug: mcp-server-fetch
+        slug: fetch
   skill_refs:
     - kind: skill
       slug: research-analyst

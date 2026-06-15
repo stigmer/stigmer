@@ -19,10 +19,12 @@ metadata:
     data-classification: internal
 
 spec:
-  runtime: python
-  
-  # Python projects often have custom entry points for different deployment scenarios.
-  # Here we use a pipeline-specific entry point that contains all workflow definitions.
+  # The runtime is inferred from the entry_point extension (.py -> Python);
+  # there is no separate `runtime` field.
+  #
+  # NOTE: the Python SDK synthesis library is a planned follow-up. Today only the
+  # TypeScript SDK (@stigmer/sdk/synth) can author an entry point end to end —
+  # see ../typescript-quickstart. This file illustrates the project config shape.
   entry_point: pipelines/main.py
   
   description: |

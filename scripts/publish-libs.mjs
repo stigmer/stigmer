@@ -35,17 +35,30 @@ import {
   mkdirSync,
 } from "node:fs";
 import { resolve, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 
-const PACKAGES = [
+export const PACKAGES = [
   "apis/stubs/ts",
   "sdk/typescript",
   "sdk/theme",
   "sdk/react",
   "sdk/ink",
+  // mcp-server depends only on @stigmer/protos + @stigmer/sdk, both above it,
+  // so the publish DAG stays ordered. Mirrors the build:libs order in package.json.
+  "mcp-server",
+  // @stigmer/seedpack has no @stigmer/* deps (it stages bundled resource
+  // content), so its position is order-free. A published @stigmer/cli acquires
+  // @stigmer/seedpack at its exact version on demand, so it MUST publish too. It
+  // pins itself off `latest` via `stigmerPublish.tag` until parity, alongside cli.
+  "seedpack",
+  // @stigmer/cli depends on @stigmer/protos + @stigmer/sdk + @stigmer/ink, all
+  // above it, so it publishes last with its deps already resolved. It pins itself
+  // off `latest` via `stigmerPublish.tag` until its local-stack surface reaches
+  // parity (see resolvePackageTag below).
+  "client-apps/cli",
 ];
 
 function run(cmd, cwd = root) {
@@ -80,7 +93,28 @@ function isPrerelease(version) {
   return version.includes("-");
 }
 
-function generateDistPackageJson(pkgDir, version) {
+/**
+ * Resolve the npm dist-tag for a single package.
+ *
+ * An explicit run-level `--tag` (how the dev pipeline routes every package to the
+ * `dev` channel) always wins — a dev build is a dev build for the whole train.
+ *
+ * Otherwise a package may pin itself below the inferred tag via
+ * `stigmerPublish.tag` in its package.json. This lets a not-yet-GA package ship
+ * to npm (so it is installable + CI-testable) without ever landing on `latest`:
+ * `@stigmer/cli` uses this so a stable `v*` release does not promote its
+ * still-incomplete local-stack surface to `latest`. The pin is removed when the
+ * package reaches parity. A package never pins itself ABOVE the inferred tag
+ * (e.g. it cannot force `latest` onto a prerelease run).
+ */
+export function resolvePackageTag(srcPkg, explicitTag, inferredTag) {
+  if (explicitTag) return explicitTag;
+  const pinned = srcPkg.stigmerPublish?.tag;
+  if (pinned && inferredTag === "latest") return pinned;
+  return inferredTag;
+}
+
+export function generateDistPackageJson(pkgDir, version) {
   const srcPkg = JSON.parse(
     readFileSync(resolve(pkgDir, "package.json"), "utf8"),
   );
@@ -104,6 +138,13 @@ function generateDistPackageJson(pkgDir, version) {
   }
   if (publishConfig.types) {
     distPkg.types = publishConfig.types.replace(/^\.\/dist\//, "./");
+  }
+
+  // Executable packages (e.g. @stigmer/mcp-server) declare their entry points
+  // under publishConfig.bin. Without this the bin field is dropped and `npx`
+  // has nothing to run.
+  if (publishConfig.bin) {
+    distPkg.bin = rewriteBinPaths(publishConfig.bin);
   }
 
   if (publishConfig.exports) {
@@ -169,6 +210,21 @@ function rewriteExports(exports) {
 }
 
 /**
+ * Rewrite publishConfig.bin paths from ./dist/... to ./ (since we publish from dist/).
+ * npm's `bin` is either a string (single executable) or a flat { name: path } map.
+ */
+export function rewriteBinPaths(bin) {
+  if (typeof bin === "string") {
+    return bin.replace(/^\.\/dist\//, "./");
+  }
+  const result = {};
+  for (const [name, path] of Object.entries(bin)) {
+    result[name] = path.replace(/^\.\/dist\//, "./");
+  }
+  return result;
+}
+
+/**
  * If NPM_TOKEN is set, write a project-level .npmrc that authenticates
  * against the npm registry. Returns true if a file was written (caller
  * must clean up).
@@ -208,10 +264,11 @@ function teardownNpmrc(created) {
 
 async function main() {
   const { version, tag: explicitTag, dryRun, skipBuild } = parseArgs();
-  const tag = explicitTag ?? (isPrerelease(version) ? "next" : "latest");
+  const inferredTag = isPrerelease(version) ? "next" : "latest";
+  const tag = explicitTag ?? inferredTag;
 
   console.log(`\n  version: ${version}`);
-  console.log(`  tag:     ${tag}`);
+  console.log(`  tag:     ${tag}${explicitTag ? "" : " (default; some packages may pin lower)"}`);
   console.log(`  dry-run: ${dryRun}\n`);
 
   if (!skipBuild) {
@@ -243,8 +300,13 @@ async function main() {
         process.exit(1);
       }
 
+      const pkgTag = resolvePackageTag(srcPkg, explicitTag, inferredTag);
+
       const distPkgPath = generateDistPackageJson(pkgDir, version);
       console.log(`  Generated ${distPkgPath}`);
+      if (pkgTag !== tag) {
+        console.log(`  dist-tag: ${pkgTag} (pinned below the run default "${tag}")`);
+      }
 
       copySrcForDeclarationMaps(pkgDir);
 
@@ -258,7 +320,7 @@ async function main() {
         cpSync(licenseSrc, resolve(distDir, "LICENSE"));
       }
 
-      let publishCmd = `npm publish ${distDir} --access public --tag ${tag}`;
+      let publishCmd = `npm publish ${distDir} --access public --tag ${pkgTag}`;
       if (dryRun) publishCmd += " --dry-run";
 
       run(publishCmd);
@@ -271,7 +333,10 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Only run when invoked directly (not when imported by tests).
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

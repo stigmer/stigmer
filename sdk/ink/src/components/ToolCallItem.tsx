@@ -115,11 +115,23 @@ function describeResultView(view: ToolResultView): string | null {
       return truncate(view.text);
     case "json":
       return truncate(JSON.stringify(view.value));
+    case "outputRef": {
+      const size = view.sizeBytes ? ` (${formatBytes(view.sizeBytes)})` : "";
+      if (view.isImage) return `image${size}: ${view.downloadUrl}`;
+      const preview = view.preview ? `${truncate(view.preview)}\n` : "";
+      return `${preview}full output${size}: ${view.downloadUrl}`;
+    }
     case "error":
       return view.message;
     case "empty":
       return null;
   }
+}
+
+function formatBytes(n: number): string {
+  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${n} B`;
 }
 
 function truncate(s: string, maxLines = 5): string {

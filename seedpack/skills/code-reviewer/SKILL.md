@@ -1,5 +1,6 @@
 ---
 name: code-reviewer
+visibility: public
 description: >
   Review code changes with a structured methodology covering correctness, security,
   performance, and maintainability. Use this skill when asked to review a pull request,

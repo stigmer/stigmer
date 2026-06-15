@@ -96,6 +96,36 @@ through error handling, not UI redirects.
 
 ## Components
 
+### AgentPicker
+
+Interactive picker for choosing an agent by name.
+
+Composes the `useAgentSearch` data hook with `ResourcePicker`:
+the user types, results stream in (debounced by the hook), and the selected
+agent's `SearchResult` is returned via `onSelect`. Use the `id` field of
+that result to resolve and run the agent.
+
+**Props** — `AgentPickerProps`
+
+<TypeTable
+  type={{
+    initialQuery: { type: "string", description: "Seeds the search box (e.g. an unresolved slug the user already typed)." },
+    onCancel: { type: "() => void", description: "Called when the user cancels (Esc / Ctrl+C).", required: true },
+    onSelect: { type: "(agent: SearchResult) => void", description: "Called with the chosen agent's search result on selection.", required: true },
+    org: { type: "string", description: "Organization to search within.", required: true },
+    scope: { type: "\"org\" | \"all\"", description: "`\"org\"` (default) searches the org; `\"all\"` includes public agents." },
+  }}
+/>
+
+```tsx
+render(
+  <InkStigmerProvider client={client}>
+    <AgentPicker org="acme" onSelect={(a) => run(a.id)} onCancel={() => process.exit(0)} />
+  </InkStigmerProvider>,
+);
+```
+
+
 ### ApprovalPrompt
 
 HITL approval prompt for tool call authorization.
@@ -224,6 +254,83 @@ output efficient for long conversations.
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval." },
   }}
 />
+
+
+### ResourcePicker
+
+Generic, interactive search-and-select list for the terminal.
+
+Renders a text input above a scrollable result list. The user types to
+filter (the caller performs the actual search via `onQueryChange`), navigates
+with the arrow keys, selects with Enter, and cancels with Esc. It holds no
+data of its own — pass `items`/`query`/`isLoading` from a data hook such as
+`useAgentSearch` or `useSessionList`.
+
+This is the reusable organism behind `AgentPicker` and
+`SessionPicker`; platform builders can compose it with any search
+function to pick any resource.
+
+**Props** — `ResourcePickerProps`
+
+<TypeTable
+  type={{
+    emptyLabel: { type: "string", description: "Label shown when a completed search returns no rows." },
+    error: { type: "Error | null", description: "Error from the last failed search, shown in place of the list." },
+    isLoading: { type: "boolean", description: "`true` while a search request is in flight." },
+    items: { type: "readonly PickerItem[]", description: "The current result rows to choose from (owned by the caller).", required: true },
+    onCancel: { type: "() => void", description: "Called when the user cancels (Esc or Ctrl+C).", required: true },
+    onQueryChange: { type: "(query: string) => void", description: "Called when the query text changes; the caller re-runs its search.", required: true },
+    onSelect: { type: "(item: PickerItem) => void", description: "Called with the chosen item when the user presses Enter.", required: true },
+    placeholder: { type: "string", description: "Placeholder shown in the empty input." },
+    prompt: { type: "string", description: "Label shown before the input (e.g. \"Select an agent\")." },
+    query: { type: "string", description: "Current query text (controlled — the caller owns search state).", required: true },
+  }}
+/>
+
+```tsx
+const { results, isLoading, query, setQuery } = useAgentSearch("acme");
+const items = results.map((r) => ({ id: r.id, title: r.qualifiedSlug }));
+render(
+  <ResourcePicker
+    prompt="Select an agent"
+    items={items}
+    query={query}
+    onQueryChange={setQuery}
+    isLoading={isLoading}
+    onSelect={(item) => console.log(item.id)}
+    onCancel={() => process.exit(0)}
+  />,
+);
+```
+
+
+### SessionPicker
+
+Interactive picker for re-opening an existing session.
+
+Unlike agents, sessions are not search-indexed, so this composes
+`useSessionList` with client-side text filtering over the recent
+session list. The selected `Session` is returned via `onSelect`; use
+`session.metadata.id` to resume it.
+
+**Props** — `SessionPickerProps`
+
+<TypeTable
+  type={{
+    initialQuery: { type: "string", description: "Seeds the filter box (e.g. text the user already typed)." },
+    onCancel: { type: "() => void", description: "Called when the user cancels (Esc / Ctrl+C).", required: true },
+    onSelect: { type: "(session: Session) => void", description: "Called with the chosen session on selection.", required: true },
+    pageSize: { type: "number", description: "Maximum sessions to fetch. Defaults to 50." },
+  }}
+/>
+
+```tsx
+render(
+  <InkStigmerProvider client={client}>
+    <SessionPicker onSelect={(s) => resume(s.metadata?.id)} onCancel={() => process.exit(0)} />
+  </InkStigmerProvider>,
+);
+```
 
 
 ### SubAgentBlock

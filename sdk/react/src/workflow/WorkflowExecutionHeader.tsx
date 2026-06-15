@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
@@ -21,6 +21,12 @@ export interface WorkflowExecutionHeaderProps {
   readonly isDiagnosing?: boolean;
   /** Called when the user clicks "Compare with..." on a terminal execution. */
   readonly onCompare?: () => void;
+  /**
+   * Host-supplied action elements rendered at the trailing edge of the
+   * header (e.g. a Share control). Kept routing/auth-agnostic per DD-004 —
+   * the SDK renders the slot; the host owns its behavior.
+   */
+  readonly headerActions?: ReactNode;
   readonly className?: string;
 }
 
@@ -53,6 +59,7 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
   onDiagnose,
   isDiagnosing,
   onCompare,
+  headerActions,
   className,
 }: WorkflowExecutionHeaderProps) {
   const phase = execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
@@ -75,7 +82,10 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
   const isRunning = RUNNING_PHASES.has(phase);
   const isPaused = phase === ExecutionPhase.EXECUTION_PAUSED;
   const isFailed = phase === ExecutionPhase.EXECUTION_FAILED;
-  const isLive = streamState.stage === "streaming" || streamState.stage === "connecting";
+  const isLive =
+    streamState.stage === "streaming" ||
+    streamState.stage === "connecting" ||
+    streamState.stage === "reconnecting";
 
   return (
     <header className={cn("flex items-center gap-3 border-b border-border px-4 py-3", className)}>
@@ -159,6 +169,10 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
               disabled={actions.isSubmitting}
             />
           </>
+        )}
+
+        {headerActions && (
+          <div className="relative flex items-center">{headerActions}</div>
         )}
       </div>
     </header>

@@ -10,8 +10,11 @@ metadata:
 spec:
   container:
     app:
+      # Image published by .github/workflows/release.mcp-server.yaml (and the
+      # :dev channel by release.dev.yaml). Built from mcp-server/Dockerfile,
+      # which installs the @stigmer/mcp-server npm package (TypeScript server).
       image:
-        repo: ghcr.io/stigmer/stigmer/mcp-server
+        repo: ghcr.io/stigmer/mcp-server-stigmer
         #tag: <comes-from-ci-git-commit-sha>
       env:
         variables:

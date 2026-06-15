@@ -7,6 +7,32 @@ import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
 
+// WorkflowExecutionVisibility controls who can observe the run history
+// (executions) of a workflow instance.
+//
+// This is a SEPARATE axis from the instance's own visibility
+// (metadata.visibility, which governs who can SEE and RUN the instance).
+// Keeping them separate means making an instance org-runnable never exposes
+// other users' run inputs/outputs. See workflow_execution.fga and
+// workflow_instance.fga (the `execution_viewer` relation) for how this maps
+// to authorization tuples.
+//
+// Only PRIVATE and ORGANIZATION are meaningful: run history is either visible
+// to just the triggerer, or to every member of the owning organization.
+// Public/platform run observability is deliberately unsupported.
+enum WorkflowExecutionVisibility {
+  // Unset. Treated as PRIVATE — each execution is visible only to the user
+  // who triggered it.
+  workflow_execution_visibility_unspecified = 0;
+
+  // Each execution is visible only to the user who triggered it (its owner).
+  workflow_execution_visibility_private = 1;
+
+  // Every member of the owning organization can observe all executions of
+  // this instance.
+  workflow_execution_visibility_organization = 2;
+}
+
 // WorkflowInstanceSpec defines the configurable properties of a workflow instance.
 //
 // @internal
@@ -71,4 +97,15 @@ message WorkflowInstanceSpec {
       expression: "this.kind == 53"
     }
   ];
+
+  // Who can observe the run history (executions) of this instance.
+  //
+  // Independent of the instance's own visibility: making an instance
+  // org-visible lets teammates see and run it, but does NOT expose each
+  // other's run inputs/outputs unless this is set to ORGANIZATION.
+  //
+  // Defaults to PRIVATE (unspecified is treated as private) — each execution
+  // is visible only to the user who triggered it. Update via
+  // WorkflowInstanceCommandController.updateExecutionVisibility.
+  WorkflowExecutionVisibility execution_visibility = 4 [(buf.validate.field).enum.defined_only = true];
 }

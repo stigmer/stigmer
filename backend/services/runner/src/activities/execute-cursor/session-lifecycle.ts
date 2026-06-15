@@ -61,6 +61,12 @@ const CURSOR_SDK_STATE_DIR = ".stigmer/cursor-sdk-state";
  * silently drops the hook and disables the entire approval gate. We must opt
  * in to "project" so the hook loads and tool calls are actually gated.
  *
+ * The hooks.json is the only file written into the workspace — kept minimal,
+ * merged with any user hooks.json, and restored when the turn ends; the gate's
+ * own artifacts live outside the repo and the hook is scoped to this runner's
+ * process, so the user's interactive IDE sharing the repo is never gated (see
+ * workspace-setup.ts / hook-script.ts and issue #173).
+ *
  * Side effect: this also loads other workspace `.cursor/*` config (rules,
  * mcp.json, commands). For runner-provisioned workspaces that is inert; for
  * sessions running on a user's own repo their project config is now honored.

@@ -1,0 +1,56 @@
+Compare local YAML with remote resource state.
+
+`stigmer diff` shows a unified diff between your local YAML resource files and
+their current state on the server, one document at a time. Each document's kind
+is auto-detected from the `kind` field. A resource that does not yet exist
+remotely is reported as entirely new.
+
+Use `stigmer diff` before `stigmer apply -f` to preview exactly what would
+change.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Diff a single file
+stigmer diff -f workflow.yaml
+
+# Diff every YAML file in a directory
+stigmer diff -f ./manifests/
+
+# Show more context lines
+stigmer diff -f workflow.yaml --context 5
+```
+
+{/* AUTO_FLAGS */}
+
+## Examples
+
+### Preview changes before applying
+
+```bash
+stigmer diff -f workflow.yaml && stigmer apply -f workflow.yaml
+```
+
+### Diff a directory of resources
+
+```bash
+stigmer diff -f ./manifests/
+```
+
+Each document is compared independently; new resources are shown as additions.
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer apply`](./apply) | Apply the changes shown by diff |
+| [`stigmer validate`](./validate) | Validate resource files without applying |
+| [`stigmer get`](./get) | Inspect the current remote state |
+
+## See also
+
+- [Command Reference](./) — All available commands

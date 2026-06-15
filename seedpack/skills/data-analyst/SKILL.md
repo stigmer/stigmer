@@ -1,5 +1,6 @@
 ---
 name: data-analyst
+visibility: public
 description: >
   Analyze data with structured methodology covering question framing, data assessment,
   pattern identification, and insight communication. Use this skill when asked to

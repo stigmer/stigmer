@@ -6,13 +6,16 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { getUserMessage } from "@stigmer/sdk";
 import { useUpdateWorkflowInstance } from "./useUpdateWorkflowInstance";
 import { useDeleteWorkflowInstance } from "./useDeleteWorkflowInstance";
-import { ResourceVisibilityControl } from "../../library/ResourceVisibilityControl";
+import { RunVisibilityControl } from "./RunVisibilityControl";
+import { VisibilityBadge } from "../../library/VisibilitySelector";
 import { PermissionGate } from "../../iam-policy/PermissionGate";
-import { SharePanel } from "../../iam-policy/SharePanel";
+import { useCheckPermission } from "../../iam-policy/useCheckPermission";
+import { ManageAccessButton } from "../../access/ManageAccessButton";
 import { EnvironmentPicker } from "../../environment/EnvironmentPicker";
 import { useEnvironmentList } from "../../environment/useEnvironmentList";
 
@@ -58,9 +61,36 @@ export function WorkflowInstanceDetailPanel({
 
   const [isEditingEnvs, setIsEditingEnvs] = useState(false);
   const [editEnvRefs, setEditEnvRefs] = useState<ResourceRef[]>([]);
-  const [showSharePanel, setShowSharePanel] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<Error | null>(null);
+
+  const visibility = meta?.visibility ?? ApiResourceVisibility.visibility_private;
+  // Run observability is a separate axis from instance visibility, and only
+  // meaningful while the instance is private (ORG/PUBLIC already expose runs
+  // by inheritance). It is offered only to those who can grant access, so it
+  // rides into the dialog as the resource-specific section — present only when
+  // both conditions hold.
+  const { allowed: canGrantAccess } = useCheckPermission(
+    id ? { kind: "workflow_instance", id } : null,
+    "can_grant_access",
+  );
+  const runVisibilitySection =
+    visibility === ApiResourceVisibility.visibility_private && canGrantAccess
+      ? {
+          title: "Run visibility",
+          description:
+            "Keep the instance private while choosing who can observe its runs.",
+          content: (
+            <RunVisibilityControl
+              instanceId={id}
+              executionVisibility={
+                spec?.executionVisibility ?? WorkflowExecutionVisibility.unspecified
+              }
+              onChanged={onUpdated}
+            />
+          ),
+        }
+      : undefined;
 
   const handleStartEditEnvs = useCallback(() => {
     const currentRefs: ResourceRef[] = (spec?.environmentRefs ?? []).map((ref) => ({
@@ -115,9 +145,12 @@ export function WorkflowInstanceDetailPanel({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">
-            {meta?.name || meta?.slug || "Instance"}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">
+              {meta?.name || meta?.slug || "Instance"}
+            </h3>
+            <VisibilityBadge visibility={visibility} />
+          </div>
           <p className="text-[0.65rem] text-muted-foreground">
             {createdAt && `Created ${createdAt.toLocaleDateString()}`}
             {updatedAt && ` · Updated ${updatedAt.toLocaleDateString()}`}
@@ -137,19 +170,21 @@ export function WorkflowInstanceDetailPanel({
               Run
             </button>
           )}
-          <PermissionGate resource={{ kind: "workflow_instance", id }} relation="can_grant_access">
-            <button
-              type="button"
-              onClick={() => setShowSharePanel((v) => !v)}
-              className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium",
-                "border border-border text-foreground hover:bg-accent-hover",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
-              )}
-            >
-              Share
-            </button>
-          </PermissionGate>
+          <ManageAccessButton
+            resource={{
+              kind: ApiResourceKind.workflow_instance,
+              kindString: "workflow_instance",
+              id,
+              org: meta?.org ?? "",
+              name: meta?.name,
+            }}
+            visibility={{
+              kind: "workflowInstance",
+              current: visibility,
+              onChanged: onUpdated,
+            }}
+            extraSection={runVisibilitySection}
+          />
           <button
             type="button"
             onClick={onClose}
@@ -241,29 +276,6 @@ export function WorkflowInstanceDetailPanel({
           )}
         </div>
 
-        {/* Visibility */}
-        <div className="px-4 py-3">
-          <h4 className="text-xs font-medium text-muted-foreground mb-2">Visibility</h4>
-          <ResourceVisibilityControl
-            kind="workflowInstance"
-            resourceId={id}
-            visibility={meta?.visibility ?? ApiResourceVisibility.visibility_private}
-            onChanged={onUpdated}
-          />
-        </div>
-
-        {/* Share Panel */}
-        {showSharePanel && (
-          <div className="px-4 py-3">
-            <SharePanel
-              resource={{ kind: "workflow_instance", id, resourceKind: ApiResourceKind.workflow_instance }}
-              resourceKindString="workflow_instance"
-              resourceKind={ApiResourceKind.workflow_instance}
-              onClose={() => setShowSharePanel(false)}
-            />
-          </div>
-        )}
-
         {/* Delete */}
         <PermissionGate resource={{ kind: "workflow_instance", id }} relation="can_delete">
           <div className="px-4 py-3">
@@ -331,3 +343,4 @@ function CloseIcon() {
     </svg>
   );
 }
+

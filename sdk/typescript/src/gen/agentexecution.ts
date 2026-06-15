@@ -240,7 +240,7 @@ function buildAttachmentProto(input: AttachmentInput) {
   }));
 }
 
-function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
+export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
   const executionConfig = input.executionConfig ? buildExecutionConfigProto(input.executionConfig) : undefined;
   let runtimeEnv;
   if (input.runtimeEnv) {

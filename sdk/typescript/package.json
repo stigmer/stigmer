@@ -9,7 +9,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./node": "./src/node.ts"
+    "./node": "./src/node.ts",
+    "./synth": "./src/synth.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -45,6 +46,10 @@
       "./node": {
         "types": "./dist/node.d.ts",
         "import": "./dist/node.js"
+      },
+      "./synth": {
+        "types": "./dist/synth.d.ts",
+        "import": "./dist/synth.js"
       }
     }
   },

@@ -2,8 +2,9 @@
  * Approval state management for the hook-deny + reinvoke HITL model.
  *
  * Before starting a Cursor Agent run, the cursor-runner writes a state file
- * to the workspace. The preToolUse hook script reads this file to decide
- * whether to allow or deny each tool call.
+ * into the session's runner-owned HITL directory (outside the user's
+ * workspace). The preToolUse hook script reads this file to decide whether to
+ * allow or deny each tool call.
  *
  * State file format (JSON):
  * {
@@ -40,7 +41,7 @@
  *
  * Denial ledger (hook → runner):
  * The state file is the runner's INPUT to the hook. Its symmetric OUTPUT is the
- * denial ledger (stigmer-denials.jsonl): when the hook denies a tool, it appends
+ * denial ledger (denials.jsonl): when the hook denies a tool, it appends
  * the call's identity token to this file. The runner reads the ledger after the
  * run to learn which tool calls were gated — the hook is the only component that
  * actually makes the per-call allow/deny decision, so its ledger is the
@@ -209,11 +210,17 @@ export function buildApprovalState(
   };
 }
 
-const STATE_FILE_DIR = ".cursor/hooks";
-const STATE_FILE_NAME = "stigmer-approval-state.json";
+const STATE_FILE_NAME = "approval-state.json";
 
 /**
- * Write the approval state file to the workspace for the hook script to read.
+ * Write the approval state file into the session's HITL directory for the hook
+ * script to read.
+ *
+ * The HITL directory is runner-owned and lives outside the user's workspace
+ * (`~/.stigmer/sessions/{id}/hitl/`), so this file never lands in the attached
+ * repo — only a minimal `.cursor/hooks.json` pointing here by absolute path does
+ * (see issue #173). The hook reads this file fresh on every tool call, so its
+ * dynamic policy is always current even if the SDK caches `hooks.json`.
  *
  * Written as COMPACT JSON (no indentation): the bash hook parses it with
  * line-oriented grep patterns that assume `"key":value` with no spaces or
@@ -221,12 +228,11 @@ const STATE_FILE_NAME = "stigmer-approval-state.json";
  * would break every lookup.
  */
 export async function writeApprovalStateFile(
-  workspaceRoot: string,
+  hitlDir: string,
   state: ApprovalStateFile,
 ): Promise<string> {
-  const dir = join(workspaceRoot, STATE_FILE_DIR);
-  await mkdir(dir, { recursive: true });
-  const filePath = join(dir, STATE_FILE_NAME);
+  await mkdir(hitlDir, { recursive: true });
+  const filePath = join(hitlDir, STATE_FILE_NAME);
   await writeFile(filePath, JSON.stringify(state), "utf-8");
   return filePath;
 }
@@ -235,7 +241,7 @@ export async function writeApprovalStateFile(
 // Denial ledger (hook → runner): the authoritative record of what the hook gated
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DENIAL_LEDGER_FILE = "stigmer-denials.jsonl";
+const DENIAL_LEDGER_FILE = "denials.jsonl";
 
 /**
  * One denial recorded by the preToolUse hook. `token` is the call's identity in
@@ -248,23 +254,26 @@ export interface DeniedLedgerEntry {
   token: string;
 }
 
-/** Absolute path of the per-turn denial ledger the hook appends to. */
-export function denialLedgerPath(workspaceRoot: string): string {
-  return join(workspaceRoot, STATE_FILE_DIR, DENIAL_LEDGER_FILE);
+/**
+ * Absolute path of the per-turn denial ledger the hook appends to, inside the
+ * session's runner-owned HITL directory (never the user's workspace).
+ */
+export function denialLedgerPath(hitlDir: string): string {
+  return join(hitlDir, DENIAL_LEDGER_FILE);
 }
 
 /**
  * Truncate the denial ledger to empty for a fresh turn, returning its path.
  *
- * Called every turn alongside writeApprovalStateFile (the workspace is durable
- * and reused across HITL reinvocations), so the runner only ever reads denials
- * produced by the current run. A Temporal activity retry re-runs this reset
- * before re-running the agent, so the read stays deterministic under retries.
+ * Called every turn alongside writeApprovalStateFile (the HITL directory is
+ * durable and reused across HITL reinvocations), so the runner only ever reads
+ * denials produced by the current run. A Temporal activity retry re-runs this
+ * reset before re-running the agent, so the read stays deterministic under
+ * retries.
  */
-export async function resetDenialLedger(workspaceRoot: string): Promise<string> {
-  const dir = join(workspaceRoot, STATE_FILE_DIR);
-  await mkdir(dir, { recursive: true });
-  const filePath = denialLedgerPath(workspaceRoot);
+export async function resetDenialLedger(hitlDir: string): Promise<string> {
+  await mkdir(hitlDir, { recursive: true });
+  const filePath = denialLedgerPath(hitlDir);
   await writeFile(filePath, "", "utf-8");
   return filePath;
 }
@@ -276,11 +285,11 @@ export async function resetDenialLedger(workspaceRoot: string): Promise<string> 
  * the valid denials before it.
  */
 export async function readDenialLedger(
-  workspaceRoot: string,
+  hitlDir: string,
 ): Promise<DeniedLedgerEntry[]> {
   let raw: string;
   try {
-    raw = await readFile(denialLedgerPath(workspaceRoot), "utf-8");
+    raw = await readFile(denialLedgerPath(hitlDir), "utf-8");
   } catch {
     return [];
   }

@@ -8,7 +8,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { WorkflowInstanceSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflowinstance_v1_api } from "./api_pb.js";
-import type { WorkflowInstanceIdSchema } from "./io_pb.js";
+import type { UpdateExecutionVisibilityInputSchema, WorkflowInstanceIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflowinstance_v1_io } from "./io_pb.js";
 import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -19,7 +19,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflowinstance/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_workflowinstance_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CjRhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9jb21tYW5kLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MTL5BgohV29ya2Zsb3dJbnN0YW5jZUNvbW1hbmRDb250cm9sbGVyEnsKBWFwcGx5EjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEuV29ya2Zsb3dJbnN0YW5jZRo4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2USggEKBmNyZWF0ZRI4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2UaOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlIgTQuBgBEr0BCgZ1cGRhdGUSOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlGjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEuV29ya2Zsb3dJbnN0YW5jZSI/wrgYOwgCEDMiC21ldGFkYXRhLmlkKih1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93IGluc3RhbmNlEs8BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2UiSsK4GEYIAhAzIgtyZXNvdXJjZV9pZCozdW5hdXRob3JpemVkIHRvIHVwZGF0ZSB3b3JrZmxvdyBpbnN0YW5jZSB2aXNpYmlsaXR5ErkBCgZkZWxldGUSOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlSWQaOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlIjnCuBg1CAMQMyIFdmFsdWUqKHVuYXV0aG9yaXplZCB0byBkZWxldGUgd29ya2Zsb3cgaW5zdGFuY2UaBKD/KzNiBnByb3RvMw", [file_ai_stigmer_agentic_workflowinstance_v1_api, file_ai_stigmer_agentic_workflowinstance_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CjRhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9jb21tYW5kLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MTLvCAohV29ya2Zsb3dJbnN0YW5jZUNvbW1hbmRDb250cm9sbGVyEnsKBWFwcGx5EjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEuV29ya2Zsb3dJbnN0YW5jZRo4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2USggEKBmNyZWF0ZRI4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2UaOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlIgTQuBgBEr0BCgZ1cGRhdGUSOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlGjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEuV29ya2Zsb3dJbnN0YW5jZSI/wrgYOwgCEDMiC21ldGFkYXRhLmlkKih1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93IGluc3RhbmNlEs8BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2UiSsK4GEYIAhAzIgtyZXNvdXJjZV9pZCozdW5hdXRob3JpemVkIHRvIHVwZGF0ZSB3b3JrZmxvdyBpbnN0YW5jZSB2aXNpYmlsaXR5EvMBChl1cGRhdGVFeGVjdXRpb25WaXNpYmlsaXR5EkYuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEuVXBkYXRlRXhlY3V0aW9uVmlzaWJpbGl0eUlucHV0GjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEuV29ya2Zsb3dJbnN0YW5jZSJUwrgYUAgEEDMiC3Jlc291cmNlX2lkKj11bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93IGluc3RhbmNlIGV4ZWN1dGlvbiB2aXNpYmlsaXR5ErkBCgZkZWxldGUSOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlSWQaOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlIjnCuBg1CAMQMyIFdmFsdWUqKHVuYXV0aG9yaXplZCB0byBkZWxldGUgd29ya2Zsb3cgaW5zdGFuY2UaBKD/KzNiBnByb3RvMw", [file_ai_stigmer_agentic_workflowinstance_v1_api, file_ai_stigmer_agentic_workflowinstance_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowInstanceCommandController handles write operations for workflow instances.
@@ -125,6 +125,33 @@ export const WorkflowInstanceCommandController: GenService<{
   updateVisibility: {
     methodKind: "unary";
     input: typeof UpdateVisibilityInputSchema;
+    output: typeof WorkflowInstanceSchema;
+  },
+  /**
+   * Update who can observe the run history (executions) of this instance.
+   *
+   * This is a SEPARATE axis from updateVisibility: it controls run
+   * observability (who sees execution inputs/outputs), not who can see/run
+   * the instance itself. Making an instance org-runnable does NOT expose
+   * other users' run history — that requires this opt-in.
+   *
+   * Supported levels: PRIVATE (only the user who ran each execution) and
+   * ORGANIZATION (all org members). Public/platform are unsupported.
+   *
+   * @internal
+   * Authorization: requires can_grant_access on the workflow instance —
+   * sharing run history is an access-granting action, consistent with the
+   * per-execution share flow. In Cloud mode the transition reconciles the
+   * instance's `execution_viewer` FGA relation:
+   * - PRIVATE -> ORGANIZATION: creates
+   *   workflow_instance#execution_viewer@organization:<org>#member
+   * - ORGANIZATION -> PRIVATE: deletes that tuple
+   *
+   * @generated from rpc ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController.updateExecutionVisibility
+   */
+  updateExecutionVisibility: {
+    methodKind: "unary";
+    input: typeof UpdateExecutionVisibilityInputSchema;
     output: typeof WorkflowInstanceSchema;
   },
   /**

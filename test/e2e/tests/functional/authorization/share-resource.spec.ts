@@ -1,20 +1,47 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 /**
- * Resource Sharing Tests
+ * Unified "Manage access" Tests
  *
- * Verifies that the SharePanel component renders correctly when
- * triggered from resource detail pages, displays the access list,
- * and allows granting/revoking access.
+ * Sharing is no longer a bespoke "Share" popover per surface. Every resource
+ * with a detail surface now opens one canonical "Manage access" dialog that
+ * composes both access axes — *General access* (visibility) over *People with
+ * access* (explicit grants). Blueprints (agent / skill / mcp_server) gained the
+ * People axis they previously lacked; this suite proves the journey on them.
+ *
+ * Two affordances open the same dialog:
+ * - Family A (agent / skill / mcp_server / workflow detail): a "Manage access"
+ *   item in the kebab/overflow menu.
+ * - Family B (session / workflow-execution viewer): a visible "Manage access"
+ *   button in the header.
  *
  * Prerequisites:
  * - Running against a Cloud-connected backend with FGA enabled
  * - Test user owns at least one agent/session
  */
 
-test.describe("Resource Sharing", () => {
-  test.describe("Share panel on agent detail", () => {
-    test("share button is visible for resource owner", async ({ page }) => {
+/**
+ * Opens the kebab "Manage access" dialog for a Family A detail page. Returns the
+ * dialog locator, or null when the action is not offered (the entry is gated on
+ * `can_view_access`, so a non-owner legitimately sees nothing).
+ */
+async function openManageAccessFromKebab(page: Page) {
+  const kebab = page.getByRole("button", { name: "More actions" });
+  if (!(await kebab.isVisible())) return null;
+  await kebab.click();
+
+  const item = page.getByRole("menuitem", { name: "Manage access" });
+  if (!(await item.isVisible())) return null;
+  await item.click();
+
+  return page.getByRole("dialog");
+}
+
+test.describe("Manage access", () => {
+  test.describe("Manage access on agent detail (kebab)", () => {
+    test("kebab exposes a Manage access action for the owner", async ({
+      page,
+    }) => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
@@ -22,14 +49,21 @@ test.describe("Resource Sharing", () => {
       await firstAgent.click();
       await page.waitForLoadState("networkidle");
 
-      const shareButton = page.getByRole("button", { name: /share/i });
-      // Share button may be behind a PermissionGate -- only visible to owner
-      if (await shareButton.isVisible()) {
-        await expect(shareButton).toBeEnabled();
+      const kebab = page.getByRole("button", { name: "More actions" });
+      if (await kebab.isVisible()) {
+        await kebab.click();
+        const item = page.getByRole("menuitem", { name: "Manage access" });
+        // The action is gated on can_view_access — assert it is actionable only
+        // when present (owner), never that it must exist for every caller.
+        if (await item.isVisible()) {
+          await expect(item).toBeEnabled();
+        }
       }
     });
 
-    test("opening share panel shows access list", async ({ page }) => {
+    test("dialog shows General access and People with access", async ({
+      page,
+    }) => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
@@ -37,83 +71,77 @@ test.describe("Resource Sharing", () => {
       await firstAgent.click();
       await page.waitForLoadState("networkidle");
 
-      const shareButton = page.getByRole("button", { name: /share/i });
-      if (await shareButton.isVisible()) {
-        await shareButton.click();
-
-        const sharePanel = page.getByRole("region", {
-          name: "Resource access management",
-        });
-        await expect(sharePanel).toBeVisible();
-
-        // Should show "Share access" heading
-        await expect(sharePanel.getByText("Share access")).toBeVisible();
-
-        // Should show at least "1 person with access" (the owner)
-        await expect(sharePanel.getByText(/with access/)).toBeVisible();
+      const dialog = await openManageAccessFromKebab(page);
+      if (dialog) {
+        await expect(dialog.getByText("Manage access")).toBeVisible();
+        // Blueprints have both axes: visibility + people.
+        await expect(dialog.getByText("General access")).toBeVisible();
+        await expect(dialog.getByText("People with access")).toBeVisible();
+        // The owner is always at least one person with access.
+        await expect(dialog.getByText(/with access/)).toBeVisible();
       }
     });
 
-    test("share panel has 'Add people' button", async ({ page }) => {
+    test("'Add people' reveals the grant form", async ({ page }) => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
       const firstAgent = page.locator('[role="listitem"]').first();
       await firstAgent.click();
+      await page.waitForLoadState("networkidle");
 
-      const shareButton = page.getByRole("button", { name: /share/i });
-      if (await shareButton.isVisible()) {
-        await shareButton.click();
-
-        const addButton = page.getByRole("button", { name: /Add people/i });
-        await expect(addButton).toBeVisible();
+      const dialog = await openManageAccessFromKebab(page);
+      if (dialog) {
+        const addButton = dialog.getByRole("button", { name: /Add people/i });
+        // The grant form is gated on can_grant_access — only owners see it.
+        if (await addButton.isVisible()) {
+          await addButton.click();
+          await expect(
+            dialog.getByRole("button", { name: /Grant access/i }),
+          ).toBeVisible();
+        }
       }
     });
 
-    test("clicking 'Add people' reveals grant form", async ({ page }) => {
+    test("dialog closes via Done", async ({ page }) => {
       await page.goto("/library/agents");
       await page.waitForLoadState("networkidle");
 
       const firstAgent = page.locator('[role="listitem"]').first();
       await firstAgent.click();
+      await page.waitForLoadState("networkidle");
 
-      const shareButton = page.getByRole("button", { name: /share/i });
-      if (await shareButton.isVisible()) {
-        await shareButton.click();
-
-        const addButton = page.getByRole("button", { name: /Add people/i });
-        await addButton.click();
-
-        // Grant form should now be visible with Account ID input
-        const input = page.getByLabel("Account ID");
-        await expect(input).toBeVisible();
-
-        // Grant button should be present
-        const grantButton = page.getByRole("button", {
-          name: /Grant access/i,
-        });
-        await expect(grantButton).toBeVisible();
+      const dialog = await openManageAccessFromKebab(page);
+      if (dialog) {
+        await dialog.getByRole("button", { name: "Done" }).click();
+        await expect(dialog).toBeHidden();
       }
     });
   });
 
-  test.describe("Share panel on session", () => {
-    test("session share button is visible to session owner", async ({
+  test.describe("Manage access on session (header button)", () => {
+    test("session header exposes a Manage access button to the owner", async ({
       page,
     }) => {
       await page.goto("/sessions");
       await page.waitForLoadState("networkidle");
 
-      // Navigate to the first session
       const firstSession = page.locator("a[href^='/sessions/']").first();
       if (await firstSession.isVisible()) {
         await firstSession.click();
         await page.waitForLoadState("networkidle");
 
-        const shareButton = page.getByRole("button", { name: /share/i });
-        // Visible only in cloud mode for session owners
-        if (await shareButton.isVisible()) {
-          await expect(shareButton).toBeEnabled();
+        const manageButton = page.getByRole("button", {
+          name: /Manage access/i,
+        });
+        // Visible only in cloud mode for those who can view access.
+        if (await manageButton.isVisible()) {
+          await manageButton.click();
+          const dialog = page.getByRole("dialog");
+          await expect(dialog.getByText("Manage access")).toBeVisible();
+          // Sessions have no visibility axis — only People.
+          await expect(dialog.getByText("People with access")).toBeVisible();
+          await expect(dialog.getByText("General access")).toBeHidden();
         }
       }
     });

@@ -1,0 +1,155 @@
+import { create } from "@bufbuild/protobuf";
+import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { Stigmer } from "@stigmer/sdk";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { UsageError } from "../../errors/index.js";
+import {
+  browserCommand,
+  DEFAULT_CLOUD_CONSOLE_URL,
+  resolveConsoleURL,
+  runOAuthFlow,
+  waitForOAuthGrant,
+  type OAuthFlowDeps,
+} from "./oauth.js";
+
+const server = create(McpServerSchema, {
+  metadata: { id: "mcp_1", slug: "github", name: "GitHub" },
+});
+
+// A fake client whose getOAuthGrantStatus reports `connected` once the call
+// count reaches `connectOnCall` (1 = first poll). Records the call count.
+function fakeClient(connectOnCall: number): { client: Stigmer; calls: () => number } {
+  let calls = 0;
+  const client = {
+    mcpServer: {
+      getOAuthGrantStatus: async () => {
+        calls += 1;
+        return { connected: calls >= connectOnCall };
+      },
+    },
+  } as unknown as Stigmer;
+  return { client, calls: () => calls };
+}
+
+const noopSleep = async (): Promise<void> => {};
+
+describe("resolveConsoleURL", () => {
+  it("prefers the STIGMER_CONSOLE_URL override", () => {
+    expect(resolveConsoleURL("cloud", { STIGMER_CONSOLE_URL: "https://console.example" } as NodeJS.ProcessEnv)).toBe(
+      "https://console.example",
+    );
+  });
+
+  it("uses the local web-console port for the local backend", () => {
+    expect(resolveConsoleURL("local", {} as NodeJS.ProcessEnv)).toBe("http://localhost:8234");
+  });
+
+  it("uses the cloud console URL for the cloud backend", () => {
+    expect(resolveConsoleURL("cloud", {} as NodeJS.ProcessEnv)).toBe(DEFAULT_CLOUD_CONSOLE_URL);
+  });
+});
+
+describe("browserCommand", () => {
+  it("maps each supported platform to its opener", () => {
+    expect(browserCommand("darwin", "https://x")).toEqual(["open", ["https://x"]]);
+    expect(browserCommand("linux", "https://x")).toEqual(["xdg-open", ["https://x"]]);
+    expect(browserCommand("win32", "https://x")).toEqual(["rundll32", ["url.dll,FileProtocolHandler", "https://x"]]);
+  });
+
+  it("returns no command for unsupported platforms", () => {
+    expect(browserCommand("aix", "https://x")[0]).toBeUndefined();
+  });
+});
+
+describe("waitForOAuthGrant", () => {
+  it("resolves once the grant connects on a later poll", async () => {
+    const { client, calls } = fakeClient(3);
+    const deps: OAuthFlowDeps = {
+      client,
+      server,
+      org: "acme",
+      backendType: "cloud",
+      now: () => 0,
+      sleep: noopSleep,
+      log: () => {},
+    };
+    await expect(waitForOAuthGrant(deps)).resolves.toBeUndefined();
+    expect(calls()).toBe(3);
+  });
+
+  it("throws a UsageError when the poll window elapses", async () => {
+    const { client, calls } = fakeClient(Number.POSITIVE_INFINITY);
+    // First now() seeds the deadline; the next jumps past it to force a timeout
+    // before any grant check runs.
+    const clock = [0, 10 * 60 * 1000];
+    const deps: OAuthFlowDeps = {
+      client,
+      server,
+      org: "acme",
+      backendType: "cloud",
+      now: () => clock.shift() ?? 10 * 60 * 1000,
+      sleep: noopSleep,
+      log: () => {},
+    };
+    await expect(waitForOAuthGrant(deps)).rejects.toThrow(UsageError);
+    expect(calls()).toBe(0);
+  });
+});
+
+describe("runOAuthFlow", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("opens the org's MCP-server page then waits for the grant", async () => {
+    const { client } = fakeClient(1);
+    const openBrowser = vi.fn(async () => {});
+    await runOAuthFlow({
+      client,
+      server,
+      org: "acme",
+      backendType: "cloud",
+      openBrowser,
+      now: () => 0,
+      sleep: noopSleep,
+      log: () => {},
+    });
+    expect(openBrowser).toHaveBeenCalledWith("https://app.stigmer.ai/acme/mcp-servers/github");
+  });
+
+  it("aborts before opening the browser when the local console is unreachable", async () => {
+    const { client } = fakeClient(1);
+    const openBrowser = vi.fn(async () => {});
+    await expect(
+      runOAuthFlow({
+        client,
+        server,
+        org: "acme",
+        backendType: "local",
+        probeConsole: async () => false,
+        openBrowser,
+        now: () => 0,
+        sleep: noopSleep,
+        log: () => {},
+      }),
+    ).rejects.toThrow(UsageError);
+    expect(openBrowser).not.toHaveBeenCalled();
+  });
+
+  it("opens the local console page when the probe succeeds", async () => {
+    const { client } = fakeClient(1);
+    const openBrowser = vi.fn(async () => {});
+    await runOAuthFlow({
+      client,
+      server,
+      org: "acme",
+      backendType: "local",
+      probeConsole: async () => true,
+      openBrowser,
+      now: () => 0,
+      sleep: noopSleep,
+      log: () => {},
+    });
+    expect(openBrowser).toHaveBeenCalledWith("http://localhost:8234/acme/mcp-servers/github");
+  });
+});

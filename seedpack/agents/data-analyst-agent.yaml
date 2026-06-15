@@ -30,7 +30,7 @@ spec:
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server
-        slug: mcp-server-postgres
+        slug: postgres
   skill_refs:
     - kind: skill
       slug: data-analyst

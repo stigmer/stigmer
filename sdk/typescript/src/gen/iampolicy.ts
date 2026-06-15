@@ -128,7 +128,7 @@ function buildApiResourceRefProto(input: ApiResourceRefInput) {
   }));
 }
 
-function buildIamPolicyProto(input: IamPolicyInput): IamPolicy {
+export function buildIamPolicyProto(input: IamPolicyInput): IamPolicy {
   const principal = input.principal ? buildApiResourceRefProto(input.principal) : undefined;
   const resource = input.resource ? buildApiResourceRefProto(input.resource) : undefined;
   return Object.assign(create(IamPolicySchema), {

@@ -4,7 +4,8 @@ go_library(
     name = "generator_lib",
     srcs = [
         "main.go",
-        "mcp.go",
+        "mcp_model.go",
+        "mcp_ts.go",
         "resource_kind.go",
         "sdk_client.go",
         "sdk_client_java.go",

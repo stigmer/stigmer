@@ -75,6 +75,14 @@
   "peerDependencies": {
     "@base-ui/react": "^1.0.0",
     "@bufbuild/protobuf": "^2.8.0",
+    "@codemirror/autocomplete": "^6.0.0",
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/lang-yaml": "^6.0.0",
+    "@codemirror/language": "^6.0.0",
+    "@codemirror/lint": "^6.0.0",
+    "@codemirror/state": "^6.0.0",
+    "@codemirror/view": "^6.0.0",
+    "@lezer/highlight": "^1.0.0",
     "@stigmer/protos": "*",
     "@stigmer/sdk": "*",
     "@tanstack/react-table": "^8.20.0",
@@ -84,36 +92,10 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-virtuoso": "^4.0.0",
-    "@codemirror/view": "^6.0.0",
-    "@codemirror/state": "^6.0.0",
-    "@codemirror/commands": "^6.0.0",
-    "@codemirror/lang-yaml": "^6.0.0",
-    "@codemirror/lint": "^6.0.0",
-    "@codemirror/autocomplete": "^6.0.0",
-    "@codemirror/language": "^6.0.0",
-    "@lezer/highlight": "^1.0.0",
     "recharts": "^2.15.0"
   },
   "peerDependenciesMeta": {
     "@base-ui/react": {
-      "optional": true
-    },
-    "react-virtuoso": {
-      "optional": true
-    },
-    "@tanstack/react-table": {
-      "optional": true
-    },
-    "@codemirror/view": {
-      "optional": true
-    },
-    "@codemirror/state": {
-      "optional": true
-    },
-    "@codemirror/lang-yaml": {
-      "optional": true
-    },
-    "@codemirror/lint": {
       "optional": true
     },
     "@codemirror/autocomplete": {
@@ -122,25 +104,41 @@
     "@codemirror/commands": {
       "optional": true
     },
+    "@codemirror/lang-yaml": {
+      "optional": true
+    },
     "@codemirror/language": {
+      "optional": true
+    },
+    "@codemirror/lint": {
+      "optional": true
+    },
+    "@codemirror/state": {
+      "optional": true
+    },
+    "@codemirror/view": {
       "optional": true
     },
     "@lezer/highlight": {
       "optional": true
     },
-    "@xyflow/react": {
+    "@tanstack/react-table": {
       "optional": true
     },
-    "recharts": {
+    "@xyflow/react": {
       "optional": true
     },
     "elkjs": {
       "optional": true
+    },
+    "react-virtuoso": {
+      "optional": true
+    },
+    "recharts": {
+      "optional": true
     }
   },
   "devDependencies": {
-    "@xyflow/react": "^12.10.2",
-    "elkjs": "^0.9.3",
     "@codemirror/autocomplete": "^6.18.6",
     "@codemirror/commands": "^6.8.0",
     "@codemirror/lang-yaml": "^6.1.2",
@@ -151,12 +149,14 @@
     "@tanstack/react-table": "^8.21.3",
     "@testing-library/react": "^16.3.2",
     "@typescript-eslint/parser": "^8.57.0",
+    "@xyflow/react": "^12.10.2",
+    "elkjs": "^0.9.3",
     "eslint": "^9.39.4",
     "happy-dom": "^20.8.4",
     "react-virtuoso": "^4.18.6",
+    "recharts": "^2.15.0",
     "tsx": "^4.21.0",
     "typedoc": "^0.28.18",
-    "recharts": "^2.15.0",
     "vitest": "^3.2.4"
   }
 }

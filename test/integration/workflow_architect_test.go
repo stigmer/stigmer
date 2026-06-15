@@ -23,8 +23,8 @@ import (
 func requireWorkflowArchitectPrereqs(t *testing.T, h harness.HarnessConfig) {
 	t.Helper()
 	h.Skip(t, testHarness)
-	if mcpServerStigmerBinary == "" {
-		t.Skip("mcp-server-stigmer binary not built — skipping workflow architect test")
+	if mcpServerStigmerLaunch.Command == "" {
+		t.Skip("mcp-server-stigmer launch not resolved — skipping workflow architect test")
 	}
 }
 
@@ -32,8 +32,8 @@ func requireWorkflowArchitectPrereqs(t *testing.T, h harness.HarnessConfig) {
 func requireNativeArchitectPrereqs(t *testing.T) {
 	t.Helper()
 	harness.RequireNativePrereqs(t, testHarness)
-	if mcpServerStigmerBinary == "" {
-		t.Skip("mcp-server-stigmer binary not built — skipping workflow architect test")
+	if mcpServerStigmerLaunch.Command == "" {
+		t.Skip("mcp-server-stigmer launch not resolved — skipping workflow architect test")
 	}
 }
 
@@ -54,7 +54,7 @@ func TestWorkflowArchitect_Generate(t *testing.T) {
 
 			clients := harness.NewClients(grpcConn)
 
-			mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+			mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 			agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 				mcpServer.GetMetadata().GetSlug(), "generate-"+h.Name)
@@ -107,7 +107,7 @@ func TestWorkflowArchitect_GenerateAndApply(t *testing.T) {
 	deployer := harness.NewFixtureDeployer(clients, "architect-apply", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
-	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 		mcpServer.GetMetadata().GetSlug(), "apply")
@@ -192,7 +192,7 @@ func TestWorkflowArchitect_Refine(t *testing.T) {
 
 	clients := harness.NewClients(grpcConn)
 
-	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 		mcpServer.GetMetadata().GetSlug(), "refine")
@@ -298,7 +298,7 @@ func TestWorkflowArchitect_DiagnoseExecution(t *testing.T) {
 	t.Logf("workflow execution failed as expected: id=%s", failedExec.GetMetadata().GetId())
 
 	// Now ask the Workflow Architect to diagnose the failure.
-	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 		mcpServer.GetMetadata().GetSlug(), "diagnose")
@@ -350,7 +350,7 @@ func TestWorkflowArchitect_MCPToolAccess(t *testing.T) {
 
 	clients := harness.NewClients(grpcConn)
 
-	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 		mcpServer.GetMetadata().GetSlug(), "mcp-access")
@@ -396,7 +396,7 @@ func TestWorkflowArchitect_RefineAndApply(t *testing.T) {
 	deployer := harness.NewFixtureDeployer(clients, "refine-apply", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
-	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 		mcpServer.GetMetadata().GetSlug(), "refine-apply")
@@ -564,7 +564,7 @@ func TestWorkflowArchitect_DiagnoseAndRepair(t *testing.T) {
 	t.Logf("workflow execution failed as expected: id=%s", failedExec.GetMetadata().GetId())
 
 	// Ask the Workflow Architect to diagnose.
-	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 		mcpServer.GetMetadata().GetSlug(), "diagnose-repair")

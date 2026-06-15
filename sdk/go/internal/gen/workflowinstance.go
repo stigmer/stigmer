@@ -44,6 +44,11 @@ func (w *WorkflowInstanceClient) UpdateVisibility(ctx context.Context, input *ap
 	return resp, wrapErr(err)
 }
 
+func (w *WorkflowInstanceClient) UpdateExecutionVisibility(ctx context.Context, input *workflowinstancev1.UpdateExecutionVisibilityInput) (*workflowinstancev1.WorkflowInstance, error) {
+	resp, err := w.command.UpdateExecutionVisibility(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (w *WorkflowInstanceClient) Delete(ctx context.Context, id string) (*workflowinstancev1.WorkflowInstance, error) {
 	resp, err := w.command.Delete(ctx, &workflowinstancev1.WorkflowInstanceId{Value: id})
 	return resp, wrapErr(err)
@@ -67,14 +72,15 @@ func (w *WorkflowInstanceClient) GetByReference(ctx context.Context, ref Resourc
 
 // WorkflowInstanceInput holds the fields for creating/updating a WorkflowInstance.
 type WorkflowInstanceInput struct {
-	Name            string
-	Slug            string
-	Org             string
-	Labels          map[string]string
-	Visibility      apiresource.ApiResourceVisibility
-	WorkflowId      string
-	Description     string
-	EnvironmentRefs []ResourceRef
+	Name                string
+	Slug                string
+	Org                 string
+	Labels              map[string]string
+	Visibility          apiresource.ApiResourceVisibility
+	WorkflowId          string
+	Description         string
+	EnvironmentRefs     []ResourceRef
+	ExecutionVisibility workflowinstancev1.WorkflowExecutionVisibility
 }
 
 func (i *WorkflowInstanceInput) toProto() *workflowinstancev1.WorkflowInstance {
@@ -97,6 +103,7 @@ func (i *WorkflowInstanceInput) toProto() *workflowinstancev1.WorkflowInstance {
 		ref.Kind = apiresourcekind.ApiResourceKind_environment
 		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
 	}
+	resource.Spec.ExecutionVisibility = i.ExecutionVisibility
 	return resource
 }
 
@@ -119,6 +126,7 @@ func WorkflowInstanceInputFromProto(p *workflowinstancev1.WorkflowInstance) *Wor
 		for _, r := range s.GetEnvironmentRefs() {
 			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
 		}
+		input.ExecutionVisibility = s.GetExecutionVisibility()
 	}
 	return input
 }

@@ -1,0 +1,79 @@
+Manage execution lifecycle and observability.
+
+`stigmer execution` controls the lifecycle of agent and workflow executions and
+exposes their logs and traces. The execution type is auto-detected from the ID
+prefix, so a single command group serves both families:
+
+- Agent executions: `aex_<ulid>`
+- Workflow executions: `wex_<ulid>`
+
+The subcommands fall into three areas:
+
+- **Lifecycle** — `cancel` gracefully stops a running execution at its next safe
+  point; `terminate` force-stops it immediately without cleanup (and cannot be
+  recovered); `pause` checkpoints a running execution; `resume` continues a
+  paused one from its last checkpoint.
+- **Observability** — `logs` views or streams execution event logs; `trace`
+  shows the task/tool structure with status and timing.
+- **Approval** — `approve` submits a decision for an execution waiting on human
+  input (a workflow task or an agent tool call).
+
+{/* AUTO_USAGE */}
+
+## Examples
+
+### Cancel and terminate
+
+```bash
+# Gracefully cancel a workflow execution
+stigmer execution cancel wex_01abc123
+
+# Force-stop immediately (unrecoverable)
+stigmer execution terminate aex_01xyz789 --reason "stuck execution"
+```
+
+### Pause and resume
+
+```bash
+stigmer execution pause aex_01abc123 --reason "investigating issue"
+stigmer execution resume aex_01abc123
+```
+
+### Stream logs and inspect a trace
+
+```bash
+# Stream live events from a workflow execution
+stigmer execution logs wex_01abc123 --follow
+
+# Filter workflow events by task name
+stigmer execution logs wex_01abc123 --task validate_email
+
+# Show the task tree with timing as YAML
+stigmer execution trace wex_01abc123 -o yaml
+```
+
+### Approve a waiting execution
+
+```bash
+# Approve a workflow task
+stigmer execution approve wex_01abc123 --task review --outcome approve
+
+# Approve an agent tool call
+stigmer execution approve aex_01xyz789 --tool-call tc_abc --action approve
+```
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer run`](./run) | Start a new agent or workflow execution |
+| [`stigmer resume`](./resume) | Re-attach to a session's live stream |
+| [`stigmer get`](./get) | Inspect an execution by ID |
+
+## See also
+
+- [Command Reference](./) — All available commands

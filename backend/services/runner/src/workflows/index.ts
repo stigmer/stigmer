@@ -13,9 +13,10 @@
  * us map TypeScript function names to the slash-delimited Temporal
  * workflow type names that the backend expects.
  *
- * OTel workflow interceptors are registered via `workflowModules` in
- * worker.ts — not imported here — since they require the bundler to
- * resolve the interceptor module path at bundle time.
+ * OTel workflow interceptors are registered at bundle time — not
+ * imported here. Pre-built bundles (scripts/bundle-slim.mjs) bake them
+ * in; the runtime-bundling fallback passes them to the bundler (see
+ * src/workflow-source.ts).
  */
 
 export {

@@ -43,7 +43,24 @@ export {
 
 export { RoleSelector, type RoleSelectorProps } from "./RoleSelector";
 
+export {
+  PrincipalPicker,
+  type PrincipalPickerProps,
+  type SelectedPrincipal,
+} from "./PrincipalPicker";
+
+export {
+  ProviderBadge,
+  providerLabel,
+  type ProviderBadgeProps,
+} from "./ProviderBadge";
+
 export { GrantAccessForm, type GrantAccessFormProps } from "./GrantAccessForm";
+
+export {
+  PeopleWithAccess,
+  type PeopleWithAccessProps,
+} from "./PeopleWithAccess";
 
 export {
   OrgMembersPanel,

@@ -99,6 +99,31 @@ service WorkflowInstanceCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow instance visibility";
   }
 
+  // Update who can observe the run history (executions) of this instance.
+  //
+  // This is a SEPARATE axis from updateVisibility: it controls run
+  // observability (who sees execution inputs/outputs), not who can see/run
+  // the instance itself. Making an instance org-runnable does NOT expose
+  // other users' run history — that requires this opt-in.
+  //
+  // Supported levels: PRIVATE (only the user who ran each execution) and
+  // ORGANIZATION (all org members). Public/platform are unsupported.
+  //
+  // @internal
+  // Authorization: requires can_grant_access on the workflow instance —
+  // sharing run history is an access-granting action, consistent with the
+  // per-execution share flow. In Cloud mode the transition reconciles the
+  // instance's `execution_viewer` FGA relation:
+  // - PRIVATE -> ORGANIZATION: creates
+  //   workflow_instance#execution_viewer@organization:<org>#member
+  // - ORGANIZATION -> PRIVATE: deletes that tuple
+  rpc updateExecutionVisibility(UpdateExecutionVisibilityInput) returns (WorkflowInstance) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_instance;
+    option (ai.stigmer.commons.rpc.config).permission = can_grant_access;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow instance execution visibility";
+  }
+
   // Delete a workflow instance.
   //
   // @internal

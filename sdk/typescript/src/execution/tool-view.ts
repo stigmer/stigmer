@@ -85,6 +85,17 @@ export type ToolResultView =
   | { readonly type: "text"; readonly text: string }
   | { readonly type: "json"; readonly value: unknown }
   | { readonly type: "error"; readonly message: string }
+  // Output offloaded to artifact storage to keep the status payload small (e.g. a
+  // screenshot from a computer-use MCP server or a multi-MB dump). The bytes live
+  // at `downloadUrl`; `preview` is a short inline head for non-image content.
+  | {
+      readonly type: "outputRef";
+      readonly downloadUrl: string;
+      readonly isImage: boolean;
+      readonly mimeType: string;
+      readonly sizeBytes: number;
+      readonly preview: string;
+    }
   // Nothing to render (e.g. a delete confirmation, or a result not yet produced).
   | { readonly type: "empty" };
 
@@ -199,6 +210,21 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
 
   if (toolCall.status === ToolCallStatus.TOOL_CALL_FAILED && (toolCall.error || result)) {
     return { type: "error", message: toolCall.error || result };
+  }
+
+  // Output was offloaded to artifact storage (too large to inline): the real
+  // bytes are no longer in `result` (which holds only a short head/label), so
+  // render from the reference instead of re-parsing the placeholder.
+  if (toolCall.outputRef && toolCall.outputRef.downloadUrl) {
+    const ref = toolCall.outputRef;
+    return {
+      type: "outputRef",
+      downloadUrl: ref.downloadUrl,
+      isImage: ref.isImage,
+      mimeType: ref.mimeType,
+      sizeBytes: Number(ref.sizeBytes),
+      preview: ref.truncatedPreview || result,
+    };
   }
 
   const kind = resolveToolKind(toolCall);

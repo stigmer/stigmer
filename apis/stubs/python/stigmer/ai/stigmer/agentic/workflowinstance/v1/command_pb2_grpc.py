@@ -48,6 +48,11 @@ class WorkflowInstanceCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.FromString,
                 _registered_method=True)
+        self.updateExecutionVisibility = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/updateExecutionVisibility',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_io__pb2.UpdateExecutionVisibilityInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_io__pb2.WorkflowInstanceId.SerializeToString,
@@ -147,6 +152,30 @@ class WorkflowInstanceCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateExecutionVisibility(self, request, context):
+        """Update who can observe the run history (executions) of this instance.
+
+        This is a SEPARATE axis from updateVisibility: it controls run
+        observability (who sees execution inputs/outputs), not who can see/run
+        the instance itself. Making an instance org-runnable does NOT expose
+        other users' run history — that requires this opt-in.
+
+        Supported levels: PRIVATE (only the user who ran each execution) and
+        ORGANIZATION (all org members). Public/platform are unsupported.
+
+        @internal
+        Authorization: requires can_grant_access on the workflow instance —
+        sharing run history is an access-granting action, consistent with the
+        per-execution share flow. In Cloud mode the transition reconciles the
+        instance's `execution_viewer` FGA relation:
+        - PRIVATE -> ORGANIZATION: creates
+        workflow_instance#execution_viewer@organization:<org>#member
+        - ORGANIZATION -> PRIVATE: deletes that tuple
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def delete(self, request, context):
         """Delete a workflow instance.
 
@@ -190,6 +219,11 @@ def add_WorkflowInstanceCommandControllerServicer_to_server(servicer, server):
             'updateVisibility': grpc.unary_unary_rpc_method_handler(
                     servicer.updateVisibility,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.SerializeToString,
+            ),
+            'updateExecutionVisibility': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateExecutionVisibility,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_io__pb2.UpdateExecutionVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -317,6 +351,33 @@ class WorkflowInstanceCommandController(object):
             target,
             '/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/updateVisibility',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateExecutionVisibility(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController/updateExecutionVisibility',
+            ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_io__pb2.UpdateExecutionVisibilityInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowinstance_dot_v1_dot_api__pb2.WorkflowInstance.FromString,
             options,
             channel_credentials,

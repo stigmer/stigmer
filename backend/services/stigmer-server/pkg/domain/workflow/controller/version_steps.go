@@ -172,12 +172,18 @@ func (s *populateVersionHashStep) Execute(ctx *pipeline.RequestContext[*workflow
 // persists without version tracking. This maintains the invariant that
 // a set versionHash always has a resolvable audit entry.
 type saveVersionAuditStep struct {
-	store    store.Store
+	store store.Store
+	// isCreate skips the version-changed gate (the first version always archives).
 	isCreate bool
+	// persistOnRevert re-persists the workflow after clearing the version hash on
+	// archive failure. Required when this step runs AFTER the final persist (the
+	// create path archives last, so default_instance_id is captured); on the
+	// update path a Persist step follows, so the revert is flushed there instead.
+	persistOnRevert bool
 }
 
-func newSaveVersionAuditStep(s store.Store, isCreate bool) *saveVersionAuditStep {
-	return &saveVersionAuditStep{store: s, isCreate: isCreate}
+func newSaveVersionAuditStep(s store.Store, isCreate, persistOnRevert bool) *saveVersionAuditStep {
+	return &saveVersionAuditStep{store: s, isCreate: isCreate, persistOnRevert: persistOnRevert}
 }
 
 func (s *saveVersionAuditStep) Name() string {
@@ -225,6 +231,17 @@ func (s *saveVersionAuditStep) Execute(ctx *pipeline.RequestContext[*workflowv1.
 			wf.Metadata.Version.Id = ""
 		}
 		ctx.SetNewState(wf)
+
+		// When this step runs after the final persist (create path), flush the
+		// reverted state ourselves — there is no downstream persist to do it.
+		if s.persistOnRevert {
+			if perr := s.store.SaveResource(ctx.Context(), kind, workflowID, wf); perr != nil {
+				log.Error().
+					Err(perr).
+					Str("workflow_id", workflowID).
+					Msg("Failed to re-persist workflow after reverting version hash")
+			}
+		}
 		return nil
 	}
 

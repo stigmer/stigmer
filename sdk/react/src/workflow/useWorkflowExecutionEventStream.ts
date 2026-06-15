@@ -16,8 +16,15 @@ import {
   SubscribeEventsRequestSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { isTransientStreamError } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
+import {
+  computeBackoffDelay,
+  sleep,
+  DEFAULT_RECONNECT_MAX_ATTEMPTS,
+  type BackoffOptions,
+} from "../internal/backoff";
 import {
   WorkflowExecutionEventStore,
   type WorkflowEventStreamState,
@@ -41,6 +48,20 @@ export interface UseWorkflowExecutionEventStreamOptions {
    * (terminal). When omitted, defaults to live streaming.
    */
   readonly executionPhase?: ExecutionPhase;
+  /**
+   * Automatically re-establish the live subscription with exponential
+   * backoff when it drops with a transient transport error, resuming from
+   * the last received `sequence_number` (no events lost). Defaults to `true`.
+   */
+  readonly autoReconnect?: boolean;
+  /**
+   * Tune the auto-reconnect backoff schedule and attempt cap. Omitted fields
+   * fall back to SDK defaults (base 1s, ×2, max 30s, 10 attempts).
+   */
+  readonly reconnectOptions?: BackoffOptions & {
+    /** Max attempts before surfacing a terminal `error`. */
+    readonly maxAttempts?: number;
+  };
 }
 
 /** Return value of {@link useWorkflowExecutionEventStream}. */
@@ -59,9 +80,20 @@ export interface UseWorkflowExecutionEventStreamReturn {
   readonly isStreaming: boolean;
   /** `true` while connecting to the event stream. */
   readonly isConnecting: boolean;
-  /** Error from the last failed stream attempt, or `null`. */
+  /**
+   * `true` while a transient drop is being retried automatically. Accumulated
+   * events stay visible and `error` remains `null`; on success the
+   * subscription resumes from the last sequence number with no events lost.
+   */
+  readonly isReconnecting: boolean;
+  /** 1-based count of the in-flight reconnect attempt; `0` when not reconnecting. */
+  readonly reconnectAttempt: number;
+  /**
+   * Error from the last failed stream attempt, or `null`. Set only once
+   * auto-reconnect exhausts its attempts (or for a non-transient failure).
+   */
   readonly error: Error | null;
-  /** Re-establish the stream subscription. */
+  /** Re-establish the stream subscription (manual fallback). */
   readonly reconnect: () => void;
 }
 
@@ -99,8 +131,10 @@ export function isRecoveryTransition(
  * integration.
  *
  * For running executions: subscribes via `subscribeEvents` with
- * replay+live-tail. On disconnect, reconnects from the last received
- * sequence number.
+ * replay+live-tail. A transient drop auto-reconnects with exponential
+ * backoff, resuming from the last received sequence number so no events are
+ * lost; `error` is surfaced only once retries are exhausted. A clean stream
+ * end is the server's completion signal and is never retried.
  *
  * For terminal executions: loads the full event log via paginated
  * `getEventLog` calls.
@@ -136,6 +170,8 @@ export function useWorkflowExecutionEventStream(
 
   const eventTypes = options?.eventTypes;
   const executionPhase = options?.executionPhase;
+  const autoReconnect = options?.autoReconnect ?? true;
+  const reconnectOptions = options?.reconnectOptions;
 
   // Stable ref for values that should not trigger re-subscription
   const storeRef = useRef(store);
@@ -239,50 +275,90 @@ export function useWorkflowExecutionEventStream(
         }
       })();
     } else {
-      // Live-stream events for running executions
+      // Live-stream events for running executions, with auto-reconnect.
       currentStore.setStreamState({ stage: "connecting", executionId });
 
       (async () => {
-        try {
-          const afterSequence = currentStore.getLatestSequence();
+        const signal = abortController.signal;
+        const maxAttempts =
+          reconnectOptions?.maxAttempts ?? DEFAULT_RECONNECT_MAX_ATTEMPTS;
 
-          for await (const event of stigmer.workflowExecution.subscribeEvents(
-            create(SubscribeEventsRequestSchema, {
-              executionId,
-              afterSequence,
-              eventTypes: eventTypes ? [...eventTypes] : [],
-            }),
-            abortController.signal,
-          )) {
-            if (abortController.signal.aborted) return;
+        // 1-based count of consecutive failed attempts, reset by any event.
+        let attempt = 0;
 
-            startTransition(() => {
-              currentStore.appendEvents([event]);
-              if (currentStore.getStreamState().stage === "connecting") {
-                currentStore.setStreamState({ stage: "streaming", executionId });
-              }
-            });
-          }
+        while (!signal.aborted) {
+          try {
+            // Re-read each attempt: after a drop we resume from the last
+            // sequence number, so the server replays only what we missed and
+            // no events are lost or duplicated.
+            const afterSequence = currentStore.getLatestSequence();
 
-          if (!abortController.signal.aborted) {
-            currentStore.setStreamState({ stage: "complete", executionId });
-          }
-        } catch (err) {
-          if (abortController.signal.aborted) return;
+            for await (const event of stigmer.workflowExecution.subscribeEvents(
+              create(SubscribeEventsRequestSchema, {
+                executionId,
+                afterSequence,
+                eventTypes: eventTypes ? [...eventTypes] : [],
+              }),
+              signal,
+            )) {
+              if (signal.aborted) return;
 
-          const error = toError(err);
-          const isUnimplemented =
-            error.message.includes("UNIMPLEMENTED") ||
-            error.message.includes("unimplemented");
+              attempt = 0; // an event proves the connection is healthy
+              startTransition(() => {
+                currentStore.appendEvents([event]);
+                const stage = currentStore.getStreamState().stage;
+                if (stage === "connecting" || stage === "reconnecting") {
+                  currentStore.setStreamState({ stage: "streaming", executionId });
+                }
+              });
+            }
 
-          if (isUnimplemented) {
-            currentStore.setStreamState({ stage: "unsupported", executionId });
-          } else {
+            // A clean end of the event stream is the server's completion
+            // signal (the execution finished). Unlike the agent snapshot
+            // stream, there is no separate terminal marker to re-check, so we
+            // must NOT treat this as a premature drop — doing so would loop
+            // forever re-subscribing past the final sequence. Transient drops
+            // surface as thrown errors (handled below), not a clean end.
+            if (!signal.aborted) {
+              currentStore.setStreamState({ stage: "complete", executionId });
+            }
+            return;
+          } catch (err) {
+            if (signal.aborted) return;
+
+            const error = toError(err);
+            const isUnimplemented =
+              error.message.includes("UNIMPLEMENTED") ||
+              error.message.includes("unimplemented");
+
+            // A server without event-stream support will never recover —
+            // surface the unsupported state immediately, never retry.
+            if (isUnimplemented) {
+              currentStore.setStreamState({ stage: "unsupported", executionId });
+              return;
+            }
+
+            if (
+              !autoReconnect ||
+              !isTransientStreamError(error) ||
+              attempt >= maxAttempts
+            ) {
+              currentStore.setStreamState({ stage: "error", executionId, error });
+              return;
+            }
+
+            attempt += 1;
             currentStore.setStreamState({
-              stage: "error",
+              stage: "reconnecting",
               executionId,
+              attempt,
               error,
             });
+            try {
+              await sleep(computeBackoffDelay(attempt, reconnectOptions), signal);
+            } catch {
+              return; // aborted mid-backoff
+            }
           }
         }
       })();
@@ -302,6 +378,9 @@ export function useWorkflowExecutionEventStream(
 
   const isStreaming = streamState.stage === "streaming";
   const isConnecting = streamState.stage === "connecting";
+  const isReconnecting = streamState.stage === "reconnecting";
+  const reconnectAttempt =
+    streamState.stage === "reconnecting" ? streamState.attempt : 0;
   const error = streamState.stage === "error" ? streamState.error : null;
 
   return {
@@ -312,6 +391,8 @@ export function useWorkflowExecutionEventStream(
     totalTasks,
     isStreaming,
     isConnecting,
+    isReconnecting,
+    reconnectAttempt,
     error,
     reconnect,
   };

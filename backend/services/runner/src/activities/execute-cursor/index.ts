@@ -43,7 +43,8 @@ import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_p
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, reconcileDeniedToolCalls, cancelInProgressSubAgentProtos } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
-import { createArtifactStorage, loadArtifactStorageConfig } from "../../shared/artifact-storage.js";
+import { startStallWatchdog, StallTimeoutError, formatStallFailure, type StallWatchdog } from "../../shared/stall-watchdog.js";
+import { createArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
@@ -55,10 +56,11 @@ import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
 import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
-import { resolveSkills } from "./skill-resolver.js";
+import { resolveSkills, removeStigmerSymlink } from "./skill-resolver.js";
 import { resolveAttachments } from "./attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.js";
-import { writeHooksToWorkspace } from "./workspace-setup.js";
+import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
+import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import { buildApprovalState, buildApprovalGrants, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
@@ -126,11 +128,52 @@ async function executeCursorInner(
     startedAt: utcTimestamp(),
   });
 
+  // Artifact storage for offloading oversized tool outputs (screenshots, giant
+  // dumps) out of the persisted status, and for publishing the plan artifact.
+  // Created once here so it is available to EVERY persist below. Best-effort:
+  // if it can't be built (e.g. proxy mode without a token), offload is disabled
+  // but persistStatus still enforces the aggregate size cap, so persistence can
+  // never silently blow past the gRPC limit.
+  let artifactStorage: ArtifactStorage | undefined;
+  try {
+    artifactStorage = createArtifactStorage(loadArtifactStorageConfig(config));
+  } catch (storageErr) {
+    console.warn(
+      `ExecuteCursor artifact storage unavailable — tool-output offload disabled ` +
+      `(aggregate size guard still active): execution=${executionId}, error=${storageErr}`,
+    );
+  }
+  const statusOffload = artifactStorage
+    ? { artifactStorage, executionId }
+    : undefined;
+  // ALL status persistence in this activity flows through `persist`, so the
+  // single size-bounding guard (offload + aggregate elision) is unforgeable and
+  // a future call site cannot accidentally skip it.
+  const persist = (s: AgentExecutionStatus = status) =>
+    persistStatus(client, executionId, s, { offload: statusOffload });
+
   let sessionId: string | undefined;
   let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
   let pauseDetected = false;
   let workerShutdownDetected = false;
+  // Set by the stall watchdog when the SDK stream makes no progress for
+  // config.cursorStreamStallTimeoutMs. stallError carries the recognizable
+  // message surfaced to the user; both feed the Phase 11a stall branch.
+  let stallDetected = false;
+  let stallError: StallTimeoutError | undefined;
   let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
+  // Progress-based stall watchdog (see ../../shared/stall-watchdog.ts). Stopped
+  // in the finally on every exit path; complements the liveness heartbeat.
+  let stallWatchdog: StallWatchdog | undefined;
+  // Session HITL directory (runner-owned, outside the workspace) where the hook
+  // script, approval-state file, and denial ledger live. Set once the gate is
+  // installed; the WAITING_FOR_APPROVAL path reads the denial ledger from here.
+  let hitlDir: string | undefined;
+  // Teardown for the HITL gate: restores the workspace's .cursor/hooks.json and
+  // removes the .stigmer symlink so attaching a real repo leaves it untouched
+  // (issue #173). Runs in the finally, covering every success/error/approval
+  // exit path. Undefined until the gate is installed.
+  let hitlCleanup: (() => Promise<void>) | undefined;
   // Carries model/mode/agentId out to the outer catch so a thrown CursorSdkError
   // can be classified with the same context as the run.wait() error path.
   let errorContext = { model: "default", mode: "local", agentId: "" };
@@ -217,7 +260,7 @@ async function executeCursorInner(
             content: "Execution was rejected by the user during tool approval.",
             timestamp: utcTimestamp(),
           }));
-          await persistStatus(client, executionId, status);
+          await persist(status);
           return slimStatus(status);
         }
       }
@@ -287,7 +330,41 @@ async function executeCursorInner(
     );
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
 
-    // Phase 5c: Ensure model pricing registry is populated before validation
+    // Phase 5c: Install the HITL approval gate BEFORE resolving the agent.
+    //
+    // The gate's runtime artifacts (hook script, approval-state file, denial
+    // ledger) live in the session HITL directory OUTSIDE the workspace; only a
+    // minimal, merged, transient .cursor/hooks.json is written into the repo,
+    // pointing at the hook script by absolute path. The hook is scoped to this
+    // runner's own process so the user's interactive IDE — sharing the same repo
+    // hooks.json — is never gated (issue #173). Installing here (rather than
+    // after agent create/resume) guarantees the hook is present no matter when
+    // the SDK reads hook config, and the finally restores the repo afterward.
+    //
+    // On reinvocation, turn the user's approvals into tool-identity grants so
+    // the resumed agent's re-attempt (which carries a fresh tool-call id) is
+    // allowed through.
+    hitlDir = await ensureHitlDir(sessionId);
+    const approvalGrants = approvalDecisions
+      ? buildApprovalGrants(adjudicatedApprovals, approvalDecisions)
+      : undefined;
+    const approvalState = buildApprovalState(
+      mergedPolicies,
+      effectiveAutoApproveAll,
+      approvalGrants,
+    );
+    const hitlGate = await installHitlGate({
+      workspaceRoot: primaryWorkspaceDir,
+      hitlDir,
+      approvalState,
+      runnerPid: process.pid,
+    });
+    hitlCleanup = async () => {
+      await removeHitlGate(hitlGate);
+      await removeStigmerSymlink(primaryWorkspaceDir);
+    };
+
+    // Phase 5d: Ensure model pricing registry is populated before validation
     await ensurePricingLoaded();
 
     // Phase 6: Validate model selection
@@ -366,18 +443,7 @@ async function executeCursorInner(
 
     errorContext = { model: validatedModel, mode: agentMode, agentId: resolution.agentId };
 
-    // Phase 8: Write hooks for HITL with policy-aware state. On reinvocation,
-    // turn the user's approvals into tool-identity grants so the resumed agent's
-    // re-attempt (which carries a fresh tool-call id) is allowed through.
-    const approvalGrants = approvalDecisions
-      ? buildApprovalGrants(adjudicatedApprovals, approvalDecisions)
-      : undefined;
-    const approvalState = buildApprovalState(
-      mergedPolicies,
-      effectiveAutoApproveAll,
-      approvalGrants,
-    );
-    await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
+    // (HITL approval gate already installed in Phase 5c, before agent resolution.)
 
     // Phase 9: Store new agentId as harness_state_id and persist cursor_mode
     if (resolution.isNew && resolution.agentId) {
@@ -463,6 +529,9 @@ async function executeCursorInner(
     let firstTurnAttributionLogged = false;
     let streamErrorMessage: string | undefined;
     let alreadyRetriedWithFreshAgent = false;
+    // Most recent tool name observed on the stream, used only to enrich the
+    // stall message ("last tool: …") so a wedged turn names the likely culprit.
+    let lastToolName: string | undefined;
 
     // Periodic heartbeat keeps Temporal informed during silent SDK operations
     // (e.g. long tool calls, MCP requests, model thinking). Without this,
@@ -492,6 +561,10 @@ async function executeCursorInner(
 
     const run = await resolution.agent.send(effectivePrompt, {
       onDelta: ({ update }) => {
+        // Reset the stall timer on the delta channel too: a long model
+        // generation emits token deltas but few discrete stream events, so
+        // resetting only in the stream loop would false-positive a stall.
+        stallWatchdog?.recordActivity();
         if (update.type === "turn-ended" && update.usage) {
           usageAccumulator.addTurn(update.usage);
 
@@ -519,13 +592,45 @@ async function executeCursorInner(
       },
     });
 
+    // Arm the stall watchdog now that the run exists. The periodic heartbeat
+    // above proves the process is alive, not that the agent is progressing: if
+    // the stream wedges (a tool call or model connection that never returns),
+    // no event/delta arrives, Phase 12 below is never reached, and the
+    // execution hangs at EXECUTION_IN_PROGRESS forever. On stall we end the run
+    // cleanly via the SDK's run.cancel() (guarded by supports("cancel")), which
+    // unblocks the for-await; the stallDetected branch in Phase 11a then
+    // reports EXECUTION_FAILED with a recognizable, actionable message.
+    stallWatchdog = startStallWatchdog(config.cursorStreamStallTimeoutMs, (idleMs) => {
+      stallDetected = true;
+      stallError = new StallTimeoutError(idleMs, lastToolName ? `last tool: ${lastToolName}` : undefined);
+      console.warn(
+        `ExecuteCursor stall detected: execution=${executionId}, idleMs=${idleMs}, lastTool=${lastToolName ?? "none"}`,
+      );
+      if (run.supports?.("cancel")) {
+        void run.cancel().catch((cancelErr) => {
+          console.warn(
+            `ExecuteCursor run.cancel() after stall failed (non-fatal): execution=${executionId}, ` +
+            `error=${cancelErr instanceof Error ? cancelErr.message : cancelErr}`,
+          );
+        });
+      }
+    });
+
     const accumulator = new MessageAccumulator(status.messages, { mergedPolicies });
     let eventCount = 0;
 
+    try {
     for await (const event of run.stream()) {
       if (pauseDetected || Context.current().cancellationSignal.aborted) {
         pauseDetected = true;
         break;
+      }
+      if (stallDetected) break;
+
+      // Progress: reset the stall timer on every stream event.
+      stallWatchdog.recordActivity();
+      if (event.type === "tool_call" && typeof event.name === "string") {
+        lastToolName = event.name;
       }
 
       eventRecorder?.record(event, eventCount);
@@ -565,7 +670,7 @@ async function executeCursorInner(
         // accumulator tracked sub-agents in memory but they only reached the
         // status (and the subscriber stream) after the loop ended.
         status.subAgentExecutions = accumulator.subAgentExecutions;
-        const signal = await persistStatus(client, executionId, status);
+        const signal = await persist(status);
         deltaEnricher.markPersisted();
         todoTracker.markPersisted();
         accumulator.markSubAgentPersisted();
@@ -583,8 +688,17 @@ async function executeCursorInner(
         break;
       }
     }
+    } catch (streamErr) {
+      // run.cancel() from the stall watchdog can make the stream iterator
+      // reject; that is the expected teardown, so swallow it and fall through
+      // to the stallDetected branch in Phase 11a. Anything else is a genuine
+      // stream failure — rethrow it to the outer error handler.
+      if (!stallDetected) throw streamErr;
+      console.warn(`ExecuteCursor stream ended via stall cancel: execution=${executionId}`);
+    }
 
     periodicHeartbeat.stop();
+    stallWatchdog.stop();
     // Check both the heartbeat flag AND the shutdown signal directly.
     // Race condition: the heartbeat timer may detect Temporal's CancelledFailure
     // (from worker.shutdown()) before the AbortSignal microtask propagates,
@@ -605,7 +719,7 @@ async function executeCursorInner(
     // sub-agent the parent had delegated is no longer executing. Mark it
     // CANCELLED rather than leaving a permanent IN_PROGRESS "zombie" in the
     // final snapshot (parity with the native harness's cancelSubAgents()).
-    if (pauseDetected || workerShutdownDetected || Context.current().cancellationSignal.aborted) {
+    if (pauseDetected || workerShutdownDetected || stallDetected || Context.current().cancellationSignal.aborted) {
       accumulator.cancelInProgressSubAgents();
     }
     status.subAgentExecutions = accumulator.subAgentExecutions;
@@ -621,7 +735,7 @@ async function executeCursorInner(
     // call statuses before run.wait() / structured output extraction.
     // This is unconditional (not throttled) because finalize is a
     // once-per-execution correctness boundary.
-    await persistStatus(client, executionId, status);
+    await persist(status);
     heartbeat();
 
     // End OTel turn span with accumulated token usage
@@ -645,7 +759,29 @@ async function executeCursorInner(
     }
 
 
-    // Phase 11a: Handle worker shutdown, pause, or infrastructure cancellation.
+    // Phase 11a: Handle stall, worker shutdown, pause, or infrastructure cancellation.
+
+    // Stall: the watchdog cancelled a turn that made no progress for longer
+    // than config.cursorStreamStallTimeoutMs (a wedged tool call or a dead
+    // model connection). The keep-alive heartbeat proves liveness, so Temporal
+    // never reaps this on its own — this branch is the only clean exit. We
+    // RETURN (not throw): re-running the identical prompt via Temporal retry
+    // would very likely wedge again. accumulator.finalize() above already
+    // cleared isStreaming, so the UI spinners stop.
+    if (stallDetected) {
+      const err = stallError ?? new StallTimeoutError(config.cursorStreamStallTimeoutMs);
+      status.phase = ExecutionPhase.EXECUTION_FAILED;
+      status.error = formatStallFailure(err);
+      status.completedAt = utcTimestamp();
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: `Execution failed: the agent made no progress for too long and was stopped (${err.message}). You can retry or resume.`,
+        timestamp: utcTimestamp(),
+      }));
+      await persist(status);
+      console.warn(`ExecuteCursor stalled: execution=${executionId}, events=${eventCount}, error=${status.error}`);
+      return slimStatus(status);
+    }
 
     // Worker shutdown: the runner-manager aborted the shutdown signal before
     // calling worker.shutdown(). This is NOT a user-initiated pause — it's
@@ -659,7 +795,7 @@ async function executeCursorInner(
         content: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
         timestamp: utcTimestamp(),
       }));
-      await persistStatus(client, executionId, status);      console.log(`ExecuteCursor interrupted (worker shutdown): execution=${executionId}, events=${eventCount}`);
+      await persist(status);      console.log(`ExecuteCursor interrupted (worker shutdown): execution=${executionId}, events=${eventCount}`);
       throw new CancelledFailure("Activity cancelled (worker shutdown, not user pause)");
     }
 
@@ -672,7 +808,7 @@ async function executeCursorInner(
         content: "Execution paused by user. Use resume to continue.",
         timestamp: utcTimestamp(),
       }));
-      await persistStatus(client, executionId, status);      console.log(`ExecuteCursor paused: execution=${executionId}, events=${eventCount}`);
+      await persist(status);      console.log(`ExecuteCursor paused: execution=${executionId}, events=${eventCount}`);
       throw new CancelledFailure("Activity paused by orchestrator");
     }
 
@@ -688,7 +824,7 @@ async function executeCursorInner(
         content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
         timestamp: utcTimestamp(),
       }));
-      await persistStatus(client, executionId, status);      console.log(`ExecuteCursor interrupted (infrastructure cancel): execution=${executionId}, events=${eventCount}`);
+      await persist(status);      console.log(`ExecuteCursor interrupted (infrastructure cancel): execution=${executionId}, events=${eventCount}`);
       throw new CancelledFailure("Activity cancelled (heartbeat timeout, not user pause)");
     }
 
@@ -701,7 +837,7 @@ async function executeCursorInner(
         content: "Execution stopped by the platform.",
         timestamp: utcTimestamp(),
       }));
-      await persistStatus(client, executionId, status);      try { resolution.agent.close(); } catch { /* best effort */ }
+      await persist(status);      try { resolution.agent.close(); } catch { /* best effort */ }
       console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
       return slimStatus(status);
     }
@@ -714,11 +850,11 @@ async function executeCursorInner(
     // harness — the approval surface is driven entirely by tool-call status. We
     // deliberately do NOT set status.pendingApprovals here: any value would be
     // discarded by the backend's recompute on the next updateStatus.
-    const deniedLedger = await readDenialLedger(primaryWorkspaceDir);
+    const deniedLedger = await readDenialLedger(hitlDir ?? "");
     const deniedToolCalls = reconcileDeniedToolCalls(status.messages, deniedLedger, mergedPolicies);
     if (deniedToolCalls.length > 0) {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
-      await persistStatus(client, executionId, status);
+      await persist(status);
       console.log(`ExecuteCursor returning WAITING_FOR_APPROVAL: ${deniedToolCalls.length} tools pending`);
       return slimStatus(status);
     }
@@ -825,8 +961,10 @@ async function executeCursorInner(
             console.warn("Failed to update session with fresh agentId (non-fatal):", updateErr);
           }
 
+          let retryWatchdog: StallWatchdog | undefined;
           const retryRun = await freshAgent.send(freshPrompt, {
             onDelta: ({ update }) => {
+              retryWatchdog?.recordActivity();
               if (update.type === "turn-ended" && update.usage) {
                 usageAccumulator.addTurn(update.usage);
               }
@@ -834,19 +972,31 @@ async function executeCursorInner(
               try { heartbeat(); } catch { /* swallow during retry */ }
             },
           });
+          // Mirror the primary stream's stall protection: a wedged retry must
+          // not hang the activity. On stall, cancel the run so the loop ends and
+          // retryRun.wait() resolves down the existing non-finished failure path.
+          retryWatchdog = startStallWatchdog(config.cursorStreamStallTimeoutMs, (idleMs) => {
+            console.warn(`ExecuteCursor retry stall detected: execution=${executionId}, idleMs=${idleMs}`);
+            if (retryRun.supports?.("cancel")) void retryRun.cancel().catch(() => { /* best effort */ });
+          });
 
           streamErrorMessage = undefined;
 
-          for await (const retryEvent of retryRun.stream()) {
-            if (Context.current().cancellationSignal.aborted) break;
-            accumulator.processEvent(retryEvent);
-            if (retryEvent.type === "status") {
-              const retryStatusEvent = retryEvent as { status?: string; message?: string };
-              if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
-                streamErrorMessage = retryStatusEvent.message;
+          try {
+            for await (const retryEvent of retryRun.stream()) {
+              if (Context.current().cancellationSignal.aborted) break;
+              retryWatchdog.recordActivity();
+              accumulator.processEvent(retryEvent);
+              if (retryEvent.type === "status") {
+                const retryStatusEvent = retryEvent as { status?: string; message?: string };
+                if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
+                  streamErrorMessage = retryStatusEvent.message;
+                }
               }
+              heartbeat();
             }
-            heartbeat();
+          } finally {
+            retryWatchdog.stop();
           }
 
           const retryResult = await retryRun.wait();
@@ -920,8 +1070,10 @@ async function executeCursorInner(
             console.warn("Failed to update session with fresh agentId (non-fatal):", updateErr);
           }
 
+          let retryWatchdog: StallWatchdog | undefined;
           const retryRun = await freshAgent.send(effectivePrompt, {
             onDelta: ({ update }) => {
+              retryWatchdog?.recordActivity();
               if (update.type === "turn-ended" && update.usage) {
                 usageAccumulator.addTurn(update.usage);
               }
@@ -929,19 +1081,31 @@ async function executeCursorInner(
               try { heartbeat(); } catch { /* swallow during retry */ }
             },
           });
+          // Mirror the primary stream's stall protection: a wedged retry must
+          // not hang the activity. On stall, cancel the run so the loop ends and
+          // retryRun.wait() resolves down the existing non-finished failure path.
+          retryWatchdog = startStallWatchdog(config.cursorStreamStallTimeoutMs, (idleMs) => {
+            console.warn(`ExecuteCursor retry stall detected: execution=${executionId}, idleMs=${idleMs}`);
+            if (retryRun.supports?.("cancel")) void retryRun.cancel().catch(() => { /* best effort */ });
+          });
 
           streamErrorMessage = undefined;
 
-          for await (const retryEvent of retryRun.stream()) {
-            if (Context.current().cancellationSignal.aborted) break;
-            accumulator.processEvent(retryEvent);
-            if (retryEvent.type === "status") {
-              const retryStatusEvent = retryEvent as { status?: string; message?: string };
-              if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
-                streamErrorMessage = retryStatusEvent.message;
+          try {
+            for await (const retryEvent of retryRun.stream()) {
+              if (Context.current().cancellationSignal.aborted) break;
+              retryWatchdog.recordActivity();
+              accumulator.processEvent(retryEvent);
+              if (retryEvent.type === "status") {
+                const retryStatusEvent = retryEvent as { status?: string; message?: string };
+                if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
+                  streamErrorMessage = retryStatusEvent.message;
+                }
               }
+              heartbeat();
             }
-            heartbeat();
+          } finally {
+            retryWatchdog.stop();
           }
 
           const retryResult = await retryRun.wait();
@@ -1026,9 +1190,8 @@ async function executeCursorInner(
       // Cursor harness has no auto-publish pipeline, so this is the only
       // artifact path; build storage from the same config-driven factory the
       // native harness uses.
-      if (interactionMode === InteractionMode.PLAN && finalText) {
+      if (interactionMode === InteractionMode.PLAN && finalText && artifactStorage) {
         try {
-          const artifactStorage = createArtifactStorage(loadArtifactStorageConfig(config));
           await publishPlanArtifact({ status, executionId, planText: finalText, artifactStorage });
         } catch (err) {
           console.warn(
@@ -1040,7 +1203,7 @@ async function executeCursorInner(
     }
 
     // NOW persist — subscriber sees COMPLETED + structured_output atomically
-    await persistStatus(client, executionId, status);
+    await persist(status);
 
     console.log(
       `ExecuteCursor completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}, ` +
@@ -1098,7 +1261,7 @@ async function executeCursorInner(
       // The aborted Cursor run leaves no live sub-agent — mark any in-flight
       // delegation CANCELLED so the final snapshot has no zombie sub-agent.
       cancelInProgressSubAgentProtos(status.subAgentExecutions);
-      await persistStatus(client, executionId, status).catch(() => {});      throw err;
+      await persist(status).catch(() => {});      throw err;
     }
 
     // If a non-CancelledFailure error occurs while a pause is in progress,
@@ -1117,7 +1280,7 @@ async function executeCursorInner(
         timestamp: utcTimestamp(),
       }));
       cancelInProgressSubAgentProtos(status.subAgentExecutions);
-      await persistStatus(client, executionId, status).catch(() => {});      throw new CancelledFailure("Activity paused by orchestrator (error during pause)");
+      await persist(status).catch(() => {});      throw new CancelledFailure("Activity paused by orchestrator (error during pause)");
     }
 
     // Infrastructure cancellation (e.g. heartbeat timeout) with a
@@ -1136,7 +1299,7 @@ async function executeCursorInner(
         timestamp: utcTimestamp(),
       }));
       cancelInProgressSubAgentProtos(status.subAgentExecutions);
-      await persistStatus(client, executionId, status).catch(() => {});      throw new CancelledFailure("Activity cancelled (infrastructure, not user pause)");
+      await persist(status).catch(() => {});      throw new CancelledFailure("Activity cancelled (infrastructure, not user pause)");
     }
 
     // A thrown CursorSdkError carries structured fields (code/status/endpoint/
@@ -1174,7 +1337,7 @@ async function executeCursorInner(
         }),
       );
       try {
-        await persistStatus(client, executionId, status);
+        await persist(status);
       } catch (persistErr) {
         console.error("Failed to persist error status (best-effort):", persistErr);
       }      return slimStatus(status);
@@ -1201,12 +1364,33 @@ async function executeCursorInner(
     );
 
     try {
-      await persistStatus(client, executionId, status);
+      await persist(status);
     } catch (persistErr) {
       console.error("Failed to persist error status (best-effort):", persistErr);
     }
 
     return slimStatus(status);
+  } finally {
+    // Disarm the stall watchdog on EVERY exit path (idempotent). The happy
+    // path stops it after the stream loop; this covers throws before that
+    // point so no orphaned timer survives the activity.
+    stallWatchdog?.stop();
+
+    // Tear down the HITL gate on EVERY exit path (success, error, approval
+    // pause, cancellation) so attaching a real repo leaves the user's
+    // .cursor/hooks.json and workspace untouched between turns (issue #173).
+    // Best-effort: a leftover hooks.json is inert because the scope guard
+    // allows all invocations once this runner PID is gone.
+    if (hitlCleanup) {
+      try {
+        await hitlCleanup();
+      } catch (cleanupErr) {
+        console.warn(
+          `ExecuteCursor HITL gate teardown failed (non-fatal): ` +
+          `execution=${executionId}, error=${cleanupErr instanceof Error ? cleanupErr.message : cleanupErr}`,
+        );
+      }
+    }
   }
 }
 

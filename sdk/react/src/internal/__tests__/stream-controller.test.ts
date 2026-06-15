@@ -10,6 +10,7 @@ import {
   StreamController,
   type StreamControllerSink,
 } from "../stream-controller";
+import type { StreamState } from "../store/conversation-store";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -32,18 +33,63 @@ function makeSnapshot(
 function createTestSink(): StreamControllerSink & {
   snapshots: AgentExecution[];
   states: Array<{ stage: string; executionId?: string; error?: Error }>;
+  connectTimeouts: number;
+  slow: boolean[];
 } {
   const snapshots: AgentExecution[] = [];
   const states: Array<{ stage: string; executionId?: string; error?: Error }> =
     [];
-  return {
+  const slow: boolean[] = [];
+  const sink = {
     snapshots,
     states,
-    ingestSnapshot(snapshot) {
+    connectTimeouts: 0,
+    slow,
+    ingestSnapshot(snapshot: AgentExecution) {
       snapshots.push(snapshot);
     },
-    setStreamState(state) {
+    setStreamState(state: StreamState) {
       states.push(state as never);
+    },
+    onConnectTimeout() {
+      sink.connectTimeouts += 1;
+    },
+    setSlow(value: boolean) {
+      slow.push(value);
+    },
+  };
+  return sink;
+}
+
+/**
+ * Manual watchdog clock: records armed timers without firing them. Tests fire
+ * a specific timer explicitly by its configured duration, so no real time is
+ * consumed and existing (non-watchdog) tests are unaffected — their timers are
+ * simply recorded and discarded.
+ */
+function createManualTimers() {
+  const timers = new Map<number, { cb: () => void; ms: number }>();
+  let nextId = 1;
+  return {
+    setTimer(cb: () => void, ms: number): number {
+      const id = nextId++;
+      timers.set(id, { cb, ms });
+      return id;
+    },
+    clearTimer(id: number): void {
+      timers.delete(id);
+    },
+    /** Fire every currently-armed timer whose duration equals `ms`. */
+    fire(ms: number): void {
+      for (const [id, t] of [...timers]) {
+        if (t.ms === ms) {
+          timers.delete(id);
+          t.cb();
+        }
+      }
+    },
+    get pending(): number {
+      return timers.size;
     },
   };
 }
@@ -80,19 +126,27 @@ function createSynchronousScheduler() {
 // Tests
 // ---------------------------------------------------------------------------
 
+// Distinct, small watchdog durations so a test can fire one timer without the
+// other (the manual clock fires by exact duration).
+const CONNECT_MS = 100;
+const SLOW_MS = 500;
+
 describe("StreamController", () => {
   let sink: ReturnType<typeof createTestSink>;
   let scheduler: ReturnType<typeof createSynchronousScheduler>;
+  let timers: ReturnType<typeof createManualTimers>;
   let controller: StreamController;
 
   beforeEach(() => {
     sink = createTestSink();
     scheduler = createSynchronousScheduler();
-    controller = new StreamController(
-      sink,
-      scheduler.schedule,
-      scheduler.cancel,
-    );
+    timers = createManualTimers();
+    controller = new StreamController(sink, scheduler.schedule, scheduler.cancel, {
+      setTimer: timers.setTimer,
+      clearTimer: timers.clearTimer,
+      connectTimeoutMs: CONNECT_MS,
+      slowThresholdMs: SLOW_MS,
+    });
   });
 
   describe("initial state", () => {
@@ -393,6 +447,101 @@ describe("StreamController", () => {
     });
   });
 
+  describe("watchdog — connect timeout", () => {
+    it("fires onConnectTimeout while still connecting", () => {
+      controller.start("exec-1");
+      timers.fire(CONNECT_MS);
+      expect(sink.connectTimeouts).toBe(1);
+    });
+
+    it("does not fire once a first snapshot arrives (connect timer cleared)", () => {
+      controller.start("exec-1");
+      controller.handleSnapshot(
+        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+      );
+      timers.fire(CONNECT_MS);
+      expect(sink.connectTimeouts).toBe(0);
+    });
+
+    it("does not fire after a terminal snapshot", () => {
+      controller.start("exec-1");
+      controller.handleSnapshot(
+        makeSnapshot(ExecutionPhase.EXECUTION_FAILED),
+      );
+      timers.fire(CONNECT_MS);
+      expect(sink.connectTimeouts).toBe(0);
+    });
+
+    it("does not fire after reset", () => {
+      controller.start("exec-1");
+      controller.reset();
+      timers.fire(CONNECT_MS);
+      expect(sink.connectTimeouts).toBe(0);
+    });
+
+    it("stands down while auto-reconnect is in flight", () => {
+      controller.start("exec-1");
+      controller.handleReconnecting(1, new Error("drop"));
+      timers.fire(CONNECT_MS);
+      expect(sink.connectTimeouts).toBe(0);
+    });
+  });
+
+  describe("watchdog — slow stall", () => {
+    it("sets the slow hint after the threshold while streaming", () => {
+      controller.start("exec-1");
+      controller.handleSnapshot(
+        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+      );
+      timers.fire(SLOW_MS);
+      expect(sink.slow.at(-1)).toBe(true);
+    });
+
+    it("clears the slow hint on the next snapshot", () => {
+      controller.start("exec-1");
+      timers.fire(SLOW_MS);
+      expect(sink.slow.at(-1)).toBe(true);
+
+      controller.handleSnapshot(
+        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+      );
+      // Re-arming on a fresh snapshot clears the prior hint.
+      expect(sink.slow.at(-1)).toBe(false);
+    });
+
+    it("clears the slow hint on a terminal snapshot", () => {
+      controller.start("exec-1");
+      timers.fire(SLOW_MS);
+      expect(sink.slow.at(-1)).toBe(true);
+
+      controller.handleSnapshot(
+        makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED),
+      );
+      expect(sink.slow.at(-1)).toBe(false);
+    });
+
+    it("clears the slow hint and timer on reset", () => {
+      controller.start("exec-1");
+      timers.fire(SLOW_MS);
+      controller.reset();
+      expect(sink.slow.at(-1)).toBe(false);
+      // The (already fired) timer leaves nothing armed; a stray fire is a no-op.
+      const before = sink.slow.length;
+      timers.fire(SLOW_MS);
+      expect(sink.slow.length).toBe(before);
+    });
+
+    it("does not fire after reaching a terminal phase", () => {
+      controller.start("exec-1");
+      controller.handleSnapshot(
+        makeSnapshot(ExecutionPhase.EXECUTION_COMPLETED),
+      );
+      const before = sink.slow.length;
+      timers.fire(SLOW_MS);
+      expect(sink.slow.length).toBe(before);
+    });
+  });
+
   describe("default constructor (browser rAF binding)", () => {
     let mockRaf: ReturnType<typeof vi.fn>;
     let mockCaf: ReturnType<typeof vi.fn>;
@@ -415,7 +564,10 @@ describe("StreamController", () => {
     });
 
     it("does not throw when using default scheduleFlush/cancelFlush", () => {
-      const defaultController = new StreamController(sink);
+      const defaultController = new StreamController(sink, undefined, undefined, {
+        setTimer: timers.setTimer,
+        clearTimer: timers.clearTimer,
+      });
       defaultController.start("exec-1");
 
       expect(() => {
@@ -428,7 +580,10 @@ describe("StreamController", () => {
     });
 
     it("delegates cancelFlush to cancelAnimationFrame", () => {
-      const defaultController = new StreamController(sink);
+      const defaultController = new StreamController(sink, undefined, undefined, {
+        setTimer: timers.setTimer,
+        clearTimer: timers.clearTimer,
+      });
       defaultController.start("exec-1");
       defaultController.handleSnapshot(
         makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),

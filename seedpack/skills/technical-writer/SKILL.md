@@ -1,5 +1,6 @@
 ---
 name: technical-writer
+visibility: public
 description: >
   Write and improve technical documentation including API references, user guides,
   tutorials, how-to guides, and explanatory articles. Use this skill when asked to

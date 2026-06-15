@@ -73,6 +73,7 @@ function makeExecution(opts: {
   phase?: ExecutionPhase;
   interactionMode?: InteractionMode;
   aiContent?: string;
+  error?: string;
 }): AgentExecution {
   const exec = create(AgentExecutionSchema);
 
@@ -91,6 +92,9 @@ function makeExecution(opts: {
 
   const status = create(AgentExecutionStatusSchema);
   status.phase = opts.phase ?? ExecutionPhase.EXECUTION_COMPLETED;
+  if (opts.error !== undefined) {
+    status.error = opts.error;
+  }
 
   const humanMsg = create(AgentMessageSchema);
   humanMsg.type = MessageType.MESSAGE_HUMAN;
@@ -244,6 +248,132 @@ describe("MessageThread", () => {
     render(<MessageThread executions={[exec]} />);
 
     expect(screen.getByText(/failed/i)).toBeTruthy();
+  });
+
+  it("surfaces the server failure reason for a FAILED execution", () => {
+    const exec = makeExecution({
+      id: "exec-fail-reason",
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      error: "Activity task timed out (RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED)",
+    });
+
+    render(<MessageThread executions={[exec]} />);
+
+    expect(
+      screen.getByText(/Activity task timed out/i),
+    ).toBeTruthy();
+  });
+
+  it("does NOT surface a failure reason for a COMPLETED execution", () => {
+    const exec = makeExecution({
+      id: "exec-ok",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      error: "stale error that should be ignored",
+    });
+
+    render(<MessageThread executions={[exec]} />);
+
+    expect(screen.queryByText(/stale error/i)).toBeNull();
+  });
+
+  it("offers a Retry that resends the originating message on failure", () => {
+    const exec = makeExecution({
+      id: "exec-retry",
+      specMessage: "do the thing",
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      error: "boom",
+    });
+    const onRetryExecution = vi.fn();
+
+    render(
+      <MessageThread executions={[exec]} onRetryExecution={onRetryExecution} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(onRetryExecution).toHaveBeenCalledWith("do the thing");
+  });
+
+  it("renders a failed pending message with an inline Retry", () => {
+    const onRetrySend = vi.fn();
+
+    render(
+      <MessageThread
+        executions={[]}
+        pendingUserMessage="unsent message"
+        pendingMessageFailed
+        onRetrySend={onRetrySend}
+      />,
+    );
+
+    expect(screen.getByText("unsent message")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(onRetrySend).toHaveBeenCalledOnce();
+  });
+
+  it("shows an Edit affordance on the in-flight human turn and routes onEditMessage", () => {
+    const active = makeExecution({
+      id: "exec-active",
+      specMessage: "fix the bug",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      aiContent: "working on it",
+    });
+    const onEditMessage = vi.fn();
+
+    render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={active}
+        onEditMessage={onEditMessage}
+      />,
+    );
+
+    const editBtn = screen.getByRole("button", { name: "Edit message" });
+    fireEvent.click(editBtn);
+    expect(onEditMessage).toHaveBeenCalledWith("fix the bug");
+  });
+
+  it("shows no Edit affordance when onEditMessage is omitted", () => {
+    const active = makeExecution({
+      id: "exec-active",
+      specMessage: "fix the bug",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+
+    render(
+      <MessageThread executions={[]} activeStreamExecution={active} />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Edit message" }),
+    ).toBeNull();
+  });
+
+  it("marks only the active-stream human turn editable, not completed turns", () => {
+    const completed = makeExecution({
+      id: "exec-done",
+      specMessage: "old turn",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+    });
+    const active = makeExecution({
+      id: "exec-active",
+      specMessage: "new turn",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+    const onEditMessage = vi.fn();
+
+    render(
+      <MessageThread
+        executions={[completed]}
+        activeStreamExecution={active}
+        onEditMessage={onEditMessage}
+      />,
+    );
+
+    const editBtns = screen.getAllByRole("button", { name: "Edit message" });
+    expect(editBtns).toHaveLength(1);
+
+    fireEvent.click(editBtns[0]);
+    expect(onEditMessage).toHaveBeenCalledWith("new turn");
   });
 
   it("renders plan-completion card when last execution is completed Plan mode", () => {

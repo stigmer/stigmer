@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, memo, Suspense, useCallback, useMemo } from "react";
+import { lazy, memo, Suspense, useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -60,6 +60,38 @@ export interface MessageThreadProps {
    * first snapshot.
    */
   readonly pendingUserMessage?: string | null;
+  /**
+   * Marks the pending user message as failed-to-send. The optimistic
+   * bubble renders an inline "Couldn't send — Retry" affordance instead
+   * of the sending indicator, so a failed follow-up never silently
+   * vanishes. Pair with {@link onRetrySend}.
+   *
+   * @default false
+   */
+  readonly pendingMessageFailed?: boolean;
+  /**
+   * Retry handler for a failed pending message. Wired to the inline
+   * "Retry" control when {@link pendingMessageFailed} is `true`.
+   */
+  readonly onRetrySend?: () => void;
+  /**
+   * When provided, the in-flight human turn (the active execution's prompt)
+   * shows a hover "Edit" affordance. Clicking it invokes this callback with
+   * the message text — the session chat stops the running execution and
+   * pre-fills the composer for an edit-and-resubmit.
+   *
+   * Provide this only while the active execution is stoppable; the SDK marks
+   * exactly the active-stream human turn editable. When omitted, no edit
+   * control is shown (backward compatible).
+   */
+  readonly onEditMessage?: (text: string) => void;
+  /**
+   * Retry handler for a terminal-failed execution that exposed a server
+   * error reason. Receives the originating message; the consumer typically
+   * resends it as a new execution. When omitted, no Retry control is shown
+   * beside the surfaced failure reason.
+   */
+  readonly onRetryExecution?: (message: string) => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
   /**
@@ -178,10 +210,11 @@ export interface MessageThreadProps {
  * part of the public API.
  */
 export type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean }
+  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
+  | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
@@ -216,6 +249,8 @@ export function buildThreadItems(
   includeApprovals: boolean,
   workspaceEntries: readonly WorkspaceEntry[] | undefined,
   summarizationEvents?: readonly SummarizationEventView[],
+  pendingMessageFailed = false,
+  editableActiveTurn = false,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   const allExecutions = activeStreamExecution
@@ -274,6 +309,9 @@ export function buildThreadItems(
         kind: "message",
         message: syntheticHumanMsg,
         key: bridgePending ? "pending-user-turn" : `${execId}-spec`,
+        // The active execution's prompt is the one a user can edit-and-resubmit
+        // (stop + rephrase). Only mark it when the consumer enabled editing.
+        isEditable: isActiveStreamExec && editableActiveTurn,
       });
     }
 
@@ -393,6 +431,22 @@ export function buildThreadItems(
       phase: lastPhase,
       key: `phase-${lastPhase}`,
     });
+
+    // The server populates `status.error` only on EXECUTION_FAILED. Surface it
+    // beside the badge so a failure that produced no messages still explains
+    // itself (the CLI shows this reason; the chat previously showed nothing).
+    // Kept as its own item so the badge component stays presentational.
+    const reason = lastExec?.status?.error;
+    if (reason) {
+      const specMessage = lastExec?.spec?.message;
+      items.push({
+        kind: "execution-error",
+        error: reason,
+        retryMessage:
+          specMessage && specMessage !== "execute" ? specMessage : undefined,
+        key: `execution-error-${lastExec?.metadata?.id ?? lastPhase}`,
+      });
+    }
   }
 
   if (
@@ -430,7 +484,10 @@ export function buildThreadItems(
         kind: "message",
         message: syntheticPending,
         key: "pending-user-turn",
-        isPending: true,
+        // A failed turn shows the inline error instead of the dimmed
+        // sending state — the two are mutually exclusive.
+        isPending: !pendingMessageFailed,
+        isFailed: pendingMessageFailed,
       });
     }
   }
@@ -465,6 +522,10 @@ export function MessageThread({
   executions,
   activeStreamExecution,
   pendingUserMessage,
+  pendingMessageFailed = false,
+  onRetrySend,
+  onRetryExecution,
+  onEditMessage,
   className,
   formatToolCallSummary,
   onApprovalSubmit,
@@ -482,9 +543,10 @@ export function MessageThread({
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
   const includeApprovals = onApprovalSubmit != null;
+  const editableActiveTurn = onEditMessage != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn],
   );
 
   useKeyStability(items);
@@ -517,6 +579,9 @@ export function MessageThread({
             org={org}
             planActionsDisabled={planActionsDisabled}
             centerContent={centerContent}
+            onRetrySend={onRetrySend}
+            onRetryExecution={onRetryExecution}
+            onEditMessage={onEditMessage}
           />
         </Suspense>
       </div>
@@ -536,6 +601,9 @@ export function MessageThread({
       onBuildFromPlan={onBuildFromPlan}
       org={org}
       planActionsDisabled={planActionsDisabled}
+      onRetrySend={onRetrySend}
+      onRetryExecution={onRetryExecution}
+      onEditMessage={onEditMessage}
     />
   );
 }
@@ -560,6 +628,9 @@ interface NonVirtualizedThreadProps {
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
+  readonly onRetrySend?: () => void;
+  readonly onRetryExecution?: (message: string) => void;
+  readonly onEditMessage?: (text: string) => void;
 }
 
 function NonVirtualizedThread({
@@ -574,6 +645,9 @@ function NonVirtualizedThread({
   onBuildFromPlan,
   org,
   planActionsDisabled,
+  onRetrySend,
+  onRetryExecution,
+  onEditMessage,
 }: NonVirtualizedThreadProps) {
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
@@ -609,6 +683,9 @@ function NonVirtualizedThread({
                   onBuildFromPlan={onBuildFromPlan}
                   org={org}
                   planActionsDisabled={planActionsDisabled}
+                  onRetrySend={onRetrySend}
+                  onRetryExecution={onRetryExecution}
+                  onEditMessage={onEditMessage}
                 />
               </ThreadItemWrapper>
             ))}
@@ -645,6 +722,9 @@ export interface ThreadItemRendererProps {
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
+  readonly onRetrySend?: () => void;
+  readonly onRetryExecution?: (message: string) => void;
+  readonly onEditMessage?: (text: string) => void;
 }
 
 /**
@@ -666,13 +746,26 @@ export function ThreadItemRenderer({
   onBuildFromPlan,
   org,
   planActionsDisabled,
+  onRetrySend,
+  onRetryExecution,
+  onEditMessage,
 }: ThreadItemRendererProps) {
   switch (item.kind) {
     case "message":
+      if (item.isFailed) {
+        return (
+          <FailedUserMessage message={item.message} onRetry={onRetrySend} />
+        );
+      }
       return (
         <MessageEntry
           message={item.message}
           className={item.isPending ? "opacity-70" : undefined}
+          onEdit={
+            item.isEditable && onEditMessage
+              ? () => onEditMessage(item.message.content)
+              : undefined
+          }
         />
       );
     case "tool-group":
@@ -696,6 +789,14 @@ export function ThreadItemRenderer({
         <div className="flex justify-center py-3">
           <ExecutionPhaseBadge phase={item.phase} />
         </div>
+      );
+    case "execution-error":
+      return (
+        <ExecutionErrorNotice
+          error={item.error}
+          retryMessage={item.retryMessage}
+          onRetry={onRetryExecution}
+        />
       );
     case "approval-request":
       return (
@@ -734,6 +835,125 @@ export function ThreadItemRenderer({
         />
       );
   }
+}
+
+// ---------------------------------------------------------------------------
+// FailedUserMessage — optimistic turn whose send failed
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders a user message whose send failed: the message itself stays visible
+ * (so the typed text is never lost) with an inline, actionable error beneath
+ * it. The error copy is intentionally short — the full reason is surfaced by
+ * the consumer's send-error banner; this is the in-thread "Retry" affordance.
+ */
+function FailedUserMessage({
+  message,
+  onRetry,
+}: {
+  message: AgentMessage;
+  onRetry?: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <MessageEntry message={message} />
+      <div
+        role="alert"
+        className="mx-4 flex items-center gap-2 text-xs text-destructive"
+      >
+        <span className="min-w-0 flex-1 truncate">Couldn&rsquo;t send.</span>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="shrink-0 rounded font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ExecutionErrorNotice — server failure reason for a terminal-failed execution
+// ---------------------------------------------------------------------------
+
+/**
+ * Recognizes a recoverable *interruption* (worker reaped / heartbeat timeout /
+ * stall) as opposed to a genuine application failure. The runner stamps these
+ * with a stable signature ("[StallTimeoutError]", "Execution interrupted",
+ * "Retry or resume."), and the workflow auto-resumes them while recovery cycles
+ * remain; by the time one reaches the UI as terminal it is resumable from the
+ * session's persisted harness_state_id rather than a dead end.
+ */
+function isInterruptedError(error: string): boolean {
+  return /\[StallTimeoutError\]|execution interrupted|retry or resume/i.test(error);
+}
+
+/**
+ * Renders the server-reported failure reason (`AgentExecutionStatus.error`)
+ * for an execution that died — typically before producing any messages. The
+ * reason can be a long Temporal error, so it is clamped by default with a
+ * Show more / Show less toggle.
+ *
+ * A genuine failure renders as a destructive alert with a Retry. A *recoverable
+ * interruption* renders as a neutral notice with a Resume — both resend the
+ * originating message, which the server continues from the session's persisted
+ * harness_state_id (the same data path; the framing differs so an interruption
+ * never looks like a dead-end crash).
+ */
+function ExecutionErrorNotice({
+  error,
+  retryMessage,
+  onRetry,
+}: {
+  error: string;
+  retryMessage?: string;
+  onRetry?: (message: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const canRetry = !!onRetry && !!retryMessage;
+  const interrupted = isInterruptedError(error);
+
+  return (
+    <div
+      role={interrupted ? "status" : "alert"}
+      className={cn(
+        "mx-4 flex flex-col gap-1.5 rounded-md px-3 py-2",
+        interrupted ? "bg-muted" : "bg-destructive-subtle",
+      )}
+    >
+      <p
+        className={cn(
+          "text-xs whitespace-pre-wrap break-words",
+          interrupted ? "text-foreground" : "text-destructive",
+          !expanded && "line-clamp-3",
+        )}
+      >
+        {error}
+      </p>
+      <div className="flex items-center gap-3 text-xs">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="font-medium text-muted-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+        {canRetry && (
+          <button
+            type="button"
+            onClick={() => onRetry!(retryMessage!)}
+            className="font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {interrupted ? "Resume" : "Retry"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------

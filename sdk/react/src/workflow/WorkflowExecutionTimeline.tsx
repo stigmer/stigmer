@@ -77,7 +77,8 @@ export const WorkflowExecutionTimeline = memo(function WorkflowExecutionTimeline
     }
   }, [events.length]);
 
-  const isLive = streamState.stage === "streaming";
+  const isLive =
+    streamState.stage === "streaming" || streamState.stage === "reconnecting";
   const isConnecting = streamState.stage === "connecting";
   const isComplete = streamState.stage === "complete";
   const isError = streamState.stage === "error";

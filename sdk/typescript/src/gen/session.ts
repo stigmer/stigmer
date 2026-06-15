@@ -184,7 +184,7 @@ function buildMcpServerUsageProto(input: McpServerUsageInput) {
   return msg;
 }
 
-function buildSessionProto(input: SessionInput): Session {
+export function buildSessionProto(input: SessionInput): Session {
   const workspaceEntries = input.workspaceEntries?.map(buildWorkspaceEntryProto);
   const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));

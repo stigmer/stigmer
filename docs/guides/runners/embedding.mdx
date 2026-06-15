@@ -240,11 +240,20 @@ full lifecycle as an async API:
 
 ```rust
 use stigmer_runner_host::{RunnerHost, RunnerConfig};
+use tauri::{Manager, path::BaseDirectory};
+
+// Resolve the bundled entry to an ABSOLUTE path. `node` resolves a relative
+// script argument against the process working directory, which for an app
+// launched from Finder or the Start menu is `/` — not your resource directory.
+// `app` here is your `tauri::App` or `AppHandle`.
+let runner_entry = app
+    .path()
+    .resolve("resources/runner/dist/main.js", BaseDirectory::Resource)?;
 
 let host = RunnerHost::new();
 host.start(RunnerConfig {
     node_binary: "node".into(),
-    runner_entry: "resources/runner/dist/main.js".into(),
+    runner_entry: runner_entry.to_string_lossy().into_owned(),
     // Token-only: leave the address unset and the runner discovers it from the
     // control plane. Pass Some("host:7233") to pin it for local development.
     temporal_address: None,
@@ -267,19 +276,48 @@ binding (`RunnerState` plus the `#[tauri::command]` surface). This is the
 supported way to embed the runner in a Rust app, and the Stigmer desktop app
 uses it.
 
+#### Process lifecycle and logging resilience
+
+Two guarantees matter when you embed the runner as a subprocess, both hardened
+in response to [#177](https://github.com/stigmer/stigmer/issues/177):
+
+- **Logging degrades, execution does not.** The runner's stdout is its IPC
+  channel and its stderr is a log channel. If a host drops either read end, the
+  runner detaches that output and keeps running the in-flight turn — results
+  stream to the control plane, not through your pipes, so a lost log channel
+  must never abort work. Your host is therefore free to stop reading stderr, but
+  it must **not** assume stderr is lossless: agent and tool output can contain
+  arbitrary (non-UTF8) bytes. The official crate decodes stderr lossily and
+  never abandons the pipe on a bad byte; if you forward the runner's stderr
+  yourself, do the same (lossy decode, log-and-continue) rather than exiting on
+  the first read error.
+- **The runner is reaped with its host.** The crate spawns the runner with
+  kill-on-drop, so dropping `RunnerHost` (a clean app exit, `stop()`, or a panic
+  that unwinds) kills the child instead of leaving an orphan. A hard crash of
+  the host — where no destructor runs — is covered from the other side: the
+  runner shuts itself down when its stdin reaches EOF, which happens as soon as
+  the parent's write end closes. You do not need a separate watchdog.
+
 ### Stage the runner in a packaged app
 
 The Rust crate _drives_ the runner, but it does not contain it: the subprocess
 path launches the runner's compiled JavaScript with `node`. Those files must
 travel **inside** your installable app, because the end user's machine has no
-Stigmer checkout. Get them from npm rather than cloning the monorepo:
+Stigmer checkout. Get them from npm rather than cloning the monorepo —
+specifically, from the **slim embedding build**:
 
-1. **Add the package.** `npm install @stigmer/runner`. The package ships the
-   runner's `dist/` and the runtime dependencies the subprocess needs.
+1. **Add the package.** `npm install @stigmer/runner-slim`. This is the
+   bundle-friendly build of the runner, made for exactly this use case: a
+   self-contained `main.js` (the entire runner, tree-shaken and bundled) plus
+   only the dependencies that genuinely cannot be bundled — the Temporal native
+   bridge (pruned to your platform via `optionalDependencies`), the Cursor SDK
+   with its native helper binaries, and the jq wasm module. It installs at **~85
+   MB per platform** instead of the full `@stigmer/runner` package's ~508 MB
+   `node_modules`.
 2. **Copy it into your app's resources at build time.** Stage the installed
-   package (its `dist/` and resolved `node_modules`) into a resources folder,
-   then have your packager bundle that folder into the installer. In Tauri,
-   declare it under `bundle.resources` in `tauri.conf.json`:
+   package and its resolved `node_modules` into a resources folder, then have
+   your packager bundle that folder into the installer. In Tauri, declare it
+   under `bundle.resources` in `tauri.conf.json`:
 
    ```json
    {
@@ -290,14 +328,33 @@ Stigmer checkout. Get them from npm rather than cloning the monorepo:
    ```
 
 3. **Point the host at the bundled entry.** Set `runner_entry` (the Rust snippet
-   above) to the staged path — `resources/runner/dist/main.js` — resolved
-   relative to the app's resource directory at runtime.
+   above) to the staged `main.js` as an **absolute** path, resolved from the
+   app's resource directory at runtime with
+   `app.path().resolve(..., BaseDirectory::Resource)`. Do not pass the bare
+   relative string `"resources/runner/dist/main.js"`: it works under `tauri dev`
+   (where the working directory is your project) but not in a packaged app
+   (where it is `/`). The slim entry accepts the same modes, environment
+   variables, and IPC protocol as the full package's `dist/main.js`.
 
 <Callout type="info">
-  The Stigmer desktop app symlinks `resources/runner` to the in-repo runner
-  (`backend/services/runner`) because it lives inside the monorepo. An external
-  embedder fills the same folder from the published `@stigmer/runner` package
-  instead — the Tauri `bundle.resources` config is identical either way.
+  The slim `main.js` is a **CommonJS** bundle, and its `package.json`
+  intentionally has no `"type": "module"`. Launch it with `node main.js` as-is;
+  do not rename it to `.mjs` or add `"type": "module"` to the staged manifest.
+  (CommonJS is what preserves the runner's internal interceptor load order — see
+  [#170](https://github.com/stigmer/stigmer/issues/170).) If you install the
+  package and stage it with the provided script, this is already correct and you
+  do not need to think about it.
+</Callout>
+
+<Callout type="info">
+  `@stigmer/runner-slim` is for the subprocess path. If you embed **in-process**
+  (importing `createStigmerRunnerManager` into your own Node app), keep using
+  `@stigmer/runner` — it is the library entry, and your bundler resolves what it
+  needs. The Stigmer desktop app stages the slim artifact into
+  `resources/runner` at packaging time
+  (`client-apps/desktop/scripts/stage-runner-slim.sh`); in development it
+  symlinks the in-repo runner instead. The Tauri `bundle.resources` config is
+  identical either way.
 </Callout>
 
 <Callout type="warn">
@@ -306,6 +363,17 @@ Stigmer checkout. Get them from npm rather than cloning the monorepo:
   shell `PATH`, so a bare `node` command can fail to resolve even when Node is
   installed. Resolve an absolute path to `node` at startup (or bundle a Node
   runtime with the app) rather than relying on `PATH`.
+</Callout>
+
+<Callout type="warn">
+  **`runner_entry` must be absolute in a packaged app.** Same root cause as
+  above: `node` resolves the entry script against the process working directory,
+  which for a Finder/dock-launched app is `/`, not your resource directory. A
+  relative entry like `resources/runner/dist/main.js` only resolves under `tauri
+  dev`. Resolve it from the resource directory at runtime
+  (`app.path().resolve(..., BaseDirectory::Resource)`). If the path does not
+  resolve, the host fails fast with a `RunnerEntryNotFound` error naming the
+  working directory it tried.
 </Callout>
 
 ### How the two paths run

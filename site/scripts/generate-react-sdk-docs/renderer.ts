@@ -37,6 +37,7 @@ const DOMAIN_ORDER: readonly string[] = [
   // Identity & Access
   "organization",
   "iam-policy",
+  "access",
   "identity-provider",
   "identity-account",
   "invitation",

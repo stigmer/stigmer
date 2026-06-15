@@ -1,0 +1,109 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: desktop-research-capture
+  visibility: visibility_public
+  labels:
+    stigmer.ai/system: "true"
+spec:
+  description: >
+    Delegate a browse-and-capture task to the desktop operator agent, then gate
+    the result on human review. The agent drives a real GUI app (e.g. Chrome)
+    through the Open Computer Use tools — opening pages, reading on-screen
+    content, and summarizing — while the workflow stays deterministic. The fuzzy,
+    layout-dependent GUI work is encapsulated entirely in the agent step, which is
+    the robust pattern; hard-coding clicks by coordinate in a workflow would rot
+    the moment the UI shifts. Local-only (macOS): the operator agent requires
+    Accessibility + Screen Recording permission and cannot run in cloud execution.
+    Demonstrates: agent_call with a structured output schema and human_input
+    approval.
+  document:
+    dsl: "1.0.0"
+    namespace: stigmer
+    name: desktop-research-capture
+    version: "1.0.0"
+  env:
+    TARGET_APP:
+      description: "The GUI app to operate (e.g. Google Chrome, Safari, Preview)"
+    TASK:
+      description: "What to do and capture (e.g. 'open the Stigmer docs and summarize the quickstart')"
+  budget:
+    max_cost_micros: 3000000
+    max_total_tokens: 300000
+    max_duration_seconds: 900
+  tasks:
+    - name: capture
+      kind: agent_call
+      task_config:
+        agent: "desktop-operator-agent"
+        message: >
+          In ${ $context.env.TARGET_APP }, complete this task and report what you
+          observe — do not take any destructive or irreversible action:
+          ${ $context.env.TASK }
+        output:
+          schema:
+            type: object
+            required:
+              - summary
+            properties:
+              summary:
+                type: string
+                description: "Concise summary of what was found or accomplished"
+              observations:
+                type: array
+                items:
+                  type: string
+                description: "Notable details observed on screen"
+          on_invalid: ON_INVALID_RETRY
+          max_retries: 2
+        config:
+          timeout: 600
+      export:
+        as: "${ .structured }"
+      flow:
+        then: review_capture
+
+    - name: review_capture
+      kind: human_input
+      task_config:
+        prompt: >
+          The desktop operator worked in ${ $context.env.TARGET_APP }.
+
+          --- Summary ---
+          ${ $context.capture.summary }
+
+          Approve this result?
+        form_schema:
+          type: object
+          properties:
+            notes:
+              type: string
+              description: "Optional reviewer notes or corrections"
+        outcomes:
+          - name: approve
+            label: "Approve"
+          - name: reject
+            label: "Discard"
+            then: end
+        timeout: 172800
+        on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+      export:
+        as: "${ . }"
+      flow:
+        then: finalize
+
+    - name: finalize
+      kind: transform
+      task_config:
+        engine: TRANSFORM_ENGINE_JQ
+        expression: >
+          {
+            status: "approved",
+            target_app: .env.TARGET_APP,
+            task: .env.TASK,
+            summary: .capture.summary,
+            reviewer_notes: .review.form_data.notes
+          }
+        input: "${ {env: $context.env, capture: $context.capture, review: $context.review_capture} }"
+      export:
+        as: "${ . }"

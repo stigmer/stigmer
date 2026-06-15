@@ -2375,16 +2375,16 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=073a5c&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=0945b4&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/0bcf25a352c37d1eb7e98d19ea01beb12815813a37413dd23ffd8646b967a1a5e3dc92a366ef8cf513edb37d7e0a3438849a04cfebb775983c947bf35cac510c
+  checksum: 10c0/0960de4579621f0fe86600eee9cf625a816a1e2315f2e0aa651e3fbad5bb332c624e39269260e909e153cc82f511af97a2b70055701ed1058874f807c766ae99
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=7fe37e&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=5c1272&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@dagrejs/dagre": "npm:^1.1.4"
@@ -2446,13 +2446,13 @@ __metadata:
       optional: true
     recharts:
       optional: true
-  checksum: 10c0/1fc95f81392ec65f55a1b50547a9f0f01111bced20cba076caf597eabcc095662278d5e34e8601ff910da8771ab6883c86ed2516a38a4f9e5a39b4c351cf89ee
+  checksum: 10c0/d8e51017515251c7b4181f391ef081ebecf558d4bf85d7ed5cdcc4b39aaf72e1c56e75a057e7e0ece223e35ec4603272ddf24b70a4b304532d95887cc39679f9
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=8abd3e&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=2eab0a&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2463,17 +2463,17 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/87ee366a4545c24db46b6be03d7a6f5922c15c1856b85216e4282a4a1ae5e5ef006eab5ccd386abb66dee3ab357e1a70ec2e98572d861dfd95adc0092985121f
+  checksum: 10c0/e00662a9a714ceb40c343fdf47768f547756480d097f293e0d16ca66c87c5766278d9db37a5a699691791a739979a88af02137be86765ea5e281d4379b83851d
   languageName: node
   linkType: hard
 
 "@stigmer/theme@file:../sdk/theme::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=b6ee0c&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=1fd02a&locator=stigmer-site%40workspace%3A."
   peerDependencies:
     clsx: ^2.0.0
     tailwind-merge: ^3.0.0
-  checksum: 10c0/4896ebcfe2f6d74172bc32f89d9ac460640dd9206492241fd008241dda790efc205d2bc4760fab1ef37e9ac8b41df3143621aa53fc242b29f409271f6573de51
+  checksum: 10c0/b7e9165a7cded24deb5091fe61dfe9d93292acb921a7913fa96710c3c8674202a1a429d8ed1723ebe0b7ef154eaa665724decf625ee8709f8645ed1d4f3a258f
   languageName: node
   linkType: hard
 

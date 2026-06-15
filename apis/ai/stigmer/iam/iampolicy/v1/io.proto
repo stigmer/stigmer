@@ -4,6 +4,7 @@ package ai.stigmer.iam.iampolicy.v1;
 
 import "ai/stigmer/iam/iampolicy/v1/api.proto";
 import "ai/stigmer/iam/iampolicy/v1/spec.proto";
+import "ai/stigmer/iam/identityaccount/v1/enum.proto";
 import "buf/validate/validate.proto";
 
 // ApiResourceRefView represents a reference to ANY API resource in the system
@@ -37,6 +38,29 @@ message ApiResourceRefView {
 
   // Teams that this identity account belongs to (only populated when kind = "identity_account")
   repeated ApiResourceRefView teams = 9;
+
+  // Where this identity account was provisioned from. Lets a chooser
+  // disambiguate accounts that share the same email address.
+  // Populated only when kind = "identity_account".
+  IdentityOrigin identity_origin = 10;
+}
+
+// IdentityOrigin describes where an identity_account was provisioned from.
+//
+// Email is not an identity key in Stigmer: two distinct accounts can
+// legitimately share one email address — for example a person who signed up
+// directly and is also provisioned through a platform's identity provider.
+// This message gives the UI enough context to tell such accounts apart when
+// presenting a people chooser, so users never have to reason about raw
+// account IDs.
+message IdentityOrigin {
+  // How the account was provisioned (direct, federated, machine, platform_client).
+  ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode provisioning_mode = 1;
+
+  // Human-readable label for the identity source: "Stigmer" for direct
+  // accounts, or the owning IdentityProvider's display name for federated
+  // accounts.
+  string provider_display_name = 2;
 }
 
 // IamPolicyId identifies an IAM policy by its unique identifier.

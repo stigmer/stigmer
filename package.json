@@ -7,16 +7,20 @@
     "sdk/theme",
     "sdk/react",
     "sdk/ink",
+    "mcp-server",
+    "seedpack",
+    "client-apps/cli",
     "client-apps/web",
     "client-apps/desktop",
     "tools/eslint-plugin-stigmer",
+    "test/conformance",
     "test/e2e"
   ],
   "scripts": {
     "prepare": "husky || true",
-    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react && npm run build -w @stigmer/ink",
-    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/sdk && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react && npm run clean -w @stigmer/ink",
-    "test": "npm run test -w @stigmer/sdk && npm run test -w @stigmer/react && npm run test -w @stigmer/theme && npm run test -w @stigmer/ink"
+    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react && npm run build -w @stigmer/ink && npm run build -w @stigmer/mcp-server && npm run build -w @stigmer/seedpack && npm run build -w @stigmer/cli",
+    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/sdk && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react && npm run clean -w @stigmer/ink && npm run clean -w @stigmer/mcp-server && npm run clean -w @stigmer/seedpack && npm run clean -w @stigmer/cli",
+    "test": "node --test scripts/*.test.mjs && npm run test -w @stigmer/sdk && npm run test -w @stigmer/react && npm run test -w @stigmer/theme && npm run test -w @stigmer/ink && npm run test -w @stigmer/mcp-server && npm run test -w @stigmer/seedpack && npm run test -w @stigmer/cli"
   },
   "lint-staged": {
     "docs/**/*.{md,mdx}": [
@@ -35,7 +39,13 @@
     "@stigmer/sdk": "workspace:*",
     "@stigmer/theme": "workspace:*",
     "@stigmer/react": "workspace:*",
-    "@stigmer/ink": "workspace:*"
+    "@stigmer/ink": "workspace:*",
+    "@stigmer/mcp-server": "workspace:*",
+    "@stigmer/seedpack": "workspace:*",
+    "@stigmer/cli": "workspace:*"
+  },
+  "overrides": {
+    "zod": "^3.25.0"
   },
   "packageManager": "yarn@3.8.7+sha512.bbe7e310ff7fd20dc63b111110f96fe18192234bb0d4f10441fa6b85d2b644c8923db8fbe6d7886257ace948440ab1f83325ad02af457a1806cdc97f03d2508e"
 }

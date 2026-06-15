@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "harness",
     srcs = [
+        "actors.go",
         "agent_execution_waiter.go",
         "agent_factory.go",
         "assertions.go",
@@ -31,6 +32,7 @@ go_library(
         "mock_oauth_server.go",
         "mongo_seeder.go",
         "openfga.go",
+        "org_helpers.go",
         "otel.go",
         "path_routing_proxy.go",
         "runner_token.go",
@@ -70,6 +72,8 @@ go_library(
         "//apis/stubs/go/ai/stigmer/iam/oauthapp/v1:oauthapp",
         "//apis/stubs/go/ai/stigmer/iam/platformclient/v1:platformclient",
         "//apis/stubs/go/ai/stigmer/iam/v1:iam",
+        "//apis/stubs/go/ai/stigmer/search/v1:search",
+        "//apis/stubs/go/ai/stigmer/tenancy/organization/v1:organization",
         "@com_github_golang_jwt_jwt_v5//:jwt",
         "@com_github_google_uuid//:uuid",
         "@com_github_minio_minio_go_v7//:minio-go",

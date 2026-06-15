@@ -44,6 +44,7 @@ describe("ExecuteDeepAgent activity", () => {
     checkpointerType: "memory",
     checkpointerProxyEndpoint: null,
     primaryModel: "gpt-4.1",
+    cursorStreamStallTimeoutMs: 180000,
   };
 
   let activities: ReturnType<typeof createDeepAgentActivities>;

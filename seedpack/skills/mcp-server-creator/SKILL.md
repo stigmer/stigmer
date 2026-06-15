@@ -1,5 +1,6 @@
 ---
 name: mcp-server-creator
+visibility: public
 description: >
   Create valid, production-quality Stigmer McpServer YAML files conforming to the
   agentic.stigmer.ai/v1 API. Use this skill when users want to: (1) create a new

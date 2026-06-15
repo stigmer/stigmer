@@ -2,6 +2,7 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibility;
 import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance;
 import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
@@ -18,6 +19,7 @@ public final class WorkflowInstanceInput {
     private final String workflowId;
     private final String description;
     private final java.util.List<ResourceRef> environmentRefs;
+    private final WorkflowExecutionVisibility executionVisibility;
 
     private WorkflowInstanceInput(Builder builder) {
         this.name = builder.name;
@@ -28,6 +30,7 @@ public final class WorkflowInstanceInput {
         this.workflowId = builder.workflowId;
         this.description = builder.description;
         this.environmentRefs = builder.environmentRefs;
+        this.executionVisibility = builder.executionVisibility;
     }
 
     WorkflowInstance toProto() {
@@ -43,6 +46,9 @@ public final class WorkflowInstanceInput {
                 spec.addEnvironmentRefs(item.toProto().toBuilder()
                     .setKind(ApiResourceKind.environment).build());
             }
+        }
+        if (this.executionVisibility != null) {
+            spec.setExecutionVisibility(this.executionVisibility);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -75,6 +81,7 @@ public final class WorkflowInstanceInput {
         private String workflowId;
         private String description;
         private java.util.List<ResourceRef> environmentRefs;
+        private WorkflowExecutionVisibility executionVisibility;
 
         private Builder() {}
 
@@ -86,6 +93,7 @@ public final class WorkflowInstanceInput {
         public Builder workflowId(String workflowId) { this.workflowId = workflowId; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
+        public Builder executionVisibility(WorkflowExecutionVisibility executionVisibility) { this.executionVisibility = executionVisibility; return this; }
 
         public WorkflowInstanceInput build() { return new WorkflowInstanceInput(this); }
     }

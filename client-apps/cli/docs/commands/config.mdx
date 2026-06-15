@@ -1,0 +1,83 @@
+Manage Stigmer CLI configuration.
+
+`stigmer config` reads and writes settings stored in `~/.stigmer/config.yaml`.
+This includes backend selection (local vs cloud), organization context,
+LLM provider settings, and execution options.
+
+Configuration priority (highest to lowest):
+
+1. CLI flags
+2. Environment variables
+3. Config file
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# List all configuration values
+stigmer config list
+
+# Get a specific value
+stigmer config get llm.provider
+
+# Set a value
+stigmer config set llm.provider anthropic
+
+# Show the config file path
+stigmer config path
+
+# Switch backend
+stigmer config backend set cloud
+
+# Set active organization
+stigmer config context set --org my-org
+```
+
+{/* AUTO_FLAGS */}
+
+### Available configuration keys
+
+| Key | Purpose |
+|-----|---------|
+| `execution.mode` | Agent execution mode (`local`, `sandbox`, `auto`) |
+| `execution.sandbox_image` | Docker image for sandbox execution |
+| `llm.provider` | LLM provider (`anthropic`, `openai`, `ollama`) |
+| `llm.model` | Default model name |
+| `llm.base_url` | Custom API endpoint URL |
+
+{/* AUTO_SUBCOMMANDS */}
+
+## Examples
+
+### Switch to cloud backend
+
+```bash
+stigmer config backend set cloud
+```
+
+### Set the LLM provider
+
+```bash
+stigmer config set llm.provider anthropic
+```
+
+### Check current organization context
+
+```bash
+stigmer config context show
+```
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer auth`](./auth) | Manage cloud authentication |
+| [`stigmer up`](./up) | Start the local stack |
+| [`stigmer setup`](./setup) | Configure the LLM provider |
+
+## See also
+
+- [Command Reference](./) — All available commands

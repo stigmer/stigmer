@@ -1,0 +1,70 @@
+# =============================================================================
+# gRPC Conformance Suite (local-go target)
+# =============================================================================
+# Runs the implementation-agnostic gRPC conformance suite against the OSS Go
+# stigmer-server, built from source. The suite is the shared API contract for
+# the OSS server (Go now, TypeScript later) and the Java cloud service.
+#
+# This slice covers the Project and Organization domains. It needs no Temporal,
+# no runner, and no Java service: the suite builds the Go server, boots it
+# against a throwaway SQLite database, and drives it through generated Connect
+# clients. Additional domains and the cloud target are added in later slices.
+# =============================================================================
+
+name: ci.conformance
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "test/conformance/**"
+      - "apis/**"
+      - "go.work"
+      - "go.work.sum"
+      - ".github/workflows/ci.conformance.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "test/conformance/**"
+      - "apis/**"
+      - "go.work"
+      - "go.work.sum"
+      - ".github/workflows/ci.conformance.yaml"
+
+concurrency:
+  group: conformance-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  conformance-local-go:
+    name: Conformance (local-go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # The suite imports the built proto stubs (dist), not their source.
+      - name: Build proto stubs
+        run: npm run build -w @stigmer/protos
+
+      - name: Run conformance suite (local-go)
+        env:
+          CONFORMANCE_TARGET: local-go
+        run: npm run test -w @stigmer/conformance

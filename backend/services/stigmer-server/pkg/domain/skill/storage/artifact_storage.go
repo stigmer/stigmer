@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // ArtifactStorage provides an interface for storing and retrieving skill artifacts.
@@ -70,7 +71,12 @@ func (s *LocalFileStorage) Store(hash string, data []byte) (string, error) {
 
 // Get retrieves the artifact from local filesystem.
 func (s *LocalFileStorage) Get(storageKey string) ([]byte, error) {
-	filePath := filepath.Join(s.storagePath, storageKey)
+	filePath, ok := s.resolveWithinRoot(storageKey)
+	if !ok {
+		// A traversal key (e.g. "../../etc/passwd") addresses nothing inside the
+		// store; treat it as a missing artifact rather than reading the escaped path.
+		return nil, fmt.Errorf("artifact not found: %s", storageKey)
+	}
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -81,6 +87,19 @@ func (s *LocalFileStorage) Get(storageKey string) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+// resolveWithinRoot joins a client-supplied storage key to the storage root and
+// confirms the cleaned result stays inside the root. It returns false for keys
+// that escape via path traversal (e.g. "../../etc/passwd"), guarding against
+// reading arbitrary files off the host.
+func (s *LocalFileStorage) resolveWithinRoot(storageKey string) (string, bool) {
+	root := filepath.Clean(s.storagePath)
+	filePath := filepath.Join(root, storageKey)
+	if filePath != root && !strings.HasPrefix(filePath, root+string(os.PathSeparator)) {
+		return "", false
+	}
+	return filePath, true
 }
 
 // Exists checks if the artifact file exists.

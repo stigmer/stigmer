@@ -67,9 +67,6 @@ func loadSeedpackMcpServers(t *testing.T) map[string]mcpServerYAML {
 			continue
 		}
 		name := strings.TrimSuffix(entry.Name(), ".yaml")
-		if name == "credential-manifest" {
-			continue
-		}
 
 		data, err := os.ReadFile(filepath.Join(seedpackDir, entry.Name()))
 		if err != nil {

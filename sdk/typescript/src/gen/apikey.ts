@@ -73,7 +73,7 @@ export interface ApiKeyInput {
   neverExpires?: boolean;
 }
 
-function buildApiKeyProto(input: ApiKeyInput): ApiKey {
+export function buildApiKeyProto(input: ApiKeyInput): ApiKey {
   const expiresAt = input.expiresAt !== undefined ? toTimestamp(input.expiresAt) : undefined;
   return Object.assign(create(ApiKeySchema), {
     apiVersion: "iam.stigmer.ai/v1",

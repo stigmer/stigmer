@@ -22,6 +22,19 @@ impl RunnerState {
             host: RunnerHost::new(),
         }
     }
+
+    /// Gracefully stop the runner (IPC shutdown, then force-kill on timeout). Exposed on the
+    /// state so a host's app-exit handler can reap the runner without reaching into the private
+    /// `host` field — e.g. `RunEvent::Exit` in a Tauri app (issue #177). Errors are swallowed:
+    /// an exit-path reap is best-effort and has nowhere to surface a failure.
+    pub async fn stop(&self) {
+        let _ = self.host.stop().await;
+    }
+
+    /// Force-kill the runner immediately. Idempotent; safe to call on any exit path.
+    pub async fn kill(&self) {
+        self.host.kill().await;
+    }
 }
 
 impl Default for RunnerState {
@@ -97,6 +110,8 @@ pub struct RunnerStatusResponse {
     pub running: bool,
     pub active_sessions: Vec<String>,
     pub active_workflow_executions: Vec<String>,
+    /// OS pid of the runner (`null` when not running); lets the frontend surface or reap it.
+    pub pid: Option<u32>,
 }
 
 impl From<RunnerStatus> for RunnerStatusResponse {
@@ -105,6 +120,7 @@ impl From<RunnerStatus> for RunnerStatusResponse {
             running: status.running,
             active_sessions: status.active_sessions,
             active_workflow_executions: status.active_workflow_executions,
+            pid: status.pid,
         }
     }
 }
@@ -121,6 +137,15 @@ pub async fn start_runner(
 #[tauri::command]
 pub async fn stop_runner(state: State<'_, RunnerState>) -> Result<(), String> {
     state.host.stop().await.map_err(|e| e.to_string())
+}
+
+/// Force-kill the runner immediately (SIGKILL), skipping the graceful IPC shutdown. For
+/// embedder-side reapers; prefer `stop_runner` for normal shutdown. Idempotent, so it is safe
+/// to invoke on any exit path (issue #177).
+#[tauri::command]
+pub async fn kill_runner(state: State<'_, RunnerState>) -> Result<(), String> {
+    state.host.kill().await;
+    Ok(())
 }
 
 #[tauri::command]

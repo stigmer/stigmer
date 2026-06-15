@@ -8,7 +8,7 @@
 import { WorkflowInstance } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
-import { WorkflowInstanceId } from "./io_pbjs";
+import { UpdateExecutionVisibilityInput, WorkflowInstanceId } from "./io_pbjs";
 
 /**
  * WorkflowInstanceCommandController handles write operations for workflow instances.
@@ -119,6 +119,34 @@ export const WorkflowInstanceCommandController = {
     updateVisibility: {
       name: "updateVisibility",
       I: UpdateVisibilityInput,
+      O: WorkflowInstance,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update who can observe the run history (executions) of this instance.
+     *
+     * This is a SEPARATE axis from updateVisibility: it controls run
+     * observability (who sees execution inputs/outputs), not who can see/run
+     * the instance itself. Making an instance org-runnable does NOT expose
+     * other users' run history — that requires this opt-in.
+     *
+     * Supported levels: PRIVATE (only the user who ran each execution) and
+     * ORGANIZATION (all org members). Public/platform are unsupported.
+     *
+     * @internal
+     * Authorization: requires can_grant_access on the workflow instance —
+     * sharing run history is an access-granting action, consistent with the
+     * per-execution share flow. In Cloud mode the transition reconciles the
+     * instance's `execution_viewer` FGA relation:
+     * - PRIVATE -> ORGANIZATION: creates
+     *   workflow_instance#execution_viewer@organization:<org>#member
+     * - ORGANIZATION -> PRIVATE: deletes that tuple
+     *
+     * @generated from rpc ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController.updateExecutionVisibility
+     */
+    updateExecutionVisibility: {
+      name: "updateExecutionVisibility",
+      I: UpdateExecutionVisibilityInput,
       O: WorkflowInstance,
       kind: MethodKind.Unary,
     },

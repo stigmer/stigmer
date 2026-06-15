@@ -134,6 +134,43 @@ const MaxApprovalCycles = 100
 // MaxPauseCycles is the maximum number of pause/resume cycles to prevent infinite loops.
 const MaxPauseCycles = 100
 
+// MaxRecoveryCycles bounds how many times the workflow will auto-resume an
+// interrupted activity (worker died / machine slept / worker shut down mid-run)
+// from persisted harness/checkpoint state before giving up and surfacing the
+// failure. Mirrors MaxPauseCycles/MaxApprovalCycles as a loop-safety bound.
+const MaxRecoveryCycles = 10
+
+// isRecoverableActivityError reports whether an activity error is a transient
+// interruption the execution can resume from (re-invoking re-reads the
+// harness_state_id / LangGraph checkpoint), as opposed to a genuine failure.
+//
+// Recoverable: a HEARTBEAT timeout (the worker stopped heartbeating because it
+// crashed, slept, or was reaped mid-run) and an infrastructure cancellation
+// (CanceledError) that is NOT a user pause (handled by the pause branch) and
+// NOT an external workflow cancellation (the caller guards on ctx.Err()).
+//
+// NOT recoverable here: SCHEDULE_TO_START / START_TO_CLOSE timeouts and
+// application errors — re-invoking those would not change the outcome.
+func isRecoverableActivityError(err error) bool {
+	var timeoutErr *temporal.TimeoutError
+	if errors.As(err, &timeoutErr) {
+		return timeoutErr.TimeoutType() == enums.TIMEOUT_TYPE_HEARTBEAT
+	}
+	return temporal.IsCanceledError(err)
+}
+
+// recoveryBackoff returns the delay before re-invoking an interrupted activity.
+// A short, capped, linear backoff gives a worker time to reappear (e.g. the
+// user reopening the session re-adds it) without hot-looping; the activity's
+// own ScheduleToStartTimeout (5m) bounds the wait for that worker.
+func recoveryBackoff(cycle int) time.Duration {
+	d := time.Duration(cycle) * 5 * time.Second
+	if d > 60*time.Second {
+		return 60 * time.Second
+	}
+	return d
+}
+
 // SignalApprovalGateResolved is the signal sent by SubmitApproval when the approval
 // gate has fully resolved (all tool calls decided, or a REJECT was submitted).
 // Must match the constant in temporal/workflow_types.go.
@@ -202,6 +239,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 
 	var finalResult activities.RunnerActivityResult
 	pauseCycle := 0
+	recoveryCycle := 0
 
 	for {
 		var pauseRequested bool
@@ -263,6 +301,24 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 		cancelActivity()
 
 		if err != nil {
+			// Transient interruption: auto-resume from the LangGraph checkpoint
+			// (threadID is stable across re-invocations) instead of dead-ending.
+			// Guarded on ctx.Err()==nil so external cancellation is not swallowed.
+			if ctx.Err() == nil && isRecoverableActivityError(err) {
+				recoveryCycle++
+				if recoveryCycle > MaxRecoveryCycles {
+					logger.Error("Max recovery cycles reached, surfacing failure",
+						"execution_id", executionID, "cycles", recoveryCycle)
+					return w.wrapActivityError("ExecuteDeepAgent", err)
+				}
+				logger.Warn("Deep agent execution interrupted (recoverable), resuming from checkpoint",
+					"execution_id", executionID, "recovery_cycle", recoveryCycle, "error", err.Error())
+				w.persistInterruptedStatus(ctx, executionID)
+				if sleepErr := workflow.Sleep(ctx, recoveryBackoff(recoveryCycle)); sleepErr != nil {
+					return w.wrapActivityError("ExecuteDeepAgent", err)
+				}
+				continue
+			}
 			return w.wrapActivityError("ExecuteDeepAgent", err)
 		}
 
@@ -432,6 +488,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 
 	var finalResult activities.RunnerActivityResult
 	pauseCycle := 0
+	recoveryCycle := 0
 
 	for {
 		var pauseRequested bool
@@ -475,6 +532,25 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 		cancelActivity()
 
 		if err != nil {
+			// Transient interruption (worker died / machine slept / worker reaped
+			// mid-run): auto-resume from the persisted harness_state_id instead of
+			// dead-ending as "Activity task timed out". Guarded on ctx.Err()==nil
+			// so an external workflow cancellation (handled by Run) is not swallowed.
+			if ctx.Err() == nil && isRecoverableActivityError(err) {
+				recoveryCycle++
+				if recoveryCycle > MaxRecoveryCycles {
+					logger.Error("Max recovery cycles reached, surfacing failure",
+						"execution_id", executionID, "cycles", recoveryCycle)
+					return w.wrapActivityError("ExecuteCursor", err)
+				}
+				logger.Warn("Cursor execution interrupted (recoverable), resuming from harness state",
+					"execution_id", executionID, "recovery_cycle", recoveryCycle, "error", err.Error())
+				w.persistInterruptedStatus(ctx, executionID)
+				if sleepErr := workflow.Sleep(ctx, recoveryBackoff(recoveryCycle)); sleepErr != nil {
+					return w.wrapActivityError("ExecuteCursor", err)
+				}
+				continue
+			}
 			return w.wrapActivityError("ExecuteCursor", err)
 		}
 
@@ -921,6 +997,22 @@ func (w *InvokeAgentExecutionWorkflowImpl) persistFinalStatus(ctx workflow.Conte
 		"execution_id", executionID,
 		"phase", status.GetPhase().String())
 	return nil
+}
+
+// persistInterruptedStatus overwrites any transient FAILED status the activity
+// may have written on interruption with IN_PROGRESS, so the UI shows the
+// execution as resuming rather than briefly flashing failed while the workflow
+// re-invokes from persisted state. Phase-only (no appended message) to stay
+// idempotent across repeated recovery cycles. Best-effort.
+func (w *InvokeAgentExecutionWorkflowImpl) persistInterruptedStatus(ctx workflow.Context, executionID string) {
+	logger := workflow.GetLogger(ctx)
+	status := &agentexecutionv1.AgentExecutionStatus{
+		Phase: agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+	}
+	if err := w.persistFinalStatus(ctx, executionID, status); err != nil {
+		logger.Warn("Failed to persist interrupted/resuming status (non-fatal)",
+			"execution_id", executionID, "error", err.Error())
+	}
 }
 
 // loadExecution loads the current AgentExecution from the store via local activity.

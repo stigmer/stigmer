@@ -41,6 +41,9 @@ export interface VirtualizedThreadProps {
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
   readonly centerContent?: boolean;
+  readonly onRetrySend?: () => void;
+  readonly onRetryExecution?: (message: string) => void;
+  readonly onEditMessage?: (text: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -101,6 +104,9 @@ export function VirtualizedThread({
   org,
   planActionsDisabled,
   centerContent,
+  onRetrySend,
+  onRetryExecution,
+  onEditMessage,
 }: VirtualizedThreadProps) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -132,8 +138,11 @@ export function VirtualizedThread({
       onBuildFromPlan,
       org,
       planActionsDisabled,
+      onRetrySend,
+      onRetryExecution,
+      onEditMessage,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, onBuildFromPlan, org, planActionsDisabled],
+    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, onBuildFromPlan, org, planActionsDisabled, onRetrySend, onRetryExecution, onEditMessage],
   );
 
   return (

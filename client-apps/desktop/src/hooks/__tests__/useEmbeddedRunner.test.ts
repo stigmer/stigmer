@@ -4,14 +4,23 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
 }));
 
+// `useEmbeddedRunner` resolves the runner entry via `resolveResource`, which is a
+// native Tauri call unavailable under happy-dom. Mock it to a deterministic absolute
+// path so every test that starts the runner exercises the real config-building path.
+vi.mock("@tauri-apps/api/path", () => ({
+  resolveResource: vi.fn(async (p: string) => `/abs/resource/${p}`),
+}));
+
 vi.mock("../../auth/token-store", () => ({
   loadTokens: vi.fn(),
 }));
 
 import { invoke } from "@tauri-apps/api/core";
+import { resolveResource } from "@tauri-apps/api/path";
 import { loadTokens } from "../../auth/token-store";
 
 const mockedInvoke = vi.mocked(invoke);
+const mockedResolveResource = vi.mocked(resolveResource);
 const mockedLoadTokens = vi.mocked(loadTokens);
 
 describe("getRunnerConfig", () => {
@@ -300,6 +309,49 @@ describe("temporalAddress + control-plane endpoint", () => {
     const config = await captureConfig();
 
     expect(config.stigmerEndpoint).toBe("localhost:9090");
+  });
+});
+
+describe("runnerEntry resolution", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.unstubAllEnvs();
+    // resetAllMocks clears the factory implementation; restore the deterministic one.
+    mockedResolveResource.mockImplementation(async (p: string) => `/abs/resource/${p}`);
+  });
+
+  it("passes an absolute runnerEntry resolved from the resource directory", async () => {
+    // Regression guard for stigmer/stigmer#172: a relative entry resolves against the
+    // process cwd (`/` for a packaged GUI app) and breaks. The hook must hand
+    // start_runner an absolute path produced by resolveResource.
+    mockedLoadTokens.mockReturnValue(null);
+
+    let capturedConfig: Record<string, unknown> | null = null;
+    mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
+      if (cmd === "runner_status") {
+        return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "start_runner") {
+        capturedConfig = args.config;
+        return undefined;
+      }
+      if (cmd === "add_session") {
+        return `session:${args.sessionId}`;
+      }
+      throw new Error(`unexpected invoke: ${cmd}`);
+    });
+
+    const { renderHook, act } = await import("@testing-library/react");
+    const { useEmbeddedRunner } = await import("../useEmbeddedRunner");
+
+    const { result } = renderHook(() => useEmbeddedRunner());
+    await act(async () => {
+      await result.current.addSession("test-session");
+    });
+
+    expect(mockedResolveResource).toHaveBeenCalledWith("resources/runner/dist/main.js");
+    expect(capturedConfig).not.toBeNull();
+    expect(capturedConfig!.runnerEntry).toBe("/abs/resource/resources/runner/dist/main.js");
   });
 });
 

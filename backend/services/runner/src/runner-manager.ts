@@ -13,7 +13,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import {
   NativeConnection,
@@ -21,12 +20,26 @@ import {
   bundleWorkflowCode,
   type ActivityInterceptorsFactory,
   type InjectedSinks,
+  type WorkflowBundleOption,
 } from "@temporalio/worker";
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
+import { DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
+import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
+// Per-task-queue in-flight activity tracking lives in ./in-flight.ts so the
+// activity interceptor (no manager-closure handle) and unit tests can reach it.
+// This is what keeps a session worker alive while ExecuteCursor is running, so a
+// view close can no longer reap the worker mid-run.
+import {
+  activityStartedOnQueue,
+  activityFinishedOnQueue,
+  inFlightCountForQueue,
+  setQueueDrainCallback,
+  forgetQueue,
+} from "./in-flight.js";
 
 const SESSION_QUEUE_PREFIX = "session:";
 const WFEXEC_QUEUE_PREFIX = "wfexec:";
@@ -74,6 +87,9 @@ export interface RunnerManagerOptions {
 
   /** Default LLM model identifier. @default "gpt-4.1" */
   readonly primaryModel?: string;
+
+  /** No-progress bound for the Cursor harness stream (ms). @default 180000 */
+  readonly cursorStreamStallTimeoutMs?: number;
 
   /** Checkpointer type for LangGraph agent state. @default "memory" (or "http" if proxyEndpoint is set) */
   readonly checkpointerType?: "memory" | "http";
@@ -140,6 +156,12 @@ interface ManagedSession {
   worker: Worker;
   runPromise: Promise<void>;
   shutdownController: AbortController;
+  /**
+   * Set when a remove was requested while an activity was still in flight, so
+   * the worker is kept alive in the background and torn down only once the last
+   * activity finishes. Cleared if the session is re-opened before it drains.
+   */
+  pendingClose: boolean;
 }
 
 /**
@@ -275,13 +297,22 @@ export async function createStigmerRunnerManager(
   });
 
   const interceptorConfig = await buildInterceptorConfig();
-  const workflowsPath = fileURLToPath(
-    new URL("./workflows/index.js", import.meta.url),
-  );
 
-  console.log("[runner-manager] Pre-bundling workflow code...");
-  const workflowBundle = await bundleWorkflowCode({ workflowsPath });
-  console.log("[runner-manager] Workflow code bundled successfully");
+  // Prefer the build-time workflow bundle (slim/packaged artifacts ship it and
+  // cannot bundle at runtime); fall back to bundle-on-boot for dev and tests.
+  const workflowSource = resolveWorkflowSource();
+  let workflowBundle: WorkflowBundleOption;
+  if (workflowSource.kind === "prebuilt") {
+    console.log(`[runner-manager] Using pre-built workflow bundle: ${workflowSource.codePath}`);
+    workflowBundle = { codePath: workflowSource.codePath };
+  } else {
+    console.log("[runner-manager] Pre-bundling workflow code...");
+    workflowBundle = await bundleWorkflowCode({
+      workflowsPath: workflowSource.workflowsPath,
+      workflowInterceptorModules: interceptorConfig.workflowInterceptorModules,
+    });
+    console.log("[runner-manager] Workflow code bundled successfully");
+  }
 
   const sessions = new Map<string, ManagedSession>();
   const workflowExecutions = new Map<string, ManagedSession>();
@@ -314,7 +345,84 @@ export async function createStigmerRunnerManager(
       );
     });
 
-    return { worker, runPromise, shutdownController };
+    return { worker, runPromise, shutdownController, pendingClose: false };
+  }
+
+  /**
+   * Re-opening a session/execution whose teardown was deferred: cancel the
+   * pending close so the worker keeps serving the reused queue. Returns true
+   * when an existing managed worker was found (caller should not recreate one).
+   */
+  function reuseExistingWorker(
+    registry: Map<string, ManagedSession>,
+    id: string,
+    taskQueue: string,
+    kind: string,
+  ): boolean {
+    const existing = registry.get(id);
+    if (!existing) return false;
+    if (existing.pendingClose) {
+      existing.pendingClose = false;
+      setQueueDrainCallback(taskQueue, undefined);
+      console.log(`[runner-manager] Re-opened ${kind} ${id}; cancelled deferred teardown`);
+    }
+    return true;
+  }
+
+  /**
+   * Graceful teardown of a managed worker. Never aborts: callers only reach the
+   * actual teardown once no activity is in flight, so a plain worker.shutdown()
+   * drains the (idle) queue cleanly. The abort-before-shutdown that used to live
+   * here is what killed running activities on a view close.
+   */
+  async function teardownManaged(
+    registry: Map<string, ManagedSession>,
+    id: string,
+    taskQueue: string,
+    kind: string,
+  ): Promise<void> {
+    const managed = registry.get(id);
+    if (!managed) return;
+    managed.worker.shutdown();
+    await managed.runPromise;
+    registry.delete(id);
+    shutdownSignals.delete(taskQueue);
+    _shutdownSignalRegistry.delete(taskQueue);
+    forgetQueue(taskQueue);
+    console.log(`[runner-manager] Removed ${kind} ${id} (active=${registry.size})`);
+  }
+
+  /**
+   * Remove a managed worker, deferring teardown while activities are in flight.
+   * This is the server-side safety invariant that lets a run continue in the
+   * background after its session view closes: the worker is reaped only when the
+   * last activity finishes (or immediately if the queue is already idle).
+   */
+  async function removeManaged(
+    registry: Map<string, ManagedSession>,
+    id: string,
+    taskQueue: string,
+    kind: string,
+  ): Promise<void> {
+    const managed = registry.get(id);
+    if (!managed) return;
+
+    if (inFlightCountForQueue(taskQueue) > 0) {
+      managed.pendingClose = true;
+      setQueueDrainCallback(taskQueue, () => {
+        // Skip if a full shutdown() is already reaping every worker, so we
+        // never call worker.shutdown() twice on the same worker.
+        if (shuttingDown) return;
+        void teardownManaged(registry, id, taskQueue, kind);
+      });
+      console.log(
+        `[runner-manager] Deferring teardown of ${kind} ${id} — ` +
+        `${inFlightCountForQueue(taskQueue)} activity(ies) still in flight (runs in background)`,
+      );
+      return;
+    }
+
+    await teardownManaged(registry, id, taskQueue, kind);
   }
 
   return {
@@ -322,11 +430,11 @@ export async function createStigmerRunnerManager(
       if (shuttingDown) {
         throw new Error("RunnerManager is shutting down");
       }
-      if (sessions.has(sessionId)) {
+      const taskQueue = SESSION_QUEUE_PREFIX + sessionId;
+      if (reuseExistingWorker(sessions, sessionId, taskQueue, "session")) {
         return;
       }
 
-      const taskQueue = SESSION_QUEUE_PREFIX + sessionId;
       const managed = await createWorkerOnQueue(taskQueue);
       sessions.set(sessionId, managed);
       console.log(
@@ -335,20 +443,8 @@ export async function createStigmerRunnerManager(
     },
 
     async removeSession(sessionId: string): Promise<void> {
-      const session = sessions.get(sessionId);
-      if (!session) {
-        return;
-      }
-
-      const taskQueue = SESSION_QUEUE_PREFIX + sessionId;
-      session.shutdownController.abort();
-      session.worker.shutdown();
-      await session.runPromise;
-      sessions.delete(sessionId);
-      shutdownSignals.delete(taskQueue);
-      _shutdownSignalRegistry.delete(taskQueue);
-      console.log(
-        `[runner-manager] Removed session ${sessionId} (active=${sessions.size})`,
+      await removeManaged(
+        sessions, sessionId, SESSION_QUEUE_PREFIX + sessionId, "session",
       );
     },
 
@@ -360,11 +456,11 @@ export async function createStigmerRunnerManager(
       if (shuttingDown) {
         throw new Error("RunnerManager is shutting down");
       }
-      if (workflowExecutions.has(executionId)) {
+      const taskQueue = WFEXEC_QUEUE_PREFIX + executionId;
+      if (reuseExistingWorker(workflowExecutions, executionId, taskQueue, "workflow execution")) {
         return;
       }
 
-      const taskQueue = WFEXEC_QUEUE_PREFIX + executionId;
       const managed = await createWorkerOnQueue(taskQueue);
       workflowExecutions.set(executionId, managed);
       console.log(
@@ -373,20 +469,9 @@ export async function createStigmerRunnerManager(
     },
 
     async removeWorkflowExecution(executionId: string): Promise<void> {
-      const execution = workflowExecutions.get(executionId);
-      if (!execution) {
-        return;
-      }
-
-      const taskQueue = WFEXEC_QUEUE_PREFIX + executionId;
-      execution.shutdownController.abort();
-      execution.worker.shutdown();
-      await execution.runPromise;
-      workflowExecutions.delete(executionId);
-      shutdownSignals.delete(taskQueue);
-      _shutdownSignalRegistry.delete(taskQueue);
-      console.log(
-        `[runner-manager] Removed workflow execution ${executionId} (active=${workflowExecutions.size})`,
+      await removeManaged(
+        workflowExecutions, executionId, WFEXEC_QUEUE_PREFIX + executionId,
+        "workflow execution",
       );
     },
 
@@ -489,6 +574,8 @@ export function mapManagerOptionsToConfig(
     checkpointerProxyEndpoint:
       options.checkpointerProxyEndpoint ?? options.proxyEndpoint ?? null,
     primaryModel: options.primaryModel ?? "gpt-4.1",
+    cursorStreamStallTimeoutMs:
+      options.cursorStreamStallTimeoutMs ?? DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
   };
 }
 
@@ -571,6 +658,14 @@ async function createPayloadCodec(
 interface InterceptorConfig {
   sinks: InjectedSinks<any>;
   interceptors: Record<string, any>;
+  /**
+   * Workflow-side interceptor modules. These must be compiled INTO the
+   * workflow bundle (Worker.create ignores `interceptors.workflowModules`
+   * when a pre-built `workflowBundle` is supplied), so the runtime-bundling
+   * path passes them to `bundleWorkflowCode` and the pre-built path relies
+   * on the build script having baked them in.
+   */
+  workflowInterceptorModules: string[];
 }
 
 async function buildInterceptorConfig(): Promise<InterceptorConfig> {
@@ -581,6 +676,23 @@ async function buildInterceptorConfig(): Promise<InterceptorConfig> {
   const activityInterceptors: ActivityInterceptorsFactory[] = [];
   let sinks: InjectedSinks<any> = { ...createWorkflowMetricsSinks() };
   const workflowInterceptorModules: string[] = [];
+
+  // In-flight activity counter: keeps a session/wfexec worker alive while one of
+  // its activities (notably the long ExecuteCursor) is running, so a view close
+  // can no longer reap the worker mid-run. Always installed; cheap and global.
+  activityInterceptors.push((ctx) => ({
+    inbound: {
+      async execute(input, next) {
+        const taskQueue = ctx.info.taskQueue;
+        activityStartedOnQueue(taskQueue);
+        try {
+          return await next(input);
+        } finally {
+          activityFinishedOnQueue(taskQueue);
+        }
+      },
+    },
+  }));
 
   if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
     const { OpenTelemetryActivityInboundInterceptor, makeWorkflowExporter } =
@@ -610,9 +722,7 @@ async function buildInterceptorConfig(): Promise<InterceptorConfig> {
 
     const esmRequire = createRequire(import.meta.url);
     workflowInterceptorModules.push(
-      esmRequire.resolve(
-        "@temporalio/interceptors-opentelemetry/lib/workflow-interceptors",
-      ),
+      esmRequire.resolve(OTEL_WORKFLOW_INTERCEPTOR_MODULE),
     );
   }
 
@@ -622,10 +732,8 @@ async function buildInterceptorConfig(): Promise<InterceptorConfig> {
       ...(activityInterceptors.length > 0
         ? { activity: activityInterceptors }
         : {}),
-      ...(workflowInterceptorModules.length > 0
-        ? { workflowModules: workflowInterceptorModules }
-        : {}),
     },
+    workflowInterceptorModules,
   };
 }
 

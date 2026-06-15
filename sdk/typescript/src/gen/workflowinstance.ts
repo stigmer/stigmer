@@ -7,9 +7,9 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { WorkflowInstanceSchema, type WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
-import { WorkflowInstanceIdSchema, GetWorkflowInstancesByWorkflowRequestSchema, WorkflowInstanceListSchema, type GetWorkflowInstancesByWorkflowRequest, type WorkflowInstanceList } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
+import { WorkflowInstanceIdSchema, UpdateExecutionVisibilityInputSchema, GetWorkflowInstancesByWorkflowRequestSchema, WorkflowInstanceListSchema, type UpdateExecutionVisibilityInput, type GetWorkflowInstancesByWorkflowRequest, type WorkflowInstanceList } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
-import { WorkflowInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
+import { WorkflowInstanceSpecSchema, WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -49,6 +49,12 @@ export class WorkflowInstanceClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async updateExecutionVisibility(input: UpdateExecutionVisibilityInput): Promise<WorkflowInstance> {
+    try {
+      return await this.command.updateExecutionVisibility(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async delete(id: string): Promise<WorkflowInstance> {
     try {
       return await this.command.delete(create(WorkflowInstanceIdSchema, { value: id }));
@@ -84,9 +90,10 @@ export interface WorkflowInstanceInput {
   workflowId?: string;
   description?: string;
   environmentRefs?: ResourceRef[];
+  executionVisibility?: WorkflowExecutionVisibility;
 }
 
-function buildWorkflowInstanceProto(input: WorkflowInstanceInput): WorkflowInstance {
+export function buildWorkflowInstanceProto(input: WorkflowInstanceInput): WorkflowInstance {
   const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
   return Object.assign(create(WorkflowInstanceSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
@@ -102,6 +109,7 @@ function buildWorkflowInstanceProto(input: WorkflowInstanceInput): WorkflowInsta
       workflowId: input.workflowId,
       description: input.description,
       environmentRefs,
+      executionVisibility: input.executionVisibility,
     })),
   }) as WorkflowInstance;
 }

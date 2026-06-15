@@ -24,10 +24,11 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.iam.iampolicy.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_api__pb2
 from ai.stigmer.iam.iampolicy.v1 import spec_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_spec__pb2
+from ai.stigmer.iam.identityaccount.v1 import enum_pb2 as ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_enum__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/iam/iampolicy/v1/io.proto\x12\x1b\x61i.stigmer.iam.iampolicy.v1\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a&ai/stigmer/iam/iampolicy/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"\xbc\x02\n\x12\x41piResourceRefView\x12\x12\n\x04kind\x18\x01 \x01(\tR\x04kind\x12\x0e\n\x02id\x18\x02 \x01(\tR\x02id\x12\x1a\n\x08relation\x18\x03 \x01(\tR\x08relation\x12\x12\n\x04name\x18\x04 \x01(\tR\x04name\x12\x14\n\x05\x65mail\x18\x05 \x01(\tR\x05\x65mail\x12\x12\n\x04slug\x18\x06 \x01(\tR\x04slug\x12\x16\n\x06\x61vatar\x18\x07 \x01(\tR\x06\x61vatar\x12I\n\x07members\x18\x08 \x03(\x0b\x32/.ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewR\x07members\x12\x45\n\x05teams\x18\t \x03(\x0b\x32/.ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewR\x05teams\"+\n\x0bIamPolicyId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xbc\x01\n\x16PrincipalResourceInput\x12Q\n\tprincipal\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\tprincipal\x12O\n\x08resource\x18\x02 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\x08resource\"\xbf\x01\n\x17ResourcePrincipalsInput\x12O\n\x08resource\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\x08resource\x12S\n\nprincipals\x18\x02 \x03(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\nprincipals\"\x87\x01\n\x14RevokeOrgAccessInput\x12:\n\x13identity_account_id\x18\x01 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x11identityAccountId\x12\x33\n\x0forganization_id\x18\x02 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x0eorganizationId\"S\n\x0fIamPoliciesList\x12@\n\x07\x65ntries\x18\x01 \x03(\x0b\x32&.ai.stigmer.iam.iampolicy.v1.IamPolicyR\x07\x65ntries\"\x97\x01\n\x17ListResourceAccessInput\x12O\n\x08resource\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\x08resource\x12+\n\x11include_inherited\x18\x02 \x01(\x08R\x10includeInherited\"g\n\x1dResourceAccessByPrincipalList\x12\x46\n\x07\x65ntries\x18\x01 \x03(\x0b\x32,.ai.stigmer.iam.iampolicy.v1.PrincipalAccessR\x07\x65ntries\"\x9e\x01\n\x0fPrincipalAccess\x12M\n\tprincipal\x18\x01 \x01(\x0b\x32/.ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewR\tprincipal\x12<\n\x05roles\x18\x02 \x03(\x0b\x32&.ai.stigmer.iam.iampolicy.v1.RoleGrantR\x05roles\"\xbd\x01\n\tRoleGrant\x12\x39\n\x04role\x18\x01 \x01(\x0b\x32%.ai.stigmer.iam.iampolicy.v1.RoleInfoR\x04role\x12R\n\x0eowner_resource\x18\x02 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefR\rownerResource\x12!\n\x0cis_inherited\x18\x03 \x01(\x08R\x0bisInherited\"]\n\x18ResourceAccessByRoleList\x12\x41\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\'.ai.stigmer.iam.iampolicy.v1.RoleAccessR\x07\x65ntries\"\x99\x01\n\nRoleAccess\x12:\n\x04role\x18\x01 \x01(\x0b\x32&.ai.stigmer.iam.iampolicy.v1.RoleGrantR\x04role\x12O\n\nprincipals\x18\x02 \x03(\x0b\x32/.ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewR\nprincipals\"d\n\x08RoleInfo\x12\x0e\n\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n\x04\x63ode\x18\x02 \x01(\tR\x04\x63ode\x12\x12\n\x04name\x18\x03 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x04 \x01(\tR\x0b\x64\x65scription\"U\n\x16PrincipalResourceRoles\x12;\n\x05roles\x18\x01 \x03(\x0b\x32%.ai.stigmer.iam.iampolicy.v1.RoleInfoR\x05roles\"\xc2\x01\n\x17\x43heckAuthorizationInput\x12J\n\x06policy\x18\x01 \x01(\x0b\x32*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecB\x06\xbaH\x03\xc8\x01\x01R\x06policy\x12[\n\x13\x63ontextual_policies\x18\x02 \x03(\x0b\x32*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12\x63ontextualPolicies\"?\n\x18\x43heckAuthorizationResult\x12#\n\ris_authorized\x18\x01 \x01(\x08R\x0cisAuthorized\"\xf0\x01\n\x16\x43heckMyPermissionInput\x12O\n\x08resource\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\x08resource\x12(\n\x08relation\x18\x02 \x01(\tB\x0c\xbaH\tr\x04\x10\x01\x18@\xc8\x01\x01R\x08relation\x12[\n\x13\x63ontextual_policies\x18\x03 \x03(\x0b\x32*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12\x63ontextualPolicies\"\xa9\x02\n\x1eListAuthorizedResourceIdsInput\x12Q\n\tprincipal\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\tprincipal\x12/\n\rresource_kind\x18\x02 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x0cresourceKind\x12&\n\x08relation\x18\x03 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x08relation\x12[\n\x13\x63ontextual_policies\x18\x04 \x03(\x0b\x32*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12\x63ontextualPolicies\">\n\x19\x41uthorizedResourceIdsList\x12!\n\x0cresource_ids\x18\x01 \x03(\tR\x0bresourceIds\"\xaa\x02\n\x1fListAuthorizedPrincipalIdsInput\x12O\n\x08resource\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\x08resource\x12\x31\n\x0eprincipal_kind\x18\x02 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\rprincipalKind\x12&\n\x08relation\x18\x03 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x08relation\x12[\n\x13\x63ontextual_policies\x18\x04 \x03(\x0b\x32*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12\x63ontextualPolicies\"A\n\x1a\x41uthorizedPrincipalIdsList\x12#\n\rprincipal_ids\x18\x01 \x03(\tR\x0cprincipalIds\"o\n\x17GetPrincipalsCountInput\x12!\n\x06org_id\x18\x01 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x05orgId\x12\x31\n\x0eprincipal_kind\x18\x02 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\rprincipalKind\"\'\n\x0fPrincipalsCount\x12\x14\n\x05\x63ount\x18\x01 \x01(\x05R\x05\x63ountB\xbb\x01\n\x1f\x63om.ai.stigmer.iam.iampolicy.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\x1b\x41i.Stigmer.Iam.Iampolicy.V1\xca\x02\x1b\x41i\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02\'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Iam::Iampolicy::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/iam/iampolicy/v1/io.proto\x12\x1b\x61i.stigmer.iam.iampolicy.v1\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a&ai/stigmer/iam/iampolicy/v1/spec.proto\x1a,ai/stigmer/iam/identityaccount/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\x92\x03\n\x12\x41piResourceRefView\x12\x12\n\x04kind\x18\x01 \x01(\tR\x04kind\x12\x0e\n\x02id\x18\x02 \x01(\tR\x02id\x12\x1a\n\x08relation\x18\x03 \x01(\tR\x08relation\x12\x12\n\x04name\x18\x04 \x01(\tR\x04name\x12\x14\n\x05\x65mail\x18\x05 \x01(\tR\x05\x65mail\x12\x12\n\x04slug\x18\x06 \x01(\tR\x04slug\x12\x16\n\x06\x61vatar\x18\x07 \x01(\tR\x06\x61vatar\x12I\n\x07members\x18\x08 \x03(\x0b\x32/.ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewR\x07members\x12\x45\n\x05teams\x18\t \x03(\x0b\x32/.ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewR\x05teams\x12T\n\x0fidentity_origin\x18\n \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.IdentityOriginR\x0eidentityOrigin\"\xb5\x01\n\x0eIdentityOrigin\x12o\n\x11provisioning_mode\x18\x01 \x01(\x0e\x32\x42.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12\x32\n\x15provider_display_name\x18\x02 \x01(\tR\x13providerDisplayName\"+\n\x0bIamPolicyId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xbc\x01\n\x16PrincipalResourceInput\x12Q\n\tprincipal\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\tprincipal\x12O\n\x08resource\x18\x02 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\x08resource\"\xbf\x01\n\x17ResourcePrincipalsInput\x12O\n\x08resource\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\x08resource\x12S\n\nprincipals\x18\x02 \x03(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\nprincipals\"\x87\x01\n\x14RevokeOrgAccessInput\x12:\n\x13identity_account_id\x18\x01 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x11identityAccountId\x12\x33\n\x0forganization_id\x18\x02 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x0eorganizationId\"S\n\x0fIamPoliciesList\x12@\n\x07\x65ntries\x18\x01 \x03(\x0b\x32&.ai.stigmer.iam.iampolicy.v1.IamPolicyR\x07\x65ntries\"\x97\x01\n\x17ListResourceAccessInput\x12O\n\x08resource\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\x08resource\x12+\n\x11include_inherited\x18\x02 \x01(\x08R\x10includeInherited\"g\n\x1dResourceAccessByPrincipalList\x12\x46\n\x07\x65ntries\x18\x01 \x03(\x0b\x32,.ai.stigmer.iam.iampolicy.v1.PrincipalAccessR\x07\x65ntries\"\x9e\x01\n\x0fPrincipalAccess\x12M\n\tprincipal\x18\x01 \x01(\x0b\x32/.ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewR\tprincipal\x12<\n\x05roles\x18\x02 \x03(\x0b\x32&.ai.stigmer.iam.iampolicy.v1.RoleGrantR\x05roles\"\xbd\x01\n\tRoleGrant\x12\x39\n\x04role\x18\x01 \x01(\x0b\x32%.ai.stigmer.iam.iampolicy.v1.RoleInfoR\x04role\x12R\n\x0eowner_resource\x18\x02 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefR\rownerResource\x12!\n\x0cis_inherited\x18\x03 \x01(\x08R\x0bisInherited\"]\n\x18ResourceAccessByRoleList\x12\x41\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\'.ai.stigmer.iam.iampolicy.v1.RoleAccessR\x07\x65ntries\"\x99\x01\n\nRoleAccess\x12:\n\x04role\x18\x01 \x01(\x0b\x32&.ai.stigmer.iam.iampolicy.v1.RoleGrantR\x04role\x12O\n\nprincipals\x18\x02 \x03(\x0b\x32/.ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewR\nprincipals\"d\n\x08RoleInfo\x12\x0e\n\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n\x04\x63ode\x18\x02 \x01(\tR\x04\x63ode\x12\x12\n\x04name\x18\x03 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x04 \x01(\tR\x0b\x64\x65scription\"U\n\x16PrincipalResourceRoles\x12;\n\x05roles\x18\x01 \x03(\x0b\x32%.ai.stigmer.iam.iampolicy.v1.RoleInfoR\x05roles\"\xc2\x01\n\x17\x43heckAuthorizationInput\x12J\n\x06policy\x18\x01 \x01(\x0b\x32*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecB\x06\xbaH\x03\xc8\x01\x01R\x06policy\x12[\n\x13\x63ontextual_policies\x18\x02 \x03(\x0b\x32*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12\x63ontextualPolicies\"?\n\x18\x43heckAuthorizationResult\x12#\n\ris_authorized\x18\x01 \x01(\x08R\x0cisAuthorized\"\xf0\x01\n\x16\x43heckMyPermissionInput\x12O\n\x08resource\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\x08resource\x12(\n\x08relation\x18\x02 \x01(\tB\x0c\xbaH\tr\x04\x10\x01\x18@\xc8\x01\x01R\x08relation\x12[\n\x13\x63ontextual_policies\x18\x03 \x03(\x0b\x32*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12\x63ontextualPolicies\"\xa9\x02\n\x1eListAuthorizedResourceIdsInput\x12Q\n\tprincipal\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\tprincipal\x12/\n\rresource_kind\x18\x02 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x0cresourceKind\x12&\n\x08relation\x18\x03 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x08relation\x12[\n\x13\x63ontextual_policies\x18\x04 \x03(\x0b\x32*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12\x63ontextualPolicies\">\n\x19\x41uthorizedResourceIdsList\x12!\n\x0cresource_ids\x18\x01 \x03(\tR\x0bresourceIds\"\xaa\x02\n\x1fListAuthorizedPrincipalIdsInput\x12O\n\x08resource\x18\x01 \x01(\x0b\x32+.ai.stigmer.iam.iampolicy.v1.ApiResourceRefB\x06\xbaH\x03\xc8\x01\x01R\x08resource\x12\x31\n\x0eprincipal_kind\x18\x02 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\rprincipalKind\x12&\n\x08relation\x18\x03 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x08relation\x12[\n\x13\x63ontextual_policies\x18\x04 \x03(\x0b\x32*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x12\x63ontextualPolicies\"A\n\x1a\x41uthorizedPrincipalIdsList\x12#\n\rprincipal_ids\x18\x01 \x03(\tR\x0cprincipalIds\"o\n\x17GetPrincipalsCountInput\x12!\n\x06org_id\x18\x01 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x05orgId\x12\x31\n\x0eprincipal_kind\x18\x02 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\rprincipalKind\"\'\n\x0fPrincipalsCount\x12\x14\n\x05\x63ount\x18\x01 \x01(\x05R\x05\x63ountB\xbb\x01\n\x1f\x63om.ai.stigmer.iam.iampolicy.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\x1b\x41i.Stigmer.Iam.Iampolicy.V1\xca\x02\x1b\x41i\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02\'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Iam::Iampolicy::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -73,50 +74,52 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETPRINCIPALSCOUNTINPUT'].fields_by_name['org_id']._serialized_options = b'\272H\007r\002\020\001\310\001\001'
   _globals['_GETPRINCIPALSCOUNTINPUT'].fields_by_name['principal_kind']._loaded_options = None
   _globals['_GETPRINCIPALSCOUNTINPUT'].fields_by_name['principal_kind']._serialized_options = b'\272H\007r\002\020\001\310\001\001'
-  _globals['_APIRESOURCEREFVIEW']._serialized_start=178
-  _globals['_APIRESOURCEREFVIEW']._serialized_end=494
-  _globals['_IAMPOLICYID']._serialized_start=496
-  _globals['_IAMPOLICYID']._serialized_end=539
-  _globals['_PRINCIPALRESOURCEINPUT']._serialized_start=542
-  _globals['_PRINCIPALRESOURCEINPUT']._serialized_end=730
-  _globals['_RESOURCEPRINCIPALSINPUT']._serialized_start=733
-  _globals['_RESOURCEPRINCIPALSINPUT']._serialized_end=924
-  _globals['_REVOKEORGACCESSINPUT']._serialized_start=927
-  _globals['_REVOKEORGACCESSINPUT']._serialized_end=1062
-  _globals['_IAMPOLICIESLIST']._serialized_start=1064
-  _globals['_IAMPOLICIESLIST']._serialized_end=1147
-  _globals['_LISTRESOURCEACCESSINPUT']._serialized_start=1150
-  _globals['_LISTRESOURCEACCESSINPUT']._serialized_end=1301
-  _globals['_RESOURCEACCESSBYPRINCIPALLIST']._serialized_start=1303
-  _globals['_RESOURCEACCESSBYPRINCIPALLIST']._serialized_end=1406
-  _globals['_PRINCIPALACCESS']._serialized_start=1409
-  _globals['_PRINCIPALACCESS']._serialized_end=1567
-  _globals['_ROLEGRANT']._serialized_start=1570
-  _globals['_ROLEGRANT']._serialized_end=1759
-  _globals['_RESOURCEACCESSBYROLELIST']._serialized_start=1761
-  _globals['_RESOURCEACCESSBYROLELIST']._serialized_end=1854
-  _globals['_ROLEACCESS']._serialized_start=1857
-  _globals['_ROLEACCESS']._serialized_end=2010
-  _globals['_ROLEINFO']._serialized_start=2012
-  _globals['_ROLEINFO']._serialized_end=2112
-  _globals['_PRINCIPALRESOURCEROLES']._serialized_start=2114
-  _globals['_PRINCIPALRESOURCEROLES']._serialized_end=2199
-  _globals['_CHECKAUTHORIZATIONINPUT']._serialized_start=2202
-  _globals['_CHECKAUTHORIZATIONINPUT']._serialized_end=2396
-  _globals['_CHECKAUTHORIZATIONRESULT']._serialized_start=2398
-  _globals['_CHECKAUTHORIZATIONRESULT']._serialized_end=2461
-  _globals['_CHECKMYPERMISSIONINPUT']._serialized_start=2464
-  _globals['_CHECKMYPERMISSIONINPUT']._serialized_end=2704
-  _globals['_LISTAUTHORIZEDRESOURCEIDSINPUT']._serialized_start=2707
-  _globals['_LISTAUTHORIZEDRESOURCEIDSINPUT']._serialized_end=3004
-  _globals['_AUTHORIZEDRESOURCEIDSLIST']._serialized_start=3006
-  _globals['_AUTHORIZEDRESOURCEIDSLIST']._serialized_end=3068
-  _globals['_LISTAUTHORIZEDPRINCIPALIDSINPUT']._serialized_start=3071
-  _globals['_LISTAUTHORIZEDPRINCIPALIDSINPUT']._serialized_end=3369
-  _globals['_AUTHORIZEDPRINCIPALIDSLIST']._serialized_start=3371
-  _globals['_AUTHORIZEDPRINCIPALIDSLIST']._serialized_end=3436
-  _globals['_GETPRINCIPALSCOUNTINPUT']._serialized_start=3438
-  _globals['_GETPRINCIPALSCOUNTINPUT']._serialized_end=3549
-  _globals['_PRINCIPALSCOUNT']._serialized_start=3551
-  _globals['_PRINCIPALSCOUNT']._serialized_end=3590
+  _globals['_APIRESOURCEREFVIEW']._serialized_start=224
+  _globals['_APIRESOURCEREFVIEW']._serialized_end=626
+  _globals['_IDENTITYORIGIN']._serialized_start=629
+  _globals['_IDENTITYORIGIN']._serialized_end=810
+  _globals['_IAMPOLICYID']._serialized_start=812
+  _globals['_IAMPOLICYID']._serialized_end=855
+  _globals['_PRINCIPALRESOURCEINPUT']._serialized_start=858
+  _globals['_PRINCIPALRESOURCEINPUT']._serialized_end=1046
+  _globals['_RESOURCEPRINCIPALSINPUT']._serialized_start=1049
+  _globals['_RESOURCEPRINCIPALSINPUT']._serialized_end=1240
+  _globals['_REVOKEORGACCESSINPUT']._serialized_start=1243
+  _globals['_REVOKEORGACCESSINPUT']._serialized_end=1378
+  _globals['_IAMPOLICIESLIST']._serialized_start=1380
+  _globals['_IAMPOLICIESLIST']._serialized_end=1463
+  _globals['_LISTRESOURCEACCESSINPUT']._serialized_start=1466
+  _globals['_LISTRESOURCEACCESSINPUT']._serialized_end=1617
+  _globals['_RESOURCEACCESSBYPRINCIPALLIST']._serialized_start=1619
+  _globals['_RESOURCEACCESSBYPRINCIPALLIST']._serialized_end=1722
+  _globals['_PRINCIPALACCESS']._serialized_start=1725
+  _globals['_PRINCIPALACCESS']._serialized_end=1883
+  _globals['_ROLEGRANT']._serialized_start=1886
+  _globals['_ROLEGRANT']._serialized_end=2075
+  _globals['_RESOURCEACCESSBYROLELIST']._serialized_start=2077
+  _globals['_RESOURCEACCESSBYROLELIST']._serialized_end=2170
+  _globals['_ROLEACCESS']._serialized_start=2173
+  _globals['_ROLEACCESS']._serialized_end=2326
+  _globals['_ROLEINFO']._serialized_start=2328
+  _globals['_ROLEINFO']._serialized_end=2428
+  _globals['_PRINCIPALRESOURCEROLES']._serialized_start=2430
+  _globals['_PRINCIPALRESOURCEROLES']._serialized_end=2515
+  _globals['_CHECKAUTHORIZATIONINPUT']._serialized_start=2518
+  _globals['_CHECKAUTHORIZATIONINPUT']._serialized_end=2712
+  _globals['_CHECKAUTHORIZATIONRESULT']._serialized_start=2714
+  _globals['_CHECKAUTHORIZATIONRESULT']._serialized_end=2777
+  _globals['_CHECKMYPERMISSIONINPUT']._serialized_start=2780
+  _globals['_CHECKMYPERMISSIONINPUT']._serialized_end=3020
+  _globals['_LISTAUTHORIZEDRESOURCEIDSINPUT']._serialized_start=3023
+  _globals['_LISTAUTHORIZEDRESOURCEIDSINPUT']._serialized_end=3320
+  _globals['_AUTHORIZEDRESOURCEIDSLIST']._serialized_start=3322
+  _globals['_AUTHORIZEDRESOURCEIDSLIST']._serialized_end=3384
+  _globals['_LISTAUTHORIZEDPRINCIPALIDSINPUT']._serialized_start=3387
+  _globals['_LISTAUTHORIZEDPRINCIPALIDSINPUT']._serialized_end=3685
+  _globals['_AUTHORIZEDPRINCIPALIDSLIST']._serialized_start=3687
+  _globals['_AUTHORIZEDPRINCIPALIDSLIST']._serialized_end=3752
+  _globals['_GETPRINCIPALSCOUNTINPUT']._serialized_start=3754
+  _globals['_GETPRINCIPALSCOUNTINPUT']._serialized_end=3865
+  _globals['_PRINCIPALSCOUNT']._serialized_start=3867
+  _globals['_PRINCIPALSCOUNT']._serialized_end=3906
 # @@protoc_insertion_point(module_scope)

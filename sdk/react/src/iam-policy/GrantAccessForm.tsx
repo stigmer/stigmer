@@ -11,6 +11,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage, iamRoleToString } from "@stigmer/sdk";
 import { useCreateIamPolicy } from "./useCreateIamPolicy";
 import { RoleSelector } from "./RoleSelector";
+import { PrincipalPicker, type SelectedPrincipal } from "./PrincipalPicker";
 
 /** Props for {@link GrantAccessForm}. */
 export interface GrantAccessFormProps {
@@ -20,6 +21,13 @@ export interface GrantAccessFormProps {
   readonly resourceKindString: string;
   /** ID of the resource being granted access to. */
   readonly resourceId: string;
+  /**
+   * Organization whose members can be granted access. Drives the
+   * {@link PrincipalPicker} typeahead.
+   */
+  readonly orgId: string;
+  /** Principal IDs that already have access (shown disabled in the picker). */
+  readonly excludePrincipalIds?: readonly string[];
   /** Fired after a policy is successfully created. */
   readonly onGranted?: (policy: IamPolicy) => void;
   /** Fired when the user cancels. */
@@ -29,11 +37,13 @@ export interface GrantAccessFormProps {
 }
 
 /**
- * Form for granting a principal access to a resource.
+ * Form for granting an organization member access to a resource.
  *
- * Collects a **principal ID** (identity account), lets the user pick
- * a **role** from the resource's grantable roles, and creates the IAM
- * policy binding.
+ * Lets the user pick a **person** from the org's member list (by name or
+ * email, disambiguating identity sources) via {@link PrincipalPicker}, choose
+ * a **role** from the resource's grantable roles, and creates the IAM policy
+ * binding. The resolved `identity_account` ID is carried internally — the user
+ * never types or sees raw account IDs.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -43,6 +53,7 @@ export interface GrantAccessFormProps {
  *   resourceKind={ApiResourceKind.organization}
  *   resourceKindString="organization"
  *   resourceId="org-abc123"
+ *   orgId="org-abc123"
  *   onGranted={(policy) => refetchAccessList()}
  *   onCancel={() => setShowForm(false)}
  * />
@@ -52,6 +63,8 @@ export function GrantAccessForm({
   resourceKind,
   resourceKindString,
   resourceId,
+  orgId,
+  excludePrincipalIds,
   onGranted,
   onCancel,
   className,
@@ -59,24 +72,23 @@ export function GrantAccessForm({
   const { create: createPolicy, isCreating, error, clearError } =
     useCreateIamPolicy();
 
-  const [principalId, setPrincipalId] = useState("");
+  const [principal, setPrincipal] = useState<SelectedPrincipal | null>(null);
   const [selectedRole, setSelectedRole] = useState<IamRole | null>(null);
 
-  const trimmedPrincipalId = principalId.trim();
   const canSubmit =
-    trimmedPrincipalId !== "" && selectedRole !== null && !isCreating;
+    principal !== null && selectedRole !== null && !isCreating;
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
-      if (!canSubmit || selectedRole === null) return;
+      if (!canSubmit || selectedRole === null || principal === null) return;
 
       clearError();
       try {
         const spec = create(IamPolicySpecSchema, {
           principal: create(ApiResourceRefSchema, {
             kind: "identity_account",
-            id: trimmedPrincipalId,
+            id: principal.id,
           }),
           resource: create(ApiResourceRefSchema, {
             kind: resourceKindString,
@@ -93,7 +105,7 @@ export function GrantAccessForm({
     [
       canSubmit,
       selectedRole,
-      trimmedPrincipalId,
+      principal,
       resourceKindString,
       resourceId,
       createPolicy,
@@ -105,31 +117,14 @@ export function GrantAccessForm({
   return (
     <form onSubmit={handleSubmit} className={cn("space-y-3", className)}>
       <div className="space-y-3">
-        {/* Principal */}
-        <div className="space-y-1">
-          <label
-            htmlFor="stgm-grant-principal"
-            className="text-xs font-medium text-foreground"
-          >
-            Account ID
-          </label>
-          <input
-            id="stgm-grant-principal"
-            type="text"
-            value={principalId}
-            onChange={(e) => setPrincipalId(e.target.value)}
-            placeholder="e.g. ia-01HQUSER123"
-            disabled={isCreating}
-            autoFocus
-            required
-            className={cn(
-              "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-              "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:pointer-events-none disabled:opacity-50",
-            )}
-          />
-        </div>
+        {/* Principal picker (org-member typeahead) */}
+        <PrincipalPicker
+          orgId={orgId}
+          value={principal}
+          onChange={setPrincipal}
+          excludePrincipalIds={excludePrincipalIds}
+          disabled={isCreating}
+        />
 
         {/* Role selector */}
         <RoleSelector

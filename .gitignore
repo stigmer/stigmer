@@ -6,6 +6,12 @@
 *.dylib
 bin/
 dist/
+dist-slim/
+dist-slim-pkgs/
+
+# Desktop embedded-runner staging: a symlink in dev (setup-runner-dev.sh),
+# the staged slim artifact in packaged builds (stage-runner-slim.sh).
+client-apps/desktop/src-tauri/resources/runner
 
 # Test binary, built with `go test -c`
 *.test
@@ -103,16 +109,6 @@ backend/services/*/workflow-runner
 backend/services/*/agent-runner
 backend/services/*/cmd/*/server
 backend/services/*/server
-
-# MCP server binary (go build without -o drops it in the module root)
-mcp-server/mcp-server-stigmer
-
-# CLI binaries (build artifacts, not committed)
-/cli
-client-apps/cli/embedded/binaries/
-
-# Embedded web console assets (built from client-apps/web via `make web-console-build`)
-client-apps/cli/embedded/webconsole/out/
 
 # Bazel build outputs
 bazel-*

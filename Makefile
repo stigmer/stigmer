@@ -4,8 +4,6 @@ GO_MODULES := \
 	apis/stubs/go \
 	backend/libs/go \
 	backend/services/stigmer-server \
-	client-apps/cli \
-	mcp-server \
 	sdk/go \
 	seedpack \
 	tools
@@ -79,16 +77,12 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-mcp-server build-java-protos build-java-sdk build-runner protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
-build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-runner ## Build all project artifacts
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
+build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
-	cd client-apps/cli && go build -o ../../bin/stigmer .
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 	@echo ""
-	@echo "built: bin/stigmer, bin/stigmer-server, mcp-server/bin/mcp-server-stigmer"
-
-build-mcp-server: ## Build MCP server binary
-	$(MAKE) -C mcp-server build
+	@echo "built: bin/stigmer-server (the CLI ships as the @stigmer/cli npm package)"
 
 build-java-protos: ## Install Java proto stubs to local Maven repo
 	@echo "mvn install  apis/stubs/java"
@@ -117,6 +111,10 @@ bootstrap-runner: node_modules build-ts-stubs $(RUNNER_DIR)/node_modules ## One-
 build-runner: build-ts-stubs $(RUNNER_DIR)/node_modules ## Compile unified runner (TypeScript)
 	@echo "build    $(RUNNER_DIR)"
 	@cd $(RUNNER_DIR) && npm run build
+
+build-runner-slim: build-runner ## Build the slim embedding artifact (dist-slim/, see stigmer/stigmer#170)
+	@echo "bundle   $(RUNNER_DIR)/dist-slim"
+	@cd $(RUNNER_DIR) && node scripts/bundle-slim.mjs
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -235,14 +233,14 @@ gen-ink-sdk-docs-check: ## Verify Ink SDK docs are up to date (CI)
 	fi; \
 	echo "✓ Ink SDK docs are up to date"
 
-gen-cli-docs: ## Generate CLI reference docs from Cobra command tree
-	cd client-apps/cli && go run ./cmd/gen-cli-docs --output ../../docs/cli/commands/
+gen-cli-docs: ## Generate CLI reference docs from the TypeScript command tree
+	cd client-apps/cli && npx tsx scripts/gen-cli-docs.ts --output ../../docs/cli/commands/
 	npx prettier --write --prose-wrap always docs/cli/commands/
 
 gen-cli-docs-check: ## Verify CLI docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
-	(cd client-apps/cli && go run ./cmd/gen-cli-docs --output "$$tmpdir") && \
-	for f in "$$tmpdir"/*.mdx; do \
+	(cd client-apps/cli && npx tsx scripts/gen-cli-docs.ts --output "$$tmpdir") && \
+	for f in "$$tmpdir"/*; do \
 		bn=$$(basename "$$f"); \
 		npx prettier --stdin-filepath "docs/cli/commands/$$bn" < "$$f" > "$$f.fmt" 2>/dev/null && mv "$$f.fmt" "$$f"; \
 	done; \
@@ -289,7 +287,8 @@ test: ## Run all unit tests
 # ─── Integration Test ─────────────────────────
 # Integration test logic lives in each suite's Makefile under test/.
 # These are thin delegates that pass through env vars.
-# Use `make test-integration-all` to run all suites (PROVIDERS=true for provider-backed).
+# Use `make test-integration-all` to run all suites (PROVIDERS=true for provider-backed);
+# it also runs the gRPC conformance suite (see the Conformance Test section below).
 
 .PHONY: test-integration
 test-integration: ## Run integration tests (offline, no API keys needed)
@@ -343,6 +342,10 @@ test-integration-all: ## Run all integration suites. PROVIDERS=true includes pro
 	$(MAKE) test-integration-wfexec-routing
 	@echo "=== Offline: deterministic (recorded LLM) ==="
 	$(MAKE) test-integration-offline
+	@echo "=== Conformance: CRUD contract (local-go) ==="
+	$(MAKE) test-conformance
+	@echo "=== Conformance: execution engine (local-go-execution) ==="
+	$(MAKE) test-conformance-execution
 ifeq ($(PROVIDERS),true)
 	@echo "=== Provider: integration (LLM) ==="
 	$(MAKE) test-integration-providers
@@ -350,6 +353,39 @@ ifeq ($(PROVIDERS),true)
 	$(MAKE) test-integration-session-routing-providers
 endif
 	@echo "All integration suites complete."
+
+# ─── Conformance Test (gRPC API contract) ─────
+# The conformance suite (test/conformance, @stigmer/conformance) is an
+# implementation-agnostic gRPC contract, distinct from the integration suites
+# above: it is a TypeScript/vitest workspace that builds the OSS Go
+# stigmer-server from source and drives it through generated Connect clients —
+# the shared contract that turns OSS<->cloud behavioral drift into a failing
+# test. The two slices are deliberately separate (DD-002): the dependency-light
+# CRUD signal stays fast, while execution additionally needs the `temporal` CLI
+# and a runner build. See test/conformance/README.md.
+
+.PHONY: test-conformance
+test-conformance: build-ts-stubs ## Run gRPC conformance CRUD suite (local-go; builds the Go server from source, no Temporal)
+	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds stigmer-server from source"; exit 1; }
+	@echo "=== conformance: CRUD contract (local-go) ==="
+	CONFORMANCE_TARGET=local-go npm run test -w @stigmer/conformance
+
+.PHONY: test-conformance-execution
+test-conformance-execution: build-runner ## Run gRPC conformance execution suite (local-go-execution; needs the `temporal` CLI)
+	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds stigmer-server from source"; exit 1; }
+	@command -v temporal >/dev/null 2>&1 || { \
+		echo "error: temporal CLI not found — the dev server backs the execution harness"; \
+		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
+		exit 1; \
+	}
+	@echo "=== conformance: execution engine (local-go-execution) ==="
+	CONFORMANCE_TARGET=local-go-execution npm run test:execution -w @stigmer/conformance
+
+.PHONY: test-conformance-all
+test-conformance-all: ## Run both conformance slices (CRUD + execution)
+	$(MAKE) test-conformance
+	$(MAKE) test-conformance-execution
+	@echo "Conformance suite complete (local-go + local-go-execution)."
 
 .PHONY: test-replay
 test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
@@ -372,7 +408,7 @@ benchmark-cursor-modes: ## Compare Cursor local vs cloud runtime latency and tok
 .PHONY: test-seedpack-static test-seedpack-transport test-seedpack-canary
 
 test-seedpack-static: ## Run seedpack static validation tests (fast, no network)
-	cd seedpack && go test -v -run TestMcpServers -count=1 ./...
+	cd seedpack && go test -v -count=1 ./...
 
 test-seedpack-transport: ## Run seedpack transport reachability tests (network required, nightly)
 	cd test/integration && go test -v -tags integration -run TestSeedpack -timeout 300s -count=1 ./...
@@ -393,7 +429,6 @@ tidy: ## Run go mod tidy on all Go modules
 
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
-       build-cli install-cli release-cli-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
        test-web test-desktop test-runner-host test-e2e check check-all \
        check-prep check-go check-node check-site check-rust check-java
@@ -472,13 +507,14 @@ launch-desktop: kill-desktop ## Start desktop app in dev mode (Tauri + Vite hot-
 	@-caddy stop 2>/dev/null || true
 	@-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true
 
-build-desktop: ## Build desktop native binary (requires TAURI_SIGNING_PRIVATE_KEY)
+build-desktop: build-runner-slim ## Build desktop native binary (requires TAURI_SIGNING_PRIVATE_KEY)
 	@if [ -z "$$TAURI_SIGNING_PRIVATE_KEY" ] && [ -z "$$TAURI_SIGNING_PRIVATE_KEY_PATH" ]; then \
 		echo "warning: TAURI_SIGNING_PRIVATE_KEY not set — updater artifacts will not be signed"; \
 		echo "  Set TAURI_SIGNING_PRIVATE_KEY or TAURI_SIGNING_PRIVATE_KEY_PATH to sign builds"; \
 		echo "  Key location: ~/.tauri/stigmer.key"; \
 		echo ""; \
 	fi
+	client-apps/desktop/scripts/stage-runner-slim.sh
 	npm run tauri build -w desktop
 
 clean-build-desktop: ## Clean + build desktop app
@@ -501,8 +537,8 @@ test-runner-host: ## Test the stigmer-runner-host crate (+ prove the core builds
 	cd crates/stigmer-runner-host && cargo build && cargo test
 
 release-desktop-local: ## Debug build + install to /Applications
-	$(MAKE) build-runner
-	client-apps/desktop/scripts/setup-runner-dev.sh
+	$(MAKE) build-runner-slim
+	client-apps/desktop/scripts/stage-runner-slim.sh
 	cd client-apps/desktop && \
 		cp src-tauri/tauri.conf.json src-tauri/tauri.conf.json.bak && \
 		python3 -c "import json; f=open('src-tauri/tauri.conf.json','r+'); c=json.load(f); c.get('bundle',{}).pop('createUpdaterArtifacts',None); f.seek(0); json.dump(c,f,indent=2); f.truncate()" && \
@@ -519,23 +555,6 @@ release-desktop-local: ## Debug build + install to /Applications
 	@echo "Bundle size:"
 	@du -sh "client-apps/desktop/src-tauri/target/debug/bundle/macos/Stigmer.app" | awk '{print "  .app bundle: " $$1}'
 	@du -sh "client-apps/desktop/src-tauri/target/debug/stigmer" | awk '{print "  binary:      " $$1}'
-
-# ─── Client Apps: CLI (Go) ───────────────────
-
-build-cli: ## Build CLI binary
-	@mkdir -p bin
-	cd client-apps/cli && go build -o ../../bin/stigmer .
-	@echo "built: bin/stigmer"
-
-install-cli: ## Build CLI with dev flags + install to ~/bin
-	@mkdir -p bin $(HOME)/bin
-	@cd client-apps/cli && go build -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
-	@cp bin/stigmer $(HOME)/bin/
-	@chmod +x $(HOME)/bin/stigmer
-	@echo "installed: $(HOME)/bin/stigmer"
-	@stigmer --version 2>/dev/null || echo "cli: development build"
-
-release-cli-local: install-cli ## Alias for install-cli
 
 # ─── Client Apps: Backward-Compat Aliases ────
 
@@ -570,7 +589,7 @@ test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
 #      shared artifacts that later stages consume (@stigmer libs + proto stubs).
 #   2. five domain buckets run CONCURRENTLY (`make -j`). Buckets are isolated by
 #      toolchain/directory so they never write to the same files:
-#        check-go    — go vet/test/build + buf lint + mcp-server + go binaries
+#        check-go    — go vet/test/build + buf lint + go binaries
 #        check-node  — npm typecheck/lint/build/test (web, react, sdk, desktop TS,
 #                      runner) + tsdoc + dep hygiene
 #        check-site  — vale, prettier --check, site lint/typecheck/build,
@@ -607,7 +626,7 @@ check-prep: ## Sequential prep for check: tidy, fix, build shared libs/stubs, re
 
 # Stage 2 — parallel buckets. Each bucket is internally sequential; libs + proto
 # stubs are already built by check-prep, so no bucket rebuilds shared artifacts.
-check-go: ## check bucket: Go vet/test/build + buf lint + mcp-server + binaries
+check-go: ## check bucket: Go vet/test/build + buf lint + binaries
 	@for mod in $(GO_MODULES); do \
 		echo "vet      $$mod"; \
 		(cd $$mod && go vet ./...) || exit 1; \
@@ -617,9 +636,7 @@ check-go: ## check bucket: Go vet/test/build + buf lint + mcp-server + binaries
 		echo "testing  $$mod"; \
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
-	$(MAKE) build-mcp-server
 	@mkdir -p bin
-	cd client-apps/cli && go build -o ../../bin/stigmer .
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 
 check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner)
@@ -707,38 +724,24 @@ check-deps: ## Verify runner LangChain dependency hygiene (no duplicate @langcha
 
 # ─── Local Dev ────────────────────────────────
 
-DEV_LDFLAGS :=
-
 .PHONY: local
-local: ## Build + install CLI and server for local development
-	@rm -f $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server 2>/dev/null || true
-	@rm -f /usr/local/bin/stigmer bin/stigmer bin/stigmer-server 2>/dev/null || true
-	@$(MAKE) web-console-build
-	@mkdir -p bin $(HOME)/bin
-	@cd client-apps/cli && go build -tags 'embed_webconsole' -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
+local: ## Build the local stigmer-server for development (the CLI runs from the @stigmer/cli workspace)
+	@rm -f $(HOME)/bin/stigmer 2>/dev/null || true
+	@rm -f bin/stigmer 2>/dev/null || true
+	@mkdir -p bin
 	@cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
-	@cp bin/stigmer bin/stigmer-server $(HOME)/bin/
-	@chmod +x $(HOME)/bin/stigmer $(HOME)/bin/stigmer-server
-	@echo "installed: $(HOME)/bin/stigmer, stigmer-server"
-	@stigmer --version 2>/dev/null || echo "cli: development build"
+	@echo "built: bin/stigmer-server"
 	@echo ""
-	@echo "stigmer server will auto-detect API keys from your environment."
+	@echo "Run the CLI from source (resolves this server build automatically):"
+	@echo "  npm start -w @stigmer/cli -- up        # start the local stack"
+	@echo "  npm start -w @stigmer/cli -- --help"
+	@echo ""
+	@echo "stigmer up will auto-detect API keys from your environment."
 	@echo ""
 	@echo "  Option 1 (recommended):       export ANTHROPIC_API_KEY=sk-ant-..."
 	@echo "  Option 2:                      export OPENAI_API_KEY=sk-..."
 	@echo "  Option 3 (local, lower quality): brew install ollama && ollama serve"
 	@echo ""
-	@echo "Then run:  stigmer server"
-	@echo ""
-
-web-console-build:
-	@if [ ! -d node_modules ]; then \
-		echo "error: node_modules not found — run 'npm install' first"; exit 1; \
-	fi
-	npm run build -w client-apps/web
-	@rm -rf client-apps/cli/embedded/webconsole/out
-	@cp -r client-apps/web/out client-apps/cli/embedded/webconsole/out
-	@echo "copied: client-apps/web/out -> client-apps/cli/embedded/webconsole/out"
 
 # ─── Site ─────────────────────────────────────
 
@@ -796,9 +799,8 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	fi; \
 	echo "$$LATEST_TAG -> $$NEW_TAG"; \
 	git tag -a "sdk/go/$$NEW_TAG" -m "Release sdk/go $$NEW_TAG"; \
-	git tag -a "mcp-server/$$NEW_TAG" -m "Release mcp-server $$NEW_TAG"; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
-	for t in "sdk/go/$$NEW_TAG" "mcp-server/$$NEW_TAG" "$$NEW_TAG"; do \
+	for t in "sdk/go/$$NEW_TAG" "$$NEW_TAG"; do \
 		echo "  pushing $$t"; \
 		git push origin "$$t"; \
 	done
@@ -810,7 +812,7 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"
-	@echo "  - MCP server binaries + Docker   (release.mcp-server.yaml)"
+	@echo "  - MCP server Docker image        (release.mcp-server.yaml)"
 
 # ─── Dev Publishing ───────────────────────────
 # Publish throwaway "dev" builds to each ecosystem's native ephemeral channel so
@@ -843,8 +845,5 @@ publish-dev-maven-local: ## Local dev publish, Maven only (alias for publish-dev
 clean: ## Remove all build artifacts
 	rm -rf bin/ coverage/ coverage.txt coverage.html
 	rm -rf backend/services/stigmer-server/bin/
-	rm -rf client-apps/cli/embedded/agentrunner/source/
-	rm -rf client-apps/cli/embedded/cursorrunner/source/
-	rm -rf client-apps/cli/embedded/webconsole/out/
 	rm -rf client-apps/web/out/ client-apps/web/.next/
 	$(MAKE) -C apis clean

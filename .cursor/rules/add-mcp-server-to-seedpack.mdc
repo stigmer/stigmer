@@ -93,7 +93,7 @@ Determine which auth pattern applies:
 
 ## Step 3: Update Credential Manifest
 
-Add an entry to `seedpack/mcp-servers/credential-manifest.yaml`:
+Add an entry to `seedpack/canary/credential-manifest.yaml`:
 
 ```yaml
   {name}:
@@ -179,5 +179,5 @@ Before considering the addition complete:
 - OAuth spec: `apis/ai/stigmer/agentic/mcpserver/v1/oauth.proto`
 - OAuthApp spec: `apis/ai/stigmer/iam/oauthapp/v1/spec.proto`
 - Existing examples: any `seedpack/mcp-servers/*.yaml`
-- Credential manifest: `seedpack/mcp-servers/credential-manifest.yaml`
+- Credential manifest: `seedpack/canary/credential-manifest.yaml`
 - Planton secrets pattern: `stigmer-cloud/_ops/planton/connect/secrets/`

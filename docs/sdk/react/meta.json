@@ -16,6 +16,7 @@
     "models",
     "organization",
     "iam-policy",
+    "access",
     "identity-provider",
     "identity-account",
     "invitation",

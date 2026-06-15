@@ -16,6 +16,7 @@ import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/a
 import { ExecutionPhase, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
+import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import type { Config } from "../../config.js";
@@ -48,6 +49,16 @@ export function createDeepAgentActivities(config: Config) {
 
         setup = await performSetup({ config, client, executionId, threadId });
 
+        // Single offload context for every persist in this execution: spill
+        // oversized tool outputs (e.g. computer-use screenshots) to artifact
+        // storage so the UI can render them, and keep the status under the
+        // gRPC cap. Threaded into the streaming loop and reused for the
+        // terminal persists below so the guard is never skipped.
+        const statusOffload: ToolOutputOffloadContext = {
+          artifactStorage: setup.artifactStorage,
+          executionId,
+        };
+
         const initialStatus = create(AgentExecutionStatusSchema, {});
         const statusBuilder = new StatusBuilder(executionId, initialStatus);
 
@@ -77,7 +88,7 @@ export function createDeepAgentActivities(config: Config) {
               }),
             ],
           });
-          await persistStatus(client, executionId, failedStatus);
+          await persistStatus(client, executionId, failedStatus, { offload: statusOffload });
           return slimStatus(failedStatus);
         }
 
@@ -113,6 +124,7 @@ export function createDeepAgentActivities(config: Config) {
           client,
           initialStatus,
           streamingConfig,
+          offload: statusOffload,
           gracefulStop: setup.gracefulStop,
           inlinePublisher,
           writebackCoordinator: writebackCoordinator ?? undefined,
@@ -137,7 +149,7 @@ export function createDeepAgentActivities(config: Config) {
 
         if (result.terminalStatus) {
           if (initialStatus.phase === ExecutionPhase.EXECUTION_PAUSED) {
-            await persistStatus(client, executionId, initialStatus);
+            await persistStatus(client, executionId, initialStatus, { offload: statusOffload });
             console.log(`[ExecuteDeepAgent] Paused for execution ${executionId}: events=${result.eventsProcessed}`);
             throw new CancelledFailure("Activity paused by orchestrator");
           }
@@ -189,7 +201,7 @@ export function createDeepAgentActivities(config: Config) {
             }
             initialStatus.messages.push(aiMsg);
 
-            await persistStatus(client, executionId, initialStatus);
+            await persistStatus(client, executionId, initialStatus, { offload: statusOffload });
             return slimStatus(initialStatus);
           }
         }
@@ -257,7 +269,7 @@ export function createDeepAgentActivities(config: Config) {
           });
         }
 
-        await persistStatus(client, executionId, initialStatus);
+        await persistStatus(client, executionId, initialStatus, { offload: statusOffload });
 
         console.log(
           `[ExecuteDeepAgent] Completed for execution ${executionId}: ` +

@@ -151,3 +151,48 @@ jobs:
           VERSION="${{ needs.determine-version.outputs.version }}"
           if [[ "$VERSION" == *-* ]]; then NPM_TAG="next"; else NPM_TAG="latest"; fi
           npm publish --access public --tag "$NPM_TAG"
+
+      # The slim embedding artifact (stigmer/stigmer#170): a bundled runner plus
+      # per-platform native-bridge packages — ~85 MB installed instead of the
+      # full package's ~508 MB node_modules. Built after the fat publish so a
+      # slim failure never blocks the canonical package. All six packages build
+      # from this single Linux host: the JS bundles are platform-independent and
+      # core-bridge's npm tarball already carries every platform's prebuilt
+      # release. The version was stamped into package.json above, which the
+      # bundle script propagates into every generated manifest.
+      - name: Build slim artifact packages
+        working-directory: backend/services/runner
+        run: node scripts/bundle-slim.mjs --emit-packages
+
+      # Gate the slim publish on the artifact actually booting: size budget,
+      # static-mode worker reaching RUNNING, and the manager-mode IPC
+      # lifecycle — all against a real Temporal dev server, from an isolated
+      # copy so nothing resolves from this checkout's node_modules.
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Verify slim artifact boots
+        working-directory: backend/services/runner
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/verify-slim-artifact.mjs
+
+      - name: Publish slim packages to npm
+        working-directory: backend/services/runner
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          if [[ "$VERSION" == *-* ]]; then NPM_TAG="next"; else NPM_TAG="latest"; fi
+          # Platform packages first so the meta package's optionalDependencies
+          # resolve the moment it lands.
+          for pkg in dist-slim-pkgs/runner-slim-*; do
+            (cd "$pkg" && npm publish --access public --tag "$NPM_TAG")
+          done
+          cd dist-slim-pkgs/runner-slim && npm publish --access public --tag "$NPM_TAG"

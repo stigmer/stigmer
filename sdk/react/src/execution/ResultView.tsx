@@ -48,6 +48,8 @@ export function ResultView({ view, className }: ResultViewProps) {
       return <FileResultView view={view} className={className} />;
     case "contentBlocks":
       return <ContentBlocksResultView blocks={view.blocks} className={className} />;
+    case "outputRef":
+      return <OutputRefResultView view={view} className={className} />;
     case "text":
       return view.text ? <CollapsiblePre content={view.text} className={cn("text-foreground", className)} /> : null;
     case "json":
@@ -352,6 +354,62 @@ function ContentBlocksResultView({
     [blocks],
   );
   return <CollapsiblePre content={text} className={cn("text-foreground", className)} />;
+}
+
+// ---------------------------------------------------------------------------
+// Offloaded output (ToolCallOutputRef)
+// ---------------------------------------------------------------------------
+
+type OutputRefView = Extract<ToolResultView, { type: "outputRef" }>;
+
+function formatBytes(n: number): string {
+  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${n} B`;
+}
+
+/**
+ * Renders a tool result whose bytes were offloaded to artifact storage. Images
+ * (e.g. computer-use screenshots) render inline as a thumbnail that opens full
+ * size; other large output shows its inline preview head plus a link to fetch
+ * the full content. Replaces the old `[image]` placeholder.
+ */
+function OutputRefResultView({ view, className }: { view: OutputRefView; className?: string }) {
+  if (view.isImage) {
+    return (
+      <div className={cn("space-y-1", className)}>
+        <a
+          href={view.downloadUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <img
+            src={view.downloadUrl}
+            alt="Tool output screenshot"
+            loading="lazy"
+            className="max-h-96 w-auto rounded-md border border-border"
+          />
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("space-y-1", className)}>
+      {view.preview && (
+        <CollapsiblePre content={view.preview} className="text-foreground" />
+      )}
+      <a
+        href={view.downloadUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        View full output{view.sizeBytes ? ` (${formatBytes(view.sizeBytes)})` : ""}
+      </a>
+    </div>
+  );
 }
 
 function ErrorResultView({ message, className }: { message: string; className?: string }) {

@@ -1,5 +1,6 @@
 ---
 name: customer-support
+visibility: public
 description: >
   Handle customer support interactions with structured methodology for troubleshooting,
   complaint resolution, account inquiries, and service requests. Use this skill when a

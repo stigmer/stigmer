@@ -19,8 +19,8 @@ func requireArchitectPrereqs(t *testing.T) {
 	t.Helper()
 	require.NotNil(t, testHarness.Service, "java service must be running")
 	require.NotNil(t, grpcConn, "gRPC connection required")
-	if mcpServerStigmerBinary == "" {
-		t.Skip("mcp-server-stigmer binary not built — skipping workflow architect test")
+	if mcpServerStigmerLaunch.Command == "" {
+		t.Skip("mcp-server-stigmer launch not resolved — skipping workflow architect test")
 	}
 }
 
@@ -123,7 +123,7 @@ func TestOffline_WorkflowArchitect_Generate(t *testing.T) {
 	clients := harness.NewClients(grpcConn)
 	harness.RequireServiceHealthy(t, ctx, clients)
 
-	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 		mcpServer.GetMetadata().GetSlug(), "offline-generate")
@@ -194,7 +194,7 @@ func TestOffline_WorkflowArchitect_MCPToolAccess(t *testing.T) {
 	clients := harness.NewClients(grpcConn)
 	harness.RequireServiceHealthy(t, ctx, clients)
 
-	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 		mcpServer.GetMetadata().GetSlug(), "offline-mcp-access")
@@ -261,7 +261,7 @@ func TestOffline_WorkflowArchitect_GenerateWithValidation(t *testing.T) {
 	clients := harness.NewClients(grpcConn)
 	harness.RequireServiceHealthy(t, ctx, clients)
 
-	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 		mcpServer.GetMetadata().GetSlug(), "offline-gen-validate")
@@ -329,7 +329,7 @@ func TestOffline_WorkflowArchitect_Refine(t *testing.T) {
 	clients := harness.NewClients(grpcConn)
 	harness.RequireServiceHealthy(t, ctx, clients)
 
-	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerBinary)
+	mcpServer := harness.CreateStigmerMcpServer(t, ctx, clients, mcpServerStigmerLaunch)
 
 	agent := harness.CreateWorkflowArchitectAgent(t, ctx, clients,
 		mcpServer.GetMetadata().GetSlug(), "offline-refine")

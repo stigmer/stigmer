@@ -168,7 +168,7 @@ export interface WorkflowExecutionInput {
   executionTarget?: ExecutionTarget;
 }
 
-function buildWorkflowExecutionProto(input: WorkflowExecutionInput): WorkflowExecution {
+export function buildWorkflowExecutionProto(input: WorkflowExecutionInput): WorkflowExecution {
   let runtimeEnv;
   if (input.runtimeEnv) {
     runtimeEnv = Object.fromEntries(Object.entries(input.runtimeEnv).map(([k, v]) =>

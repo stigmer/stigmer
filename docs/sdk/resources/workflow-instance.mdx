@@ -59,6 +59,7 @@ WorkflowInstance workflowInstance = client.workflowInstances().get("win_01j5q3k7
 | [`apply`](#apply) | Create or update a workflow instance. |
 | [`create`](#create) | Create a workflow instance. |
 | [`update`](#update) | Update an existing workflow instance. |
+| [`updateExecutionVisibility`](#updateexecutionvisibility) | Update who can observe the run history (executions) of this instance. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing workflow instance. |
 | [`delete`](#delete) | Delete a workflow instance. |
 
@@ -208,19 +209,21 @@ const workflowInstance = await stigmer.workflowInstance.apply({
   workflowId: "...",
   description: "...",
   environmentRefs: [],
+  executionVisibility: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 workflowInstance, err := client.WorkflowInstance.Apply(ctx, &stigmer.WorkflowInstanceInput{
-  Name:            "my-workflow-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  WorkflowId:      "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
+  Name:                "my-workflow-instance",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  WorkflowId:          "...",
+  Description:         "...",
+  EnvironmentRefs:     []stigmer.ResourceRef{},
+  ExecutionVisibility: "...",
 })
 ```
 </Tab>
@@ -234,6 +237,7 @@ workflow_instance = client.workflow_instances.apply(WorkflowInstanceInput(
     workflow_id="...",
     description="...",
     environment_refs=[],
+    execution_visibility="...",
 ))
 ```
 </Tab>
@@ -247,6 +251,7 @@ WorkflowInstance workflowInstance = client.workflowInstances().apply(WorkflowIns
     .workflowId("...")
     .description("...")
     .environmentRefs(List.of())
+    .executionVisibility("...")
     .build());
 ```
 </Tab>
@@ -271,19 +276,21 @@ const workflowInstance = await stigmer.workflowInstance.create({
   workflowId: "...",
   description: "...",
   environmentRefs: [],
+  executionVisibility: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 workflowInstance, err := client.WorkflowInstance.Create(ctx, &stigmer.WorkflowInstanceInput{
-  Name:            "my-workflow-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  WorkflowId:      "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
+  Name:                "my-workflow-instance",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  WorkflowId:          "...",
+  Description:         "...",
+  EnvironmentRefs:     []stigmer.ResourceRef{},
+  ExecutionVisibility: "...",
 })
 ```
 </Tab>
@@ -297,6 +304,7 @@ workflow_instance = client.workflow_instances.create(WorkflowInstanceInput(
     workflow_id="...",
     description="...",
     environment_refs=[],
+    execution_visibility="...",
 ))
 ```
 </Tab>
@@ -310,6 +318,7 @@ WorkflowInstance workflowInstance = client.workflowInstances().create(WorkflowIn
     .workflowId("...")
     .description("...")
     .environmentRefs(List.of())
+    .executionVisibility("...")
     .build());
 ```
 </Tab>
@@ -334,19 +343,21 @@ const workflowInstance = await stigmer.workflowInstance.update({
   workflowId: "...",
   description: "...",
   environmentRefs: [],
+  executionVisibility: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 workflowInstance, err := client.WorkflowInstance.Update(ctx, &stigmer.WorkflowInstanceInput{
-  Name:            "my-workflow-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  WorkflowId:      "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
+  Name:                "my-workflow-instance",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  WorkflowId:          "...",
+  Description:         "...",
+  EnvironmentRefs:     []stigmer.ResourceRef{},
+  ExecutionVisibility: "...",
 })
 ```
 </Tab>
@@ -360,6 +371,7 @@ workflow_instance = client.workflow_instances.update(WorkflowInstanceInput(
     workflow_id="...",
     description="...",
     environment_refs=[],
+    execution_visibility="...",
 ))
 ```
 </Tab>
@@ -373,12 +385,60 @@ WorkflowInstance workflowInstance = client.workflowInstances().update(WorkflowIn
     .workflowId("...")
     .description("...")
     .environmentRefs(List.of())
+    .executionVisibility("...")
     .build());
 ```
 </Tab>
 </SDKTabs>
 
 **Parameters**: [`WorkflowInstanceInput`](#workflowinstanceinput)
+
+**Returns**: [`WorkflowInstance`](#workflowinstance)
+
+### updateExecutionVisibility
+
+Update who can observe the run history (executions) of this instance.
+
+This is a SEPARATE axis from updateVisibility: it controls run observability (who sees execution inputs/outputs), not who can see/run the instance itself. Making an instance org-runnable does NOT expose other users' run history — that requires this opt-in.
+
+Supported levels: PRIVATE (only the user who ran each execution) and ORGANIZATION (all org members). Public/platform are unsupported.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const workflowInstance = await stigmer.workflowInstance.updateExecutionVisibility({
+  resourceId: "...",
+  executionVisibility: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.UpdateExecutionVisibility(ctx, &stigmer.UpdateExecutionVisibilityInput{
+  ResourceId:          "...",
+  ExecutionVisibility: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow_instance = client.workflow_instances.update_execution_visibility(UpdateExecutionVisibilityInput(
+    resource_id="...",
+    execution_visibility="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowInstance workflowInstance = client.workflowInstances().updateExecutionVisibility(UpdateExecutionVisibilityInput.builder()
+    .resourceId("...")
+    .executionVisibility("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateExecutionVisibilityInput`](#updateexecutionvisibilityinput)
 
 **Returns**: [`WorkflowInstance`](#workflowinstance)
 
@@ -479,6 +539,7 @@ Input for creating or updating a Workflow Instance.
     workflowId: { type: "string", description: "Reference to the Workflow template this instance deploys." },
     description: { type: "string", description: "Human-readable description of this workflow instance." },
     environmentRefs: { type: "ResourceRef[]", description: "Ordered list of Environment resources providing configuration and secrets.", typeDescriptionLink: "#resourceref" },
+    executionVisibility: { type: "WorkflowExecutionVisibility", description: "Who can observe the run history (executions) of this instance.", typeDescriptionLink: "#workflowexecutionvisibility" },
   }}
 />
 
@@ -503,6 +564,17 @@ Input for updating the visibility of any API resource.
   type={{
     resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
     visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
+  }}
+/>
+
+### UpdateExecutionVisibilityInput
+
+UpdateExecutionVisibilityInput targets the run-observability setting of a single workflow instance.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the workflow instance whose execution visibility is being updated.", required: true },
+    executionVisibility: { type: "WorkflowExecutionVisibility", description: "The new execution-visibility setting.", typeDescriptionLink: "#workflowexecutionvisibility" },
   }}
 />
 
@@ -541,4 +613,13 @@ WorkflowInstance represents a configured deployment of a Workflow template.
     status: { type: "WorkflowInstanceStatus", description: "System-managed state. See `WorkflowInstanceStatus`." },
   }}
 />
+
+### WorkflowExecutionVisibility
+
+WorkflowExecutionVisibility controls who can observe the run history (executions) of a workflow instance.
+
+| Value | Description |
+|-------|-------------|
+| `workflow_execution_visibility_private` | Each execution is visible only to the user who triggered it (its owner). |
+| `workflow_execution_visibility_organization` | Every member of the owning organization can observe all executions of this instance. |
 

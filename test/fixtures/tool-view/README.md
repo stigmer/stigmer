@@ -51,7 +51,6 @@ which case `expected.linesAdded`/`linesRemoved` are included and asserted.
 ## Consumers
 
 - TS: `sdk/typescript/src/execution/__tests__/tool-view.fixtures.test.ts`
-- Go: `client-apps/cli/pkg/toolrender/toolkind_fixtures_test.go`
 
-When you change an engine's result format, update the fixture here; both test
-suites will guide the corresponding parser change.
+When you change an engine's result format, update the fixture here; the test
+suite will guide the corresponding parser change.

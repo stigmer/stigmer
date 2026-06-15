@@ -1,18 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import {
   SessionViewer,
   useGitHubConnection,
   useGitHubTreeLister,
   useWorkspaceSources,
   useActiveOrgSlug,
-  SharePanel,
-  PermissionGate,
+  useActiveOrgId,
+  ManageAccessButton,
 } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
-import { Button } from "@/domain/_shared/ui/button";
 import { ThreadSkeleton } from "@stigmer/react";
 
 export default function SessionPage() {
@@ -23,6 +21,7 @@ export default function SessionPage() {
 
 export function SessionPageInner({ id }: { id: string }) {
   const org = useActiveOrgSlug();
+  const orgId = useActiveOrgId();
   const gitHubConnection = useGitHubConnection(org);
   const { enableGitHub, enableLocal } = useWorkspaceSources();
   const workspaceFileLister = useGitHubTreeLister(gitHubConnection.token);
@@ -37,42 +36,17 @@ export function SessionPageInner({ id }: { id: string }) {
         enableLocal={enableLocal}
         workspaceFileLister={workspaceFileLister}
         headerActions={
-          <ShareActions sessionId={id} />
+          <ManageAccessButton
+            resource={{
+              kind: ApiResourceKind.session,
+              kindString: "session",
+              id,
+              org: orgId,
+            }}
+          />
         }
       />
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Share actions — kept in the client app (DD-004: no Console auth in SDK)
-// ---------------------------------------------------------------------------
-
-function ShareActions({ sessionId }: { sessionId: string }) {
-  const [showSharePanel, setShowSharePanel] = useState(false);
-
-  return (
-    <PermissionGate resource={{ kind: "session", id: sessionId }} relation="can_grant_access">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setShowSharePanel((v) => !v)}
-        aria-label="Share session"
-        aria-expanded={showSharePanel}
-      >
-        Share
-      </Button>
-      {showSharePanel && (
-        <div className="absolute right-0 top-full mt-1 w-80 rounded-lg border border-border bg-popover shadow-lg">
-          <SharePanel
-            resource={{ kind: "session", id: sessionId, resourceKind: ApiResourceKind.session }}
-            resourceKindString="session"
-            resourceKind={ApiResourceKind.session}
-            onClose={() => setShowSharePanel(false)}
-          />
-        </div>
-      )}
-    </PermissionGate>
   );
 }
 

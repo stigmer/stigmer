@@ -1,4 +1,4 @@
-export { OrgProvider, useOrg, useActiveOrgSlug } from "./OrgProvider";
+export { OrgProvider, useOrg, useActiveOrgSlug, useActiveOrgId } from "./OrgProvider";
 export type { OrgContextValue } from "./OrgProvider";
 export { useOrgGate } from "./useOrgGate";
 export type {

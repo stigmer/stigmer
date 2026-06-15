@@ -495,4 +495,79 @@ public interface ToolCallOrBuilder extends
    * @return The toolKind.
    */
   ai.stigmer.agentic.agentexecution.v1.ToolKind getToolKind();
+
+  /**
+   * <pre>
+   * ─────────────────────────────────────────────────────────────────────────────
+   * Offloaded Output (large tool results)
+   *
+   * When a tool's output exceeds a size threshold, the runner spills the full
+   * bytes to artifact storage and records a reference here instead of inlining
+   * megabytes into `result` on every status update. Without this, a single
+   * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+   * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+   * persistence fails silently and the live UI freezes mid-execution.
+   *
+   * When set, `result` holds only a short human-readable head/preview (so
+   * consumers that read `result` still render something sensible) and
+   * output_ref points at the full content. Empty for the overwhelming majority
+   * of tool calls — only populated when output crosses the offload threshold.
+   * See ToolCallOutputRef.
+   *
+   * Field 21: appended after tool_kind (20), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+   * @return Whether the outputRef field is set.
+   */
+  boolean hasOutputRef();
+  /**
+   * <pre>
+   * ─────────────────────────────────────────────────────────────────────────────
+   * Offloaded Output (large tool results)
+   *
+   * When a tool's output exceeds a size threshold, the runner spills the full
+   * bytes to artifact storage and records a reference here instead of inlining
+   * megabytes into `result` on every status update. Without this, a single
+   * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+   * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+   * persistence fails silently and the live UI freezes mid-execution.
+   *
+   * When set, `result` holds only a short human-readable head/preview (so
+   * consumers that read `result` still render something sensible) and
+   * output_ref points at the full content. Empty for the overwhelming majority
+   * of tool calls — only populated when output crosses the offload threshold.
+   * See ToolCallOutputRef.
+   *
+   * Field 21: appended after tool_kind (20), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+   * @return The outputRef.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef getOutputRef();
+  /**
+   * <pre>
+   * ─────────────────────────────────────────────────────────────────────────────
+   * Offloaded Output (large tool results)
+   *
+   * When a tool's output exceeds a size threshold, the runner spills the full
+   * bytes to artifact storage and records a reference here instead of inlining
+   * megabytes into `result` on every status update. Without this, a single
+   * large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+   * pushes AgentExecutionStatus past the gRPC message-size limit, so status
+   * persistence fails silently and the live UI freezes mid-execution.
+   *
+   * When set, `result` holds only a short human-readable head/preview (so
+   * consumers that read `result` still render something sensible) and
+   * output_ref points at the full content. Empty for the overwhelming majority
+   * of tool calls — only populated when output crosses the offload threshold.
+   * See ToolCallOutputRef.
+   *
+   * Field 21: appended after tool_kind (20), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21 [json_name = "outputRef"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefOrBuilder getOutputRefOrBuilder();
 }

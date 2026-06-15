@@ -10,6 +10,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe"
+	wftemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	wfactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"google.golang.org/protobuf/proto"
@@ -118,7 +119,7 @@ func (c *WorkflowExecutionController) buildSendSignalPipeline() *pipeline.Pipeli
 		AddStep(NewLoadExecutionByExecutionIdStep[*workflowexecutionv1.SendSignalInput](c.store)).
 		AddStep(NewValidateSignalableStep[*workflowexecutionv1.SendSignalInput]()).
 		AddStep(NewDedupeClaimStep[*workflowexecutionv1.SendSignalInput](c.signalDedupeStore)). // Gap B2
-		AddStep(NewSendSignalToWorkflowStep[*workflowexecutionv1.SendSignalInput](c.workflowCreator)).
+		AddStep(NewSendSignalToWorkflowStep[*workflowexecutionv1.SendSignalInput](c.workflowCreator, c.temporalConfig)).
 		AddStep(NewDedupeMarkDeliveredStep[*workflowexecutionv1.SendSignalInput](c.signalDedupeStore)). // Gap B2
 		Build()
 }
@@ -255,11 +256,15 @@ func (s *ValidateSignalableStep[T]) Execute(ctx *pipeline.RequestContext[T]) err
 // SendSignalToWorkflowStep sends a signal to the workflow via Temporal
 type SendSignalToWorkflowStep[T SignalInput] struct {
 	workflowCreator *workflows.InvokeWorkflowExecutionWorkflowCreator
+	temporalConfig  *wftemporal.Config
 }
 
 // NewSendSignalToWorkflowStep creates a new SendSignalToWorkflowStep
-func NewSendSignalToWorkflowStep[T SignalInput](wc *workflows.InvokeWorkflowExecutionWorkflowCreator) *SendSignalToWorkflowStep[T] {
-	return &SendSignalToWorkflowStep[T]{workflowCreator: wc}
+func NewSendSignalToWorkflowStep[T SignalInput](
+	wc *workflows.InvokeWorkflowExecutionWorkflowCreator,
+	temporalConfig *wftemporal.Config,
+) *SendSignalToWorkflowStep[T] {
+	return &SendSignalToWorkflowStep[T]{workflowCreator: wc, temporalConfig: temporalConfig}
 }
 
 // Name returns the step name
@@ -305,10 +310,30 @@ func (s *SendSignalToWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 		OrgID:              execution.GetMetadata().GetOrg(),
 	}
 
+	// The signal channels for signal-receiving tasks (listen, human_input) are
+	// registered in the TS child workflow, not the Go outer orchestrator. The
+	// orchestrator exposes a single generic "relaySignal" handler that forwards a
+	// RelaySignalPayload to the child; sending the raw user signal name straight to
+	// the orchestrator leaves it buffered with no handler and the listen gate never
+	// resolves. So we wrap the user's signal in the relay envelope and target the
+	// "relaySignal" channel — mirroring SubmitWorkflowTaskApproval, the other
+	// relay-based signal sender.
+	relayPayload := workflows.RelaySignalPayload{
+		SignalName: signalName,
+		Payload:    signalPayload,
+	}
+
+	// Route the SignalWithStart to the same task queue the execution dispatched on
+	// (sandbox/edition affinity), matching the approval path. When SignalWithStart
+	// has to start the workflow first (PENDING execution), the queue must be correct.
+	dispatch := wftemporal.ResolveWorkflowTaskQueue(
+		executionID,
+		execution.GetSpec().GetExecutionTarget(),
+		s.temporalConfig,
+	)
+
 	// Use SignalWithStart for race-proof delivery (slim input keeps secrets out of history).
-	// Empty runner queue uses the configured default — the workflow's memo already carries
-	// the correct queue from when it was originally created.
-	err := s.workflowCreator.SignalWithStart(ctx.Context(), workflowInput, signalName, signalPayload, "")
+	err := s.workflowCreator.SignalWithStart(ctx.Context(), workflowInput, "relaySignal", relayPayload, dispatch.TaskQueue)
 	if err != nil {
 		return grpclib.InternalError(err, "failed to send signal to workflow")
 	}

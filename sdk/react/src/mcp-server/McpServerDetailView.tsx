@@ -23,10 +23,12 @@ import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect";
 import { useDisconnectOAuth } from "./useDisconnectOAuth";
 import { useOrgOAuthApp } from "./useOrgOAuthApp";
 import { OAuthAppForm } from "./OAuthAppForm";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { EnvVarForm } from "../environment/EnvVarForm";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
-import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
+import { VisibilityBadge } from "../library/VisibilitySelector";
+import { useManageAccess } from "../access/useManageAccess";
 import { Tabs, type TabItem } from "../tabs/Tabs";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
@@ -338,6 +340,29 @@ export function McpServerDetailView({
     oauth.clearError();
   }, [connection, oauth]);
 
+  // Unified Manage access — visibility (General access) over explicit grants
+  // (People), opened from the kebab. Closes the blueprint share gap for MCP
+  // servers.
+  const access = useManageAccess({
+    resource: mcpServer?.metadata
+      ? {
+          kind: ApiResourceKind.mcp_server,
+          kindString: "mcp_server",
+          id: mcpServer.metadata.id,
+          org: mcpServer.metadata.org,
+          name: mcpServer.metadata.name,
+        }
+      : null,
+    visibility: mcpServer?.metadata
+      ? {
+          kind: "mcpServer",
+          current: mcpServer.metadata.visibility,
+          org: mcpServer.metadata.org,
+          onChanged: refetch,
+        }
+      : undefined,
+  });
+
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
     return <ErrorMessage error={error} retry={refetch} className={className} />;
@@ -380,15 +405,15 @@ export function McpServerDetailView({
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
   };
 
+  // Inline visibility is read-only (at-a-glance); editing lives in the
+  // Manage access dialog, the single writer for both access axes.
   const visibilityControl = meta ? (
-    <ResourceVisibilityControl
-      kind="mcpServer"
-      resourceId={meta.id}
-      visibility={meta.visibility}
-      org={meta.org || org}
-      onChanged={refetch}
-    />
+    <VisibilityBadge visibility={meta.visibility} />
   ) : undefined;
+
+  const mergedActions = access.action
+    ? [...(actions ?? []), access.action]
+    : actions;
 
   const headerMetaExtra = (
     <>
@@ -409,13 +434,14 @@ export function McpServerDetailView({
     ) : undefined;
 
   return (
+    <>
     <ResourceDetailShell
       header={headerMeta}
       visibilityControl={visibilityControl}
       headerMetaExtra={headerMetaExtra}
       headerBanner={headerBanner}
       primaryAction={primaryAction}
-      actions={actions}
+      actions={mergedActions}
       className={className}
     >
       {(editable || spec?.description) && (
@@ -576,6 +602,8 @@ export function McpServerDetailView({
         <TagsSection tags={spec?.tags ?? []} editable={editable} isSaving={isUpdating} saveMcpField={saveMcpField} />
       )}
     </ResourceDetailShell>
+    {access.dialog}
+    </>
   );
 }
 

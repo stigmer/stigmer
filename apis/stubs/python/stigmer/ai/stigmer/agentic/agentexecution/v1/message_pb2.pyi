@@ -26,7 +26,7 @@ class AgentMessage(_message.Message):
     def __init__(self, type: _Optional[_Union[_enum_pb2.MessageType, str]] = ..., content: _Optional[str] = ..., timestamp: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., is_streaming: bool = ...) -> None: ...
 
 class ToolCall(_message.Message):
-    __slots__ = ("id", "name", "args", "result", "status", "started_at", "completed_at", "error", "requires_approval", "approval_message", "approval_requested_at", "approval_decided_at", "approved_by", "approval_action", "is_streaming", "streaming_source", "mcp_server_slug", "args_preview", "tool_kind")
+    __slots__ = ("id", "name", "args", "result", "status", "started_at", "completed_at", "error", "requires_approval", "approval_message", "approval_requested_at", "approval_decided_at", "approved_by", "approval_action", "is_streaming", "streaming_source", "mcp_server_slug", "args_preview", "tool_kind", "output_ref")
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     ARGS_FIELD_NUMBER: _ClassVar[int]
@@ -46,6 +46,7 @@ class ToolCall(_message.Message):
     MCP_SERVER_SLUG_FIELD_NUMBER: _ClassVar[int]
     ARGS_PREVIEW_FIELD_NUMBER: _ClassVar[int]
     TOOL_KIND_FIELD_NUMBER: _ClassVar[int]
+    OUTPUT_REF_FIELD_NUMBER: _ClassVar[int]
     id: str
     name: str
     args: _struct_pb2.Struct
@@ -65,4 +66,23 @@ class ToolCall(_message.Message):
     mcp_server_slug: str
     args_preview: str
     tool_kind: _enum_pb2.ToolKind
-    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., args: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., result: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.ToolCallStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., requires_approval: bool = ..., approval_message: _Optional[str] = ..., approval_requested_at: _Optional[str] = ..., approval_decided_at: _Optional[str] = ..., approved_by: _Optional[str] = ..., approval_action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., is_streaming: bool = ..., streaming_source: _Optional[_Union[_enum_pb2.ToolCallStreamingSource, str]] = ..., mcp_server_slug: _Optional[str] = ..., args_preview: _Optional[str] = ..., tool_kind: _Optional[_Union[_enum_pb2.ToolKind, str]] = ...) -> None: ...
+    output_ref: ToolCallOutputRef
+    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., args: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., result: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.ToolCallStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., requires_approval: bool = ..., approval_message: _Optional[str] = ..., approval_requested_at: _Optional[str] = ..., approval_decided_at: _Optional[str] = ..., approved_by: _Optional[str] = ..., approval_action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., is_streaming: bool = ..., streaming_source: _Optional[_Union[_enum_pb2.ToolCallStreamingSource, str]] = ..., mcp_server_slug: _Optional[str] = ..., args_preview: _Optional[str] = ..., tool_kind: _Optional[_Union[_enum_pb2.ToolKind, str]] = ..., output_ref: _Optional[_Union[ToolCallOutputRef, _Mapping]] = ...) -> None: ...
+
+class ToolCallOutputRef(_message.Message):
+    __slots__ = ("storage_key", "download_url", "size_bytes", "content_hash", "mime_type", "is_image", "truncated_preview")
+    STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    DOWNLOAD_URL_FIELD_NUMBER: _ClassVar[int]
+    SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_HASH_FIELD_NUMBER: _ClassVar[int]
+    MIME_TYPE_FIELD_NUMBER: _ClassVar[int]
+    IS_IMAGE_FIELD_NUMBER: _ClassVar[int]
+    TRUNCATED_PREVIEW_FIELD_NUMBER: _ClassVar[int]
+    storage_key: str
+    download_url: str
+    size_bytes: int
+    content_hash: str
+    mime_type: str
+    is_image: bool
+    truncated_preview: str
+    def __init__(self, storage_key: _Optional[str] = ..., download_url: _Optional[str] = ..., size_bytes: _Optional[int] = ..., content_hash: _Optional[str] = ..., mime_type: _Optional[str] = ..., is_image: bool = ..., truncated_preview: _Optional[str] = ...) -> None: ...

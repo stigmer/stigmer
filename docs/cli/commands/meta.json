@@ -1,4 +1,5 @@
 {
+  "title": "Commands",
   "pages": [
     "index",
     "---Core Commands---",
@@ -36,6 +37,5 @@
     "completion",
     "config",
     "version"
-  ],
-  "title": "Commands"
+  ]
 }

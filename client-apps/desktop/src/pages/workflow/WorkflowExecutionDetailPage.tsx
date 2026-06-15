@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { WorkflowExecutionViewer, useResolveAgentExecutionSession } from "@stigmer/react";
+import {
+  WorkflowExecutionViewer,
+  useResolveAgentExecutionSession,
+  useActiveOrgId,
+  ManageAccessButton,
+} from "@stigmer/react";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 export default function WorkflowExecutionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const org = searchParams.get("org") ?? undefined;
+  const orgId = useActiveOrgId();
   const navigate = useNavigate();
   const [pendingAgentExecutionId, setPendingAgentExecutionId] = useState<string | null>(null);
 
@@ -55,6 +62,16 @@ export default function WorkflowExecutionDetailPage() {
         org={org}
         onNavigateToAgentExecution={handleNavigateToAgentExecution}
         onNavigateToWorkflowEditor={handleNavigateToWorkflowEditor}
+        headerActions={
+          <ManageAccessButton
+            resource={{
+              kind: ApiResourceKind.workflow_execution,
+              kindString: "workflow_execution",
+              id,
+              org: orgId,
+            }}
+          />
+        }
         nodesDraggable
       />
     </div>

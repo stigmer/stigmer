@@ -1,0 +1,58 @@
+View logs from the local Stigmer stack.
+
+`stigmer logs` shows logs for the components the local daemon supervises, with
+`kubectl logs`-style defaults: it prints a tail snapshot first, then follows
+all components live. Pass `--no-follow` to print the tail and exit, or
+`--component` to focus on a single component.
+
+Valid components are `stigmer-server`, `runner`, and `temporal`.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Follow all components live (tail snapshot first)
+stigmer logs
+
+# Show the last 100 lines and exit
+stigmer logs --no-follow --tail 100
+
+# Follow just the runner
+stigmer logs --component runner
+```
+
+{/* AUTO_FLAGS */}
+
+## Examples
+
+### Tail all components
+
+```bash
+stigmer logs
+```
+
+Prints a snapshot of recent lines from every component, then streams new lines
+until you press Ctrl-C.
+
+### Inspect a single component
+
+```bash
+stigmer logs --component stigmer-server --no-follow --tail 200
+```
+
+Shows the last 200 lines from `stigmer-server` and exits.
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer up`](./up) | Start the local stack |
+| [`stigmer status`](./status) | Show local stack status |
+| [`stigmer execution logs`](./execution) | Stream logs for a specific execution |
+
+## See also
+
+- [Command Reference](./) — All available commands

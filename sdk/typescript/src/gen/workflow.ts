@@ -238,7 +238,7 @@ function buildWorkflowBudgetProto(input: WorkflowBudgetInput) {
   }));
 }
 
-function buildWorkflowProto(input: WorkflowInput): Workflow {
+export function buildWorkflowProto(input: WorkflowInput): Workflow {
   const document = input.document ? buildWorkflowDocumentProto(input.document) : undefined;
   const tasks = input.tasks?.map(buildWorkflowTaskProto);
   let env;

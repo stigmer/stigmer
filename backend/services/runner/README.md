@@ -26,6 +26,20 @@ This runs `npm run build` in `backend/services/runner` (`tsc -p tsconfig.build.j
 
 Requires Node.js `>= 20`.
 
+### The slim embedding artifact
+
+The plain `dist/` resolves its dependencies from `node_modules` at runtime — ~508 MB unpacked, which is unshippable inside a desktop app ([#170](https://github.com/stigmer/stigmer/issues/170)). For embedding, build the **slim artifact**:
+
+```bash
+make build-runner-slim          # or: npm run build:slim
+```
+
+This produces `dist-slim/`: a tree-shaken esbuild bundle of the whole runner (`main.js`), a build-time-prebuilt Temporal workflow bundle, and a staged `node_modules` containing only the packages that genuinely cannot be bundled (the platform-pruned Temporal native bridge, `@cursor/sdk` and its native binaries, `jq-wasm`) — **~85 MB per platform**. `node dist-slim/main.js` accepts the same modes, environment variables, and IPC protocol as `dist/main.js`. See `scripts/bundle-slim.mjs` for the full layout, `scripts/verify-slim-artifact.mjs` for the boot verification that gates releases, and the [embedding guide](https://docs.stigmer.ai/guides/runners/embedding) for how apps stage it.
+
+> **Why the slim bundle is CommonJS, not ESM.** The runner's auth correctness depends on a deliberate module **load order**: it installs the fetch + HTTP/2 interceptors first, then lazily loads `@cursor/sdk` and `@connectrpc/connect-node` (via dynamic `import()`) so the interceptors are in place before those packages capture `globalThis.fetch` / snapshot the `node:http2` ESM facade. An **ESM** esbuild bundle destroys this — it hoists every external `import` to the top of the output and evaluates them before any code runs, freezing the `node:http2` facade and capturing the original `fetch` before install, which silently breaks proxy auth on the authenticated path (this was the regression in [#170](https://github.com/stigmer/stigmer/issues/170)). A **CJS** bundle preserves the source's lazy evaluation order, so the dynamic-import boundary keeps both interceptors correct. The meta `package.json` deliberately omits `"type": "module"` so `node main.js` runs as CommonJS — do **not** add it back, and do not flip `format` to `"esm"` in `bundle-slim.mjs`. The boot guard `assertHttp2ConnectPatched()` plus the authenticated check in `verify-slim-artifact.mjs` fail loudly if this is ever reverted.
+
+The slim build is also published to npm as `@stigmer/runner-slim` (with per-platform `@stigmer/runner-slim-<platform>` support packages) alongside the full `@stigmer/runner` package on every release.
+
 ## Run modes
 
 The runner has two **run modes**, selected by the `STIGMER_RUNNER_MODE` environment variable. Do not confuse the run mode (process topology) with the execution location (`MODE=local|cloud`) or the transport (`STIGMER_PROXY_ENDPOINT`) — those are independent axes covered in [Execution location vs transport](#execution-location-vs-transport).

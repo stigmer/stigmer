@@ -20,7 +20,9 @@ func TestExtractToDir(t *testing.T) {
 		"agents/skill-creator.yaml",
 		"agents/agent-creator.yaml",
 		"agents/mcp-server-creator.yaml",
+		"agents/desktop-operator-agent.yaml",
 		"mcp-servers/stigmer.yaml",
+		"mcp-servers/open-computer-use.yaml",
 		"skills/skill-creator/SKILL.md",
 		"skills/agent-creator/SKILL.md",
 		"skills/mcp-server-creator/SKILL.md",
@@ -28,6 +30,7 @@ func TestExtractToDir(t *testing.T) {
 		"workflows/content-review-pipeline.yaml",
 		"workflows/support-ticket-triage.yaml",
 		"workflows/research-and-summarize.yaml",
+		"workflows/desktop-research-capture.yaml",
 	}
 
 	for _, f := range expectedFiles {

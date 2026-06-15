@@ -193,4 +193,64 @@ message ToolCall {
   // Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
   // maximum, so this is appended at 20.
   ToolKind tool_kind = 20;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Offloaded Output (large tool results)
+  //
+  // When a tool's output exceeds a size threshold, the runner spills the full
+  // bytes to artifact storage and records a reference here instead of inlining
+  // megabytes into `result` on every status update. Without this, a single
+  // large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+  // pushes AgentExecutionStatus past the gRPC message-size limit, so status
+  // persistence fails silently and the live UI freezes mid-execution.
+  //
+  // When set, `result` holds only a short human-readable head/preview (so
+  // consumers that read `result` still render something sensible) and
+  // output_ref points at the full content. Empty for the overwhelming majority
+  // of tool calls — only populated when output crosses the offload threshold.
+  // See ToolCallOutputRef.
+  //
+  // Field 21: appended after tool_kind (20), the prior maximum.
+  ToolCallOutputRef output_ref = 21;
+}
+
+// ToolCallOutputRef points to a tool call's full output after the runner
+// offloaded it to artifact storage to keep AgentExecutionStatus under the gRPC
+// message-size limit.
+//
+// This is deliberately distinct from ExecutionArtifact (a file the agent
+// publishes for the user to download via publish_artifact): an output ref is
+// internal spillover of a tool's result, not a user-facing deliverable. The
+// bytes live in artifact storage (R2 in the cloud, locally served in dev);
+// only this reference is persisted in the execution status.
+//
+// @since Durable Executions (tool-output offload)
+message ToolCallOutputRef {
+  // Storage location of the full output bytes.
+  // Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+  string storage_key = 1;
+
+  // URL for fetching the full output — pre-signed in the cloud, locally served
+  // in dev. May be refreshed via the artifact download endpoint if expired.
+  string download_url = 2;
+
+  // Size in bytes of the full (original, pre-truncation) output.
+  int64 size_bytes = 3;
+
+  // SHA-256 hex digest of the full output bytes. Lets the runner dedupe
+  // uploads (skip re-uploading identical content across repeated persists) and
+  // lets clients invalidate caches when content changes under a stable key.
+  string content_hash = 4;
+
+  // MIME type of the offloaded content.
+  // Examples: "image/png", "text/plain", "application/json".
+  string mime_type = 5;
+
+  // True when the offloaded content is an image the UI should render inline
+  // (e.g. a screenshot from a computer-use MCP server).
+  bool is_image = 6;
+
+  // Short head of the original text content, kept inline for an at-a-glance
+  // preview without fetching the full artifact. Empty for image content.
+  string truncated_preview = 7;
 }

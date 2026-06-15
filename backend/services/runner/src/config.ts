@@ -28,6 +28,15 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 
+/**
+ * Default no-progress bound for the Cursor harness stream (ms). Larger than the
+ * shared DEFAULT_STALL_TIMEOUT_MS (120s) because opaque MCP / GUI tool calls
+ * can run for minutes while emitting no stream activity. Single source of truth
+ * for env-loaded ({@link loadConfig}) and options-mapped (runner / manager)
+ * config so the three construction sites never drift.
+ */
+export const DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS = 180_000;
+
 export interface Config {
   readonly taskQueue: string;
   readonly temporalAddress: string;
@@ -61,6 +70,19 @@ export interface Config {
   readonly checkpointerType: "memory" | "http";
   readonly checkpointerProxyEndpoint: string | null;
   readonly primaryModel: string;
+  /**
+   * No-progress bound for the Cursor harness stream (milliseconds). If no
+   * stream event or token delta arrives for this long, the stall watchdog
+   * (see activities/execute-cursor + shared/stall-watchdog.ts) cancels the run
+   * and fails the execution with a StallTimeoutError rather than hanging at
+   * EXECUTION_IN_PROGRESS forever.
+   *
+   * Larger than the shared DEFAULT_STALL_TIMEOUT_MS (120s) because opaque MCP /
+   * GUI tool calls can legitimately run for minutes while emitting no stream
+   * activity. This bounds no-progress time only; it is orthogonal to Temporal's
+   * heartbeatTimeout (process liveness) and the 30s keep-alive heartbeat.
+   */
+  readonly cursorStreamStallTimeoutMs: number;
   /** Shared mutable token reference for dynamic token updates (manager mode). */
   readonly stigmerTokenRef?: { current: string | null };
 }
@@ -119,6 +141,10 @@ export function loadConfig(): Config {
 
   const primaryModel = process.env.STIGMER_PRIMARY_MODEL ?? "gpt-4.1";
 
+  const cursorStreamStallTimeoutMs = process.env.CURSOR_STREAM_STALL_TIMEOUT_MS
+    ? parseInt(process.env.CURSOR_STREAM_STALL_TIMEOUT_MS, 10)
+    : DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS;
+
   return {
     taskQueue,
     temporalAddress,
@@ -135,6 +161,7 @@ export function loadConfig(): Config {
     checkpointerType,
     checkpointerProxyEndpoint,
     primaryModel,
+    cursorStreamStallTimeoutMs,
   };
 }
 

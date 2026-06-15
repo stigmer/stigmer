@@ -8,6 +8,7 @@ go_library(
         "delete.go",
         "query.go",
         "update.go",
+        "update_execution_visibility.go",
         "update_visibility.go",
         "workflowinstance_controller.go",
     ],

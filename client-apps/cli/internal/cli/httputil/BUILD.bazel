@@ -1,9 +1,0 @@
-load("@rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "httputil",
-    srcs = ["download.go"],
-    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/httputil",
-    visibility = ["//client-apps/cli:__subpackages__"],
-    deps = ["@com_github_pkg_errors//:errors"],
-)

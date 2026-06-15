@@ -25,13 +25,15 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json && node scripts/build-fingerprint.js",
+    "build:slim": "npm run build && node scripts/bundle-slim.mjs",
+    "verify:slim": "node scripts/verify-slim-artifact.mjs",
     "gen:ipc-fixtures": "tsx scripts/generate-ipc-fixtures.ts",
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "check-deps": "bash scripts/check-langchain-deps.sh",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist dist-slim"
   },
   "files": [
     "dist",
@@ -101,6 +103,7 @@
     "@temporalio/testing": "^1.16.2",
     "@types/js-yaml": "^4.0.9",
     "@types/semver": "^7.7.1",
+    "esbuild": "^0.28.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.0",
     "vitest": "^3.2.4"

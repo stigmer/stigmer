@@ -402,22 +402,30 @@ function useSessionConversation(sessionId: string | null, org: string): UseSessi
     approvalError: { type: "Error | null", description: "Error from the last approval submission, or `null` when healthy." },
     canSendFollowUp: { type: "boolean", description: "True when the input should be enabled (no active execution, not creating)." },
     clearApprovalError: { type: "() => void", description: "Reset `approvalError` to `null`." },
-    clearSendError: { type: "() => void", description: "Reset `sendError` to `null`." },
+    clearSendError: { type: "() => void", description: "Reset `sendError` to `null` (keeps the preserved pending message)." },
     completedExecutions: { type: "readonly AgentExecution[]", description: "Executions in terminal phases, in chronological order." },
+    connectTimedOut: { type: "boolean", description: "`true` when the stream opened but never delivered a first snapshot within the watchdog window (even after a silent retry) — the agent hasn't started. Distinct from `streamError`: nothing threw, the stream is simply silent. Surface an actionable \"the agent hasn't started — Retry\" banner wired to reconnectStream." },
     isConnecting: { type: "boolean", description: "True after the stream subscription starts but before the first snapshot arrives from the server. Platform builders can use this to differentiate between \"connecting to stream\" and \"execution is PENDING but stream is established.\"" },
     isLoading: { type: "boolean", description: "`true` while the session or execution list is loading." },
+    isReconnecting: { type: "boolean", description: "`true` while the execution stream is auto-reconnecting after a transient drop. The conversation stays visible and `streamError` remains `null` — surface a subtle \"Reconnecting…\" hint rather than an error banner." },
     isSending: { type: "boolean", description: "True during the create RPC call (between submit and execution ID)." },
+    isSlow: { type: "boolean", description: "`true` when a live, non-terminal stream has been silent past the slow threshold. Purely informational (\"still working — taking longer than usual\"); cleared by the next update. Never an error." },
+    isStoppable: { type: "boolean", description: "`true` when the active execution can be stopped — i.e. it is in a phase the backend accepts a cancel/terminate from (`PENDING` or `IN_PROGRESS`).  Distinct from \"is something active\": an execution paused at an approval gate (`WAITING_FOR_APPROVAL`) is active but **not** stoppable — the approval card (approve / skip / reject) is its control surface. Drive the composer's Stop affordance off this so it only appears when stop will actually succeed." },
+    isStopping: { type: "boolean", description: "`true` while a stop (cancel/terminate) request is in flight." },
     isStreaming: { type: "boolean", description: "True while the active execution's stream is delivering updates." },
     loadError: { type: "Error | null", description: "Error from session or execution list loading, or `null` when healthy." },
     mcpServerUsages: { type: "readonly McpServerUsage[]", description: "Current MCP server usages from the session spec. Empty array when session is not loaded." },
     pendingApprovals: { type: "readonly PendingApproval[]", description: "Pending approval requests from the active execution, empty when none." },
-    pendingUserMessage: { type: "string | null", description: "The user's message text, shown in the thread before the stream delivers it." },
+    pendingUserMessage: { type: "string | null", description: "The user's message text, shown in the thread before the stream delivers it. Retained when a send fails so the typed message is never lost — pair with sendError to render the turn as failed with a retry control." },
     reconnectStream: { type: "() => void", description: "Reset the stream error and re-establish the execution stream subscription." },
-    sendError: { type: "Error | null", description: "Error from the last sendFollowUp attempt, or null." },
+    retryLastSend: { type: "() => void", description: "Re-send the most recent `sendFollowUp` (same message and options). No-op when nothing has been sent yet. Use as the \"Retry\" affordance on a failed turn; clears sendError for the new attempt." },
+    sendError: { type: "Error | null", description: "Error from the last `sendFollowUp` attempt, or `null`.  Covers **both** failing paths — the optional `session.update()` and the `create()` RPC — so a follow-up never fails silently. When set, the user's message is preserved (see pendingUserMessage) and can be re-sent via retryLastSend." },
     sendFollowUp: { type: "(message: string, options?: SendFollowUpOptions) => Promise<void>", description: "Submit a follow-up message. Internally creates an execution and starts streaming it.  When session-level fields (`agentInstanceId`, `workspaceEntries`, `mcpServerUsages`, `skillRefs`) are provided in options, the session is updated via `session.update()` before creating the execution." },
     session: { type: "Session | null", description: "The session object, or null while loading." },
     skillRefs: { type: "readonly ApiResourceReference[]", description: "Current skill references from the session spec. Empty array when session is not loaded." },
-    streamError: { type: "Error | null", description: "Error from the execution stream, or `null` when healthy." },
+    stop: { type: "(reason?: string) => Promise<void>", description: "Stop the active execution, with progressive escalation: the first call gracefully cancels; a repeat call (because the run is still winding down) forcefully terminates. No-op when nothing is isStoppable." },
+    stopError: { type: "Error | null", description: "Error from the last stop attempt, or `null` when healthy." },
+    streamError: { type: "Error | null", description: "Error from the execution stream, or `null` when healthy or reconnecting." },
     submitApproval: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => Promise<void>", description: "Submit an approval decision. The executionId is managed internally." },
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Current workspace entries from the session spec. Empty array when session is not loaded." },
@@ -465,12 +473,13 @@ later without breaking the return type.
 **Signature**
 
 ```tsx
-function useSessionExecutions(sessionId: string | null): UseSessionExecutionsReturn
+function useSessionExecutions(sessionId: string | null, options?: UseSessionExecutionsOptions): UseSessionExecutionsReturn
 ```
 
 <TypeTable
   type={{
     sessionId: { type: "string | null", description: "", required: true },
+    options: { type: "UseSessionExecutionsOptions", description: "" },
   }}
 />
 
@@ -1108,6 +1117,18 @@ Each type maps to a Stigmer system agent that guides the user
 through the creation/editing flow in a conversational session.
 
 
+### ExecutionTargetOption
+
+String literal alias for the proto `ExecutionTarget` enum.
+
+Used on hook options so platform builders do not need to import
+proto enums to configure where session activities execute.
+
+- `"local"` — Client's embedded runner (desktop app or CLI) polls
+  the session's task queue.
+- `"cloud"` — Server provisions a cloud sandbox with a runner.
+
+
 ### groupSearchResultsByTime
 
 Groups SearchResult entries by their `createdAt` timestamp into time-based
@@ -1398,7 +1419,7 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
 
 <TypeTable
   type={{
-    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities are executed.  - `\"local\"` — Client's embedded runner (desktop app or CLI) polls   the session's task queue. - `\"cloud\"` — Server provisions a cloud sandbox with a runner. - `undefined` — Server decides based on deployment context   (LOCAL for OSS, CLOUD for managed).  Immutable after the first execution runs." },
+    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities are executed.  - `\"local\"` — Client's embedded runner (desktop app or CLI) polls   the session's task queue. - `\"cloud\"` — Server provisions a cloud sandbox with a runner. - `undefined` — Server decides based on deployment context   (LOCAL for OSS, CLOUD for managed).  Immutable after the first execution runs.", typeDescriptionLink: "#executiontargetoption" },
     harness: { type: "HarnessOption", description: "Execution harness for this session.  Determines which execution engine processes agent activities. Immutable after the first execution runs. Defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     org: { type: "string", description: "Organization slug for the new session.", required: true },
@@ -1416,7 +1437,7 @@ Options for [`useNewSessionFlow`](#usenewsessionflow).
 <TypeTable
   type={{
     defaultHarness: { type: "HarnessOption", description: "Harness pre-selected for new sessions when the user has not made an explicit choice yet (e.g. an embedder whose agents primarily run coding tasks defaults to `\"cursor\"`).  Read once on mount. The user's own selection — persisted to localStorage on explicit change — always takes precedence on subsequent visits.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
-    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities should execute." },
+    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities should execute.", typeDescriptionLink: "#executiontargetoption" },
     getRuntimeEnv: { type: "RuntimeEnvProvider", description: "Supplies host-app environment variables for the session's first execution. Evaluated once per submission, at submit time, so short-lived credentials stay fresh; evaluated **before** the session is created so a credential failure never strands an empty session.  Host values win over composer-collected env on key collisions. If the provider throws, the submission fails and the error surfaces via UseNewSessionFlowReturn.submitError / onError. See RuntimeEnvProvider.", typeDescriptionLink: "#runtimeenvprovider" },
     onError: { type: "(message: string) => void", description: "Called when an error occurs during session creation. The consumer can use this for toast notifications or other UI feedback. If not provided, errors are still available via UseNewSessionFlowReturn.submitError." },
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after a session and its first execution are created successfully. The consumer is responsible for navigation (e.g. `router.push`).", required: true },

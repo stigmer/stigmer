@@ -1,0 +1,80 @@
+Start the local Stigmer stack.
+
+`stigmer up` brings up the complete local stack — managed Temporal, the
+control-plane `stigmer-server`, and a unified execution runner — as a
+supervised background daemon. This is the quickstart command for local
+development: no cloud account needed.
+
+On first run the CLI downloads the `stigmer-server` binary and acquires the
+runner and seedpack at the matching version, then applies the seedpack so the
+built-in `stigmer` agents and skills are available immediately.
+
+Use `stigmer up server` to start only the control plane (Temporal and
+`stigmer-server`) when you manage your own runners — for example, the desktop
+app with an embedded runner, your own customer code, or cloud sandboxes.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Start the full local stack (server, runner, Temporal)
+stigmer up
+
+# Start only the control plane (no runners)
+stigmer up server
+
+# Check what is running
+stigmer status
+
+# Stop everything
+stigmer down
+```
+
+{/* AUTO_FLAGS */}
+
+## Examples
+
+### Start the full local stack
+
+```bash
+stigmer up
+```
+
+The first run may take a moment while the server binary, runner, and seedpack
+are downloaded and verified. Subsequent runs start immediately.
+
+### Start only the control plane
+
+```bash
+stigmer up server
+```
+
+Starts Temporal and `stigmer-server` without any runner processes. Use this
+when a separate process (desktop app, your own code, or a cloud sandbox)
+provides the runner.
+
+### Inspect and tear down
+
+```bash
+stigmer status   # show component health and the effective LLM configuration
+stigmer down     # stop the stack
+```
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer down`](./down) | Stop the local stack |
+| [`stigmer status`](./status) | Show local stack status |
+| [`stigmer logs`](./logs) | View logs from the local stack |
+| [`stigmer setup`](./setup) | Configure the LLM provider |
+
+## See also
+
+- [Local Quickstart](/docs/getting-started/local) — Set up Stigmer and run your first agent
+- [Command Reference](./) — All available commands

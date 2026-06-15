@@ -237,4 +237,37 @@ public interface ApiResourceRefViewOrBuilder extends
    */
   ai.stigmer.iam.iampolicy.v1.ApiResourceRefViewOrBuilder getTeamsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Where this identity account was provisioned from. Lets a chooser
+   * disambiguate accounts that share the same email address.
+   * Populated only when kind = "identity_account".
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+   * @return Whether the identityOrigin field is set.
+   */
+  boolean hasIdentityOrigin();
+  /**
+   * <pre>
+   * Where this identity account was provisioned from. Lets a chooser
+   * disambiguate accounts that share the same email address.
+   * Populated only when kind = "identity_account".
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+   * @return The identityOrigin.
+   */
+  ai.stigmer.iam.iampolicy.v1.IdentityOrigin getIdentityOrigin();
+  /**
+   * <pre>
+   * Where this identity account was provisioned from. Lets a chooser
+   * disambiguate accounts that share the same email address.
+   * Populated only when kind = "identity_account".
+   * </pre>
+   *
+   * <code>.ai.stigmer.iam.iampolicy.v1.IdentityOrigin identity_origin = 10 [json_name = "identityOrigin"];</code>
+   */
+  ai.stigmer.iam.iampolicy.v1.IdentityOriginOrBuilder getIdentityOriginOrBuilder();
 }

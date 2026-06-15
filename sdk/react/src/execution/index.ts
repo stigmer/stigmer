@@ -10,6 +10,12 @@ export { isTerminalPhase } from "./execution-phases";
 export { useExecutionStream } from "./useExecutionStream";
 export type { UseExecutionStreamReturn } from "./useExecutionStream";
 
+export { useAgentExecutionActions } from "./useAgentExecutionActions";
+export type {
+  UseAgentExecutionActionsOptions,
+  UseAgentExecutionActionsReturn,
+} from "./useAgentExecutionActions";
+
 export { UsageWidget, formatCost, formatTokenCount } from "./UsageWidget";
 export type { UsageWidgetProps } from "./UsageWidget";
 

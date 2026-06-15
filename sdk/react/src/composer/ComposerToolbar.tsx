@@ -12,6 +12,7 @@ import {
   WorkspaceIcon,
   ArrowUpIcon,
   SpinnerIcon,
+  StopIcon,
 } from "./icons";
 
 export interface ComposerToolbarProps {
@@ -19,6 +20,14 @@ export interface ComposerToolbarProps {
   readonly isSubmitting: boolean;
   readonly canSend: boolean;
   readonly onSend: () => void;
+  /**
+   * When provided, the primary button becomes a Stop control (enabled even
+   * while the rest of the composer is disabled) and the Send button is hidden.
+   * Driven by the active execution being stoppable.
+   */
+  readonly onStop?: () => void;
+  /** `true` while a stop request is in flight — shows a spinner on the Stop button. */
+  readonly isStopping?: boolean;
 
   // -- Left group: Primary state --------------------------------------------
 
@@ -82,6 +91,8 @@ export function ComposerToolbar({
   isSubmitting,
   canSend,
   onSend,
+  onStop,
+  isStopping = false,
   showAttach,
   attachmentCount,
   onAttachClick,
@@ -210,15 +221,30 @@ export function ComposerToolbar({
           disabled={disabled}
         />
 
-        <button
-          type="button"
-          disabled={!canSend}
-          onClick={onSend}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-40"
-          aria-label="Send message"
-        >
-          {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
-        </button>
+        {onStop ? (
+          // Circular container (vs. Send's rounded-square) gives the square glyph
+          // a proper home — the canonical stop affordance — and the shape morph
+          // from Send→Stop signals the running state at a glance.
+          <button
+            type="button"
+            onClick={onStop}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary-hover"
+            aria-label="Stop generating"
+            title="Stop"
+          >
+            {isStopping ? <SpinnerIcon /> : <StopIcon />}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={!canSend}
+            onClick={onSend}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-40"
+            aria-label="Send message"
+          >
+            {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
+          </button>
+        )}
       </div>
     </div>
   );

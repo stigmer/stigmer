@@ -47,6 +47,10 @@ export function ExecutionProgress({
   if (phase === undefined) return null;
 
   const todos = execution.status?.todos;
+  // Populated by the server only on EXECUTION_FAILED — surface it next to the
+  // badge so this widget explains a failure rather than showing a bare phase
+  // (consistent with the failure reason in the message thread).
+  const error = execution.status?.error;
 
   return (
     <div
@@ -55,6 +59,14 @@ export function ExecutionProgress({
       aria-label="Execution progress"
     >
       <ExecutionPhaseBadge phase={phase} />
+      {error && (
+        <p
+          role="alert"
+          className="text-xs whitespace-pre-wrap break-words text-destructive"
+        >
+          {error}
+        </p>
+      )}
       {todos && <TodoList todos={todos} />}
     </div>
   );

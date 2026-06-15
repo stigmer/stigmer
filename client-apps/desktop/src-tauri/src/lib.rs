@@ -41,6 +41,7 @@ pub fn run() {
             auth::start_github_callback_server,
             runner::start_runner,
             runner::stop_runner,
+            runner::kill_runner,
             runner::add_session,
             runner::remove_session,
             runner::add_workflow_execution,
@@ -129,6 +130,13 @@ pub fn run() {
         }
         RunEvent::ExitRequested { .. } => {
             let _ = app_handle.save_window_state(StateFlags::all());
+        }
+        RunEvent::Exit => {
+            // Reap the embedded runner before the process exits. Relying on the crate's
+            // `kill_on_drop` is only a soft guarantee (the runner's background reader holds an
+            // Arc to the child handle), so reap explicitly here — a graceful stop that drains
+            // in-flight work and force-kills if the runner is wedged (issue #177).
+            tauri::async_runtime::block_on(app_handle.state::<RunnerState>().stop());
         }
         _ => {}
     });

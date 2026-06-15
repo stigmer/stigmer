@@ -1,5 +1,6 @@
 ---
 name: agent-creator
+visibility: public
 description: >
   Create and edit Stigmer Agent YAML files conforming to the agentic.stigmer.ai/v1 API.
   Use this skill when the user wants to create a new AI agent, modify an existing agent

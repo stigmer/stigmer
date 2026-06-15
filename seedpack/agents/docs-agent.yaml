@@ -29,10 +29,10 @@ spec:
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server
-        slug: mcp-server-github
+        slug: github
     - mcp_server_ref:
         kind: mcp_server
-        slug: mcp-server-filesystem
+        slug: filesystem
   skill_refs:
     - kind: skill
       slug: technical-writer

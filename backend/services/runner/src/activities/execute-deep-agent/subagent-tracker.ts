@@ -29,7 +29,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool } from "../../shared/tool-kind.js";
-import { extractToolResultV3, MAX_TOOL_RESULT_CHARS } from "./status-builder-shared.js";
+import { extractToolResultV3 } from "./status-builder-shared.js";
 import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
 
 // ── Per-SubAgent State ───────────────────────────────────────────────────────
@@ -299,11 +299,10 @@ export class SubAgentTracker {
     const tc = state.toolCalls.get(callId);
     if (!tc) return;
 
-    const result = extractToolResultV3(output);
+    // Faithful result only; payload size is bounded at the persist chokepoint
+    // (see v3 builder note). Truncating here would corrupt image base64.
     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-    tc.result = result.length > MAX_TOOL_RESULT_CHARS
-      ? result.slice(0, MAX_TOOL_RESULT_CHARS) + `\n[truncated: ${result.length} chars total]`
-      : result;
+    tc.result = extractToolResultV3(output);
     tc.completedAt = utcTimestamp();
     tc.isStreaming = false;
     state.toolArgBuffers.delete(callId);

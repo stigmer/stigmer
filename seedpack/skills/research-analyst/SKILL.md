@@ -1,5 +1,6 @@
 ---
 name: research-analyst
+visibility: public
 description: >
   Conduct systematic research with structured methodology for source evaluation,
   evidence synthesis, and cited findings. Use this skill when asked to research a

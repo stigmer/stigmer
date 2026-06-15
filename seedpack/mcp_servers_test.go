@@ -3,8 +3,10 @@ package seedpack
 import (
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -80,6 +82,7 @@ var validCategories = map[string]bool{
 	"communication":        true,
 	"productivity":         true,
 	"web-automation":       true,
+	"desktop-automation":   true,
 	"monitoring":           true,
 	"payments":             true,
 	"design":               true,
@@ -100,9 +103,6 @@ func loadAllMcpServers(t *testing.T) map[string]mcpServerYAML {
 			return err
 		}
 		if d.IsDir() || filepath.Ext(path) != ".yaml" {
-			return nil
-		}
-		if strings.Contains(path, "credential-manifest") {
 			return nil
 		}
 
@@ -298,9 +298,17 @@ func TestMcpServers_NoDuplicateNames(t *testing.T) {
 func TestMcpServers_CredentialManifestComplete(t *testing.T) {
 	servers := loadAllMcpServers(t)
 
-	manifestData, err := content.ReadFile("mcp-servers/credential-manifest.yaml")
+	// The canary manifest is CI-tracking metadata, not a deployable resource, so
+	// it lives in canary/ (outside the embedded content set) and is read from
+	// disk rather than the embed FS. See seedpack/canary/credential-manifest.yaml.
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("unable to determine test file path via runtime.Caller")
+	}
+	manifestPath := filepath.Join(filepath.Dir(thisFile), "canary", "credential-manifest.yaml")
+	manifestData, err := os.ReadFile(manifestPath)
 	if err != nil {
-		t.Fatalf("failed to read credential-manifest.yaml: %v", err)
+		t.Fatalf("failed to read %s: %v", manifestPath, err)
 	}
 
 	var manifest struct {

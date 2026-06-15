@@ -14,6 +14,13 @@ pub enum RunnerHostError {
     #[error("runner is not running")]
     NotRunning,
 
+    #[error(
+        "runner entry `{entry}` does not exist (relative paths resolve against the working \
+         directory `{cwd}`); pass an absolute path — a packaged app launched from the desktop \
+         has working directory `/`, not your app's resource directory"
+    )]
+    RunnerEntryNotFound { entry: String, cwd: String },
+
     #[error("failed to spawn runner process: {0}")]
     Spawn(#[source] std::io::Error),
 

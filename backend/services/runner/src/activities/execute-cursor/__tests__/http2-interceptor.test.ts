@@ -337,6 +337,15 @@ describe("http2-interceptor", () => {
     // factories. Here we cover the two deterministic contracts: it is a no-op
     // when unconfigured (no import, so it never freezes the facade), and it
     // throws when the frozen facade is out of sync with the patched connect.
+    //
+    // This guard does double duty as a BUNDLER regression detector. The
+    // load-order contract is also defeatable at build time: an ESM esbuild
+    // bundle hoists every external `import` (including the node:http2 pulled in
+    // by connect-node) to the top of the output, freezing the facade before any
+    // install() runs. That is exactly stigmer/stigmer#170's second failure — the
+    // slim bundle is therefore emitted as CJS (scripts/bundle-slim.mjs) and
+    // verified on the authenticated boot path (scripts/verify-slim-artifact.mjs).
+    // The "out of sync" case below is the unit-level analog of that bundle bug.
 
     it("resolves without throwing (and without importing node:http2) when unconfigured", async () => {
       uninstallHttp2Interceptor();

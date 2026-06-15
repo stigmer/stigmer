@@ -7,10 +7,12 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { GitProvenance } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
 import { SkillState } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useSkill } from "./useSkill";
 import { SkillFileBrowser } from "./SkillFileBrowser";
 import { ErrorMessage } from "../error/ErrorMessage";
-import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
+import { VisibilityBadge } from "../library/VisibilitySelector";
+import { useManageAccess } from "../access/useManageAccess";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { Section } from "../resource-detail/Section";
@@ -207,6 +209,28 @@ export function SkillDetailView({
     }
   }, [skill]);
 
+  // Unified Manage access — visibility (General access) over explicit grants
+  // (People), opened from the kebab. Closes the blueprint share gap for skills.
+  const access = useManageAccess({
+    resource: skill?.metadata
+      ? {
+          kind: ApiResourceKind.skill,
+          kindString: "skill",
+          id: skill.metadata.id,
+          org: skill.metadata.org,
+          name: skill.metadata.name,
+        }
+      : null,
+    visibility: skill?.metadata
+      ? {
+          kind: "skill",
+          current: skill.metadata.visibility,
+          org: skill.metadata.org,
+          onChanged: refetch,
+        }
+      : undefined,
+  });
+
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
     return <ErrorMessage error={error} retry={refetch} className={className} />;
@@ -230,15 +254,15 @@ export function SkillDetailView({
     statusLabel: status ? skillStateLabel(status.state) : undefined,
   };
 
+  // Inline visibility is read-only (at-a-glance); editing lives in the
+  // Manage access dialog, the single writer for both access axes.
   const visibilityControl = meta ? (
-    <ResourceVisibilityControl
-      kind="skill"
-      resourceId={meta.id}
-      visibility={meta.visibility}
-      org={meta.org || org}
-      onChanged={refetch}
-    />
+    <VisibilityBadge visibility={meta.visibility} />
   ) : undefined;
+
+  const mergedActions = access.action
+    ? [...(actions ?? []), access.action]
+    : actions;
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
@@ -267,7 +291,7 @@ export function SkillDetailView({
         header={headerMeta}
         visibilityControl={visibilityControl}
         primaryAction={primaryAction}
-        actions={actions}
+        actions={mergedActions}
         tabs={effectiveTabs}
         activeTab={effectiveTabs ? effectiveActiveTab : undefined}
         onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}
@@ -276,6 +300,7 @@ export function SkillDetailView({
       >
         {tabContent}
       </ResourceDetailShell>
+      {access.dialog}
       <SkillDiffDialog state={diffState} onClose={closeDiff} />
     </>
   );

@@ -5,7 +5,10 @@ import {
   WorkflowExecutionViewer,
   useResolveAgentExecutionSession,
   useActiveOrgSlug,
+  useActiveOrgId,
+  ManageAccessButton,
 } from "@stigmer/react";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 
 interface WorkflowExecutionDetailPageProps {
@@ -34,6 +37,7 @@ export function WorkflowExecutionDetailPage({
   const { navigateToSession } = useSessionNavigation();
   const activeOrg = useActiveOrgSlug();
   const org = orgProp ?? activeOrg;
+  const orgId = useActiveOrgId();
 
   const [pendingAgentExecutionId, setPendingAgentExecutionId] = useState<string | null>(null);
 
@@ -81,6 +85,16 @@ export function WorkflowExecutionDetailPage({
         org={org}
         onNavigateToAgentExecution={handleNavigateToAgentExecution}
         onNavigateToWorkflowEditor={handleNavigateToWorkflowEditor}
+        headerActions={
+          <ManageAccessButton
+            resource={{
+              kind: ApiResourceKind.workflow_execution,
+              kindString: "workflow_execution",
+              id: executionId,
+              org: orgId,
+            }}
+          />
+        }
         nodesDraggable
       />
     </div>

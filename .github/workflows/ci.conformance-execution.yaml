@@ -1,0 +1,82 @@
+# =============================================================================
+# gRPC Conformance Suite — Execution Engine (local-go-execution target)
+# =============================================================================
+# Runs the execution-engine conformance suites (Class B) against the OSS Go
+# stigmer-server with its engine provisioned: a real Temporal dev server plus
+# the TypeScript unified runner, all built from source.
+#
+# This is intentionally a SEPARATE job from ci.conformance.yaml so the
+# dependency-light CRUD signal stays fast (DD-002). It needs the `temporal` CLI
+# and a runner build that the CRUD job does not. Today it proves the engine via
+# a data-only set_vars WorkflowExecution smoke test; later execution-domain
+# suites run on the same harness without further CI changes.
+# =============================================================================
+
+name: ci.conformance-execution
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "test/conformance/**"
+      - "apis/**"
+      - "go.work"
+      - "go.work.sum"
+      - ".github/workflows/ci.conformance-execution.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "test/conformance/**"
+      - "apis/**"
+      - "go.work"
+      - "go.work.sum"
+      - ".github/workflows/ci.conformance-execution.yaml"
+
+concurrency:
+  group: conformance-execution-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  conformance-execution-local-go:
+    name: Conformance Execution (local-go-execution)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # The runner and suites import the built proto stubs (dist), not source.
+      - name: Build proto stubs
+        run: npm run build -w @stigmer/protos
+
+      # Install the Temporal CLI; the dev server backs the execution harness.
+      - name: Install Temporal CLI
+        run: |
+          curl -sSf https://temporal.download/cli.sh | sh
+          echo "$HOME/.temporalio/bin" >> "$GITHUB_PATH"
+
+      # Build the runner explicitly so a runner build break is an isolated,
+      # legible failure rather than a confusing globalSetup error.
+      - name: Build unified runner
+        run: make build-runner
+
+      - name: Run execution conformance suite (local-go-execution)
+        env:
+          CONFORMANCE_TARGET: local-go-execution
+        run: npm run test:execution -w @stigmer/conformance
