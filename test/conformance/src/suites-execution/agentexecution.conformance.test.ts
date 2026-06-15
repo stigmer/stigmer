@@ -326,6 +326,12 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     await clients.agentExecutionCommand.resume({ id });
     await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
 
+    // Wait until the resumed turn is actually in-flight at the mock (two turns
+    // claimed: the original + the resumed one) before cancelling. Otherwise cancel
+    // can race ahead of the resumed LLM call, which then runs the held turn to
+    // completion and the execution settles COMPLETED instead of CANCELLED.
+    await expect.poll(() => mock.consumed(), { timeout: HOLD_MS, interval: 100 }).toBeGreaterThanOrEqual(2);
+
     // Settle the run before the next test.
     await clients.agentExecutionCommand.cancel({ id });
     await awaitPhase(clients, id, ExecutionPhase.EXECUTION_CANCELLED);

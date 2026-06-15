@@ -48,7 +48,10 @@ describe("NodeProcessHost (real spawn)", () => {
 
     await ready;
     expect(isProcessAlive(handle.pid)).toBe(true);
-    expect(readFileSync(logFile, "utf8")).toContain(RUNNER_READY_MARKER);
+    // The readiness marker is detected on the stdout stream, but the tee to the
+    // log file is a buffered write that may not have flushed to disk yet — poll
+    // the file rather than reading it once to avoid a race.
+    await expect.poll(() => readFileSync(logFile, "utf8")).toContain(RUNNER_READY_MARKER);
 
     handle.kill("SIGTERM");
     await exited;

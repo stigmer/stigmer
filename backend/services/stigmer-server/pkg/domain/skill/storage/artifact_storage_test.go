@@ -104,6 +104,27 @@ func TestLocalFileStorage_Get_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "artifact not found")
 }
 
+// TestLocalFileStorage_Get_PathTraversal verifies that Get() refuses keys that
+// escape the storage root via "../" traversal, returning a not-found error
+// instead of reading arbitrary files off the host.
+func TestLocalFileStorage_Get_PathTraversal(t *testing.T) {
+	tempDir := t.TempDir()
+	storage, err := NewLocalFileStorage(tempDir)
+	require.NoError(t, err)
+
+	traversalKeys := []string{
+		"../../../../etc/passwd",
+		"../../../etc/hosts",
+		"skills/../../../etc/passwd",
+		"/etc/passwd",
+	}
+	for _, key := range traversalKeys {
+		_, err := storage.Get(key)
+		require.Error(t, err, "traversal key %q must not succeed", key)
+		assert.Contains(t, err.Error(), "artifact not found", "traversal key %q must map to not-found", key)
+	}
+}
+
 // TestLocalFileStorage_Exists_True verifies that Exists() returns true
 // for artifacts that have been stored.
 func TestLocalFileStorage_Exists_True(t *testing.T) {
