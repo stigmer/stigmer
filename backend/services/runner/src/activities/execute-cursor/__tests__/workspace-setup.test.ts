@@ -43,15 +43,59 @@ function freshRoot(): string {
 const stigmerScript = (root: string) =>
   join(root, ".stigmer", "sessions", "ses-1", "hitl", "stigmer-approval.sh");
 
+// Single preToolUse registration — the common shape in these tests.
+const pre = (scriptPath: string) => [{ event: "preToolUse", scriptPath }];
+
 describe("buildMergedConfig", () => {
   it("writes a standalone config and restores by delete when no hooks.json exists", () => {
-    const { merged, restoreTo } = buildMergedConfig(null, "/abs/hitl/stigmer-approval.sh");
+    const { merged, restoreTo } = buildMergedConfig(null, pre("/abs/hitl/stigmer-approval.sh"));
     const parsed = JSON.parse(merged);
     expect(parsed.hooks.preToolUse).toHaveLength(1);
     expect(parsed.hooks.preToolUse[0].command).toBe("/abs/hitl/stigmer-approval.sh");
     expect(parsed.hooks.preToolUse[0].failClosed).toBe(true);
     // null restore target → teardown deletes the file we created.
     expect(restoreTo).toBeNull();
+  });
+
+  it("registers multiple events (preToolUse + beforeMCPExecution) and restores by delete", () => {
+    const { merged, restoreTo } = buildMergedConfig(null, [
+      { event: "preToolUse", scriptPath: "/abs/hitl/stigmer-approval.sh" },
+      { event: "beforeMCPExecution", scriptPath: "/abs/hitl/stigmer-mcp-capture.sh" },
+    ]);
+    const parsed = JSON.parse(merged);
+    expect(parsed.hooks.preToolUse[0].command).toBe("/abs/hitl/stigmer-approval.sh");
+    expect(parsed.hooks.beforeMCPExecution[0].command).toBe("/abs/hitl/stigmer-mcp-capture.sh");
+    expect(parsed.hooks.beforeMCPExecution[0].failClosed).toBe(true);
+    expect(restoreTo).toBeNull();
+  });
+
+  it("merges into both event arrays and strips stale Stigmer entries from each on restore", () => {
+    const root = "/abs";
+    const stalePre = join(root, ".stigmer", "sessions", "ses-1", "hitl", "stigmer-approval.sh");
+    const staleMcp = join(root, ".stigmer", "sessions", "ses-1", "hitl", "stigmer-mcp-capture.sh");
+    const original = JSON.stringify({
+      version: 1,
+      hooks: {
+        preToolUse: [{ command: "./user.sh" }, { command: stalePre, failClosed: true }],
+        beforeMCPExecution: [{ command: staleMcp, failClosed: true }],
+      },
+    });
+    const freshPre = join(root, ".stigmer", "sessions", "ses-2", "hitl", "stigmer-approval.sh");
+    const freshMcp = join(root, ".stigmer", "sessions", "ses-2", "hitl", "stigmer-mcp-capture.sh");
+
+    const { merged, restoreTo } = buildMergedConfig(original, [
+      { event: "preToolUse", scriptPath: freshPre },
+      { event: "beforeMCPExecution", scriptPath: freshMcp },
+    ]);
+
+    const m = JSON.parse(merged);
+    expect(m.hooks.preToolUse.map((e: any) => e.command)).toEqual(["./user.sh", freshPre]);
+    expect(m.hooks.beforeMCPExecution.map((e: any) => e.command)).toEqual([freshMcp]);
+
+    // Restore is self-healing: every stale Stigmer entry is removed from both.
+    const r = JSON.parse(restoreTo!);
+    expect(r.hooks.preToolUse).toEqual([{ command: "./user.sh" }]);
+    expect(r.hooks.beforeMCPExecution).toEqual([]);
   });
 
   it("merges with a user's hooks.json and restores the original bytes verbatim", () => {
@@ -67,7 +111,7 @@ describe("buildMergedConfig", () => {
       2,
     );
     const script = "/abs/.stigmer/sessions/ses-1/hitl/stigmer-approval.sh";
-    const { merged, restoreTo } = buildMergedConfig(original, script);
+    const { merged, restoreTo } = buildMergedConfig(original, pre(script));
     const parsed = JSON.parse(merged);
 
     // Our entry is appended; the user's preToolUse hook is preserved...
@@ -93,7 +137,7 @@ describe("buildMergedConfig", () => {
       },
     });
     const fresh = join(root, ".stigmer", "sessions", "ses-2", "hitl", "stigmer-approval.sh");
-    const { merged, restoreTo } = buildMergedConfig(original, fresh);
+    const { merged, restoreTo } = buildMergedConfig(original, pre(fresh));
 
     const mergedParsed = JSON.parse(merged);
     // No duplicate: user entry + exactly one fresh Stigmer entry.
@@ -109,7 +153,7 @@ describe("buildMergedConfig", () => {
 
   it("replaces an unparseable hooks.json for the turn but restores its exact bytes", () => {
     const garbage = "{ this is not json ";
-    const { merged, restoreTo } = buildMergedConfig(garbage, "/abs/hitl/stigmer-approval.sh");
+    const { merged, restoreTo } = buildMergedConfig(garbage, pre("/abs/hitl/stigmer-approval.sh"));
     // We still install a working gate for the turn...
     expect(JSON.parse(merged).hooks.preToolUse).toHaveLength(1);
     // ...and never "fix" the user's file: restore their exact original bytes.
@@ -147,6 +191,11 @@ describe("installHitlGate / removeHitlGate", () => {
     const command = hooksJson.hooks.preToolUse[0].command;
     expect(command).toBe(join(hitlDir, "stigmer-approval.sh"));
     expect(command.startsWith("/")).toBe(true);
+    // The SAME script gates MCP via beforeMCPExecution (preToolUse does not
+    // enforce MCP); the script branches internally on hook_event_name.
+    expect(hooksJson.hooks.beforeMCPExecution[0].command).toBe(
+      join(hitlDir, "stigmer-approval.sh"),
+    );
     // The workspace holds no relocated artifacts.
     expect(existsSync(join(workspaceRoot, ".cursor", "hooks"))).toBe(false);
   });

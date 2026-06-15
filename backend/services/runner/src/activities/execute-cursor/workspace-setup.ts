@@ -40,7 +40,22 @@ const CURSOR_DIR = ".cursor";
 const HOOKS_CONFIG_FILE = "hooks.json";
 const HOOK_SCRIPT_FILE = "stigmer-approval.sh";
 
-/** preToolUse hook timeout (seconds) — the script is a quick local decision. */
+/**
+ * Cursor hook events the gate registers, both pointing at the same script (which
+ * branches on `hook_event_name`). `preToolUse` gates built-in tools
+ * (Write/Shell/Delete); `beforeMCPExecution` is the only event Cursor enforces
+ * for MCP tool calls.
+ */
+const PRE_TOOL_USE_EVENT = "preToolUse";
+const BEFORE_MCP_EVENT = "beforeMCPExecution";
+
+/** One (event -> script) registration in `.cursor/hooks.json`. */
+interface HookRegistration {
+  event: string;
+  scriptPath: string;
+}
+
+/** Hook timeout (seconds) — each script is a quick local decision. */
 const HOOK_TIMEOUT_SECONDS = 10;
 
 /**
@@ -73,8 +88,14 @@ export async function installHitlGate(params: {
 }): Promise<HitlGateHandle> {
   const { workspaceRoot, hitlDir, approvalState, runnerPid } = params;
 
-  const scriptPath = await writeHitlArtifacts(hitlDir, approvalState, runnerPid);
-  return installWorkspaceHook(workspaceRoot, scriptPath);
+  const approvalScriptPath = await writeHitlArtifacts(hitlDir, approvalState, runnerPid);
+  // One script, two events: preToolUse gates built-ins; beforeMCPExecution is
+  // the only event Cursor enforces for MCP tools. The script branches internally
+  // on hook_event_name so MCP is gated in exactly one place.
+  return installWorkspaceHook(workspaceRoot, [
+    { event: PRE_TOOL_USE_EVENT, scriptPath: approvalScriptPath },
+    { event: BEFORE_MCP_EVENT, scriptPath: approvalScriptPath },
+  ]);
 }
 
 /**
@@ -117,15 +138,15 @@ async function writeHitlArtifacts(
   // HITL directory and Temporal activity retries.
   const ledgerFilePath = await resetDenialLedger(hitlDir);
 
-  const hookScriptPath = join(hitlDir, HOOK_SCRIPT_FILE);
+  const approvalScriptPath = join(hitlDir, HOOK_SCRIPT_FILE);
   await writeFile(
-    hookScriptPath,
+    approvalScriptPath,
     generateHookScript(stateFilePath, ledgerFilePath, runnerPid),
     "utf-8",
   );
-  await chmod(hookScriptPath, 0o755);
+  await chmod(approvalScriptPath, 0o755);
 
-  return hookScriptPath;
+  return approvalScriptPath;
 }
 
 /**
@@ -135,7 +156,7 @@ async function writeHitlArtifacts(
  */
 async function installWorkspaceHook(
   workspaceRoot: string,
-  scriptPath: string,
+  registrations: HookRegistration[],
 ): Promise<HitlGateHandle> {
   const cursorDir = join(workspaceRoot, CURSOR_DIR);
   const hooksJsonPath = join(cursorDir, HOOKS_CONFIG_FILE);
@@ -147,7 +168,7 @@ async function installWorkspaceHook(
     originalRaw = null;
   }
 
-  const { merged, restoreTo } = buildMergedConfig(originalRaw, scriptPath);
+  const { merged, restoreTo } = buildMergedConfig(originalRaw, registrations);
 
   await mkdir(cursorDir, { recursive: true });
   await writeFile(hooksJsonPath, merged, "utf-8");
@@ -156,17 +177,18 @@ async function installWorkspaceHook(
 }
 
 /**
- * The preToolUse entry the gate installs. Absolute `command` so the hook is
- * found regardless of which workspace root a multi-root IDE resolves against.
+ * A hook entry the gate installs. Absolute `command` so the hook is found
+ * regardless of which workspace root a multi-root IDE resolves against.
  */
 function buildHookEntry(scriptPath: string): Record<string, unknown> {
   return { command: scriptPath, timeout: HOOK_TIMEOUT_SECONDS, failClosed: true };
 }
 
 /**
- * Identify a preToolUse entry the gate itself wrote (in this or a prior,
- * crash-leftover turn) so a re-install never duplicates it and a restore strips
- * it. Matched by the unmistakable HITL script path, never by a user's own hook.
+ * Identify a hook entry the gate itself wrote (in this or a prior, crash-leftover
+ * turn) so a re-install never duplicates it and a restore strips it. Matched by
+ * the unmistakable runner-owned HITL script path (`~/.stigmer/sessions/.../*.sh`),
+ * never by a user's own hook — covers every event and every gate script.
  */
 function isStigmerHookEntry(entry: unknown): boolean {
   if (!entry || typeof entry !== "object") return false;
@@ -174,23 +196,47 @@ function isStigmerHookEntry(entry: unknown): boolean {
   return (
     typeof command === "string" &&
     command.includes("/.stigmer/sessions/") &&
-    command.endsWith(`/${HOOK_SCRIPT_FILE}`)
+    command.endsWith(".sh")
   );
 }
 
-const STANDALONE_CONFIG = (scriptPath: string): string =>
-  JSON.stringify(
-    { version: 1, hooks: { preToolUse: [buildHookEntry(scriptPath)] } },
-    null,
-    2,
-  );
+const STANDALONE_CONFIG = (registrations: HookRegistration[]): string =>
+  JSON.stringify({ version: 1, hooks: mergeHooks({}, registrations).hooks }, null, 2);
+
+/**
+ * Merge our registrations into a hooks object: for each event, drop any stale
+ * Stigmer entry, then append our fresh one. Returns the merged hooks object, the
+ * cleaned (Stigmer-free) hooks for restore, and whether anything was stripped.
+ */
+function mergeHooks(
+  existingHooks: Record<string, unknown>,
+  registrations: HookRegistration[],
+): { hooks: Record<string, unknown>; cleaned: Record<string, unknown>; strippedStale: boolean } {
+  const hooks: Record<string, unknown> = { ...existingHooks };
+  const cleaned: Record<string, unknown> = { ...existingHooks };
+  let strippedStale = false;
+
+  for (const { event, scriptPath } of registrations) {
+    const hadEvent = Array.isArray(existingHooks[event]);
+    const existing = hadEvent ? (existingHooks[event] as unknown[]) : [];
+    const userEntries = existing.filter((e) => !isStigmerHookEntry(e));
+    if (userEntries.length !== existing.length) strippedStale = true;
+
+    hooks[event] = [...userEntries, buildHookEntry(scriptPath)];
+    // Restore target keeps the event key only if the user originally had it, so
+    // we never leave behind an empty array the user never wrote.
+    if (hadEvent) cleaned[event] = userEntries;
+  }
+
+  return { hooks, cleaned, strippedStale };
+}
 
 /**
  * Compute the merged hooks.json to write for this turn and the content to
  * restore afterward.
  *
  * - No existing file → write our standalone config; restore by deleting (null).
- * - Existing, parseable file → append our entry to `hooks.preToolUse`,
+ * - Existing, parseable file → append our entry to each registered event array,
  *   preserving every other hook type and field; restore the user's original
  *   bytes. Any stale Stigmer entry from a prior crashed turn is stripped from
  *   BOTH the merged config (no duplicate) and the restore target (self-healing).
@@ -201,20 +247,20 @@ const STANDALONE_CONFIG = (scriptPath: string): string =>
  */
 export function buildMergedConfig(
   originalRaw: string | null,
-  scriptPath: string,
+  registrations: HookRegistration[],
 ): { merged: string; restoreTo: string | null } {
   if (originalRaw === null) {
-    return { merged: STANDALONE_CONFIG(scriptPath), restoreTo: null };
+    return { merged: STANDALONE_CONFIG(registrations), restoreTo: null };
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(originalRaw);
   } catch {
-    return { merged: STANDALONE_CONFIG(scriptPath), restoreTo: originalRaw };
+    return { merged: STANDALONE_CONFIG(registrations), restoreTo: originalRaw };
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return { merged: STANDALONE_CONFIG(scriptPath), restoreTo: originalRaw };
+    return { merged: STANDALONE_CONFIG(registrations), restoreTo: originalRaw };
   }
 
   const root = parsed as Record<string, unknown>;
@@ -222,30 +268,16 @@ export function buildMergedConfig(
     root.hooks && typeof root.hooks === "object" && !Array.isArray(root.hooks)
       ? (root.hooks as Record<string, unknown>)
       : {};
-  const existingPreToolUse = Array.isArray(hooks.preToolUse) ? hooks.preToolUse : [];
-  const userEntries = existingPreToolUse.filter((e) => !isStigmerHookEntry(e));
-  const strippedStale = userEntries.length !== existingPreToolUse.length;
-
   const version = typeof root.version === "number" ? root.version : 1;
 
-  const merged = JSON.stringify(
-    {
-      ...root,
-      version,
-      hooks: { ...hooks, preToolUse: [...userEntries, buildHookEntry(scriptPath)] },
-    },
-    null,
-    2,
-  );
+  const { hooks: mergedHooks, cleaned, strippedStale } = mergeHooks(hooks, registrations);
+
+  const merged = JSON.stringify({ ...root, version, hooks: mergedHooks }, null, 2);
 
   // Restore the user's exact original bytes — unless we stripped a stale Stigmer
   // entry, in which case restore the cleaned form so our leftover never lingers.
   const restoreTo = strippedStale
-    ? JSON.stringify(
-        { ...root, version, hooks: { ...hooks, preToolUse: userEntries } },
-        null,
-        2,
-      )
+    ? JSON.stringify({ ...root, version, hooks: cleaned }, null, 2)
     : originalRaw;
 
   return { merged, restoreTo };

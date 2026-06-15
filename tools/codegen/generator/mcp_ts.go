@@ -109,23 +109,23 @@ const (
 // Go-typed representation into the leaf kind + cardinality the zod/type/toProto
 // emitters need.
 type tsField struct {
-	key        string // snake_case proto field name (the MCP input key, Go-parity)
-	camel      string // camelCase proto field name (protobuf-es localName)
-	required   bool
-	desc       string
-	coll       tsCollection
-	expanded   bool // workflow task_config expansion sibling field
+	key      string // snake_case proto field name (the MCP input key, Go-parity)
+	camel    string // camelCase proto field name (protobuf-es localName)
+	required bool
+	desc     string
+	coll     tsCollection
+	expanded bool // workflow task_config expansion sibling field
 
 	// Exactly one leaf classification is set.
-	nested    *mcpInputType // message or reference input type
-	isRef     bool
-	refEnum   string
+	nested       *mcpInputType // message or reference input type
+	isRef        bool
+	refEnum      string
 	refVersioned bool
-	enumType  string // fully-qualified proto enum type
-	isStruct  bool
-	isTimestamp bool
-	scalar    string // scalar leaf goType when none of the above
-	isInt64   bool
+	enumType     string // fully-qualified proto enum type
+	isStruct     bool
+	isTimestamp  bool
+	scalar       string // scalar leaf goType when none of the above
+	isInt64      bool
 
 	oneof string // real (non-synthetic) oneof group, camelCase wrapper name
 }
