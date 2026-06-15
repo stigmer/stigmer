@@ -46,7 +46,7 @@ export interface ArtifactPreviewContentProps {
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
-   * Optional "Implement" action. When provided, an Implement primary
+   * Optional plan-build action. When provided, a "Build from plan" primary
    * button appears in the action bar (used for plan artifacts: turn the
    * plan into an Agent run). Clicking it calls `onImplement` then closes
    * the modal. Omit for non-actionable artifacts.
@@ -227,9 +227,9 @@ export function ArtifactPreviewContent({
     ctaLabel = `Push Skill to ${org}`;
   }
 
-  // Implement runs the plan; closing the modal lets the host's submit pipeline
-  // take over (switch to Agent + send). Single combined handler keeps the
-  // caller's contract simple ("just give me onImplement").
+  // "Build from plan" runs the plan; closing the modal lets the host's submit
+  // pipeline take over (switch to Agent + send). Single combined handler keeps
+  // the caller's contract simple ("just give me onImplement").
   const handleImplement = useCallback(() => {
     onImplement?.();
     onClose();
@@ -326,8 +326,8 @@ export interface ArtifactPreviewModalProps {
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
-   * Optional "Implement" action (see {@link ArtifactPreviewContentProps.onImplement}).
-   * When provided, an Implement primary button appears; clicking it calls
+   * Optional plan-build action (see {@link ArtifactPreviewContentProps.onImplement}).
+   * When provided, a "Build from plan" primary button appears; clicking it calls
    * `onImplement` then closes the modal.
    */
   readonly onImplement?: () => void;
@@ -695,7 +695,7 @@ function ActionBar({
             )}
           >
             <ImplementIcon />
-            Implement
+            Build from plan
           </button>
         )}
         {applyResult ? (

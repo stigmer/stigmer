@@ -476,10 +476,10 @@ describe("MessageThread", () => {
       />,
     );
 
-    const implementBtn = screen.getByRole("button", { name: /implement/i });
-    expect(implementBtn).toBeTruthy();
+    const buildBtn = screen.getByRole("button", { name: /build from plan/i });
+    expect(buildBtn).toBeTruthy();
 
-    fireEvent.click(implementBtn);
+    fireEvent.click(buildBtn);
     expect(onBuildFromPlan).toHaveBeenCalledOnce();
   });
 });

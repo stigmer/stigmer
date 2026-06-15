@@ -2,10 +2,11 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
+import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey";
 
 /** Props for {@link PlanCompletionCard}. */
 export interface PlanCompletionCardProps {
-  /** Called when the user clicks the "Implement" button. */
+  /** Called when the user clicks the "Build from plan" button. */
   readonly onImplement?: () => void;
   /** Disables the CTA button (e.g., while an execution is active). */
   readonly disabled?: boolean;
@@ -14,37 +15,43 @@ export interface PlanCompletionCardProps {
 }
 
 /**
- * Inline CTA card shown in the {@link MessageThread} after a completed
- * Plan-mode execution.
+ * Fallback CTA shown in the {@link MessageThread} after a completed Plan-mode
+ * execution that did **not** publish a `plan.md` artifact (older executions, or
+ * a plan whose upload failed). When a plan artifact exists, the richer
+ * {@link PlanArtifactCard} is shown instead.
  *
- * Offers a single "Implement" action that the consumer wires to switch
- * the interaction mode to Agent, pre-fill the composer, and focus it.
+ * Mirrors `PlanArtifactCard`'s hierarchy — one prominent, themeable "Build from
+ * plan" primary action with the same card-scoped `Cmd/Ctrl+Enter` accelerator —
+ * so the two cards feel like the same affordance. The consumer wires the action
+ * to switch the interaction mode to Agent and submit the implement turn.
  *
- * Renders nothing when `onImplement` is not provided, so the card is
- * fully opt-in from the consumer's perspective.
- *
- * All visual properties flow through `--stgm-*` tokens.
+ * Renders nothing when `onImplement` is not provided, so the card is fully
+ * opt-in from the consumer's perspective. All visual properties flow through
+ * `--stgm-*` tokens.
  */
 export const PlanCompletionCard = memo(function PlanCompletionCard({
   onImplement,
   disabled,
   className,
 }: PlanCompletionCardProps) {
+  const handleKeyDown = useBuildFromPlanHotkey(onImplement, disabled);
+
   if (!onImplement) return null;
 
   return (
     <div
       role="status"
       aria-label="Plan complete"
+      onKeyDown={handleKeyDown}
       className={cn(
-        "mx-4 flex items-center gap-3 rounded-md border border-border/50",
-        "bg-muted/30 px-3 py-2.5",
+        "mx-4 flex items-center gap-3 rounded-md border border-border-muted",
+        "bg-muted-faint px-3 py-2.5",
         className,
       )}
     >
       <PlanCompleteIcon />
       <span className="min-w-0 flex-1 text-xs font-medium text-muted-foreground">
-        Plan complete — ready to implement?
+        Plan complete — ready to build?
       </span>
       <button
         type="button"
@@ -60,7 +67,7 @@ export const PlanCompletionCard = memo(function PlanCompletionCard({
         )}
       >
         <ImplementIcon />
-        Implement
+        Build from plan
       </button>
     </div>
   );

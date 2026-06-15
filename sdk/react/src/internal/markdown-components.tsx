@@ -27,6 +27,42 @@ export function stripFrontmatter(content: string): string {
 }
 
 /**
+ * Matches content whose ENTIRE body is a single fenced code block tagged
+ * `markdown` / `md`. Capture group 1 is the opening backtick run (so the close
+ * must use the same run via the `\1` backreference); group 2 is the inner body.
+ *
+ * Deliberately strict: the info string must be exactly `markdown`/`md` and the
+ * fence must span the whole (trimmed) string. A bare ``` ``` ``` fence is NOT
+ * matched — without the explicit language tag we cannot tell wrapped markdown
+ * from a legitimate single code block, and guessing by inspecting the body is
+ * the kind of fuzzy heuristic this codebase avoids.
+ */
+const ENCLOSING_MARKDOWN_FENCE_RE =
+  /^(`{3,})[ \t]*(?:markdown|md)[ \t]*\r?\n([\s\S]*?)\r?\n\1[ \t]*$/i;
+
+/**
+ * Unwraps a message the model wrapped entirely in a ```markdown / ```md fence.
+ *
+ * Some models emit their whole markdown reply inside one fenced block (a
+ * Plan-mode plan is the common case). Rendered as-is that becomes a single flat
+ * code block instead of rich markdown — headings, lists, and tables collapse to
+ * monospace text. This returns the inner markdown in exactly that case and is a
+ * no-op for everything else (already-rich markdown, prose, or a reply that is
+ * legitimately a single code block).
+ *
+ * Render-time only: callers pass it the text right before handing it to the
+ * markdown renderer, so the transcript and the raw artifact stay faithful to
+ * what the agent produced — a single source of truth for the unwrap, with no
+ * duplicated logic in the runner. While streaming, the closing fence has not
+ * arrived yet, so this no-ops and the live text renders as typed; it unwraps
+ * once the block closes.
+ */
+export function unwrapEnclosingMarkdownFence(content: string): string {
+  const match = ENCLOSING_MARKDOWN_FENCE_RE.exec(content.trim());
+  return match ? match[2] : content;
+}
+
+/**
  * Styled react-markdown component overrides for SDK markdown surfaces.
  *
  * Every element uses `--stgm-*` design tokens via Tailwind semantic classes,

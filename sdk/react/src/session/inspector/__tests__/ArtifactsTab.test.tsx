@@ -58,32 +58,32 @@ function openPreviewFor(name: string) {
 
 afterEach(cleanup);
 
-describe("ArtifactsTab — plan Implement wiring", () => {
-  it("shows Implement in the preview of a plan.md artifact", () => {
+describe("ArtifactsTab — plan 'Build from plan' wiring", () => {
+  it("shows 'Build from plan' in the preview of a plan.md artifact", () => {
     renderTab(vi.fn());
 
     openPreviewFor("plan.md");
 
     const dialog = document.querySelector("dialog")!;
-    expect(within(dialog).getByText("Implement")).toBeTruthy();
+    expect(within(dialog).getByText("Build from plan")).toBeTruthy();
   });
 
-  it("does not show Implement in the preview of a non-plan artifact", () => {
+  it("does not show 'Build from plan' in the preview of a non-plan artifact", () => {
     renderTab(vi.fn());
 
     openPreviewFor("notes.md");
 
     const dialog = document.querySelector("dialog")!;
-    expect(within(dialog).queryByText("Implement")).toBeNull();
+    expect(within(dialog).queryByText("Build from plan")).toBeNull();
   });
 
-  it("invokes onImplementPlan when Implement is clicked for a plan", () => {
+  it("invokes onImplementPlan when 'Build from plan' is clicked for a plan", () => {
     const onImplementPlan = vi.fn();
     renderTab(onImplementPlan);
 
     openPreviewFor("plan.md");
     const dialog = document.querySelector("dialog")!;
-    fireEvent.click(within(dialog).getByText("Implement"));
+    fireEvent.click(within(dialog).getByText("Build from plan"));
 
     expect(onImplementPlan).toHaveBeenCalledTimes(1);
   });
