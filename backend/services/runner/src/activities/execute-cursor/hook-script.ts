@@ -1,15 +1,23 @@
 /**
- * Template for the preToolUse hook script that Cursor spawns.
+ * Template for the approval hook script that Cursor spawns.
  *
- * This module doesn't execute as a hook itself — it generates the shell
- * script that is written to .cursor/hooks/stigmer-approval.sh. That script
- * is invoked by Cursor for every tool call via the preToolUse hook.
+ * This module doesn't execute as a hook itself — it generates the shell script
+ * written to the HITL dir as stigmer-approval.sh. Cursor invokes that ONE script
+ * for TWO events (registered in .cursor/hooks.json by workspace-setup.ts):
+ *   - `preToolUse`         — fires for built-in tools (Write/Shell/Delete/…).
+ *   - `beforeMCPExecution` — the only event Cursor enforces for MCP tool calls;
+ *                            `preToolUse` does NOT gate MCP (confirmed by a live
+ *                            payload capture). MCP is therefore gated in exactly
+ *                            ONE place, so a denial is never double-recorded.
+ * The script branches on the payload's `hook_event_name`: MCP tools are gated on
+ * the beforeMCPExecution invocation, built-ins on the preToolUse invocation.
  *
  * The hook script:
  * 1. Reads the tool call JSON from stdin
  * 2. Reads the approval state JSON file written by the cursor-runner
- * 3. Evaluates the policy: auto-approve, approved grants (reinvocation),
- *    gated built-in tools, MCP require-approval policies
+ * 3. Evaluates the policy: auto-approve, approved grants (reinvocation), then —
+ *    by event — gated built-in tools (preToolUse) or MCP require-approval
+ *    policies (beforeMCPExecution)
  * 4. On a deny, appends the call's identity token to the denial ledger
  *    (stigmer-denials.jsonl) so the runner can mark the gated tool call as
  *    WAITING_APPROVAL — the hook is the only place the deny decision is made,
@@ -49,23 +57,35 @@
  * Policy evaluation order (first match wins). The model is "gate the dangerous
  * set, allow the rest" — matching the native harness and avoiding denial of
  * auto-approved MCP tools (which are absent from mcpToolPolicies):
- * 1. autoApproveAll → allow
- * 2. Gated built-in (category non-empty):
+ * 0. Scope guard: not the runner's own agent → allow (never touch the ledger)
+ * 1. Missing state file → deny (fail-closed); autoApproveAll → allow
+ * 2. beforeMCPExecution event → MCP tool present in mcpToolPolicies
+ *    (require-approval):
+ *    a. name token in approvedGrantTokens → allow (reinvocation grant)
+ *    b. otherwise → record denial, deny
+ *    (auto-approved / unlisted MCP tools fall through → allow)
+ * 3. preToolUse event → gated built-in (category non-empty):
  *    a. identity token in approvedGrantTokens → allow (reinvocation grant)
  *    b. otherwise → record denial, deny
- * 3. MCP tool present in mcpToolPolicies (require-approval):
- *    a. name token in approvedGrantTokens → allow
- *    b. otherwise → record denial, deny
- * 4. Everything else (read-only built-ins, auto-approved MCP, unknown) → allow
+ *    (read-only / ungated built-ins fall through → allow)
  */
 
 import { SALIENT_ARG_FIELDS, getBuiltInGatedCategories } from "./approval-policy.js";
 
+// Shown to the model when the gate denies a tool call. It must NOT teach the
+// model to ask for permission in prose or to "stop and wait" — that framing
+// makes the model narrate approval requests instead of invoking tools (the
+// platform's approval surface is driven by tool invocation; see
+// formatToolApprovalProtocol in prompt-builder.ts). Instead it tells the model
+// the approval is automatic and that it should not retry or work around THIS
+// action. Embedded verbatim into the generated hook script inside a
+// single-quoted bash echo of a JSON object, so the text must contain no double
+// quotes, apostrophes, or backslashes.
 const APPROVAL_REQUIRED_AGENT_MESSAGE =
-  "STIGMER_APPROVAL_REQUIRED: This tool call requires user approval before " +
-  "execution. Do not attempt alternative approaches or workarounds (including " +
-  "shell commands). Stop and wait — the execution will resume after the user " +
-  "reviews and approves this tool call.";
+  "This action has been submitted to the user for approval automatically; you " +
+  "do not need to ask for permission. Do not retry it or attempt a workaround " +
+  "for this action. The platform will resume you automatically after the user " +
+  "responds — continue with the rest of the task.";
 
 /**
  * Build the bash `case` arms that map an incoming hook `tool_name` to its
@@ -91,9 +111,11 @@ function buildCategoryCaseArms(): string {
  * Build the inline Node.js identity extractor embedded in the hook script.
  *
  * Parses the hook's stdin JSON properly (the bash fallback's grep truncates
- * string values at the first escaped quote) and emits four lines:
- * tool_name, canonical category, identity token, and MCP name-token. The token
- * encodings must stay byte-identical to grantToken() in approval-state.ts.
+ * string values at the first escaped quote) and emits five lines: tool_name,
+ * canonical category, identity token, MCP name-token, and hook_event_name (the
+ * event discriminator: `preToolUse` for built-ins, `beforeMCPExecution` for MCP).
+ * The token encodings must stay byte-identical to grantToken() in
+ * approval-state.ts.
  *
  * Authored as a single-quoted bash string, so the JS must not contain single
  * quotes. The category map and salient field list are baked from
@@ -115,7 +137,8 @@ function buildNodeIdentityScript(): string {
     `let s="";`,
     `for(const f of ${fields}){const v=a[f];if(typeof v==="string"&&v){s=v;break;}}`,
     `const b=(x)=>Buffer.from(x,"utf8").toString("base64");`,
-    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n"));`,
+    `const ev=typeof t.hook_event_name==="string"?t.hook_event_name:"";`,
+    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n")+"\\n"+ev);`,
   ].join("");
 }
 
@@ -156,13 +179,15 @@ export function generateHookScript(
   const categoryCaseArms = buildCategoryCaseArms();
   const nodeIdentityScript = buildNodeIdentityScript();
   return `#!/bin/bash
-# Stigmer HITL approval hook for Cursor preToolUse
+# Stigmer HITL approval hook for Cursor (preToolUse + beforeMCPExecution).
 # Generated by cursor-runner — do not edit manually.
 #
-# Reads tool call from stdin (JSON), checks approval state file, returns a
-# permission decision on stdout (JSON). On a deny, appends the call's canonical
-# identity token to the denial ledger so the runner can mark the gated tool call
-# as WAITING_APPROVAL. See hook-script.ts for the cross-taxonomy identity design.
+# Reads a tool call from stdin (JSON), checks the approval state file, returns a
+# permission decision on stdout (JSON). Branches on hook_event_name: MCP tools
+# are gated on beforeMCPExecution, built-ins on preToolUse (preToolUse does not
+# enforce MCP). On a deny, appends the call's canonical identity token to the
+# denial ledger so the runner can mark the gated tool call as WAITING_APPROVAL.
+# See hook-script.ts for the cross-taxonomy identity design.
 
 set -euo pipefail
 
@@ -219,6 +244,7 @@ if [ -n "$IDENTITY" ]; then
   CATEGORY=$(printf '%s\\n' "$IDENTITY" | sed -n 2p)
   TOKEN=$(printf '%s\\n' "$IDENTITY" | sed -n 3p)
   MCP_TOKEN=$(printf '%s\\n' "$IDENTITY" | sed -n 4p)
+  HOOK_EVENT=$(printf '%s\\n' "$IDENTITY" | sed -n 5p)
 else
   # Fallback when the Node binary cannot run: grep/cut extraction. Best-effort
   # only — '"field":"[^"]*"' truncates at the first JSON-escaped quote, so the
@@ -227,6 +253,7 @@ else
   # Every extraction ends with '|| true': under 'set -e' a non-matching grep
   # would otherwise abort the script and emit no decision.
   TOOL_NAME=$(echo "$INPUT" | grep -o '"tool_name":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+  HOOK_EVENT=$(echo "$INPUT" | grep -o '"hook_event_name":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
   SALIENT=""
   for field in ${salientFields}; do
     v=$(echo "$INPUT" | grep -o "\\"$field\\":\\"[^\\"]*\\"" | head -1 | cut -d'"' -f4 || true)
@@ -262,7 +289,37 @@ record_denial() {
   echo '{"toolName":"'"$TOOL_NAME"'","token":"'"$1"'"}' >> "$LEDGER_FILE" 2>/dev/null || true
 }
 
-# --- 2. Gated built-in tools (category non-empty) ---
+# --- 2. MCP tools (beforeMCPExecution event) ---
+# preToolUse does NOT enforce gating for MCP calls — beforeMCPExecution does — so
+# MCP is gated here and ONLY here (never double-recorded). mcpToolPolicies holds
+# only require-approval tools (auto-approved MCP tools are absent), so presence
+# means "deny" unless an entry is explicitly false. MCP tool names are consistent
+# across the hook and the stream, so the identity token is name-only:
+# base64("$TOOL_NAME\\n").
+if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
+  if echo "$STATE" | grep -q "\\"mcpToolPolicies\\"" && [ -n "$TOOL_NAME" ]; then
+    TOOL_POLICY=$(echo "$STATE" | grep -o "\\"$TOOL_NAME\\":{[^}]*}" | head -1 || true)
+    if [ -n "$TOOL_POLICY" ] && ! echo "$TOOL_POLICY" | grep -q '"requiresApproval":false'; then
+      # Reinvocation grant: this tool was approved earlier → allow.
+      if echo "$STATE" | grep -qF "\\"$MCP_TOKEN\\""; then
+        echo '{"permission":"allow"}'
+        exit 0
+      fi
+      MSG=$(echo "$TOOL_POLICY" | grep -o '"message":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+      if [ -z "$MSG" ]; then
+        MSG="Tool requires approval: $TOOL_NAME"
+      fi
+      record_denial "$MCP_TOKEN"
+      echo '{"permission":"deny","agent_message":"${APPROVAL_REQUIRED_AGENT_MESSAGE}","user_message":"'"$MSG"'"}'
+      exit 0
+    fi
+  fi
+  # Auto-approved or unlisted MCP tool → allow.
+  echo '{"permission":"allow"}'
+  exit 0
+fi
+
+# --- 3. Gated built-in tools (preToolUse event, category non-empty) ---
 if [ -n "$CATEGORY" ]; then
   # Reinvocation grant: this exact resource was approved earlier → allow.
   if echo "$STATE" | grep -qF "\\"$TOKEN\\""; then
@@ -274,32 +331,9 @@ if [ -n "$CATEGORY" ]; then
   exit 0
 fi
 
-# --- 3. MCP tools that require approval → deny ---
-# mcpToolPolicies holds only require-approval tools (auto-approved MCP tools are
-# absent), so presence means "deny" unless an entry is explicitly false. MCP tool
-# names are consistent across the hook and the stream, so the identity token is
-# name-only: base64("$TOOL_NAME\\n").
-if echo "$STATE" | grep -q "\\"mcpToolPolicies\\"" && [ -n "$TOOL_NAME" ]; then
-  TOOL_POLICY=$(echo "$STATE" | grep -o "\\"$TOOL_NAME\\":{[^}]*}" | head -1 || true)
-  if [ -n "$TOOL_POLICY" ] && ! echo "$TOOL_POLICY" | grep -q '"requiresApproval":false'; then
-    if echo "$STATE" | grep -qF "\\"$MCP_TOKEN\\""; then
-      echo '{"permission":"allow"}'
-      exit 0
-    fi
-    MSG=$(echo "$TOOL_POLICY" | grep -o '"message":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
-    if [ -z "$MSG" ]; then
-      MSG="Tool requires approval: $TOOL_NAME"
-    fi
-    record_denial "$MCP_TOKEN"
-    echo '{"permission":"deny","agent_message":"${APPROVAL_REQUIRED_AGENT_MESSAGE}","user_message":"'"$MSG"'"}'
-    exit 0
-  fi
-fi
-
 # --- 4. Everything else → allow ---
-# Read-only built-ins, auto-approved MCP tools, and anything not explicitly
-# gated. Fail-open mirrors the native harness (gate the dangerous set, allow the
-# rest) and prevents denying auto-approved MCP tools the state cannot enumerate.
+# Read-only built-ins and anything not explicitly gated. Fail-open mirrors the
+# native harness (gate the dangerous set, allow the rest).
 echo '{"permission":"allow"}'
 exit 0
 `;

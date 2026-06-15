@@ -14,6 +14,7 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 
 import { buildPrompt } from "../index.js";
 import type { BuildPromptInput } from "../index.js";
+import { buildReinvocationPrompt, formatToolApprovalProtocol } from "../prompt-builder.js";
 import type { AgentResolution, AgentResolutionReason } from "../session-lifecycle.js";
 
 const USER_MESSAGE = "What was the secret token I told you?";
@@ -107,5 +108,78 @@ describe("buildPrompt", () => {
     expect(prompt).toContain("Write file: gated.txt");
     // The opaque tool-call id must not leak into the prompt.
     expect(prompt).not.toContain("tool-call-1");
+  });
+});
+
+describe("tool-approval protocol injection", () => {
+  it("includes the tool-approval protocol on the first execution", () => {
+    const prompt = buildPrompt(
+      input({ resolution: resolution("local", "created_first_execution") }),
+    );
+    expect(prompt).toContain("<tool_approval_protocol>");
+    // The decisive override against a server's "ask first" guidance.
+    expect(prompt).toContain("calling the appropriate tool directly");
+    expect(prompt).toContain("Invoke the tool and let the platform");
+  });
+
+  it("places the protocol after the agent instructions, before the user request", () => {
+    const prompt = buildPrompt(
+      input({ resolution: resolution("local", "created_first_execution") }),
+    );
+    const protocolIdx = prompt.indexOf("<tool_approval_protocol>");
+    const requestIdx = prompt.indexOf("<user_request>");
+    expect(protocolIdx).toBeGreaterThan(prompt.indexOf("<agent_instructions>"));
+    expect(protocolIdx).toBeLessThan(requestIdx);
+  });
+
+  it("also injects the protocol for a fresh agent after a resume failure", () => {
+    const prompt = buildPrompt(
+      input({ resolution: resolution("local", "created_after_resume_failure") }),
+    );
+    expect(prompt).toContain("<tool_approval_protocol>");
+  });
+});
+
+describe("formatToolApprovalProtocol", () => {
+  it("instructs the agent to invoke tools and never ask for permission in prose", () => {
+    const section = formatToolApprovalProtocol();
+    expect(section).toContain("<tool_approval_protocol>");
+    expect(section).toContain("</tool_approval_protocol>");
+    expect(section.toLowerCase()).toContain("never ask the");
+    // Explicit override of MCP-server "confirm before acting" guidance.
+    expect(section.toLowerCase()).toContain("even if a tool or mcp server");
+    expect(section).toContain("Invoke the tool and let the platform");
+  });
+
+  it("contains no characters that would break the prompt assembly", () => {
+    // Sanity: the protocol is plain prose joined into the user-message prompt.
+    expect(formatToolApprovalProtocol()).not.toContain("undefined");
+  });
+});
+
+describe("buildReinvocationPrompt", () => {
+  function pending(toolCallId: string, message: string) {
+    return create(PendingApprovalSchema, { toolCallId, toolName: "Write", message });
+  }
+
+  it("tells the agent to carry out approved actions and keep invoking tools", () => {
+    const decisions = new Map<string, ApprovalAction>([
+      ["tc-1", ApprovalAction.APPROVE],
+    ]);
+    const prompt = buildReinvocationPrompt([pending("tc-1", "Write file: a.txt")], decisions);
+    expect(prompt).toContain("APPROVED");
+    expect(prompt).toContain("Write file: a.txt");
+    // The continuation + override directive must be present.
+    expect(prompt).toContain("Continue the rest of the task");
+    expect(prompt.toLowerCase()).toContain("do not ask the user for permission in prose");
+  });
+
+  it("still carries the continuation/override when every action was skipped", () => {
+    const decisions = new Map<string, ApprovalAction>([
+      ["tc-1", ApprovalAction.SKIP],
+    ]);
+    const prompt = buildReinvocationPrompt([pending("tc-1", "Write file: a.txt")], decisions);
+    expect(prompt).toContain("SKIPPED");
+    expect(prompt).toContain("Continue the rest of the task");
   });
 });

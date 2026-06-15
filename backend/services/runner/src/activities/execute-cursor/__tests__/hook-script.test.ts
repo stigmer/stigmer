@@ -89,13 +89,26 @@ function setup(opts: {
   };
 }
 
-// Real hook-input shapes (PascalCase name, file_path/command in tool_input).
+// Real preToolUse hook-input shapes (PascalCase name, file_path/command in
+// tool_input). These omit hook_event_name on purpose: a payload with no event
+// must still take the built-in arm (the script only diverts to the MCP arm on an
+// explicit beforeMCPExecution).
 const hookWrite = (filePath: string) => ({ tool_name: "Write", tool_input: { file_path: filePath, content: "x" } });
 const hookShell = (command: string) => ({ tool_name: "Shell", tool_input: { command, cwd: "/x", timeout: 30000 } });
 const hookDelete = (filePath: string) => ({ tool_name: "Delete", tool_input: { file_path: filePath } });
 const hookRead = (filePath: string) => ({ tool_name: "Read", tool_input: { file_path: filePath } });
 
-d("generated preToolUse hook", () => {
+// Real beforeMCPExecution shape (captured live): bare tool_name, tool_input as a
+// JSON STRING, server identity, and the hook_event_name discriminator.
+const hookMcp = (name: string, input: Record<string, unknown> = {}) => ({
+  tool_name: name,
+  tool_input: JSON.stringify(input),
+  mcp_server_name: "srv",
+  command: "npx -y srv mcp",
+  hook_event_name: "beforeMCPExecution",
+});
+
+d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
   it("denies gated built-ins (Write/Shell/Delete) and records a category+salient token", () => {
     const h = setup({});
 
@@ -134,22 +147,84 @@ d("generated preToolUse hook", () => {
     expect(h.decide(hookWrite("/x/OTHER.txt")).permission).toBe("deny");
   });
 
-  it("denies require-approval MCP tools and allows them once granted (name-only)", () => {
-    const mcpPolicies = { apply_x: { requiresApproval: true, message: "Apply X" } };
-    const denyH = setup({ mcpPolicies });
-    expect(denyH.decide({ tool_name: "apply_x", tool_input: {} }).permission).toBe("deny");
-    expect(denyH.ledger()[0].token).toBe(grantToken("apply_x", ""));
-
-    const grantH = setup({
-      mcpPolicies,
-      grants: [{ toolName: "apply_x", mcpServerSlug: "srv", key: "apply_x", salient: "" }],
-    });
-    expect(grantH.decide({ tool_name: "apply_x", tool_input: {} }).permission).toBe("allow");
-  });
-
   it("fails closed (deny) when the state file is missing", () => {
     const h = setup({ noStateFile: true });
     expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("deny");
+  });
+
+  // MCP gating runs ONLY on the beforeMCPExecution event (preToolUse does not
+  // enforce MCP), so a denial is recorded in exactly one place. The identity is
+  // name-only (base64("<tool>\n")) because the bare tool name is identical on the
+  // hook input and the runner's stream event.
+  describe("MCP tools (beforeMCPExecution event)", () => {
+    it("denies a require-approval MCP tool and surfaces its policy message", () => {
+      const h = setup({ mcpPolicies: { click: { requiresApproval: true, message: "Approve click?" } } });
+      const res = h.decide(hookMcp("click", { app: "Slack", element_index: "59" }));
+      expect(res.permission).toBe("deny");
+      expect(res.raw).toContain("Approve click?");
+      expect(h.ledger()).toHaveLength(1);
+      expect(h.ledger()[0].token).toBe(grantToken("click", ""));
+    });
+
+    it("denial agent_message frames approval as automatic and never trains ask-in-prose", () => {
+      const h = setup({ mcpPolicies: { click: { requiresApproval: true, message: "Approve click?" } } });
+      const res = h.decide(hookMcp("click"));
+      // The agent_message must tell the model approval is handled automatically
+      // and that it should continue, NOT stop and wait or ask for permission.
+      expect(res.raw).toContain("submitted to the user for approval automatically");
+      expect(res.raw).toContain("continue with the rest of the task");
+      // The old propose-then-wait framing and internal sentinel must be gone.
+      expect(res.raw).not.toContain("STIGMER_APPROVAL_REQUIRED");
+      expect(res.raw).not.toContain("Stop and wait");
+    });
+
+    it("allows a require-approval MCP tool once it has been granted (reinvocation)", () => {
+      const h = setup({
+        mcpPolicies: { click: { requiresApproval: true } },
+        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "" }],
+      });
+      expect(h.decide(hookMcp("click")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("allows an auto-approved MCP tool (absent from mcpToolPolicies)", () => {
+      const h = setup({ mcpPolicies: { click: { requiresApproval: true } } });
+      expect(h.decide(hookMcp("list_apps")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("allows an MCP tool whose policy is explicitly requiresApproval:false", () => {
+      const h = setup({ mcpPolicies: { click: { requiresApproval: false } } });
+      expect(h.decide(hookMcp("click")).permission).toBe("allow");
+    });
+
+    it("auto-approve-all allows a require-approval MCP tool", () => {
+      const h = setup({ autoApproveAll: true, mcpPolicies: { click: { requiresApproval: true } } });
+      expect(h.decide(hookMcp("click")).permission).toBe("allow");
+    });
+
+    it("fails closed (deny) when the state file is missing", () => {
+      const h = setup({ noStateFile: true });
+      expect(h.decide(hookMcp("click")).permission).toBe("deny");
+    });
+
+    it("does NOT gate the same MCP tool delivered on preToolUse (no double-gating)", () => {
+      const h = setup({ mcpPolicies: { click: { requiresApproval: true } } });
+      // preToolUse must fall through to allow for MCP — gating belongs to
+      // beforeMCPExecution alone, so the denial is never recorded twice.
+      const res = h.decide({ tool_name: "click", tool_input: "{}", hook_event_name: "preToolUse" });
+      expect(res.permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("scope guard: a foreign MCP invocation is allowed and never recorded", () => {
+      const h = setup({
+        mcpPolicies: { click: { requiresApproval: true } },
+        runnerPid: 2_147_483_600,
+      });
+      expect(h.decide(hookMcp("click")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
   });
 
   // Regression: the original grep-based extraction truncated string values at
