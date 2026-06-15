@@ -49,9 +49,24 @@ stigmer-runner-host = { version = "0.1", features = ["tauri"] }
 Manage a `RunnerState` and register the nine commands (`start_runner`, `stop_runner`,
 `kill_runner`, `add_session`, `remove_session`, `add_workflow_execution`,
 `remove_workflow_execution`, `update_runner_token`, `runner_status`) in
-`tauri::generate_handler!`. Reap the runner on app exit by calling `RunnerState::stop()`
-(graceful) or `RunnerState::kill()` (immediate) from your `RunEvent::Exit` handler — relying
-on `kill_on_drop` alone is a soft guarantee.
+`tauri::generate_handler!`.
+
+Reap the runner on app exit from your `RunEvent::Exit` handler with `RunnerState::kill()` —
+relying on `kill_on_drop` alone is only a soft guarantee:
+
+```rust
+app.run(|app_handle, event| {
+    if let tauri::RunEvent::Exit = event {
+        tauri::async_runtime::block_on(app_handle.state::<RunnerState>().kill());
+    }
+});
+```
+
+Use `kill()`, **not** `stop()`, on the exit path. `stop()` is a *graceful* shutdown whose
+bounded wait relies on the tokio time driver — which is no longer pumped at `RunEvent::Exit`.
+With a mid-execution runner that never acks the shutdown, a `block_on(stop())` there parks
+forever (issue #178). `kill()` is a timer-free SIGKILL-then-reap and cannot park. Reserve
+`stop()` for an explicit in-app stop while the event loop is still healthy.
 
 ## Protocol version compatibility
 
