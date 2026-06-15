@@ -1,0 +1,77 @@
+Search for resources matching a text query.
+
+`stigmer search` performs a full-text search across resource names,
+descriptions, and tags. Results are sorted by relevance score. By default,
+the search includes public platform resources — use `--exclude-public` to
+see only your own.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Search for agents related to code review
+stigmer search agents "code review"
+
+# Search for workflows
+stigmer search workflows "deploy"
+
+# Exclude public/platform resources
+stigmer search agents "api" --exclude-public
+
+# Output as JSON for scripting
+stigmer search workflows "data" --output json
+```
+
+{/* AUTO_FLAGS */}
+
+### Supported resource types
+
+| Type | Aliases |
+|------|---------|
+| Agent | `agents`, `agent`, `agt` |
+| Workflow | `workflows`, `workflow`, `wf` |
+
+### Pagination
+
+Results are paginated by default (20 per page). Use `--page` and
+`--page-size` to navigate through large result sets:
+
+```bash
+# Page 2 with 50 results per page
+stigmer search agents "test" --page 2 --page-size 50
+```
+
+## Examples
+
+### Find agents for a specific task
+
+```bash
+stigmer search agents "code review"
+```
+
+### Search within a specific organization
+
+```bash
+stigmer search agents "kubernetes" --org acme-corp
+```
+
+### Machine-readable output for scripting
+
+```bash
+stigmer search agents "deploy" --output json | jq '.[].metadata.name'
+```
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer list`](./list) | List all resources of a type (no query) |
+| [`stigmer get`](./get) | Get a specific resource by reference |
+| [`stigmer run`](./run) | Execute an agent or workflow |
+
+## See also
+
+- [Command Reference](./) — All available commands

@@ -11,7 +11,19 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { generateDistPackageJson, resolvePackageTag, rewriteBinPaths } from "./publish-libs.mjs";
+import { PACKAGES, generateDistPackageJson, resolvePackageTag, rewriteBinPaths } from "./publish-libs.mjs";
+
+test("PACKAGES publishes @stigmer/seedpack before the CLI that acquires it", () => {
+  // A published @stigmer/cli acquires @stigmer/seedpack at its exact version on
+  // demand, so seedpack must be in the publish set. Order is not load-bearing
+  // (seedpack has no @stigmer/* deps), but keeping it ahead of the CLI mirrors
+  // the build:libs order and the acquire relationship.
+  assert.ok(PACKAGES.includes("seedpack"), "seedpack must be in PACKAGES");
+  assert.ok(
+    PACKAGES.indexOf("seedpack") < PACKAGES.indexOf("client-apps/cli-ts"),
+    "seedpack must publish before client-apps/cli-ts",
+  );
+});
 
 test("rewriteBinPaths rewrites the dist prefix for the object form", () => {
   const out = rewriteBinPaths({

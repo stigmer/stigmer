@@ -1,0 +1,56 @@
+Stop the local Stigmer stack.
+
+`stigmer down` signals the supervised daemon started by `stigmer up` to shut
+down. The daemon traps the signal and tears down its children — the runner,
+`stigmer-server`, and managed Temporal — in order. If the daemon is already
+gone, the command falls back to cleaning up any leftover state.
+
+`stigmer down server` is accepted as a symmetric alias of `stigmer down`. The
+daemon owns the whole stack, so stopping it stops everything either way.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Stop the local stack
+stigmer down
+
+# Symmetric alias (stops the whole stack)
+stigmer down server
+```
+
+{/* AUTO_FLAGS */}
+
+## Examples
+
+### Stop the stack
+
+```bash
+stigmer down
+```
+
+If the stack was running, all components are stopped. If nothing was running,
+the command reports that and exits cleanly.
+
+### Restart after a configuration change
+
+```bash
+stigmer down && stigmer up
+```
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer up`](./up) | Start the local stack |
+| [`stigmer status`](./status) | Show local stack status |
+| [`stigmer reset`](./reset) | Stop and wipe all local state, then restart |
+
+## See also
+
+- [Command Reference](./) — All available commands

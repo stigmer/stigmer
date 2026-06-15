@@ -235,14 +235,14 @@ gen-ink-sdk-docs-check: ## Verify Ink SDK docs are up to date (CI)
 	fi; \
 	echo "✓ Ink SDK docs are up to date"
 
-gen-cli-docs: ## Generate CLI reference docs from Cobra command tree
-	cd client-apps/cli && go run ./cmd/gen-cli-docs --output ../../docs/cli/commands/
+gen-cli-docs: ## Generate CLI reference docs from the TypeScript command tree
+	cd client-apps/cli-ts && npx tsx scripts/gen-cli-docs.ts --output ../../docs/cli/commands/
 	npx prettier --write --prose-wrap always docs/cli/commands/
 
 gen-cli-docs-check: ## Verify CLI docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
-	(cd client-apps/cli && go run ./cmd/gen-cli-docs --output "$$tmpdir") && \
-	for f in "$$tmpdir"/*.mdx; do \
+	(cd client-apps/cli-ts && npx tsx scripts/gen-cli-docs.ts --output "$$tmpdir") && \
+	for f in "$$tmpdir"/*; do \
 		bn=$$(basename "$$f"); \
 		npx prettier --stdin-filepath "docs/cli/commands/$$bn" < "$$f" > "$$f.fmt" 2>/dev/null && mv "$$f.fmt" "$$f"; \
 	done; \
@@ -289,7 +289,8 @@ test: ## Run all unit tests
 # ─── Integration Test ─────────────────────────
 # Integration test logic lives in each suite's Makefile under test/.
 # These are thin delegates that pass through env vars.
-# Use `make test-integration-all` to run all suites (PROVIDERS=true for provider-backed).
+# Use `make test-integration-all` to run all suites (PROVIDERS=true for provider-backed);
+# it also runs the gRPC conformance suite (see the Conformance Test section below).
 
 .PHONY: test-integration
 test-integration: ## Run integration tests (offline, no API keys needed)
@@ -343,6 +344,10 @@ test-integration-all: ## Run all integration suites. PROVIDERS=true includes pro
 	$(MAKE) test-integration-wfexec-routing
 	@echo "=== Offline: deterministic (recorded LLM) ==="
 	$(MAKE) test-integration-offline
+	@echo "=== Conformance: CRUD contract (local-go) ==="
+	$(MAKE) test-conformance
+	@echo "=== Conformance: execution engine (local-go-execution) ==="
+	$(MAKE) test-conformance-execution
 ifeq ($(PROVIDERS),true)
 	@echo "=== Provider: integration (LLM) ==="
 	$(MAKE) test-integration-providers
@@ -350,6 +355,39 @@ ifeq ($(PROVIDERS),true)
 	$(MAKE) test-integration-session-routing-providers
 endif
 	@echo "All integration suites complete."
+
+# ─── Conformance Test (gRPC API contract) ─────
+# The conformance suite (test/conformance, @stigmer/conformance) is an
+# implementation-agnostic gRPC contract, distinct from the integration suites
+# above: it is a TypeScript/vitest workspace that builds the OSS Go
+# stigmer-server from source and drives it through generated Connect clients —
+# the shared contract that turns OSS<->cloud behavioral drift into a failing
+# test. The two slices are deliberately separate (DD-002): the dependency-light
+# CRUD signal stays fast, while execution additionally needs the `temporal` CLI
+# and a runner build. See test/conformance/README.md.
+
+.PHONY: test-conformance
+test-conformance: build-ts-stubs ## Run gRPC conformance CRUD suite (local-go; builds the Go server from source, no Temporal)
+	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds stigmer-server from source"; exit 1; }
+	@echo "=== conformance: CRUD contract (local-go) ==="
+	CONFORMANCE_TARGET=local-go npm run test -w @stigmer/conformance
+
+.PHONY: test-conformance-execution
+test-conformance-execution: build-runner ## Run gRPC conformance execution suite (local-go-execution; needs the `temporal` CLI)
+	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds stigmer-server from source"; exit 1; }
+	@command -v temporal >/dev/null 2>&1 || { \
+		echo "error: temporal CLI not found — the dev server backs the execution harness"; \
+		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
+		exit 1; \
+	}
+	@echo "=== conformance: execution engine (local-go-execution) ==="
+	CONFORMANCE_TARGET=local-go-execution npm run test:execution -w @stigmer/conformance
+
+.PHONY: test-conformance-all
+test-conformance-all: ## Run both conformance slices (CRUD + execution)
+	$(MAKE) test-conformance
+	$(MAKE) test-conformance-execution
+	@echo "Conformance suite complete (local-go + local-go-execution)."
 
 .PHONY: test-replay
 test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)

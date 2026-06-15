@@ -18,6 +18,7 @@
   "scripts": {
     "start": "tsx src/cli/stigmer.ts",
     "typecheck": "tsc --noEmit",
+    "gen-docs": "tsx scripts/gen-cli-docs.ts --output ../../docs/cli/commands/",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
     "test": "vitest run",

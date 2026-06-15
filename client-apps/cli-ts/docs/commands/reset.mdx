@@ -1,0 +1,57 @@
+Stop the stack and remove all local state, then restart fresh.
+
+`stigmer reset` stops the local stack and wipes all persistent local data, then
+restarts it from a clean state. This is destructive, so it asks for
+confirmation first unless you pass `--force`. Your configuration (API keys,
+preferences) is preserved unless you also pass `--include-config`.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Reset runtime data (configuration preserved), with confirmation
+stigmer reset
+
+# Reset without the confirmation prompt
+stigmer reset --force
+
+# Also remove configuration (API keys, preferences)
+stigmer reset --include-config
+```
+
+{/* AUTO_FLAGS */}
+
+## Examples
+
+### Reset to a clean runtime
+
+```bash
+stigmer reset
+```
+
+Confirms, removes all runtime data, and restarts the stack. Configuration is
+kept so the stack comes back with the same provider settings.
+
+### Full reset including configuration
+
+```bash
+stigmer reset --include-config --force
+```
+
+Removes runtime data and configuration without prompting. Run `stigmer up`
+afterwards to reconfigure and start fresh.
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer down`](./down) | Stop the stack without wiping state |
+| [`stigmer up`](./up) | Start the local stack |
+| [`stigmer setup`](./setup) | Reconfigure the LLM provider |
+
+## See also
+
+- [Command Reference](./) — All available commands

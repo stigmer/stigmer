@@ -18,9 +18,9 @@
   ],
   "scripts": {
     "prepare": "husky || true",
-    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react && npm run build -w @stigmer/ink && npm run build -w @stigmer/mcp-server && npm run build -w @stigmer/cli",
-    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/sdk && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react && npm run clean -w @stigmer/ink && npm run clean -w @stigmer/mcp-server && npm run clean -w @stigmer/cli",
-    "test": "node --test scripts/*.test.mjs && npm run test -w @stigmer/sdk && npm run test -w @stigmer/react && npm run test -w @stigmer/theme && npm run test -w @stigmer/ink && npm run test -w @stigmer/mcp-server && npm run test -w @stigmer/cli"
+    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react && npm run build -w @stigmer/ink && npm run build -w @stigmer/mcp-server && npm run build -w @stigmer/seedpack && npm run build -w @stigmer/cli",
+    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/sdk && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react && npm run clean -w @stigmer/ink && npm run clean -w @stigmer/mcp-server && npm run clean -w @stigmer/seedpack && npm run clean -w @stigmer/cli",
+    "test": "node --test scripts/*.test.mjs && npm run test -w @stigmer/sdk && npm run test -w @stigmer/react && npm run test -w @stigmer/theme && npm run test -w @stigmer/ink && npm run test -w @stigmer/mcp-server && npm run test -w @stigmer/seedpack && npm run test -w @stigmer/cli"
   },
   "lint-staged": {
     "docs/**/*.{md,mdx}": [
@@ -41,6 +41,7 @@
     "@stigmer/react": "workspace:*",
     "@stigmer/ink": "workspace:*",
     "@stigmer/mcp-server": "workspace:*",
+    "@stigmer/seedpack": "workspace:*",
     "@stigmer/cli": "workspace:*"
   },
   "overrides": {

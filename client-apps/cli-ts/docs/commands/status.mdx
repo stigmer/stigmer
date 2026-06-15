@@ -1,0 +1,50 @@
+Show the status of the local Stigmer stack.
+
+`stigmer status` reports the health of each component the local daemon
+supervises — the daemon itself, managed Temporal, `stigmer-server`, and the
+runner — alongside the effective LLM configuration. Use it to confirm the
+stack is up before running agents, or to diagnose a stack that will not start.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Show component health and LLM configuration
+stigmer status
+
+# Machine-readable status for scripts
+stigmer status --json
+```
+
+{/* AUTO_FLAGS */}
+
+## Examples
+
+### Check the stack before running an agent
+
+```bash
+stigmer status
+```
+
+Shows whether each component is running and which LLM provider is configured.
+
+### Use status in a script
+
+```bash
+stigmer status --json | jq '.sections'
+```
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer up`](./up) | Start the local stack |
+| [`stigmer down`](./down) | Stop the local stack |
+| [`stigmer logs`](./logs) | View logs from the local stack |
+
+## See also
+
+- [Command Reference](./) — All available commands

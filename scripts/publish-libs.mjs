@@ -40,7 +40,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 
-const PACKAGES = [
+export const PACKAGES = [
   "apis/stubs/ts",
   "sdk/typescript",
   "sdk/theme",
@@ -49,6 +49,11 @@ const PACKAGES = [
   // mcp-server depends only on @stigmer/protos + @stigmer/sdk, both above it,
   // so the publish DAG stays ordered. Mirrors the build:libs order in package.json.
   "mcp-server",
+  // @stigmer/seedpack has no @stigmer/* deps (it stages bundled resource
+  // content), so its position is order-free. A published @stigmer/cli acquires
+  // @stigmer/seedpack at its exact version on demand, so it MUST publish too. It
+  // pins itself off `latest` via `stigmerPublish.tag` until parity, alongside cli.
+  "seedpack",
   // @stigmer/cli depends on @stigmer/protos + @stigmer/sdk + @stigmer/ink, all
   // above it, so it publishes last with its deps already resolved. It pins itself
   // off `latest` via `stigmerPublish.tag` until its local-stack surface reaches
