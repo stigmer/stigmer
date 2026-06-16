@@ -106,6 +106,20 @@ class InteractionMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     INTERACTION_MODE_UNSPECIFIED: _ClassVar[InteractionMode]
     INTERACTION_MODE_AGENT: _ClassVar[InteractionMode]
     INTERACTION_MODE_PLAN: _ClassVar[InteractionMode]
+
+class FileChangeType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FILE_CHANGE_TYPE_UNSPECIFIED: _ClassVar[FileChangeType]
+    FILE_CHANGE_TYPE_CREATE: _ClassVar[FileChangeType]
+    FILE_CHANGE_TYPE_MODIFY: _ClassVar[FileChangeType]
+    FILE_CHANGE_TYPE_DELETE: _ClassVar[FileChangeType]
+    FILE_CHANGE_TYPE_RENAME: _ClassVar[FileChangeType]
+
+class FileChangeCaptureLevel(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED: _ClassVar[FileChangeCaptureLevel]
+    FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE: _ClassVar[FileChangeCaptureLevel]
+    FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY: _ClassVar[FileChangeCaptureLevel]
 EXECUTION_PHASE_UNSPECIFIED: ExecutionPhase
 EXECUTION_PENDING: ExecutionPhase
 EXECUTION_IN_PROGRESS: ExecutionPhase
@@ -173,3 +187,11 @@ APPROVAL_ACTION_APPROVE_ALL: ApprovalAction
 INTERACTION_MODE_UNSPECIFIED: InteractionMode
 INTERACTION_MODE_AGENT: InteractionMode
 INTERACTION_MODE_PLAN: InteractionMode
+FILE_CHANGE_TYPE_UNSPECIFIED: FileChangeType
+FILE_CHANGE_TYPE_CREATE: FileChangeType
+FILE_CHANGE_TYPE_MODIFY: FileChangeType
+FILE_CHANGE_TYPE_DELETE: FileChangeType
+FILE_CHANGE_TYPE_RENAME: FileChangeType
+FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED: FileChangeCaptureLevel
+FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE: FileChangeCaptureLevel
+FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY: FileChangeCaptureLevel

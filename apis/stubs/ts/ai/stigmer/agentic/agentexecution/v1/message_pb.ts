@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApprovalAction, MessageType, ToolCallStatus, ToolCallStreamingSource, ToolKind } from "./enum_pb.js";
+import type { ApprovalAction, FileChangeCaptureLevel, FileChangeType, MessageType, ToolCallStatus, ToolCallStreamingSource, ToolKind } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
@@ -14,7 +14,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/message.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_message: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIoICCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIIucFCghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABEhIKCnN0YXJ0ZWRfYXQYByABKAkSFAoMY29tcGxldGVkX2F0GAggASgJEg0KBWVycm9yGAkgASgJEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAogASgIEhgKEGFwcHJvdmFsX21lc3NhZ2UYCyABKAkSHQoVYXBwcm92YWxfcmVxdWVzdGVkX2F0GAwgASgJEhsKE2FwcHJvdmFsX2RlY2lkZWRfYXQYDSABKAkSEwoLYXBwcm92ZWRfYnkYDiABKAkSTQoPYXBwcm92YWxfYWN0aW9uGA8gASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uEhQKDGlzX3N0cmVhbWluZxgQIAEoCBJXChBzdHJlYW1pbmdfc291cmNlGBMgASgOMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsU3RyZWFtaW5nU291cmNlEhcKD21jcF9zZXJ2ZXJfc2x1ZxgRIAEoCRIUCgxhcmdzX3ByZXZpZXcYEiABKAkSQQoJdG9vbF9raW5kGBQgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xLaW5kEksKCm91dHB1dF9yZWYYFSABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxPdXRwdXRSZWYiqAEKEVRvb2xDYWxsT3V0cHV0UmVmEhMKC3N0b3JhZ2Vfa2V5GAEgASgJEhQKDGRvd25sb2FkX3VybBgCIAEoCRISCgpzaXplX2J5dGVzGAMgASgDEhQKDGNvbnRlbnRfaGFzaBgEIAEoCRIRCgltaW1lX3R5cGUYBSABKAkSEAoIaXNfaW1hZ2UYBiABKAgSGQoRdHJ1bmNhdGVkX3ByZXZpZXcYByABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIoICCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIIq8GCghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABEhIKCnN0YXJ0ZWRfYXQYByABKAkSFAoMY29tcGxldGVkX2F0GAggASgJEg0KBWVycm9yGAkgASgJEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAogASgIEhgKEGFwcHJvdmFsX21lc3NhZ2UYCyABKAkSHQoVYXBwcm92YWxfcmVxdWVzdGVkX2F0GAwgASgJEhsKE2FwcHJvdmFsX2RlY2lkZWRfYXQYDSABKAkSEwoLYXBwcm92ZWRfYnkYDiABKAkSTQoPYXBwcm92YWxfYWN0aW9uGA8gASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uEhQKDGlzX3N0cmVhbWluZxgQIAEoCBJXChBzdHJlYW1pbmdfc291cmNlGBMgASgOMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsU3RyZWFtaW5nU291cmNlEhcKD21jcF9zZXJ2ZXJfc2x1ZxgRIAEoCRIUCgxhcmdzX3ByZXZpZXcYEiABKAkSQQoJdG9vbF9raW5kGBQgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xLaW5kEksKCm91dHB1dF9yZWYYFSABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxPdXRwdXRSZWYSRgoMZmlsZV9jaGFuZ2VzGBYgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVDaGFuZ2UiqAEKEVRvb2xDYWxsT3V0cHV0UmVmEhMKC3N0b3JhZ2Vfa2V5GAEgASgJEhQKDGRvd25sb2FkX3VybBgCIAEoCRISCgpzaXplX2J5dGVzGAMgASgDEhQKDGNvbnRlbnRfaGFzaBgEIAEoCRIRCgltaW1lX3R5cGUYBSABKAkSEAoIaXNfaW1hZ2UYBiABKAgSGQoRdHJ1bmNhdGVkX3ByZXZpZXcYByABKAkiwQMKCkZpbGVDaGFuZ2USDAoEcGF0aBgBIAEoCRIVCg1hYnNvbHV0ZV9wYXRoGAIgASgJElMKC2NoYW5nZV90eXBlGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVDaGFuZ2VUeXBlQgi6SAWCAQIQARJdCg1jYXB0dXJlX2xldmVsGAQgASgOMjwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVDaGFuZ2VDYXB0dXJlTGV2ZWxCCLpIBYIBAhABEkEKBmJlZm9yZRgFIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ29udGVudBJACgVhZnRlchgGIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ29udGVudBIUCgx1bmlmaWVkX2RpZmYYByABKAkSEwoLbGluZXNfYWRkZWQYCCABKAUSFQoNbGluZXNfcmVtb3ZlZBgJIAEoBRITCgtyZW5hbWVfZnJvbRgKIAEoCSKCAQoLRmlsZUNvbnRlbnQSEAoGaW5saW5lGAEgASgJSAASRgoDcmVmGAIgASgLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsT3V0cHV0UmVmSAASEQoJaXNfYmluYXJ5GAMgASgIQgYKBGJvZHliBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * Represents a single message in the agent conversation.
@@ -306,6 +306,23 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCall"> 
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef output_ref = 21;
    */
   outputRef?: ToolCallOutputRef;
+
+  /**
+   * File changes produced by this tool call (create / modify / delete / rename).
+   *
+   * Populated by the runner for file-modifying tools. repeated because some
+   * tools (notably multi-file MCP edits) mutate several files in one call. This
+   * is the single source of truth for both the HITL approval-gate diff (set at
+   * approval-request time) and the post-execution Changes view; clients read it
+   * from the ToolCall directly rather than from a second copy.
+   *
+   * Field 22: appended after output_ref (21), the prior maximum.
+   *
+   * @since First-Class Diff Review (#186)
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22;
+   */
+  fileChanges: FileChange[];
 };
 
 /**
@@ -394,4 +411,160 @@ export type ToolCallOutputRef = Message<"ai.stigmer.agentic.agentexecution.v1.To
  */
 export const ToolCallOutputRefSchema: GenMessage<ToolCallOutputRef> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_message, 2);
+
+/**
+ * A single file mutation produced by a tool call.
+ *
+ * Large before/after bodies are offloaded to artifact storage via the existing
+ * ToolCallOutputRef envelope; small bodies stay inline. capture_level tells
+ * clients how complete the content is so they render whole-file vs hunk-only
+ * diffs honestly per harness.
+ *
+ * @since First-Class Diff Review (#186)
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.FileChange
+ */
+export type FileChange = Message<"ai.stigmer.agentic.agentexecution.v1.FileChange"> & {
+  /**
+   * Workspace-root-relative path for display, e.g. "src/app/main.ts".
+   * Falls back to absolute_path when the workspace root is unknown.
+   *
+   * @generated from field: string path = 1;
+   */
+  path: string;
+
+  /**
+   * Absolute on-disk path, retained for "open in editor" and diagnostics.
+   *
+   * @generated from field: string absolute_path = 2;
+   */
+  absolutePath: string;
+
+  /**
+   * The per-file outcome of this change.
+   *
+   * Distinct from ToolCall.tool_kind, which classifies the tool: one tool call
+   * may yield several FileChanges of different types (multi-file edits), and a
+   * FILE_WRITE tool yields CREATE for a new file or MODIFY when it overwrites
+   * an existing one.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.FileChangeType change_type = 3;
+   */
+  changeType: FileChangeType;
+
+  /**
+   * How complete the captured content is.
+   *
+   * WHOLE_FILE: before/after carry full content. HUNK_ONLY: only unified_diff
+   * is available (Cursor today).
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel capture_level = 4;
+   */
+  captureLevel: FileChangeCaptureLevel;
+
+  /**
+   * Pre-edit content. Empty for CREATE, or when capture_level is HUNK_ONLY.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.FileContent before = 5;
+   */
+  before?: FileContent;
+
+  /**
+   * Post-edit content. Empty for DELETE, or when capture_level is HUNK_ONLY.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.FileContent after = 6;
+   */
+  after?: FileContent;
+
+  /**
+   * Unified hunk-level diff. The primary payload for HUNK_ONLY captures
+   * (Cursor's diffString); small and always safe to render even when
+   * before/after are absent. Derivable from before/after for WHOLE_FILE.
+   *
+   * @generated from field: string unified_diff = 7;
+   */
+  unifiedDiff: string;
+
+  /**
+   * Lines added by this change.
+   *
+   * @generated from field: int32 lines_added = 8;
+   */
+  linesAdded: number;
+
+  /**
+   * Lines removed by this change.
+   *
+   * @generated from field: int32 lines_removed = 9;
+   */
+  linesRemoved: number;
+
+  /**
+   * Source path for RENAME; path holds the destination. Empty otherwise.
+   *
+   * @generated from field: string rename_from = 10;
+   */
+  renameFrom: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.FileChange.
+ * Use `create(FileChangeSchema)` to create a new message.
+ */
+export const FileChangeSchema: GenMessage<FileChange> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_message, 3);
+
+/**
+ * One side (before or after) of a file's content.
+ *
+ * Small bodies are carried inline; large bodies are offloaded to artifact
+ * storage and referenced via the existing tool-output offload envelope. Exactly
+ * one of inline or ref is set; when offloaded, the head preview lives in
+ * ref.truncated_preview and the full size in ref.size_bytes.
+ *
+ * @since First-Class Diff Review (#186)
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.FileContent
+ */
+export type FileContent = Message<"ai.stigmer.agentic.agentexecution.v1.FileContent"> & {
+  /**
+   * The body of this side — inline when small, an offload pointer when large.
+   *
+   * @generated from oneof ai.stigmer.agentic.agentexecution.v1.FileContent.body
+   */
+  body: {
+    /**
+     * Full UTF-8 content, inline. Set only when under the inline cap.
+     *
+     * @generated from field: string inline = 1;
+     */
+    value: string;
+    case: "inline";
+  } | {
+    /**
+     * Offload pointer for large content; reuses the tool-output offload
+     * envelope (storage_key, download_url, size_bytes, content_hash,
+     * truncated_preview).
+     *
+     * @generated from field: ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2;
+     */
+    value: ToolCallOutputRef;
+    case: "ref";
+  } | { case: undefined; value?: undefined };
+
+  /**
+   * True when this side is binary; clients skip text diffing and render
+   * "binary file changed" instead.
+   *
+   * @generated from field: bool is_binary = 3;
+   */
+  isBinary: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.FileContent.
+ * Use `create(FileContentSchema)` to create a new message.
+ */
+export const FileContentSchema: GenMessage<FileContent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_message, 4);
 

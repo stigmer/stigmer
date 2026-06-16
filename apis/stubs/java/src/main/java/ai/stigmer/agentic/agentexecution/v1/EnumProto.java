@@ -88,12 +88,20 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "TION_APPROVE_ALL\020\004*j\n\017InteractionMode\022 \n" +
       "\034INTERACTION_MODE_UNSPECIFIED\020\000\022\032\n\026INTER" +
       "ACTION_MODE_AGENT\020\001\022\031\n\025INTERACTION_MODE_" +
-      "PLAN\020\002B\300\001B\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Stigm" +
-      "er.Agentic.Agentexecution.V1\312\002$Ai\\Stigme" +
-      "r\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigmer" +
-      "\\Agentic\\Agentexecution\\V1\\GPBMetadata\352\002" +
-      "(Ai::Stigmer::Agentic::Agentexecution::V" +
-      "1b\006proto3"
+      "PLAN\020\002*\246\001\n\016FileChangeType\022 \n\034FILE_CHANGE" +
+      "_TYPE_UNSPECIFIED\020\000\022\033\n\027FILE_CHANGE_TYPE_" +
+      "CREATE\020\001\022\033\n\027FILE_CHANGE_TYPE_MODIFY\020\002\022\033\n" +
+      "\027FILE_CHANGE_TYPE_DELETE\020\003\022\033\n\027FILE_CHANG" +
+      "E_TYPE_RENAME\020\004*\226\001\n\026FileChangeCaptureLev" +
+      "el\022)\n%FILE_CHANGE_CAPTURE_LEVEL_UNSPECIF" +
+      "IED\020\000\022(\n$FILE_CHANGE_CAPTURE_LEVEL_WHOLE" +
+      "_FILE\020\001\022\'\n#FILE_CHANGE_CAPTURE_LEVEL_HUN" +
+      "K_ONLY\020\002B\300\001B\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Sti" +
+      "gmer.Agentic.Agentexecution.V1\312\002$Ai\\Stig" +
+      "mer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigm" +
+      "er\\Agentic\\Agentexecution\\V1\\GPBMetadata" +
+      "\352\002(Ai::Stigmer::Agentic::Agentexecution:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

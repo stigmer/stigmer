@@ -1673,6 +1673,37 @@ ExecutionArtifact represents a file or directory published by an agent.
   }}
 />
 
+### FileChange
+
+A single file mutation produced by a tool call.
+
+<TypeTable
+  type={{
+    path: { type: "string", description: "Workspace-root-relative path for display, e.g. \"src/app/main.ts\"." },
+    absolutePath: { type: "string", description: "Absolute on-disk path, retained for \"open in editor\" and diagnostics." },
+    changeType: { type: "FileChangeType", description: "The per-file outcome of this change.", typeDescriptionLink: "#filechangetype" },
+    captureLevel: { type: "FileChangeCaptureLevel", description: "How complete the captured content is.", typeDescriptionLink: "#filechangecapturelevel" },
+    before: { type: "FileContent", description: "Pre-edit content.", typeDescriptionLink: "#filecontent" },
+    after: { type: "FileContent", description: "Post-edit content.", typeDescriptionLink: "#filecontent" },
+    unifiedDiff: { type: "string", description: "Unified hunk-level diff." },
+    linesAdded: { type: "number", description: "Lines added by this change." },
+    linesRemoved: { type: "number", description: "Lines removed by this change." },
+    renameFrom: { type: "string", description: "Source path for RENAME; path holds the destination." },
+  }}
+/>
+
+### FileContent
+
+One side (before or after) of a file's content.
+
+<TypeTable
+  type={{
+    inline: { type: "string", description: "Full UTF-8 content, inline." },
+    ref: { type: "ToolCallOutputRef", description: "Offload pointer for large content; reuses the tool-output offload envelope (storage_key, download_url, size_bytes, content_hash, truncated_preview).", typeDescriptionLink: "#toolcalloutputref" },
+    isBinary: { type: "boolean", description: "True when this side is binary; clients skip text diffing and render \"binary file changed\" instead." },
+  }}
+/>
+
 ### McpServerResolutionStatus
 
 McpServerResolutionStatus captures the resolution outcome for a single MCP server.
@@ -1829,6 +1860,24 @@ Represents a tool call made by the agent during execution.
     mcpServerSlug: { type: "string", description: "Slug of the MCP server that provides this tool." },
     argsPreview: { type: "string", description: "Sanitized preview of tool arguments for UI display." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of this tool, set by the runner so clients render the tool identically regardless of which engine produced it.", typeDescriptionLink: "#toolkind" },
+    outputRef: { type: "ToolCallOutputRef", description: "───────────────────────────────────────────────────────────────────────────── Offloaded Output (large tool results).", typeDescriptionLink: "#toolcalloutputref" },
+    fileChanges: { type: "FileChange[]", description: "File changes produced by this tool call (create / modify / delete / rename).", typeDescriptionLink: "#filechange" },
+  }}
+/>
+
+### ToolCallOutputRef
+
+ToolCallOutputRef points to a tool call's full output after the runner offloaded it to artifact storage to keep AgentExecutionStatus under the gRPC message-size limit.
+
+<TypeTable
+  type={{
+    storageKey: { type: "string", description: "Storage location of the full output bytes." },
+    downloadUrl: { type: "string", description: "URL for fetching the full output — pre-signed in the cloud, locally served in dev." },
+    sizeBytes: { type: "number", description: "Size in bytes of the full (original, pre-truncation) output." },
+    contentHash: { type: "string", description: "SHA-256 hex digest of the full output bytes." },
+    mimeType: { type: "string", description: "MIME type of the offloaded content." },
+    isImage: { type: "boolean", description: "True when the offloaded content is an image the UI should render inline (e.g. a screenshot from a computer-use MCP server)." },
+    truncatedPreview: { type: "string", description: "Short head of the original text content, kept inline for an at-a-glance preview without fetching the full artifact." },
   }}
 />
 
@@ -1916,6 +1965,26 @@ ExecutionArtifactKind defines the type of artifact published by an agent.
 |-------|-------------|
 | `EXECUTION_ARTIFACT_KIND_FILE` | A single file published by the agent. |
 | `EXECUTION_ARTIFACT_KIND_DIRECTORY` | A directory published by the agent, archived as a ZIP file for download. |
+
+### FileChangeType
+
+FileChangeType is the per-file outcome of a file mutation in a tool call.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_CHANGE_TYPE_CREATE` | A new file was created. |
+| `FILE_CHANGE_TYPE_MODIFY` | An existing file's contents were modified. |
+| `FILE_CHANGE_TYPE_DELETE` | A file was deleted. |
+| `FILE_CHANGE_TYPE_RENAME` | A file was renamed or moved; FileChange.rename_from holds the source path. |
+
+### FileChangeCaptureLevel
+
+FileChangeCaptureLevel describes how complete a FileChange's captured content is, so clients render whole-file vs hunk-only diffs honestly per harness.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE` | Full before+after content captured (native edit/write; future Cursor pre-read). |
+| `FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY` | Only a hunk-level unified_diff is available (Cursor today). |
 
 ### ToolKind
 

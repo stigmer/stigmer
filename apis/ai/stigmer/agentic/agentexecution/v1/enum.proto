@@ -560,3 +560,43 @@ enum InteractionMode {
   // Cursor harness: best-effort via system prompt directive.
   INTERACTION_MODE_PLAN = 2;
 }
+
+// FileChangeType is the per-file outcome of a file mutation in a tool call.
+//
+// Distinct from ToolKind, which classifies the tool: a single tool call may
+// produce several FileChanges of different types (multi-file edits).
+//
+// @since First-Class Diff Review (#186)
+enum FileChangeType {
+  // Default value, not a valid file change type.
+  FILE_CHANGE_TYPE_UNSPECIFIED = 0;
+
+  // A new file was created.
+  FILE_CHANGE_TYPE_CREATE = 1;
+
+  // An existing file's contents were modified.
+  FILE_CHANGE_TYPE_MODIFY = 2;
+
+  // A file was deleted.
+  FILE_CHANGE_TYPE_DELETE = 3;
+
+  // A file was renamed or moved; FileChange.rename_from holds the source path.
+  FILE_CHANGE_TYPE_RENAME = 4;
+}
+
+// FileChangeCaptureLevel describes how complete a FileChange's captured content
+// is, so clients render whole-file vs hunk-only diffs honestly per harness.
+//
+// @since First-Class Diff Review (#186)
+enum FileChangeCaptureLevel {
+  // Default value, not a valid capture level.
+  FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED = 0;
+
+  // Full before+after content captured (native edit/write; future Cursor
+  // pre-read). Clients render a true two-pane diff.
+  FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE = 1;
+
+  // Only a hunk-level unified_diff is available (Cursor today). Clients render
+  // the hunk diff; before/after whole-file content is absent.
+  FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY = 2;
+}

@@ -212,6 +212,23 @@ message ToolCall {
   //
   // Field 21: appended after tool_kind (20), the prior maximum.
   ToolCallOutputRef output_ref = 21;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // File Changes (first-class diff review)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // File changes produced by this tool call (create / modify / delete / rename).
+  //
+  // Populated by the runner for file-modifying tools. repeated because some
+  // tools (notably multi-file MCP edits) mutate several files in one call. This
+  // is the single source of truth for both the HITL approval-gate diff (set at
+  // approval-request time) and the post-execution Changes view; clients read it
+  // from the ToolCall directly rather than from a second copy.
+  //
+  // Field 22: appended after output_ref (21), the prior maximum.
+  //
+  // @since First-Class Diff Review (#186)
+  repeated FileChange file_changes = 22;
 }
 
 // ToolCallOutputRef points to a tool call's full output after the runner
@@ -253,4 +270,80 @@ message ToolCallOutputRef {
   // Short head of the original text content, kept inline for an at-a-glance
   // preview without fetching the full artifact. Empty for image content.
   string truncated_preview = 7;
+}
+
+// A single file mutation produced by a tool call.
+//
+// Large before/after bodies are offloaded to artifact storage via the existing
+// ToolCallOutputRef envelope; small bodies stay inline. capture_level tells
+// clients how complete the content is so they render whole-file vs hunk-only
+// diffs honestly per harness.
+//
+// @since First-Class Diff Review (#186)
+message FileChange {
+  // Workspace-root-relative path for display, e.g. "src/app/main.ts".
+  // Falls back to absolute_path when the workspace root is unknown.
+  string path = 1;
+
+  // Absolute on-disk path, retained for "open in editor" and diagnostics.
+  string absolute_path = 2;
+
+  // The per-file outcome of this change.
+  //
+  // Distinct from ToolCall.tool_kind, which classifies the tool: one tool call
+  // may yield several FileChanges of different types (multi-file edits), and a
+  // FILE_WRITE tool yields CREATE for a new file or MODIFY when it overwrites
+  // an existing one.
+  FileChangeType change_type = 3 [(buf.validate.field).enum.defined_only = true];
+
+  // How complete the captured content is.
+  //
+  // WHOLE_FILE: before/after carry full content. HUNK_ONLY: only unified_diff
+  // is available (Cursor today).
+  FileChangeCaptureLevel capture_level = 4 [(buf.validate.field).enum.defined_only = true];
+
+  // Pre-edit content. Empty for CREATE, or when capture_level is HUNK_ONLY.
+  FileContent before = 5;
+
+  // Post-edit content. Empty for DELETE, or when capture_level is HUNK_ONLY.
+  FileContent after = 6;
+
+  // Unified hunk-level diff. The primary payload for HUNK_ONLY captures
+  // (Cursor's diffString); small and always safe to render even when
+  // before/after are absent. Derivable from before/after for WHOLE_FILE.
+  string unified_diff = 7;
+
+  // Lines added by this change.
+  int32 lines_added = 8;
+
+  // Lines removed by this change.
+  int32 lines_removed = 9;
+
+  // Source path for RENAME; path holds the destination. Empty otherwise.
+  string rename_from = 10;
+}
+
+// One side (before or after) of a file's content.
+//
+// Small bodies are carried inline; large bodies are offloaded to artifact
+// storage and referenced via the existing tool-output offload envelope. Exactly
+// one of inline or ref is set; when offloaded, the head preview lives in
+// ref.truncated_preview and the full size in ref.size_bytes.
+//
+// @since First-Class Diff Review (#186)
+message FileContent {
+  // The body of this side — inline when small, an offload pointer when large.
+  oneof body {
+    // Full UTF-8 content, inline. Set only when under the inline cap.
+    string inline = 1;
+
+    // Offload pointer for large content; reuses the tool-output offload
+    // envelope (storage_key, download_url, size_bytes, content_hash,
+    // truncated_preview).
+    ToolCallOutputRef ref = 2;
+  }
+
+  // True when this side is binary; clients skip text diffing and render
+  // "binary file changed" instead.
+  bool is_binary = 3;
 }

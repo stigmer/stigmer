@@ -1105,6 +1105,130 @@ func (InteractionMode) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{11}
 }
 
+// FileChangeType is the per-file outcome of a file mutation in a tool call.
+//
+// Distinct from ToolKind, which classifies the tool: a single tool call may
+// produce several FileChanges of different types (multi-file edits).
+//
+// @since First-Class Diff Review (#186)
+type FileChangeType int32
+
+const (
+	// Default value, not a valid file change type.
+	FileChangeType_FILE_CHANGE_TYPE_UNSPECIFIED FileChangeType = 0
+	// A new file was created.
+	FileChangeType_FILE_CHANGE_TYPE_CREATE FileChangeType = 1
+	// An existing file's contents were modified.
+	FileChangeType_FILE_CHANGE_TYPE_MODIFY FileChangeType = 2
+	// A file was deleted.
+	FileChangeType_FILE_CHANGE_TYPE_DELETE FileChangeType = 3
+	// A file was renamed or moved; FileChange.rename_from holds the source path.
+	FileChangeType_FILE_CHANGE_TYPE_RENAME FileChangeType = 4
+)
+
+// Enum value maps for FileChangeType.
+var (
+	FileChangeType_name = map[int32]string{
+		0: "FILE_CHANGE_TYPE_UNSPECIFIED",
+		1: "FILE_CHANGE_TYPE_CREATE",
+		2: "FILE_CHANGE_TYPE_MODIFY",
+		3: "FILE_CHANGE_TYPE_DELETE",
+		4: "FILE_CHANGE_TYPE_RENAME",
+	}
+	FileChangeType_value = map[string]int32{
+		"FILE_CHANGE_TYPE_UNSPECIFIED": 0,
+		"FILE_CHANGE_TYPE_CREATE":      1,
+		"FILE_CHANGE_TYPE_MODIFY":      2,
+		"FILE_CHANGE_TYPE_DELETE":      3,
+		"FILE_CHANGE_TYPE_RENAME":      4,
+	}
+)
+
+func (x FileChangeType) Enum() *FileChangeType {
+	p := new(FileChangeType)
+	*p = x
+	return p
+}
+
+func (x FileChangeType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileChangeType) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[12].Descriptor()
+}
+
+func (FileChangeType) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[12]
+}
+
+func (x FileChangeType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileChangeType.Descriptor instead.
+func (FileChangeType) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{12}
+}
+
+// FileChangeCaptureLevel describes how complete a FileChange's captured content
+// is, so clients render whole-file vs hunk-only diffs honestly per harness.
+//
+// @since First-Class Diff Review (#186)
+type FileChangeCaptureLevel int32
+
+const (
+	// Default value, not a valid capture level.
+	FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED FileChangeCaptureLevel = 0
+	// Full before+after content captured (native edit/write; future Cursor
+	// pre-read). Clients render a true two-pane diff.
+	FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE FileChangeCaptureLevel = 1
+	// Only a hunk-level unified_diff is available (Cursor today). Clients render
+	// the hunk diff; before/after whole-file content is absent.
+	FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY FileChangeCaptureLevel = 2
+)
+
+// Enum value maps for FileChangeCaptureLevel.
+var (
+	FileChangeCaptureLevel_name = map[int32]string{
+		0: "FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED",
+		1: "FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE",
+		2: "FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY",
+	}
+	FileChangeCaptureLevel_value = map[string]int32{
+		"FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED": 0,
+		"FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE":  1,
+		"FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY":   2,
+	}
+)
+
+func (x FileChangeCaptureLevel) Enum() *FileChangeCaptureLevel {
+	p := new(FileChangeCaptureLevel)
+	*p = x
+	return p
+}
+
+func (x FileChangeCaptureLevel) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileChangeCaptureLevel) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[13].Descriptor()
+}
+
+func (FileChangeCaptureLevel) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[13]
+}
+
+func (x FileChangeCaptureLevel) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileChangeCaptureLevel.Descriptor instead.
+func (FileChangeCaptureLevel) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{13}
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
@@ -1191,7 +1315,17 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x0fInteractionMode\x12 \n" +
 	"\x1cINTERACTION_MODE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16INTERACTION_MODE_AGENT\x10\x01\x12\x19\n" +
-	"\x15INTERACTION_MODE_PLAN\x10\x02B\xca\x02\n" +
+	"\x15INTERACTION_MODE_PLAN\x10\x02*\xa6\x01\n" +
+	"\x0eFileChangeType\x12 \n" +
+	"\x1cFILE_CHANGE_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17FILE_CHANGE_TYPE_CREATE\x10\x01\x12\x1b\n" +
+	"\x17FILE_CHANGE_TYPE_MODIFY\x10\x02\x12\x1b\n" +
+	"\x17FILE_CHANGE_TYPE_DELETE\x10\x03\x12\x1b\n" +
+	"\x17FILE_CHANGE_TYPE_RENAME\x10\x04*\x96\x01\n" +
+	"\x16FileChangeCaptureLevel\x12)\n" +
+	"%FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED\x10\x00\x12(\n" +
+	"$FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE\x10\x01\x12'\n" +
+	"#FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY\x10\x02B\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -1206,7 +1340,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 14)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionPhase)(0),          // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(MessageType)(0),             // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -1220,6 +1354,8 @@ var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionControlSignal)(0),  // 9: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
 	(ApprovalAction)(0),          // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	(InteractionMode)(0),         // 11: ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	(FileChangeType)(0),          // 12: ai.stigmer.agentic.agentexecution.v1.FileChangeType
+	(FileChangeCaptureLevel)(0),  // 13: ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1239,7 +1375,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      12,
+			NumEnums:      14,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,
