@@ -153,7 +153,23 @@ function netChange(changes: FileChange[]): FileChange {
   });
 }
 
-/** Reconciles the net outcome of a path's first and last change. */
+/**
+ * Reconciles the net `change_type` of a path from its first and last change.
+ *
+ * Intent: the badge should describe the file's journey across the *whole*
+ * session, anchored on its two endpoints, in this precedence:
+ *
+ * 1. Ends deleted (`last` is DELETE) → DELETE. The file is gone, regardless of
+ *    how it got there — this includes create-then-delete, which we deliberately
+ *    surface as DELETE rather than hiding the path. (`before` then comes from
+ *    the first change, which for a created-then-deleted file is empty, so the
+ *    diff reads as the removal of whatever briefly existed.)
+ * 2. Started created (`first` is CREATE) and still exists → CREATE. A file born
+ *    this session and later modified is, on net, a new file.
+ * 3. Started renamed (`first` is RENAME) and still exists → RENAME, carrying the
+ *    original `rename_from` so the move is preserved across later edits.
+ * 4. Otherwise → MODIFY (the common multi-edit case).
+ */
 function netChangeType(first: FileChange, last: FileChange): FileChangeType {
   if (last.changeType === FileChangeType.DELETE) return FileChangeType.DELETE;
   if (first.changeType === FileChangeType.CREATE) return FileChangeType.CREATE;

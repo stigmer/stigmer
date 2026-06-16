@@ -83,6 +83,33 @@ describe("CapturingFilesystemBackend", () => {
     expect(buffer.popOldest("nochange.ts")).toBeUndefined();
   });
 
+  it("records nothing when a write fails (file already exists)", async () => {
+    await backend.write("exists.ts", "first");
+    buffer.popOldest("exists.ts"); // discard the CREATE
+
+    // deepagents' write is create-only: a second write to the same path returns
+    // an error value and leaves the file untouched. The wrapper gates capture on
+    // result.error, so it must not record a phantom change for the failed write.
+    const result = await backend.write("exists.ts", "second");
+    expect(result.error).toBeTruthy();
+    expect(buffer.popOldest("exists.ts")).toBeUndefined();
+  });
+
+  it("flags a binary write (NUL byte) on the captured after content", async () => {
+    await backend.write("logo.bin", "PNG\u0000\u0000data");
+    const capture = buffer.popOldest("logo.bin");
+    expect(capture?.after).toContain("\u0000");
+    // buildFileChange derives is_binary from the content via looksBinary.
+    const fc = buildFileChange({
+      path: "logo.bin",
+      absolutePath: join(dir, "logo.bin"),
+      changeType: FileChangeType.CREATE,
+      captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+      after: capture?.after,
+    });
+    expect(fc.after?.isBinary).toBe(true);
+  });
+
   it("orders repeated edits of one file FIFO", async () => {
     await backend.write("repeat.ts", "v0");
     buffer.popOldest("repeat.ts"); // discard the CREATE

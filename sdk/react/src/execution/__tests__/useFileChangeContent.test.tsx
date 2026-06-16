@@ -130,6 +130,48 @@ describe("useFileChangeContent", () => {
     expect(afterCall?.executionId).toBe("exec-9");
   });
 
+  it("resolves both sides independently when each is offloaded under a different execId", () => {
+    const beforeKey = "artifacts/exec-before/toolcalls/tc.0.before.txt";
+    const afterKey = "artifacts/exec-after/toolcalls/tc.0.after.txt";
+    responses.set(beforeKey, { content: "fetched-before" });
+    responses.set(afterKey, { content: "fetched-after" });
+    const change = wholeFile(refSide(beforeKey), refSide(afterKey));
+
+    const { result } = renderHook(() => useFileChangeContent(change));
+
+    expect(result.current.beforeText).toBe("fetched-before");
+    expect(result.current.afterText).toBe("fetched-after");
+    expect(result.current.isLoading).toBe(false);
+    // Each side derives its own execId from its own key.
+    expect(calls.find((c) => c.storageKey === beforeKey)?.executionId).toBe("exec-before");
+    expect(calls.find((c) => c.storageKey === afterKey)?.executionId).toBe("exec-after");
+  });
+
+  it("resolves a mix of an offloaded before and an inline after", () => {
+    const beforeKey = "artifacts/exec-9/toolcalls/tc.0.before.txt";
+    responses.set(beforeKey, { content: "fetched-before" });
+    const change = wholeFile(refSide(beforeKey), inlineSide("new"));
+
+    const { result } = renderHook(() => useFileChangeContent(change));
+
+    expect(result.current.beforeText).toBe("fetched-before");
+    expect(result.current.afterText).toBe("new");
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("stays in loading while either side is still in flight, even if the other is ready", () => {
+    const beforeKey = "artifacts/exec-9/toolcalls/tc.0.before.txt";
+    const afterKey = "artifacts/exec-9/toolcalls/tc.0.after.txt";
+    responses.set(beforeKey, { content: "ready" });
+    responses.set(afterKey, { content: null, isLoading: true });
+    const change = wholeFile(refSide(beforeKey), refSide(afterKey));
+
+    const { result } = renderHook(() => useFileChangeContent(change));
+
+    // A diff needs both sides; one side still loading keeps the whole view loading.
+    expect(result.current.isLoading).toBe(true);
+  });
+
   it("reports loading while an offloaded side is in flight", () => {
     const key = "artifacts/exec-9/toolcalls/tc.0.after.txt";
     responses.set(key, { content: null, isLoading: true });

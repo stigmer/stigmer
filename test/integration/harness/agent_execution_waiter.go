@@ -348,6 +348,68 @@ func AssertHasToolCall(t *testing.T, exec *agentexecv1.AgentExecution, toolName 
 	t.Errorf("expected tool call %q not found in execution messages", toolName)
 }
 
+// FindToolCall returns the first tool call with the given name across all of an
+// execution's messages, or nil if none exists.
+func FindToolCall(exec *agentexecv1.AgentExecution, toolName string) *agentexecv1.ToolCall {
+	for _, msg := range exec.GetStatus().GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			if tc.GetName() == toolName {
+				return tc
+			}
+		}
+	}
+	return nil
+}
+
+// FindFileChange returns the first FileChange with the given workspace-relative
+// path across all of an execution's tool calls, or nil if none exists.
+//
+// The path matched is the display path the runner records — workspace-root
+// relative with the leading slash stripped (see resolveWorkspacePath in the
+// runner's shared/file-change.ts) — not the absolute on-disk path. When a single
+// file is touched by more than one tool in a turn (e.g. write then edit), this
+// returns the earliest capture; assert via FindToolCall(...).GetFileChanges()
+// when a specific tool's change is needed.
+func FindFileChange(exec *agentexecv1.AgentExecution, path string) *agentexecv1.FileChange {
+	for _, msg := range exec.GetStatus().GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			for _, fc := range tc.GetFileChanges() {
+				if fc.GetPath() == path {
+					return fc
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// AssertFileChange asserts that a FileChange exists for the given workspace
+// relative path and that its change type and capture level match. It returns the
+// matched FileChange so callers can make further, change-specific assertions
+// (inline before/after bodies, offloaded refs). On absence it fails the test
+// (non-fatally) and returns nil.
+func AssertFileChange(
+	t *testing.T,
+	exec *agentexecv1.AgentExecution,
+	path string,
+	expectedType agentexecv1.FileChangeType,
+	expectedCapture agentexecv1.FileChangeCaptureLevel,
+) *agentexecv1.FileChange {
+	t.Helper()
+	fc := FindFileChange(exec, path)
+	if fc == nil {
+		t.Errorf("expected a file change for path %q, found none", path)
+		return nil
+	}
+	assert.Equalf(t, expectedType, fc.GetChangeType(),
+		"file change %q: expected change type %s, got %s",
+		path, expectedType.String(), fc.GetChangeType().String())
+	assert.Equalf(t, expectedCapture, fc.GetCaptureLevel(),
+		"file change %q: expected capture level %s, got %s",
+		path, expectedCapture.String(), fc.GetCaptureLevel().String())
+	return fc
+}
+
 // AssertUniqueToolCallIds verifies the core accumulator invariant: a tool
 // call id maps to at most one ToolCall across all of an execution's messages.
 // A repeated id means the runner appended a duplicate ToolCall (e.g. the

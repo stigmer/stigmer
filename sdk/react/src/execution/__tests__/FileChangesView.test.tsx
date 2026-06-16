@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   FileChangeSchema,
@@ -150,5 +150,35 @@ describe("FileChangesView", () => {
     // The selected file appears in both the list and the diff header.
     expect(screen.getAllByText("src/one.ts").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("src/two.ts")).toBeTruthy();
+  });
+
+  it("swaps the active diff when another file in the list is selected", () => {
+    setContent({ beforeText: "a\n", afterText: "b\n" });
+    render(
+      <FileChangesView
+        changes={[
+          wholeFile("src/one.ts", "a\n", "b\n"),
+          wholeFile("src/two.ts", "a\n", "b\n"),
+        ]}
+      />,
+    );
+
+    const oneButton = screen.getByRole("button", { name: /src\/one\.ts/ });
+    const twoButton = screen.getByRole("button", { name: /src\/two\.ts/ });
+
+    // The first file is selected by default: aria-current marks the list entry,
+    // and its path also renders in the diff header (list + header = 2).
+    expect(oneButton.getAttribute("aria-current")).toBe("true");
+    expect(twoButton.getAttribute("aria-current")).toBeNull();
+    expect(screen.getAllByText("src/one.ts")).toHaveLength(2);
+    expect(screen.getAllByText("src/two.ts")).toHaveLength(1);
+
+    fireEvent.click(twoButton);
+
+    // Selection moves to the second file; the header now shows it instead.
+    expect(twoButton.getAttribute("aria-current")).toBe("true");
+    expect(oneButton.getAttribute("aria-current")).toBeNull();
+    expect(screen.getAllByText("src/two.ts")).toHaveLength(2);
+    expect(screen.getAllByText("src/one.ts")).toHaveLength(1);
   });
 });

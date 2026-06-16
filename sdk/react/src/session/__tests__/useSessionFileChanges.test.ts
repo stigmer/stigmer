@@ -191,6 +191,45 @@ describe("useSessionFileChanges", () => {
     expect(r.fileChanges[0].changeType).toBe(FileChangeType.DELETE);
   });
 
+  it("reconciles create-then-delete on the same path to DELETE (path is not hidden)", () => {
+    const r = run([
+      execWith({
+        id: "e1",
+        toolCalls: [
+          toolCallWith("tc1", [
+            wholeFile({ path: "src/tmp.ts", after: "scratch", changeType: FileChangeType.CREATE }),
+          ]),
+          toolCallWith("tc2", [
+            wholeFile({ path: "src/tmp.ts", before: "scratch", changeType: FileChangeType.DELETE }),
+          ]),
+        ],
+      }),
+    ]);
+    // A file created and removed within one session still surfaces, as a DELETE
+    // anchored on the first change's (empty) before — it is not silently dropped.
+    expect(r.fileChangeCount).toBe(1);
+    expect(r.fileChanges[0].changeType).toBe(FileChangeType.DELETE);
+  });
+
+  it("reconciles rename-then-modify on the same path to RENAME, preserving rename_from", () => {
+    const r = run([
+      execWith({
+        id: "e1",
+        toolCalls: [
+          toolCallWith("tc1", [
+            wholeFile({ path: "src/new-name.ts", before: "a", after: "a", changeType: FileChangeType.RENAME, renameFrom: "src/old-name.ts" }),
+          ]),
+          toolCallWith("tc2", [
+            wholeFile({ path: "src/new-name.ts", before: "a", after: "b", changeType: FileChangeType.MODIFY }),
+          ]),
+        ],
+      }),
+    ]);
+    expect(r.fileChanges[0].changeType).toBe(FileChangeType.RENAME);
+    expect(r.fileChanges[0].renameFrom).toBe("src/old-name.ts");
+    expect(r.fileChanges[0].after?.body.case === "inline" && r.fileChanges[0].after.body.value).toBe("b");
+  });
+
   it("groups across main thread and sub-agents by path", () => {
     const r = run([
       execWith({
