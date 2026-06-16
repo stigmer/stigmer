@@ -1,0 +1,171 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { create } from "@bufbuild/protobuf";
+import {
+  FileChangeSchema,
+  FileContentSchema,
+  ToolCallOutputRefSchema,
+  type FileContent,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import {
+  FileChangeCaptureLevel,
+  FileChangeType,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { UseArtifactContentReturn } from "../useArtifactContent";
+
+// ---------------------------------------------------------------------------
+// Mock the offload fetch — keyed by storageKey so each side resolves independently.
+// ---------------------------------------------------------------------------
+
+const responses = new Map<string, Partial<UseArtifactContentReturn>>();
+const calls: Array<{ executionId: string | null; storageKey: string | null }> = [];
+
+vi.mock("../useArtifactContent", () => ({
+  useArtifactContent: (executionId: string | null, storageKey: string | null) => {
+    calls.push({ executionId, storageKey });
+    const base: UseArtifactContentReturn = {
+      content: null,
+      contentType: null,
+      isTruncated: false,
+      isLoading: false,
+      isRefetching: false,
+      error: null,
+      refetch: () => {},
+    };
+    if (!storageKey) return base;
+    return { ...base, ...responses.get(storageKey) };
+  },
+}));
+
+const { useFileChangeContent, execIdFromStorageKey } = await import(
+  "../useFileChangeContent"
+);
+
+beforeEach(() => {
+  responses.clear();
+  calls.length = 0;
+});
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
+function inlineSide(value: string): FileContent {
+  return create(FileContentSchema, { body: { case: "inline", value } });
+}
+
+function refSide(storageKey: string, downloadUrl = ""): FileContent {
+  return create(FileContentSchema, {
+    body: {
+      case: "ref",
+      value: create(ToolCallOutputRefSchema, { storageKey, downloadUrl }),
+    },
+  });
+}
+
+function binarySide(): FileContent {
+  return create(FileContentSchema, { isBinary: true });
+}
+
+function wholeFile(before: FileContent | undefined, after: FileContent | undefined) {
+  return create(FileChangeSchema, {
+    path: "src/a.ts",
+    changeType: FileChangeType.MODIFY,
+    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+    before,
+    after,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// execIdFromStorageKey
+// ---------------------------------------------------------------------------
+
+describe("execIdFromStorageKey", () => {
+  it("parses the execution id from an artifacts key", () => {
+    expect(
+      execIdFromStorageKey("artifacts/exec-123/toolcalls/tc.0.before.txt"),
+    ).toBe("exec-123");
+  });
+
+  it("returns null for an unexpected shape", () => {
+    expect(execIdFromStorageKey("nope")).toBeNull();
+    expect(execIdFromStorageKey("artifacts//x")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useFileChangeContent
+// ---------------------------------------------------------------------------
+
+describe("useFileChangeContent", () => {
+  it("resolves inline sides directly without fetching", () => {
+    const change = wholeFile(inlineSide("old"), inlineSide("new"));
+    const { result } = renderHook(() => useFileChangeContent(change));
+
+    expect(result.current.beforeText).toBe("old");
+    expect(result.current.afterText).toBe("new");
+    expect(result.current.isLoading).toBe(false);
+    // Both sides issue a (skipped) call with null storageKey.
+    expect(calls.every((c) => c.storageKey === null)).toBe(true);
+  });
+
+  it("treats an absent side as an empty file", () => {
+    const change = wholeFile(undefined, inlineSide("created"));
+    change.changeType = FileChangeType.CREATE;
+    const { result } = renderHook(() => useFileChangeContent(change));
+    expect(result.current.beforeText).toBe("");
+    expect(result.current.afterText).toBe("created");
+  });
+
+  it("fetches an offloaded side and parses the execId from its storageKey", () => {
+    const key = "artifacts/exec-9/toolcalls/tc.0.after.txt";
+    responses.set(key, { content: "fetched-after" });
+    const change = wholeFile(inlineSide("old"), refSide(key));
+
+    const { result } = renderHook(() => useFileChangeContent(change));
+
+    expect(result.current.afterText).toBe("fetched-after");
+    const afterCall = calls.find((c) => c.storageKey === key);
+    expect(afterCall?.executionId).toBe("exec-9");
+  });
+
+  it("reports loading while an offloaded side is in flight", () => {
+    const key = "artifacts/exec-9/toolcalls/tc.0.after.txt";
+    responses.set(key, { content: null, isLoading: true });
+    const change = wholeFile(inlineSide("old"), refSide(key));
+
+    const { result } = renderHook(() => useFileChangeContent(change));
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.afterText).toBeNull();
+  });
+
+  it("surfaces truncation and the download url for an oversized offloaded side", () => {
+    const key = "artifacts/exec-9/toolcalls/tc.0.after.txt";
+    responses.set(key, { content: "head", isTruncated: true });
+    const change = wholeFile(inlineSide("old"), refSide(key, "https://dl/full"));
+
+    const { result } = renderHook(() => useFileChangeContent(change));
+
+    expect(result.current.isTruncated).toBe(true);
+    expect(result.current.downloadUrl).toBe("https://dl/full");
+  });
+
+  it("flags binary changes and yields empty text", () => {
+    const change = wholeFile(binarySide(), binarySide());
+    const { result } = renderHook(() => useFileChangeContent(change));
+    expect(result.current.isBinary).toBe(true);
+    expect(result.current.beforeText).toBe("");
+    expect(result.current.afterText).toBe("");
+  });
+
+  it("propagates a fetch error", () => {
+    const key = "artifacts/exec-9/toolcalls/tc.0.after.txt";
+    responses.set(key, { error: new Error("boom") });
+    const change = wholeFile(inlineSide("old"), refSide(key));
+
+    const { result } = renderHook(() => useFileChangeContent(change));
+    expect(result.current.error?.message).toBe("boom");
+  });
+});

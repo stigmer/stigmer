@@ -19,6 +19,10 @@ export interface UseSessionInspectorOptions {
   readonly phase: ExecutionPhase | null;
   readonly hasWriteBacks: boolean;
   readonly writeBackCount: number;
+  /** `true` when local-workspace file changes exist (Changes tab, local mode). */
+  readonly hasFileChanges: boolean;
+  /** Number of changed files; the Changes badge in local mode. */
+  readonly fileChangeCount: number;
   readonly hasArtifacts: boolean;
   readonly artifactCount: number;
   readonly hasUsage: boolean;
@@ -55,10 +59,16 @@ function deriveAutoTab(
  * Workspace → Config → Plan → Usage. Changes and Artifacts appear
  * after Plan when data exists; Inspect appears last when a thread item
  * is selected.
+ *
+ * The Changes tab surfaces for either change source: git write-backs (PRs)
+ * or local-workspace file edits. Its badge prefers the write-back count
+ * (git mode wins the tab) and falls back to the changed-file count.
  */
 export function buildVisibleTabs(opts: {
   hasWriteBacks: boolean;
   writeBackCount: number;
+  hasFileChanges: boolean;
+  fileChangeCount: number;
   hasArtifacts: boolean;
   artifactCount: number;
   hasUsage: boolean;
@@ -70,11 +80,11 @@ export function buildVisibleTabs(opts: {
     { id: "plan", label: "Plan" },
   ];
 
-  if (opts.hasWriteBacks) {
+  if (opts.hasWriteBacks || opts.hasFileChanges) {
     tabs.push({
       id: "changes",
       label: "Changes",
-      badge: opts.writeBackCount,
+      badge: opts.hasWriteBacks ? opts.writeBackCount : opts.fileChangeCount,
     });
   }
 
@@ -107,16 +117,20 @@ export function buildVisibleTabs(opts: {
 export function useSessionInspector(
   opts: UseSessionInspectorOptions,
 ): UseSessionInspectorReturn {
-  const { phase, hasWriteBacks, writeBackCount, hasArtifacts, artifactCount, hasUsage, selectedItem } = opts;
+  const { phase, hasWriteBacks, writeBackCount, hasFileChanges, fileChangeCount, hasArtifacts, artifactCount, hasUsage, selectedItem } = opts;
 
-  const tabs = buildVisibleTabs({ hasWriteBacks, writeBackCount, hasArtifacts, artifactCount, hasUsage, selectedItem });
+  const tabs = buildVisibleTabs({ hasWriteBacks, writeBackCount, hasFileChanges, fileChangeCount, hasArtifacts, artifactCount, hasUsage, selectedItem });
+
+  // Either change source (git write-back or local file edit) surfaces and
+  // auto-selects the Changes tab on first arrival.
+  const hasChanges = hasWriteBacks || hasFileChanges;
 
   const [activeTab, setActiveTab] = useState<SessionInspectorTabId>(
     () => deriveAutoTab(phase, selectedItem),
   );
   const [prevPhase, setPrevPhase] = useState(phase);
   const [prevSelected, setPrevSelected] = useState(selectedItem);
-  const [prevHasWriteBacks, setPrevHasWriteBacks] = useState(hasWriteBacks);
+  const [prevHasChanges, setPrevHasChanges] = useState(hasChanges);
   const userPickedTabRef = useRef(false);
 
   // Selection changed → auto-switch to inspect (unless user picked)
@@ -142,15 +156,15 @@ export function useSessionInspector(
     }
   }
 
-  // First write-back arrived → auto-switch to changes
-  if (hasWriteBacks && !prevHasWriteBacks) {
-    setPrevHasWriteBacks(hasWriteBacks);
+  // First change arrived (write-back or file edit) → auto-switch to changes
+  if (hasChanges && !prevHasChanges) {
+    setPrevHasChanges(hasChanges);
     if (!userPickedTabRef.current) {
       setActiveTab("changes");
     }
   }
-  if (hasWriteBacks !== prevHasWriteBacks) {
-    setPrevHasWriteBacks(hasWriteBacks);
+  if (hasChanges !== prevHasChanges) {
+    setPrevHasChanges(hasChanges);
   }
 
   // Ensure active tab is valid (the selected tab may have been removed)

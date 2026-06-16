@@ -47,11 +47,17 @@ export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
 export { useArtifactContent } from "./useArtifactContent";
 export type { UseArtifactContentReturn } from "./useArtifactContent";
 
+export { useFileChangeContent, execIdFromStorageKey } from "./useFileChangeContent";
+export type { UseFileChangeContentReturn } from "./useFileChangeContent";
+
 export { useWorkspaceWriteBacks } from "./useWorkspaceWriteBacks";
 export type { UseWorkspaceWriteBacksReturn } from "./useWorkspaceWriteBacks";
 
 export { WriteBackCard } from "./WriteBackCard";
 export type { WriteBackCardProps } from "./WriteBackCard";
+
+export { FileChangesView, FileChangeDiff } from "./FileChangesView";
+export type { FileChangesViewProps, FileChangeDiffProps } from "./FileChangesView";
 
 export {
   isTextArtifact,

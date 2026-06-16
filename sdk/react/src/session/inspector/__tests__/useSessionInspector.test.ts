@@ -12,6 +12,24 @@ function defaultOpts(overrides?: Partial<UseSessionInspectorOptions>): UseSessio
     phase: null,
     hasWriteBacks: false,
     writeBackCount: 0,
+    hasFileChanges: false,
+    fileChangeCount: 0,
+    hasArtifacts: false,
+    artifactCount: 0,
+    hasUsage: false,
+    selectedItem: null,
+    ...overrides,
+  };
+}
+
+function tabOpts(
+  overrides?: Partial<Parameters<typeof buildVisibleTabs>[0]>,
+): Parameters<typeof buildVisibleTabs>[0] {
+  return {
+    hasWriteBacks: false,
+    writeBackCount: 0,
+    hasFileChanges: false,
+    fileChangeCount: 0,
     hasArtifacts: false,
     artifactCount: 0,
     hasUsage: false,
@@ -26,14 +44,7 @@ function defaultOpts(overrides?: Partial<UseSessionInspectorOptions>): UseSessio
 
 describe("buildVisibleTabs", () => {
   it("always includes Workspace, Config, Plan, and Usage", () => {
-    const tabs = buildVisibleTabs({
-      hasWriteBacks: false,
-      writeBackCount: 0,
-      hasArtifacts: false,
-      artifactCount: 0,
-      hasUsage: false,
-      selectedItem: null,
-    });
+    const tabs = buildVisibleTabs(tabOpts());
     const ids = tabs.map((t) => t.id);
     expect(ids).toContain("workspace");
     expect(ids).toContain("configure");
@@ -48,55 +59,58 @@ describe("buildVisibleTabs", () => {
   });
 
   it("includes Changes with badge when write-backs exist", () => {
-    const tabs = buildVisibleTabs({
-      hasWriteBacks: true,
-      writeBackCount: 3,
-      hasArtifacts: false,
-      artifactCount: 0,
-      hasUsage: false,
-      selectedItem: null,
-    });
+    const tabs = buildVisibleTabs(tabOpts({ hasWriteBacks: true, writeBackCount: 3 }));
     const changesTab = tabs.find((t) => t.id === "changes");
     expect(changesTab).toBeDefined();
     expect(changesTab?.badge).toBe(3);
   });
 
+  it("includes Changes with file-change badge when only file changes exist", () => {
+    const tabs = buildVisibleTabs(tabOpts({ hasFileChanges: true, fileChangeCount: 5 }));
+    const changesTab = tabs.find((t) => t.id === "changes");
+    expect(changesTab).toBeDefined();
+    expect(changesTab?.badge).toBe(5);
+  });
+
+  it("prefers the write-back count for the Changes badge when both exist", () => {
+    const tabs = buildVisibleTabs(
+      tabOpts({
+        hasWriteBacks: true,
+        writeBackCount: 2,
+        hasFileChanges: true,
+        fileChangeCount: 9,
+      }),
+    );
+    const changesTab = tabs.find((t) => t.id === "changes");
+    expect(changesTab?.badge).toBe(2);
+  });
+
   it("includes Artifacts with badge when artifacts exist", () => {
-    const tabs = buildVisibleTabs({
-      hasWriteBacks: false,
-      writeBackCount: 0,
-      hasArtifacts: true,
-      artifactCount: 7,
-      hasUsage: false,
-      selectedItem: null,
-    });
+    const tabs = buildVisibleTabs(tabOpts({ hasArtifacts: true, artifactCount: 7 }));
     const artifactsTab = tabs.find((t) => t.id === "artifacts");
     expect(artifactsTab).toBeDefined();
     expect(artifactsTab?.badge).toBe(7);
   });
 
   it("includes Inspect when a thread item is selected", () => {
-    const tabs = buildVisibleTabs({
-      hasWriteBacks: false,
-      writeBackCount: 0,
-      hasArtifacts: false,
-      artifactCount: 0,
-      hasUsage: false,
-      selectedItem: { kind: "tool-call", toolCallId: "tc-1" },
-    });
+    const tabs = buildVisibleTabs(
+      tabOpts({ selectedItem: { kind: "tool-call", toolCallId: "tc-1" } }),
+    );
     const inspectTab = tabs.find((t) => t.id === "inspect");
     expect(inspectTab).toBeDefined();
   });
 
   it("orders tabs as Workspace, Config, Plan, then Usage with Inspect last", () => {
-    const tabs = buildVisibleTabs({
-      hasWriteBacks: true,
-      writeBackCount: 2,
-      hasArtifacts: true,
-      artifactCount: 1,
-      hasUsage: true,
-      selectedItem: { kind: "tool-call", toolCallId: "tc-1" },
-    });
+    const tabs = buildVisibleTabs(
+      tabOpts({
+        hasWriteBacks: true,
+        writeBackCount: 2,
+        hasArtifacts: true,
+        artifactCount: 1,
+        hasUsage: true,
+        selectedItem: { kind: "tool-call", toolCallId: "tc-1" },
+      }),
+    );
     const ids = tabs.map((t) => t.id);
     expect(ids.indexOf("workspace")).toBeLessThan(ids.indexOf("configure"));
     expect(ids.indexOf("configure")).toBeLessThan(ids.indexOf("plan"));
@@ -105,14 +119,7 @@ describe("buildVisibleTabs", () => {
   });
 
   it("base tabs are present even when no optional tabs exist", () => {
-    const tabs = buildVisibleTabs({
-      hasWriteBacks: false,
-      writeBackCount: 0,
-      hasArtifacts: false,
-      artifactCount: 0,
-      hasUsage: false,
-      selectedItem: null,
-    });
+    const tabs = buildVisibleTabs(tabOpts());
     const ids = tabs.map((t) => t.id);
     expect(ids).toEqual(["workspace", "configure", "plan", "usage"]);
   });
@@ -225,6 +232,17 @@ describe("useSessionInspector", () => {
     rerender(
       defaultOpts({ hasWriteBacks: true, writeBackCount: 1 }),
     );
+    expect(result.current.activeTab).toBe("changes");
+  });
+
+  it("auto-switches to changes when first local file change arrives", () => {
+    const { result, rerender } = renderHook(
+      (props: UseSessionInspectorOptions) => useSessionInspector(props),
+      { initialProps: defaultOpts() },
+    );
+    expect(result.current.activeTab).toBe("workspace");
+
+    rerender(defaultOpts({ hasFileChanges: true, fileChangeCount: 2 }));
     expect(result.current.activeTab).toBe("changes");
   });
 

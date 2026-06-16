@@ -45,6 +45,9 @@ export type {
   UseSessionWriteBacksReturn,
 } from "./useSessionWriteBacks";
 
+export { useSessionFileChanges } from "./useSessionFileChanges";
+export type { UseSessionFileChangesReturn } from "./useSessionFileChanges";
+
 export { useSessionUsage } from "./useSessionUsage";
 export type {
   ModelCostEntry,

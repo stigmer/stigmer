@@ -8,6 +8,7 @@ import { Tabs } from "../../tabs/Tabs";
 import { ExecutionPhaseBadge } from "../../execution/ExecutionPhaseBadge";
 import { useSessionArtifacts } from "../useSessionArtifacts";
 import { useSessionWriteBacks } from "../useSessionWriteBacks";
+import { useSessionFileChanges } from "../useSessionFileChanges";
 import { useSessionUsage } from "../useSessionUsage";
 import { useSessionInspector } from "./useSessionInspector";
 import { PlanTab } from "./PlanTab";
@@ -94,6 +95,7 @@ export const SessionInspector = memo(function SessionInspector({
     ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(allExecutions);
+  const { hasFileChanges, fileChangeCount } = useSessionFileChanges(allExecutions);
   const { hasArtifacts, artifactCount } = useSessionArtifacts(allExecutions);
   const { hasUsage } = useSessionUsage(allExecutions);
 
@@ -101,6 +103,8 @@ export const SessionInspector = memo(function SessionInspector({
     phase: phase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED ? null : phase,
     hasWriteBacks,
     writeBackCount,
+    hasFileChanges,
+    fileChangeCount,
     hasArtifacts,
     artifactCount,
     hasUsage,
