@@ -8,6 +8,16 @@
 //     that presentation layers (React, Ink, the Go CLI's equivalent) render
 //     without re-parsing third-party engine formats.
 //
+// For file edits, normalizeToolResult prefers the runner's authoritative
+// before/after capture (ToolCall.file_changes, #186) over reconstructing a diff
+// from args, surfacing the capture's fidelity via the diff view's captureLevel so
+// the renderer is honest about whole-file vs hunk-only. The capture is a clean,
+// structured proto, so it is consumed proto-first rather than re-modeled here;
+// the repeated/multi-file projection and offloaded-body fetching live in the
+// React layer. Counts and unified diffs for a whole-file capture stay derivable
+// by the presentation layer (the runner emits 0/"" sentinels for them), keeping
+// one diff implementation as the source of truth.
+//
 // This module has no React or framework dependency so it can be shared by
 // @stigmer/react and @stigmer/ink. The Go CLI mirrors it; the shared contract
 // is test/fixtures/tool-view/. Engine result formats are version-fragile, so
@@ -15,9 +25,10 @@
 
 import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { FileChangeCaptureLevel } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { ToolCall, FileChange, FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
-export { ToolKind };
+export { ToolKind, FileChangeCaptureLevel };
 
 /** A single match in a search/grep result. */
 export interface ToolSearchMatch {
@@ -46,10 +57,18 @@ export interface ToolContentBlock {
  * showing the raw result.
  */
 export type ToolResultView =
-  // File edit. Computed from args (old/new text) because the native engine's
-  // result carries no diff. linesAdded/linesRemoved/unifiedDiff are populated
-  // only when the source provides them (e.g. the Cursor SDK envelope); otherwise
-  // the presentation layer computes the visual diff from oldText/newText.
+  // File edit. oldText/newText are the two sides of the change: the authoritative
+  // whole-file before/after captured by the runner (ToolCall.file_changes) when
+  // available, otherwise the old_string/new_string fragments from args. The
+  // presentation layer computes the visual diff (and its line counts) from
+  // oldText/newText; linesAdded/linesRemoved/unifiedDiff are populated only when
+  // the source provides them directly (e.g. the Cursor hunk-only envelope).
+  //
+  // captureLevel reports the fidelity of oldText/newText so the renderer can be
+  // honest about it: WHOLE_FILE (full-file before/after), HUNK_ONLY (Cursor's
+  // hunk diff, no whole-file content), or undefined (reconstructed from args, the
+  // legacy path). It is the one fact field presence alone cannot convey, since a
+  // whole-file capture and an args fragment both populate oldText/newText.
   | {
       readonly type: "diff";
       readonly path: string;
@@ -58,6 +77,7 @@ export type ToolResultView =
       readonly linesAdded?: number;
       readonly linesRemoved?: number;
       readonly unifiedDiff?: string;
+      readonly captureLevel?: FileChangeCaptureLevel;
     }
   // File read or full-file write. `content` is the file body (from result for
   // read, from args for write).
@@ -231,7 +251,7 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
 
   switch (kind) {
     case ToolKind.FILE_EDIT:
-      return normalizeEdit(args, result);
+      return normalizeEdit(toolCall.fileChanges, args, result);
     case ToolKind.FILE_WRITE:
       return normalizeWrite(args);
     case ToolKind.FILE_READ:
@@ -253,14 +273,28 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
   }
 }
 
-function normalizeEdit(args: Args, result: string): ToolResultView {
+function normalizeEdit(
+  fileChanges: readonly FileChange[],
+  args: Args,
+  result: string,
+): ToolResultView {
+  // Prefer the runner's authoritative capture (ToolCall.file_changes) over
+  // reconstructing the diff from args. A FILE_EDIT touches a single file, so the
+  // first change is the relevant one; multi-file changes (some MCP tools) are not
+  // routed here and are consumed wholesale from the proto by higher layers.
+  const captured = fileChanges[0] && normalizeEditFromFileChange(fileChanges[0], args);
+  if (captured) {
+    return captured;
+  }
+
+  // Legacy fallback: no file_changes (executions persisted before #186) or an
+  // unrecognized capture level. The native engine returns prose with no diff, so
+  // the presentation layer computes the visual diff from the args fragments; the
+  // Cursor SDK returns a stringified envelope with precomputed diff stats.
   const path = firstString(args, PATH_FIELDS) ?? "";
   const oldText = firstString(args, OLD_TEXT_FIELDS);
   const newText = firstString(args, NEW_TEXT_FIELDS);
 
-  // The Cursor SDK returns a stringified envelope with precomputed diff stats;
-  // prefer those when present. The native engine returns prose with no diff, so
-  // the presentation layer computes the visual diff from oldText/newText.
   const envelope = tryParseJson(result);
   const value = isRecord(envelope) && isRecord(envelope.value) ? envelope.value : undefined;
   const linesAdded = value ? asNumber(value.linesAdded) : undefined;
@@ -276,6 +310,53 @@ function normalizeEdit(args: Args, result: string): ToolResultView {
     linesRemoved,
     unifiedDiff,
   };
+}
+
+// Projects an authoritative FileChange into the diff view. Returns undefined for
+// an UNSPECIFIED capture level so the caller falls back to the args path.
+function normalizeEditFromFileChange(change: FileChange, args: Args): ToolResultView | undefined {
+  const path = change.path || change.absolutePath || firstString(args, PATH_FIELDS) || "";
+
+  switch (change.captureLevel) {
+    case FileChangeCaptureLevel.WHOLE_FILE:
+      // True whole-file before/after. linesAdded/linesRemoved and unified_diff are
+      // intentionally NOT copied: for a whole-file capture the native harness
+      // leaves them as 0/"" sentinels (backend shared/file-change.ts), so the
+      // presentation layer derives the stats and hunks from oldText/newText, as it
+      // already does. A side that was offloaded or is binary has no inline text and
+      // is left unset rather than fabricated (see inlineFileBody).
+      return {
+        type: "diff",
+        path,
+        oldText: inlineFileBody(change.before),
+        newText: inlineFileBody(change.after),
+        captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+      };
+    case FileChangeCaptureLevel.HUNK_ONLY:
+      // Cursor today: a hunk-level unified diff plus authoritative line counts,
+      // with no whole-file content. The diff string is the renderable payload.
+      return {
+        type: "diff",
+        path,
+        unifiedDiff: change.unifiedDiff || undefined,
+        linesAdded: change.linesAdded,
+        linesRemoved: change.linesRemoved,
+        captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+      };
+    default:
+      return undefined;
+  }
+}
+
+// Returns the inline UTF-8 body of one side of a file change, or undefined when
+// the side is absent, was offloaded to artifact storage (body.case === "ref"), or
+// is binary — none of which can be shown as inline diff text. An empty file is a
+// real inline value ("") and is preserved, distinct from an absent side.
+function inlineFileBody(side: FileContent | undefined): string | undefined {
+  if (!side || side.isBinary) {
+    return undefined;
+  }
+  return side.body.case === "inline" ? side.body.value : undefined;
 }
 
 function normalizeWrite(args: Args): ToolResultView {

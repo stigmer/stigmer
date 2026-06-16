@@ -186,6 +186,7 @@ export { PENDING_SUBJECT, resolvedSubject } from "./session";
 // Tool-call view model (framework-agnostic; shared by @stigmer/react and @stigmer/ink)
 export {
   ToolKind,
+  FileChangeCaptureLevel,
   resolveToolKind,
   resolveToolKindByName,
   normalizeToolResult,
