@@ -8,7 +8,7 @@
  * the streaming phase needs.
  */
 
-import { createDeepAgent, FilesystemBackend, type FilesystemPermission } from "deepagents";
+import { createDeepAgent, type FilesystemPermission } from "deepagents";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { ChatOpenAI } from "@langchain/openai";
@@ -32,6 +32,8 @@ import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
+import { CapturingFilesystemBackend } from "./capturing-filesystem-backend.js";
+import { FileChangeCaptureBuffer } from "./file-change-buffer.js";
 import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
 import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
 import { reportSetupProgress } from "../../shared/status.js";
@@ -91,6 +93,8 @@ export interface SetupResult {
   readonly autoApproveAll: boolean;
   readonly hasStructuredOutput: boolean;
   readonly streamVersion: "v2" | "v3";
+  /** Race-free before/after captures from the wrapped FilesystemBackend. */
+  readonly fileChangeBuffer: FileChangeCaptureBuffer;
 }
 
 export interface SetupDependencies {
@@ -381,10 +385,18 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       { operations: ["write"], paths: ["/**"], mode: "deny" },
     ];
 
+    // Capture before/after of every file mutation at the source. The buffer is
+    // drained at tool-finished by the FileChangeCoordinator (see index.ts), so
+    // the wrapped backend is the single race-free capture point for both stream
+    // versions, which share this backend.
+    const fileChangeBuffer = new FileChangeCaptureBuffer();
     const agentGraph = await createDeepAgent({
       model,
       checkpointer: checkpointer as any,
-      backend: new FilesystemBackend({ rootDir: workspaceBackend.rootDir }),
+      backend: new CapturingFilesystemBackend(
+        { rootDir: workspaceBackend.rootDir },
+        { buffer: fileChangeBuffer, reader: workspaceBackend },
+      ),
       systemPrompt,
       tools,
       middleware: middleware as any,
@@ -435,6 +447,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       autoApproveAll,
       hasStructuredOutput: !!outputSchema,
       streamVersion,
+      fileChangeBuffer,
     };
   } catch (err) {
     if (mcpConnection) {

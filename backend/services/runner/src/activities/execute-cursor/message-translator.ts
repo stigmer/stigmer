@@ -32,16 +32,17 @@
 
 import { create } from "@bufbuild/protobuf";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentMessage, ToolCall, FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { MessageType, ToolCallStatus, SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { MessageType, ToolCallStatus, SubAgentStatus, ToolKind, FileChangeType, FileChangeCaptureLevel } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
 import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage } from "./approval-policy.js";
 import { grantToken, toolIdentity, type DeniedLedgerEntry } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool } from "../../shared/tool-kind.js";
+import { buildFileChange, resolveWorkspacePath } from "../../shared/file-change.js";
 
 export { utcTimestamp };
 
@@ -232,6 +233,109 @@ export function buildToolCallProto(
   }
 
   return toolCall;
+}
+
+/** Tool-arg keys Cursor uses for a file path / write content (mirrors the SDK). */
+const FILE_PATH_FIELDS = ["path", "file_path", "file", "filename"] as const;
+const FILE_WRITE_CONTENT_FIELDS = ["contents", "content", "file_content"] as const;
+
+function firstStringField(
+  obj: Record<string, unknown> | undefined,
+  keys: readonly string[],
+): string | undefined {
+  if (!obj) return undefined;
+  for (const key of keys) {
+    const value = obj[key];
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+  return undefined;
+}
+
+/**
+ * Extract the `value` object from a Cursor edit-result envelope
+ * (`{ status, value: { diffString, linesAdded, linesRemoved } }`). Accepts the
+ * result as a string or an already-parsed object, mirroring `normalizeEdit` in
+ * the SDK's tool-view. Returns undefined when no envelope value is present (e.g.
+ * a "running" event that carries no diff yet).
+ */
+function editEnvelopeValue(result: unknown): Record<string, unknown> | undefined {
+  let obj: unknown = result;
+  if (typeof result === "string") {
+    try {
+      obj = JSON.parse(result);
+    } catch {
+      return undefined;
+    }
+  }
+  if (!obj || typeof obj !== "object") return undefined;
+  const value = (obj as Record<string, unknown>).value;
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : undefined;
+}
+
+/**
+ * Build the `FileChange`s for a Cursor file-edit/file-write tool call.
+ *
+ * The Cursor SDK does not expose whole-file before/after; for an edit it
+ * provides a precomputed hunk (`diffString` + line counts), so the change is
+ * HUNK_ONLY and only materializes once the terminal result arrives. A write
+ * carries the new whole-file content in its args, so it is a WHOLE_FILE CREATE
+ * available immediately. Whole-file `before` for Cursor is a separate, filed
+ * follow-up (a pre-read at approval time).
+ *
+ * Returns an empty array for non-file tools and for an edit whose diff is not
+ * yet available, so callers can attach unconditionally.
+ */
+export function buildCursorFileChanges(
+  event: Extract<SDKMessage, { type: "tool_call" }>,
+  workspaceRoot?: string,
+): FileChange[] {
+  // Cursor's built-in file tools are not MCP, so name alone classifies them.
+  const kind = classifyTool(event.name);
+  if (kind !== ToolKind.FILE_EDIT && kind !== ToolKind.FILE_WRITE) return [];
+
+  const args =
+    typeof event.args === "object" && event.args !== null
+      ? (event.args as Record<string, unknown>)
+      : undefined;
+  const rawPath = firstStringField(args, FILE_PATH_FIELDS);
+  if (!rawPath) return [];
+
+  const { path, absolutePath } = workspaceRoot
+    ? resolveWorkspacePath(rawPath, workspaceRoot, /* virtualRoot */ false)
+    : { path: rawPath, absolutePath: rawPath };
+
+  if (kind === ToolKind.FILE_WRITE) {
+    return [
+      buildFileChange({
+        path,
+        absolutePath,
+        changeType: FileChangeType.CREATE,
+        captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+        after: firstStringField(args, FILE_WRITE_CONTENT_FIELDS) ?? "",
+      }),
+    ];
+  }
+
+  const value = editEnvelopeValue(event.result);
+  const unifiedDiff = typeof value?.diffString === "string" ? value.diffString : undefined;
+  const linesAdded = typeof value?.linesAdded === "number" ? value.linesAdded : undefined;
+  const linesRemoved = typeof value?.linesRemoved === "number" ? value.linesRemoved : undefined;
+  // No diff yet (e.g. the initial "running" event) — nothing authoritative to attach.
+  if (unifiedDiff === undefined && linesAdded === undefined && linesRemoved === undefined) {
+    return [];
+  }
+
+  return [
+    buildFileChange({
+      path,
+      absolutePath,
+      changeType: FileChangeType.MODIFY,
+      captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+      unifiedDiff,
+      linesAdded,
+      linesRemoved,
+    }),
+  ];
 }
 
 function translateTask(event: Extract<SDKMessage, { type: "task" }>): AgentMessage {
@@ -534,6 +638,12 @@ export function extractConversationSteps(
  */
 export interface MessageAccumulatorOptions {
   mergedPolicies?: Map<string, MergedToolPolicy>;
+  /**
+   * Absolute workspace root, used to render file-change paths relative to the
+   * workspace (with the absolute path retained). Omitted in unit tests, in
+   * which case raw tool-arg paths are used verbatim.
+   */
+  workspaceRoot?: string;
 }
 
 /**
@@ -596,12 +706,14 @@ export class MessageAccumulator {
   private readonly _subAgentExecutions: SubAgentExecution[] = [];
   private readonly subAgentMap = new Map<string, SubAgentExecution>();
   private readonly mergedPolicies?: Map<string, MergedToolPolicy>;
+  private readonly workspaceRoot?: string;
   private readonly toolCallIndex = new Map<string, ToolCall>();
   private _dirty = false;
 
   constructor(messages: AgentMessage[], options?: MessageAccumulatorOptions) {
     this.messages = messages;
     this.mergedPolicies = options?.mergedPolicies;
+    this.workspaceRoot = options?.workspaceRoot;
   }
 
   get subAgentExecutions(): SubAgentExecution[] {
@@ -698,6 +810,10 @@ export class MessageAccumulator {
     const existing = this.toolCallIndex.get(event.call_id);
     if (!existing) {
       const tc = buildToolCallProto(event, this.mergedPolicies);
+      // A write carries whole-file content at creation; an edit's diff arrives
+      // with its terminal result and is attached in mergeToolCallEvent.
+      const fileChanges = buildCursorFileChanges(event, this.workspaceRoot);
+      if (fileChanges.length > 0) tc.fileChanges = fileChanges;
       this.findOrCreateLastAiMessage().toolCalls.push(tc);
       this.toolCallIndex.set(event.call_id, tc);
       // A new tool call is a discrete, user-visible event — force a prompt
@@ -749,6 +865,13 @@ export class MessageAccumulator {
     const incomingResult = toResultString(event.result);
     if (incomingResult) {
       existing.result = incomingResult;
+    }
+
+    // A file edit's diff only arrives with the terminal result; attach it once,
+    // without clobbering a change already set at creation (e.g. a write).
+    if (existing.fileChanges.length === 0) {
+      const fileChanges = buildCursorFileChanges(event, this.workspaceRoot);
+      if (fileChanges.length > 0) existing.fileChanges = fileChanges;
     }
 
     if (status === ToolCallStatus.TOOL_CALL_FAILED) {

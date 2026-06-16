@@ -15,6 +15,8 @@ import {
   MessageType,
   ToolCallStatus,
   SubAgentStatus,
+  FileChangeType,
+  FileChangeCaptureLevel,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import {
@@ -857,6 +859,93 @@ describe("MessageAccumulator tool call status transitions", () => {
       });
       expect(cancelInProgressSubAgentProtos([completed])).toBe(false);
       expect(cancelInProgressSubAgentProtos([])).toBe(false);
+    });
+  });
+
+  describe("file changes", () => {
+    it("FILE_WRITE yields a WHOLE_FILE CREATE with the new content, at creation time", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages, { workspaceRoot: "/root" });
+
+      acc.processEvent(assistantEvent("r1", "Creating a file."));
+      acc.processEvent(
+        toolCallEvent("tc-w", "Write", "running", "r1", {
+          args: { path: "src/new.ts", contents: "export const x = 1;\n" },
+        }),
+      );
+
+      const tc = findToolCallById(messages, "tc-w");
+      expect(tc?.fileChanges).toHaveLength(1);
+      const fc = tc!.fileChanges[0];
+      expect(fc.changeType).toBe(FileChangeType.CREATE);
+      expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+      expect(fc.path).toBe("src/new.ts");
+      expect(fc.absolutePath).toBe("/root/src/new.ts");
+      expect(fc.after?.body.case).toBe("inline");
+      if (fc.after?.body.case === "inline") {
+        expect(fc.after.body.value).toBe("export const x = 1;\n");
+      }
+      expect(fc.before).toBeUndefined();
+    });
+
+    it("FILE_EDIT yields a HUNK_ONLY MODIFY from the SDK envelope, on the terminal result", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages, { workspaceRoot: "/root" });
+
+      acc.processEvent(assistantEvent("r1", "Editing."));
+      // The running event carries no diff yet — no file change attached.
+      acc.processEvent(
+        toolCallEvent("tc-e", "StrReplace", "running", "r1", {
+          args: { path: "src/app.ts", old_string: "a", new_string: "b" },
+        }),
+      );
+      expect(findToolCallById(messages, "tc-e")?.fileChanges).toHaveLength(0);
+
+      // The terminal result carries the precomputed hunk.
+      acc.processEvent(
+        toolCallEvent("tc-e", "StrReplace", "completed", "r1", {
+          args: { path: "src/app.ts", old_string: "a", new_string: "b" },
+          result: {
+            status: "completed",
+            value: { diffString: "@@ -1 +1 @@\n-a\n+b\n", linesAdded: 1, linesRemoved: 1 },
+          },
+        }),
+      );
+
+      const tc = findToolCallById(messages, "tc-e");
+      expect(tc?.fileChanges).toHaveLength(1);
+      const fc = tc!.fileChanges[0];
+      expect(fc.changeType).toBe(FileChangeType.MODIFY);
+      expect(fc.captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
+      expect(fc.path).toBe("src/app.ts");
+      expect(fc.unifiedDiff).toBe("@@ -1 +1 @@\n-a\n+b\n");
+      expect(fc.linesAdded).toBe(1);
+      expect(fc.linesRemoved).toBe(1);
+      // HUNK_ONLY carries no whole-file bodies.
+      expect(fc.before).toBeUndefined();
+      expect(fc.after).toBeUndefined();
+    });
+
+    it("non-file tools produce no file changes", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages, { workspaceRoot: "/root" });
+      acc.processEvent(assistantEvent("r1", "Running a command."));
+      acc.processEvent(toolCallEvent("tc-s", "Shell", "completed", "r1", { result: "ok" }));
+      expect(findToolCallById(messages, "tc-s")?.fileChanges).toHaveLength(0);
+    });
+
+    it("falls back to the raw arg path when no workspace root is configured", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+      acc.processEvent(assistantEvent("r1", "Creating."));
+      acc.processEvent(
+        toolCallEvent("tc-w", "Write", "running", "r1", {
+          args: { path: "src/new.ts", contents: "x" },
+        }),
+      );
+      const fc = findToolCallById(messages, "tc-w")!.fileChanges[0];
+      expect(fc.path).toBe("src/new.ts");
+      expect(fc.absolutePath).toBe("src/new.ts");
     });
   });
 });

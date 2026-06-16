@@ -618,7 +618,10 @@ async function executeCursorInner(
       }
     });
 
-    const accumulator = new MessageAccumulator(status.messages, { mergedPolicies });
+    const accumulator = new MessageAccumulator(status.messages, {
+      mergedPolicies,
+      workspaceRoot: primaryWorkspaceDir,
+    });
     // Shared cadence with the native harness: discrete state changes force a
     // flush; high-frequency token deltas ride this scheduler's time cadence
     // (env-tunable via STREAMING_* — see loadStreamingConfig).

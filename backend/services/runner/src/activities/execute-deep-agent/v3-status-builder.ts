@@ -16,7 +16,7 @@ import {
   AgentMessageSchema,
   ToolCallSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentMessage, ToolCall, FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import {
@@ -28,6 +28,7 @@ import { type MergedToolPolicy, resolveApprovalMessage as resolveApprovalMsg } f
 import { classifyTool } from "../../shared/tool-kind.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
+import { attachFileChangesToStatus } from "../../shared/file-change.js";
 import type { ExecutionStatusWriter } from "./execution-status-writer.js";
 import type { ApprovalPolicyProvider } from "./status-builder.js";
 import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
@@ -190,6 +191,12 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
       backs.push(wb);
     }
     this._forceNextUpdate = true;
+  }
+
+  attachFileChanges(toolCallId: string, changes: FileChange[]): void {
+    if (attachFileChangesToStatus(this.state.proto, toolCallId, changes)) {
+      this._forceNextUpdate = true;
+    }
   }
 
   // ── Message Handlers ───────────────────────────────────────────────

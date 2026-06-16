@@ -28,6 +28,7 @@ import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { StatusBuilder } from "./status-builder.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { WriteBackCoordinator } from "./writeback-coordinator.js";
+import { FileChangeCoordinator } from "./file-change-coordinator.js";
 import { processPostStream } from "./post-stream.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 
@@ -128,6 +129,12 @@ export function createDeepAgentActivities(config: Config) {
             })
           : null;
 
+        const fileChangeCoordinator = new FileChangeCoordinator({
+          statusWriter: statusBuilder,
+          buffer: setup.fileChangeBuffer,
+          workspaceBackend: setup.workspaceBackend,
+        });
+
         const cancellationSignal = Context.current().cancellationSignal;
 
         const result: StreamResult = await streamExecution({
@@ -142,6 +149,7 @@ export function createDeepAgentActivities(config: Config) {
           gracefulStop: setup.gracefulStop,
           inlinePublisher,
           writebackCoordinator: writebackCoordinator ?? undefined,
+          fileChangeCoordinator,
           heartbeatFn: (details) => Context.current().heartbeat(details),
           isCancelledFn: () => cancellationSignal.aborted,
           approvalProvider: {

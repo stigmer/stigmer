@@ -6,10 +6,15 @@ import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/ag
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { ArtifactStorage } from "../artifact-storage.js";
 import {
+  FileChangeType,
+  FileChangeCaptureLevel,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
   offloadOversizedToolOutputs,
   enforceStatusSizeLimit,
   detectImagePayload,
 } from "../status-offload.js";
+import { buildFileChange } from "../file-change.js";
 
 function makeFakeStorage() {
   const uploads: { key: string; size: number; contentType?: string }[] = [];
@@ -252,5 +257,137 @@ describe("enforceStatusSizeLimit", () => {
     const elided = enforceStatusSizeLimit(status, 4_000);
     expect(elided).toBe(true);
     expect(encodedSize(status)).toBeLessThanOrEqual(4_000);
+  });
+
+  it("counts and elides oversized file-change bodies, preserving the change shell", () => {
+    const big = "Z".repeat(50_000);
+    const tc = create(ToolCallSchema, {
+      id: "edit-1",
+      name: "edit_file",
+      fileChanges: [
+        buildFileChange({
+          path: "src/big.ts",
+          absolutePath: "/root/src/big.ts",
+          changeType: FileChangeType.MODIFY,
+          captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+          before: big,
+          after: big,
+        }),
+      ],
+    });
+    const status = statusWithToolCall(tc);
+    expect(encodedSize(status)).toBeGreaterThan(90_000);
+
+    const elided = enforceStatusSizeLimit(status, 4_000);
+    expect(elided).toBe(true);
+    expect(encodedSize(status)).toBeLessThanOrEqual(4_000);
+
+    // The change is still present with its metadata; only the bodies are gone.
+    const fc = status.messages[0].toolCalls[0].fileChanges[0];
+    expect(fc.path).toBe("src/big.ts");
+    expect(fc.changeType).toBe(FileChangeType.MODIFY);
+    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+    expect(fc.before?.body.case).toBe("inline");
+    if (fc.before?.body.case === "inline") {
+      expect(fc.before.body.value.length).toBeLessThan(big.length);
+    }
+  });
+});
+
+describe("offloadOversizedToolOutputs — file changes", () => {
+  function fileChangeToolCall(before: string, after: string): ToolCall {
+    return create(ToolCallSchema, {
+      id: "edit-1",
+      name: "edit_file",
+      result: "edited",
+      fileChanges: [
+        buildFileChange({
+          path: "src/app.ts",
+          absolutePath: "/root/src/app.ts",
+          changeType: FileChangeType.MODIFY,
+          captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+          before,
+          after,
+        }),
+      ],
+    });
+  }
+
+  it("leaves a small file body inline (no upload)", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const status = statusWithToolCall(fileChangeToolCall("before", "after"));
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineFileBytes: 256,
+    });
+
+    const fc = status.messages[0].toolCalls[0].fileChanges[0];
+    expect(fc.after?.body.case).toBe("inline");
+    expect(uploads).toHaveLength(0);
+  });
+
+  it("spills an oversized file body to a ref with a head preview", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const big = "A".repeat(2000);
+    const status = statusWithToolCall(fileChangeToolCall("small-before", big));
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineFileBytes: 256,
+    });
+
+    const fc = status.messages[0].toolCalls[0].fileChanges[0];
+    // before stayed inline (under cap); after spilled to a ref.
+    expect(fc.before?.body.case).toBe("inline");
+    expect(fc.after?.body.case).toBe("ref");
+    if (fc.after?.body.case === "ref") {
+      const ref = fc.after.body.value;
+      expect(ref.mimeType).toBe("text/plain");
+      expect(ref.isImage).toBe(false);
+      expect(ref.truncatedPreview.length).toBeGreaterThan(0);
+      expect(ref.downloadUrl).toContain("artifacts/exec-1/toolcalls/edit-1.0.after.txt");
+      expect(Number(ref.sizeBytes)).toBe(big.length);
+    }
+    expect(uploads).toHaveLength(1);
+    expect(uploads[0].contentType).toBe("text/plain");
+  });
+
+  it("is idempotent: a body already offloaded to a ref is not re-uploaded", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const big = "A".repeat(2000);
+    const status = statusWithToolCall(fileChangeToolCall("b", big));
+    const ctx = { artifactStorage: storage, executionId: "exec-1", maxInlineFileBytes: 256 };
+
+    await offloadOversizedToolOutputs(status, ctx);
+    expect(uploads).toHaveLength(1);
+
+    await offloadOversizedToolOutputs(status, ctx);
+    expect(uploads).toHaveLength(1); // ref already set; not re-uploaded
+  });
+
+  it("does not fail the persist when a file-change upload throws", async () => {
+    const storage: ArtifactStorage = {
+      upload: vi.fn(async () => { throw new Error("storage down"); }),
+      getDownloadUrl: vi.fn(async (k: string) => k),
+      exists: vi.fn(async () => false),
+    };
+    const big = "A".repeat(2000);
+    const status = statusWithToolCall(fileChangeToolCall("b", big));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await expect(
+      offloadOversizedToolOutputs(status, {
+        artifactStorage: storage,
+        executionId: "exec-1",
+        maxInlineFileBytes: 256,
+      }),
+    ).resolves.toBeUndefined();
+
+    // Left inline (the aggregate backstop would elide it if needed).
+    const fc = status.messages[0].toolCalls[0].fileChanges[0];
+    expect(fc.after?.body.case).toBe("inline");
   });
 });

@@ -40,6 +40,7 @@ import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
 import type { InlinePublisher } from "./inline-publisher.js";
 import type { WriteBackCoordinator } from "./writeback-coordinator.js";
+import type { FileChangeCoordinator } from "./file-change-coordinator.js";
 import { createV2EventRecorder } from "./event-recorder.js";
 import { streamExecutionV3 } from "./streaming-v3.js";
 
@@ -78,6 +79,8 @@ export interface StreamDependencies {
   readonly inlinePublisher?: InlinePublisher;
   /** Incremental git write-back coordinator. */
   readonly writebackCoordinator?: WriteBackCoordinator;
+  /** Attaches captured before/after file changes to their tool calls. */
+  readonly fileChangeCoordinator?: FileChangeCoordinator;
   /** Approval policy provider for StatusBuilder tool-call phase tracking. */
   readonly approvalProvider?: ApprovalPolicyProvider;
   /** Streaming protocol version. Defaults to "v2" if unset. */
@@ -127,6 +130,7 @@ async function streamExecutionV2(
     gracefulStop,
     inlinePublisher,
     writebackCoordinator,
+    fileChangeCoordinator,
     approvalProvider,
   } = deps;
 
@@ -162,9 +166,15 @@ async function streamExecutionV2(
       statusBuilder.processEvent(event);
       eventsProcessed++;
 
-      if (event.event === "on_tool_end" && (inlinePublisher || writebackCoordinator)) {
+      if (event.event === "on_tool_end" && (inlinePublisher || writebackCoordinator || fileChangeCoordinator)) {
         const filePath = extractFilePathFromToolEnd(event);
         if (filePath) {
+          // Synchronous and first: attaches the before/after captured at the
+          // mutation point to this tool call (tc.id === run_id in v2) so they
+          // ride the same persist as the tool-finish.
+          if (fileChangeCoordinator) {
+            fileChangeCoordinator.attach(event.run_id, filePath);
+          }
           if (inlinePublisher) {
             pendingPublishPromises.push(inlinePublisher.publish(filePath));
           }
