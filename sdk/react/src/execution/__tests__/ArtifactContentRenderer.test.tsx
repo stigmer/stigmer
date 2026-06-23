@@ -44,4 +44,19 @@ describe("ArtifactContentRenderer — markdown", () => {
     expect(container.querySelector("h1")).not.toBeNull();
     expect(container.querySelector("pre")).toBeNull();
   });
+
+  it("syntax-highlights fenced code blocks via the shared seam", () => {
+    const md = "# Notes\n\n```go\nfunc main() {}\n```\n";
+    const { container } = render(
+      <ArtifactContentRenderer content={md} fileName="notes.md" />,
+    );
+
+    // Same shared `MARKDOWN_COMPONENTS.code` override the chat stream uses, so
+    // the react-markdown artifact path colorizes code identically.
+    const code = container.querySelector("code.hljs");
+    expect(code).not.toBeNull();
+    expect(
+      container.querySelectorAll('span[class*="hljs-"]').length,
+    ).toBeGreaterThan(0);
+  });
 });

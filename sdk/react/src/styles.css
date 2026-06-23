@@ -186,3 +186,91 @@
     }
   }
 }
+
+@layer stgm {
+  /* Syntax highlighting for fenced code blocks (issue #183).
+     lowlight (highlight.js) emits these `hljs-*` token classes; we map each
+     onto a shared `--stgm-syntax-*` theme token so highlighted code tracks the
+     host's preset and color-mode with zero hardcoded colors — the same token
+     contract the CodeMirror YAML editor uses. Scoped to `.stgm` so nothing
+     leaks into the host application. */
+  .stgm .hljs {
+    color: var(--stgm-foreground);
+  }
+
+  .stgm .hljs-comment,
+  .stgm .hljs-quote {
+    color: var(--stgm-syntax-comment);
+    font-style: italic;
+  }
+
+  .stgm .hljs-keyword,
+  .stgm .hljs-selector-tag,
+  .stgm .hljs-subst {
+    color: var(--stgm-syntax-keyword);
+  }
+
+  .stgm .hljs-literal,
+  .stgm .hljs-symbol,
+  .stgm .hljs-bullet {
+    color: var(--stgm-syntax-bool);
+  }
+
+  .stgm .hljs-string,
+  .stgm .hljs-regexp,
+  .stgm .hljs-addition,
+  .stgm .hljs-template-tag,
+  .stgm .hljs-template-variable,
+  .stgm .hljs-meta .hljs-string {
+    color: var(--stgm-syntax-string);
+  }
+
+  .stgm .hljs-number {
+    color: var(--stgm-syntax-number);
+  }
+
+  .stgm .hljs-title,
+  .stgm .hljs-title.function_,
+  .stgm .hljs-title.class_,
+  .stgm .hljs-section,
+  .stgm .hljs-built_in,
+  .stgm .hljs-type {
+    color: var(--stgm-syntax-property);
+  }
+
+  .stgm .hljs-attr,
+  .stgm .hljs-attribute,
+  .stgm .hljs-property,
+  .stgm .hljs-variable,
+  .stgm .hljs-params,
+  .stgm .hljs-selector-attr,
+  .stgm .hljs-selector-pseudo,
+  .stgm .hljs-selector-class,
+  .stgm .hljs-selector-id {
+    color: var(--stgm-syntax-property);
+  }
+
+  .stgm .hljs-tag,
+  .stgm .hljs-name {
+    color: var(--stgm-syntax-tag);
+  }
+
+  .stgm .hljs-meta,
+  .stgm .hljs-meta .hljs-keyword,
+  .stgm .hljs-doctag {
+    color: var(--stgm-syntax-meta);
+  }
+
+  .stgm .hljs-link,
+  .stgm .hljs-deletion {
+    color: var(--stgm-syntax-atom);
+  }
+
+  .stgm .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .stgm .hljs-strong {
+    font-weight: 600;
+  }
+}

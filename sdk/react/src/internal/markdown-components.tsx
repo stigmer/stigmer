@@ -2,6 +2,9 @@ import type { ComponentProps, JSX } from "react";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@stigmer/theme";
+import { highlightToReact } from "./code-highlight";
+
+const LANGUAGE_CLASS_PREFIX = "language-";
 
 type MdProps<T extends keyof JSX.IntrinsicElements> = ComponentProps<T>;
 
@@ -163,15 +166,29 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   code({ children, className: codeClassName, ...props }: MdProps<"code">) {
     const isBlock =
-      typeof codeClassName === "string" && codeClassName.startsWith("language-");
+      typeof codeClassName === "string" &&
+      codeClassName.startsWith(LANGUAGE_CLASS_PREFIX);
 
     if (isBlock) {
+      // Tokenize here, in the one component both renderers (Streamdown for
+      // chat, react-markdown for artifacts/skills) share, so highlighting is
+      // identical everywhere. Highlight only plain-string children — anything
+      // else (e.g. a streaming caret node) falls back to flat rendering.
+      const language = codeClassName.slice(LANGUAGE_CLASS_PREFIX.length);
+      const highlighted =
+        typeof children === "string"
+          ? highlightToReact(children, language)
+          : null;
+
       return (
         <code
-          className={cn("font-mono text-xs text-foreground", codeClassName)}
+          className={cn(
+            "hljs font-mono text-xs text-foreground",
+            codeClassName,
+          )}
           {...props}
         >
-          {children}
+          {highlighted ?? children}
         </code>
       );
     }

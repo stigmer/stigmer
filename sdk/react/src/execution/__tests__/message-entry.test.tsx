@@ -153,6 +153,22 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
     const article = queryArticle(container, "AI response");
     expect(article!.querySelector("pre")).not.toBeNull();
   });
+
+  it("syntax-highlights fenced code in the chat stream (Streamdown path)", () => {
+    const msg = makeMessage(
+      MessageType.MESSAGE_AI,
+      "```go\nfunc main() {}\n```",
+    );
+    const { container } = render(<MessageEntry message={msg} />);
+
+    const article = queryArticle(container, "AI response");
+    // Streamdown routes fenced code through the shared MARKDOWN_COMPONENTS.code
+    // override, so chat highlights identically to the artifact viewer.
+    expect(article!.querySelector("code.hljs")).not.toBeNull();
+    expect(
+      article!.querySelectorAll('span[class*="hljs-"]').length,
+    ).toBeGreaterThan(0);
+  });
 });
 
 // ---------------------------------------------------------------------------

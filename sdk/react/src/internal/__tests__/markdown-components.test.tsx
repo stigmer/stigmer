@@ -1,5 +1,18 @@
-import { describe, it, expect } from "vitest";
-import { unwrapEnclosingMarkdownFence } from "../markdown-components";
+import { describe, it, expect, afterEach } from "vitest";
+import { render, cleanup } from "@testing-library/react";
+import type { ComponentType, ReactNode } from "react";
+import {
+  MARKDOWN_COMPONENTS,
+  unwrapEnclosingMarkdownFence,
+} from "../markdown-components";
+
+afterEach(cleanup);
+
+/** The shared `code` override, typed for direct rendering in tests. */
+const CodeComponent = MARKDOWN_COMPONENTS.code as ComponentType<{
+  className?: string;
+  children?: ReactNode;
+}>;
 
 describe("unwrapEnclosingMarkdownFence", () => {
   describe("unwraps a whole-message markdown fence", () => {
@@ -49,5 +62,58 @@ describe("unwrapEnclosingMarkdownFence", () => {
     const wrapped = "```markdown\n# Plan\n- a\n```";
     const once = unwrapEnclosingMarkdownFence(wrapped);
     expect(unwrapEnclosingMarkdownFence(once)).toBe(once);
+  });
+});
+
+describe("MARKDOWN_COMPONENTS.code (shared highlight seam)", () => {
+  it("syntax-highlights a fenced block with a known language", () => {
+    const { container } = render(
+      <CodeComponent className="language-go">
+        {"func main() {}"}
+      </CodeComponent>,
+    );
+
+    const code = container.querySelector("code");
+    expect(code).not.toBeNull();
+    expect(code!.className).toContain("hljs");
+    expect(code!.className).toContain("language-go");
+    expect(
+      container.querySelectorAll('span[class*="hljs-"]').length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("falls back to flat text for an unknown language (no token spans)", () => {
+    const { container } = render(
+      <CodeComponent className="language-hcl">
+        {'resource "x" {}'}
+      </CodeComponent>,
+    );
+
+    const code = container.querySelector("code");
+    expect(code).not.toBeNull();
+    expect(code!.textContent).toContain('resource "x" {}');
+    expect(container.querySelectorAll('span[class*="hljs-"]').length).toBe(0);
+  });
+
+  it("falls back to flat for non-string children (e.g. a streaming caret)", () => {
+    const { container } = render(
+      <CodeComponent className="language-go">
+        <span data-testid="caret">x</span>
+      </CodeComponent>,
+    );
+
+    // Renders children untouched, no throw, no tokenization attempted.
+    expect(container.querySelector('[data-testid="caret"]')).not.toBeNull();
+    expect(container.querySelectorAll('span[class*="hljs-"]').length).toBe(0);
+  });
+
+  it("leaves inline code unhighlighted and unboxed by hljs", () => {
+    const { container } = render(<CodeComponent>{"inlineToken"}</CodeComponent>);
+
+    const code = container.querySelector("code");
+    expect(code).not.toBeNull();
+    expect(code!.className).not.toContain("hljs");
+    expect(code!.className).toContain("bg-muted");
+    expect(code!.textContent).toBe("inlineToken");
   });
 });
