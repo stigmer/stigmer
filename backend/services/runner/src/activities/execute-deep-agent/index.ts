@@ -31,6 +31,7 @@ import { WriteBackCoordinator } from "./writeback-coordinator.js";
 import { FileChangeCoordinator } from "./file-change-coordinator.js";
 import { processPostStream } from "./post-stream.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
+import { captureApprovalArtifacts } from "./approval-file-change.js";
 
 export function createDeepAgentActivities(config: Config) {
   const client = new StigmerClient({
@@ -180,6 +181,8 @@ export function createDeepAgentActivities(config: Config) {
 
         if (!setup.autoApproveAll) {
           const graphState = await setup.agentGraph.getState(setup.langgraphConfig);
+          const graphMessages = (graphState.values as { messages?: unknown }).messages;
+          const aiMessages = Array.isArray(graphMessages) ? graphMessages : [];
           const pendingInterrupts = graphState.tasks?.flatMap(
             (task: { id: string; interrupts?: readonly { value: Record<string, unknown>; resumeValue?: unknown }[] }) =>
               (task.interrupts ?? [])
@@ -209,7 +212,7 @@ export function createDeepAgentActivities(config: Config) {
               isStreaming: false,
             });
             for (const intr of pendingInterrupts) {
-              aiMsg.toolCalls.push(create(ToolCallSchema, {
+              const toolCall = create(ToolCallSchema, {
                 id: intr.toolCallId,
                 name: intr.toolName,
                 status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
@@ -219,7 +222,23 @@ export function createDeepAgentActivities(config: Config) {
                 mcpServerSlug: intr.mcpServerSlug,
                 startedAt: utcTimestamp(),
                 toolKind: classifyTool(intr.toolName, intr.mcpServerSlug),
-              }));
+              });
+
+              // Capture the proposed edit (and a sanitized args preview) while the
+              // graph is paused, so the approval UI renders a real before/after
+              // diff before the tool runs. Args are correlated from the AI-message
+              // tool call in graph state (the single source of truth); oversized
+              // before/after bodies are offloaded by persistStatus below.
+              const { argsPreview, fileChange } = await captureApprovalArtifacts({
+                toolName: intr.toolName,
+                toolCallId: intr.toolCallId,
+                messages: aiMessages,
+                workspaceBackend: setup.workspaceBackend,
+              });
+              if (argsPreview) toolCall.argsPreview = argsPreview;
+              if (fileChange) toolCall.fileChanges = [fileChange];
+
+              aiMsg.toolCalls.push(toolCall);
             }
             initialStatus.messages.push(aiMsg);
 

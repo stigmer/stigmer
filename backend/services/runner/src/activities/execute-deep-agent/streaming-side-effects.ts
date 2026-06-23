@@ -10,12 +10,7 @@ import type { V3ProtocolEvent } from "./v3-event-recorder.js";
 import type { InlinePublisher } from "./inline-publisher.js";
 import type { WriteBackCoordinator } from "./writeback-coordinator.js";
 import type { FileChangeCoordinator } from "./file-change-coordinator.js";
-
-const FILE_MODIFYING_TOOLS = new Set([
-  "write_file", "edit_file", "create_file",
-  "write", "edit", "create",
-  "str_replace_editor",
-]);
+import { extractFilePath, isFileModifyingTool } from "../../shared/file-tools.js";
 
 interface CachedToolInput {
   readonly toolName: string;
@@ -68,7 +63,7 @@ export class StreamingSideEffects {
       const cached = this.inputCache.get(callId);
       this.inputCache.delete(callId);
       if (!cached) return;
-      if (!FILE_MODIFYING_TOOLS.has(cached.toolName)) return;
+      if (!isFileModifyingTool(cached.toolName)) return;
 
       const filePath = extractFilePath(cached.input);
       if (!filePath) return;
@@ -87,13 +82,4 @@ export class StreamingSideEffects {
       }
     }
   }
-}
-
-function extractFilePath(input: Record<string, unknown>): string | null {
-  if (typeof input.path === "string") return input.path;
-  if (typeof input.file_path === "string") return input.file_path;
-  if (typeof input.filePath === "string") return input.filePath;
-  if (typeof input.filename === "string") return input.filename;
-  if (typeof input.file === "string") return input.file;
-  return null;
 }
