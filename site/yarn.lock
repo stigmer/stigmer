@@ -122,7 +122,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bufbuild/protobuf@npm:2.12.0, @bufbuild/protobuf@npm:^2.11.0":
+"@bufbuild/protobuf@npm:2.12.0, @bufbuild/protobuf@npm:^2.11.0, @bufbuild/protobuf@npm:^2.2.2":
   version: 2.12.0
   resolution: "@bufbuild/protobuf@npm:2.12.0"
   checksum: 10c0/28959e371fd2e7c8d67d52af9e3c8f8e6770e2e116dcc5508f469ca736afa6905e216bc76183835898a5f3deb8aa2e7db47d4a0e706fba76115e9a1996893191
@@ -262,6 +262,16 @@ __metadata:
     style-mod: "npm:^4.1.0"
     w3c-keyname: "npm:^2.2.4"
   checksum: 10c0/87d0db936c1148bd573994062d9109b284e1dc023af1db3490c6f27043cd840f91b63b56adfd6763a71c6ac17b9cd98adda92d41cae6d209efe5bc5133c689a3
+  languageName: node
+  linkType: hard
+
+"@connectrpc/connect-node@npm:^2.0.0":
+  version: 2.1.2
+  resolution: "@connectrpc/connect-node@npm:2.1.2"
+  peerDependencies:
+    "@bufbuild/protobuf": ^2.7.0
+    "@connectrpc/connect": 2.1.2
+  checksum: 10c0/ba8b0c9384c3829b377aa7a826dc0cd50a6093527d2ec7014604912836336ea9604a2b5acea42b10477f8be4569e49dded66ca0fc77f5f5b027035e029e13ea9
   languageName: node
   linkType: hard
 
@@ -2389,25 +2399,34 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scenar/cli@npm:0.1.19":
-  version: 0.1.19
-  resolution: "@scenar/cli@npm:0.1.19"
+"@scenar/cli@npm:0.3.0":
+  version: 0.3.0
+  resolution: "@scenar/cli@npm:0.3.0"
   dependencies:
-    "@scenar/core": "npm:0.1.19"
-    "@scenar/preview": "npm:0.1.19"
-    "@scenar/sdk": "npm:0.1.19"
+    "@bufbuild/protobuf": "npm:^2.2.2"
+    "@connectrpc/connect": "npm:^2.0.0"
+    "@connectrpc/connect-node": "npm:^2.0.0"
+    "@scenar/core": "npm:0.3.0"
+    "@scenar/embed": "npm:0.3.0"
+    "@scenar/preview": "npm:0.3.0"
+    "@scenar/sdk": "npm:0.3.0"
+    "@scenar/stubs": "npm:0.3.0"
     commander: "npm:^13.0.0"
     yaml: "npm:^2.7.0"
   peerDependencies:
     "@remotion/bundler": 4.0.448
     "@remotion/renderer": 4.0.448
+    "@vitejs/plugin-react": ">=4.3.0"
     echogarden: ">=2.0.0"
     edge-tts-universal: ">=1.0.0"
     remotion: 4.0.448
+    vite: ">=6.0.0"
   peerDependenciesMeta:
     "@remotion/bundler":
       optional: true
     "@remotion/renderer":
+      optional: true
+    "@vitejs/plugin-react":
       optional: true
     echogarden:
       optional: true
@@ -2415,22 +2434,41 @@ __metadata:
       optional: true
     remotion:
       optional: true
+    vite:
+      optional: true
   bin:
     scenar: bin/scenar.js
-  checksum: 10c0/a78f686dce8ed5c078deba90b2e83db222e9115cd7d00075967f40d3572d2e8586aa3951feea5c0f7ba1500925251ad65c68a82746a2357c728cd0279d3090a8
+  checksum: 10c0/fbe02affd5c742d49b75b29bf492c96f6637d6e1db97a52034c0eb27ecbfefb1c8b561d1e3bf97d2735e84e2ce7cd163d87d332341eb544ee051d84a7682cbe5
   languageName: node
   linkType: hard
 
-"@scenar/core@npm:0.1.19":
-  version: 0.1.19
-  resolution: "@scenar/core@npm:0.1.19"
-  checksum: 10c0/4e3f4e0fe8dd369f54848b047bba8a0f51344185bec575ea3daa853d9bc9a4306a573ffdb6fc8945399cff257612814802fa7795ae1011d52fbd349644a342cc
+"@scenar/core@npm:0.3.0":
+  version: 0.3.0
+  resolution: "@scenar/core@npm:0.3.0"
+  checksum: 10c0/096edaa5c3eb1da25c8d1067a17ae43f787b685238e7d222b472849ca7188297d19c96440ee8121bc878bae04bf830b3ba7904cc1b7d48fe27a8cc93b62cbea6
   languageName: node
   linkType: hard
 
-"@scenar/preview@npm:0.1.19":
-  version: 0.1.19
-  resolution: "@scenar/preview@npm:0.1.19"
+"@scenar/embed@npm:0.3.0":
+  version: 0.3.0
+  resolution: "@scenar/embed@npm:0.3.0"
+  dependencies:
+    "@scenar/core": "npm:0.3.0"
+  peerDependencies:
+    react: ">=18.0.0"
+    react-dom: ">=18.0.0"
+  peerDependenciesMeta:
+    react:
+      optional: true
+    react-dom:
+      optional: true
+  checksum: 10c0/7873a0f86464fad365f65763c633ad1f85a16fa28e3e15112e178d57d57fa1ac73a51b39cdf5f0db7ba5bdcaf14810874270da5e5260a024d3fa450b459c2890
+  languageName: node
+  linkType: hard
+
+"@scenar/preview@npm:0.3.0":
+  version: 0.3.0
+  resolution: "@scenar/preview@npm:0.3.0"
   dependencies:
     ts-morph: "npm:^25.0.0"
   peerDependencies:
@@ -2444,15 +2482,15 @@ __metadata:
       optional: true
     react:
       optional: true
-  checksum: 10c0/405958ed75340ec12a06cdd57da57563f7308c34844b757357a232588a3ed325d1fb9c83ce41d0c84d6faa1f9de284eaa52291d736d15eb3ff48f7f00c615760
+  checksum: 10c0/7052c13a1fe23eca3dbd45223e6212ccffd865380fc3a1813d12b6aba2c66128f3a653a131bcdf9e0bd2c3c4a813de626bf2f0cac51ca42eff828a943cb9fdf7
   languageName: node
   linkType: hard
 
-"@scenar/react@npm:0.1.19":
-  version: 0.1.19
-  resolution: "@scenar/react@npm:0.1.19"
+"@scenar/react@npm:0.3.0":
+  version: 0.3.0
+  resolution: "@scenar/react@npm:0.3.0"
   dependencies:
-    "@scenar/core": "npm:0.1.19"
+    "@scenar/core": "npm:0.3.0"
   peerDependencies:
     framer-motion: ">=11.0.0"
     lucide-react: ">=0.400.0"
@@ -2461,16 +2499,25 @@ __metadata:
   peerDependenciesMeta:
     lucide-react:
       optional: true
-  checksum: 10c0/bfff340c7cb7ee620f6df778ccad22b76b5ddc4bc7b1e0d11382e0ceefda913bca163203622a997dc58134fc19e8b7207edc0e10707161bf59a0d41e85bcf4bf
+  checksum: 10c0/b56581b6da26234d93489f6b94989b1e289b05b3a5b89be3ac28d23a0c3d5a56a288a28e69277d4911a45007b625050527aab3023de7edf21a03516f4fdcbe9d
   languageName: node
   linkType: hard
 
-"@scenar/sdk@npm:0.1.19":
-  version: 0.1.19
-  resolution: "@scenar/sdk@npm:0.1.19"
+"@scenar/sdk@npm:0.3.0":
+  version: 0.3.0
+  resolution: "@scenar/sdk@npm:0.3.0"
   dependencies:
-    "@scenar/core": "npm:0.1.19"
-  checksum: 10c0/3834bc82aacc76c8a99f3c7e0d7f2f92bf7dcfc455ecb8c67243e91da0e6966b7201d46161fc61dbeda38fd51f25fa9d5f3fd2b8101af802b84d517ab0b410d5
+    "@scenar/core": "npm:0.3.0"
+  checksum: 10c0/7e9f99fc4279c7943fc63248a95821f42e846c009d742a23d601a1ff97875dde7e62d2fa375dc64a3b68c5b9c3295a59eaaf143448815962b8d9b0f809f1147e
+  languageName: node
+  linkType: hard
+
+"@scenar/stubs@npm:0.3.0":
+  version: 0.3.0
+  resolution: "@scenar/stubs@npm:0.3.0"
+  dependencies:
+    "@bufbuild/protobuf": "npm:^2.2.2"
+  checksum: 10c0/84bed7aa9f47fcda0aaf6c50d5d3b279825089a610341bf5c7874d37ea9bc1f634c0fbd6eaa1532b0ab57ac3efefc5ef945ffe4842e9f180c9470ef6c866c092
   languageName: node
   linkType: hard
 
@@ -2575,22 +2622,25 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=0945b4&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=bb9846&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/0960de4579621f0fe86600eee9cf625a816a1e2315f2e0aa651e3fbad5bb332c624e39269260e909e153cc82f511af97a2b70055701ed1058874f807c766ae99
+  checksum: 10c0/314beb9d23b4f08195fb9df2f4f6449054395fa60d6dc48a5657765fe49a16c6742ba227e82e4e5e0a57011a94f03e04ab9c4bf5742a0376f4a80bb502e04ef0
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=5c1272&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=d2a56c&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@dagrejs/dagre": "npm:^1.1.4"
     "@stigmer/theme": "npm:*"
     diff: "npm:^8.0.3"
     fflate: "npm:^0.8.2"
+    hast-util-to-jsx-runtime: "npm:^2.3.6"
+    highlight.js: "npm:^11.11.1"
+    lowlight: "npm:^3.3.0"
     react-markdown: "npm:^10.1.0"
     remark-gfm: "npm:^4.0.1"
     sonner: "npm:^2.0.0"
@@ -2646,13 +2696,13 @@ __metadata:
       optional: true
     recharts:
       optional: true
-  checksum: 10c0/d8e51017515251c7b4181f391ef081ebecf558d4bf85d7ed5cdcc4b39aaf72e1c56e75a057e7e0ece223e35ec4603272ddf24b70a4b304532d95887cc39679f9
+  checksum: 10c0/ce5d9a7350fbe54ffe33aedd86e2fd5d7e4a9ef1ec3316b4c64bea5977374a231ba3bcaaf2d3f12b03d93ac8fd680159a78c8b81d4be1f0c92c9944831613190
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=2eab0a&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=f7d8d5&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2663,17 +2713,17 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/e00662a9a714ceb40c343fdf47768f547756480d097f293e0d16ca66c87c5766278d9db37a5a699691791a739979a88af02137be86765ea5e281d4379b83851d
+  checksum: 10c0/556e1c5a3e0dfa76d9271a13a6d1df35452d3bfbc35d51723ec0db11c3c175968ad1411fca70eebfa7cccaf57c74b6e519a2ee239ef8562fc94151a72193b7bf
   languageName: node
   linkType: hard
 
 "@stigmer/theme@file:../sdk/theme::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=1fd02a&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=4c4d7a&locator=stigmer-site%40workspace%3A."
   peerDependencies:
     clsx: ^2.0.0
     tailwind-merge: ^3.0.0
-  checksum: 10c0/b7e9165a7cded24deb5091fe61dfe9d93292acb921a7913fa96710c3c8674202a1a429d8ed1723ebe0b7ef154eaa665724decf625ee8709f8645ed1d4f3a258f
+  checksum: 10c0/784fb84173e05c88133b6b371acd4c91fcba240363160d21b133e9f0d5374052e0595588bd6bd1bf7b8de51fd4124c0716afd985861dc0ffe772b444658cb1b0
   languageName: node
   linkType: hard
 
@@ -6902,6 +6952,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"highlight.js@npm:^11.11.1, highlight.js@npm:~11.11.0":
+  version: 11.11.1
+  resolution: "highlight.js@npm:11.11.1"
+  checksum: 10c0/40f53ac19dac079891fcefd5bd8a21cf2e8931fd47da5bd1dca73b7e4375c1defed0636fc39120c639b9c44119b7d110f7f0c15aa899557a5a1c8910f3c0144c
+  languageName: node
+  linkType: hard
+
 "highlightjs-vue@npm:^1.0.0":
   version: 1.0.0
   resolution: "highlightjs-vue@npm:1.0.0"
@@ -7733,6 +7790,17 @@ __metadata:
     fault: "npm:^1.0.0"
     highlight.js: "npm:~10.7.0"
   checksum: 10c0/728bce6f6fe8b157f48d3324e597f452ce0eed2ccff1c0f41a9047380f944e971eb45bceb31f08fbb64d8f338dabb166f10049b35b92c7ec5cf0241d6adb3dea
+  languageName: node
+  linkType: hard
+
+"lowlight@npm:^3.3.0":
+  version: 3.3.0
+  resolution: "lowlight@npm:3.3.0"
+  dependencies:
+    "@types/hast": "npm:^3.0.0"
+    devlop: "npm:^1.0.0"
+    highlight.js: "npm:~11.11.0"
+  checksum: 10c0/9b796fa8443b0334ebf18bc57387c9ee31432d8c263cf2089d23e1087c653d708447284e0647bf993cb2cdc810e0b268a28f51ea27b4a624893b97bdd3f025f4
   languageName: node
   linkType: hard
 
@@ -10347,10 +10415,11 @@ __metadata:
     "@orama/orama": "npm:^3.1.18"
     "@playwright/test": "npm:^1.59.1"
     "@radix-ui/react-slot": "npm:^1.2.3"
-    "@scenar/cli": "npm:0.1.19"
-    "@scenar/core": "npm:0.1.19"
-    "@scenar/preview": "npm:0.1.19"
-    "@scenar/react": "npm:0.1.19"
+    "@scenar/cli": "npm:0.3.0"
+    "@scenar/core": "npm:0.3.0"
+    "@scenar/embed": "npm:0.3.0"
+    "@scenar/preview": "npm:0.3.0"
+    "@scenar/react": "npm:0.3.0"
     "@stigmer/protos": "file:../apis/stubs/ts"
     "@stigmer/react": "file:../sdk/react"
     "@stigmer/sdk": "file:../sdk/typescript"
