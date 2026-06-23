@@ -10,6 +10,7 @@ import {
 } from "./tool-categories";
 import { CATEGORY_ICON } from "./ToolCallItem";
 import { ToolArgsView } from "./ToolArgsView";
+import { FileChangeDiff } from "./FileChangesView";
 
 /** Props for {@link ApprovalCard}. */
 export interface ApprovalCardProps {
@@ -35,9 +36,11 @@ export interface ApprovalCardProps {
  * The compact header row matches the ToolCallItem layout:
  *   [CategoryIcon] Label  primaryArg  [⏳ waiting Xm]
  *
- * Arguments are rendered through the shared {@link ToolArgsView}
- * dispatch, ensuring pixel-level parity between the approval
- * preview and the post-execution detail view.
+ * The body shows the most decision-relevant preview: when the
+ * approval carries the runner's `file_changes` capture, a real
+ * before/after {@link FileChangeDiff} (one per changed file);
+ * otherwise the shared {@link ToolArgsView} dispatch, keeping
+ * pixel-level parity with the post-execution detail view.
  *
  * Wrapped in `React.memo` — structural sharing (T04) preserves the
  * `PendingApproval` reference when unchanged, so approval cards
@@ -165,14 +168,23 @@ export const ApprovalCard = memo(function ApprovalCard({
           </p>
         )}
 
-        {/* Category-specific args preview — shared with ToolCallDetail */}
-        {parsedArgs && (
-          <ToolArgsView
-            toolName={pendingApproval.toolName}
-            args={parsedArgs}
-            mcpServerSlug={pendingApproval.mcpServerSlug}
-          />
-        )}
+        {/* A file-modifying approval carries the runner's before/after capture
+            on file_changes; render the diff as the primary preview. It already
+            names the file and quantifies the change, so the ToolArgsView args
+            (path + raw content) would only duplicate it — the same composition
+            ToolCallDetail uses for its `edit` case. Non-file tools (or a file
+            tool whose capture is absent) fall back to the shared args view. */}
+        {pendingApproval.fileChanges.length > 0
+          ? pendingApproval.fileChanges.map((fileChange) => (
+              <FileChangeDiff key={fileChange.path} change={fileChange} />
+            ))
+          : parsedArgs && (
+              <ToolArgsView
+                toolName={pendingApproval.toolName}
+                args={parsedArgs}
+                mcpServerSlug={pendingApproval.mcpServerSlug}
+              />
+            )}
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 pt-1">
