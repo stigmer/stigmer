@@ -250,4 +250,41 @@ describe("installHitlGate / removeHitlGate", () => {
       expect(existsSync(join(workspaceRoot, ".cursor", "hooks.json"))).toBe(false);
     }
   });
+
+  it("installs the always-applied tool-approval rule and removes it on teardown", async () => {
+    const { workspaceRoot, hitlDir } = dirs();
+    const rulePath = join(workspaceRoot, ".cursor", "rules", "stigmer-tool-approval.mdc");
+
+    const handle = await installHitlGate({
+      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+    });
+    // During the turn the rule is present and carries the protocol.
+    expect(existsSync(rulePath)).toBe(true);
+    const ruleBody = readFileSync(rulePath, "utf-8");
+    expect(ruleBody).toContain("alwaysApply: true");
+    expect(ruleBody.toLowerCase()).toContain("blocked by a hook");
+
+    await removeHitlGate(handle);
+    // Teardown removes our rule and the now-empty rules dir (the repo had none).
+    expect(existsSync(rulePath)).toBe(false);
+    expect(existsSync(join(workspaceRoot, ".cursor", "rules"))).toBe(false);
+  });
+
+  it("preserves a user's own .cursor/rules and rules dir after teardown", async () => {
+    const { workspaceRoot, hitlDir } = dirs();
+    const rulesDir = join(workspaceRoot, ".cursor", "rules");
+    mkdirSync(rulesDir, { recursive: true });
+    const userRule = join(rulesDir, "user-rule.mdc");
+    writeFileSync(userRule, "---\nalwaysApply: false\n---\nmine\n", "utf-8");
+
+    const handle = await installHitlGate({
+      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+    });
+    await removeHitlGate(handle);
+
+    // Our rule is gone; the user's rule and the dir they owned remain untouched.
+    expect(existsSync(join(rulesDir, "stigmer-tool-approval.mdc"))).toBe(false);
+    expect(readFileSync(userRule, "utf-8")).toBe("---\nalwaysApply: false\n---\nmine\n");
+    expect(existsSync(rulesDir)).toBe(true);
+  });
 });

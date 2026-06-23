@@ -291,7 +291,7 @@ describe("ClassifyToolApprovals activity", () => {
   });
 
   describe("fallbackApprovals", () => {
-    it("marks all tools as requiring approval with default message", async () => {
+    it("marks ambiguous tools as requiring approval with default message", async () => {
       const { fallbackApprovals } = await import("../classify-tool-approvals.js");
 
       const tools: ToolDescriptor[] = [
@@ -305,6 +305,75 @@ describe("ClassifyToolApprovals activity", () => {
         { tool_name: "tool_a", requires_approval: true, message: "Execute tool_a" },
         { tool_name: "tool_b", requires_approval: true, message: "Execute tool_b" },
       ]);
+    });
+
+    it("does NOT gate obvious read-only tools even when classification fails", async () => {
+      const { fallbackApprovals } = await import("../classify-tool-approvals.js");
+
+      const result = fallbackApprovals([
+        { name: "get_app_state", description: "" },
+        { name: "delete_file", description: "" },
+      ]);
+
+      expect(result).toEqual([
+        { tool_name: "get_app_state", requires_approval: false, message: "" },
+        { tool_name: "delete_file", requires_approval: true, message: "Execute delete_file" },
+      ]);
+    });
+  });
+
+  describe("isReadOnlyObservationTool — deterministic floor", () => {
+    it("treats leading observation verbs as read-only", async () => {
+      const { isReadOnlyObservationTool } = await import("../classify-tool-approvals.js");
+      for (const name of ["get_app_state", "list_apps", "read_file", "describe_table",
+        "search_code", "queryDatabase", "fetch_url", "status", "inspectElement"]) {
+        expect(isReadOnlyObservationTool(name), name).toBe(true);
+      }
+    });
+
+    it("treats screenshot/snapshot nouns anywhere as read-only", async () => {
+      const { isReadOnlyObservationTool } = await import("../classify-tool-approvals.js");
+      expect(isReadOnlyObservationTool("capture_screenshot")).toBe(true);
+      expect(isReadOnlyObservationTool("take_snapshot")).toBe(true);
+    });
+
+    it("does NOT relax mutating tools that merely contain a read word", async () => {
+      const { isReadOnlyObservationTool } = await import("../classify-tool-approvals.js");
+      for (const name of ["set_state", "update_view", "delete_file", "create_issue",
+        "send_message", "click", "scroll", "run_command"]) {
+        expect(isReadOnlyObservationTool(name), name).toBe(false);
+      }
+    });
+
+    it("overrides an over-eager LLM down to auto-approve for read-only tools", async () => {
+      const { classifyTools } = await import("../classify-tool-approvals.js");
+
+      // The LLM wrongly flags both perception tools as requiring approval.
+      mockInvoke.mockResolvedValueOnce({
+        approvals: [
+          { tool_name: "get_app_state", requires_approval: true, message: "Approve?" },
+          { tool_name: "list_apps", requires_approval: true, message: "Approve?" },
+          { tool_name: "click", requires_approval: true, message: "Click {{args.element}}" },
+        ],
+      });
+
+      const result = await classifyTools(
+        {
+          tools: [
+            { name: "get_app_state", description: "" },
+            { name: "list_apps", description: "" },
+            { name: "click", description: "" },
+          ],
+          serverName: "open-computer-use",
+          serverDescription: "",
+          mcpServerId: null,
+        },
+        makeOptions(),
+      );
+
+      // The deterministic floor un-gates the two read-only tools; click stays.
+      expect(result).toHaveLength(1);
+      expect(result[0].tool_name).toBe("click");
     });
   });
 

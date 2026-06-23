@@ -41,7 +41,7 @@ import { resolveAgent } from "./session-lifecycle.js";
 import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
-import { MessageAccumulator, reconcileDeniedToolCalls, cancelInProgressSubAgentProtos } from "./message-translator.js";
+import { MessageAccumulator, reconcileDeniedToolCalls, dropProvisionalPostDenialNarration, cancelInProgressSubAgentProtos } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { startStallWatchdog, StallTimeoutError, formatStallFailure, type StallWatchdog } from "../../shared/stall-watchdog.js";
 import { createArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
@@ -875,6 +875,18 @@ async function executeCursorInner(
       primaryWorkspaceDir,
     );
     if (deniedToolCalls.length > 0) {
+      // Deterministic clean-pause: a turn that pauses for approval must persist
+      // the same shape the native harness produces — pre-tool text + the gated
+      // tool calls — never the model's provisional reaction to Cursor's deny
+      // (e.g. "blocked by a hook; enable it in your Cursor settings"), which
+      // would otherwise render as the assistant's verdict next to the approval
+      // card. See dropProvisionalPostDenialNarration for the full rationale.
+      const droppedNarration = dropProvisionalPostDenialNarration(status.messages, deniedToolCalls);
+      if (droppedNarration.length > 0) {
+        console.log(
+          `ExecuteCursor dropped ${droppedNarration.length} provisional post-denial narration message(s) before pausing for approval`,
+        );
+      }
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
       await persist(status);
       console.log(`ExecuteCursor returning WAITING_FOR_APPROVAL: ${deniedToolCalls.length} tools pending`);

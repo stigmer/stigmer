@@ -173,6 +173,11 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       // and that it should continue, NOT stop and wait or ask for permission.
       expect(res.raw).toContain("submitted to the user for approval automatically");
       expect(res.raw).toContain("continue with the rest of the task");
+      // It must reframe the deny as the approval gate working as intended and
+      // forbid the "fix your Cursor settings" narration that the leaky MCP deny
+      // path otherwise provokes.
+      expect(res.raw.toLowerCase()).toContain("not an error");
+      expect(res.raw.toLowerCase()).toContain("cursor settings");
       // The old propose-then-wait framing and internal sentinel must be gone.
       expect(res.raw).not.toContain("STIGMER_APPROVAL_REQUIRED");
       expect(res.raw).not.toContain("Stop and wait");

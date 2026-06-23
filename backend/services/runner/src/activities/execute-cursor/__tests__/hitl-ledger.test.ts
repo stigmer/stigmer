@@ -49,7 +49,7 @@ import {
   buildApprovalGrants,
   grantToken,
 } from "../approval-state.js";
-import { reconcileDeniedToolCalls } from "../message-translator.js";
+import { reconcileDeniedToolCalls, dropProvisionalPostDenialNarration } from "../message-translator.js";
 import { generateHookScript } from "../hook-script.js";
 import type { MergedToolPolicy } from "../approval-policy.js";
 
@@ -460,6 +460,71 @@ describe("reconstructAdjudicatedApprovals", () => {
     const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals([aiMessageWith([tc])]);
     expect(pendingApprovals).toEqual([]);
     expect(decisions.size).toBe(0);
+  });
+});
+
+// When a Cursor turn pauses for approval, the model frequently reacts to the
+// deny ("blocked by a hook; enable it in your Cursor settings") and that
+// provisional verdict must NOT be persisted next to the approval card. These
+// pin the deterministic positional rule that removes exactly the trailing
+// reaction block and nothing load-bearing.
+describe("dropProvisionalPostDenialNarration", () => {
+  function aiText(content: string): AgentMessage {
+    return create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content });
+  }
+  function thinking(content: string): AgentMessage {
+    return create(AgentMessageSchema, { type: MessageType.MESSAGE_THINKING, content });
+  }
+
+  it("drops the trailing assistant/thinking block after the last gated tool call", () => {
+    const gated = toolCall({ id: "c1", name: "edit", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL });
+    const messages: AgentMessage[] = [
+      aiText("Let me create the file."),
+      aiMessageWith([gated]),
+      thinking("The hook blocked me; the environment must be misconfigured."),
+      aiText("I couldn't do this — please enable the hook in your Cursor settings."),
+    ];
+
+    const dropped = dropProvisionalPostDenialNarration(messages, [gated]);
+
+    expect(dropped).toHaveLength(2);
+    // Persisted shape matches the native harness: pre-tool text + gated call.
+    expect(messages).toHaveLength(2);
+    expect(messages[0].content).toBe("Let me create the file.");
+    expect(messages[1].toolCalls[0]).toBe(gated);
+  });
+
+  it("preserves pre-tool narration and the gated call itself", () => {
+    const gated = toolCall({ id: "c1", name: "edit", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL });
+    const messages: AgentMessage[] = [aiText("Working on it."), aiMessageWith([gated])];
+
+    const dropped = dropProvisionalPostDenialNarration(messages, [gated]);
+
+    expect(dropped).toHaveLength(0);
+    expect(messages).toHaveLength(2);
+  });
+
+  it("stops at the first tool-bearing message so real post-gate activity is kept", () => {
+    const gated = toolCall({ id: "c1", name: "edit", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL });
+    const readAfter = toolCall({ id: "c2", name: "read", status: ToolCallStatus.TOOL_CALL_COMPLETED });
+    const messages: AgentMessage[] = [
+      aiMessageWith([gated]),
+      aiText("checking something else"),
+      aiMessageWith([readAfter]), // real activity — not trailing narration
+    ];
+
+    const dropped = dropProvisionalPostDenialNarration(messages, [gated]);
+
+    // The read message is the last gated-or-activity boundary; iteration stops
+    // there and the intermediate text is preserved (it is not "trailing").
+    expect(dropped).toHaveLength(0);
+    expect(messages).toHaveLength(3);
+  });
+
+  it("is a no-op when there are no denied tool calls", () => {
+    const messages: AgentMessage[] = [aiText("all good")];
+    expect(dropProvisionalPostDenialNarration(messages, [])).toEqual([]);
+    expect(messages).toHaveLength(1);
   });
 });
 

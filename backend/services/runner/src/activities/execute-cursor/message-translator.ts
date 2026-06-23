@@ -1142,6 +1142,82 @@ export function reconcileDeniedToolCalls(
 }
 
 /**
+ * Drop provisional post-denial narration when a Cursor turn pauses for approval.
+ *
+ * THE PROBLEM. Unlike the native harness — which gates with a LangGraph
+ * `interrupt()` *before* the tool runs, so the model never sees a denial — the
+ * Cursor harness can only gate via the file-based `beforeMCPExecution`/
+ * `preToolUse` hook returning `deny`. Cursor surfaces that deny to the model as
+ * a tool *failure* (often its own generic "blocked by a hook" text; see the
+ * Phase 0 ground-truth capture in cursor_hitl_test.go), and there is no
+ * non-leaky SDK approval primitive to use instead (the `request` event is
+ * opaque and carries no responder). So a well-behaved model frequently reacts by
+ * narrating defeat — "I couldn't do this; enable the hook in your Cursor
+ * settings" — which is then persisted as the assistant's verdict and rendered
+ * right next to the approval card that is, in fact, asking the user to approve.
+ * Contradictory and alarming.
+ *
+ * THE GUARANTEE. The runner's job is to simplify this data, not mirror its
+ * complexity: a turn that pauses for approval must persist the SAME shape the
+ * native harness produces — `[pre-tool text][tool calls WAITING_APPROVAL]`, with
+ * no post-denial verdict. We therefore drop the trailing assistant/thinking
+ * messages that (a) appear positionally AFTER the last message bearing a
+ * WAITING_APPROVAL tool call and (b) carry no tool calls of their own. The
+ * approval card (projected from the WAITING_APPROVAL tool-call status) becomes
+ * the single, unambiguous source of truth, and the shared `@stigmer/react`
+ * components stay harness-agnostic — web and desktop get correct behavior with
+ * zero per-harness UI special-casing.
+ *
+ * WHY THIS IS DETERMINISTIC. `attachToolCallToLastAi` calls
+ * `finalizeStreaming(run_id)` before attaching a tool call, so any assistant
+ * text the model emits *after* the denied tool call always starts a NEW message
+ * — post-denial narration is never merged into the message that holds the gated
+ * call. We stop at the first non-narration message (one bearing tool calls), so
+ * legitimately-executed tools after the gate and any text around them are never
+ * touched; only the contiguous trailing reaction block is removed.
+ *
+ * The narration is provisional, not load-bearing: it is recoverable from the
+ * runner logs and the recorded cursor-event stream, and the model re-narrates a
+ * correct summary on the resumed turn after approval.
+ *
+ * Returns the dropped messages (for diagnostics); mutates `messages` in place.
+ */
+export function dropProvisionalPostDenialNarration(
+  messages: AgentMessage[],
+  deniedToolCalls: ToolCall[],
+): AgentMessage[] {
+  if (deniedToolCalls.length === 0) return [];
+
+  // reconcileDeniedToolCalls returns the very ToolCall protos held inside
+  // messages[].toolCalls (overlaid) or appended to the last AI message
+  // (synthesized), so object identity is a stable, exact match.
+  const denied = new Set(deniedToolCalls);
+
+  let lastGatedIdx = -1;
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i].toolCalls.some((tc) => denied.has(tc))) {
+      lastGatedIdx = i;
+    }
+  }
+  if (lastGatedIdx < 0) return [];
+
+  const dropped: AgentMessage[] = [];
+  for (let i = messages.length - 1; i > lastGatedIdx; i--) {
+    const msg = messages[i];
+    const isProvisionalNarration =
+      (msg.type === MessageType.MESSAGE_AI || msg.type === MessageType.MESSAGE_THINKING) &&
+      msg.toolCalls.length === 0;
+    // Stop at the first message that is NOT trailing narration: a tool-bearing
+    // message marks real activity we must preserve, and anything before it is no
+    // longer "trailing".
+    if (!isProvisionalNarration) break;
+    dropped.unshift(msg);
+    messages.splice(i, 1);
+  }
+  return dropped;
+}
+
+/**
  * Compute a streamed tool call's identity token in the same canonical space the
  * preToolUse hook records denials in (see {@link toolIdentity} and grantToken).
  * The token keys on the cross-taxonomy category + salient resource, so a stream

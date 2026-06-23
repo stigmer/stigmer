@@ -3,10 +3,13 @@
 package integration
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
@@ -259,6 +262,150 @@ func TestCursorHarness_HITL_AutoApproveAll_NoGate(t *testing.T) {
 	assert.Empty(t, result.GetStatus().GetPendingApprovals(),
 		"auto_approve_all=true must not surface any approval gate")
 	assertCompletedWrite(t, result)
+}
+
+// TestCursorHarness_HITL_McpToolGate_Approve is the missing end-to-end proof
+// that the Cursor harness approval gate fires for an MCP tool — not just a
+// built-in — and the empirical capture for the Phase 0 root-cause question.
+//
+// Until now the cross-harness MCP HITL test skipped the Cursor harness
+// (harness.SkipCursorForHITLGate) "pending live preToolUse verification": no
+// test had ever paused a Cursor execution on an MCP tool. This closes that gap.
+// It forces a deterministic MCP tool (the mock server's "echo") to require
+// approval via a per-agent override, drives a real cursor-agent to invoke it,
+// and asserts the execution pauses at WAITING_FOR_APPROVAL with the gated MCP
+// tool call marked WAITING_APPROVAL — then approves and runs to completion via
+// the reinvocation grant.
+//
+// It also captures ground truth for the HITL UX bug (see
+// inspectCursorMcpDenyGroundTruth): when CURSOR_EVENT_RECORD_DIR is set, it
+// reports whether Cursor surfaced our hook's deny agent_message to the model or
+// replaced it with its own generic "blocked by a hook" text — the asymmetry that
+// makes the model narrate defeat. That part is logged, never asserted, because
+// it characterizes upstream SDK behavior we do not control.
+//
+// Requires CURSOR_API_KEY. For the ground-truth capture, also export
+// CURSOR_EVENT_RECORD_DIR (a writable dir) before the suite starts the runner.
+func TestCursorHarness_HITL_McpToolGate_Approve(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 6*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	// Deterministic MCP tool forced to require approval. Using a per-agent
+	// override isolates the MCP approval path from the built-in gate already
+	// covered by TestCursorHarness_HITL_WriteGate_Approve.
+	httpServer := harness.StartHTTPMcpServer(t)
+	mcpServer := harness.CreateHttpMcpServer(t, ctx, clients, httpServer.URL)
+	harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+	harness.WaitForMcpServerTool(t, ctx, clients,
+		mcpServer.GetMetadata().GetId(), "echo", 2*time.Minute)
+
+	agent := harness.CreateAgent(t, ctx, clients, "test-cursor-hitl-mcp-gate",
+		"You are a helpful assistant. When asked to use a tool, invoke it "+
+			"directly via a tool call.",
+		harness.WithMcpServerUsageAndApproval(
+			mcpServer.GetMetadata().GetSlug(),
+			[]*agentv1.ToolApprovalOverride{{ToolName: "echo", RequiresApproval: true}},
+			"echo",
+		),
+	)
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	// auto_approve_all=false → the gated MCP tool must pause at the approval gate.
+	exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Call the MCP tool named \"echo\" with input \"hello\", wait for its "+
+			"result, then reply with the single word DONE.",
+		4*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, waiting.GetStatus().GetPendingApprovals(),
+		"cursor harness must surface a pending approval for the gated MCP tool")
+
+	approval := harness.FindPendingApproval(waiting, "echo")
+	require.NotNil(t, approval,
+		"expected a pending approval for the MCP tool \"echo\" — the beforeMCPExecution gate did not surface it")
+	t.Logf("pending MCP approval: tool=%s id=%s message=%q",
+		approval.GetToolName(), approval.GetToolCallId(), approval.GetMessage())
+
+	// Load-bearing invariant (same as the built-in gate): the backend projects
+	// pending_approvals from tool-call status, so the gated MCP tool call must
+	// itself carry WAITING_APPROVAL.
+	assertToolCallWaitingApproval(t, waiting, approval.GetToolCallId())
+
+	// Phase 0 ground truth: what did the model actually see on the MCP deny?
+	inspectCursorMcpDenyGroundTruth(t, exec.GetMetadata().GetId(), "echo")
+
+	// Approve; the reinvocation grant (name-keyed for MCP tools) must let the
+	// re-attempted call through to completion.
+	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		exec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		4*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "execution should complete after the MCP tool is approved")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+}
+
+// approvalRequiredAgentMessageMarker is a stable substring of the hook's deny
+// agent_message (hook-script.ts APPROVAL_REQUIRED_AGENT_MESSAGE). If the raw SDK
+// stream contains it, Cursor forwarded our message to the model; if instead it
+// only contains "blocked by a hook", Cursor replaced it with its own generic
+// text — the root cause of the defeatist "fix your Cursor settings" narration.
+const approvalRequiredAgentMessageMarker = "submitted to the user for approval automatically"
+
+// inspectCursorMcpDenyGroundTruth reads the raw @cursor/sdk event stream (when
+// CURSOR_EVENT_RECORD_DIR is set) and reports whether the denied MCP tool's
+// model-visible result carried our hook agent_message or Cursor's generic
+// "blocked by a hook" text. Pure diagnostics — it characterizes upstream SDK
+// behavior we do not control, so it logs findings and never fails the test.
+func inspectCursorMcpDenyGroundTruth(t *testing.T, execID, toolName string) {
+	t.Helper()
+
+	// Log the captured result shape (byte-heavy strings redacted) for the record.
+	logCapturedCursorToolResult(t, execID, toolName)
+
+	dir := os.Getenv("CURSOR_EVENT_RECORD_DIR")
+	if dir == "" {
+		t.Logf("PHASE 0 ground truth: CURSOR_EVENT_RECORD_DIR not set — export it to a " +
+			"writable dir before the suite starts the runner to capture the model-visible deny text")
+		return
+	}
+
+	path := filepath.Join(dir, execID+".cursor-events.jsonl")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Logf("PHASE 0 ground truth: could not read recorded cursor events at %s: %v", path, err)
+		return
+	}
+
+	raw := string(data)
+	sawBlockedByHook := strings.Contains(raw, "blocked by a hook")
+	sawOurMessage := strings.Contains(raw, approvalRequiredAgentMessageMarker)
+	t.Logf("PHASE 0 GROUND TRUTH (MCP deny, tool=%q): model saw 'blocked by a hook'=%v, "+
+		"saw our hook agent_message=%v", toolName, sawBlockedByHook, sawOurMessage)
+	if sawBlockedByHook && !sawOurMessage {
+		t.Logf("PHASE 0 CONFIRMED: Cursor replaced our deny agent_message with its generic " +
+			"'blocked by a hook' text on the MCP path — the model has no signal that this is " +
+			"an approval-in-progress (the root cause of the defeatist narration; drives the " +
+			"runner-side clean-pause and the .cursor/rules escalation).")
+	}
 }
 
 // assertToolCallWaitingApproval asserts the gated tool call carries

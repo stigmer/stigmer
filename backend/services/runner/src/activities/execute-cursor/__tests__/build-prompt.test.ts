@@ -14,7 +14,7 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 
 import { buildPrompt } from "../index.js";
 import type { BuildPromptInput } from "../index.js";
-import { buildReinvocationPrompt, formatToolApprovalProtocol } from "../prompt-builder.js";
+import { buildReinvocationPrompt, formatToolApprovalProtocol, buildToolApprovalRuleFile } from "../prompt-builder.js";
 import type { AgentResolution, AgentResolutionReason } from "../session-lifecycle.js";
 
 const USER_MESSAGE = "What was the secret token I told you?";
@@ -151,9 +151,33 @@ describe("formatToolApprovalProtocol", () => {
     expect(section).toContain("Invoke the tool and let the platform");
   });
 
+  it("reframes a denied/blocked tool as the gate working, not a broken environment", () => {
+    const section = formatToolApprovalProtocol().toLowerCase();
+    // The load-bearing fix for the leaky Cursor deny path: the model must not
+    // read "blocked by a hook" as an error or tell the user to fix settings.
+    expect(section).toContain("blocked by a hook");
+    expect(section).toContain("not an error");
+    expect(section).toContain("cursor settings");
+  });
+
   it("contains no characters that would break the prompt assembly", () => {
     // Sanity: the protocol is plain prose joined into the user-message prompt.
     expect(formatToolApprovalProtocol()).not.toContain("undefined");
+  });
+});
+
+describe("buildToolApprovalRuleFile", () => {
+  it("emits an always-applied .cursor/rules .mdc carrying the same protocol", () => {
+    const rule = buildToolApprovalRuleFile();
+    // Valid .mdc frontmatter that Cursor injects on every turn.
+    expect(rule.startsWith("---\n")).toBe(true);
+    expect(rule).toContain("alwaysApply: true");
+    expect(rule).toContain("# Tool approval protocol");
+    // Same single-sourced guidance as the system-prompt copy.
+    expect(rule.toLowerCase()).toContain("blocked by a hook");
+    expect(rule.toLowerCase()).toContain("not an error");
+    expect(rule.toLowerCase()).toContain("never tell the user to change cursor settings");
+    expect(rule).not.toContain("undefined");
   });
 });
 

@@ -83,9 +83,11 @@ import { SALIENT_ARG_FIELDS, getBuiltInGatedCategories } from "./approval-policy
 // quotes, apostrophes, or backslashes.
 const APPROVAL_REQUIRED_AGENT_MESSAGE =
   "This action has been submitted to the user for approval automatically; you " +
-  "do not need to ask for permission. Do not retry it or attempt a workaround " +
-  "for this action. The platform will resume you automatically after the user " +
-  "responds — continue with the rest of the task.";
+  "do not need to ask for permission. This is the platform approval gate working " +
+  "as intended — it is not an error and not a Cursor misconfiguration, so never " +
+  "tell the user to change Cursor settings or enable hooks. Do not retry it or " +
+  "attempt a workaround for this action. The platform will resume you " +
+  "automatically after the user responds — continue with the rest of the task.";
 
 /**
  * Build the bash `case` arms that map an incoming hook `tool_name` to its

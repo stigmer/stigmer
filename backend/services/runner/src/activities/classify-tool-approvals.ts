@@ -88,9 +88,12 @@ safe (auto-approve) or sensitive (requires human approval before execution).
 
 Classification rules:
 
-1. READ-ONLY operations → requires_approval: false
-   Examples: search, list, get, query, read, fetch, describe, count
-   These only retrieve data and have no side effects.
+1. READ-ONLY / OBSERVATION operations → requires_approval: false
+   Examples: search, list, get, query, read, fetch, describe, count, view,
+   inspect, status, screenshot, snapshot, and "get state" style tools.
+   These only retrieve or observe data and have no side effects. When a tool
+   name begins with one of these verbs (e.g. get_app_state, list_apps), prefer
+   requires_approval: false unless its description clearly says it mutates.
 
 2. CREATE or MODIFY operations → requires_approval: true
    Examples: create, update, put, set, add, edit, modify, write, post, send
@@ -118,6 +121,59 @@ Message guidelines:
 For tools that do NOT require approval, leave message empty.
 
 Output one classification per tool, maintaining the input order.`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Deterministic read-only guardrail
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Observation verbs that, when they LEAD a tool name, mark it unambiguously
+ * read-only. Matched as the first token only (not anywhere) so a mutation like
+ * `set_state` or `update_view` is never misread as read-only — only `get_*`,
+ * `list_*`, `read_*`, `describe_*`, … qualify.
+ */
+const READ_ONLY_LEADING_VERBS: ReadonlySet<string> = new Set([
+  "get", "list", "read", "describe", "search", "query", "fetch",
+  "count", "view", "inspect", "show", "find", "lookup", "status",
+  "scan", "browse", "retrieve",
+]);
+
+/**
+ * Standalone read-only nouns that mark a tool read-only no matter where they
+ * appear (e.g. `capture_screenshot`, `take_snapshot`). Restricted to nouns that
+ * have no mutating sense, so "any-token" matching here is safe.
+ */
+const READ_ONLY_NOUN_TOKENS: ReadonlySet<string> = new Set([
+  "screenshot", "snapshot",
+]);
+
+/** Split a tool name into lowercase word tokens across snake/kebab/camel case. */
+function tokenizeToolName(name: string): string[] {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .split(/[^A-Za-z0-9]+/)
+    .map((t) => t.trim().toLowerCase())
+    .filter((t) => t.length > 0);
+}
+
+/**
+ * Deterministically decide whether a tool is an obvious read-only / observation
+ * tool that must NOT be gated, regardless of what the LLM classifier returns.
+ *
+ * The connect-time LLM classifier occasionally flags benign perception tools
+ * (e.g. open-computer-use's `get_app_state`, `list_apps`) as requiring approval,
+ * which then gates every observation step and — on the Cursor harness — provokes
+ * the defeatist "blocked by a hook" narration. This guardrail is the conservative
+ * floor: it overrides the classifier (and the fail-closed fallback) DOWN to
+ * auto-approve for names that are unambiguously read-only. It only ever relaxes
+ * gating; it never adds it, so it cannot make a mutating tool unsafe.
+ */
+export function isReadOnlyObservationTool(name: string): boolean {
+  const tokens = tokenizeToolName(name);
+  if (tokens.length === 0) return false;
+  if (READ_ONLY_LEADING_VERBS.has(tokens[0])) return true;
+  return tokens.some((t) => READ_ONLY_NOUN_TOKENS.has(t));
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Core Classification Logic (no Temporal coupling)
@@ -178,11 +234,24 @@ export async function classifyTools(
     }
   }
 
+  // Deterministic read-only floor: never gate an obvious observation tool, even
+  // if the LLM flagged it. This overrides DOWN only (auto-approve), so it can
+  // never make a mutating tool unsafe.
+  let relaxed = 0;
+  for (const a of allApprovals) {
+    if (a.requires_approval && isReadOnlyObservationTool(a.tool_name)) {
+      a.requires_approval = false;
+      a.message = "";
+      relaxed++;
+    }
+  }
+
   const approved = allApprovals.filter((a) => a.requires_approval);
 
   console.log(
     `[ClassifyToolApprovals] Classification complete for '${serverName}': ` +
-    `${approved.length}/${allApprovals.length} tools require approval`,
+    `${approved.length}/${allApprovals.length} tools require approval` +
+    (relaxed > 0 ? ` (${relaxed} read-only tool(s) un-gated by the deterministic floor)` : ""),
   );
 
   return approved;
@@ -264,11 +333,18 @@ async function classifyBatch(params: ClassifyBatchParams): Promise<ToolApprovalR
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function fallbackApprovals(tools: ToolDescriptor[]): ToolApprovalResult[] {
-  return tools.map((tool) => ({
-    tool_name: tool.name,
-    requires_approval: true,
-    message: `Execute ${tool.name}`,
-  }));
+  // Fail-closed for everything EXCEPT obvious read-only/observation tools: a
+  // classifier outage must not start gating `get_*`/`list_*`/`read_*` and
+  // friends, which would over-gate benign perception steps. The deterministic
+  // floor is conservative here too.
+  return tools.map((tool) => {
+    const readOnly = isReadOnlyObservationTool(tool.name);
+    return {
+      tool_name: tool.name,
+      requires_approval: !readOnly,
+      message: readOnly ? "" : `Execute ${tool.name}`,
+    };
+  });
 }
 
 export function buildToolsPayload(tools: ToolDescriptor[]): string {

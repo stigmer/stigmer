@@ -62,6 +62,11 @@ export interface DiscoverMcpServerOutput {
   previousToolsFingerprint: string;
   previousToolApprovals: ToolApprovalDict[];
   newToolsFingerprint: string;
+  // Full definitions of the tools discovered on the previous connect, read from
+  // status.discovered_capabilities. The connect workflow diffs these against the
+  // freshly discovered tools to reuse prior approval decisions for unchanged
+  // tools and (re)classify only the new or changed ones. Empty on first connect.
+  previousTools: DiscoveredToolResult[];
 }
 
 export interface ToolApprovalDict {
@@ -97,11 +102,12 @@ export function toolsFingerprint(tools: DiscoveredToolResult[]): string {
 interface PreviousState {
   fingerprint: string;
   toolApprovals: ToolApprovalDict[];
+  tools: DiscoveredToolResult[];
 }
 
 export function extractPreviousState(mcpServer: McpServer): PreviousState {
   const status = mcpServer.status;
-  if (!status) return { fingerprint: "", toolApprovals: [] };
+  if (!status) return { fingerprint: "", toolApprovals: [], tools: [] };
 
   const caps = status.discoveredCapabilities;
   const prevTools: DiscoveredToolResult[] = [];
@@ -131,6 +137,7 @@ export function extractPreviousState(mcpServer: McpServer): PreviousState {
   return {
     fingerprint: toolsFingerprint(prevTools),
     toolApprovals,
+    tools: prevTools,
   };
 }
 
@@ -244,6 +251,7 @@ export async function discoverMcpServer(
     previousToolsFingerprint: previousState.fingerprint,
     previousToolApprovals: previousState.toolApprovals,
     newToolsFingerprint: newFp,
+    previousTools: previousState.tools,
   };
 }
 

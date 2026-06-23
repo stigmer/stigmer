@@ -46,6 +46,11 @@ export function hasApproveAllDecision(execution: AgentExecution): boolean {
   return false;
 }
 
+/**
+ * A single MCP tool's merged approval decision after evaluating all policy
+ * layers. This is the single, canonical shape shared by every harness; the
+ * Cursor harness re-exports it from here so the two harnesses can never drift.
+ */
 export interface MergedToolPolicy {
   toolName: string;
   mcpServerSlug: string;
@@ -56,8 +61,22 @@ export interface MergedToolPolicy {
 /**
  * Merge approval policies from all four levels into a single lookup map.
  *
- * Keys are "serverSlug/toolName" to avoid collisions between servers.
- * When autoApproveAll is true, the returned map is empty.
+ * Each MCP server contributes its own set of policies, so the map is keyed by
+ * "serverSlug/toolName" to avoid collisions between servers.
+ *
+ * Policy chain (each level overrides the previous):
+ * 1. status.toolApprovals — system-generated defaults; presence = requires approval
+ * 2. spec.pinnedToolApprovals — manual overrides; presence = requires approval
+ * 3. agent tool_approval_overrides — explicit boolean per tool (enable OR disable)
+ * 4. auto_approve_all — runtime bypass (highest priority)
+ *
+ * When auto_approve_all is true, the returned map is empty (no tool requires
+ * approval). The map carries ONLY the tools that require approval — a tool's
+ * absence means "auto-approved".
+ *
+ * Used by both ExecuteCursor (hook-deny model) and ExecuteDeepAgent (middleware
+ * interruptOn model), so the four-level semantics are defined in exactly one
+ * place.
  */
 export function mergeApprovalPolicies(
   resolvedServers: ResolvedMcpServer[],
@@ -71,6 +90,7 @@ export function mergeApprovalPolicies(
   for (const server of resolvedServers) {
     const serverPolicies = new Map<string, { requiresApproval: boolean; message: string }>();
 
+    // Layer 1: system-generated defaults (presence = requires approval).
     for (const policy of server.toolApprovals) {
       if (!policy.toolName) continue;
       serverPolicies.set(policy.toolName, {
@@ -79,6 +99,7 @@ export function mergeApprovalPolicies(
       });
     }
 
+    // Layer 2: manual overrides (presence = requires approval, overrides layer 1).
     for (const pinned of server.pinnedToolApprovals) {
       if (!pinned.toolName) continue;
       serverPolicies.set(pinned.toolName, {
@@ -87,6 +108,7 @@ export function mergeApprovalPolicies(
       });
     }
 
+    // Layer 3: per-agent overrides (explicit boolean, can enable or disable).
     for (const override of agentOverrides) {
       if (!override.toolName) continue;
       const existing = serverPolicies.get(override.toolName);
@@ -103,6 +125,7 @@ export function mergeApprovalPolicies(
       }
     }
 
+    // Emit only the tools that still require approval after all layers.
     for (const [toolName, policy] of serverPolicies) {
       if (!policy.requiresApproval) continue;
       const key = `${server.slug}/${toolName}`;
@@ -118,6 +141,14 @@ export function mergeApprovalPolicies(
   return merged;
 }
 
+/**
+ * Look up whether an MCP tool requires approval.
+ *
+ * @param toolName - The actual MCP tool name (e.g., "apply_cloud_resource")
+ * @param mcpServerSlug - The MCP server slug (e.g., "planton")
+ * @param policies - The merged policy map from {@link mergeApprovalPolicies}
+ * @returns The policy if approval is required, undefined if auto-approved
+ */
 export function lookupMcpToolPolicy(
   toolName: string,
   mcpServerSlug: string,
@@ -129,6 +160,11 @@ export function lookupMcpToolPolicy(
 /**
  * Resolve {{args.field}} placeholders in an approval message using the
  * tool's actual arguments.
+ *
+ * Placeholder syntax matches the proto-documented format:
+ * - {{args.field_name}} — replaced with the argument value
+ * - {{tool_name}} — replaced with the tool name
+ * - Missing fields are replaced with "<unknown>"
  */
 export function resolveApprovalMessage(
   template: string,
