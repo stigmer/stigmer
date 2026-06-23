@@ -517,6 +517,66 @@ const { executions } = useSessionExecutions(sessionId ?? null);
 ```
 
 
+### useSessionFileChanges
+
+Pure derivation hook that aggregates the runner's authoritative
+`FileChange` captures (`ToolCall.file_changes`, #186) across every
+execution in a session into one net change per file — the data behind the
+local-workspace "Changes" view.
+
+**Traversal.** Unlike [`useSessionWriteBacks`](#usesessionwritebacks)/`useSessionArtifacts`,
+which read flat `status.*` arrays, file changes live nested inside tool
+calls. This walks the same surfaces the server-side approval recompute and
+`MessageThread` walk: `status.messages[].toolCalls` **and**
+`status.subAgentExecutions[].messages[].toolCalls`. Executions are visited
+in chronological order, so each path's change list is chronological.
+
+**Net-diff (not latest-wins).** `useSessionWriteBacks`/`useSessionArtifacts`
+dedup by "latest wins" because each entry is a *snapshot* (a PR; a file's
+final bytes). A `FileChange` is a *delta* — an agent often rewrites the
+same file several times in a turn, and showing only the last edit's diff
+would misrepresent what changed. So changes to the same path are reduced to a
+single net change: `before` from the first change, `after` from the last.
+Because a WHOLE_FILE `after` is a complete file snapshot, `first.before →
+last.after` is exactly the net change. A group with one change (the common
+case) is passed through untouched; multi-edit groups synthesize a net
+`FileChange` so every consumer speaks one proto type (DD-007).
+
+Counts and unified diffs for whole-file captures stay derivable by the
+presentation layer (the runner emits 0/"" sentinels), matching the contract
+the SDK `tool-view` established.
+
+**Signature**
+
+```tsx
+function useSessionFileChanges(executions: readonly AgentExecution[]): UseSessionFileChangesReturn
+```
+
+<TypeTable
+  type={{
+    executions: { type: "readonly AgentExecution[]", description: "All executions for a session, in chronological order.   Pass both completed and active-stream executions.", required: true },
+  }}
+/>
+
+**Returns** — `UseSessionFileChangesReturn`
+
+<TypeTable
+  type={{
+    fileChangeCount: { type: "number", description: "Number of distinct files changed." },
+    fileChanges: { type: "readonly FileChange[]", description: "One FileChange per file touched in the session — the *net* change for that path (see the net-diff note below) — ordered for a file-list (modified, then created/renamed, then deleted; alphabetical within each group)." },
+    hasFileChanges: { type: "boolean", description: "`true` when at least one file was changed across all executions." },
+  }}
+/>
+
+```tsx
+const allExecutions = [
+  ...conv.completedExecutions,
+  ...(conv.activeStreamExecution ? [conv.activeStreamExecution] : []),
+];
+const { fileChanges, hasFileChanges } = useSessionFileChanges(allExecutions);
+```
+
+
 ### useSessionInspector
 
 Behavior hook for SessionInspector tab state management.
@@ -1056,8 +1116,12 @@ Workspace → Config → Plan → Usage. Changes and Artifacts appear
 after Plan when data exists; Inspect appears last when a thread item
 is selected.
 
+The Changes tab surfaces for either change source: git write-backs (PRs)
+or local-workspace file edits. Its badge prefers the write-back count
+(git mode wins the tab) and falls back to the changed-file count.
+
 ```tsx
-function buildVisibleTabs(opts: { artifactCount: number; hasArtifacts: boolean; hasUsage: boolean; hasWriteBacks: boolean; selectedItem: SelectedThreadItem | null; writeBackCount: number }): TabItem[]
+function buildVisibleTabs(opts: { artifactCount: number; fileChangeCount: number; hasArtifacts: boolean; hasFileChanges: boolean; hasUsage: boolean; hasWriteBacks: boolean; selectedItem: SelectedThreadItem | null; writeBackCount: number }): TabItem[]
 ```
 
 
@@ -1467,7 +1531,9 @@ Return value of [`usePersistedModel`](#usepersistedmodel).
 <TypeTable
   type={{
     artifactCount: { type: "number", description: "", required: true },
+    fileChangeCount: { type: "number", description: "Number of changed files; the Changes badge in local mode.", required: true },
     hasArtifacts: { type: "boolean", description: "", required: true },
+    hasFileChanges: { type: "boolean", description: "`true` when local-workspace file changes exist (Changes tab, local mode).", required: true },
     hasUsage: { type: "boolean", description: "", required: true },
     hasWriteBacks: { type: "boolean", description: "", required: true },
     phase: { type: "ExecutionPhase | null", description: "", required: true },

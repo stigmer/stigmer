@@ -160,6 +160,107 @@ const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
 ```
 
 
+### useArtifactDownload
+
+Behavior hook that downloads an execution artifact on demand.
+
+Mirrors the click → mint fresh URL → browser download flow established by
+`WorkflowExecutionArtifactPanel`, generalized so every artifact "Download"
+affordance shares one implementation. The URL is minted at click time from
+the stable `storageKey` via `getArtifactDownloadUrl`, so it is always valid —
+unlike the previously persisted, short-lived URL that expired after an hour.
+
+Returns an imperative `download(storageKey, fileName?)` action rather than a
+URL, because a download is a user action, not render data. For rendering an
+image or showing a link, use [`useArtifactDownloadUrl`](#useartifactdownloadurl) instead.
+
+**Signature**
+
+```tsx
+function useArtifactDownload(executionId: string | null): UseArtifactDownloadReturn
+```
+
+<TypeTable
+  type={{
+    executionId: { type: "string | null", description: "Execution that produced the artifacts, or `null` to   disable (the action becomes a no-op).", required: true },
+  }}
+/>
+
+**Returns** — `UseArtifactDownloadReturn`
+
+<TypeTable
+  type={{
+    download: { type: "(storageKey: string, fileName?: string) => Promise<void>", description: "Mint a fresh presigned URL for `storageKey` and trigger a browser download. No-op when the execution id is unknown or a download is already in flight. Resolves once the download has been initiated." },
+    error: { type: "Error | null", description: "Error from the last failed download attempt, or `null` when healthy." },
+    isDownloading: { type: "boolean", description: "`true` while a URL is being minted / the download is being initiated." },
+  }}
+/>
+
+```tsx
+const { download, isDownloading } = useArtifactDownload(executionId);
+<button onClick={() => download(artifact.storageKey, artifact.name)} disabled={isDownloading}>
+  Download
+</button>
+```
+
+
+### useArtifactDownloadUrl
+
+Data hook that resolves a **fresh** presigned download URL for an execution
+artifact on demand via `stigmer.agentExecution.getArtifactDownloadUrl()`.
+
+This exists because presigned URLs expire. The runner once baked a
+short-lived URL into the persisted execution status and the UI rendered it
+verbatim — so any link opened after the URL's lifetime failed with
+`ExpiredRequest`. Minting the URL at view time from the stable `storageKey`
+guarantees it is always valid, and works for every historical execution
+(the `storageKey` never expires).
+
+Use this for surfaces that genuinely need a URL — an `<img src>` for an
+offloaded screenshot, or a direct browser download of a large/binary
+artifact. For text that should render in-app, prefer [`useArtifactContent`](#useartifactcontent)
+(CORS-safe, no presign).
+
+The URL is cached cross-mount by `storageKey` (DD-014), so repeated renders
+and remounts reuse the same minted URL instead of re-hitting the API.
+
+Pass `enabled: false` (or `null` for either id) to skip fetching — consistent
+with the `useArtifactContent(null, null)` convention.
+
+**Signature**
+
+```tsx
+function useArtifactDownloadUrl(executionId: string | null, storageKey: string | null, options?: UseArtifactDownloadUrlOptions): UseArtifactDownloadUrlReturn
+```
+
+<TypeTable
+  type={{
+    executionId: { type: "string | null", description: "Execution that produced the artifact, or `null` to skip.", required: true },
+    storageKey: { type: "string | null", description: "Storage key from the artifact/output ref, or `null` to skip.", required: true },
+    options: { type: "UseArtifactDownloadUrlOptions", description: "Optional gating (`enabled`)." },
+  }}
+/>
+
+**Returns** — `UseArtifactDownloadUrlReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the URL request is in-flight (first load)." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
+    refetch: { type: "() => void", description: "Re-fetch the URL (e.g. to mint a fresh one after the previous expired)." },
+    url: { type: "string | null", description: "A freshly minted presigned download URL for the artifact, or `null` when: - Fetching is skipped (`enabled` is `false`, or `executionId`/`storageKey` is `null`) - The request is in-flight - The request failed" },
+  }}
+/>
+
+```tsx
+// Render an offloaded screenshot with an always-fresh URL.
+const { url, isLoading } = useArtifactDownloadUrl(executionId, storageKey);
+if (isLoading) return <Skeleton />;
+return url ? <img src={url} alt="Tool output" /> : null;
+```
+
+
 ### useContextWindow
 
 Extracts context window information from an execution's status.
@@ -397,6 +498,52 @@ function LiveExecution({ id }: { id: string }) {
 ```
 
 
+### useFileChangeContent
+
+Behavior hook that resolves a `FileChange`'s before/after sides to the
+text the diff renderer needs.
+
+Small bodies are carried inline on the proto and returned with zero cost.
+Large bodies were offloaded to artifact storage by the runner
+(`FileContent.ref`); this hook lazily fetches them via
+[`useArtifactContent`](#useartifactcontent) through the server proxy (CORS-safe). The fetch's
+`executionId` is derived from the ref's own `storageKey`
+(`artifacts/{executionId}/...`), so a net diff whose two sides originated in
+different executions still resolves each side correctly.
+
+This is the single place offload refs are dereferenced — the SDK's
+`tool-view` deliberately stays fetch-free, deferring all ref handling here.
+
+Rules-of-hooks safe: both sides always issue a (possibly skipped)
+`useArtifactContent` call; inline/absent sides pass `null` and never fetch.
+
+**Signature**
+
+```tsx
+function useFileChangeContent(change: FileChange): UseFileChangeContentReturn
+```
+
+<TypeTable
+  type={{
+    change: { type: "FileChange", description: "The file change whose content to resolve.", required: true },
+  }}
+/>
+
+**Returns** — `UseFileChangeContentReturn`
+
+<TypeTable
+  type={{
+    afterText: { type: "string | null", description: "After-side text for diffing. `\"\"` for an absent side (e.g. DELETE has no after). `null` while an offloaded side is in-flight or failed to load." },
+    beforeText: { type: "string | null", description: "Before-side text for diffing. `\"\"` for an absent side (e.g. CREATE has no before). `null` while an offloaded side is in-flight or failed to load." },
+    downloadUrl: { type: "string | null", description: "Direct download URL for an offloaded side (the after side preferred), used as the fallback when content is truncated. `null` when neither side is offloaded." },
+    error: { type: "Error | null", description: "Error from a failed offloaded-side fetch, or `null`." },
+    isBinary: { type: "boolean", description: "`true` when either side is binary — render \"binary file changed\", not a diff." },
+    isLoading: { type: "boolean", description: "`true` while an offloaded side's content request is in flight." },
+    isTruncated: { type: "boolean", description: "`true` when an offloaded side exceeded the server's content-size limit and was truncated — the inline diff would be incomplete; offer downloadUrl." },
+  }}
+/>
+
+
 ### useSessionVariables
 
 Behavior hook that manages an array of session variable entries for
@@ -496,6 +643,45 @@ const { submitApproval, submittingToolCallIds, error } = useSubmitApproval();
 
 await submitApproval(executionId, toolCallId, ApprovalAction.APPROVAL_ACTION_APPROVE);
 ```
+
+
+### useToolOutputContent
+
+Behavior hook that resolves the full text of a tool output that the runner
+offloaded to artifact storage (a `ToolCallOutputRef`).
+
+Mirrors [`useFileChangeContent`](#usefilechangecontent): it ignores any URL baked into the ref
+and fetches the bytes on demand through the CORS-safe `getArtifactContent`
+endpoint, deriving the execution id from the ref's own `storageKey`
+(`artifacts/{executionId}/...`). This is what lets a "View full output" link
+keep working long after the original presigned URL would have expired.
+
+Fetching is gated by `enabled` so callers can defer the request until the
+user actually expands the output (lazy), keeping long threads cheap.
+
+**Signature**
+
+```tsx
+function useToolOutputContent(outputRef: ToolOutputRefLike | null | undefined, enabled: boolean): UseToolOutputContentReturn
+```
+
+<TypeTable
+  type={{
+    outputRef: { type: "ToolOutputRefLike | null | undefined", description: "The offloaded-output reference, or `null` to skip.", required: true },
+    enabled: { type: "boolean", description: "When `false`, the hook stays idle. Defaults to `true`.", required: true },
+  }}
+/>
+
+**Returns** — `UseToolOutputContentReturn`
+
+<TypeTable
+  type={{
+    content: { type: "string | null", description: "Full text content of the offloaded tool output, or `null` while the request is in-flight, failed, or the hook is disabled." },
+    error: { type: "Error | null", description: "Error from a failed fetch, or `null`." },
+    isLoading: { type: "boolean", description: "`true` while the content request is in-flight." },
+    isTruncated: { type: "boolean", description: "`true` when the server truncated the content at its size cap. The inline view is then incomplete — offer a full download via the presigned URL." },
+  }}
+/>
 
 
 ### useToolPresentation
@@ -707,7 +893,7 @@ mount this component rather than passing an `active` flag.
     isTerminal: { type: "boolean", description: "Whether the execution is in a terminal phase (completed, failed, cancelled, terminated). Controls Apply/Push CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package is pushed. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
     onClose: { type: "() => void", description: "Called when the close button is clicked.", required: true },
-    onImplement: { type: "() => void", description: "Optional \"Implement\" action. When provided, an Implement primary button appears in the action bar (used for plan artifacts: turn the plan into an Agent run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable artifacts." },
+    onImplement: { type: "() => void", description: "Optional plan-build action. When provided, a \"Build from plan\" primary button appears in the action bar (used for plan artifacts: turn the plan into an Agent run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable artifacts." },
     org: { type: "string", description: "Organization slug for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA.", required: true },
   }}
 />
@@ -748,7 +934,7 @@ automatically when the dialog closes.
     isTerminal: { type: "boolean", description: "Whether the execution is in a terminal phase (completed, failed, cancelled, terminated). Controls Apply/Push CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package is pushed. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
     onClose: { type: "() => void", description: "Called when the modal should close (Escape key or close button).", required: true },
-    onImplement: { type: "() => void", description: "Optional \"Implement\" action (see ArtifactPreviewContentProps.onImplement). When provided, an Implement primary button appears; clicking it calls `onImplement` then closes the modal." },
+    onImplement: { type: "() => void", description: "Optional plan-build action (see ArtifactPreviewContentProps.onImplement). When provided, a \"Build from plan\" primary button appears; clicking it calls `onImplement` then closes the modal." },
     open: { type: "boolean", description: "Controls modal visibility. `true` opens the dialog via `showModal()`.", required: true },
     org: { type: "string", description: "Organization slug for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA.", required: true },
   }}
@@ -853,6 +1039,57 @@ const stream = useExecutionStream(executionId);
 <div className="rounded-lg border border-border bg-card p-3">
   <ExecutionProgress execution={stream.execution} />
 </div>
+```
+
+
+### FileChangeDiff
+
+Renders the diff for a single `FileChange`, adapting to how completely
+the runner captured it:
+
+- **Whole-file** (native): a true before/after diff via [`DiffViewer`](/docs/sdk/react/version-history#diffviewer).
+  Offloaded bodies are fetched lazily; loading, error, and too-large
+  (server-truncated) states are surfaced honestly.
+- **Hunk-only** (Cursor today): the captured unified diff, labeled as such.
+- **Binary**: a "binary file changed" notice instead of a text diff.
+
+Importable on its own by platform builders composing custom change UIs.
+
+**Props** — `FileChangeDiffProps`
+
+<TypeTable
+  type={{
+    change: { type: "FileChange", description: "The single file change to render.", required: true },
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+  }}
+/>
+
+
+### FileChangesView
+
+Consolidated, GitHub-style view of the files an agent changed: a summary
+bar, a file selector (when more than one file changed), and the unified diff
+for the selected file.
+
+Renders the runner's authoritative `FileChange` captures directly
+(proto-first). Whole-file captures (native) become a true before/after diff;
+hunk-only captures (Cursor today) render their unified diff; offloaded bodies
+are fetched lazily only when their file is opened (see [`FileChangeDiff`](#filechangediff)).
+
+Zero Console dependencies — safe for platform builder embedding.
+
+**Props** — `FileChangesViewProps`
+
+<TypeTable
+  type={{
+    changes: { type: "readonly FileChange[]", description: "Net file changes to render, typically from useSessionFileChanges. One entry per changed file.", required: true },
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+  }}
+/>
+
+```tsx
+const { fileChanges } = useSessionFileChanges(allExecutions);
+<FileChangesView changes={fileChanges} />
 ```
 
 
@@ -1512,6 +1749,17 @@ Resolved output of `UseCreateAgentExecutionReturn.create`.
 />
 
 
+### execIdFromStorageKey
+
+Extracts the execution id from an artifact storage key of the form
+`artifacts/{executionId}/...`. Returns `null` for an unexpected shape so the
+caller skips the fetch rather than issuing a request the server would reject.
+
+```tsx
+function execIdFromStorageKey(storageKey: string): string | null
+```
+
+
 ### ExecutionPhaseBadge
 
 Displays the lifecycle phase of an `AgentExecution` as an
@@ -1733,21 +1981,6 @@ Props for [`InteractionModeBadge`](#interactionmodebadge).
 />
 
 
-### isArtifactExpired
-
-Checks whether an artifact's pre-signed download URL has expired.
-
-Returns `true` when:
-- `expiresAt` is empty or cannot be parsed as a valid date
-- The current time is past the expiration timestamp
-
-Expired URLs can be refreshed via `stigmer.agentExecution.getArtifactDownloadUrl()`.
-
-```tsx
-function isArtifactExpired(artifact: ExecutionArtifact): boolean
-```
-
-
 ### isTerminalPhase
 
 Returns `true` when the given phase represents a final, immutable
@@ -1844,16 +2077,19 @@ platform mount (`.stigmer/`) namespace.
 
 ### PlanCompletionCard
 
-Inline CTA card shown in the [`MessageThread`](#messagethread) after a completed
-Plan-mode execution.
+Fallback CTA shown in the [`MessageThread`](#messagethread) after a completed Plan-mode
+execution that did **not** publish a `plan.md` artifact (older executions, or
+a plan whose upload failed). When a plan artifact exists, the richer
+`PlanArtifactCard` is shown instead.
 
-Offers a single "Implement" action that the consumer wires to switch
-the interaction mode to Agent, pre-fill the composer, and focus it.
+Mirrors `PlanArtifactCard`'s hierarchy — one prominent, themeable "Build from
+plan" primary action with the same card-scoped `Cmd/Ctrl+Enter` accelerator —
+so the two cards feel like the same affordance. The consumer wires the action
+to switch the interaction mode to Agent and submit the implement turn.
 
-Renders nothing when `onImplement` is not provided, so the card is
-fully opt-in from the consumer's perspective.
-
-All visual properties flow through `--stgm-*` tokens.
+Renders nothing when `onImplement` is not provided, so the card is fully
+opt-in from the consumer's perspective. All visual properties flow through
+`--stgm-*` tokens.
 
 
 ### PlanCompletionCardProps
@@ -1864,7 +2100,7 @@ Props for [`PlanCompletionCard`](#plancompletioncard).
   type={{
     className: { type: "string", description: "Additional CSS classes for the root element." },
     disabled: { type: "boolean", description: "Disables the CTA button (e.g., while an execution is active)." },
-    onImplement: { type: "() => void", description: "Called when the user clicks the \"Implement\" button." },
+    onImplement: { type: "() => void", description: "Called when the user clicks the \"Build from plan\" button." },
   }}
 />
 
@@ -2231,6 +2467,12 @@ function toolKindToCategoryInfo(kind: ToolKind, toolName: string): ToolCategoryI
 ```
 
 
+### ToolOutputRefLike
+
+Minimal shape this hook needs from an offloaded-output reference. Both a full
+`ToolCallOutputRef` and the SDK's normalized `outputRef` view satisfy it.
+
+
 ### ToolPresentation
 
 The fully-resolved presentation for a tool call, returned by [`useToolPresentation`](#usetoolpresentation).
@@ -2266,6 +2508,17 @@ Options for [`useAgentExecutionActions`](#useagentexecutionactions).
 <TypeTable
   type={{
     onSuccess: { type: "(execution: AgentExecution) => void", description: "Called after any lifecycle action (cancel, terminate, pause, resume) succeeds. Receives the updated execution returned by the server. Useful for triggering a refetch so the UI reflects the new phase." },
+  }}
+/>
+
+
+### UseArtifactDownloadUrlOptions
+
+Options for [`useArtifactDownloadUrl`](#useartifactdownloadurl).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Gate the request. When `false`, the hook stays idle and returns `null` — use this to defer minting a URL until it is actually needed (e.g. only when an image becomes visible, or after a truncation is detected). Defaults to `true`." },
   }}
 />
 
