@@ -80,6 +80,57 @@ func (w *AgentExecutionWaiter) WaitForApproval(ctx context.Context, executionID 
 	return w.WaitForPhase(ctx, executionID, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, timeout)
 }
 
+// WaitForPendingApproval polls until the execution has a pending approval for the
+// named tool, or times out. It is the robust way to step through multiple
+// sequential approval gates in one execution: after approving gate N, the
+// just-decided tool can briefly linger in the recomputed pending list before the
+// runner resumes and raises gate N+1, so keying on the specific next tool name
+// (rather than the phase alone) avoids acting on a stale snapshot. Returns the
+// terminal snapshot together with an error if the execution finishes before the
+// approval appears (e.g. the LLM did not request the expected tool).
+func (w *AgentExecutionWaiter) WaitForPendingApproval(ctx context.Context, executionID, toolName string, timeout time.Duration) (*agentexecv1.AgentExecution, error) {
+	if timeout == 0 {
+		timeout = defaultTimeout
+	}
+
+	deadline := time.Now().Add(timeout)
+	interval := defaultPollInterval
+
+	for time.Now().Before(deadline) {
+		exec, err := w.client.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
+		if err != nil {
+			w.logger.Debug("agent execution poll error (will retry)", "execution_id", executionID, "error", err)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(interval):
+			}
+			interval = nextInterval(interval)
+			continue
+		}
+
+		if FindPendingApproval(exec, toolName) != nil {
+			return exec, nil
+		}
+
+		if isAgentTerminalPhase(exec.GetStatus().GetPhase()) {
+			return exec, fmt.Errorf(
+				"agent execution %s reached terminal phase %s before a pending approval for tool %q appeared",
+				executionID, exec.GetStatus().GetPhase().String(), toolName)
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
+		interval = nextInterval(interval)
+	}
+
+	return nil, fmt.Errorf("timed out waiting for a pending approval for tool %q on execution %s after %v",
+		toolName, executionID, timeout)
+}
+
 // WaitForTerminal polls until the agent execution reaches any terminal phase.
 func (w *AgentExecutionWaiter) WaitForTerminal(ctx context.Context, executionID string, timeout time.Duration) (*agentexecv1.AgentExecution, error) {
 	if timeout == 0 {
@@ -567,6 +618,63 @@ func AssertPendingApprovals(t *testing.T, exec *agentexecv1.AgentExecution, expe
 	actual := len(exec.GetStatus().GetPendingApprovals())
 	assert.Equal(t, expectedCount, actual,
 		"expected %d pending approvals, got %d", expectedCount, actual)
+}
+
+// FindPendingApproval returns the pending approval whose gated tool call has the
+// given name, or nil if none exists. Mirror of FindToolCall for the server's
+// PendingApproval projection — the data a HITL approver sees before the tool
+// runs, recomputed from messages[].tool_calls on every status write.
+func FindPendingApproval(exec *agentexecv1.AgentExecution, toolName string) *agentexecv1.PendingApproval {
+	for _, pa := range exec.GetStatus().GetPendingApprovals() {
+		if pa.GetToolName() == toolName {
+			return pa
+		}
+	}
+	return nil
+}
+
+// AssertPendingApprovalFileChange asserts that the pending approval for the named
+// gated tool carries a FileChange for the given workspace-relative path, with the
+// expected change type and capture level, and returns it for further
+// change-specific assertions (inline before/after bodies, offloaded refs).
+//
+// This is the mirror of AssertFileChange on the PendingApproval projection: it
+// proves the gate diff reached the approver (ToolCall.file_changes copied onto
+// PendingApproval by the server projection), not merely that the post-execution
+// ToolCall carries it. On absence it fails the test (non-fatally) and returns nil.
+func AssertPendingApprovalFileChange(
+	t *testing.T,
+	exec *agentexecv1.AgentExecution,
+	toolName string,
+	path string,
+	expectedType agentexecv1.FileChangeType,
+	expectedCapture agentexecv1.FileChangeCaptureLevel,
+) *agentexecv1.FileChange {
+	t.Helper()
+	pa := FindPendingApproval(exec, toolName)
+	if pa == nil {
+		t.Errorf("expected a pending approval for tool %q, found none", toolName)
+		return nil
+	}
+	var fc *agentexecv1.FileChange
+	for _, c := range pa.GetFileChanges() {
+		if c.GetPath() == path {
+			fc = c
+			break
+		}
+	}
+	if fc == nil {
+		t.Errorf("pending approval for tool %q: expected a file change for path %q, found none (%d file change(s) present)",
+			toolName, path, len(pa.GetFileChanges()))
+		return nil
+	}
+	assert.Equalf(t, expectedType, fc.GetChangeType(),
+		"pending approval %q file change %q: expected change type %s, got %s",
+		toolName, path, expectedType.String(), fc.GetChangeType().String())
+	assert.Equalf(t, expectedCapture, fc.GetCaptureLevel(),
+		"pending approval %q file change %q: expected capture level %s, got %s",
+		toolName, path, expectedCapture.String(), fc.GetCaptureLevel().String())
+	return fc
 }
 
 // LogExecutionMessages fetches the current execution state and logs all
