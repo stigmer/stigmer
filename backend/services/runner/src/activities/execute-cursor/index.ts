@@ -868,7 +868,12 @@ async function executeCursorInner(
     // deliberately do NOT set status.pendingApprovals here: any value would be
     // discarded by the backend's recompute on the next updateStatus.
     const deniedLedger = await readDenialLedger(hitlDir ?? "");
-    const deniedToolCalls = reconcileDeniedToolCalls(status.messages, deniedLedger, mergedPolicies);
+    const deniedToolCalls = reconcileDeniedToolCalls(
+      status.messages,
+      deniedLedger,
+      mergedPolicies,
+      primaryWorkspaceDir,
+    );
     if (deniedToolCalls.length > 0) {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
       await persist(status);
@@ -1420,10 +1425,9 @@ async function executeCursorInner(
  * economy-tier LLM with withStructuredOutput (function-calling).
  * Guarantees schema-conformant JSON output via the API's tool-use mechanism.
  *
- * Provider-aware: resolves the economy model via the registry, infers its
- * provider (anthropic / openai), and constructs the correct LangChain client
- * with the matching proxy endpoint. Follows the same pattern as
- * call-llm.ts constructModel().
+ * Construction (registry-id resolution, provider inference, proxy wiring) is
+ * delegated to the shared buildChatModel so the economy model's registry id is
+ * always resolved to a provider API id before the call.
  */
 async function extractStructuredOutput(
   agentResponse: string,
@@ -1431,39 +1435,18 @@ async function extractStructuredOutput(
   config: Config,
   primaryModel: string,
 ): Promise<unknown | null> {
-  const { ChatOpenAI } = await import("@langchain/openai");
-  const { ChatAnthropic } = await import("@langchain/anthropic");
-  const { inferProvider, resolveProxyBaseUrl, buildProxyHeaders } = await import("../../shared/llm-proxy.js");
   const { getEconomyModel } = await import("../../shared/model-registry.js");
+  const { buildChatModel } = await import("../../shared/model-client.js");
 
   const extractionModel = await getEconomyModel(primaryModel);
-  const provider = inferProvider(extractionModel);
-
   const proxyEndpoint = config.proxyEndpoint ?? config.stigmerBackendEndpoint;
-  const baseUrl = resolveProxyBaseUrl(proxyEndpoint, provider);
-  const headers = config.stigmerToken
-    ? buildProxyHeaders(config.stigmerToken, {})
-    : {};
 
-  const apiKey = provider === "openai"
-    ? (config.stigmerToken ?? process.env.OPENAI_API_KEY ?? "proxy-managed")
-    : (config.stigmerToken ?? process.env.ANTHROPIC_API_KEY ?? "proxy-managed");
-
-  const llm = provider === "openai"
-    ? new ChatOpenAI({
-        model: extractionModel,
-        apiKey,
-        temperature: 0,
-        maxTokens: 4096,
-        configuration: { baseURL: baseUrl, defaultHeaders: headers },
-      })
-    : new ChatAnthropic({
-        model: extractionModel,
-        apiKey,
-        temperature: 0,
-        maxTokens: 4096,
-        clientOptions: { baseURL: baseUrl, defaultHeaders: headers },
-      });
+  const { model: llm } = await buildChatModel({
+    modelName: extractionModel,
+    proxyEndpoint,
+    stigmerToken: config.stigmerToken ?? undefined,
+    maxTokens: 4096,
+  });
 
   const zodSchema = jsonSchemaToZod(schema);
   const structured = llm.withStructuredOutput(zodSchema);

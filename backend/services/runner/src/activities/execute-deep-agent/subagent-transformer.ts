@@ -139,10 +139,11 @@ export interface SubagentTransformOptions {
   /**
    * Builds a configured chat-model instance for a given model name. When
    * provided, sub-agents are compiled with the same proxy-aware model client
-   * as the parent (base URL, auth headers, API key). When absent (unit tests),
-   * the model name string is passed to deepagents directly.
+   * as the parent (base URL, auth headers, API key) — including registry-id
+   * resolution, which is why this is async. When absent (unit tests), the
+   * model name string is passed to deepagents directly.
    */
-  readonly modelFactory?: (modelName: string) => BaseChatModel;
+  readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
 }
 
 // =========================================================================
@@ -406,7 +407,7 @@ export async function compileSubagents(
     readonly costCap?: CostCapMiddleware;
     readonly parentModelName: string;
     readonly workspaceRootDir: string;
-    readonly modelFactory?: (modelName: string) => BaseChatModel;
+    readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
   },
 ): Promise<CompiledSubAgent[]> {
   if (transformed.length === 0) return [];
@@ -421,11 +422,12 @@ export async function compileSubagents(
       });
 
       const modelName = spec.model ?? opts.parentModelName;
-      // Use a configured model instance (proxy base URL + auth) when a
-      // factory is supplied so sub-agent LLM calls route through the same
-      // proxy as the parent. Falling back to the bare name lets deepagents
-      // construct a default client (unit tests / no-proxy paths).
-      const model = opts.modelFactory ? opts.modelFactory(modelName) : modelName;
+      // Use a configured model instance (proxy base URL + auth, plus registry
+      // id -> API id resolution) when a factory is supplied so sub-agent LLM
+      // calls route through the same proxy as the parent. Falling back to the
+      // bare name lets deepagents construct a default client (unit tests /
+      // no-proxy paths).
+      const model = opts.modelFactory ? await opts.modelFactory(modelName) : modelName;
 
       const agentGraph = await createDeepAgent({
         model,

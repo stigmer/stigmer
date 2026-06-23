@@ -10,9 +10,6 @@
 
 import { createDeepAgent, type FilesystemPermission } from "deepagents";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ChatAnthropic } from "@langchain/anthropic";
-import { ChatOpenAI } from "@langchain/openai";
-import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import { z } from "zod";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +40,7 @@ import { buildMiddlewareStack, createThinkTool } from "../../middleware/index.js
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded } from "../../shared/model-pricing.js";
 import { getDefaultModel } from "../../shared/model-registry.js";
+import { buildChatModel } from "../../shared/model-client.js";
 import {
   loadArtifactStorageConfig,
   createArtifactStorage,
@@ -53,12 +51,6 @@ import {
   hasApproveAllDecision,
   type MergedToolPolicy,
 } from "../../shared/approval-policy.js";
-import {
-  inferProvider,
-  stripProviderPrefix,
-  resolveProxyBaseUrl,
-  buildProxyHeaders,
-} from "../../shared/llm-proxy.js";
 import {
   mergeSkillRefs,
   fetchSkillsByRefs,
@@ -262,8 +254,18 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       injectedFiles,
     });
 
-    // Step 9: Construct the LLM model
-    const model = constructModel(modelName, config, executionId);
+    // Step 9: Construct the LLM model. Resolution to the provider API id
+    // happens inside buildChatModel; modelName stays the registry id for
+    // pricing, the native-thinking heuristic, and sub-agent inheritance.
+    const requestTimeoutMs =
+      parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "0") || undefined;
+    const { model } = await buildChatModel({
+      modelName,
+      proxyEndpoint: config.proxyEndpoint ?? undefined,
+      stigmerToken: config.stigmerToken ?? undefined,
+      headerScope: { executionId },
+      timeoutMs: requestTimeoutMs,
+    });
 
     // Step 10: Build middleware stack
     await ensurePricingLoaded();
@@ -361,7 +363,13 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         parentModelName: modelName,
         parentHasNativeThinking: _modelHasNativeThinking(modelName),
         costCap: costCapMiddleware ?? undefined,
-        modelFactory: (m: string) => constructModel(m, config, executionId),
+        modelFactory: async (m: string) =>
+          (await buildChatModel({
+            modelName: m,
+            proxyEndpoint: config.proxyEndpoint ?? undefined,
+            stigmerToken: config.stigmerToken ?? undefined,
+            headerScope: { executionId },
+          })).model,
       });
     }
 
@@ -455,93 +463,6 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     }
     throw err;
   }
-}
-
-/**
- * Construct the appropriate chat model for the given model name.
- *
- * Provider inference uses name prefix heuristics (claude → Anthropic,
- * gpt/o1/o3/o4 → OpenAI). In proxy mode, requests route through the
- * stigmer-cloud LlmProxyController at provider-specific paths.
- */
-function constructModel(
-  modelName: string,
-  config: Config,
-  executionId?: string,
-): BaseChatModel {
-  const provider = inferProvider(modelName);
-  const apiModelId = stripProviderPrefix(modelName);
-
-  const baseUrl = config.proxyEndpoint
-    ? resolveProxyBaseUrl(config.proxyEndpoint, provider)
-    : undefined;
-
-  const headers = config.proxyEndpoint && config.stigmerToken
-    ? buildProxyHeaders(config.stigmerToken, { executionId })
-    : undefined;
-
-  switch (provider) {
-    case "anthropic":
-      return buildAnthropicModel(apiModelId, baseUrl, headers, config);
-    case "openai":
-      return buildOpenAIModel(apiModelId, baseUrl, headers, config);
-  }
-}
-
-function buildAnthropicModel(
-  model: string,
-  baseUrl: string | undefined,
-  headers: Record<string, string> | undefined,
-  config: Config,
-): BaseChatModel {
-  const apiKey = config.proxyEndpoint
-    ? (config.stigmerToken ?? "proxy-managed")
-    : (process.env.ANTHROPIC_API_KEY ?? "");
-
-  const requestTimeoutMs = parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "0") || undefined;
-
-  return new ChatAnthropic({
-    model,
-    apiKey,
-    temperature: 0,
-    ...(requestTimeoutMs ? { maxRetries: 0, timeout: requestTimeoutMs } : {}),
-    ...(baseUrl || headers
-      ? {
-          clientOptions: {
-            ...(baseUrl ? { baseURL: baseUrl } : {}),
-            ...(headers ? { defaultHeaders: headers } : {}),
-          },
-        }
-      : {}),
-  });
-}
-
-function buildOpenAIModel(
-  model: string,
-  baseUrl: string | undefined,
-  headers: Record<string, string> | undefined,
-  config: Config,
-): BaseChatModel {
-  const apiKey = config.proxyEndpoint
-    ? (config.stigmerToken ?? "proxy-managed")
-    : (process.env.OPENAI_API_KEY ?? "");
-
-  const requestTimeoutMs = parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "0") || undefined;
-
-  return new ChatOpenAI({
-    model,
-    apiKey,
-    temperature: 0,
-    ...(requestTimeoutMs ? { maxRetries: 0, timeout: requestTimeoutMs } : {}),
-    ...(baseUrl || headers
-      ? {
-          configuration: {
-            ...(baseUrl ? { baseURL: baseUrl } : {}),
-            ...(headers ? { defaultHeaders: headers } : {}),
-          },
-        }
-      : {}),
-  });
 }
 
 /**

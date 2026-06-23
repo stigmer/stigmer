@@ -19,11 +19,10 @@
  */
 
 import { z } from "zod";
-import { ChatOpenAI } from "@langchain/openai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { getSummarizationModel } from "../shared/model-registry.js";
-import { resolveProxyBaseUrl, buildProxyHeaders } from "../shared/llm-proxy.js";
+import { buildChatModel } from "../shared/model-client.js";
 import type { Config } from "../config.js";
 
 const BATCH_SIZE = 40;
@@ -214,22 +213,22 @@ async function classifyBatch(params: ClassifyBatchParams): Promise<ToolApprovalR
 
   const maxTokens = Math.max(MIN_MAX_TOKENS, batch.length * MAX_TOKENS_PER_TOOL);
 
-  const resolvedBaseUrl = resolveProxyBaseUrl(proxyEndpoint, "openai");
-  const headers = stigmerToken
-    ? buildProxyHeaders(stigmerToken, { mcpServerId: mcpServerId ?? undefined })
-    : {};
-
-  const llm = new ChatOpenAI({
-    model,
-    temperature: 0,
+  // Provider is inferred from the resolved economy model — for an Anthropic
+  // primary this routes to Claude, not the hardcoded OpenAI path it used to.
+  const { model: llm } = await buildChatModel({
+    modelName: model,
+    proxyEndpoint,
+    stigmerToken: stigmerToken ?? undefined,
+    headerScope: { mcpServerId: mcpServerId ?? undefined },
     maxTokens,
-    configuration: {
-      baseURL: resolvedBaseUrl,
-      defaultHeaders: headers,
-    },
   });
 
-  const structuredLlm = llm.withStructuredOutput(ClassifyToolApprovalsOutputSchema);
+  // Explicit type param: BaseChatModel.withStructuredOutput widens to
+  // Record<string, any>, unlike the concrete SDK overloads, so pin the schema's
+  // output type here.
+  const structuredLlm = llm.withStructuredOutput<ClassifyToolApprovalsOutput>(
+    ClassifyToolApprovalsOutputSchema,
+  );
 
   const toolsPayload = buildToolsPayload(batch);
   const userPrompt =

@@ -8,12 +8,23 @@ vi.mock("../../idle-watchdog.js", () => ({
 
 vi.mock("../../shared/model-registry.js", () => ({
   getSummarizationModel: vi.fn().mockResolvedValue("gpt-4o-mini"),
+  // buildChatModel resolves registry ids; identity keeps the economy model name
+  // intact so provider inference drives client selection in these tests.
+  resolveToApiModelId: vi.fn((m: string) => Promise.resolve(m)),
 }));
 
 const mockInvoke = vi.fn();
 
 vi.mock("@langchain/openai", () => ({
   ChatOpenAI: vi.fn().mockImplementation(() => ({
+    withStructuredOutput: vi.fn().mockReturnValue({
+      invoke: mockInvoke,
+    }),
+  })),
+}));
+
+vi.mock("@langchain/anthropic", () => ({
+  ChatAnthropic: vi.fn().mockImplementation(() => ({
     withStructuredOutput: vi.fn().mockReturnValue({
       invoke: mockInvoke,
     }),
@@ -342,6 +353,29 @@ describe("ClassifyToolApprovals activity", () => {
       );
 
       expect(getSummarizationModel).toHaveBeenCalledWith("claude-opus-4");
+    });
+  });
+
+  describe("provider routing", () => {
+    it("routes Anthropic economy models to ChatAnthropic, not the OpenAI path", async () => {
+      const { ChatAnthropic } = await import("@langchain/anthropic");
+      const { ChatOpenAI } = await import("@langchain/openai");
+      const { getSummarizationModel } = await import("../../shared/model-registry.js");
+      vi.mocked(getSummarizationModel).mockResolvedValueOnce("claude-haiku-4.5");
+
+      const { classifyTools } = await import("../classify-tool-approvals.js");
+
+      mockInvoke.mockResolvedValueOnce({
+        approvals: [{ tool_name: "t", requires_approval: false, message: "" }],
+      });
+
+      await classifyTools(
+        { tools: [{ name: "t", description: "d" }], serverName: "s", serverDescription: "", mcpServerId: null },
+        { proxyEndpoint: "http://proxy:8080", stigmerToken: "tok", primaryModel: "claude-opus-4" },
+      );
+
+      expect(ChatAnthropic).toHaveBeenCalledTimes(1);
+      expect(ChatOpenAI).not.toHaveBeenCalled();
     });
   });
 

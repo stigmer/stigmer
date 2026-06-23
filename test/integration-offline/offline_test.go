@@ -34,8 +34,13 @@ func startOfflineRunner(
 		TemporalAddress:       testHarness.Temporal.Address(),
 		LogDir:                testHarness.LogDir(),
 		ProxyEndpoint:         mockLLM.URL(),
-		LocalArtifactDir:      t.TempDir(),
-		LogLabel:              t.Name(),
+		// Point registry/pricing fetches at the same mock so the runner
+		// resolves registry ids (e.g. claude-haiku-4.5) to provider api ids
+		// exactly as production does — see MockLLMProxyServer's
+		// /v1/proxy/model-registry handler.
+		CloudAPIURL:      mockLLM.URL(),
+		LocalArtifactDir: t.TempDir(),
+		LogLabel:         t.Name(),
 	}, suiteLogger)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
