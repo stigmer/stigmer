@@ -81,6 +81,7 @@ go_test(
         "agentexecution_controller_test.go",
         "lifecycle_cancel_cascade_test.go",
         "submit_approval_contract_test.go",
+        "update_status_guard_test.go",
         "usage_aggregation_test.go",
     ],
     embed = [":controller"],
