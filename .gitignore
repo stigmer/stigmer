@@ -128,6 +128,8 @@ uv.lock
 # Environment files (local secrets, never commit)
 .env
 .env_export
+# Vite local env overrides (e.g. desktop .env.development.local — machine-specific paths)
+.env*.local
 
 # Integration test output
 .test-output*/
