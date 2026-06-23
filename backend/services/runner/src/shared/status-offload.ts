@@ -140,15 +140,37 @@ function findDataUrlInString(s: string): ImagePayload | null {
 }
 
 /**
- * Build an ImagePayload from a block's `data` + optional mime hint. `data` is a
- * base64 string or a `data:` URL; anything else (a file path, a number, an
- * object) yields null, so only an explicit image signal ever matches.
+ * Build an ImagePayload from a block's `data` + optional mime hint. Accepts the
+ * shapes the Cursor SDK actually delivers for an image block's `data`:
+ *   - Node Buffer-JSON ({ type:"Buffer", data:number[] }) — the runtime shape
+ *     confirmed from a real cursor-harness get_app_state result. (The SDK's .d.ts
+ *     types `data` as a string, but at runtime image bytes serialize as
+ *     Buffer-JSON, so both must be handled.)
+ *   - a `data:` URL string, or
+ *   - a bare base64 string.
+ * Anything else (a file path, a number) yields null, so only an explicit image
+ * signal ever matches. The mime hint defaults to image/png when absent — Cursor
+ * MCP image blocks frequently omit mimeType.
  */
 function imageFromData(data: unknown, mime: unknown): ImagePayload | null {
+  const mimeType = typeof mime === "string" && mime.length > 0 ? mime : "image/png";
+
+  if (data && typeof data === "object") {
+    const d = data as Record<string, unknown>;
+    if (d.type === "Buffer" && Array.isArray(d.data)) {
+      try {
+        const base64 = Buffer.from(d.data as number[]).toString("base64");
+        return base64.length > 0 ? { mimeType, base64 } : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
   if (typeof data !== "string" || data.length === 0) return null;
   const asUrl = matchDataUrl(data);
   if (asUrl) return asUrl;
-  const mimeType = typeof mime === "string" && mime.length > 0 ? mime : "image/png";
   return { mimeType, base64: data.replace(/\s+/g, "") };
 }
 

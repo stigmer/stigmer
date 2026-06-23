@@ -26,28 +26,35 @@ import (
 // "image" tool, which returns a status line plus a real (tiny) PNG as MCP image
 // content, then records ground truth and asserts the part we own.
 //
-// FINDING (captured by this test): today's cursor-agent does NOT relay a
-// structured MCP ImageContent result to run.stream() — the tool call is emitted
-// "running" and never completes with a result, so the runner has nothing to
-// offload (the model still gets the image internally and answers). This is an
-// upstream @cursor/sdk limitation we cannot fix from the runner; the runner-side
-// rendering fix lives in shared/status-offload.ts (detectImagePayload) and is
-// validated deterministically by its offline unit tests.
+// ROOT CAUSE (confirmed from a real production capture): the cursor-agent DOES
+// deliver the image. A real get_app_state result is the envelope
+//   { status, value: { content: [ {text:{text}}, {image:{data:{type:"Buffer",
+//   data:[...]}}} ] } }
+// delivered to the runner as a serialized STRING — blocks nested under
+// value.content, image bytes as Node Buffer-JSON, and NO mimeType. The bug was
+// entirely runner-side: shared/status-offload.ts detectImagePayload only looked
+// at top-level content and required string `data`, so it missed this shape and
+// offloaded the screenshot as text ("view full output"). That detector now
+// recurses and decodes Buffer-JSON; the fix is validated deterministically by
+// the offline unit tests in shared/__tests__/status-offload (which use the exact
+// captured shape). This live test is the end-to-end guard.
+//
+// Caveat on the live mock: with the tiny mock image, the model sometimes
+// abandons the MCP call before it completes (answers from the image it received
+// internally), so no result reaches the runner on that run — a flaky false
+// negative, NOT the upstream behavior. The assertion below is therefore
+// conditional: it asserts the render contract when an image-bearing result
+// actually arrives, and skips (does not fail) when the model bailed.
 //
 // Two signals per run:
 //
 //   - Ground truth: when CURSOR_EVENT_RECORD_DIR is set, the runner records every
 //     raw @cursor/sdk SDKMessage to <execID>.cursor-events.jsonl. We log the
 //     image tool_call's result (bytes redacted) — the authoritative shape of what
-//     the SDK delivers. This answers the binary question: does @cursor/sdk relay
-//     an image result at all?
+//     the SDK delivers.
 //   - Conditional contract: IF an image-bearing result reaches the runner, the
 //     persisted ToolCall MUST carry a ToolCallOutputRef with is_image=true and a
-//     download URL (the only way the UI renders a tool-result image inline). When
-//     no image-bearing result is delivered, the upstream gap is recorded and the
-//     positive assertion is skipped — not failed — so this stays a correct
-//     regression guard that "wakes up" the moment cursor-agent starts delivering
-//     image results.
+//     download URL (the only way the UI renders a tool-result image inline).
 //
 // Requires CURSOR_API_KEY. For the ground-truth capture, also export
 // CURSOR_EVENT_RECORD_DIR (a writable directory) before the suite starts the
@@ -143,13 +150,14 @@ func TestCursorHarness_McpImageResult_RendersInline(t *testing.T) {
 	// image-bearing and must not fail this guard.
 	imageBearing := (ref != nil && ref.GetIsImage()) || resultLooksLikeImage(tc.GetResult())
 	if !imageBearing {
-		t.Logf("UPSTREAM GAP: cursor-agent delivered no image-bearing result for the MCP "+
-			"image tool (status=%s, result_len=%d, has_output_ref=%v). @cursor/sdk does not "+
-			"relay structured MCP ImageContent to run.stream(); the runner-side rendering fix "+
-			"(shared/status-offload.ts detectImagePayload) is validated by offline unit tests "+
-			"and cannot act on a payload the SDK never delivers.",
+		t.Logf("no image-bearing result reached the runner (status=%s, result_len=%d, "+
+			"has_output_ref=%v). With the tiny mock image the model sometimes abandons the "+
+			"MCP call before it completes — a flaky false negative, not the production "+
+			"behavior (a real get_app_state DOES deliver the image; see the captured-shape "+
+			"offline tests in shared/__tests__/status-offload). Skipping the render assertion "+
+			"for this run.",
 			tc.GetStatus().String(), len(tc.GetResult()), ref != nil)
-		t.Skip("cursor-agent does not relay MCP image content to the runner; nothing to render (upstream limitation)")
+		t.Skip("live mock did not deliver an image-bearing result this run (model bailed before tool completion)")
 	}
 
 	// An image reached the runner — the rendering contract must hold.

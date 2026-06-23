@@ -2,12 +2,12 @@
  * Unit tests for Cursor MCP image-result normalization.
  *
  * The Cursor SDK wraps an MCP tool result as
- *   { status, value: { content: [ { text:{text} }, { image:{ data, mimeType } } ] } }
- * where image `data` is a STRING — base64 or a `data:` URL — per the SDK's own
- * type (conversation-types.d.ts: `image: { data: string; mimeType?: string }`).
- * The canonical fixture below uses that documented string shape. A Node
- * Buffer-JSON ({ type:"Buffer", data:number[] }) variant is also covered, but
- * only as defensive insurance against shape drift — it is NOT the SDK contract.
+ *   { status, value: { content: [ { text:{text} }, { image:{ data, mimeType? } } ] } }
+ * where image `data` is a Node Buffer-JSON ({ type:"Buffer", data:number[] }) at
+ * RUNTIME — confirmed verbatim from a real cursor-harness get_app_state result
+ * (a PNG screenshot, no mimeType field). The SDK's .d.ts types `data` as a
+ * string, but the runtime serialization is Buffer-JSON, so the canonical fixture
+ * below uses Buffer-JSON; base64 / data:-URL string `data` is also covered.
  *
  * The translator must re-emit the envelope as the canonical top-level
  * content-block array the shared persist-time offload consumes, so a screenshot
@@ -15,13 +15,12 @@
  * tests pin that normalization and confirm it flows end-to-end through the
  * offload.
  *
- * Empirical note: integration capture (cursor_mcp_image_result_test.go) shows
- * that the live cursor-agent currently does NOT relay a structured MCP
- * ImageContent result to run.stream() at all — the tool call never completes, so
- * there is no envelope to normalize on the Cursor path today. These tests
- * therefore guard the runner-side normalization for the deep-agent path and for
- * when/if the Cursor path begins delivering image results. The size-bounding
- * offload's own shape robustness is covered in shared/__tests__/status-offload.
+ * Note: this normalization only runs when the SDK delivers `result` as an
+ * OBJECT. When it arrives already-serialized as a STRING (observed in
+ * production: the whole envelope nested under value.content), the translator
+ * passes it through and the shared offload's detectImagePayload is what must
+ * recognize it — that string path (including the Buffer-JSON + no-mimeType
+ * shape) is guarded in shared/__tests__/status-offload.
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -42,21 +41,22 @@ import {
 } from "../message-translator.js";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
-// PNG signature + a little payload. PNG_BASE64 is how the Cursor SDK actually
-// delivers image data (a base64 string); PNG_BYTES backs the Buffer-JSON
-// defensive-variant tests only.
+// PNG signature + a little payload. PNG_BYTES is how the Cursor SDK delivers
+// image data at runtime (Node Buffer-JSON); PNG_BASE64 is its base64 form, used
+// by the string-`data` variant tests.
 const PNG_BYTES = [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82];
 const PNG_BASE64 = Buffer.from(PNG_BYTES).toString("base64");
 
-// The canonical envelope, matching the SDK's documented shape: image.data is a
-// base64 STRING. This is the shape the translator and offload must handle.
+// The canonical envelope, matching the real runtime shape: image.data is Node
+// Buffer-JSON and there is no mimeType. This is the shape the translator and
+// offload must handle.
 function cursorImageEnvelope(text = "App=com.example") {
   return {
     status: "success",
     value: {
       content: [
         { text: { text } },
-        { image: { data: PNG_BASE64, mimeType: "image/png" } },
+        { image: { data: { type: "Buffer", data: PNG_BYTES } } },
       ],
       isError: false,
     },
@@ -64,7 +64,7 @@ function cursorImageEnvelope(text = "App=com.example") {
 }
 
 describe("canonicalizeImageResult", () => {
-  it("converts the canonical Cursor image envelope (base64 string) to the canonical array", () => {
+  it("converts the canonical Cursor image envelope (Buffer-JSON) to the canonical array", () => {
     const out = canonicalizeImageResult(cursorImageEnvelope("App=Slack"));
     expect(out).toBeDefined();
     expect(JSON.parse(out!)).toEqual([

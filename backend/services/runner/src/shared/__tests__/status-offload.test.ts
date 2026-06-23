@@ -135,6 +135,29 @@ describe("detectImagePayload", () => {
     const result = JSON.stringify({ image: "assets/capture.png" });
     expect(detectImagePayload(result)).toBeNull();
   });
+
+  it("extracts the REAL cursor-harness get_app_state shape (value.content + Buffer-JSON, no mimeType)", () => {
+    // Captured verbatim from a production cursor-harness get_app_state result:
+    // the multimodal envelope arrives as a serialized string, blocks live under
+    // value.content, the image data is Node Buffer-JSON, and there is NO
+    // mimeType. The old top-level-only detector missed this (offloaded as text);
+    // this is the exact regression that made screenshots render as raw JSON.
+    const PNG_BYTES = [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82];
+    const result = JSON.stringify({
+      status: "success",
+      value: {
+        content: [
+          { text: { text: "App=com.google.Chrome … 65 button Done." } },
+          { image: { data: { type: "Buffer", data: PNG_BYTES } } },
+        ],
+        isError: false,
+      },
+    });
+    const img = detectImagePayload(result);
+    expect(img).not.toBeNull();
+    expect(img?.mimeType).toBe("image/png");
+    expect(img?.base64).toBe(Buffer.from(PNG_BYTES).toString("base64"));
+  });
 });
 
 describe("offloadOversizedToolOutputs", () => {
@@ -196,6 +219,41 @@ describe("offloadOversizedToolOutputs", () => {
     expect(out.result).not.toContain(BIG_BASE64_IMAGE);
     expect(uploads).toHaveLength(1);
     expect(uploads[0].contentType).toBe("image/png");
+  });
+
+  it("offloads the REAL get_app_state shape (Buffer-JSON, no mimeType) as a renderable image", async () => {
+    // End-to-end guard for the production regression: a serialized multimodal
+    // envelope with the image as Buffer-JSON under value.content and no mimeType
+    // must offload as an image ref (is_image=true), not text.
+    const { storage, uploads } = makeFakeStorage();
+    const pngBytes = [137, 80, 78, 71, 13, 10, 26, 10, ...Array(4096).fill(65)];
+    const result = JSON.stringify({
+      status: "success",
+      value: {
+        content: [
+          { text: { text: "accessibility tree…" } },
+          { image: { data: { type: "Buffer", data: pngBytes } } },
+        ],
+        isError: false,
+      },
+    });
+    const tc = create(ToolCallSchema, { id: "tc-gas", name: "get_app_state", result });
+    const status = statusWithToolCall(tc);
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineBytes: 256,
+    });
+
+    const out = status.messages[0].toolCalls[0];
+    expect(out.outputRef?.isImage).toBe(true);
+    expect(out.outputRef?.mimeType).toBe("image/png");
+    expect(out.outputRef?.storageKey).toBe("artifacts/exec-1/toolcalls/tc-gas.png");
+    expect(uploads).toHaveLength(1);
+    expect(uploads[0].contentType).toBe("image/png");
+    // The decoded image bytes are what gets uploaded, not the Buffer-JSON array.
+    expect(out.result).not.toContain('"Buffer"');
   });
 
   it("offloads oversized text with a preview head and text/plain upload", async () => {
