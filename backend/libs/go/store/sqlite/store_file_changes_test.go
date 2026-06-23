@@ -78,7 +78,6 @@ func TestStore_AgentExecution_FileChangesRoundTrip(t *testing.T) {
 									After: &agentexecv1.FileContent{
 										Body: &agentexecv1.FileContent_Ref{Ref: &agentexecv1.ToolCallOutputRef{
 											StorageKey:       "artifacts/aex-file-changes-roundtrip/toolcalls/tc1.1.after.txt",
-											DownloadUrl:      "https://example.test/artifacts/tc1.1.after.txt",
 											SizeBytes:        1_572_864,
 											ContentHash:      "sha256:deadbeef",
 											MimeType:         "text/plain",

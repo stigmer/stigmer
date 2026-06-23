@@ -13,17 +13,24 @@ const planArtifact = create(ExecutionArtifactSchema, {
   kind: ExecutionArtifactKind.FILE,
   sizeBytes: 4500n,
   storageKey: "artifacts/aex_1/plan.md",
-  downloadUrl: "https://example.test/plan.md",
 });
 
 /** Modal content fetches artifact text — keep it pending so nothing rejects. */
-function createStigmerMock(): { stigmer: Stigmer; getArtifactContent: ReturnType<typeof vi.fn> } {
+function createStigmerMock(): {
+  stigmer: Stigmer;
+  getArtifactContent: ReturnType<typeof vi.fn>;
+  getArtifactDownloadUrl: ReturnType<typeof vi.fn>;
+} {
   const getArtifactContent = vi.fn().mockReturnValue(new Promise(() => {}));
+  const getArtifactDownloadUrl = vi
+    .fn()
+    .mockResolvedValue({ downloadUrl: "https://example.test/plan.md" });
   return {
     stigmer: {
-      agentExecution: { getArtifactContent },
+      agentExecution: { getArtifactContent, getArtifactDownloadUrl },
     } as unknown as Stigmer,
     getArtifactContent,
+    getArtifactDownloadUrl,
   };
 }
 
@@ -33,11 +40,16 @@ function withStigmer(children: ReactNode, stigmer: Stigmer) {
   );
 }
 
+/** PlanArtifactCard now resolves downloads on demand, so it needs a provider. */
+function renderCard(ui: ReactNode) {
+  return render(withStigmer(ui, createStigmerMock().stigmer));
+}
+
 afterEach(cleanup);
 
 describe("PlanArtifactCard — action surface", () => {
   it("is an accessible region labelled as the plan's actions, with name + size", () => {
-    render(
+    renderCard(
       <PlanArtifactCard executionId="aex_1" artifact={planArtifact} org="acme" />,
     );
 
@@ -61,7 +73,7 @@ describe("PlanArtifactCard — action surface", () => {
 
   it("offers exactly one primary 'Build from plan' action that calls onImplement", () => {
     const onImplement = vi.fn();
-    render(
+    renderCard(
       <PlanArtifactCard
         executionId="aex_1"
         artifact={planArtifact}
@@ -75,7 +87,7 @@ describe("PlanArtifactCard — action surface", () => {
   });
 
   it("hides 'Build from plan' when onImplement is not provided", () => {
-    render(
+    renderCard(
       <PlanArtifactCard executionId="aex_1" artifact={planArtifact} org="acme" />,
     );
     expect(screen.queryByText("Build from plan")).toBeNull();
@@ -83,7 +95,7 @@ describe("PlanArtifactCard — action surface", () => {
 
   it("disables 'Build from plan' when disabled", () => {
     const onImplement = vi.fn();
-    render(
+    renderCard(
       <PlanArtifactCard
         executionId="aex_1"
         artifact={planArtifact}
@@ -99,19 +111,28 @@ describe("PlanArtifactCard — action surface", () => {
     expect(onImplement).not.toHaveBeenCalled();
   });
 
-  it("exposes a Download link to the artifact", () => {
+  it("downloads the artifact on demand via a freshly minted URL", async () => {
+    const { stigmer, getArtifactDownloadUrl } = createStigmerMock();
     render(
-      <PlanArtifactCard executionId="aex_1" artifact={planArtifact} org="acme" />,
+      withStigmer(
+        <PlanArtifactCard executionId="aex_1" artifact={planArtifact} org="acme" />,
+        stigmer,
+      ),
     );
-    const link = screen.getByText("Download").closest("a")!;
-    expect(link.getAttribute("href")).toBe("https://example.test/plan.md");
+    fireEvent.click(screen.getByText("Download"));
+    // The URL is resolved at click time from the stable storage key — never a
+    // baked, expirable URL.
+    expect(getArtifactDownloadUrl).toHaveBeenCalledTimes(1);
+    const req = getArtifactDownloadUrl.mock.calls[0][0];
+    expect(req.executionId).toBe("aex_1");
+    expect(req.storageKey).toBe("artifacts/aex_1/plan.md");
   });
 });
 
 describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => {
   it("fires onImplement on Cmd+Enter from within the card", () => {
     const onImplement = vi.fn();
-    render(
+    renderCard(
       <PlanArtifactCard
         executionId="aex_1"
         artifact={planArtifact}
@@ -127,7 +148,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
 
   it("fires onImplement on Ctrl+Enter", () => {
     const onImplement = vi.fn();
-    render(
+    renderCard(
       <PlanArtifactCard
         executionId="aex_1"
         artifact={planArtifact}
@@ -143,7 +164,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
 
   it("ignores a plain Enter (no modifier) so it never hijacks typing", () => {
     const onImplement = vi.fn();
-    render(
+    renderCard(
       <PlanArtifactCard
         executionId="aex_1"
         artifact={planArtifact}
@@ -159,7 +180,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
 
   it("does not fire when disabled", () => {
     const onImplement = vi.fn();
-    render(
+    renderCard(
       <PlanArtifactCard
         executionId="aex_1"
         artifact={planArtifact}
@@ -197,7 +218,7 @@ describe("PlanArtifactCard — Open full (org-gated preview)", () => {
 
   it("hides 'Open full' when org is absent (modal needs org), keeping Build + Download", () => {
     const onImplement = vi.fn();
-    render(
+    renderCard(
       <PlanArtifactCard
         executionId="aex_1"
         artifact={planArtifact}

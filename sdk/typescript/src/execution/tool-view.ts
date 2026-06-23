@@ -106,11 +106,13 @@ export type ToolResultView =
   | { readonly type: "json"; readonly value: unknown }
   | { readonly type: "error"; readonly message: string }
   // Output offloaded to artifact storage to keep the status payload small (e.g. a
-  // screenshot from a computer-use MCP server or a multi-MB dump). The bytes live
-  // at `downloadUrl`; `preview` is a short inline head for non-image content.
+  // screenshot from a computer-use MCP server or a multi-MB dump). The bytes are
+  // resolved on demand from `storageKey` at view time (never from a baked URL,
+  // which expires); `preview` is a short inline head for non-image content.
   | {
       readonly type: "outputRef";
-      readonly downloadUrl: string;
+      readonly storageKey: string;
+      readonly contentHash: string;
       readonly isImage: boolean;
       readonly mimeType: string;
       readonly sizeBytes: number;
@@ -234,12 +236,15 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
 
   // Output was offloaded to artifact storage (too large to inline): the real
   // bytes are no longer in `result` (which holds only a short head/label), so
-  // render from the reference instead of re-parsing the placeholder.
-  if (toolCall.outputRef && toolCall.outputRef.downloadUrl) {
+  // render from the reference instead of re-parsing the placeholder. The view
+  // carries the stable `storageKey` so consumers resolve the bytes/URL on
+  // demand — the persisted URL was ephemeral and is no longer trusted.
+  if (toolCall.outputRef && toolCall.outputRef.storageKey) {
     const ref = toolCall.outputRef;
     return {
       type: "outputRef",
-      downloadUrl: ref.downloadUrl,
+      storageKey: ref.storageKey,
+      contentHash: ref.contentHash,
       isImage: ref.isImage,
       mimeType: ref.mimeType,
       sizeBytes: Number(ref.sizeBytes),

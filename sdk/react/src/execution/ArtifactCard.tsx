@@ -4,6 +4,7 @@ import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { useArtifactContent } from "./useArtifactContent";
+import { useArtifactDownload } from "./useArtifactDownload";
 import { isTextArtifact, formatArtifactSize } from "./artifact-utils";
 import { useDetectStigmerResource } from "../library/useDetectStigmerResource";
 import { useDetectSkillPackage } from "../library/useDetectSkillPackage";
@@ -148,6 +149,8 @@ export function ArtifactCard({
 
   const canPreview = !!onPreview && (isTextArtifact(artifact) || isDirectory);
 
+  const { download, isDownloading } = useArtifactDownload(executionId);
+
   const parentDir =
     hasNameCollision && artifact.sandboxPath
       ? parentDirectory(artifact.sandboxPath)
@@ -211,17 +214,18 @@ export function ArtifactCard({
             Preview
           </button>
         )}
-        <a
-          href={artifact.downloadUrl}
-          download
+        <button
+          type="button"
+          onClick={() => download(artifact.storageKey, artifact.name)}
+          disabled={isDownloading}
           className={cn(
-            "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
+            "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
             FOCUS_RING_CLASSES,
           )}
         >
           <DownloadIcon />
-          {isDirectory ? "Download ZIP" : "Download"}
-        </a>
+          {isDownloading ? "Preparing…" : isDirectory ? "Download ZIP" : "Download"}
+        </button>
       </div>
 
     </div>

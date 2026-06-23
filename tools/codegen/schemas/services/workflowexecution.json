@@ -1819,6 +1819,50 @@
       ]
     },
     {
+      "name": "FileChangeType",
+      "description": "FileChangeType is the per-file outcome of a file mutation in a tool call.\n\n Distinct from ToolKind, which classifies the tool: a single tool call may\n produce several FileChanges of different types (multi-file edits).\n\n @since First-Class Diff Review (#186)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeType",
+      "values": [
+        {
+          "name": "FILE_CHANGE_TYPE_CREATE",
+          "number": 1,
+          "description": "A new file was created."
+        },
+        {
+          "name": "FILE_CHANGE_TYPE_MODIFY",
+          "number": 2,
+          "description": "An existing file's contents were modified."
+        },
+        {
+          "name": "FILE_CHANGE_TYPE_DELETE",
+          "number": 3,
+          "description": "A file was deleted."
+        },
+        {
+          "name": "FILE_CHANGE_TYPE_RENAME",
+          "number": 4,
+          "description": "A file was renamed or moved; FileChange.rename_from holds the source path."
+        }
+      ]
+    },
+    {
+      "name": "FileChangeCaptureLevel",
+      "description": "FileChangeCaptureLevel describes how complete a FileChange's captured content\n is, so clients render whole-file vs hunk-only diffs honestly per harness.\n\n @since First-Class Diff Review (#186)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel",
+      "values": [
+        {
+          "name": "FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE",
+          "number": 1,
+          "description": "Full before+after content captured (native edit/write; future Cursor\n pre-read). Clients render a true two-pane diff."
+        },
+        {
+          "name": "FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY",
+          "number": 2,
+          "description": "Only a hunk-level unified_diff is available (Cursor today). Clients render\n the hunk diff; before/after whole-file content is absent."
+        }
+      ]
+    },
+    {
       "name": "ToolKind",
       "description": "ToolKind is the harness-agnostic category of a tool call.\n\n Both execution harnesses emit tool calls with engine-specific names — the\n native (deepagents) harness uses snake_case (edit_file, execute, grep), while\n the Cursor harness uses PascalCase (StrReplace, Shell, Grep). ToolKind\n normalizes that identity once, in the runner, so every client (web, desktop,\n CLI, Ink) renders a tool the same way regardless of which harness produced it.\n\n This is identity, not presentation: it answers \"what kind of tool is this?\"\n and is deliberately distinct from ToolCallStreamingSource, which describes an\n orthogonal streaming capability. Result formatting is a client concern and is\n intentionally not encoded here.\n\n TOOL_KIND_UNSPECIFIED means the runner did not classify the tool — either the\n execution predates this field, or the tool does not fit a known kind. Clients\n fall back to a tool-name lookup in that case, so legacy executions still\n render correctly.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ToolKind",
@@ -2468,6 +2512,169 @@
       ]
     },
     {
+      "name": "FileChange",
+      "description": "A single file mutation produced by a tool call.\n\n Large before/after bodies are offloaded to artifact storage via the existing\n ToolCallOutputRef envelope; small bodies stay inline. capture_level tells\n clients how complete the content is so they render whole-file vs hunk-only\n diffs honestly per harness.\n\n @since First-Class Diff Review (#186)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChange",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/message.proto",
+      "fields": [
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Workspace-root-relative path for display, e.g. \"src/app/main.ts\".\n Falls back to absolute_path when the workspace root is unknown.",
+          "required": false
+        },
+        {
+          "name": "AbsolutePath",
+          "jsonName": "absolutePath",
+          "protoField": "absolute_path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Absolute on-disk path, retained for \"open in editor\" and diagnostics.",
+          "required": false
+        },
+        {
+          "name": "ChangeType",
+          "jsonName": "changeType",
+          "protoField": "change_type",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileChangeType",
+            "enumValues": [
+              "FILE_CHANGE_TYPE_CREATE",
+              "FILE_CHANGE_TYPE_MODIFY",
+              "FILE_CHANGE_TYPE_DELETE",
+              "FILE_CHANGE_TYPE_RENAME"
+            ]
+          },
+          "description": "The per-file outcome of this change.\n\n Distinct from ToolCall.tool_kind, which classifies the tool: one tool call\n may yield several FileChanges of different types (multi-file edits), and a\n FILE_WRITE tool yields CREATE for a new file or MODIFY when it overwrites\n an existing one.",
+          "required": false
+        },
+        {
+          "name": "CaptureLevel",
+          "jsonName": "captureLevel",
+          "protoField": "capture_level",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel",
+            "enumValues": [
+              "FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE",
+              "FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY"
+            ]
+          },
+          "description": "How complete the captured content is.\n\n WHOLE_FILE: before/after carry full content. HUNK_ONLY: only unified_diff\n is available (Cursor today).",
+          "required": false
+        },
+        {
+          "name": "Before",
+          "jsonName": "before",
+          "protoField": "before",
+          "type": {
+            "kind": "message",
+            "messageType": "FileContent"
+          },
+          "description": "Pre-edit content. Empty for CREATE, or when capture_level is HUNK_ONLY.",
+          "required": false
+        },
+        {
+          "name": "After",
+          "jsonName": "after",
+          "protoField": "after",
+          "type": {
+            "kind": "message",
+            "messageType": "FileContent"
+          },
+          "description": "Post-edit content. Empty for DELETE, or when capture_level is HUNK_ONLY.",
+          "required": false
+        },
+        {
+          "name": "UnifiedDiff",
+          "jsonName": "unifiedDiff",
+          "protoField": "unified_diff",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unified hunk-level diff. The primary payload for HUNK_ONLY captures\n (Cursor's diffString); small and always safe to render even when\n before/after are absent. Derivable from before/after for WHOLE_FILE.",
+          "required": false
+        },
+        {
+          "name": "LinesAdded",
+          "jsonName": "linesAdded",
+          "protoField": "lines_added",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Lines added by this change.",
+          "required": false
+        },
+        {
+          "name": "LinesRemoved",
+          "jsonName": "linesRemoved",
+          "protoField": "lines_removed",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Lines removed by this change.",
+          "required": false
+        },
+        {
+          "name": "RenameFrom",
+          "jsonName": "renameFrom",
+          "protoField": "rename_from",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Source path for RENAME; path holds the destination. Empty otherwise.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileContent",
+      "description": "One side (before or after) of a file's content.\n\n Small bodies are carried inline; large bodies are offloaded to artifact\n storage and referenced via the existing tool-output offload envelope. Exactly\n one of inline or ref is set; when offloaded, the head preview lives in\n ref.truncated_preview and the full size in ref.size_bytes.\n\n @since First-Class Diff Review (#186)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileContent",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/message.proto",
+      "fields": [
+        {
+          "name": "Inline",
+          "jsonName": "inline",
+          "protoField": "inline",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Full UTF-8 content, inline. Set only when under the inline cap.",
+          "required": false,
+          "oneofGroup": "body"
+        },
+        {
+          "name": "Ref",
+          "jsonName": "ref",
+          "protoField": "ref",
+          "type": {
+            "kind": "message",
+            "messageType": "ToolCallOutputRef"
+          },
+          "description": "Offload pointer for large content; reuses the tool-output offload\n envelope (storage_key, size_bytes, content_hash, truncated_preview).",
+          "required": false,
+          "oneofGroup": "body"
+        },
+        {
+          "name": "IsBinary",
+          "jsonName": "isBinary",
+          "protoField": "is_binary",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True when this side is binary; clients skip text diffing and render\n \"binary file changed\" instead.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "PendingApproval",
       "description": "A pending approval request for a tool call that requires user consent before execution.\n\n Each entry represents one tool call waiting for a user decision (approve, skip,\n or reject). Sub-agent approvals are included with from_sub_agent set to true\n and sub_agent_name identifying the origin.\n\n @internal\n\n Computed server-side by the UpdateStatus handlers on every write. The handler\n scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,\n collecting entries where status == WAITING_APPROVAL \u0026\u0026 requires_approval == true.\n Because the list is recomputed rather than merged, it is always consistent\n with the authoritative tool call state embedded in messages.\n\n Lifecycle:\n 1. Tool with requires_approval=true is about to execute\n 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message\n 3. Server recomputes pending_approvals, entry appears\n 4. User calls SubmitApproval RPC with their decision\n 5. Agent resumes, ToolCall.status advances, next recompute drops the entry",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.PendingApproval",
@@ -2617,6 +2824,88 @@
             ]
           },
           "description": "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the\n server-side projection (exactly as mcp_server_slug above is). Lets approval\n surfaces — including workflow-parent approvals, where the originating\n ToolCall is not co-located with the approval — classify and render the tool\n without a client-side lookup. See ToolKind.",
+          "required": false
+        },
+        {
+          "name": "FileChanges",
+          "jsonName": "fileChanges",
+          "protoField": "file_changes",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "FileChange"
+            }
+          },
+          "description": "File changes the gated tool call would produce (create / modify / delete /\n rename), captured by the runner at approval-request time: `before` is read\n from the workspace when the approval is raised, `after` is derived from the\n tool args. Copied from ToolCall.file_changes by the server-side projection\n (exactly as tool_kind above is), so approval surfaces — including\n workflow-parent approvals, where the originating ToolCall is not co-located\n with the approval — can render an inline before/after diff in the gate\n without a client-side lookup.\n\n Large before/after bodies are offloaded to object storage (FileContent.ref)\n at persist time before this projection runs, so this list carries references,\n not megabytes. Empty for non-file-modifying tools. See FileChange.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ToolCallOutputRef",
+      "description": "ToolCallOutputRef points to a tool call's full output after the runner\n offloaded it to artifact storage to keep AgentExecutionStatus under the gRPC\n message-size limit.\n\n This is deliberately distinct from ExecutionArtifact (a file the agent\n publishes for the user to download via publish_artifact): an output ref is\n internal spillover of a tool's result, not a user-facing deliverable. The\n bytes live in artifact storage (R2 in the cloud, locally served in dev);\n only this reference is persisted in the execution status.\n\n @since Durable Executions (tool-output offload)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/message.proto",
+      "fields": [
+        {
+          "name": "StorageKey",
+          "jsonName": "storageKey",
+          "protoField": "storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Storage location of the full output bytes.\n Format: \"artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}\"\n\n Clients resolve the bytes/URL on demand from this stable key (via\n getArtifactContent or getArtifactDownloadUrl) — there is deliberately no\n persisted URL, since a pre-signed URL would expire while the reference does\n not.",
+          "required": false
+        },
+        {
+          "name": "SizeBytes",
+          "jsonName": "sizeBytes",
+          "protoField": "size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Size in bytes of the full (original, pre-truncation) output.",
+          "required": false
+        },
+        {
+          "name": "ContentHash",
+          "jsonName": "contentHash",
+          "protoField": "content_hash",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 hex digest of the full output bytes. Lets the runner dedupe\n uploads (skip re-uploading identical content across repeated persists) and\n lets clients invalidate caches when content changes under a stable key.",
+          "required": false
+        },
+        {
+          "name": "MimeType",
+          "jsonName": "mimeType",
+          "protoField": "mime_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "MIME type of the offloaded content.\n Examples: \"image/png\", \"text/plain\", \"application/json\".",
+          "required": false
+        },
+        {
+          "name": "IsImage",
+          "jsonName": "isImage",
+          "protoField": "is_image",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True when the offloaded content is an image the UI should render inline\n (e.g. a screenshot from a computer-use MCP server).",
+          "required": false
+        },
+        {
+          "name": "TruncatedPreview",
+          "jsonName": "truncatedPreview",
+          "protoField": "truncated_preview",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Short head of the original text content, kept inline for an at-a-glance\n preview without fetching the full artifact. Empty for image content.",
           "required": false
         }
       ]

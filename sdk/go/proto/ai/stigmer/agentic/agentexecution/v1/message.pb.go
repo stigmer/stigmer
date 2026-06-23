@@ -457,10 +457,12 @@ type ToolCallOutputRef struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Storage location of the full output bytes.
 	// Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+	//
+	// Clients resolve the bytes/URL on demand from this stable key (via
+	// getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+	// persisted URL, since a pre-signed URL would expire while the reference does
+	// not.
 	StorageKey string `protobuf:"bytes,1,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
-	// URL for fetching the full output — pre-signed in the cloud, locally served
-	// in dev. May be refreshed via the artifact download endpoint if expired.
-	DownloadUrl string `protobuf:"bytes,2,opt,name=download_url,json=downloadUrl,proto3" json:"download_url,omitempty"`
 	// Size in bytes of the full (original, pre-truncation) output.
 	SizeBytes int64 `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
 	// SHA-256 hex digest of the full output bytes. Lets the runner dedupe
@@ -513,13 +515,6 @@ func (*ToolCallOutputRef) Descriptor() ([]byte, []int) {
 func (x *ToolCallOutputRef) GetStorageKey() string {
 	if x != nil {
 		return x.StorageKey
-	}
-	return ""
-}
-
-func (x *ToolCallOutputRef) GetDownloadUrl() string {
-	if x != nil {
-		return x.DownloadUrl
 	}
 	return ""
 }
@@ -801,8 +796,7 @@ type FileContent_Inline struct {
 
 type FileContent_Ref struct {
 	// Offload pointer for large content; reuses the tool-output offload
-	// envelope (storage_key, download_url, size_bytes, content_hash,
-	// truncated_preview).
+	// envelope (storage_key, size_bytes, content_hash, truncated_preview).
 	Ref *ToolCallOutputRef `protobuf:"bytes,2,opt,name=ref,proto3,oneof"`
 }
 
@@ -848,11 +842,10 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\ttool_kind\x18\x14 \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\x12V\n" +
 	"\n" +
 	"output_ref\x18\x15 \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefR\toutputRef\x12S\n" +
-	"\ffile_changes\x18\x16 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\"\xfe\x01\n" +
+	"\ffile_changes\x18\x16 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\"\xdb\x01\n" +
 	"\x11ToolCallOutputRef\x12\x1f\n" +
 	"\vstorage_key\x18\x01 \x01(\tR\n" +
-	"storageKey\x12!\n" +
-	"\fdownload_url\x18\x02 \x01(\tR\vdownloadUrl\x12\x1d\n" +
+	"storageKey\x12\x1d\n" +
 	"\n" +
 	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\x12!\n" +
 	"\fcontent_hash\x18\x04 \x01(\tR\vcontentHash\x12\x1b\n" +

@@ -77,6 +77,64 @@ describe("detectImagePayload", () => {
     expect(img?.mimeType).toBe("image/png");
     expect(img?.base64).toBe(BIG_BASE64_IMAGE);
   });
+
+  it("extracts the Cursor SDK MCP block shape ({ image: { data, mimeType } })", () => {
+    // The shape @cursor/sdk uses for MCP image content. When the result reaches
+    // the offloader as a pre-serialized string it bypasses canonicalizeImageResult,
+    // so detection must recognize this shape directly.
+    const result = JSON.stringify([
+      { text: { text: "Screen captured. App state: ready." } },
+      { image: { data: BIG_BASE64_IMAGE, mimeType: "image/png" } },
+    ]);
+    const img = detectImagePayload(result);
+    expect(img?.mimeType).toBe("image/png");
+    expect(img?.base64).toBe(BIG_BASE64_IMAGE);
+  });
+
+  it("extracts an image nested under a status/value/content envelope", () => {
+    // The full Cursor MCP result envelope, serialized to a string. The image is
+    // two levels deep — the recursive walk must still find it.
+    const result = JSON.stringify({
+      status: "success",
+      value: {
+        isError: false,
+        content: [
+          { text: { text: "accessibility tree…" } },
+          { image: { data: BIG_BASE64_IMAGE, mimeType: "image/jpeg" } },
+        ],
+      },
+    });
+    const img = detectImagePayload(result);
+    expect(img?.mimeType).toBe("image/jpeg");
+    expect(img?.base64).toBe(BIG_BASE64_IMAGE);
+  });
+
+  it("extracts a data URL embedded in a JSON field (not a content block)", () => {
+    const result = JSON.stringify({
+      accessibilityTree: "Window > Button(OK)",
+      screenshot: `data:image/png;base64,${BIG_BASE64_IMAGE}`,
+    });
+    const img = detectImagePayload(result);
+    expect(img?.mimeType).toBe("image/png");
+    expect(img?.base64).toBe(BIG_BASE64_IMAGE);
+  });
+
+  it("extracts a data URL embedded in surrounding prose", () => {
+    const img = detectImagePayload(`Here is the screenshot: data:image/gif;base64,${BIG_BASE64_IMAGE}`);
+    expect(img?.mimeType).toBe("image/gif");
+    expect(img?.base64).toBe(BIG_BASE64_IMAGE);
+  });
+
+  it("does NOT treat a bare base64 string with no image marker as an image", () => {
+    // A base64-encoded file or a long log must remain text — never a false image.
+    const result = JSON.stringify({ file: BIG_BASE64_IMAGE, encoding: "base64" });
+    expect(detectImagePayload(result)).toBeNull();
+  });
+
+  it("does NOT treat an image field that is a file path as an image", () => {
+    const result = JSON.stringify({ image: "assets/capture.png" });
+    expect(detectImagePayload(result)).toBeNull();
+  });
 });
 
 describe("offloadOversizedToolOutputs", () => {
@@ -98,9 +156,44 @@ describe("offloadOversizedToolOutputs", () => {
     expect(out.outputRef).toBeDefined();
     expect(out.outputRef?.isImage).toBe(true);
     expect(out.outputRef?.mimeType).toBe("image/png");
-    expect(out.outputRef?.downloadUrl).toContain("artifacts/exec-1/toolcalls/tc-1.png");
+    expect(out.outputRef?.storageKey).toBe("artifacts/exec-1/toolcalls/tc-1.png");
     // result is collapsed to a short label, no longer the giant blob.
     expect(out.result.length).toBeLessThan(200);
+    expect(uploads).toHaveLength(1);
+    expect(uploads[0].contentType).toBe("image/png");
+  });
+
+  it("offloads a Cursor-SDK-shape multimodal result as a renderable image (not text)", async () => {
+    // Reproduces the production symptom class: a get_app_state-style result
+    // (status line text + screenshot) delivered as a pre-serialized string in
+    // the @cursor/sdk MCP block shape. Before the recursive detector this fell
+    // through to a text offload (is_image=false → "view full output" instead of
+    // the picture); it must now offload as an image.
+    const { storage, uploads } = makeFakeStorage();
+    const result = JSON.stringify({
+      status: "success",
+      value: {
+        isError: false,
+        content: [
+          { text: { text: "Screen captured. App state: ready." } },
+          { image: { data: BIG_BASE64_IMAGE, mimeType: "image/png" } },
+        ],
+      },
+    });
+    const tc = create(ToolCallSchema, { id: "tc-app", name: "get_app_state", result });
+    const status = statusWithToolCall(tc);
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineBytes: 256,
+    });
+
+    const out = status.messages[0].toolCalls[0];
+    expect(out.outputRef?.isImage).toBe(true);
+    expect(out.outputRef?.mimeType).toBe("image/png");
+    expect(out.outputRef?.storageKey).toBe("artifacts/exec-1/toolcalls/tc-app.png");
+    expect(out.result).not.toContain(BIG_BASE64_IMAGE);
     expect(uploads).toHaveLength(1);
     expect(uploads[0].contentType).toBe("image/png");
   });
@@ -146,7 +239,7 @@ describe("offloadOversizedToolOutputs", () => {
 
     const out = status.messages[0].toolCalls[0];
     expect(out.outputRef?.isImage).toBe(true);
-    expect(out.outputRef?.downloadUrl).toContain("artifacts/exec-1/toolcalls/tc-img.png");
+    expect(out.outputRef?.storageKey).toBe("artifacts/exec-1/toolcalls/tc-img.png");
     expect(out.result).not.toContain(smallImage);
     expect(uploads).toHaveLength(1);
     expect(uploads[0].contentType).toBe("image/png");
@@ -348,7 +441,7 @@ describe("offloadOversizedToolOutputs — file changes", () => {
       expect(ref.mimeType).toBe("text/plain");
       expect(ref.isImage).toBe(false);
       expect(ref.truncatedPreview.length).toBeGreaterThan(0);
-      expect(ref.downloadUrl).toContain("artifacts/exec-1/toolcalls/edit-1.0.after.txt");
+      expect(ref.storageKey).toBe("artifacts/exec-1/toolcalls/edit-1.0.after.txt");
       expect(Number(ref.sizeBytes)).toBe(big.length);
     }
     expect(uploads).toHaveLength(1);

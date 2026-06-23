@@ -72,22 +72,20 @@ class ToolCall(_message.Message):
     def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., args: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., result: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.ToolCallStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., requires_approval: bool = ..., approval_message: _Optional[str] = ..., approval_requested_at: _Optional[str] = ..., approval_decided_at: _Optional[str] = ..., approved_by: _Optional[str] = ..., approval_action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., is_streaming: bool = ..., streaming_source: _Optional[_Union[_enum_pb2.ToolCallStreamingSource, str]] = ..., mcp_server_slug: _Optional[str] = ..., args_preview: _Optional[str] = ..., tool_kind: _Optional[_Union[_enum_pb2.ToolKind, str]] = ..., output_ref: _Optional[_Union[ToolCallOutputRef, _Mapping]] = ..., file_changes: _Optional[_Iterable[_Union[FileChange, _Mapping]]] = ...) -> None: ...
 
 class ToolCallOutputRef(_message.Message):
-    __slots__ = ("storage_key", "download_url", "size_bytes", "content_hash", "mime_type", "is_image", "truncated_preview")
+    __slots__ = ("storage_key", "size_bytes", "content_hash", "mime_type", "is_image", "truncated_preview")
     STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
-    DOWNLOAD_URL_FIELD_NUMBER: _ClassVar[int]
     SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
     CONTENT_HASH_FIELD_NUMBER: _ClassVar[int]
     MIME_TYPE_FIELD_NUMBER: _ClassVar[int]
     IS_IMAGE_FIELD_NUMBER: _ClassVar[int]
     TRUNCATED_PREVIEW_FIELD_NUMBER: _ClassVar[int]
     storage_key: str
-    download_url: str
     size_bytes: int
     content_hash: str
     mime_type: str
     is_image: bool
     truncated_preview: str
-    def __init__(self, storage_key: _Optional[str] = ..., download_url: _Optional[str] = ..., size_bytes: _Optional[int] = ..., content_hash: _Optional[str] = ..., mime_type: _Optional[str] = ..., is_image: bool = ..., truncated_preview: _Optional[str] = ...) -> None: ...
+    def __init__(self, storage_key: _Optional[str] = ..., size_bytes: _Optional[int] = ..., content_hash: _Optional[str] = ..., mime_type: _Optional[str] = ..., is_image: bool = ..., truncated_preview: _Optional[str] = ...) -> None: ...
 
 class FileChange(_message.Message):
     __slots__ = ("path", "absolute_path", "change_type", "capture_level", "before", "after", "unified_diff", "lines_added", "lines_removed", "rename_from")

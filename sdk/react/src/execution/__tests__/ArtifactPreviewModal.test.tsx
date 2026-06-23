@@ -15,7 +15,6 @@ const binaryArtifact = create(ExecutionArtifactSchema, {
   kind: ExecutionArtifactKind.FILE,
   sizeBytes: 128n,
   storageKey: "artifacts/aex_1/report.bin",
-  downloadUrl: "https://example.test/report.bin",
 });
 
 function withStigmer(children: ReactNode) {

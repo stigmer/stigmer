@@ -587,7 +587,7 @@ describe("streamExecutionV3", () => {
       expect(refTc).toBeDefined();
       expect(refTc.outputRef.isImage).toBe(true);
       expect(refTc.outputRef.mimeType).toBe("image/png");
-      expect(refTc.outputRef.downloadUrl).toContain("artifacts/exec-v3-test/toolcalls/toolu_1.png");
+      expect(refTc.outputRef.storageKey).toBe("artifacts/exec-v3-test/toolcalls/toolu_1.png");
       // The base64 must not survive inline on the persisted result.
       expect(refTc.result).not.toContain(base64);
       expect(uploads).toHaveLength(1);

@@ -37,6 +37,28 @@ vi.mock("../useArtifactContent", () => ({
   },
 }));
 
+// The download fallback is resolved on demand from the storage key (gated on
+// truncation), so the test drives it through the URL hook rather than a baked ref.
+const downloadUrls = new Map<string, string>();
+const urlCalls: Array<{
+  executionId: string | null;
+  storageKey: string | null;
+  enabled: boolean;
+}> = [];
+
+vi.mock("../useArtifactDownloadUrl", () => ({
+  useArtifactDownloadUrl: (
+    executionId: string | null,
+    storageKey: string | null,
+    options?: { enabled?: boolean },
+  ) => {
+    const enabled = options?.enabled ?? true;
+    urlCalls.push({ executionId, storageKey, enabled });
+    const url = enabled && storageKey ? downloadUrls.get(storageKey) ?? null : null;
+    return { url, isLoading: false, isRefetching: false, error: null, refetch: () => {} };
+  },
+}));
+
 const { useFileChangeContent, execIdFromStorageKey } = await import(
   "../useFileChangeContent"
 );
@@ -44,6 +66,8 @@ const { useFileChangeContent, execIdFromStorageKey } = await import(
 beforeEach(() => {
   responses.clear();
   calls.length = 0;
+  downloadUrls.clear();
+  urlCalls.length = 0;
 });
 
 // ---------------------------------------------------------------------------
@@ -54,11 +78,11 @@ function inlineSide(value: string): FileContent {
   return create(FileContentSchema, { body: { case: "inline", value } });
 }
 
-function refSide(storageKey: string, downloadUrl = ""): FileContent {
+function refSide(storageKey: string): FileContent {
   return create(FileContentSchema, {
     body: {
       case: "ref",
-      value: create(ToolCallOutputRefSchema, { storageKey, downloadUrl }),
+      value: create(ToolCallOutputRefSchema, { storageKey }),
     },
   });
 }
@@ -183,15 +207,18 @@ describe("useFileChangeContent", () => {
     expect(result.current.afterText).toBeNull();
   });
 
-  it("surfaces truncation and the download url for an oversized offloaded side", () => {
+  it("surfaces truncation and resolves the download url on demand for an oversized offloaded side", () => {
     const key = "artifacts/exec-9/toolcalls/tc.0.after.txt";
     responses.set(key, { content: "head", isTruncated: true });
-    const change = wholeFile(inlineSide("old"), refSide(key, "https://dl/full"));
+    downloadUrls.set(key, "https://dl/full");
+    const change = wholeFile(inlineSide("old"), refSide(key));
 
     const { result } = renderHook(() => useFileChangeContent(change));
 
     expect(result.current.isTruncated).toBe(true);
     expect(result.current.downloadUrl).toBe("https://dl/full");
+    // The URL is resolved from the stable key, gated on truncation.
+    expect(urlCalls.some((c) => c.storageKey === key && c.enabled)).toBe(true);
   });
 
   it("flags binary changes and yields empty text", () => {

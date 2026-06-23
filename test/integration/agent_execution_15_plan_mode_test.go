@@ -321,7 +321,6 @@ func TestAgentExecution_PlanMode_PublishesPlanArtifact(t *testing.T) {
 			assert.NotEmpty(t, plan.GetStorageKey(), "plan.md should have a storage_key")
 			assert.Contains(t, plan.GetStorageKey(), executionID,
 				"plan.md storage_key should be scoped to the execution")
-			assert.NotEmpty(t, plan.GetDownloadUrl(), "plan.md should have a download_url")
 			assert.Greater(t, plan.GetSizeBytes(), int64(0), "plan.md should be non-empty")
 
 			t.Logf("plan artifact: harness=%s execution=%s name=%s size=%d storage_key=%s",

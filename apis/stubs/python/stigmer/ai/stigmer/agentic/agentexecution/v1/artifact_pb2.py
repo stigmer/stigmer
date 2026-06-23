@@ -26,7 +26,7 @@ from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as ai_dot_stigmer_dot_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\x83\x03\n\x11\x45xecutionArtifact\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12!\n\x0csandbox_path\x18\x02 \x01(\tR\x0bsandboxPath\x12Y\n\x04kind\x18\x03 \x01(\x0e\x32;.ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKindB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x04kind\x12\x1d\n\nsize_bytes\x18\x04 \x01(\x03R\tsizeBytes\x12\x1f\n\x0bstorage_key\x18\x05 \x01(\tR\nstorageKey\x12!\n\x0c\x64ownload_url\x18\x06 \x01(\tR\x0b\x64ownloadUrl\x12\x1d\n\ncreated_at\x18\x07 \x01(\tR\tcreatedAt\x12\x1d\n\nexpires_at\x18\x08 \x01(\tR\texpiresAt\x12\x18\n\x07\x65ntries\x18\t \x03(\tR\x07\x65ntries\x12!\n\x0c\x63ontent_hash\x18\n \x01(\tR\x0b\x63ontentHashB\xee\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\rArtifactProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"\xe0\x02\n\x11\x45xecutionArtifact\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12!\n\x0csandbox_path\x18\x02 \x01(\tR\x0bsandboxPath\x12Y\n\x04kind\x18\x03 \x01(\x0e\x32;.ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKindB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x04kind\x12\x1d\n\nsize_bytes\x18\x04 \x01(\x03R\tsizeBytes\x12\x1f\n\x0bstorage_key\x18\x05 \x01(\tR\nstorageKey\x12\x1d\n\ncreated_at\x18\x07 \x01(\tR\tcreatedAt\x12\x1d\n\nexpires_at\x18\x08 \x01(\tR\texpiresAt\x12\x18\n\x07\x65ntries\x18\t \x03(\tR\x07\x65ntries\x12!\n\x0c\x63ontent_hash\x18\n \x01(\tR\x0b\x63ontentHashB\xee\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\rArtifactProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,5 +37,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EXECUTIONARTIFACT'].fields_by_name['kind']._loaded_options = None
   _globals['_EXECUTIONARTIFACT'].fields_by_name['kind']._serialized_options = b'\272H\005\202\001\002\020\001'
   _globals['_EXECUTIONARTIFACT']._serialized_start=172
-  _globals['_EXECUTIONARTIFACT']._serialized_end=559
+  _globals['_EXECUTIONARTIFACT']._serialized_end=524
 # @@protoc_insertion_point(module_scope)

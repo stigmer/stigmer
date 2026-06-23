@@ -119,65 +119,72 @@ function extFromMime(mimeType: string): string {
   }
 }
 
+/** Match an exact `data:image/...;base64,...` URL (the whole string). */
 function matchDataUrl(s: string): ImagePayload | null {
   const m = s.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/);
   if (!m) return null;
   return { mimeType: m[1], base64: m[2].replace(/\s+/g, "") };
 }
 
-function contentBlocks(parsed: unknown): unknown[] {
-  if (Array.isArray(parsed)) return parsed;
-  if (parsed && typeof parsed === "object") {
-    const obj = parsed as Record<string, unknown>;
-    if (Array.isArray(obj.content)) return obj.content;
-    // Defensive: a serialized LangChain ToolMessage envelope nests its blocks
-    // under kwargs.content. The deep-agent extractor already normalizes image
-    // results to a top-level array (status-builder-shared.ts), so this branch is
-    // insurance against future shape drift — not the primary path.
-    const kwargs = obj.kwargs;
-    if (kwargs && typeof kwargs === "object" && Array.isArray((kwargs as Record<string, unknown>).content)) {
-      return (kwargs as Record<string, unknown>).content as unknown[];
-    }
-  }
-  return [];
+/**
+ * Find a `data:image/...;base64,...` URL anywhere in a string — whether it IS
+ * the whole result or is embedded in surrounding text/JSON. A data URL is an
+ * unambiguous image signal, so scanning is safe (no false positives on ordinary
+ * text). The base64 run is bounded by the first non-base64 character (e.g. a
+ * closing JSON quote), so an embedded URL is extracted cleanly.
+ */
+function findDataUrlInString(s: string): ImagePayload | null {
+  const m = s.match(/data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)/);
+  if (!m) return null;
+  return { mimeType: m[1], base64: m[2].replace(/\s+/g, "") };
 }
 
 /**
- * Best-effort extraction of an inline base64 image from a tool result string.
- * Handles a raw data URL, MCP image content blocks ({type:"image", data,
- * mimeType}) and OpenAI-style image_url blocks. Returns null for non-image or
- * unparseable results so the caller falls back to text offload.
+ * Build an ImagePayload from a block's `data` + optional mime hint. `data` is a
+ * base64 string or a `data:` URL; anything else (a file path, a number, an
+ * object) yields null, so only an explicit image signal ever matches.
  */
-export function detectImagePayload(result: string): ImagePayload | null {
-  const direct = matchDataUrl(result.trim());
-  if (direct) return direct;
+function imageFromData(data: unknown, mime: unknown): ImagePayload | null {
+  if (typeof data !== "string" || data.length === 0) return null;
+  const asUrl = matchDataUrl(data);
+  if (asUrl) return asUrl;
+  const mimeType = typeof mime === "string" && mime.length > 0 ? mime : "image/png";
+  return { mimeType, base64: data.replace(/\s+/g, "") };
+}
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(result);
-  } catch {
-    return null;
+/**
+ * Extract an image from a single object IF it is a recognized image block.
+ * Recognized shapes, all of which carry an explicit image marker (so an
+ * arbitrary object never matches):
+ *   - Cursor SDK MCP block:      { image: { data: <base64|dataUrl>, mimeType? } }
+ *   - Anthropic/MCP-style block: { type: "image", data: <base64>, mimeType? }
+ *   - OpenAI-style block:        { type: "image_url", image_url: { url: <dataUrl> } }
+ *     (also tolerates { type: "image", image: <base64> })
+ *
+ * Returns null when no image marker is present, leaving the recursive walk to
+ * keep searching siblings/children.
+ */
+function imageFromBlock(obj: Record<string, unknown>): ImagePayload | null {
+  // Cursor SDK shape: the image rides under a nested `image` object. This is the
+  // exact shape @cursor/sdk uses for MCP image content (see conversation-types),
+  // which canonicalizeImageResult normalizes — but only when the result reaches
+  // it as an object. A result delivered already-serialized (a string) bypasses
+  // that, so detection must recognize this shape directly.
+  if (obj.image && typeof obj.image === "object") {
+    const img = obj.image as Record<string, unknown>;
+    const payload = imageFromData(img.data, img.mimeType ?? img.mime_type);
+    if (payload) return payload;
   }
 
-  for (const block of contentBlocks(parsed)) {
-    if (!block || typeof block !== "object") continue;
-    const obj = block as Record<string, unknown>;
-    const type = typeof obj.type === "string" ? obj.type : "";
-    if (type !== "image" && type !== "image_url") continue;
-
-    const raw =
-      typeof obj.data === "string" ? obj.data :
-      typeof obj.image === "string" ? obj.image :
-      undefined;
-    if (raw) {
-      const asUrl = matchDataUrl(raw);
-      if (asUrl) return asUrl;
-      const mimeType =
-        typeof obj.mimeType === "string" ? obj.mimeType :
-        typeof obj.mime_type === "string" ? obj.mime_type :
-        "image/png";
-      return { mimeType, base64: raw.replace(/\s+/g, "") };
-    }
+  const type = typeof obj.type === "string" ? obj.type : "";
+  if (type === "image" || type === "image_url") {
+    const inline = imageFromData(
+      typeof obj.data === "string" ? obj.data
+        : typeof obj.image === "string" ? obj.image
+        : undefined,
+      obj.mimeType ?? obj.mime_type,
+    );
+    if (inline) return inline;
 
     const imageUrl = obj.image_url;
     if (imageUrl && typeof imageUrl === "object") {
@@ -189,6 +196,67 @@ export function detectImagePayload(result: string): ImagePayload | null {
     }
   }
   return null;
+}
+
+/**
+ * Walk a parsed JSON value depth-first, returning the first recognized image
+ * block. Recursing (rather than only checking the top level or a `content`
+ * array) is what makes detection robust to HOW a harness wraps the image: a
+ * multimodal MCP result may arrive as a top-level array, under `value.content`,
+ * under `kwargs.content`, or nested deeper still. Because imageFromBlock
+ * requires an explicit image marker, the walk never misclassifies ordinary
+ * nested data as an image.
+ */
+function findImageInValue(value: unknown): ImagePayload | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findImageInValue(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const direct = imageFromBlock(obj);
+    if (direct) return direct;
+    for (const child of Object.values(obj)) {
+      const found = findImageInValue(child);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/**
+ * Best-effort extraction of an inline image from a tool result string.
+ *
+ * An MCP tool that returns an image (e.g. a computer-use screenshot) must be
+ * lifted into a renderable `ToolCallOutputRef`; otherwise it persists as text
+ * and the UI shows raw JSON / "view full output" instead of the picture. The
+ * image can arrive in many wrappers depending on the harness and whether the
+ * result was pre-serialized, so detection looks for an UNAMBIGUOUS image signal
+ * rather than a fixed envelope position:
+ *
+ *   1. a `data:image/*;base64,...` URL anywhere in the string, then
+ *   2. a recognized image block at any depth of a JSON result
+ *      (see {@link imageFromBlock}).
+ *
+ * Returns null for non-image or unparseable results so the caller falls back to
+ * text offload. It deliberately does NOT treat a bare base64 string with no
+ * image marker as an image — that would misclassify legitimate large text
+ * (logs, base64-encoded files) as pictures.
+ */
+export function detectImagePayload(result: string): ImagePayload | null {
+  const embeddedUrl = findDataUrlInString(result);
+  if (embeddedUrl) return embeddedUrl;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(result);
+  } catch {
+    return null;
+  }
+  return findImageInValue(parsed);
 }
 
 function collapsedResultFor(ref: { isImage: boolean; sizeBytes: bigint; truncatedPreview: string }): string {
@@ -226,10 +294,8 @@ async function maybeOffloadToolCall(
     const bytes = Buffer.from(image.base64, "base64");
     const key = `artifacts/${ctx.executionId}/toolcalls/${tc.id}.${extFromMime(image.mimeType)}`;
     await ctx.artifactStorage.upload(key, bytes, image.mimeType);
-    const downloadUrl = await ctx.artifactStorage.getDownloadUrl(key);
     tc.outputRef = create(ToolCallOutputRefSchema, {
       storageKey: key,
-      downloadUrl,
       sizeBytes: BigInt(bytes.length),
       contentHash: hash,
       mimeType: image.mimeType,
@@ -247,10 +313,8 @@ async function maybeOffloadToolCall(
   const content = Buffer.from(result, "utf8");
   const key = `artifacts/${ctx.executionId}/toolcalls/${tc.id}.txt`;
   await ctx.artifactStorage.upload(key, content, "text/plain");
-  const downloadUrl = await ctx.artifactStorage.getDownloadUrl(key);
   tc.outputRef = create(ToolCallOutputRefSchema, {
     storageKey: key,
-    downloadUrl,
     sizeBytes: BigInt(content.length),
     contentHash: hash,
     mimeType: "text/plain",
@@ -279,12 +343,10 @@ async function maybeOffloadFileContent(
 
   const bytes = Buffer.from(text, "utf8");
   await ctx.artifactStorage.upload(key, bytes, "text/plain");
-  const downloadUrl = await ctx.artifactStorage.getDownloadUrl(key);
   content.body = {
     case: "ref",
     value: create(ToolCallOutputRefSchema, {
       storageKey: key,
-      downloadUrl,
       sizeBytes: BigInt(bytes.length),
       contentHash: sha256(text),
       mimeType: "text/plain",

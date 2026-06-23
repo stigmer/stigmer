@@ -118,19 +118,15 @@ async function downloadSingle(
 }
 
 /**
- * Get a fresh presigned URL, falling back to the artifact's cached URL when the
- * refresh RPC fails (matching Go: prefer fresh, tolerate transient gRPC errors).
+ * Mint a fresh presigned URL on demand from the artifact's stable storage key.
+ * There is deliberately no cached-URL fallback: a persisted URL would have
+ * expired, so the refresh RPC is the single source of a working URL.
  */
 async function resolveDownloadUrl(client: Stigmer, executionId: string, artifact: ExecutionArtifact): Promise<string> {
-  try {
-    const response = await client.agentExecution.getArtifactDownloadUrl(
-      create(GetArtifactDownloadUrlRequestSchema, { executionId, storageKey: artifact.storageKey }),
-    );
-    if (response.downloadUrl !== "") return response.downloadUrl;
-  } catch {
-    // Fall through to the cached URL below.
-  }
-  if (artifact.downloadUrl !== "") return artifact.downloadUrl;
+  const response = await client.agentExecution.getArtifactDownloadUrl(
+    create(GetArtifactDownloadUrlRequestSchema, { executionId, storageKey: artifact.storageKey }),
+  );
+  if (response.downloadUrl !== "") return response.downloadUrl;
   throw new Error("failed to get download URL");
 }
 

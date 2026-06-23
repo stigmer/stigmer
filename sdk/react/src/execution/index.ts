@@ -47,6 +47,21 @@ export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
 export { useArtifactContent } from "./useArtifactContent";
 export type { UseArtifactContentReturn } from "./useArtifactContent";
 
+export { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
+export type {
+  UseArtifactDownloadUrlReturn,
+  UseArtifactDownloadUrlOptions,
+} from "./useArtifactDownloadUrl";
+
+export { useArtifactDownload } from "./useArtifactDownload";
+export type { UseArtifactDownloadReturn } from "./useArtifactDownload";
+
+export { useToolOutputContent } from "./useToolOutputContent";
+export type {
+  UseToolOutputContentReturn,
+  ToolOutputRefLike,
+} from "./useToolOutputContent";
+
 export { useFileChangeContent, execIdFromStorageKey } from "./useFileChangeContent";
 export type { UseFileChangeContentReturn } from "./useFileChangeContent";
 
@@ -61,7 +76,6 @@ export type { FileChangesViewProps, FileChangeDiffProps } from "./FileChangesVie
 
 export {
   isTextArtifact,
-  isArtifactExpired,
   formatArtifactSize,
   getArtifactExtension,
   getFileExtension,

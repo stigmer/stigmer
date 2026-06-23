@@ -18,7 +18,6 @@ function artifact(name: string) {
     sizeBytes: 1024n,
     sandboxPath: `.stigmer/${name}`,
     storageKey: `artifacts/aex_1/${name}`,
-    downloadUrl: `https://example.test/${name}`,
   });
 }
 

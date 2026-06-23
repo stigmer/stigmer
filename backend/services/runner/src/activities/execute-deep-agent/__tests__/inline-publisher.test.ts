@@ -83,7 +83,6 @@ describe("InlinePublisher", () => {
     expect(artifact.sandboxPath).toBe("src/main.ts");
     expect(artifact.kind).toBe(ExecutionArtifactKind.FILE);
     expect(artifact.storageKey).toBe("artifacts/exec-123/main.ts");
-    expect(artifact.downloadUrl).toBe("http://localhost:7235/artifacts/exec-123/main.ts");
     expect(artifact.contentHash).toBe(sha256("console.log('hello');"));
     expect(Number(artifact.sizeBytes)).toBeGreaterThan(0);
   });

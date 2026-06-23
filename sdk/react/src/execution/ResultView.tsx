@@ -5,7 +5,7 @@
 // blocks — instead of a raw JSON dump. The json/text variants are the graceful
 // fallbacks, so unknown tools are still readable.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type {
   ToolResultView,
   ToolSearchMatch,
@@ -17,6 +17,10 @@ import type { DiffHunk } from "../version-history/types";
 import { CollapsibleCode, CollapsiblePre, formatJson } from "./tool-rendering-primitives";
 import { FilePathLink } from "./FilePathLink";
 import { useSandboxNormalize } from "./SandboxContext";
+import { execIdFromStorageKey } from "./useFileChangeContent";
+import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
+import { useArtifactDownload } from "./useArtifactDownload";
+import { useToolOutputContent } from "./useToolOutputContent";
 
 /** Props for {@link ResultView}. */
 export interface ResultViewProps {
@@ -369,45 +373,106 @@ function formatBytes(n: number): string {
 }
 
 /**
- * Renders a tool result whose bytes were offloaded to artifact storage. Images
- * (e.g. computer-use screenshots) render inline as a thumbnail that opens full
- * size; other large output shows its inline preview head plus a link to fetch
- * the full content. Replaces the old `[image]` placeholder.
+ * Renders a tool result whose bytes were offloaded to artifact storage. The
+ * bytes are resolved on demand from the stable `storageKey` at view time — the
+ * URL once baked into the persisted status expired after an hour, so it is no
+ * longer trusted. Images (e.g. computer-use screenshots) render inline via a
+ * freshly minted URL; other large output expands its full text in-app, with a
+ * download fallback when the server truncates it.
  */
 function OutputRefResultView({ view, className }: { view: OutputRefView; className?: string }) {
   if (view.isImage) {
+    return <OutputRefImage storageKey={view.storageKey} className={className} />;
+  }
+  return <OutputRefText view={view} className={className} />;
+}
+
+/** Offloaded image output, rendered from an always-fresh presigned URL. */
+function OutputRefImage({ storageKey, className }: { storageKey: string; className?: string }) {
+  const executionId = useMemo(() => execIdFromStorageKey(storageKey), [storageKey]);
+  const { url, error } = useArtifactDownloadUrl(executionId, storageKey);
+
+  if (error) {
+    return <p className={cn("text-xs text-destructive", className)}>Couldn&apos;t load image output.</p>;
+  }
+  if (!url) {
     return (
-      <div className={cn("space-y-1", className)}>
-        <a
-          href={view.downloadUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <img
-            src={view.downloadUrl}
-            alt="Tool output screenshot"
-            loading="lazy"
-            className="max-h-96 w-auto rounded-md border border-border"
-          />
-        </a>
-      </div>
+      <div
+        className={cn("h-40 w-64 animate-pulse rounded-md border border-border bg-muted", className)}
+        aria-busy="true"
+        aria-label="Loading image output"
+      />
     );
   }
+  return (
+    <div className={cn("space-y-1", className)}>
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <img
+          src={url}
+          alt="Tool output screenshot"
+          loading="lazy"
+          className="max-h-96 w-auto rounded-md border border-border"
+        />
+      </a>
+    </div>
+  );
+}
+
+/**
+ * Offloaded text output. Shows a preview head with a "View full output" toggle
+ * that lazily fetches the full content in-app (CORS-safe). If the server
+ * truncates it, offers a full download via a freshly minted URL.
+ */
+function OutputRefText({ view, className }: { view: OutputRefView; className?: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const executionId = useMemo(() => execIdFromStorageKey(view.storageKey), [view.storageKey]);
+  const { content, isLoading, isTruncated, error } = useToolOutputContent(
+    { storageKey: view.storageKey, contentHash: view.contentHash },
+    expanded,
+  );
+  const { download, isDownloading } = useArtifactDownload(executionId);
+
+  const sizeSuffix = view.sizeBytes ? ` (${formatBytes(view.sizeBytes)})` : "";
 
   return (
     <div className={cn("space-y-1", className)}>
-      {view.preview && (
-        <CollapsiblePre content={view.preview} className="text-foreground" />
-      )}
-      <a
-        href={view.downloadUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        View full output{view.sizeBytes ? ` (${formatBytes(view.sizeBytes)})` : ""}
-      </a>
+      {!expanded ? (
+        <>
+          {view.preview && (
+            <CollapsiblePre content={view.preview} className="text-foreground" />
+          )}
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            View full output{sizeSuffix}
+          </button>
+        </>
+      ) : isLoading ? (
+        <p className="text-xs text-muted-foreground">Loading full output…</p>
+      ) : error ? (
+        <p className="text-xs text-destructive">Couldn&apos;t load full output. Try again.</p>
+      ) : content !== null ? (
+        <div className="space-y-1">
+          <CollapsiblePre content={content} className="text-foreground" />
+          {isTruncated && (
+            <button
+              type="button"
+              onClick={() => download(view.storageKey)}
+              disabled={isDownloading}
+              className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+            >
+              {isDownloading ? "Preparing download…" : `Output truncated — download full file${sizeSuffix}`}
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -245,11 +245,12 @@ message ToolCall {
 message ToolCallOutputRef {
   // Storage location of the full output bytes.
   // Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+  //
+  // Clients resolve the bytes/URL on demand from this stable key (via
+  // getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+  // persisted URL, since a pre-signed URL would expire while the reference does
+  // not.
   string storage_key = 1;
-
-  // URL for fetching the full output — pre-signed in the cloud, locally served
-  // in dev. May be refreshed via the artifact download endpoint if expired.
-  string download_url = 2;
 
   // Size in bytes of the full (original, pre-truncation) output.
   int64 size_bytes = 3;
@@ -338,8 +339,7 @@ message FileContent {
     string inline = 1;
 
     // Offload pointer for large content; reuses the tool-output offload
-    // envelope (storage_key, download_url, size_bytes, content_hash,
-    // truncated_preview).
+    // envelope (storage_key, size_bytes, content_hash, truncated_preview).
     ToolCallOutputRef ref = 2;
   }
 

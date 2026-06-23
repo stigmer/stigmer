@@ -99,37 +99,36 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
       "(\01327.ai.stigmer.agentic.agentexecution.v" +
       "1.ToolCallOutputRefR\toutputRef\022S\n\014file_c" +
       "hanges\030\026 \003(\01320.ai.stigmer.agentic.agente" +
-      "xecution.v1.FileChangeR\013fileChanges\"\376\001\n\021" +
+      "xecution.v1.FileChangeR\013fileChanges\"\333\001\n\021" +
       "ToolCallOutputRef\022\037\n\013storage_key\030\001 \001(\tR\n" +
-      "storageKey\022!\n\014download_url\030\002 \001(\tR\013downlo" +
-      "adUrl\022\035\n\nsize_bytes\030\003 \001(\003R\tsizeBytes\022!\n\014" +
-      "content_hash\030\004 \001(\tR\013contentHash\022\033\n\tmime_" +
-      "type\030\005 \001(\tR\010mimeType\022\031\n\010is_image\030\006 \001(\010R\007" +
-      "isImage\022+\n\021truncated_preview\030\007 \001(\tR\020trun" +
-      "catedPreview\"\261\004\n\nFileChange\022\022\n\004path\030\001 \001(" +
-      "\tR\004path\022#\n\rabsolute_path\030\002 \001(\tR\014absolute" +
-      "Path\022_\n\013change_type\030\003 \001(\01624.ai.stigmer.a" +
-      "gentic.agentexecution.v1.FileChangeTypeB" +
-      "\010\272H\005\202\001\002\020\001R\nchangeType\022k\n\rcapture_level\030\004" +
-      " \001(\0162<.ai.stigmer.agentic.agentexecution" +
-      ".v1.FileChangeCaptureLevelB\010\272H\005\202\001\002\020\001R\014ca" +
-      "ptureLevel\022I\n\006before\030\005 \001(\01321.ai.stigmer." +
-      "agentic.agentexecution.v1.FileContentR\006b" +
-      "efore\022G\n\005after\030\006 \001(\01321.ai.stigmer.agenti" +
-      "c.agentexecution.v1.FileContentR\005after\022!" +
-      "\n\014unified_diff\030\007 \001(\tR\013unifiedDiff\022\037\n\013lin" +
-      "es_added\030\010 \001(\005R\nlinesAdded\022#\n\rlines_remo" +
-      "ved\030\t \001(\005R\014linesRemoved\022\037\n\013rename_from\030\n" +
-      " \001(\tR\nrenameFrom\"\231\001\n\013FileContent\022\030\n\006inli" +
-      "ne\030\001 \001(\tH\000R\006inline\022K\n\003ref\030\002 \001(\01327.ai.sti" +
-      "gmer.agentic.agentexecution.v1.ToolCallO" +
-      "utputRefH\000R\003ref\022\033\n\tis_binary\030\003 \001(\010R\010isBi" +
-      "naryB\006\n\004bodyB\303\001B\014MessageProtoP\001\242\002\004ASAA\252\002" +
-      "$Ai.Stigmer.Agentic.Agentexecution.V1\312\002$" +
-      "Ai\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020A" +
-      "i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBM" +
-      "etadata\352\002(Ai::Stigmer::Agentic::Agentexe" +
-      "cution::V1b\006proto3"
+      "storageKey\022\035\n\nsize_bytes\030\003 \001(\003R\tsizeByte" +
+      "s\022!\n\014content_hash\030\004 \001(\tR\013contentHash\022\033\n\t" +
+      "mime_type\030\005 \001(\tR\010mimeType\022\031\n\010is_image\030\006 " +
+      "\001(\010R\007isImage\022+\n\021truncated_preview\030\007 \001(\tR" +
+      "\020truncatedPreview\"\261\004\n\nFileChange\022\022\n\004path" +
+      "\030\001 \001(\tR\004path\022#\n\rabsolute_path\030\002 \001(\tR\014abs" +
+      "olutePath\022_\n\013change_type\030\003 \001(\01624.ai.stig" +
+      "mer.agentic.agentexecution.v1.FileChange" +
+      "TypeB\010\272H\005\202\001\002\020\001R\nchangeType\022k\n\rcapture_le" +
+      "vel\030\004 \001(\0162<.ai.stigmer.agentic.agentexec" +
+      "ution.v1.FileChangeCaptureLevelB\010\272H\005\202\001\002\020" +
+      "\001R\014captureLevel\022I\n\006before\030\005 \001(\01321.ai.sti" +
+      "gmer.agentic.agentexecution.v1.FileConte" +
+      "ntR\006before\022G\n\005after\030\006 \001(\01321.ai.stigmer.a" +
+      "gentic.agentexecution.v1.FileContentR\005af" +
+      "ter\022!\n\014unified_diff\030\007 \001(\tR\013unifiedDiff\022\037" +
+      "\n\013lines_added\030\010 \001(\005R\nlinesAdded\022#\n\rlines" +
+      "_removed\030\t \001(\005R\014linesRemoved\022\037\n\013rename_f" +
+      "rom\030\n \001(\tR\nrenameFrom\"\231\001\n\013FileContent\022\030\n" +
+      "\006inline\030\001 \001(\tH\000R\006inline\022K\n\003ref\030\002 \001(\01327.a" +
+      "i.stigmer.agentic.agentexecution.v1.Tool" +
+      "CallOutputRefH\000R\003ref\022\033\n\tis_binary\030\003 \001(\010R" +
+      "\010isBinaryB\006\n\004bodyB\303\001B\014MessageProtoP\001\242\002\004A" +
+      "SAA\252\002$Ai.Stigmer.Agentic.Agentexecution." +
+      "V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V" +
+      "1\342\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V1" +
+      "\\GPBMetadata\352\002(Ai::Stigmer::Agentic::Age" +
+      "ntexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -155,7 +154,7 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCallOutputRef_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCallOutputRef_descriptor,
-        new java.lang.String[] { "StorageKey", "DownloadUrl", "SizeBytes", "ContentHash", "MimeType", "IsImage", "TruncatedPreview", });
+        new java.lang.String[] { "StorageKey", "SizeBytes", "ContentHash", "MimeType", "IsImage", "TruncatedPreview", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_FileChange_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_agentexecution_v1_FileChange_fieldAccessorTable = new

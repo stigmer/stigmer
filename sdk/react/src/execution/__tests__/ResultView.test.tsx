@@ -1,9 +1,16 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { render, cleanup } from "@testing-library/react";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import type { ToolResultView } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/sdk";
+import { StigmerContext } from "../../context";
 import { ResultView, summarizeResultView } from "../ResultView";
 
 afterEach(cleanup);
+
+function withStigmer(children: ReactNode, stigmer: Stigmer) {
+  return <StigmerContext.Provider value={stigmer}>{children}</StigmerContext.Provider>;
+}
 
 describe("ResultView", () => {
   it("renders an edit diff with add/remove counts from the envelope", () => {
@@ -69,6 +76,68 @@ describe("ResultView", () => {
   it("renders nothing for empty", () => {
     const { container } = render(<ResultView view={{ type: "empty" }} />);
     expect(container.textContent).toBe("");
+  });
+});
+
+describe("ResultView — offloaded outputRef (on-demand resolution)", () => {
+  const imageView: ToolResultView = {
+    type: "outputRef",
+    storageKey: "artifacts/aex_1/toolcalls/tc.png",
+    contentHash: "h",
+    isImage: true,
+    mimeType: "image/png",
+    sizeBytes: 1234,
+    preview: "",
+  };
+
+  const textView: ToolResultView = {
+    type: "outputRef",
+    storageKey: "artifacts/aex_1/toolcalls/tc.txt",
+    contentHash: "h",
+    isImage: false,
+    mimeType: "text/plain",
+    sizeBytes: 900_000,
+    preview: "short head…",
+  };
+
+  it("renders an offloaded image from a freshly minted URL (never a baked one)", async () => {
+    const getArtifactDownloadUrl = vi
+      .fn()
+      .mockResolvedValue({ downloadUrl: "https://fresh/url.png" });
+    const stigmer = {
+      agentExecution: { getArtifactDownloadUrl, getArtifactContent: vi.fn() },
+    } as unknown as Stigmer;
+
+    render(withStigmer(<ResultView view={imageView} />, stigmer));
+
+    const img = await screen.findByRole("img");
+    expect(img.getAttribute("src")).toBe("https://fresh/url.png");
+    // URL was resolved on demand from the stable storage key.
+    const req = getArtifactDownloadUrl.mock.calls[0][0];
+    expect(req.storageKey).toBe("artifacts/aex_1/toolcalls/tc.png");
+    expect(req.executionId).toBe("aex_1");
+  });
+
+  it("shows the preview head and defers the full fetch until 'View full output'", async () => {
+    const getArtifactContent = vi.fn().mockResolvedValue({
+      content: new TextEncoder().encode("THE FULL OUTPUT"),
+      contentType: "text/plain",
+      truncated: false,
+    });
+    const stigmer = {
+      agentExecution: { getArtifactContent, getArtifactDownloadUrl: vi.fn() },
+    } as unknown as Stigmer;
+
+    render(withStigmer(<ResultView view={textView} />, stigmer));
+
+    // Lazy: nothing fetched until the user expands.
+    expect(screen.getByText("short head…")).toBeTruthy();
+    expect(getArtifactContent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText(/View full output/));
+
+    await waitFor(() => expect(screen.getByText("THE FULL OUTPUT")).toBeTruthy());
+    expect(getArtifactContent).toHaveBeenCalledTimes(1);
   });
 });
 

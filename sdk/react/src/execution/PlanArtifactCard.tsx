@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ArtifactPreviewModal } from "./ArtifactPreviewModal";
 import { formatArtifactSize } from "./artifact-utils";
+import { useArtifactDownload } from "./useArtifactDownload";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey";
 
 /** Props for {@link PlanArtifactCard}. */
@@ -63,6 +64,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
 }: PlanArtifactCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const handleKeyDown = useBuildFromPlanHotkey(onImplement, disabled);
+  const { download, isDownloading } = useArtifactDownload(executionId);
 
   return (
     <div
@@ -97,17 +99,18 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
             Open full
           </button>
         )}
-        <a
-          href={artifact.downloadUrl}
-          download={artifact.name}
+        <button
+          type="button"
+          onClick={() => download(artifact.storageKey, artifact.name)}
+          disabled={isDownloading}
           className={cn(
-            "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
+            "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
             FOCUS_RING,
           )}
         >
           <DownloadIcon />
-          Download
-        </a>
+          {isDownloading ? "Preparing…" : "Download"}
+        </button>
         {onImplement && (
           <button
             type="button"

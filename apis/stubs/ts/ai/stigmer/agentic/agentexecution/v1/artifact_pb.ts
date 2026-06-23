@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/artifact.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_artifact: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXJ0aWZhY3QucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKaAgoRRXhlY3V0aW9uQXJ0aWZhY3QSDAoEbmFtZRgBIAEoCRIUCgxzYW5kYm94X3BhdGgYAiABKAkSUwoEa2luZBgDIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdEtpbmRCCLpIBYIBAhABEhIKCnNpemVfYnl0ZXMYBCABKAMSEwoLc3RvcmFnZV9rZXkYBSABKAkSFAoMZG93bmxvYWRfdXJsGAYgASgJEhIKCmNyZWF0ZWRfYXQYByABKAkSEgoKZXhwaXJlc19hdBgIIAEoCRIPCgdlbnRyaWVzGAkgAygJEhQKDGNvbnRlbnRfaGFzaBgKIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_buf_validate_validate]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXJ0aWZhY3QucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKEAgoRRXhlY3V0aW9uQXJ0aWZhY3QSDAoEbmFtZRgBIAEoCRIUCgxzYW5kYm94X3BhdGgYAiABKAkSUwoEa2luZBgDIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdEtpbmRCCLpIBYIBAhABEhIKCnNpemVfYnl0ZXMYBCABKAMSEwoLc3RvcmFnZV9rZXkYBSABKAkSEgoKY3JlYXRlZF9hdBgHIAEoCRISCgpleHBpcmVzX2F0GAggASgJEg8KB2VudHJpZXMYCSADKAkSFAoMY29udGVudF9oYXNoGAogASgJYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_buf_validate_validate]);
 
 /**
  * ExecutionArtifact represents a file or directory published by an agent.
@@ -72,18 +72,13 @@ export type ExecutionArtifact = Message<"ai.stigmer.agentic.agentexecution.v1.Ex
    * Storage location in R2.
    * Format: "artifacts/{execution_id}/{filename}"
    *
+   * Clients resolve a download URL on demand from this stable key (via
+   * getArtifactDownloadUrl) — there is deliberately no persisted URL, since a
+   * pre-signed URL would expire while the reference does not.
+   *
    * @generated from field: string storage_key = 5;
    */
   storageKey: string;
-
-  /**
-   * Pre-signed URL for downloading the artifact.
-   * Expires after a configured period (default: 7 days).
-   * Clients can call the refresh endpoint to get a new URL if expired.
-   *
-   * @generated from field: string download_url = 6;
-   */
-  downloadUrl: string;
 
   /**
    * ISO 8601 timestamp when the artifact was created.

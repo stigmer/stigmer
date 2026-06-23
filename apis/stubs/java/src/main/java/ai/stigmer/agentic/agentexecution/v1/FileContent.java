@@ -165,8 +165,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Offload pointer for large content; reuses the tool-output offload
-   * envelope (storage_key, download_url, size_bytes, content_hash,
-   * truncated_preview).
+   * envelope (storage_key, size_bytes, content_hash, truncated_preview).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -179,8 +178,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Offload pointer for large content; reuses the tool-output offload
-   * envelope (storage_key, download_url, size_bytes, content_hash,
-   * truncated_preview).
+   * envelope (storage_key, size_bytes, content_hash, truncated_preview).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -196,8 +194,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Offload pointer for large content; reuses the tool-output offload
-   * envelope (storage_key, download_url, size_bytes, content_hash,
-   * truncated_preview).
+   * envelope (storage_key, size_bytes, content_hash, truncated_preview).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -744,8 +741,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Offload pointer for large content; reuses the tool-output offload
-     * envelope (storage_key, download_url, size_bytes, content_hash,
-     * truncated_preview).
+     * envelope (storage_key, size_bytes, content_hash, truncated_preview).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -758,8 +754,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Offload pointer for large content; reuses the tool-output offload
-     * envelope (storage_key, download_url, size_bytes, content_hash,
-     * truncated_preview).
+     * envelope (storage_key, size_bytes, content_hash, truncated_preview).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -782,8 +777,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Offload pointer for large content; reuses the tool-output offload
-     * envelope (storage_key, download_url, size_bytes, content_hash,
-     * truncated_preview).
+     * envelope (storage_key, size_bytes, content_hash, truncated_preview).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -804,8 +798,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Offload pointer for large content; reuses the tool-output offload
-     * envelope (storage_key, download_url, size_bytes, content_hash,
-     * truncated_preview).
+     * envelope (storage_key, size_bytes, content_hash, truncated_preview).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -824,8 +817,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Offload pointer for large content; reuses the tool-output offload
-     * envelope (storage_key, download_url, size_bytes, content_hash,
-     * truncated_preview).
+     * envelope (storage_key, size_bytes, content_hash, truncated_preview).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -853,8 +845,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Offload pointer for large content; reuses the tool-output offload
-     * envelope (storage_key, download_url, size_bytes, content_hash,
-     * truncated_preview).
+     * envelope (storage_key, size_bytes, content_hash, truncated_preview).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -878,8 +869,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Offload pointer for large content; reuses the tool-output offload
-     * envelope (storage_key, download_url, size_bytes, content_hash,
-     * truncated_preview).
+     * envelope (storage_key, size_bytes, content_hash, truncated_preview).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -890,8 +880,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Offload pointer for large content; reuses the tool-output offload
-     * envelope (storage_key, download_url, size_bytes, content_hash,
-     * truncated_preview).
+     * envelope (storage_key, size_bytes, content_hash, truncated_preview).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>
@@ -910,8 +899,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Offload pointer for large content; reuses the tool-output offload
-     * envelope (storage_key, download_url, size_bytes, content_hash,
-     * truncated_preview).
+     * envelope (storage_key, size_bytes, content_hash, truncated_preview).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef ref = 2 [json_name = "ref"];</code>

@@ -6,6 +6,7 @@ import type {
   FileContent,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { useArtifactContent } from "./useArtifactContent";
+import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
 
 /** Return value of {@link useFileChangeContent}. */
 export interface UseFileChangeContentReturn {
@@ -79,6 +80,17 @@ export function useFileChangeContent(
     afterRef?.contentHash,
   );
 
+  // The download fallback is needed only when an offloaded side was truncated.
+  // Resolve a fresh URL on demand from the stable storageKey (after side
+  // preferred), gated on truncation so we don't mint a URL we won't use.
+  const isTruncated = beforeFetch.isTruncated || afterFetch.isTruncated;
+  const downloadRef = afterRef ?? beforeRef;
+  const { url: downloadUrl } = useArtifactDownloadUrl(
+    downloadRef ? execIdFromStorageKey(downloadRef.storageKey) : null,
+    downloadRef ? downloadRef.storageKey : null,
+    { enabled: isTruncated },
+  );
+
   return useMemo(
     () => ({
       beforeText: sideText(change.before, beforeFetch.content),
@@ -86,22 +98,20 @@ export function useFileChangeContent(
       isBinary: Boolean(change.before?.isBinary || change.after?.isBinary),
       isLoading: beforeFetch.isLoading || afterFetch.isLoading,
       error: beforeFetch.error ?? afterFetch.error,
-      isTruncated: beforeFetch.isTruncated || afterFetch.isTruncated,
-      downloadUrl: afterRef?.downloadUrl || beforeRef?.downloadUrl || null,
+      isTruncated,
+      downloadUrl,
     }),
     [
       change.before,
       change.after,
-      beforeRef,
-      afterRef,
       beforeFetch.content,
       afterFetch.content,
       beforeFetch.isLoading,
       afterFetch.isLoading,
       beforeFetch.error,
       afterFetch.error,
-      beforeFetch.isTruncated,
-      afterFetch.isTruncated,
+      isTruncated,
+      downloadUrl,
     ],
   );
 }

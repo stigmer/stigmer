@@ -86,7 +86,6 @@ describe("publishPlanArtifact", () => {
     expect(artifact.sandboxPath).toBe(PLAN_ARTIFACT_SANDBOX_PATH);
     expect(artifact.kind).toBe(ExecutionArtifactKind.FILE);
     expect(artifact.storageKey).toBe("artifacts/aex_123/plan.md");
-    expect(artifact.downloadUrl).toBe("https://example.test/download/artifacts/aex_123/plan.md");
     expect(artifact.sizeBytes).toBeGreaterThan(0n);
     expect(artifact.contentHash).toHaveLength(64);
   });

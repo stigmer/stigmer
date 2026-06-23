@@ -45,11 +45,11 @@ function inlineSide(value: string, isBinary = false) {
   return create(FileContentSchema, { body: { case: "inline", value }, isBinary });
 }
 
-function offloadedSide(downloadUrl: string, sizeBytes: bigint, preview = "") {
+function offloadedSide(storageKey: string, sizeBytes: bigint, preview = "") {
   return create(FileContentSchema, {
     body: {
       case: "ref",
-      value: create(ToolCallOutputRefSchema, { downloadUrl, sizeBytes, truncatedPreview: preview }),
+      value: create(ToolCallOutputRefSchema, { storageKey, sizeBytes, truncatedPreview: preview }),
     },
     isBinary: false,
   });
@@ -158,7 +158,7 @@ describe("normalizeEdit — whole-file with unavailable sides", () => {
             path: "big.ts",
             changeType: FileChangeType.MODIFY,
             captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            before: offloadedSide("https://artifacts/big.before", 200_000n, "head…"),
+            before: offloadedSide("artifacts/exec/big.before.txt", 200_000n, "head…"),
             after: inlineSide(AFTER),
           }),
         ],
@@ -179,8 +179,8 @@ describe("normalizeEdit — whole-file with unavailable sides", () => {
             path: "big.ts",
             changeType: FileChangeType.MODIFY,
             captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            before: offloadedSide("https://artifacts/b", 200_000n),
-            after: offloadedSide("https://artifacts/a", 210_000n),
+            before: offloadedSide("artifacts/exec/b.before.txt", 200_000n),
+            after: offloadedSide("artifacts/exec/a.after.txt", 210_000n),
           }),
         ],
       }),

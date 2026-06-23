@@ -69,7 +69,6 @@ export class InlinePublisher {
       const storageKey = `artifacts/${this.executionId}/${fileName}`;
 
       await this.artifactStorage.upload(storageKey, contentBuffer, guessContentType(fileName));
-      const downloadUrl = await this.artifactStorage.getDownloadUrl(storageKey);
 
       const artifact = create(ExecutionArtifactSchema, {
         name: fileName,
@@ -77,7 +76,6 @@ export class InlinePublisher {
         kind: ExecutionArtifactKind.FILE,
         sizeBytes: BigInt(contentBuffer.length),
         storageKey,
-        downloadUrl,
         createdAt: utcTimestamp(),
         contentHash,
       });

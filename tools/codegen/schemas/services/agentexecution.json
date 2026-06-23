@@ -2467,17 +2467,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Storage location in R2.\n Format: \"artifacts/{execution_id}/{filename}\"",
-          "required": false
-        },
-        {
-          "name": "DownloadUrl",
-          "jsonName": "downloadUrl",
-          "protoField": "download_url",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Pre-signed URL for downloading the artifact.\n Expires after a configured period (default: 7 days).\n Clients can call the refresh endpoint to get a new URL if expired.",
+          "description": "Storage location in R2.\n Format: \"artifacts/{execution_id}/{filename}\"\n\n Clients resolve a download URL on demand from this stable key (via\n getArtifactDownloadUrl) — there is deliberately no persisted URL, since a\n pre-signed URL would expire while the reference does not.",
           "required": false
         },
         {
@@ -2672,7 +2662,7 @@
             "kind": "message",
             "messageType": "ToolCallOutputRef"
           },
-          "description": "Offload pointer for large content; reuses the tool-output offload\n envelope (storage_key, download_url, size_bytes, content_hash,\n truncated_preview).",
+          "description": "Offload pointer for large content; reuses the tool-output offload\n envelope (storage_key, size_bytes, content_hash, truncated_preview).",
           "required": false,
           "oneofGroup": "body"
         },
@@ -2876,6 +2866,20 @@
             ]
           },
           "description": "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the\n server-side projection (exactly as mcp_server_slug above is). Lets approval\n surfaces — including workflow-parent approvals, where the originating\n ToolCall is not co-located with the approval — classify and render the tool\n without a client-side lookup. See ToolKind.",
+          "required": false
+        },
+        {
+          "name": "FileChanges",
+          "jsonName": "fileChanges",
+          "protoField": "file_changes",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "FileChange"
+            }
+          },
+          "description": "File changes the gated tool call would produce (create / modify / delete /\n rename), captured by the runner at approval-request time: `before` is read\n from the workspace when the approval is raised, `after` is derived from the\n tool args. Copied from ToolCall.file_changes by the server-side projection\n (exactly as tool_kind above is), so approval surfaces — including\n workflow-parent approvals, where the originating ToolCall is not co-located\n with the approval — can render an inline before/after diff in the gate\n without a client-side lookup.\n\n Large before/after bodies are offloaded to object storage (FileContent.ref)\n at persist time before this projection runs, so this list carries references,\n not megabytes. Empty for non-file-modifying tools. See FileChange.",
           "required": false
         }
       ]
@@ -3678,17 +3682,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Storage location of the full output bytes.\n Format: \"artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}\"",
-          "required": false
-        },
-        {
-          "name": "DownloadUrl",
-          "jsonName": "downloadUrl",
-          "protoField": "download_url",
-          "type": {
-            "kind": "string"
-          },
-          "description": "URL for fetching the full output — pre-signed in the cloud, locally served\n in dev. May be refreshed via the artifact download endpoint if expired.",
+          "description": "Storage location of the full output bytes.\n Format: \"artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}\"\n\n Clients resolve the bytes/URL on demand from this stable key (via\n getArtifactContent or getArtifactDownloadUrl) — there is deliberately no\n persisted URL, since a pre-signed URL would expire while the reference does\n not.",
           "required": false
         },
         {
