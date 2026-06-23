@@ -27,6 +27,7 @@ import { join } from "node:path";
 import {
   AgentMessageSchema,
   ToolCallSchema,
+  FileChangeSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type {
   AgentMessage,
@@ -36,6 +37,8 @@ import {
   MessageType,
   ToolCallStatus,
   ApprovalAction,
+  FileChangeType,
+  FileChangeCaptureLevel,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 import {
@@ -43,6 +46,7 @@ import {
   readDenialLedger,
   denialLedgerPath,
   reconstructAdjudicatedApprovals,
+  buildApprovalGrants,
   grantToken,
 } from "../approval-state.js";
 import { reconcileDeniedToolCalls } from "../message-translator.js";
@@ -248,6 +252,169 @@ describe("reconcileDeniedToolCalls", () => {
     const messages = [aiMessageWith([tc])];
     expect(reconcileDeniedToolCalls(messages, [])).toEqual([]);
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  });
+});
+
+// The approval gate must show a real diff, not a bare args preview. A denied
+// edit is gated before its hunk ever streams, so the reconcile step synthesizes
+// one from the proposed strings already on the gated tool call. These pin that
+// the diff lands only where it should and never perturbs the denial identity.
+describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
+  const editArgs = { path: "src/app.ts", old_string: "alpha\nbeta", new_string: "alpha\ngamma" };
+  const writeToken = grantToken("write", "src/app.ts");
+
+  function deniedEdit(): ToolCall {
+    return toolCall({
+      id: "c1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: editArgs,
+      argsPreview: JSON.stringify(editArgs),
+    });
+  }
+
+  it("attaches a synthesized HUNK_ONLY MODIFY to a denied edit whose hunk never arrived", () => {
+    const tc = deniedEdit();
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: writeToken }],
+      undefined,
+      "/root",
+    );
+
+    expect(tc.fileChanges).toHaveLength(1);
+    const fc = tc.fileChanges[0];
+    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
+    expect(fc.changeType).toBe(FileChangeType.MODIFY);
+    expect(fc.path).toBe("src/app.ts");
+    expect(fc.absolutePath).toBe("/root/src/app.ts");
+    expect(fc.linesRemoved).toBe(2);
+    expect(fc.linesAdded).toBe(2);
+    expect(fc.unifiedDiff).toContain("-beta");
+    expect(fc.unifiedDiff).toContain("+gamma");
+    // A HUNK_ONLY change carries no whole-file bodies (the whole-file before is
+    // the separately filed Cursor follow-up).
+    expect(fc.before).toBeUndefined();
+    expect(fc.after).toBeUndefined();
+  });
+
+  it("never clobbers a fileChange already present on the denied call", () => {
+    const existing = create(FileChangeSchema, {
+      path: "src/app.ts",
+      changeType: FileChangeType.CREATE,
+      captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+    });
+    const tc = deniedEdit();
+    tc.fileChanges = [existing];
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: writeToken }],
+      undefined,
+      "/root",
+    );
+
+    expect(tc.fileChanges).toHaveLength(1);
+    expect(tc.fileChanges[0]).toBe(existing);
+  });
+
+  it("adds no diff for a denied write (whole-file is captured on the stream path, not here)", () => {
+    const tc = toolCall({
+      id: "c1",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { path: "src/new.ts", contents: "export const x = 1;\n" },
+      argsPreview: JSON.stringify({ path: "src/new.ts" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: grantToken("write", "src/new.ts") }],
+      undefined,
+      "/root",
+    );
+
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(tc.fileChanges).toHaveLength(0);
+  });
+
+  it("adds no diff for a non-file denial (shell)", () => {
+    const tc = toolCall({
+      id: "c1",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { command: "rm -rf build" },
+      argsPreview: JSON.stringify({ command: "rm -rf build" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Shell", token: grantToken("shell", "rm -rf build") }],
+      undefined,
+      "/root",
+    );
+
+    expect(tc.fileChanges).toHaveLength(0);
+  });
+
+  it("adds no diff for an edit denial missing new_string", () => {
+    const tc = toolCall({
+      id: "c1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { path: "src/app.ts", old_string: "alpha" },
+      argsPreview: JSON.stringify({ path: "src/app.ts", old_string: "alpha" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: writeToken }],
+      undefined,
+      "/root",
+    );
+
+    expect(tc.fileChanges).toHaveLength(0);
+  });
+
+  it("adds no diff to a synthesized placeholder (no proposed content)", () => {
+    const messages = [aiMessageWith([])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: writeToken }],
+      undefined,
+      "/root",
+    );
+
+    expect(messages[0].toolCalls[0].fileChanges).toHaveLength(0);
+  });
+
+  it("leaves the denial identity token byte-identical, so the reinvocation grant still matches", () => {
+    const tc = deniedEdit();
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: writeToken }],
+      undefined,
+      "/root",
+    );
+
+    // Capturing the diff must not touch name/args, the inputs to tool identity.
+    // Simulate the user's approval, then rebuild the grant the way a reinvocation
+    // does and confirm its token equals the original ledger denial token.
+    tc.approvalAction = ApprovalAction.APPROVE;
+    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(messages);
+    const grants = buildApprovalGrants(pendingApprovals, decisions);
+
+    expect(grants).toHaveLength(1);
+    expect(grantToken(grants[0].key, grants[0].salient)).toBe(writeToken);
   });
 });
 

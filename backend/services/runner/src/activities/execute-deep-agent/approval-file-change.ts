@@ -36,9 +36,13 @@ import {
   extractWriteContent,
   isFileModifyingTool,
 } from "../../shared/file-tools.js";
-import { INLINE_FILE_CONTENT_MAX_BYTES } from "../../shared/status-offload.js";
+import { synthesizeHunkDiff } from "../../shared/hunk-diff.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import { sanitizeArgsPreview } from "./status-builder-shared.js";
+
+// Re-exported so existing importers (and tests) of the native module keep their
+// path; the implementation now lives in the harness-agnostic shared/hunk-diff.
+export { synthesizeHunkDiff };
 
 /** What the gate capture contributes to a `WAITING_APPROVAL` `ToolCall`. */
 export interface ApprovalCaptureResult {
@@ -85,38 +89,6 @@ export function findAiMessageToolCallArgs(
     }
   }
   return undefined;
-}
-
-/**
- * Synthesize a unified-diff-style hunk from an edit's `old_string` /
- * `new_string`. This represents the proposed replacement honestly — the removed
- * block then the added block — without locating it in the file or reconstructing
- * the whole-file result.
- *
- * The output is byte-bounded to {@link INLINE_FILE_CONTENT_MAX_BYTES}: a
- * `unified_diff` is not offloaded at persist (only before/after bodies are), so
- * bounding it here keeps a large edit from carrying a multi-megabyte inline diff
- * into the recomputed `pending_approvals`. Line counts reflect the true
- * pre-truncation sizes.
- */
-export function synthesizeHunkDiff(
-  oldStr: string,
-  newStr: string,
-): { unifiedDiff: string; linesAdded: number; linesRemoved: number } {
-  const oldLines = oldStr.split("\n");
-  const newLines = newStr.split("\n");
-
-  const body = [
-    "@@ proposed edit @@",
-    ...oldLines.map((line) => `-${line}`),
-    ...newLines.map((line) => `+${line}`),
-  ].join("\n");
-
-  return {
-    unifiedDiff: boundToBytes(body, INLINE_FILE_CONTENT_MAX_BYTES),
-    linesAdded: newLines.length,
-    linesRemoved: oldLines.length,
-  };
 }
 
 /**
@@ -207,18 +179,4 @@ async function safeReadBefore(
   } catch {
     return undefined;
   }
-}
-
-/** Truncate `s` to at most `maxBytes` UTF-8 bytes, appending a notice if cut. */
-function boundToBytes(s: string, maxBytes: number): string {
-  if (Buffer.byteLength(s, "utf8") <= maxBytes) return s;
-
-  const marker = "\n[diff truncated — full change shown after it runs]";
-  const budget = maxBytes - Buffer.byteLength(marker, "utf8");
-
-  let slice = s.slice(0, budget);
-  while (Buffer.byteLength(slice, "utf8") > budget) {
-    slice = slice.slice(0, -1);
-  }
-  return slice + marker;
 }

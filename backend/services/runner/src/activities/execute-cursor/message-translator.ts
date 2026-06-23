@@ -43,6 +43,7 @@ import { grantToken, toolIdentity, type DeniedLedgerEntry } from "./approval-sta
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { buildFileChange, resolveWorkspacePath } from "../../shared/file-change.js";
+import { synthesizeHunkDiff } from "../../shared/hunk-diff.js";
 
 export { utcTimestamp };
 
@@ -336,6 +337,55 @@ export function buildCursorFileChanges(
       linesRemoved,
     }),
   ];
+}
+
+/**
+ * Build the approval-gate `FileChange` for a DENIED edit-family tool call.
+ *
+ * A denied tool never executes, so its real diff — the SDK's `diffString`, which
+ * arrives only with the terminal result — never materializes, and
+ * {@link buildCursorFileChanges} leaves the gated call's `fileChanges` empty.
+ * This fills that one gap: from the proposed `old_string`/`new_string` already
+ * carried on the gated tool call we synthesize a HUNK_ONLY change via the shared
+ * {@link synthesizeHunkDiff} — the same `-old/+new` preview the native gate
+ * renders (see `execute-deep-agent/approval-file-change.ts`) — so the approval
+ * card shows a real diff instead of a bare args preview.
+ *
+ * Scope is deliberately edit-only. A denied write already carries its
+ * WHOLE_FILE CREATE from the stream path (set at creation from args, surviving
+ * `markWaitingApproval`), and Cursor's whole-file `before` for edits stays a
+ * separately filed follow-up — the gate renders honestly per `capture_level`.
+ * Returns undefined for non-edit tools or when the path / replacement strings
+ * are absent, so callers attach conditionally.
+ */
+function buildDeniedEditFileChange(
+  toolName: string,
+  args: Record<string, unknown>,
+  workspaceRoot?: string,
+): FileChange | undefined {
+  if (classifyTool(toolName) !== ToolKind.FILE_EDIT) return undefined;
+
+  const rawPath = firstStringField(args, FILE_PATH_FIELDS);
+  if (!rawPath) return undefined;
+
+  const oldString = args.old_string;
+  const newString = args.new_string;
+  if (typeof oldString !== "string" || typeof newString !== "string") return undefined;
+
+  const { path, absolutePath } = workspaceRoot
+    ? resolveWorkspacePath(rawPath, workspaceRoot, /* virtualRoot */ false)
+    : { path: rawPath, absolutePath: rawPath };
+
+  const { unifiedDiff, linesAdded, linesRemoved } = synthesizeHunkDiff(oldString, newString);
+  return buildFileChange({
+    path,
+    absolutePath,
+    changeType: FileChangeType.MODIFY,
+    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+    unifiedDiff,
+    linesAdded,
+    linesRemoved,
+  });
 }
 
 function translateTask(event: Extract<SDKMessage, { type: "task" }>): AgentMessage {
@@ -1030,12 +1080,19 @@ export class MessageAccumulator {
  * tool call is synthesized so the gate still surfaces and never renders as a
  * silent success.
  *
+ * For an overlaid edit-family call, {@link buildDeniedEditFileChange} attaches a
+ * synthesized HUNK_ONLY diff (the call was gated before its real hunk arrived),
+ * using `workspaceRoot` to resolve the display path exactly as the stream path
+ * does. The synthesized placeholders carry no proposed content, so they get no
+ * diff.
+ *
  * Returns the tool calls now marked WAITING_APPROVAL (overlaid + synthesized).
  */
 export function reconcileDeniedToolCalls(
   messages: AgentMessage[],
   ledger: DeniedLedgerEntry[],
   mergedPolicies?: Map<string, MergedToolPolicy>,
+  workspaceRoot?: string,
 ): ToolCall[] {
   if (ledger.length === 0) return [];
 
@@ -1051,6 +1108,14 @@ export function reconcileDeniedToolCalls(
       const token = toolCallIdentityToken(tc);
       if (!deniedTokens.has(token) || matched.has(token)) continue;
       markWaitingApproval(tc, mergedPolicies);
+      // Give the approval card a real diff. A denied edit's hunk never arrived
+      // (it was gated before it ran), so synthesize it from the proposed
+      // strings; a denied write already carries its WHOLE_FILE CREATE from the
+      // stream path, so only fill an empty fileChanges — never clobber it.
+      if (tc.fileChanges.length === 0) {
+        const fileChange = buildDeniedEditFileChange(tc.name, toolCallArgs(tc), workspaceRoot);
+        if (fileChange) tc.fileChanges = [fileChange];
+      }
       matched.add(token);
       result.push(tc);
     }
