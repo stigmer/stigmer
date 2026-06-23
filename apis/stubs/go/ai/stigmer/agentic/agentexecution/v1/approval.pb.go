@@ -129,7 +129,20 @@ type PendingApproval struct {
 	// surfaces — including workflow-parent approvals, where the originating
 	// ToolCall is not co-located with the approval — classify and render the tool
 	// without a client-side lookup. See ToolKind.
-	ToolKind      ToolKind `protobuf:"varint,13,opt,name=tool_kind,json=toolKind,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ToolKind" json:"tool_kind,omitempty"`
+	ToolKind ToolKind `protobuf:"varint,13,opt,name=tool_kind,json=toolKind,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ToolKind" json:"tool_kind,omitempty"`
+	// File changes the gated tool call would produce (create / modify / delete /
+	// rename), captured by the runner at approval-request time: `before` is read
+	// from the workspace when the approval is raised, `after` is derived from the
+	// tool args. Copied from ToolCall.file_changes by the server-side projection
+	// (exactly as tool_kind above is), so approval surfaces — including
+	// workflow-parent approvals, where the originating ToolCall is not co-located
+	// with the approval — can render an inline before/after diff in the gate
+	// without a client-side lookup.
+	//
+	// Large before/after bodies are offloaded to object storage (FileContent.ref)
+	// at persist time before this projection runs, so this list carries references,
+	// not megabytes. Empty for non-file-modifying tools. See FileChange.
+	FileChanges   []*FileChange `protobuf:"bytes,14,rep,name=file_changes,json=fileChanges,proto3" json:"file_changes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -255,6 +268,13 @@ func (x *PendingApproval) GetToolKind() ToolKind {
 	return ToolKind_TOOL_KIND_UNSPECIFIED
 }
 
+func (x *PendingApproval) GetFileChanges() []*FileChange {
+	if x != nil {
+		return x.FileChanges
+	}
+	return nil
+}
+
 // Notification sent to a parent workflow when a child agent needs tool approval.
 //
 // Contains all pending approvals from a single child agent execution,
@@ -346,7 +366,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_approval_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\"\x95\x04\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\"\xea\x04\n" +
 	"\x0fPendingApproval\x12 \n" +
 	"\ftool_call_id\x18\x01 \x01(\tR\n" +
 	"toolCallId\x12\x1b\n" +
@@ -362,7 +382,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	" \x01(\tR\x0eagentRationale\x12$\n" +
 	"\x0ebranch_at_deny\x18\v \x01(\tR\fbranchAtDeny\x12'\n" +
 	"\x10head_sha_at_deny\x18\f \x01(\tR\rheadShaAtDeny\x12K\n" +
-	"\ttool_kind\x18\r \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\"\xa2\x01\n" +
+	"\ttool_kind\x18\r \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\x12S\n" +
+	"\ffile_changes\x18\x0e \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\"\xa2\x01\n" +
 	"\x19ChildApprovalNotification\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12b\n" +
 	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovalsB\xce\x02\n" +
@@ -385,15 +406,17 @@ var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_goTypes = []any{
 	(*PendingApproval)(nil),           // 0: ai.stigmer.agentic.agentexecution.v1.PendingApproval
 	(*ChildApprovalNotification)(nil), // 1: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification
 	(ToolKind)(0),                     // 2: ai.stigmer.agentic.agentexecution.v1.ToolKind
+	(*FileChange)(nil),                // 3: ai.stigmer.agentic.agentexecution.v1.FileChange
 }
 var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.agentexecution.v1.PendingApproval.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
-	0, // 1: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 1: ai.stigmer.agentic.agentexecution.v1.PendingApproval.file_changes:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChange
+	0, // 2: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_approval_proto_init() }
@@ -402,6 +425,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_approval_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
+	file_ai_stigmer_agentic_agentexecution_v1_message_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

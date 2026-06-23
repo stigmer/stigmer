@@ -312,3 +312,54 @@ func TestProjectToolCallCopiesToolKind(t *testing.T) {
 		t.Errorf("McpServerSlug = %q, want %q", got[0].GetMcpServerSlug(), "github")
 	}
 }
+
+// TestProjectToolCallCopiesFileChanges verifies the runner's approval-time
+// before/after capture (ToolCall.file_changes) is denormalized onto the
+// pending-approval projection, so the HITL gate renders an inline diff without
+// correlating back to the originating ToolCall (which, for workflow-parent
+// approvals, is not co-located with the approval). Mirrors the tool_kind test.
+func TestProjectToolCallCopiesFileChanges(t *testing.T) {
+	tc := makeToolCall("tc1", "edit_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+	tc.FileChanges = []*agentexecutionv1.FileChange{
+		{
+			Path:         "src/app/main.ts",
+			ChangeType:   agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_MODIFY,
+			CaptureLevel: agentexecutionv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE,
+			Before:       &agentexecutionv1.FileContent{Body: &agentexecutionv1.FileContent_Inline{Inline: "old"}},
+			After:        &agentexecutionv1.FileContent{Body: &agentexecutionv1.FileContent_Inline{Inline: "new"}},
+		},
+	}
+
+	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(tc)}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1", len(got))
+	}
+	changes := got[0].GetFileChanges()
+	if len(changes) != 1 {
+		t.Fatalf("got %d file changes, want 1", len(changes))
+	}
+	if changes[0].GetPath() != "src/app/main.ts" {
+		t.Errorf("FileChange.Path = %q, want %q", changes[0].GetPath(), "src/app/main.ts")
+	}
+	if changes[0].GetChangeType() != agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_MODIFY {
+		t.Errorf("FileChange.ChangeType = %v, want FILE_CHANGE_TYPE_MODIFY", changes[0].GetChangeType())
+	}
+	if changes[0].GetBefore().GetInline() != "old" || changes[0].GetAfter().GetInline() != "new" {
+		t.Errorf("FileChange before/after = %q/%q, want old/new",
+			changes[0].GetBefore().GetInline(), changes[0].GetAfter().GetInline())
+	}
+}
+
+// TestProjectToolCallNoFileChangesStaysEmpty verifies a non-file tool projects an
+// empty file_changes list (the gate falls back to the args preview).
+func TestProjectToolCallNoFileChangesStaysEmpty(t *testing.T) {
+	tc := makeToolCall("tc1", "execute_sql", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+
+	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(tc)}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1", len(got))
+	}
+	if len(got[0].GetFileChanges()) != 0 {
+		t.Errorf("FileChanges = %d, want 0 for a non-file tool", len(got[0].GetFileChanges()))
+	}
+}

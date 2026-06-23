@@ -6,13 +6,15 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ToolKind } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
+import type { FileChange } from "./message_pb.js";
+import { file_ai_stigmer_agentic_agentexecution_v1_message } from "./message_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/agentexecution/v1/approval.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_approval: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSLpAgoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRJBCgl0b29sX2tpbmQYDSABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbEtpbmQigwEKGUNoaWxkQXBwcm92YWxOb3RpZmljYXRpb24SFAoMZXhlY3V0aW9uX2lkGAEgASgJElAKEXBlbmRpbmdfYXBwcm92YWxzGAIgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlBlbmRpbmdBcHByb3ZhbGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKxAwoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRJBCgl0b29sX2tpbmQYDSABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbEtpbmQSRgoMZmlsZV9jaGFuZ2VzGA4gAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVDaGFuZ2UigwEKGUNoaWxkQXBwcm92YWxOb3RpZmljYXRpb24SFAoMZXhlY3V0aW9uX2lkGAEgASgJElAKEXBlbmRpbmdfYXBwcm92YWxzGAIgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlBlbmRpbmdBcHByb3ZhbGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message]);
 
 /**
  * A pending approval request for a tool call that requires user consent before execution.
@@ -189,6 +191,24 @@ export type PendingApproval = Message<"ai.stigmer.agentic.agentexecution.v1.Pend
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13;
    */
   toolKind: ToolKind;
+
+  /**
+   * File changes the gated tool call would produce (create / modify / delete /
+   * rename), captured by the runner at approval-request time: `before` is read
+   * from the workspace when the approval is raised, `after` is derived from the
+   * tool args. Copied from ToolCall.file_changes by the server-side projection
+   * (exactly as tool_kind above is), so approval surfaces — including
+   * workflow-parent approvals, where the originating ToolCall is not co-located
+   * with the approval — can render an inline before/after diff in the gate
+   * without a client-side lookup.
+   *
+   * Large before/after bodies are offloaded to object storage (FileContent.ref)
+   * at persist time before this projection runs, so this list carries references,
+   * not megabytes. Empty for non-file-modifying tools. See FileChange.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 14;
+   */
+  fileChanges: FileChange[];
 };
 
 /**

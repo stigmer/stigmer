@@ -82,5 +82,11 @@ func projectToolCall(tc *agentexecutionv1.ToolCall, fromSubAgent bool, subAgentN
 		// Denormalized for approval surfaces (like McpServerSlug above) so the
 		// approval UI classifies the tool without re-deriving it from the name.
 		ToolKind: tc.GetToolKind(),
+		// Denormalized so the gate can render an inline before/after diff without
+		// correlating back to the originating ToolCall (which, for workflow-parent
+		// approvals, is not co-located with the approval). The runner captures
+		// these at approval-request time; large bodies are already offloaded to
+		// FileContent.ref before this projection runs.
+		FileChanges: tc.GetFileChanges(),
 	}
 }

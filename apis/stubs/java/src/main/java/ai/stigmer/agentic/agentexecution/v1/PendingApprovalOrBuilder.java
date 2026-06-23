@@ -375,4 +375,103 @@ public interface PendingApprovalOrBuilder extends
    * @return The toolKind.
    */
   ai.stigmer.agentic.agentexecution.v1.ToolKind getToolKind();
+
+  /**
+   * <pre>
+   * File changes the gated tool call would produce (create / modify / delete /
+   * rename), captured by the runner at approval-request time: `before` is read
+   * from the workspace when the approval is raised, `after` is derived from the
+   * tool args. Copied from ToolCall.file_changes by the server-side projection
+   * (exactly as tool_kind above is), so approval surfaces — including
+   * workflow-parent approvals, where the originating ToolCall is not co-located
+   * with the approval — can render an inline before/after diff in the gate
+   * without a client-side lookup.
+   *
+   * Large before/after bodies are offloaded to object storage (FileContent.ref)
+   * at persist time before this projection runs, so this list carries references,
+   * not megabytes. Empty for non-file-modifying tools. See FileChange.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 14 [json_name = "fileChanges"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChange> 
+      getFileChangesList();
+  /**
+   * <pre>
+   * File changes the gated tool call would produce (create / modify / delete /
+   * rename), captured by the runner at approval-request time: `before` is read
+   * from the workspace when the approval is raised, `after` is derived from the
+   * tool args. Copied from ToolCall.file_changes by the server-side projection
+   * (exactly as tool_kind above is), so approval surfaces — including
+   * workflow-parent approvals, where the originating ToolCall is not co-located
+   * with the approval — can render an inline before/after diff in the gate
+   * without a client-side lookup.
+   *
+   * Large before/after bodies are offloaded to object storage (FileContent.ref)
+   * at persist time before this projection runs, so this list carries references,
+   * not megabytes. Empty for non-file-modifying tools. See FileChange.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 14 [json_name = "fileChanges"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.FileChange getFileChanges(int index);
+  /**
+   * <pre>
+   * File changes the gated tool call would produce (create / modify / delete /
+   * rename), captured by the runner at approval-request time: `before` is read
+   * from the workspace when the approval is raised, `after` is derived from the
+   * tool args. Copied from ToolCall.file_changes by the server-side projection
+   * (exactly as tool_kind above is), so approval surfaces — including
+   * workflow-parent approvals, where the originating ToolCall is not co-located
+   * with the approval — can render an inline before/after diff in the gate
+   * without a client-side lookup.
+   *
+   * Large before/after bodies are offloaded to object storage (FileContent.ref)
+   * at persist time before this projection runs, so this list carries references,
+   * not megabytes. Empty for non-file-modifying tools. See FileChange.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 14 [json_name = "fileChanges"];</code>
+   */
+  int getFileChangesCount();
+  /**
+   * <pre>
+   * File changes the gated tool call would produce (create / modify / delete /
+   * rename), captured by the runner at approval-request time: `before` is read
+   * from the workspace when the approval is raised, `after` is derived from the
+   * tool args. Copied from ToolCall.file_changes by the server-side projection
+   * (exactly as tool_kind above is), so approval surfaces — including
+   * workflow-parent approvals, where the originating ToolCall is not co-located
+   * with the approval — can render an inline before/after diff in the gate
+   * without a client-side lookup.
+   *
+   * Large before/after bodies are offloaded to object storage (FileContent.ref)
+   * at persist time before this projection runs, so this list carries references,
+   * not megabytes. Empty for non-file-modifying tools. See FileChange.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 14 [json_name = "fileChanges"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder> 
+      getFileChangesOrBuilderList();
+  /**
+   * <pre>
+   * File changes the gated tool call would produce (create / modify / delete /
+   * rename), captured by the runner at approval-request time: `before` is read
+   * from the workspace when the approval is raised, `after` is derived from the
+   * tool args. Copied from ToolCall.file_changes by the server-side projection
+   * (exactly as tool_kind above is), so approval surfaces — including
+   * workflow-parent approvals, where the originating ToolCall is not co-located
+   * with the approval — can render an inline before/after diff in the gate
+   * without a client-side lookup.
+   *
+   * Large before/after bodies are offloaded to object storage (FileContent.ref)
+   * at persist time before this projection runs, so this list carries references,
+   * not megabytes. Empty for non-file-modifying tools. See FileChange.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 14 [json_name = "fileChanges"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder getFileChangesOrBuilder(
+      int index);
 }

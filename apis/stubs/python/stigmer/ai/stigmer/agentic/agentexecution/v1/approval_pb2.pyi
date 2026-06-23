@@ -1,4 +1,5 @@
 from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.agentic.agentexecution.v1 import message_pb2 as _message_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -8,7 +9,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class PendingApproval(_message.Message):
-    __slots__ = ("tool_call_id", "tool_name", "message", "args_preview", "requested_at", "from_sub_agent", "sub_agent_name", "mcp_server_slug", "sub_agent_subject", "agent_rationale", "branch_at_deny", "head_sha_at_deny", "tool_kind")
+    __slots__ = ("tool_call_id", "tool_name", "message", "args_preview", "requested_at", "from_sub_agent", "sub_agent_name", "mcp_server_slug", "sub_agent_subject", "agent_rationale", "branch_at_deny", "head_sha_at_deny", "tool_kind", "file_changes")
     TOOL_CALL_ID_FIELD_NUMBER: _ClassVar[int]
     TOOL_NAME_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
@@ -22,6 +23,7 @@ class PendingApproval(_message.Message):
     BRANCH_AT_DENY_FIELD_NUMBER: _ClassVar[int]
     HEAD_SHA_AT_DENY_FIELD_NUMBER: _ClassVar[int]
     TOOL_KIND_FIELD_NUMBER: _ClassVar[int]
+    FILE_CHANGES_FIELD_NUMBER: _ClassVar[int]
     tool_call_id: str
     tool_name: str
     message: str
@@ -35,7 +37,8 @@ class PendingApproval(_message.Message):
     branch_at_deny: str
     head_sha_at_deny: str
     tool_kind: _enum_pb2.ToolKind
-    def __init__(self, tool_call_id: _Optional[str] = ..., tool_name: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., requested_at: _Optional[str] = ..., from_sub_agent: bool = ..., sub_agent_name: _Optional[str] = ..., mcp_server_slug: _Optional[str] = ..., sub_agent_subject: _Optional[str] = ..., agent_rationale: _Optional[str] = ..., branch_at_deny: _Optional[str] = ..., head_sha_at_deny: _Optional[str] = ..., tool_kind: _Optional[_Union[_enum_pb2.ToolKind, str]] = ...) -> None: ...
+    file_changes: _containers.RepeatedCompositeFieldContainer[_message_pb2.FileChange]
+    def __init__(self, tool_call_id: _Optional[str] = ..., tool_name: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., requested_at: _Optional[str] = ..., from_sub_agent: bool = ..., sub_agent_name: _Optional[str] = ..., mcp_server_slug: _Optional[str] = ..., sub_agent_subject: _Optional[str] = ..., agent_rationale: _Optional[str] = ..., branch_at_deny: _Optional[str] = ..., head_sha_at_deny: _Optional[str] = ..., tool_kind: _Optional[_Union[_enum_pb2.ToolKind, str]] = ..., file_changes: _Optional[_Iterable[_Union[_message_pb2.FileChange, _Mapping]]] = ...) -> None: ...
 
 class ChildApprovalNotification(_message.Message):
     __slots__ = ("execution_id", "pending_approvals")

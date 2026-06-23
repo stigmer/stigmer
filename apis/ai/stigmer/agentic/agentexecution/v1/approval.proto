@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.agentexecution.v1;
 
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentexecution/v1/message.proto";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Human-in-the-Loop (HITL) Approval Types
@@ -139,6 +140,20 @@ message PendingApproval {
   // ToolCall is not co-located with the approval — classify and render the tool
   // without a client-side lookup. See ToolKind.
   ToolKind tool_kind = 13;
+
+  // File changes the gated tool call would produce (create / modify / delete /
+  // rename), captured by the runner at approval-request time: `before` is read
+  // from the workspace when the approval is raised, `after` is derived from the
+  // tool args. Copied from ToolCall.file_changes by the server-side projection
+  // (exactly as tool_kind above is), so approval surfaces — including
+  // workflow-parent approvals, where the originating ToolCall is not co-located
+  // with the approval — can render an inline before/after diff in the gate
+  // without a client-side lookup.
+  //
+  // Large before/after bodies are offloaded to object storage (FileContent.ref)
+  // at persist time before this projection runs, so this list carries references,
+  // not megabytes. Empty for non-file-modifying tools. See FileChange.
+  repeated FileChange file_changes = 14;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
