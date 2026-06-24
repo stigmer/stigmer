@@ -1,6 +1,7 @@
 package agentexecution
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -707,55 +708,42 @@ func (s *ResetTemporalWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) 
 }
 
 // =============================================================================
-// Update Execution Phase Step
+// Update Execution Phase And Persist Step
 // =============================================================================
 
-// UpdateExecutionPhaseStep updates the execution phase and timestamps
-type UpdateExecutionPhaseStep[T LifecycleInput] struct {
-	targetPhase agentexecutionv1.ExecutionPhase
-	setError    bool // Whether to set error field (for terminate)
-	clearError  bool // Whether to clear error field (for recover)
-}
-
-// NewUpdateExecutionPhaseStep creates a new UpdateExecutionPhaseStep
-func NewUpdateExecutionPhaseStep[T LifecycleInput](
+// applyLifecyclePhaseTransition applies a lifecycle phase transition to execution
+// in place: it sets the target phase plus the phase-dependent fields (completed_at,
+// error, the terminal sub-agent cascade, and the terminal pending_approvals clear).
+//
+// It is the body run inside the UpdateExecutionPhaseAndPersistStep's
+// store.UpdateResource closure (and exercised directly by the lifecycle unit
+// tests), so execution carries the freshly-loaded, locked state — the transition
+// is computed against the very snapshot that will be persisted. This mirrors the
+// applyUpdateStatusMerge discipline on the UpdateStatus path; lifecycle is simply
+// a writer that authors no approval events, so it never touches the
+// approval_event_stream and the projection is left as-is for non-terminal phases.
+//
+// reason is only consulted when setError is true (terminate); callers pass the
+// resolved audit reason from the pipeline context.
+func applyLifecyclePhaseTransition(
+	execution *agentexecutionv1.AgentExecution,
 	targetPhase agentexecutionv1.ExecutionPhase,
 	setError bool,
 	clearError bool,
-) *UpdateExecutionPhaseStep[T] {
-	return &UpdateExecutionPhaseStep[T]{
-		targetPhase: targetPhase,
-		setError:    setError,
-		clearError:  clearError,
-	}
-}
-
-// Name returns the step name
-func (s *UpdateExecutionPhaseStep[T]) Name() string {
-	return "UpdateExecutionPhase"
-}
-
-// Execute updates the execution phase
-func (s *UpdateExecutionPhaseStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
-	// Skip if already in target state
-	if ctx.Get("alreadyInTargetState") == true {
-		return nil
-	}
-
-	execution := ctx.Get(LoadedExecutionKey).(*agentexecutionv1.AgentExecution)
-
+	reason string,
+) {
 	// Ensure status exists
 	if execution.Status == nil {
 		execution.Status = &agentexecutionv1.AgentExecutionStatus{}
 	}
 
 	// Update phase
-	execution.Status.Phase = s.targetPhase
+	execution.Status.Phase = targetPhase
 
 	// Set completed_at for terminal phases (RFC3339 format)
 	// Note: PAUSED is NOT terminal, so we don't set completed_at for it
-	if s.targetPhase == agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED ||
-		s.targetPhase == agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED {
+	if targetPhase == agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED ||
+		targetPhase == agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED {
 		now := time.Now().Format(time.RFC3339)
 		execution.Status.CompletedAt = now
 
@@ -769,7 +757,7 @@ func (s *UpdateExecutionPhaseStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 
 		// A terminal execution has no actionable approvals (the workflow that
 		// would resume a gated call is gone), so it must never carry
-		// pending_approvals. This blind persist bypasses the phase-aware
+		// pending_approvals. This blind clear bypasses the phase-aware
 		// projection seam (approval.ProjectPendingApprovals); the graceful-cancel
 		// case is also cleared later by the workflow cleanup running the seam, but
 		// clearing here keeps the invariant on the bypass paths too,
@@ -778,7 +766,7 @@ func (s *UpdateExecutionPhaseStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 	}
 
 	// Clear completed_at for recovery (back to IN_PROGRESS) or resume from PAUSED
-	if s.targetPhase == agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
+	if targetPhase == agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
 		execution.Status.CompletedAt = ""
 	}
 
@@ -786,50 +774,64 @@ func (s *UpdateExecutionPhaseStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 	// No action needed - just leave completed_at as-is (should be empty)
 
 	// Set error for terminate
-	if s.setError {
-		reason := ctx.Get(ReasonKey)
-		if reason != nil {
-			execution.Status.Error = fmt.Sprintf("Terminated: %s", reason.(string))
+	if setError {
+		if reason != "" {
+			execution.Status.Error = fmt.Sprintf("Terminated: %s", reason)
 		} else {
 			execution.Status.Error = "Terminated by user"
 		}
 	}
 
 	// Clear error for recover
-	if s.clearError {
+	if clearError {
 		execution.Status.Error = ""
 	}
-
-	log.Debug().
-		Str("execution_id", execution.GetMetadata().GetId()).
-		Str("phase", s.targetPhase.String()).
-		Msg("Updated execution phase")
-
-	return nil
 }
 
-// =============================================================================
-// Lifecycle Persist Step
-// =============================================================================
-
-// LifecyclePersistStep saves the execution to the database
-type LifecyclePersistStep[T LifecycleInput] struct {
-	store store.Store
+// UpdateExecutionPhaseAndPersistStep applies a lifecycle phase transition and
+// persists it in a single atomic read-modify-write under the store's per-resource
+// write lock (store.UpdateResource), shared by cancel/terminate/pause/resume/
+// recover.
+//
+// Doing the mutation and the save as one atomic unit — rather than a mutate step
+// followed by a separate whole-resource save — is what keeps the append-only
+// approval_event_stream correct by construction now that it is the source of truth
+// for pending_approvals: an approval event a concurrent SubmitApproval appends in
+// the window between the load and the write can never be lost to a stale-read
+// overwrite. (pause/cancel/terminate are all reachable from
+// WAITING_FOR_APPROVAL, so that window is real.) This is the lifecycle counterpart
+// of the UpdateStatus MergeAndPersistExecutionStep; lifecycle simply authors no
+// new approval events.
+type UpdateExecutionPhaseAndPersistStep[T LifecycleInput] struct {
+	store       store.Store
+	targetPhase agentexecutionv1.ExecutionPhase
+	setError    bool // Whether to set error field (for terminate)
+	clearError  bool // Whether to clear error field (for recover)
 }
 
-// NewLifecyclePersistStep creates a new LifecyclePersistStep
-func NewLifecyclePersistStep[T LifecycleInput](s store.Store) *LifecyclePersistStep[T] {
-	return &LifecyclePersistStep[T]{store: s}
+// NewUpdateExecutionPhaseAndPersistStep creates a new UpdateExecutionPhaseAndPersistStep
+func NewUpdateExecutionPhaseAndPersistStep[T LifecycleInput](
+	s store.Store,
+	targetPhase agentexecutionv1.ExecutionPhase,
+	setError bool,
+	clearError bool,
+) *UpdateExecutionPhaseAndPersistStep[T] {
+	return &UpdateExecutionPhaseAndPersistStep[T]{
+		store:       s,
+		targetPhase: targetPhase,
+		setError:    setError,
+		clearError:  clearError,
+	}
 }
 
 // Name returns the step name
-func (s *LifecyclePersistStep[T]) Name() string {
-	return "LifecyclePersist"
+func (s *UpdateExecutionPhaseAndPersistStep[T]) Name() string {
+	return "UpdateExecutionPhaseAndPersist"
 }
 
-// Execute saves the execution to the database
-func (s *LifecyclePersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
-	// Skip if already in target state
+// Execute applies the phase transition and persists it atomically.
+func (s *UpdateExecutionPhaseAndPersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+	// Skip if already in target state (no transition, nothing to persist)
 	if ctx.Get("alreadyInTargetState") == true {
 		return nil
 	}
@@ -837,30 +839,46 @@ func (s *LifecyclePersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) error
 	execution := ctx.Get(LoadedExecutionKey).(*agentexecutionv1.AgentExecution)
 	executionID := execution.GetMetadata().GetId()
 
-	// NOTE: This is a non-atomic whole-resource save (load in an earlier step,
-	// modify, then SaveResource here) shared by cancel/terminate/pause/resume/
-	// recover. For the terminal transitions (CANCELLED/TERMINATED) it is safe:
-	// pending_approvals is blind-cleared and the execution is dead, so a clobbered
-	// approval_event_stream is moot. For the NON-terminal transitions (pause from
-	// IN_PROGRESS, resume, recover) it shares the lost-update window the heartbeat
-	// UpdateStatus path just closed: a concurrent SubmitApproval append can be
-	// overwritten. This is a known, deliberately-deferred gap (tracked in
-	// next-task.md); the heartbeat paths were prioritized as the high-frequency
-	// surface. Closing it means converting these lifecycle persists to an atomic
-	// store.UpdateResource as well.
-	err := s.store.SaveResource(
+	// Resolve the audit reason recorded by the Temporal signal/terminate steps;
+	// only consulted when setError is true.
+	reason := ""
+	if r := ctx.Get(ReasonKey); r != nil {
+		reason, _ = r.(string)
+	}
+
+	// Atomic read-modify-write under the store's per-resource write lock. The
+	// transition is applied to the freshly-loaded resource INSIDE the closure, so
+	// it cannot clobber an approval_event_stream event a concurrent SubmitApproval
+	// appended between the earlier load step and this persist. Unlike the prior
+	// non-atomic load-then-SaveResource, UpdateResource requires the resource to
+	// exist (no upsert), so a lifecycle op racing a delete returns NOT_FOUND
+	// rather than resurrecting a half-built document.
+	updated := &agentexecutionv1.AgentExecution{}
+	err := s.store.UpdateResource(
 		ctx.Context(),
 		apiresourcekind.ApiResourceKind_agent_execution,
 		executionID,
-		execution,
+		updated,
+		func() error {
+			applyLifecyclePhaseTransition(updated, s.targetPhase, s.setError, s.clearError, reason)
+			return nil
+		},
 	)
 	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return grpclib.NotFoundError("agent_execution", executionID)
+		}
 		return grpclib.InternalError(err, "failed to persist execution")
 	}
 
+	// Hand the persisted result to the broadcast step and the handler's return
+	// value (both read LoadedExecutionKey).
+	ctx.Set(LoadedExecutionKey, updated)
+
 	log.Debug().
 		Str("execution_id", executionID).
-		Msg("Persisted execution to database")
+		Str("phase", s.targetPhase.String()).
+		Msg("Applied lifecycle phase transition and persisted execution")
 
 	return nil
 }

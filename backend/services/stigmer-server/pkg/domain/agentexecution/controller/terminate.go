@@ -72,12 +72,12 @@ func (c *AgentExecutionController) buildTerminatePipeline() *pipeline.Pipeline[*
 		AddStep(NewLoadExecutionByIdStep[*agentexecutionv1.TerminateAgentExecutionInput](c.store)).
 		AddStep(NewValidateTerminableStep[*agentexecutionv1.TerminateAgentExecutionInput]()).
 		AddStep(NewTerminateTemporalWorkflowStep[*agentexecutionv1.TerminateAgentExecutionInput](c.temporalClient)).
-		AddStep(NewUpdateExecutionPhaseStep[*agentexecutionv1.TerminateAgentExecutionInput](
+		AddStep(NewUpdateExecutionPhaseAndPersistStep[*agentexecutionv1.TerminateAgentExecutionInput](
+			c.store,
 			agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED,
 			true,  // set error with termination reason
 			false, // don't clear error
 		)).
-		AddStep(NewLifecyclePersistStep[*agentexecutionv1.TerminateAgentExecutionInput](c.store)).
 		AddStep(NewLifecycleBroadcastStep[*agentexecutionv1.TerminateAgentExecutionInput](c.streamBroker)).
 		Build()
 }

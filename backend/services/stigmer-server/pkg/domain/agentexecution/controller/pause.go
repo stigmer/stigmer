@@ -71,12 +71,12 @@ func (c *AgentExecutionController) buildPausePipeline() *pipeline.Pipeline[*agen
 		AddStep(NewLoadExecutionByIdStep[*agentexecutionv1.PauseAgentExecutionInput](c.store)).
 		AddStep(NewValidatePausableStep[*agentexecutionv1.PauseAgentExecutionInput]()).
 		AddStep(NewSignalPauseToTemporalStep[*agentexecutionv1.PauseAgentExecutionInput](c.temporalClient)).
-		AddStep(NewUpdateExecutionPhaseStep[*agentexecutionv1.PauseAgentExecutionInput](
+		AddStep(NewUpdateExecutionPhaseAndPersistStep[*agentexecutionv1.PauseAgentExecutionInput](
+			c.store,
 			agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED,
 			false, // don't set error
 			false, // don't clear error
 		)).
-		AddStep(NewLifecyclePersistStep[*agentexecutionv1.PauseAgentExecutionInput](c.store)).
 		AddStep(NewLifecycleBroadcastStep[*agentexecutionv1.PauseAgentExecutionInput](c.streamBroker)).
 		Build()
 }
