@@ -1,10 +1,17 @@
 package mcpserver
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"path/filepath"
 	"testing"
 
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -138,5 +145,129 @@ func TestSetToolApprovalsFromConnect(t *testing.T) {
 
 		assert.Equal(t, 0, count)
 		require.Len(t, status.ToolApprovals, 1, "an all-ungated result is empty after conversion → preserve")
+	})
+}
+
+// newTestController returns an McpServerController backed by a fresh temp SQLite
+// store, so persistConnectResult exercises the real atomic UpdateResource path.
+func newTestController(t *testing.T) (*McpServerController, store.Store) {
+	t.Helper()
+	dbPath := filepath.Join(t.TempDir(), "test.sqlite")
+	s, err := sqlite.NewStore(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = s.Close() })
+	return NewMcpServerController(s), s
+}
+
+// seedMcpServer persists a minimal McpServer with the given pre-existing status.
+func seedMcpServer(t *testing.T, ctx context.Context, s store.Store, id string, status *mcpserverv1.McpServerStatus) {
+	t.Helper()
+	server := &mcpserverv1.McpServer{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "McpServer",
+		Metadata:   &apiresource.ApiResourceMetadata{Id: id, Name: id, Org: "test-org"},
+		Spec:       &mcpserverv1.McpServerSpec{Description: "seed"},
+		Status:     status,
+	}
+	require.NoError(t, s.SaveResource(ctx, apiresourcekind.ApiResourceKind_mcp_server, id, server))
+}
+
+func TestPersistConnectResult(t *testing.T) {
+	ctx := context.Background()
+
+	sampleOutput := &connectWorkflowOutput{
+		Tools: []discoveredToolResult{
+			{Name: "delete_repo", Description: "Delete a repository"},
+			{Name: "search_code", Description: "Search code"},
+		},
+		ResourceTemplates: []discoveredResourceTemplateResult{
+			{URITemplate: "repo://{owner}/{name}", Name: "repo", Description: "A repo", MimeType: "application/json"},
+		},
+		ToolApprovals: []toolApprovalResult{
+			{ToolName: "delete_repo", RequiresApproval: true, Message: "Delete repository {{args.repo}}"},
+		},
+	}
+
+	t.Run("persists capabilities and tool approvals; returned resource matches the store", func(t *testing.T) {
+		c, s := newTestController(t)
+		seedMcpServer(t, ctx, s, "srv-1", nil)
+
+		persisted, count, err := c.persistConnectResult(ctx, "srv-1", sampleOutput)
+		require.NoError(t, err)
+		assert.Equal(t, 1, count)
+
+		caps := persisted.GetStatus().GetDiscoveredCapabilities()
+		require.NotNil(t, caps)
+		assert.Len(t, caps.GetTools(), 2, "both discovered tools must be persisted")
+		assert.Len(t, caps.GetResourceTemplates(), 1, "resource templates must be persisted")
+		assert.NotNil(t, caps.GetLastDiscoveredAt(), "snapshot timestamp must be set")
+		require.Len(t, persisted.GetStatus().GetToolApprovals(), 1)
+		assert.Equal(t, "delete_repo", persisted.GetStatus().GetToolApprovals()[0].GetToolName())
+
+		// The returned resource must equal what an independent read sees.
+		stored := &mcpserverv1.McpServer{}
+		require.NoError(t, s.GetResource(ctx, apiresourcekind.ApiResourceKind_mcp_server, "srv-1", stored))
+		assert.Len(t, stored.GetStatus().GetDiscoveredCapabilities().GetTools(), 2)
+		require.Len(t, stored.GetStatus().GetToolApprovals(), 1)
+		assert.Equal(t, "delete_repo", stored.GetStatus().GetToolApprovals()[0].GetToolName())
+	})
+
+	t.Run("nil prior status gets a status created", func(t *testing.T) {
+		c, s := newTestController(t)
+		seedMcpServer(t, ctx, s, "srv-nil", nil)
+
+		persisted, count, err := c.persistConnectResult(ctx, "srv-nil", &connectWorkflowOutput{})
+		require.NoError(t, err)
+		assert.Equal(t, 0, count)
+		require.NotNil(t, persisted.GetStatus(), "an empty connect result must still create a status")
+		// Capabilities are overwrite-always, so even an empty result records a
+		// (zero-tool) snapshot; no approvals are produced.
+		assert.NotNil(t, persisted.GetStatus().GetDiscoveredCapabilities())
+		assert.Empty(t, persisted.GetStatus().GetToolApprovals())
+	})
+
+	t.Run("empty approvals preserve prior gates but capabilities are refreshed", func(t *testing.T) {
+		c, s := newTestController(t)
+		seedMcpServer(t, ctx, s, "srv-2", &mcpserverv1.McpServerStatus{
+			ToolApprovals: []*mcpserverv1.ToolApprovalPolicy{{ToolName: "delete_repo", Message: "Delete"}},
+		})
+
+		// A degraded/older runner returns refreshed tools but no approvals.
+		out := &connectWorkflowOutput{
+			Tools:         []discoveredToolResult{{Name: "search_code", Description: "Search"}},
+			ToolApprovals: nil,
+		}
+		persisted, count, err := c.persistConnectResult(ctx, "srv-2", out)
+		require.NoError(t, err)
+		assert.Equal(t, 0, count)
+
+		require.Len(t, persisted.GetStatus().GetToolApprovals(), 1,
+			"safety-critical gates must never be disarmed by an empty result")
+		assert.Equal(t, "delete_repo", persisted.GetStatus().GetToolApprovals()[0].GetToolName())
+		require.Len(t, persisted.GetStatus().GetDiscoveredCapabilities().GetTools(), 1,
+			"capabilities are overwrite-always — the snapshot must refresh")
+		assert.Equal(t, "search_code", persisted.GetStatus().GetDiscoveredCapabilities().GetTools()[0].GetName())
+	})
+
+	t.Run("non-empty approvals overwrite prior gates", func(t *testing.T) {
+		c, s := newTestController(t)
+		seedMcpServer(t, ctx, s, "srv-3", &mcpserverv1.McpServerStatus{
+			ToolApprovals: []*mcpserverv1.ToolApprovalPolicy{{ToolName: "stale_tool", Message: "old"}},
+		})
+
+		persisted, count, err := c.persistConnectResult(ctx, "srv-3", sampleOutput)
+		require.NoError(t, err)
+		assert.Equal(t, 1, count)
+		require.Len(t, persisted.GetStatus().GetToolApprovals(), 1)
+		assert.Equal(t, "delete_repo", persisted.GetStatus().GetToolApprovals()[0].GetToolName(),
+			"a reconnect with new classifications must replace the prior list")
+	})
+
+	t.Run("returns store.ErrNotFound when the resource is absent (deleted mid-flight)", func(t *testing.T) {
+		c, _ := newTestController(t)
+		_, _, err := c.persistConnectResult(ctx, "does-not-exist", sampleOutput)
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, store.ErrNotFound),
+			"a deleted/absent resource must surface store.ErrNotFound so callers can skip; got: %v", err)
 	})
 }

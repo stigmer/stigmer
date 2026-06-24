@@ -279,3 +279,58 @@ func TestMcpConnect_HttpServer_ToolsDiscovered(t *testing.T) {
 	assert.Contains(t, toolNames, "echo", "test server should expose the echo tool")
 	assert.Contains(t, toolNames, "add", "test server should expose the add tool")
 }
+
+// TestMcpConnect_BestEffortAutoConnect_PersistsCapabilities verifies that
+// applying a no-env MCP server triggers best-effort auto-connect which persists
+// discovered_capabilities WITHOUT any explicit Connect call.
+//
+// Regression: best-effort connect used to fire the workflow fire-and-forget and
+// never read the result, so capabilities (and the classifier tool-approvals)
+// were computed on the runner and then silently discarded. Pre-fix, the polled
+// status stays empty until the timeout; post-fix the discovered tool appears.
+//
+// Provider-gated like its siblings: the connect workflow runs the LLM classifier
+// in the same workflow as discovery, so capabilities only land when the
+// classifier can run (RequireNativePrereqs requires ANTHROPIC_API_KEY).
+func TestMcpConnect_BestEffortAutoConnect_PersistsCapabilities(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	harness.RequireNativePrereqs(t, testHarness)
+	if mcpTestServerBinary == "" {
+		t.Skip("test MCP server binary not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+
+	name := "best-effort-" + uuid.New().String()[:8]
+	// No Env declarations → best-effort auto-connect is NOT skipped on Apply.
+	server := applyMcpServer(t, ctx, clients, &mcpserverv1.McpServer{
+		ApiVersion: mcpConnectTestAPIVersion,
+		Kind:       "McpServer",
+		Metadata:   &apiresource.ApiResourceMetadata{Name: name, Org: mcpConnectTestOrg},
+		Spec: &mcpserverv1.McpServerSpec{
+			Description: "Best-effort auto-connect persistence test",
+			ServerType: &mcpserverv1.McpServerSpec_Stdio{
+				Stdio: &mcpserverv1.StdioServerConfig{Command: mcpTestServerBinary},
+			},
+		},
+	})
+
+	// Intentionally do NOT call Connect — Apply's fire-and-forget
+	// StartBestEffortConnect goroutine is the only trigger. Poll until the
+	// auto-connect persists the discovered "echo" tool.
+	got := harness.WaitForMcpServerTool(t, ctx, clients, server.GetMetadata().GetId(), "echo", 90*time.Second)
+
+	tools := got.GetStatus().GetDiscoveredCapabilities().GetTools()
+	require.NotEmpty(t, tools,
+		"best-effort auto-connect must persist discovered capabilities without an explicit Connect")
+
+	// tool_approvals are not asserted: the benign echo/add tools are likely left
+	// un-gated by the classifier, so presence/emptiness is nondeterministic. The
+	// deterministic persistence guarantee lives in the controller unit test
+	// (TestPersistConnectResult). Logged here for observability only.
+	t.Logf("best-effort auto-connect persisted %d tool(s), %d tool-approval gate(s)",
+		len(tools), len(got.GetStatus().GetToolApprovals()))
+}
