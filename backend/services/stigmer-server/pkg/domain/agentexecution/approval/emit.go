@@ -126,9 +126,9 @@ func buildRequestedEvent(
 			SubAgentSubject:   subAgentSubject,
 			McpServerSlug:     tc.GetMcpServerSlug(),
 			ToolKind:          tc.GetToolKind(),
-			// Carried so the event-stream projection reconstructs the same
-			// PendingApproval the message scan does (compute.go) — keeps
-			// ProjectPendingApprovals fromScan == fromEvents.
+			// Carried so the authoritative event-stream projection reconstructs the
+			// same PendingApproval the message-scan cross-check does (compute.go) —
+			// keeps ProjectPendingApprovals fromEvents == fromScan.
 			ApprovalPolicySource: tc.GetApprovalPolicySource(),
 			FileChanges:          tc.GetFileChanges(),
 		}},

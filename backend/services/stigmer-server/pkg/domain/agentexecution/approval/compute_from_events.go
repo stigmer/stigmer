@@ -9,14 +9,15 @@ import (
 // not been resolved by a later terminal event — a user decision
 // (APPROVED/REJECTED/SKIPPED) or a system RETRACTED.
 //
-// This is the read side of the shadow projection. For a given execution it must
-// produce the same set as ComputePendingApprovals (the message scan);
-// ProjectPendingApprovals asserts that equality in production and the fixture
-// corpus asserts it in CI. The RETRACTED resolution is what lets the two agree
-// for the in-flight orphan exits the scan handles structurally (a terminal
-// sub-agent's calls, or a call whose status advanced) — see reconcileRetractions.
-// Terminal-execution gate-exits are handled one level up, by the phase-aware
-// seam, not here. Correlation is by approval_request_id (today, the tool_call_id).
+// This is the authoritative projection: ProjectPendingApprovals returns its
+// result. For a given execution it must produce the same set as the retained
+// ComputePendingApprovals cross-check (the message scan); ProjectPendingApprovals
+// asserts that equality in production and the fixture corpus asserts it in CI. The
+// RETRACTED resolution is what lets the two agree for the in-flight orphan exits
+// the scan handles structurally (a terminal sub-agent's calls, or a call whose
+// status advanced) — see reconcileRetractions. Terminal-execution gate-exits are
+// handled one level up, by the phase-aware seam, not here. Correlation is by
+// approval_request_id (today, the tool_call_id).
 func ComputePendingApprovalsFromEvents(
 	stream *agentexecutionv1.ApprovalEventStream,
 ) []*agentexecutionv1.PendingApproval {
@@ -66,13 +67,13 @@ func isResolvingEvent(t agentexecutionv1.ApprovalEventType) bool {
 // as PendingApproval so this projection needs no join back to the ToolCall.
 func pendingApprovalFromRequest(req *agentexecutionv1.ApprovalRequest) *agentexecutionv1.PendingApproval {
 	return &agentexecutionv1.PendingApproval{
-		ToolCallId:      req.GetToolCallId(),
-		ToolName:        req.GetToolName(),
-		Message:         req.GetMessage(),
-		ArgsPreview:     req.GetArgsPreview(),
-		RequestedAt:     req.GetRequestedAt(),
-		FromSubAgent:    req.GetFromSubAgent(),
-		SubAgentName:    req.GetSubAgentName(),
+		ToolCallId:           req.GetToolCallId(),
+		ToolName:             req.GetToolName(),
+		Message:              req.GetMessage(),
+		ArgsPreview:          req.GetArgsPreview(),
+		RequestedAt:          req.GetRequestedAt(),
+		FromSubAgent:         req.GetFromSubAgent(),
+		SubAgentName:         req.GetSubAgentName(),
 		SubAgentSubject:      req.GetSubAgentSubject(),
 		McpServerSlug:        req.GetMcpServerSlug(),
 		ToolKind:             req.GetToolKind(),

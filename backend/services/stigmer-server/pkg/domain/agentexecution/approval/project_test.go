@@ -89,19 +89,23 @@ func TestEventStreamProjectionMatchesMessageScan(t *testing.T) {
 	}
 }
 
-// TestProjectPendingApprovalsReturnsMessageScan locks the seam contract: the
-// authoritative return value is always the message scan, never the shadow.
-func TestProjectPendingApprovalsReturnsMessageScan(t *testing.T) {
+// TestProjectPendingApprovalsReturnsEventStream locks the seam contract: the
+// authoritative return value is the event-stream projection. The retained message
+// scan is only a cross-check. When the stream agrees with the scan (the healthy
+// case) the returned set equals both; TestDivergenceCounterIncrementsOnDivergence
+// proves the stream — not the scan — is what is returned when they disagree.
+func TestProjectPendingApprovalsReturnsEventStream(t *testing.T) {
 	msgs := []*agentexecutionv1.AgentMessage{
 		makeAIMessage(
 			makeToolCall("tc1", "delete_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
 		),
 	}
-	want := ComputePendingApprovals(msgs, nil)
-	got := ProjectPendingApprovals(agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, msgs, nil, EmitApprovalEvents(msgs, nil))
+	stream := EmitApprovalEvents(msgs, nil)
+	want := ComputePendingApprovalsFromEvents(stream)
+	got := ProjectPendingApprovals(agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, msgs, nil, stream)
 
 	if diff := diffPendingApprovals(want, got); diff != "" {
-		t.Errorf("seam result differs from message scan: %s", diff)
+		t.Errorf("seam result differs from the event-stream projection: %s", diff)
 	}
 }
 
@@ -246,9 +250,11 @@ func TestDivergenceCounterIncrementsOnDivergence(t *testing.T) {
 	if after := PendingApprovalDivergenceCount(); after != before+1 {
 		t.Errorf("counter did not increment on divergence: before=%d after=%d", before, after)
 	}
-	// And the returned value is still the authoritative scan (empty), never gated.
-	if len(got) != 0 {
-		t.Errorf("seam returned %d pending on divergence, want the scan's 0", len(got))
+	// And the returned value is the authoritative event stream — here the
+	// REQUESTED-only stream still reports tc1 pending — never the scan (which had
+	// dropped it). This is the proof the source of truth is the stream post-flip.
+	if len(got) != 1 {
+		t.Errorf("seam returned %d pending on divergence, want the event stream's 1", len(got))
 	}
 }
 

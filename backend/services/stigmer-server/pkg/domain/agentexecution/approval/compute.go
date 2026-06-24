@@ -12,8 +12,11 @@ import (
 //   - requires_approval == true
 //   - approval_action == APPROVAL_ACTION_UNSPECIFIED (no decision recorded yet)
 //
-// This replaces the merge-based approach: pending_approvals are always
-// recomputed from the authoritative tool call state in messages.
+// Since the source-of-truth flip this is the retained cross-check, not the
+// returned result: ProjectPendingApprovals returns the event-stream projection
+// and runs this scan only to assert the two agree (and to bump the divergence
+// counter if they ever do not). It is recomputed from the tool-call state in
+// messages, which the runner still writes authoritatively.
 func ComputePendingApprovals(
 	messages []*agentexecutionv1.AgentMessage,
 	subAgentExecutions []*agentexecutionv1.SubAgentExecution,
@@ -111,8 +114,9 @@ func projectToolCall(tc *agentexecutionv1.ToolCall, fromSubAgent bool, subAgentN
 		// Denormalized (like ToolKind) so the approval surface can explain WHY the
 		// tool is gated ("required by agent override") without re-deriving the
 		// policy. Runner-written on the ToolCall; copied through verbatim. The
-		// event-stream projection copies it too (emit.go / compute_from_events.go)
-		// so ProjectPendingApprovals fromScan == fromEvents holds.
+		// authoritative event-stream projection copies it too (emit.go /
+		// compute_from_events.go) so ProjectPendingApprovals fromEvents == fromScan
+		// holds (this scan is the retained cross-check).
 		ApprovalPolicySource: tc.GetApprovalPolicySource(),
 		// Denormalized so the gate can render an inline before/after diff without
 		// correlating back to the originating ToolCall (which, for workflow-parent
