@@ -281,13 +281,14 @@ func TestCursorHarness_HITL_CleanPause_NoLoop_NoLeakedNarration(t *testing.T) {
 	approval := waiting.GetStatus().GetPendingApprovals()[0]
 	assertToolCallWaitingApproval(t, waiting, approval.GetToolCallId())
 
-	// Contract 1 — STABILITY: the pause must hold. Before the fix the backend
-	// rejected the runner's WAITING_FOR_APPROVAL finalize, so pending_approvals
-	// collapsed to 0 and the workflow re-invoked immediately, flipping the phase
-	// RUNNING<->WAITING. Poll the live status and assert it stays a single stable
-	// gate with the pending approval intact (the tight-loop signature is the
-	// phase leaving WAITING_FOR_APPROVAL or pending_approvals emptying while the
-	// user has not acted).
+	// Contract 1 — STABILITY + APPEND-ONLY: the pause must hold and the transcript
+	// must never shrink. Before the fix the runner trimmed (removed) post-denial
+	// narration, so the WAITING_FOR_APPROVAL finalize was SHORTER; the backend's
+	// append-only guard rejected the shrink, pending_approvals collapsed to 0, and
+	// the workflow re-invoked immediately, flipping RUNNING<->WAITING. Phase 5
+	// makes the finalize append-only by construction (narration blanked in place,
+	// count preserved), so this asserts both a single stable gate AND a
+	// monotonic, non-shrinking message count across the window.
 	assertApprovalPauseIsStable(t, ctx, clients, exec.GetMetadata().GetId(), 12*time.Second)
 
 	// Contract 2 — CLEAN TRANSCRIPT: no leaked post-denial narration sits next to
@@ -506,6 +507,14 @@ func inspectCursorMcpDenyGroundTruth(t *testing.T, execID, toolName string) {
 // transcript -> pending_approvals=0 -> workflow re-invokes immediately ->
 // RUNNING) this fix eliminates. A stable gate stays WAITING_FOR_APPROVAL with a
 // non-empty pending list until acted upon.
+//
+// It also asserts APPEND-ONLY at the live layer: the persisted transcript count
+// must never decrease across the window. Phase 5 made the runner's
+// WAITING_FOR_APPROVAL finalize append-only by construction — it BLANKS the
+// model's provisional post-denial narration in place instead of removing the
+// messages — so the backend's append-only guard accepts it with no phase
+// carve-out. A shrinking transcript here would mean the runner regressed to
+// removing messages (which the guard would then reject, re-stranding the gate).
 func assertApprovalPauseIsStable(
 	t *testing.T,
 	ctx context.Context,
@@ -516,6 +525,7 @@ func assertApprovalPauseIsStable(
 	t.Helper()
 	deadline := time.Now().Add(window)
 	polls := 0
+	maxMessages := 0
 	for time.Now().Before(deadline) {
 		exec, err := clients.AgentExecutionQuery.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
 		require.NoError(t, err, "polling execution %s during stability window", executionID)
@@ -527,6 +537,15 @@ func assertApprovalPauseIsStable(
 		require.NotEmptyf(t, exec.GetStatus().GetPendingApprovals(),
 			"approval pause must remain stable: pending_approvals emptied without any user decision "+
 				"(backend rejected the runner's WAITING_FOR_APPROVAL transcript). poll=%d", polls)
+
+		msgCount := len(exec.GetStatus().GetMessages())
+		require.GreaterOrEqualf(t, msgCount, maxMessages,
+			"transcript must be append-only while paused: message count dropped from %d to %d "+
+				"(the runner must blank post-denial narration in place, never remove it). poll=%d",
+			maxMessages, msgCount, polls)
+		if msgCount > maxMessages {
+			maxMessages = msgCount
+		}
 		polls++
 
 		select {
@@ -535,7 +554,7 @@ func assertApprovalPauseIsStable(
 		case <-time.After(2 * time.Second):
 		}
 	}
-	t.Logf("approval pause stable across %d poll(s) over %v", polls, window)
+	t.Logf("approval pause stable across %d poll(s) over %v (append-only, max %d messages)", polls, window, maxMessages)
 }
 
 // leakedDenialNarrationMarkers are characteristic substrings of the model's

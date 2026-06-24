@@ -75,16 +75,14 @@ func TestBuildNewState_RejectsShrinkingMessagesForNonTerminal(t *testing.T) {
 	}
 }
 
-// The runner<->backend approval-finalize contract: a WAITING_FOR_APPROVAL
-// finalize is the runner's authoritative clean-pause reshape. To match the
-// native harness shape ([pre-tool text][gated tool calls WAITING_APPROVAL]) the
-// runner trims trailing post-denial narration, so the incoming transcript is
-// SHORTER than the in-progress transcript it already streamed. The guard must
-// accept this specific shrink — keyed on the INCOMING phase — so the gated tool
-// call's WAITING_APPROVAL status (and the pending_approvals projected from it)
-// actually persist. Rejecting it strands the execution at WAITING_FOR_APPROVAL
-// with pending_approvals=0, which the workflow then tight-loops on.
-func TestBuildNewState_AcceptsApprovalFinalizeShrink(t *testing.T) {
+// The runner<->backend approval finalize is now append-only by construction:
+// when a Cursor turn pauses for approval, the runner REDACTS the model's
+// post-denial narration in place (blanks the message content, keeping the
+// message), so the incoming WAITING_FOR_APPROVAL transcript has the SAME length
+// as the in-progress transcript it already streamed. The guard accepts it as a
+// normal equal-length replacement — no phase carve-out — and the gated tool
+// call's WAITING_APPROVAL status projects exactly one pending approval.
+func TestBuildNewState_AcceptsEqualLengthApprovalFinalize(t *testing.T) {
 	existing := &agentexecutionv1.AgentExecution{
 		Metadata: &apiresource.ApiResourceMetadata{Id: "exec-guard", Name: "exec-guard"},
 		Spec:     &agentexecutionv1.AgentExecutionSpec{},
@@ -105,8 +103,8 @@ func TestBuildNewState_AcceptsApprovalFinalizeShrink(t *testing.T) {
 			},
 		},
 	}
-	// Authoritative clean-pause finalize: trailing narration trimmed (shorter),
-	// the gated tool call now WAITING_APPROVAL.
+	// Append-only clean-pause finalize: SAME length, the gated tool call now
+	// WAITING_APPROVAL and the trailing narration BLANKED in place (content "").
 	incoming := &agentexecutionv1.AgentExecutionStatus{
 		Phase: agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
 		Messages: []*agentexecutionv1.AgentMessage{
@@ -117,19 +115,43 @@ func TestBuildNewState_AcceptsApprovalFinalizeShrink(t *testing.T) {
 				Status:           agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL,
 				RequiresApproval: true,
 			}}},
+			{Content: ""},
 		},
 	}
 
 	merged := runBuildStep(t, existing, incoming)
 
-	if got := len(merged.Status.Messages); got != 2 {
-		t.Fatalf("approval finalize must replace the transcript with the trimmed clean-pause shape; expected 2 messages, got %d", got)
+	if got := len(merged.Status.Messages); got != 3 {
+		t.Fatalf("append-only approval finalize must keep all 3 messages (narration blanked, not removed); got %d", got)
+	}
+	if got := merged.Status.Messages[2].Content; got != "" {
+		t.Fatalf("expected the trailing narration blanked in place, got %q", got)
 	}
 	if got := len(merged.Status.PendingApprovals); got != 1 {
 		t.Fatalf("the gated tool call's WAITING_APPROVAL must project exactly one pending approval; expected 1, got %d", got)
 	}
 	if got := merged.Status.PendingApprovals[0].GetToolCallId(); got != "tc-write" {
 		t.Fatalf("expected the pending approval to project the gated tool call tc-write, got %q", got)
+	}
+}
+
+// With the shrink exception deleted, the guard no longer trusts the incoming
+// phase: a WAITING_FOR_APPROVAL update that is SHORTER than the existing
+// transcript is now rejected exactly like any other non-terminal shrink. This
+// pins that the runner's redact-in-place finalize is the only supported shape —
+// any future regression back to removing messages fails here instead of slipping
+// through a phase-keyed carve-out.
+func TestBuildNewState_RejectsShrinkingApprovalFinalize(t *testing.T) {
+	existing := existingWith(agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, "m1", "m2", "m3")
+	incoming := &agentexecutionv1.AgentExecutionStatus{
+		Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+		Messages: messages("m1", "m2"),
+	}
+
+	merged := runBuildStep(t, existing, incoming)
+
+	if got := len(merged.Status.Messages); got != 3 {
+		t.Fatalf("a shrinking WAITING_FOR_APPROVAL finalize must now be rejected; expected existing 3 messages preserved, got %d", got)
 	}
 }
 

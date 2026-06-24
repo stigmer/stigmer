@@ -167,23 +167,19 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 	// Replacing wholesale in that case would wipe history — the failure this
 	// guard makes structurally impossible at the single persistence chokepoint.
 	//
-	// The one legitimate shrink is the runner<->backend approval-finalize
-	// contract: when a turn pauses for HITL approval, the runner persists an
-	// authoritative WAITING_FOR_APPROVAL transcript that deliberately trims the
-	// model's post-denial narration so it matches the native-harness shape
-	// ([pre-tool text][gated tool calls WAITING_APPROVAL]). That reshape is
-	// shorter than the in-progress transcript already streamed, but it is the
-	// source of truth — rejecting it strands the execution at
-	// WAITING_FOR_APPROVAL with pending_approvals=0, which the workflow then
-	// tight-loops on. We therefore accept a shrink when (and only when) the
-	// INCOMING phase is WAITING_FOR_APPROVAL. See the runner's
-	// dropProvisionalPostDenialNarration (execute-cursor/message-translator.ts),
-	// the other side of this contract.
+	// This guard is unconditional for non-terminal executions: it carries no
+	// phase-based carve-out. The HITL approval finalize used to be an exception
+	// because the Cursor runner trimmed the model's post-denial narration,
+	// producing a *shorter* WAITING_FOR_APPROVAL transcript. The runner now
+	// REDACTS that narration in place (blanks the message content, preserving the
+	// count), so the approval finalize is append-only by construction and needs
+	// no special case. See the runner's clearProvisionalPostDenialNarration
+	// (execute-cursor/message-translator.ts). Keep this guard phase-agnostic: a
+	// shrinking WAITING_FOR_APPROVAL update is now a bug to reject, not trust.
 	if len(requestStatus.Messages) > 0 {
 		existingCount := len(existing.Status.GetMessages())
 		wouldShrink := len(requestStatus.Messages) < existingCount
-		isApprovalFinalize := requestStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL
-		if wouldShrink && !isTerminalPhase(existing.Status.GetPhase()) && !isApprovalFinalize {
+		if wouldShrink && !isTerminalPhase(existing.Status.GetPhase()) {
 			log.Warn().
 				Str("execution_id", input.ExecutionId).
 				Int("existing_messages", existingCount).

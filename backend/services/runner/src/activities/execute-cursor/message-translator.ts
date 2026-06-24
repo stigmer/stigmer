@@ -1142,7 +1142,7 @@ export function reconcileDeniedToolCalls(
 }
 
 /**
- * Drop provisional post-denial narration when a Cursor turn pauses for approval.
+ * Redact provisional post-denial narration when a Cursor turn pauses for approval.
  *
  * THE PROBLEM. Unlike the native harness — which gates with a LangGraph
  * `interrupt()` *before* the tool runs, so the model never sees a denial — the
@@ -1153,20 +1153,34 @@ export function reconcileDeniedToolCalls(
  * non-leaky SDK approval primitive to use instead (the `request` event is
  * opaque and carries no responder). So a well-behaved model frequently reacts by
  * narrating defeat — "I couldn't do this; enable the hook in your Cursor
- * settings" — which is then persisted as the assistant's verdict and rendered
- * right next to the approval card that is, in fact, asking the user to approve.
- * Contradictory and alarming.
+ * settings" — which would otherwise be persisted as the assistant's verdict and
+ * rendered right next to the approval card that is, in fact, asking the user to
+ * approve. Contradictory and alarming.
  *
  * THE GUARANTEE. The runner's job is to simplify this data, not mirror its
- * complexity: a turn that pauses for approval must persist the SAME shape the
+ * complexity: a turn that pauses for approval must read the SAME shape the
  * native harness produces — `[pre-tool text][tool calls WAITING_APPROVAL]`, with
- * no post-denial verdict. We therefore drop the trailing assistant/thinking
- * messages that (a) appear positionally AFTER the last message bearing a
- * WAITING_APPROVAL tool call and (b) carry no tool calls of their own. The
- * approval card (projected from the WAITING_APPROVAL tool-call status) becomes
- * the single, unambiguous source of truth, and the shared `@stigmer/react`
- * components stay harness-agnostic — web and desktop get correct behavior with
- * zero per-harness UI special-casing.
+ * no post-denial verdict. We therefore BLANK (clear the `content` of, and mark
+ * non-streaming) the trailing assistant/thinking messages that (a) appear
+ * positionally AFTER the last message bearing a WAITING_APPROVAL tool call and
+ * (b) carry no tool calls of their own. The approval card (projected from the
+ * WAITING_APPROVAL tool-call status) becomes the single, unambiguous source of
+ * truth. The blanked messages are already invisible on every surface via the
+ * existing empty-message handling (`buildThreadItems` skips empty `MESSAGE_AI`;
+ * `MessageEntry` renders nothing for empty `MESSAGE_THINKING`), so the shared
+ * `@stigmer/react`/Ink components stay harness-agnostic with zero per-harness UI
+ * special-casing — the cleanliness lives in the data, not in each consumer.
+ *
+ * WHY BLANK INSTEAD OF REMOVE. Removing the messages would make the persisted
+ * WAITING_FOR_APPROVAL transcript SHORTER than the in-progress transcript the
+ * runner already streamed. The backend's append-only message guard rejects a
+ * shrink for a non-terminal execution (it protects against regressed/partial
+ * writes). Blanking keeps the message COUNT identical, so the finalize is
+ * append-only BY CONSTRUCTION and the guard accepts it with no special case —
+ * which is why this phase deletes the backend's former `isApprovalFinalize`
+ * shrink exception in both editions. The transcript is the authoritative *raw*
+ * record; the verbatim narration text remains recoverable from the runner logs
+ * and the recorded cursor-event stream.
  *
  * WHY THIS IS DETERMINISTIC. `attachToolCallToLastAi` calls
  * `finalizeStreaming(run_id)` before attaching a tool call, so any assistant
@@ -1174,28 +1188,14 @@ export function reconcileDeniedToolCalls(
  * — post-denial narration is never merged into the message that holds the gated
  * call. We stop at the first non-narration message (one bearing tool calls), so
  * legitimately-executed tools after the gate and any text around them are never
- * touched; only the contiguous trailing reaction block is removed.
+ * touched; only the contiguous trailing reaction block is blanked. The
+ * first-denial stop in index.ts is the primary mechanism that keeps this block
+ * small (it ends the turn before the model produces inter-tool narration); this
+ * redaction is the backstop for any token that streamed before the cancel landed.
  *
- * The narration is provisional, not load-bearing: it is recoverable from the
- * runner logs and the recorded cursor-event stream, and the model re-narrates a
- * correct summary on the resumed turn after approval.
- *
- * THE RUNNER<->BACKEND CONTRACT. This trim deliberately makes the persisted
- * WAITING_FOR_APPROVAL transcript SHORTER than the in-progress transcript the
- * runner already streamed. The backend's append-only message guard
- * (AgentExecutionUpdateStatusHandler in stigmer-cloud; update_status.go in
- * stigmer-server) therefore special-cases an incoming WAITING_FOR_APPROVAL phase
- * as the authoritative clean-pause reshape and accepts the shrink — without that,
- * the finalize is rejected, pending_approvals collapses to 0, and the workflow
- * tight-loops RUNNING<->WAITING. The two sides describe one contract; keep them
- * in sync. The first-denial stop in index.ts is the primary mechanism that keeps
- * this trim small (it ends the turn before the model produces inter-tool
- * narration, which a positional trailing trim cannot remove); this trim remains
- * the backstop for any token that streamed before the cancel landed.
- *
- * Returns the dropped messages (for diagnostics); mutates `messages` in place.
+ * Returns the blanked messages (for diagnostics); mutates `messages` in place.
  */
-export function dropProvisionalPostDenialNarration(
+export function clearProvisionalPostDenialNarration(
   messages: AgentMessage[],
   deniedToolCalls: ToolCall[],
 ): AgentMessage[] {
@@ -1214,7 +1214,7 @@ export function dropProvisionalPostDenialNarration(
   }
   if (lastGatedIdx < 0) return [];
 
-  const dropped: AgentMessage[] = [];
+  const redacted: AgentMessage[] = [];
   for (let i = messages.length - 1; i > lastGatedIdx; i--) {
     const msg = messages[i];
     const isProvisionalNarration =
@@ -1224,10 +1224,14 @@ export function dropProvisionalPostDenialNarration(
     // message marks real activity we must preserve, and anything before it is no
     // longer "trailing".
     if (!isProvisionalNarration) break;
-    dropped.unshift(msg);
-    messages.splice(i, 1);
+    // Blank in place — keep the message so the transcript count never shrinks,
+    // but drop its provisional content so no consumer renders the defeatist
+    // verdict. Empty AI/THINKING messages are hidden by the SDK already.
+    msg.content = "";
+    msg.isStreaming = false;
+    redacted.unshift(msg);
   }
-  return dropped;
+  return redacted;
 }
 
 /**
