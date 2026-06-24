@@ -264,6 +264,7 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 	// Compute pending_approvals from tool call state in messages, via the single
 	// projection seam (a pure read that also runs the event-stream parity check).
 	updated.Status.PendingApprovals = approval.ProjectPendingApprovals(
+		updated.Status.GetPhase(),
 		updated.Status.GetMessages(),
 		updated.Status.GetSubAgentExecutions(),
 		updated.Status.GetApprovalEventStream(),

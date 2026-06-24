@@ -11,7 +11,8 @@ import (
 // Two commands, one writer per event type:
 //   - EnsureApprovalRequests authors REQUESTED events (the UpdateStatus handlers
 //     own it; it also seeds the stream once for executions that predate the
-//     field).
+//     field) and, on the same pass, authors RETRACTED events for in-flight
+//     orphans so the lifecycle is total (see reconcileRetractions).
 //   - RecordDecisionEvent authors a single decision event (the SubmitApproval
 //     handler owns it, carrying decided_by + the user's comment).
 //
@@ -60,6 +61,115 @@ func EnsureApprovalRequests(status *agentexecutionv1.AgentExecutionStatus, execu
 		}
 		appendRequestedIfAbsent(stream, seen, sa.GetMessages(), true, sa.GetName(), sa.GetSubject())
 	}
+
+	reconcileRetractions(status, stream, seen)
+}
+
+// reconcileRetractions completes the approval lifecycle by authoring a RETRACTED
+// event for every in-flight per-call orphan: a REQUESTED whose gated call has
+// left the gate WITHOUT a user decision while the execution is still live (its
+// sub-agent reached a terminal state, or the harness superseded the call on
+// resume). Without this, the append-only stream would keep the orphan REQUESTED
+// forever and the event-stream projection would report a phantom pending approval
+// the message scan already dropped — the exact divergence the eventual flip must
+// not inherit.
+//
+// It is the mirror image of the message scan's two non-decision exits: the scan
+// drops a call whose enclosing sub-agent went terminal (compute.go
+// isTerminalSubAgent) or whose status advanced off WAITING_APPROVAL; this authors
+// the matching terminal event so ComputePendingApprovalsFromEvents drops it too.
+//
+// Two invariants keep it from ever OVER-retracting (which would crash a parked
+// execution to FAILED via the WAITING ⟺ ≥1 pending fail-fast):
+//   - Terminal executions are skipped entirely — they project to empty via the
+//     phase-aware seam, so a dangling REQUESTED on a dead execution is explained
+//     by the phase, not an orphan to retract.
+//   - A call still in the gate (present in the scan) or already resolved (a
+//     decision or prior retraction exists) is never retracted. In particular, the
+//     SubmitApproval pre-decision ensure runs while the clicked and APPROVE_ALL
+//     co-pending calls are still gated, so they are never false-retracted.
+func reconcileRetractions(
+	status *agentexecutionv1.AgentExecutionStatus,
+	stream *agentexecutionv1.ApprovalEventStream,
+	seen map[string]struct{},
+) {
+	if isTerminalExecution(status.GetPhase()) {
+		return
+	}
+
+	gated := gatedToolCallIDs(status)
+	resolved := resolvedRequestIDs(stream)
+
+	// Snapshot the events: we append retractions below, and ranging the original
+	// slice keeps the pass from considering its own output.
+	original := stream.GetEvents()
+	for _, ev := range original {
+		if ev.GetEventType() != agentexecutionv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED {
+			continue
+		}
+		reqID := ev.GetApprovalRequestId()
+		if _, stillGated := gated[reqID]; stillGated {
+			continue
+		}
+		if _, done := resolved[reqID]; done {
+			continue
+		}
+		event := buildRetractionEvent(reqID, retractionReason(status, reqID))
+		if _, ok := seen[event.GetEventId()]; ok {
+			continue
+		}
+		stream.Events = append(stream.Events, event)
+		seen[event.GetEventId()] = struct{}{}
+	}
+}
+
+// gatedToolCallIDs is the set of tool_call_ids still in the approval gate per the
+// authoritative message scan — i.e. the REQUESTED events that must NOT be
+// retracted. reconcileRetractions only runs for non-terminal executions, where
+// the scan is the exact live gate set.
+func gatedToolCallIDs(status *agentexecutionv1.AgentExecutionStatus) map[string]struct{} {
+	pending := ComputePendingApprovals(status.GetMessages(), status.GetSubAgentExecutions())
+	ids := make(map[string]struct{}, len(pending))
+	for _, pa := range pending {
+		ids[pa.GetToolCallId()] = struct{}{}
+	}
+	return ids
+}
+
+// resolvedRequestIDs is the set of approval_request_ids already carrying a
+// terminal event — a user decision (APPROVED/REJECTED/SKIPPED) or a prior
+// RETRACTED — so reconcileRetractions never double-resolves an approval.
+func resolvedRequestIDs(stream *agentexecutionv1.ApprovalEventStream) map[string]struct{} {
+	resolved := make(map[string]struct{})
+	for _, ev := range stream.GetEvents() {
+		if isResolvingEvent(ev.GetEventType()) {
+			resolved[ev.GetApprovalRequestId()] = struct{}{}
+		}
+	}
+	return resolved
+}
+
+// retractionReason classifies why an in-flight request was orphaned, for the
+// audit trail only. A call still located inside a now-terminal sub-agent was
+// orphaned by that sub-agent finishing; anything else (a root call, or a call
+// whose status advanced off WAITING_APPROVAL) was superseded.
+func retractionReason(
+	status *agentexecutionv1.AgentExecutionStatus,
+	requestID string,
+) agentexecutionv1.ApprovalRetractionReason {
+	for _, sa := range status.GetSubAgentExecutions() {
+		for _, msg := range sa.GetMessages() {
+			for _, tc := range msg.GetToolCalls() {
+				if tc.GetId() == requestID {
+					if isTerminalSubAgent(sa.GetStatus()) {
+						return agentexecutionv1.ApprovalRetractionReason_APPROVAL_RETRACTION_REASON_SUB_AGENT_TERMINAL
+					}
+					return agentexecutionv1.ApprovalRetractionReason_APPROVAL_RETRACTION_REASON_SUPERSEDED
+				}
+			}
+		}
+	}
+	return agentexecutionv1.ApprovalRetractionReason_APPROVAL_RETRACTION_REASON_SUPERSEDED
 }
 
 func appendRequestedIfAbsent(

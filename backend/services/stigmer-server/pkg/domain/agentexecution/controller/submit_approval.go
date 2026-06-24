@@ -346,6 +346,7 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 			// its approval_action is now set (no longer UNSPECIFIED). Via the single
 			// projection seam (a pure read that also runs the event-stream parity check).
 			updated.Status.PendingApprovals = approval.ProjectPendingApprovals(
+				updated.Status.GetPhase(),
 				updated.Status.GetMessages(),
 				updated.Status.GetSubAgentExecutions(),
 				updated.Status.GetApprovalEventStream(),
@@ -499,6 +500,11 @@ func (s *signalWorkflowStep) reconcileStaleExecution(ctx context.Context, execut
 			Error:    "Workflow backing this execution is no longer running. Execution has been marked as failed.",
 			Messages: execution.GetStatus().GetMessages(),
 			Audit:    execution.GetStatus().GetAudit(),
+			// Preserve the approval-event ledger for the audit trail. pending_approvals
+			// is intentionally omitted (left empty): a FAILED execution is terminal and
+			// has no actionable approvals — the same invariant the phase-aware projection
+			// seam enforces on every other terminal path.
+			ApprovalEventStream: execution.GetStatus().GetApprovalEventStream(),
 		},
 	}
 

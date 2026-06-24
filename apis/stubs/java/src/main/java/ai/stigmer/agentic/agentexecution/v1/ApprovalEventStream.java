@@ -14,16 +14,25 @@ package ai.stigmer.agentic.agentexecution.v1;
  * scan still feeds pending_approvals and the UI; this stream is the parallel,
  * independently-written ledger that (1) turns the projection parity check into a
  * real cross-writer guard and (2) holds the approval audit trail (decided_by +
- * comment) the flat ToolCall fields cannot. The source of truth does not flip
- * until a later phase — until then, ComputePendingApprovalsFromEvents over this
- * stream must agree with the message scan.
+ * comment) the flat ToolCall fields cannot.
  *
- * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED
- * events are authored by UpdateStatus (seeded once from the scan for executions
- * predating the field), decision events by SubmitApproval (with decided_by and
- * comment). Authoring the rich decision event in the same operation that records
- * the decision on the scan guarantees it can never be duplicated or clobbered by
- * a coarse re-derivation.
+ * The lifecycle is total: every REQUESTED is eventually resolved by a decision
+ * (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
+ * when an in-flight gated call becomes unreachable without a decision. Combined
+ * with the projection treating a terminal execution as zero pending approvals,
+ * this makes ComputePendingApprovalsFromEvents over this stream agree with the
+ * message scan after every write — the equality property the eventual
+ * source-of-truth flip rides on. The source of truth does not flip in this
+ * phase; the scan remains authoritative and is retained as the permanent
+ * cross-writer guard.
+ *
+ * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
+ * RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
+ * (REQUESTED seeded once from the scan for executions predating the field),
+ * decision events by SubmitApproval (with decided_by and comment). Authoring the
+ * rich decision event in the same operation that records the decision on the
+ * scan guarantees it can never be duplicated or clobbered by a coarse
+ * re-derivation.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream}
@@ -361,16 +370,25 @@ private static final long serialVersionUID = 0L;
    * scan still feeds pending_approvals and the UI; this stream is the parallel,
    * independently-written ledger that (1) turns the projection parity check into a
    * real cross-writer guard and (2) holds the approval audit trail (decided_by +
-   * comment) the flat ToolCall fields cannot. The source of truth does not flip
-   * until a later phase — until then, ComputePendingApprovalsFromEvents over this
-   * stream must agree with the message scan.
+   * comment) the flat ToolCall fields cannot.
    *
-   * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED
-   * events are authored by UpdateStatus (seeded once from the scan for executions
-   * predating the field), decision events by SubmitApproval (with decided_by and
-   * comment). Authoring the rich decision event in the same operation that records
-   * the decision on the scan guarantees it can never be duplicated or clobbered by
-   * a coarse re-derivation.
+   * The lifecycle is total: every REQUESTED is eventually resolved by a decision
+   * (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
+   * when an in-flight gated call becomes unreachable without a decision. Combined
+   * with the projection treating a terminal execution as zero pending approvals,
+   * this makes ComputePendingApprovalsFromEvents over this stream agree with the
+   * message scan after every write — the equality property the eventual
+   * source-of-truth flip rides on. The source of truth does not flip in this
+   * phase; the scan remains authoritative and is retained as the permanent
+   * cross-writer guard.
+   *
+   * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
+   * RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
+   * (REQUESTED seeded once from the scan for executions predating the field),
+   * decision events by SubmitApproval (with decided_by and comment). Authoring the
+   * rich decision event in the same operation that records the decision on the
+   * scan guarantees it can never be duplicated or clobbered by a coarse
+   * re-derivation.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream}

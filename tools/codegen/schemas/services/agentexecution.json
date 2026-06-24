@@ -1573,7 +1573,7 @@
     },
     {
       "name": "ApprovalEventType",
-      "description": "ApprovalEventType is the kind of event in the append-only approval-event\n stream (see ApprovalEvent in approval.proto).\n\n The event stream is the future single source of truth for HITL approvals. In\n Phase 1 of the approval re-architecture it is computed in *shadow* beside the\n existing message-scan projection (PendingApproval) and compared for parity in\n CI — it never feeds the UI yet, so introducing it changes no behavior.\n\n The set is deliberately minimal: only the lifecycle transitions the Phase-1\n event bridge actually derives from tool-call state. Lease-expiry and\n execution-cancellation events are intentionally omitted until a component\n emits them. Enums extend additively, so adding them in a later phase is\n non-breaking.\n\n event_type is the coarse lifecycle bucket; the precise user action (including\n APPROVE_ALL, which buckets as APPROVED) lives on ApprovalDecision.action.",
+      "description": "ApprovalEventType is the kind of event in the append-only approval-event\n stream (see ApprovalEvent in approval.proto).\n\n The event stream is the future single source of truth for HITL approvals. In\n Phase 1 of the approval re-architecture it is computed in *shadow* beside the\n existing message-scan projection (PendingApproval) and compared for parity in\n CI — it never feeds the UI yet, so introducing it changes no behavior.\n\n The set covers every way an approval request resolves: the three user\n decisions (APPROVED / REJECTED / SKIPPED) plus RETRACTED — the platform\n withdrawing an in-flight request whose gated call became unreachable before a\n decision. Together they make the lifecycle total, which is what lets the\n event-stream projection stand on its own. Lease-expiry events remain\n intentionally omitted until a component emits them; enums extend additively,\n so adding them later is non-breaking.\n\n event_type is the coarse lifecycle bucket; the precise user action (including\n APPROVE_ALL, which buckets as APPROVED) lives on ApprovalDecision.action.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalEventType",
       "values": [
         {
@@ -1595,6 +1595,11 @@
           "name": "APPROVAL_EVENT_TYPE_SKIPPED",
           "number": 4,
           "description": "The user skipped the request; execution continues without the tool.\n Payload: ApprovalDecision."
+        },
+        {
+          "name": "APPROVAL_EVENT_TYPE_RETRACTED",
+          "number": 5,
+          "description": "The platform withdrew the request before any user decision because the gated\n call became unreachable while the execution was still live — its sub-agent\n reached a terminal state, or the call was superseded on resume. This is the\n system-actored terminal transition that makes the lifecycle total: a\n REQUESTED is resolved by exactly one of APPROVED / REJECTED / SKIPPED (user\n decisions) or RETRACTED (platform withdrawal). It is distinct from SKIPPED so\n the audit trail never conflates \"the human skipped this\" with \"the platform\n withdrew it.\" Terminal-execution gate-exits (cancel / fail / terminate) are\n NOT modeled as per-call events — a terminal execution simply projects to zero\n pending approvals — so RETRACTED is reserved for the in-flight, per-call case.\n Payload: ApprovalRetraction."
         }
       ]
     },
@@ -1709,6 +1714,23 @@
           "name": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
           "number": 7,
           "description": "The connect-time MCP destructiveHint tightener forced this tool to require\n approval, overriding a more permissive classifier verdict. First-class\n provenance so a tightened tool is distinguishable from a plain classifier\n default. See applyDestructiveHintTightener."
+        }
+      ]
+    },
+    {
+      "name": "ApprovalRetractionReason",
+      "description": "ApprovalRetractionReason explains why the platform withdrew an in-flight\n approval request (an APPROVAL_EVENT_TYPE_RETRACTED event). It is audit-trail\n metadata — it answers the user's question \"why did my approval disappear?\" —\n and never affects control flow.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReason",
+      "values": [
+        {
+          "name": "APPROVAL_RETRACTION_REASON_SUB_AGENT_TERMINAL",
+          "number": 1,
+          "description": "The gated call's sub-agent reached a terminal state (completed, failed, or\n cancelled) before the call was decided, orphaning the request."
+        },
+        {
+          "name": "APPROVAL_RETRACTION_REASON_SUPERSEDED",
+          "number": 2,
+          "description": "The gated call left the approval gate without a decision (the harness\n advanced past it or abandoned it on resume) while the execution was still\n live."
         }
       ]
     },
@@ -2474,7 +2496,7 @@
     },
     {
       "name": "ApprovalEvent",
-      "description": "An immutable event in the approval lifecycle.\n\n The payload is a closed oneof so each event type is type-safe and\n self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /\n SKIPPED carry an ApprovalDecision.",
+      "description": "An immutable event in the approval lifecycle.\n\n The payload is a closed oneof so each event type is type-safe and\n self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /\n SKIPPED carry an ApprovalDecision; RETRACTED carries an ApprovalRetraction.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalEvent",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
       "fields": [
@@ -2509,7 +2531,8 @@
               "APPROVAL_EVENT_TYPE_REQUESTED",
               "APPROVAL_EVENT_TYPE_APPROVED",
               "APPROVAL_EVENT_TYPE_REJECTED",
-              "APPROVAL_EVENT_TYPE_SKIPPED"
+              "APPROVAL_EVENT_TYPE_SKIPPED",
+              "APPROVAL_EVENT_TYPE_RETRACTED"
             ]
           },
           "description": "Coarse lifecycle bucket of this event. See ApprovalEventType.",
@@ -2558,12 +2581,24 @@
           "description": "Set for decision events (APPROVED / REJECTED / SKIPPED).",
           "required": false,
           "oneofGroup": "payload"
+        },
+        {
+          "name": "Retracted",
+          "jsonName": "retracted",
+          "protoField": "retracted",
+          "type": {
+            "kind": "message",
+            "messageType": "ApprovalRetraction"
+          },
+          "description": "Set when event_type == RETRACTED — the platform withdrew the request\n before any user decision. See ApprovalRetraction.",
+          "required": false,
+          "oneofGroup": "payload"
         }
       ]
     },
     {
       "name": "ApprovalEventStream",
-      "description": "The ordered sequence of approval events for a single agent execution.\n\n Persisted on AgentExecutionStatus.approval_event_stream as a server-authored,\n append-only record that coexists with the authoritative message scan. The\n scan still feeds pending_approvals and the UI; this stream is the parallel,\n independently-written ledger that (1) turns the projection parity check into a\n real cross-writer guard and (2) holds the approval audit trail (decided_by +\n comment) the flat ToolCall fields cannot. The source of truth does not flip\n until a later phase — until then, ComputePendingApprovalsFromEvents over this\n stream must agree with the message scan.\n\n Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED\n events are authored by UpdateStatus (seeded once from the scan for executions\n predating the field), decision events by SubmitApproval (with decided_by and\n comment). Authoring the rich decision event in the same operation that records\n the decision on the scan guarantees it can never be duplicated or clobbered by\n a coarse re-derivation.",
+      "description": "The ordered sequence of approval events for a single agent execution.\n\n Persisted on AgentExecutionStatus.approval_event_stream as a server-authored,\n append-only record that coexists with the authoritative message scan. The\n scan still feeds pending_approvals and the UI; this stream is the parallel,\n independently-written ledger that (1) turns the projection parity check into a\n real cross-writer guard and (2) holds the approval audit trail (decided_by +\n comment) the flat ToolCall fields cannot.\n\n The lifecycle is total: every REQUESTED is eventually resolved by a decision\n (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors\n when an in-flight gated call becomes unreachable without a decision. Combined\n with the projection treating a terminal execution as zero pending approvals,\n this makes ComputePendingApprovalsFromEvents over this stream agree with the\n message scan after every write — the equality property the eventual\n source-of-truth flip rides on. The source of truth does not flip in this\n phase; the scan remains authoritative and is retained as the permanent\n cross-writer guard.\n\n Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and\n RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler\n (REQUESTED seeded once from the scan for executions predating the field),\n decision events by SubmitApproval (with decided_by and comment). Authoring the\n rich decision event in the same operation that records the decision on the\n scan guarantees it can never be duplicated or clobbered by a coarse\n re-derivation.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream",
       "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
       "fields": [
@@ -2757,6 +2792,49 @@
             ]
           },
           "description": "Policy layer that gated this call. Copied from\n ToolCall.approval_policy_source so the event-stream projection reconstructs\n the same PendingApproval as the message scan. See ApprovalPolicySource.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApprovalRetraction",
+      "description": "The platform's withdrawal of an in-flight approval request — the system-actored\n terminal transition of the approval lifecycle, authored when a gated call\n becomes unreachable before any user decision (its sub-agent went terminal, or\n it was superseded on resume) while the execution is still live.\n\n It is distinct from ApprovalDecision (the three user actions). Terminal-execution\n gate-exits (cancel / fail / terminate) are NOT modeled here — a terminal\n execution simply has zero pending approvals by projection — so this event is\n reserved for the in-flight, per-call orphan case. See APPROVAL_EVENT_TYPE_RETRACTED.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
+      "fields": [
+        {
+          "name": "ApprovalRequestId",
+          "jsonName": "approvalRequestId",
+          "protoField": "approval_request_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Correlates this retraction to its ApprovalRequest.",
+          "required": false
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReason",
+            "enumValues": [
+              "APPROVAL_RETRACTION_REASON_SUB_AGENT_TERMINAL",
+              "APPROVAL_RETRACTION_REASON_SUPERSEDED"
+            ]
+          },
+          "description": "Why the platform withdrew the request. Audit-trail metadata only; never\n affects control flow. See ApprovalRetractionReason.",
+          "required": false
+        },
+        {
+          "name": "RetractedAt",
+          "jsonName": "retractedAt",
+          "protoField": "retracted_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the request was retracted.",
           "required": false
         }
       ]

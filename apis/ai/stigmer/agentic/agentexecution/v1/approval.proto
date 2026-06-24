@@ -291,6 +291,27 @@ message ApprovalRequest {
   ApprovalPolicySource approval_policy_source = 13;
 }
 
+// The platform's withdrawal of an in-flight approval request — the system-actored
+// terminal transition of the approval lifecycle, authored when a gated call
+// becomes unreachable before any user decision (its sub-agent went terminal, or
+// it was superseded on resume) while the execution is still live.
+//
+// It is distinct from ApprovalDecision (the three user actions). Terminal-execution
+// gate-exits (cancel / fail / terminate) are NOT modeled here — a terminal
+// execution simply has zero pending approvals by projection — so this event is
+// reserved for the in-flight, per-call orphan case. See APPROVAL_EVENT_TYPE_RETRACTED.
+message ApprovalRetraction {
+  // Correlates this retraction to its ApprovalRequest.
+  string approval_request_id = 1;
+
+  // Why the platform withdrew the request. Audit-trail metadata only; never
+  // affects control flow. See ApprovalRetractionReason.
+  ApprovalRetractionReason reason = 2;
+
+  // ISO 8601 timestamp when the request was retracted.
+  string retracted_at = 3;
+}
+
 // A user's decision on an approval request.
 message ApprovalDecision {
   // Correlates this decision to its ApprovalRequest.
@@ -315,7 +336,7 @@ message ApprovalDecision {
 //
 // The payload is a closed oneof so each event type is type-safe and
 // self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /
-// SKIPPED carry an ApprovalDecision.
+// SKIPPED carry an ApprovalDecision; RETRACTED carries an ApprovalRetraction.
 message ApprovalEvent {
   // Unique id of this event. In Phase 1 (derived events) it is deterministic
   // (derived from approval_request_id + event_type) so re-derivation is stable.
@@ -340,6 +361,10 @@ message ApprovalEvent {
 
     // Set for decision events (APPROVED / REJECTED / SKIPPED).
     ApprovalDecision decided = 7;
+
+    // Set when event_type == RETRACTED — the platform withdrew the request
+    // before any user decision. See ApprovalRetraction.
+    ApprovalRetraction retracted = 8;
   }
 }
 
@@ -350,16 +375,25 @@ message ApprovalEvent {
 // scan still feeds pending_approvals and the UI; this stream is the parallel,
 // independently-written ledger that (1) turns the projection parity check into a
 // real cross-writer guard and (2) holds the approval audit trail (decided_by +
-// comment) the flat ToolCall fields cannot. The source of truth does not flip
-// until a later phase — until then, ComputePendingApprovalsFromEvents over this
-// stream must agree with the message scan.
+// comment) the flat ToolCall fields cannot.
 //
-// Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED
-// events are authored by UpdateStatus (seeded once from the scan for executions
-// predating the field), decision events by SubmitApproval (with decided_by and
-// comment). Authoring the rich decision event in the same operation that records
-// the decision on the scan guarantees it can never be duplicated or clobbered by
-// a coarse re-derivation.
+// The lifecycle is total: every REQUESTED is eventually resolved by a decision
+// (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
+// when an in-flight gated call becomes unreachable without a decision. Combined
+// with the projection treating a terminal execution as zero pending approvals,
+// this makes ComputePendingApprovalsFromEvents over this stream agree with the
+// message scan after every write — the equality property the eventual
+// source-of-truth flip rides on. The source of truth does not flip in this
+// phase; the scan remains authoritative and is retained as the permanent
+// cross-writer guard.
+//
+// Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
+// RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
+// (REQUESTED seeded once from the scan for executions predating the field),
+// decision events by SubmitApproval (with decided_by and comment). Authoring the
+// rich decision event in the same operation that records the decision on the
+// scan guarantees it can never be duplicated or clobbered by a coarse
+// re-derivation.
 message ApprovalEventStream {
   // AgentExecution.metadata.id this stream belongs to.
   string execution_id = 1;

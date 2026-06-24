@@ -42,6 +42,11 @@ public final class ApprovalProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRetraction_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRetraction_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalDecision_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -108,32 +113,39 @@ public final class ApprovalProto extends com.google.protobuf.GeneratedFile {
       "agentexecution.v1.FileChangeR\013fileChange" +
       "s\022p\n\026approval_policy_source\030\r \001(\0162:.ai.s" +
       "tigmer.agentic.agentexecution.v1.Approva" +
-      "lPolicySourceR\024approvalPolicySource\"\350\001\n\020" +
-      "ApprovalDecision\022.\n\023approval_request_id\030" +
-      "\001 \001(\tR\021approvalRequestId\022L\n\006action\030\002 \001(\016" +
-      "24.ai.stigmer.agentic.agentexecution.v1." +
-      "ApprovalActionR\006action\022\035\n\ndecided_at\030\003 \001" +
-      "(\tR\tdecidedAt\022\035\n\ndecided_by\030\004 \001(\tR\tdecid" +
-      "edBy\022\030\n\007comment\030\005 \001(\tR\007comment\"\234\003\n\rAppro" +
-      "valEvent\022\031\n\010event_id\030\001 \001(\tR\007eventId\022.\n\023a" +
-      "pproval_request_id\030\002 \001(\tR\021approvalReques" +
-      "tId\022V\n\nevent_type\030\003 \001(\01627.ai.stigmer.age" +
-      "ntic.agentexecution.v1.ApprovalEventType" +
-      "R\teventType\022\034\n\ttimestamp\030\004 \001(\tR\ttimestam" +
-      "p\022\024\n\005actor\030\005 \001(\tR\005actor\022U\n\trequested\030\006 \001" +
-      "(\01325.ai.stigmer.agentic.agentexecution.v" +
-      "1.ApprovalRequestH\000R\trequested\022R\n\007decide" +
-      "d\030\007 \001(\01326.ai.stigmer.agentic.agentexecut" +
-      "ion.v1.ApprovalDecisionH\000R\007decidedB\t\n\007pa" +
-      "yload\"\205\001\n\023ApprovalEventStream\022!\n\014executi" +
-      "on_id\030\001 \001(\tR\013executionId\022K\n\006events\030\002 \003(\013" +
-      "23.ai.stigmer.agentic.agentexecution.v1." +
-      "ApprovalEventR\006eventsB\304\001B\rApprovalProtoP" +
-      "\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agentexecu" +
-      "tion.V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecut" +
-      "ion\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexecuti" +
-      "on\\V1\\GPBMetadata\352\002(Ai::Stigmer::Agentic" +
-      "::Agentexecution::V1b\006proto3"
+      "lPolicySourceR\024approvalPolicySource\"\277\001\n\022" +
+      "ApprovalRetraction\022.\n\023approval_request_i" +
+      "d\030\001 \001(\tR\021approvalRequestId\022V\n\006reason\030\002 \001" +
+      "(\0162>.ai.stigmer.agentic.agentexecution.v" +
+      "1.ApprovalRetractionReasonR\006reason\022!\n\014re" +
+      "tracted_at\030\003 \001(\tR\013retractedAt\"\350\001\n\020Approv" +
+      "alDecision\022.\n\023approval_request_id\030\001 \001(\tR" +
+      "\021approvalRequestId\022L\n\006action\030\002 \001(\01624.ai." +
+      "stigmer.agentic.agentexecution.v1.Approv" +
+      "alActionR\006action\022\035\n\ndecided_at\030\003 \001(\tR\tde" +
+      "cidedAt\022\035\n\ndecided_by\030\004 \001(\tR\tdecidedBy\022\030" +
+      "\n\007comment\030\005 \001(\tR\007comment\"\366\003\n\rApprovalEve" +
+      "nt\022\031\n\010event_id\030\001 \001(\tR\007eventId\022.\n\023approva" +
+      "l_request_id\030\002 \001(\tR\021approvalRequestId\022V\n" +
+      "\nevent_type\030\003 \001(\01627.ai.stigmer.agentic.a" +
+      "gentexecution.v1.ApprovalEventTypeR\teven" +
+      "tType\022\034\n\ttimestamp\030\004 \001(\tR\ttimestamp\022\024\n\005a" +
+      "ctor\030\005 \001(\tR\005actor\022U\n\trequested\030\006 \001(\01325.a" +
+      "i.stigmer.agentic.agentexecution.v1.Appr" +
+      "ovalRequestH\000R\trequested\022R\n\007decided\030\007 \001(" +
+      "\01326.ai.stigmer.agentic.agentexecution.v1" +
+      ".ApprovalDecisionH\000R\007decided\022X\n\tretracte" +
+      "d\030\010 \001(\01328.ai.stigmer.agentic.agentexecut" +
+      "ion.v1.ApprovalRetractionH\000R\tretractedB\t" +
+      "\n\007payload\"\205\001\n\023ApprovalEventStream\022!\n\014exe" +
+      "cution_id\030\001 \001(\tR\013executionId\022K\n\006events\030\002" +
+      " \003(\01323.ai.stigmer.agentic.agentexecution" +
+      ".v1.ApprovalEventR\006eventsB\304\001B\rApprovalPr" +
+      "otoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agente" +
+      "xecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agentex" +
+      "ecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexe" +
+      "cution\\V1\\GPBMetadata\352\002(Ai::Stigmer::Age" +
+      "ntic::Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -159,20 +171,26 @@ public final class ApprovalProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRequest_descriptor,
         new java.lang.String[] { "ApprovalRequestId", "ToolCallId", "RequestedAt", "ToolName", "Message", "ArgsPreview", "FromSubAgent", "SubAgentName", "SubAgentSubject", "McpServerSlug", "ToolKind", "FileChanges", "ApprovalPolicySource", });
-    internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalDecision_descriptor =
+    internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRetraction_descriptor =
       getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRetraction_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRetraction_descriptor,
+        new java.lang.String[] { "ApprovalRequestId", "Reason", "RetractedAt", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalDecision_descriptor =
+      getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalDecision_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalDecision_descriptor,
         new java.lang.String[] { "ApprovalRequestId", "Action", "DecidedAt", "DecidedBy", "Comment", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalEvent_descriptor =
-      getDescriptor().getMessageType(4);
+      getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalEvent_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalEvent_descriptor,
-        new java.lang.String[] { "EventId", "ApprovalRequestId", "EventType", "Timestamp", "Actor", "Requested", "Decided", "Payload", });
+        new java.lang.String[] { "EventId", "ApprovalRequestId", "EventType", "Timestamp", "Actor", "Requested", "Decided", "Retracted", "Payload", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalEventStream_descriptor =
-      getDescriptor().getMessageType(5);
+      getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalEventStream_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalEventStream_descriptor,

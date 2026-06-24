@@ -15,11 +15,13 @@ package ai.stigmer.agentic.agentexecution.v1;
  * existing message-scan projection (PendingApproval) and compared for parity in
  * CI — it never feeds the UI yet, so introducing it changes no behavior.
  *
- * The set is deliberately minimal: only the lifecycle transitions the Phase-1
- * event bridge actually derives from tool-call state. Lease-expiry and
- * execution-cancellation events are intentionally omitted until a component
- * emits them. Enums extend additively, so adding them in a later phase is
- * non-breaking.
+ * The set covers every way an approval request resolves: the three user
+ * decisions (APPROVED / REJECTED / SKIPPED) plus RETRACTED — the platform
+ * withdrawing an in-flight request whose gated call became unreachable before a
+ * decision. Together they make the lifecycle total, which is what lets the
+ * event-stream projection stand on its own. Lease-expiry events remain
+ * intentionally omitted until a component emits them; enums extend additively,
+ * so adding them later is non-breaking.
  *
  * event_type is the coarse lifecycle bucket; the precise user action (including
  * APPROVE_ALL, which buckets as APPROVED) lives on ApprovalDecision.action.
@@ -74,6 +76,24 @@ public enum ApprovalEventType
    * <code>APPROVAL_EVENT_TYPE_SKIPPED = 4;</code>
    */
   APPROVAL_EVENT_TYPE_SKIPPED(4),
+  /**
+   * <pre>
+   * The platform withdrew the request before any user decision because the gated
+   * call became unreachable while the execution was still live — its sub-agent
+   * reached a terminal state, or the call was superseded on resume. This is the
+   * system-actored terminal transition that makes the lifecycle total: a
+   * REQUESTED is resolved by exactly one of APPROVED / REJECTED / SKIPPED (user
+   * decisions) or RETRACTED (platform withdrawal). It is distinct from SKIPPED so
+   * the audit trail never conflates "the human skipped this" with "the platform
+   * withdrew it." Terminal-execution gate-exits (cancel / fail / terminate) are
+   * NOT modeled as per-call events — a terminal execution simply projects to zero
+   * pending approvals — so RETRACTED is reserved for the in-flight, per-call case.
+   * Payload: ApprovalRetraction.
+   * </pre>
+   *
+   * <code>APPROVAL_EVENT_TYPE_RETRACTED = 5;</code>
+   */
+  APPROVAL_EVENT_TYPE_RETRACTED(5),
   UNRECOGNIZED(-1),
   ;
 
@@ -130,6 +150,24 @@ public enum ApprovalEventType
    * <code>APPROVAL_EVENT_TYPE_SKIPPED = 4;</code>
    */
   public static final int APPROVAL_EVENT_TYPE_SKIPPED_VALUE = 4;
+  /**
+   * <pre>
+   * The platform withdrew the request before any user decision because the gated
+   * call became unreachable while the execution was still live — its sub-agent
+   * reached a terminal state, or the call was superseded on resume. This is the
+   * system-actored terminal transition that makes the lifecycle total: a
+   * REQUESTED is resolved by exactly one of APPROVED / REJECTED / SKIPPED (user
+   * decisions) or RETRACTED (platform withdrawal). It is distinct from SKIPPED so
+   * the audit trail never conflates "the human skipped this" with "the platform
+   * withdrew it." Terminal-execution gate-exits (cancel / fail / terminate) are
+   * NOT modeled as per-call events — a terminal execution simply projects to zero
+   * pending approvals — so RETRACTED is reserved for the in-flight, per-call case.
+   * Payload: ApprovalRetraction.
+   * </pre>
+   *
+   * <code>APPROVAL_EVENT_TYPE_RETRACTED = 5;</code>
+   */
+  public static final int APPROVAL_EVENT_TYPE_RETRACTED_VALUE = 5;
 
 
   public final int getNumber() {
@@ -161,6 +199,7 @@ public enum ApprovalEventType
       case 2: return APPROVAL_EVENT_TYPE_APPROVED;
       case 3: return APPROVAL_EVENT_TYPE_REJECTED;
       case 4: return APPROVAL_EVENT_TYPE_SKIPPED;
+      case 5: return APPROVAL_EVENT_TYPE_RETRACTED;
       default: return null;
     }
   }

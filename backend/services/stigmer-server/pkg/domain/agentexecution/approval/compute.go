@@ -46,6 +46,27 @@ func ComputePendingApprovals(
 	return result
 }
 
+// isTerminalExecution reports whether the execution has reached a final phase.
+// A terminal execution has no actionable pending approvals — the workflow that
+// would resume a gated call no longer exists — so the projection seam collapses
+// pending_approvals to empty for these phases regardless of stale tool-call
+// state left in the transcript. This is what makes every terminal-execution
+// gate-exit (cancel / fail / terminate) correct without authoring a per-call
+// retraction event, and what closes the pre-existing edition split where OSS
+// cleared a failed-at-gate execution's pending_approvals via an incidental
+// message wipe while Cloud retained them.
+func isTerminalExecution(phase agentexecutionv1.ExecutionPhase) bool {
+	switch phase {
+	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+		agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
+		agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
+		agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED:
+		return true
+	default:
+		return false
+	}
+}
+
 // isTerminalSubAgent returns true for sub-agents that have reached a final
 // lifecycle state.  Any WAITING_APPROVAL tool calls left inside a terminal
 // sub-agent are orphans and must not appear in pending_approvals.

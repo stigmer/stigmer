@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApprovalAction, ApprovalEventType, ApprovalPolicySource, ToolKind } from "./enum_pb.js";
+import type { ApprovalAction, ApprovalEventType, ApprovalPolicySource, ApprovalRetractionReason, ToolKind } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
 import type { FileChange } from "./message_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_message } from "./message_pb.js";
@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/approval.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_approval: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKNBAoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRJBCgl0b29sX2tpbmQYDSABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbEtpbmQSRgoMZmlsZV9jaGFuZ2VzGA4gAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVDaGFuZ2USWgoWYXBwcm92YWxfcG9saWN5X3NvdXJjZRgPIAEoDjI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZSKDAQoZQ2hpbGRBcHByb3ZhbE5vdGlmaWNhdGlvbhIUCgxleGVjdXRpb25faWQYASABKAkSUAoRcGVuZGluZ19hcHByb3ZhbHMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsIt8DCg9BcHByb3ZhbFJlcXVlc3QSGwoTYXBwcm92YWxfcmVxdWVzdF9pZBgBIAEoCRIUCgx0b29sX2NhbGxfaWQYAiABKAkSFAoMcmVxdWVzdGVkX2F0GAMgASgJEhEKCXRvb2xfbmFtZRgEIAEoCRIPCgdtZXNzYWdlGAUgASgJEhQKDGFyZ3NfcHJldmlldxgGIAEoCRIWCg5mcm9tX3N1Yl9hZ2VudBgHIAEoCBIWCg5zdWJfYWdlbnRfbmFtZRgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9tY3Bfc2VydmVyX3NsdWcYCiABKAkSQQoJdG9vbF9raW5kGAsgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xLaW5kEkYKDGZpbGVfY2hhbmdlcxgMIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2hhbmdlEloKFmFwcHJvdmFsX3BvbGljeV9zb3VyY2UYDSABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXBwcm92YWxQb2xpY3lTb3VyY2UirgEKEEFwcHJvdmFsRGVjaXNpb24SGwoTYXBwcm92YWxfcmVxdWVzdF9pZBgBIAEoCRJECgZhY3Rpb24YAiABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXBwcm92YWxBY3Rpb24SEgoKZGVjaWRlZF9hdBgDIAEoCRISCgpkZWNpZGVkX2J5GAQgASgJEg8KB2NvbW1lbnQYBSABKAkizwIKDUFwcHJvdmFsRXZlbnQSEAoIZXZlbnRfaWQYASABKAkSGwoTYXBwcm92YWxfcmVxdWVzdF9pZBgCIAEoCRJLCgpldmVudF90eXBlGAMgASgOMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsRXZlbnRUeXBlEhEKCXRpbWVzdGFtcBgEIAEoCRINCgVhY3RvchgFIAEoCRJKCglyZXF1ZXN0ZWQYBiABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXBwcm92YWxSZXF1ZXN0SAASSQoHZGVjaWRlZBgHIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbERlY2lzaW9uSABCCQoHcGF5bG9hZCJwChNBcHByb3ZhbEV2ZW50U3RyZWFtEhQKDGV4ZWN1dGlvbl9pZBgBIAEoCRJDCgZldmVudHMYAiADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXBwcm92YWxFdmVudGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKNBAoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRJBCgl0b29sX2tpbmQYDSABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbEtpbmQSRgoMZmlsZV9jaGFuZ2VzGA4gAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVDaGFuZ2USWgoWYXBwcm92YWxfcG9saWN5X3NvdXJjZRgPIAEoDjI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZSKDAQoZQ2hpbGRBcHByb3ZhbE5vdGlmaWNhdGlvbhIUCgxleGVjdXRpb25faWQYASABKAkSUAoRcGVuZGluZ19hcHByb3ZhbHMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsIt8DCg9BcHByb3ZhbFJlcXVlc3QSGwoTYXBwcm92YWxfcmVxdWVzdF9pZBgBIAEoCRIUCgx0b29sX2NhbGxfaWQYAiABKAkSFAoMcmVxdWVzdGVkX2F0GAMgASgJEhEKCXRvb2xfbmFtZRgEIAEoCRIPCgdtZXNzYWdlGAUgASgJEhQKDGFyZ3NfcHJldmlldxgGIAEoCRIWCg5mcm9tX3N1Yl9hZ2VudBgHIAEoCBIWCg5zdWJfYWdlbnRfbmFtZRgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9tY3Bfc2VydmVyX3NsdWcYCiABKAkSQQoJdG9vbF9raW5kGAsgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xLaW5kEkYKDGZpbGVfY2hhbmdlcxgMIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2hhbmdlEloKFmFwcHJvdmFsX3BvbGljeV9zb3VyY2UYDSABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXBwcm92YWxQb2xpY3lTb3VyY2UilwEKEkFwcHJvdmFsUmV0cmFjdGlvbhIbChNhcHByb3ZhbF9yZXF1ZXN0X2lkGAEgASgJEk4KBnJlYXNvbhgCIAEoDjI+LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbFJldHJhY3Rpb25SZWFzb24SFAoMcmV0cmFjdGVkX2F0GAMgASgJIq4BChBBcHByb3ZhbERlY2lzaW9uEhsKE2FwcHJvdmFsX3JlcXVlc3RfaWQYASABKAkSRAoGYWN0aW9uGAIgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uEhIKCmRlY2lkZWRfYXQYAyABKAkSEgoKZGVjaWRlZF9ieRgEIAEoCRIPCgdjb21tZW50GAUgASgJIp4DCg1BcHByb3ZhbEV2ZW50EhAKCGV2ZW50X2lkGAEgASgJEhsKE2FwcHJvdmFsX3JlcXVlc3RfaWQYAiABKAkSSwoKZXZlbnRfdHlwZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEV2ZW50VHlwZRIRCgl0aW1lc3RhbXAYBCABKAkSDQoFYWN0b3IYBSABKAkSSgoJcmVxdWVzdGVkGAYgASgLMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsUmVxdWVzdEgAEkkKB2RlY2lkZWQYByABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXBwcm92YWxEZWNpc2lvbkgAEk0KCXJldHJhY3RlZBgIIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbFJldHJhY3Rpb25IAEIJCgdwYXlsb2FkInAKE0FwcHJvdmFsRXZlbnRTdHJlYW0SFAoMZXhlY3V0aW9uX2lkGAEgASgJEkMKBmV2ZW50cxgCIAMoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEV2ZW50YgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message]);
 
 /**
  * A pending approval request for a tool call that requires user consent before execution.
@@ -412,6 +412,50 @@ export const ApprovalRequestSchema: GenMessage<ApprovalRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 2);
 
 /**
+ * The platform's withdrawal of an in-flight approval request — the system-actored
+ * terminal transition of the approval lifecycle, authored when a gated call
+ * becomes unreachable before any user decision (its sub-agent went terminal, or
+ * it was superseded on resume) while the execution is still live.
+ *
+ * It is distinct from ApprovalDecision (the three user actions). Terminal-execution
+ * gate-exits (cancel / fail / terminate) are NOT modeled here — a terminal
+ * execution simply has zero pending approvals by projection — so this event is
+ * reserved for the in-flight, per-call orphan case. See APPROVAL_EVENT_TYPE_RETRACTED.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction
+ */
+export type ApprovalRetraction = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction"> & {
+  /**
+   * Correlates this retraction to its ApprovalRequest.
+   *
+   * @generated from field: string approval_request_id = 1;
+   */
+  approvalRequestId: string;
+
+  /**
+   * Why the platform withdrew the request. Audit-trail metadata only; never
+   * affects control flow. See ApprovalRetractionReason.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReason reason = 2;
+   */
+  reason: ApprovalRetractionReason;
+
+  /**
+   * ISO 8601 timestamp when the request was retracted.
+   *
+   * @generated from field: string retracted_at = 3;
+   */
+  retractedAt: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.
+ * Use `create(ApprovalRetractionSchema)` to create a new message.
+ */
+export const ApprovalRetractionSchema: GenMessage<ApprovalRetraction> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 3);
+
+/**
  * A user's decision on an approval request.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalDecision
@@ -460,14 +504,14 @@ export type ApprovalDecision = Message<"ai.stigmer.agentic.agentexecution.v1.App
  * Use `create(ApprovalDecisionSchema)` to create a new message.
  */
 export const ApprovalDecisionSchema: GenMessage<ApprovalDecision> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 3);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 4);
 
 /**
  * An immutable event in the approval lifecycle.
  *
  * The payload is a closed oneof so each event type is type-safe and
  * self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /
- * SKIPPED carry an ApprovalDecision.
+ * SKIPPED carry an ApprovalDecision; RETRACTED carries an ApprovalRetraction.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalEvent
  */
@@ -529,6 +573,15 @@ export type ApprovalEvent = Message<"ai.stigmer.agentic.agentexecution.v1.Approv
      */
     value: ApprovalDecision;
     case: "decided";
+  } | {
+    /**
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     *
+     * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8;
+     */
+    value: ApprovalRetraction;
+    case: "retracted";
   } | { case: undefined; value?: undefined };
 };
 
@@ -537,7 +590,7 @@ export type ApprovalEvent = Message<"ai.stigmer.agentic.agentexecution.v1.Approv
  * Use `create(ApprovalEventSchema)` to create a new message.
  */
 export const ApprovalEventSchema: GenMessage<ApprovalEvent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 4);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 5);
 
 /**
  * The ordered sequence of approval events for a single agent execution.
@@ -547,16 +600,25 @@ export const ApprovalEventSchema: GenMessage<ApprovalEvent> = /*@__PURE__*/
  * scan still feeds pending_approvals and the UI; this stream is the parallel,
  * independently-written ledger that (1) turns the projection parity check into a
  * real cross-writer guard and (2) holds the approval audit trail (decided_by +
- * comment) the flat ToolCall fields cannot. The source of truth does not flip
- * until a later phase — until then, ComputePendingApprovalsFromEvents over this
- * stream must agree with the message scan.
+ * comment) the flat ToolCall fields cannot.
  *
- * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED
- * events are authored by UpdateStatus (seeded once from the scan for executions
- * predating the field), decision events by SubmitApproval (with decided_by and
- * comment). Authoring the rich decision event in the same operation that records
- * the decision on the scan guarantees it can never be duplicated or clobbered by
- * a coarse re-derivation.
+ * The lifecycle is total: every REQUESTED is eventually resolved by a decision
+ * (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
+ * when an in-flight gated call becomes unreachable without a decision. Combined
+ * with the projection treating a terminal execution as zero pending approvals,
+ * this makes ComputePendingApprovalsFromEvents over this stream agree with the
+ * message scan after every write — the equality property the eventual
+ * source-of-truth flip rides on. The source of truth does not flip in this
+ * phase; the scan remains authoritative and is retained as the permanent
+ * cross-writer guard.
+ *
+ * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
+ * RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
+ * (REQUESTED seeded once from the scan for executions predating the field),
+ * decision events by SubmitApproval (with decided_by and comment). Authoring the
+ * rich decision event in the same operation that records the decision on the
+ * scan guarantees it can never be duplicated or clobbered by a coarse
+ * re-derivation.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
  */
@@ -581,5 +643,5 @@ export type ApprovalEventStream = Message<"ai.stigmer.agentic.agentexecution.v1.
  * Use `create(ApprovalEventStreamSchema)` to create a new message.
  */
 export const ApprovalEventStreamSchema: GenMessage<ApprovalEventStream> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 5);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 6);
 

@@ -11,7 +11,7 @@ package ai.stigmer.agentic.agentexecution.v1;
  *
  * The payload is a closed oneof so each event type is type-safe and
  * self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /
- * SKIPPED carry an ApprovalDecision.
+ * SKIPPED carry an ApprovalDecision; RETRACTED carries an ApprovalRetraction.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ApprovalEvent}
@@ -69,6 +69,7 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     REQUESTED(6),
     DECIDED(7),
+    RETRACTED(8),
     PAYLOAD_NOT_SET(0);
     private final int value;
     private PayloadCase(int value) {
@@ -88,6 +89,7 @@ private static final long serialVersionUID = 0L;
       switch (value) {
         case 6: return REQUESTED;
         case 7: return DECIDED;
+        case 8: return RETRACTED;
         case 0: return PAYLOAD_NOT_SET;
         default: return null;
       }
@@ -405,6 +407,52 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.agentexecution.v1.ApprovalDecision.getDefaultInstance();
   }
 
+  public static final int RETRACTED_FIELD_NUMBER = 8;
+  /**
+   * <pre>
+   * Set when event_type == RETRACTED — the platform withdrew the request
+   * before any user decision. See ApprovalRetraction.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+   * @return Whether the retracted field is set.
+   */
+  @java.lang.Override
+  public boolean hasRetracted() {
+    return payloadCase_ == 8;
+  }
+  /**
+   * <pre>
+   * Set when event_type == RETRACTED — the platform withdrew the request
+   * before any user decision. See ApprovalRetraction.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+   * @return The retracted.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction getRetracted() {
+    if (payloadCase_ == 8) {
+       return (ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction) payload_;
+    }
+    return ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * Set when event_type == RETRACTED — the platform withdrew the request
+   * before any user decision. See ApprovalRetraction.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionOrBuilder getRetractedOrBuilder() {
+    if (payloadCase_ == 8) {
+       return (ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction) payload_;
+    }
+    return ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -440,6 +488,9 @@ private static final long serialVersionUID = 0L;
     if (payloadCase_ == 7) {
       output.writeMessage(7, (ai.stigmer.agentic.agentexecution.v1.ApprovalDecision) payload_);
     }
+    if (payloadCase_ == 8) {
+      output.writeMessage(8, (ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction) payload_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -472,6 +523,10 @@ private static final long serialVersionUID = 0L;
     if (payloadCase_ == 7) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(7, (ai.stigmer.agentic.agentexecution.v1.ApprovalDecision) payload_);
+    }
+    if (payloadCase_ == 8) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(8, (ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction) payload_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -507,6 +562,10 @@ private static final long serialVersionUID = 0L;
         if (!getDecided()
             .equals(other.getDecided())) return false;
         break;
+      case 8:
+        if (!getRetracted()
+            .equals(other.getRetracted())) return false;
+        break;
       case 0:
       default:
     }
@@ -539,6 +598,10 @@ private static final long serialVersionUID = 0L;
       case 7:
         hash = (37 * hash) + DECIDED_FIELD_NUMBER;
         hash = (53 * hash) + getDecided().hashCode();
+        break;
+      case 8:
+        hash = (37 * hash) + RETRACTED_FIELD_NUMBER;
+        hash = (53 * hash) + getRetracted().hashCode();
         break;
       case 0:
       default:
@@ -646,7 +709,7 @@ private static final long serialVersionUID = 0L;
    *
    * The payload is a closed oneof so each event type is type-safe and
    * self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /
-   * SKIPPED carry an ApprovalDecision.
+   * SKIPPED carry an ApprovalDecision; RETRACTED carries an ApprovalRetraction.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ApprovalEvent}
@@ -692,6 +755,9 @@ private static final long serialVersionUID = 0L;
       }
       if (decidedBuilder_ != null) {
         decidedBuilder_.clear();
+      }
+      if (retractedBuilder_ != null) {
+        retractedBuilder_.clear();
       }
       payloadCase_ = 0;
       payload_ = null;
@@ -757,6 +823,10 @@ private static final long serialVersionUID = 0L;
           decidedBuilder_ != null) {
         result.payload_ = decidedBuilder_.build();
       }
+      if (payloadCase_ == 8 &&
+          retractedBuilder_ != null) {
+        result.payload_ = retractedBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -801,6 +871,10 @@ private static final long serialVersionUID = 0L;
         }
         case DECIDED: {
           mergeDecided(other.getDecided());
+          break;
+        }
+        case RETRACTED: {
+          mergeRetracted(other.getRetracted());
           break;
         }
         case PAYLOAD_NOT_SET: {
@@ -872,6 +946,13 @@ private static final long serialVersionUID = 0L;
               payloadCase_ = 7;
               break;
             } // case 58
+            case 66: {
+              input.readMessage(
+                  internalGetRetractedFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              payloadCase_ = 8;
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1703,6 +1784,193 @@ private static final long serialVersionUID = 0L;
       payloadCase_ = 7;
       onChanged();
       return decidedBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction, ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.Builder, ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionOrBuilder> retractedBuilder_;
+    /**
+     * <pre>
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+     * @return Whether the retracted field is set.
+     */
+    @java.lang.Override
+    public boolean hasRetracted() {
+      return payloadCase_ == 8;
+    }
+    /**
+     * <pre>
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+     * @return The retracted.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction getRetracted() {
+      if (retractedBuilder_ == null) {
+        if (payloadCase_ == 8) {
+          return (ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction) payload_;
+        }
+        return ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.getDefaultInstance();
+      } else {
+        if (payloadCase_ == 8) {
+          return retractedBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+     */
+    public Builder setRetracted(ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction value) {
+      if (retractedBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        payload_ = value;
+        onChanged();
+      } else {
+        retractedBuilder_.setMessage(value);
+      }
+      payloadCase_ = 8;
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+     */
+    public Builder setRetracted(
+        ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.Builder builderForValue) {
+      if (retractedBuilder_ == null) {
+        payload_ = builderForValue.build();
+        onChanged();
+      } else {
+        retractedBuilder_.setMessage(builderForValue.build());
+      }
+      payloadCase_ = 8;
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+     */
+    public Builder mergeRetracted(ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction value) {
+      if (retractedBuilder_ == null) {
+        if (payloadCase_ == 8 &&
+            payload_ != ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.getDefaultInstance()) {
+          payload_ = ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.newBuilder((ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction) payload_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          payload_ = value;
+        }
+        onChanged();
+      } else {
+        if (payloadCase_ == 8) {
+          retractedBuilder_.mergeFrom(value);
+        } else {
+          retractedBuilder_.setMessage(value);
+        }
+      }
+      payloadCase_ = 8;
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+     */
+    public Builder clearRetracted() {
+      if (retractedBuilder_ == null) {
+        if (payloadCase_ == 8) {
+          payloadCase_ = 0;
+          payload_ = null;
+          onChanged();
+        }
+      } else {
+        if (payloadCase_ == 8) {
+          payloadCase_ = 0;
+          payload_ = null;
+        }
+        retractedBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.Builder getRetractedBuilder() {
+      return internalGetRetractedFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionOrBuilder getRetractedOrBuilder() {
+      if ((payloadCase_ == 8) && (retractedBuilder_ != null)) {
+        return retractedBuilder_.getMessageOrBuilder();
+      } else {
+        if (payloadCase_ == 8) {
+          return (ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction) payload_;
+        }
+        return ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction, ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.Builder, ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionOrBuilder> 
+        internalGetRetractedFieldBuilder() {
+      if (retractedBuilder_ == null) {
+        if (!(payloadCase_ == 8)) {
+          payload_ = ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.getDefaultInstance();
+        }
+        retractedBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction, ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.Builder, ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionOrBuilder>(
+                (ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction) payload_,
+                getParentForChildren(),
+                isClean());
+        payload_ = null;
+      }
+      payloadCase_ = 8;
+      onChanged();
+      return retractedBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.ApprovalEvent)

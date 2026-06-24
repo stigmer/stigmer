@@ -80,6 +80,16 @@ class ApprovalRequest(_message.Message):
     approval_policy_source: _enum_pb2.ApprovalPolicySource
     def __init__(self, approval_request_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., requested_at: _Optional[str] = ..., tool_name: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., from_sub_agent: bool = ..., sub_agent_name: _Optional[str] = ..., sub_agent_subject: _Optional[str] = ..., mcp_server_slug: _Optional[str] = ..., tool_kind: _Optional[_Union[_enum_pb2.ToolKind, str]] = ..., file_changes: _Optional[_Iterable[_Union[_message_pb2.FileChange, _Mapping]]] = ..., approval_policy_source: _Optional[_Union[_enum_pb2.ApprovalPolicySource, str]] = ...) -> None: ...
 
+class ApprovalRetraction(_message.Message):
+    __slots__ = ("approval_request_id", "reason", "retracted_at")
+    APPROVAL_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    RETRACTED_AT_FIELD_NUMBER: _ClassVar[int]
+    approval_request_id: str
+    reason: _enum_pb2.ApprovalRetractionReason
+    retracted_at: str
+    def __init__(self, approval_request_id: _Optional[str] = ..., reason: _Optional[_Union[_enum_pb2.ApprovalRetractionReason, str]] = ..., retracted_at: _Optional[str] = ...) -> None: ...
+
 class ApprovalDecision(_message.Message):
     __slots__ = ("approval_request_id", "action", "decided_at", "decided_by", "comment")
     APPROVAL_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
@@ -95,7 +105,7 @@ class ApprovalDecision(_message.Message):
     def __init__(self, approval_request_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., decided_at: _Optional[str] = ..., decided_by: _Optional[str] = ..., comment: _Optional[str] = ...) -> None: ...
 
 class ApprovalEvent(_message.Message):
-    __slots__ = ("event_id", "approval_request_id", "event_type", "timestamp", "actor", "requested", "decided")
+    __slots__ = ("event_id", "approval_request_id", "event_type", "timestamp", "actor", "requested", "decided", "retracted")
     EVENT_ID_FIELD_NUMBER: _ClassVar[int]
     APPROVAL_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
     EVENT_TYPE_FIELD_NUMBER: _ClassVar[int]
@@ -103,6 +113,7 @@ class ApprovalEvent(_message.Message):
     ACTOR_FIELD_NUMBER: _ClassVar[int]
     REQUESTED_FIELD_NUMBER: _ClassVar[int]
     DECIDED_FIELD_NUMBER: _ClassVar[int]
+    RETRACTED_FIELD_NUMBER: _ClassVar[int]
     event_id: str
     approval_request_id: str
     event_type: _enum_pb2.ApprovalEventType
@@ -110,7 +121,8 @@ class ApprovalEvent(_message.Message):
     actor: str
     requested: ApprovalRequest
     decided: ApprovalDecision
-    def __init__(self, event_id: _Optional[str] = ..., approval_request_id: _Optional[str] = ..., event_type: _Optional[_Union[_enum_pb2.ApprovalEventType, str]] = ..., timestamp: _Optional[str] = ..., actor: _Optional[str] = ..., requested: _Optional[_Union[ApprovalRequest, _Mapping]] = ..., decided: _Optional[_Union[ApprovalDecision, _Mapping]] = ...) -> None: ...
+    retracted: ApprovalRetraction
+    def __init__(self, event_id: _Optional[str] = ..., approval_request_id: _Optional[str] = ..., event_type: _Optional[_Union[_enum_pb2.ApprovalEventType, str]] = ..., timestamp: _Optional[str] = ..., actor: _Optional[str] = ..., requested: _Optional[_Union[ApprovalRequest, _Mapping]] = ..., decided: _Optional[_Union[ApprovalDecision, _Mapping]] = ..., retracted: _Optional[_Union[ApprovalRetraction, _Mapping]] = ...) -> None: ...
 
 class ApprovalEventStream(_message.Message):
     __slots__ = ("execution_id", "events")

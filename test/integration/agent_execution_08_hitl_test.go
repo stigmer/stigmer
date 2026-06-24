@@ -535,3 +535,98 @@ func TestAgentExecution_HITL_IdempotentApproval(t *testing.T) {
 		})
 	}
 }
+
+// TestAgentExecution_HITL_CancelAtGate is the end-to-end proof for the
+// terminal-execution arm of the two-mechanism retraction design. An execution
+// parked at the approval gate is cancelled WITHOUT a decision. Post-flip this is
+// the worst regression risk: the append-only stream still carries the REQUESTED
+// event, so a naive event projection would report a phantom pending approval on a
+// dead execution forever.
+//
+// What this test locks against the real runner:
+//   - The cancelled execution reports ZERO pending_approvals — terminal executions
+//     are handled by the phase-aware projection seam, not by a per-call event.
+//   - The persisted stream is PRESERVED for audit (the REQUESTED survives); cancel
+//     deliberately does NOT author a per-call RETRACTED (that is reserved for
+//     in-flight orphans on a still-live execution).
+//   - The workflow neither hangs nor fail-fasts: it lands cleanly in CANCELLED.
+func TestAgentExecution_HITL_CancelAtGate(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			requireHITLPrereqs(t, h)
+			harness.SkipCursorForHITLGate(t, h)
+
+			ctx, cancel := harness.TestContext(t, 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
+
+			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-cancel-gate-"+h.Name,
+				"You MUST call the echo tool exactly once with the user's input, then stop. Never respond with text only. Do not call any tool again.",
+				harness.WithMcpServerUsageAndApproval(
+					mcpServer.GetMetadata().GetSlug(),
+					[]*agentv1.ToolApprovalOverride{
+						{ToolName: "echo", RequiresApproval: true, Message: "Execute echo tool"},
+					},
+					"echo",
+				),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+			exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Call the echo tool with input 'cancel-at-gate'. You must use the tool.",
+				2*time.Minute,
+				harness.WithAutoApproveAll(false))
+
+			harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+			harness.AssertPendingApprovals(t, waiting, 1)
+
+			approval := waiting.GetStatus().GetPendingApprovals()[0]
+			waitingStream := waiting.GetStatus().GetApprovalEventStream()
+			require.NotNil(t, waitingStream, "WAITING execution must persist an approval_event_stream")
+			require.True(t,
+				hitlStreamHasEvent(waitingStream, approval.GetToolCallId(),
+					agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED),
+				"persisted stream must carry a REQUESTED event for the pending tool call")
+
+			// Cancel while parked at the gate — no decision is ever submitted.
+			_, err := clients.AgentExecutionCommand.Cancel(ctx, &agentexecv1.CancelAgentExecutionInput{
+				Id: exec.GetMetadata().GetId(),
+			})
+			require.NoError(t, err, "cancel should succeed")
+
+			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_CANCELLED, 2*time.Minute)
+			require.NoError(t, err, "execution should reach CANCELLED, not hang at the gate")
+			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_CANCELLED)
+
+			// The terminal execution must report zero pending approvals — the
+			// phase-aware seam, not a per-call retraction, owns this.
+			harness.AssertPendingApprovals(t, result, 0)
+
+			// The audit trail is preserved: the REQUESTED still stands, and cancel did
+			// NOT manufacture a per-call RETRACTED (terminal != in-flight orphan).
+			finalStream := result.GetStatus().GetApprovalEventStream()
+			require.NotNil(t, finalStream, "cancelled execution must preserve its approval_event_stream")
+			require.True(t,
+				hitlStreamHasEvent(finalStream, approval.GetToolCallId(),
+					agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED),
+				"cancel must preserve the REQUESTED event for audit")
+			require.False(t,
+				hitlStreamHasEvent(finalStream, approval.GetToolCallId(),
+					agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_RETRACTED),
+				"cancel-at-gate is a terminal exit; it must not author a per-call RETRACTED")
+		})
+	}
+}

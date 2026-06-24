@@ -95,27 +95,32 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "Y_SOURCE_APPROVAL_LEASE\020\005\022+\n\'APPROVAL_PO" +
       "LICY_SOURCE_BUILTIN_CATEGORY\020\006\0229\n5APPROV" +
       "AL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_" +
-      "TIGHTEN\020\007*\300\001\n\021ApprovalEventType\022#\n\037APPRO" +
+      "TIGHTEN\020\007*\343\001\n\021ApprovalEventType\022#\n\037APPRO" +
       "VAL_EVENT_TYPE_UNSPECIFIED\020\000\022!\n\035APPROVAL" +
       "_EVENT_TYPE_REQUESTED\020\001\022 \n\034APPROVAL_EVEN" +
       "T_TYPE_APPROVED\020\002\022 \n\034APPROVAL_EVENT_TYPE" +
       "_REJECTED\020\003\022\037\n\033APPROVAL_EVENT_TYPE_SKIPP" +
-      "ED\020\004*j\n\017InteractionMode\022 \n\034INTERACTION_M" +
-      "ODE_UNSPECIFIED\020\000\022\032\n\026INTERACTION_MODE_AG" +
-      "ENT\020\001\022\031\n\025INTERACTION_MODE_PLAN\020\002*\246\001\n\016Fil" +
-      "eChangeType\022 \n\034FILE_CHANGE_TYPE_UNSPECIF" +
-      "IED\020\000\022\033\n\027FILE_CHANGE_TYPE_CREATE\020\001\022\033\n\027FI" +
-      "LE_CHANGE_TYPE_MODIFY\020\002\022\033\n\027FILE_CHANGE_T" +
-      "YPE_DELETE\020\003\022\033\n\027FILE_CHANGE_TYPE_RENAME\020" +
-      "\004*\226\001\n\026FileChangeCaptureLevel\022)\n%FILE_CHA" +
-      "NGE_CAPTURE_LEVEL_UNSPECIFIED\020\000\022(\n$FILE_" +
-      "CHANGE_CAPTURE_LEVEL_WHOLE_FILE\020\001\022\'\n#FIL" +
-      "E_CHANGE_CAPTURE_LEVEL_HUNK_ONLY\020\002B\300\001B\tE" +
-      "numProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.A" +
-      "gentexecution.V1\312\002$Ai\\Stigmer\\Agentic\\Ag" +
-      "entexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Age" +
-      "ntexecution\\V1\\GPBMetadata\352\002(Ai::Stigmer" +
-      "::Agentic::Agentexecution::V1b\006proto3"
+      "ED\020\004\022!\n\035APPROVAL_EVENT_TYPE_RETRACTED\020\005*" +
+      "\244\001\n\030ApprovalRetractionReason\022*\n&APPROVAL" +
+      "_RETRACTION_REASON_UNSPECIFIED\020\000\0221\n-APPR" +
+      "OVAL_RETRACTION_REASON_SUB_AGENT_TERMINA" +
+      "L\020\001\022)\n%APPROVAL_RETRACTION_REASON_SUPERS" +
+      "EDED\020\002*j\n\017InteractionMode\022 \n\034INTERACTION" +
+      "_MODE_UNSPECIFIED\020\000\022\032\n\026INTERACTION_MODE_" +
+      "AGENT\020\001\022\031\n\025INTERACTION_MODE_PLAN\020\002*\246\001\n\016F" +
+      "ileChangeType\022 \n\034FILE_CHANGE_TYPE_UNSPEC" +
+      "IFIED\020\000\022\033\n\027FILE_CHANGE_TYPE_CREATE\020\001\022\033\n\027" +
+      "FILE_CHANGE_TYPE_MODIFY\020\002\022\033\n\027FILE_CHANGE" +
+      "_TYPE_DELETE\020\003\022\033\n\027FILE_CHANGE_TYPE_RENAM" +
+      "E\020\004*\226\001\n\026FileChangeCaptureLevel\022)\n%FILE_C" +
+      "HANGE_CAPTURE_LEVEL_UNSPECIFIED\020\000\022(\n$FIL" +
+      "E_CHANGE_CAPTURE_LEVEL_WHOLE_FILE\020\001\022\'\n#F" +
+      "ILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY\020\002B\300\001B" +
+      "\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic" +
+      ".Agentexecution.V1\312\002$Ai\\Stigmer\\Agentic\\" +
+      "Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\A" +
+      "gentexecution\\V1\\GPBMetadata\352\002(Ai::Stigm" +
+      "er::Agentic::Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

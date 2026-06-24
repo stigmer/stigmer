@@ -766,6 +766,15 @@ func (s *UpdateExecutionPhaseStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 		// authoritative place to do it: the runner's own cancellation persist
 		// is best-effort and can be lost to the cancellation race.
 		cancelInProgressSubAgents(execution.GetStatus().GetSubAgentExecutions(), now)
+
+		// A terminal execution has no actionable approvals (the workflow that
+		// would resume a gated call is gone), so it must never carry
+		// pending_approvals. This blind persist bypasses the phase-aware
+		// projection seam (approval.ProjectPendingApprovals); the graceful-cancel
+		// case is also cleared later by the workflow cleanup running the seam, but
+		// clearing here keeps the invariant on the bypass paths too,
+		// edition-consistently with the Cloud terminal handlers.
+		execution.Status.PendingApprovals = nil
 	}
 
 	// Clear completed_at for recovery (back to IN_PROGRESS) or resume from PAUSED

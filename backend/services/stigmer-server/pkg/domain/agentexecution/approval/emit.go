@@ -164,6 +164,30 @@ func buildDecisionEvent(tc *agentexecutionv1.ToolCall, decidedBy, comment string
 	}
 }
 
+// buildRetractionEvent constructs the terminal RETRACTED event for an in-flight
+// orphaned request (see reconcileRetractions). It is reconciler-authored, not
+// derived from a tool-call field, so it carries no source timestamp: retracted_at
+// is left empty and ordering is conveyed by the event's position after its
+// REQUESTED in the append-only stream. An empty timestamp is also what keeps the
+// event byte-for-byte identical across the Go and Java editions for the shared
+// HITL corpus — a clock would diverge them. The deterministic event_id
+// (request_id:RETRACTED) makes authoring idempotent.
+func buildRetractionEvent(
+	requestID string,
+	reason agentexecutionv1.ApprovalRetractionReason,
+) *agentexecutionv1.ApprovalEvent {
+	return &agentexecutionv1.ApprovalEvent{
+		EventId:           eventID(requestID, agentexecutionv1.ApprovalEventType_APPROVAL_EVENT_TYPE_RETRACTED),
+		ApprovalRequestId: requestID,
+		EventType:         agentexecutionv1.ApprovalEventType_APPROVAL_EVENT_TYPE_RETRACTED,
+		Actor:             actorSystem,
+		Payload: &agentexecutionv1.ApprovalEvent_Retracted{Retracted: &agentexecutionv1.ApprovalRetraction{
+			ApprovalRequestId: requestID,
+			Reason:            reason,
+		}},
+	}
+}
+
 // decisionEventType maps a precise ApprovalAction to the coarse lifecycle bucket
 // carried on ApprovalEvent.event_type; APPROVE_ALL buckets as APPROVED (the
 // precise action survives on ApprovalDecision.action).

@@ -546,6 +546,79 @@ func (x *ApprovalRequest) GetApprovalPolicySource() ApprovalPolicySource {
 	return ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED
 }
 
+// The platform's withdrawal of an in-flight approval request — the system-actored
+// terminal transition of the approval lifecycle, authored when a gated call
+// becomes unreachable before any user decision (its sub-agent went terminal, or
+// it was superseded on resume) while the execution is still live.
+//
+// It is distinct from ApprovalDecision (the three user actions). Terminal-execution
+// gate-exits (cancel / fail / terminate) are NOT modeled here — a terminal
+// execution simply has zero pending approvals by projection — so this event is
+// reserved for the in-flight, per-call orphan case. See APPROVAL_EVENT_TYPE_RETRACTED.
+type ApprovalRetraction struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Correlates this retraction to its ApprovalRequest.
+	ApprovalRequestId string `protobuf:"bytes,1,opt,name=approval_request_id,json=approvalRequestId,proto3" json:"approval_request_id,omitempty"`
+	// Why the platform withdrew the request. Audit-trail metadata only; never
+	// affects control flow. See ApprovalRetractionReason.
+	Reason ApprovalRetractionReason `protobuf:"varint,2,opt,name=reason,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReason" json:"reason,omitempty"`
+	// ISO 8601 timestamp when the request was retracted.
+	RetractedAt   string `protobuf:"bytes,3,opt,name=retracted_at,json=retractedAt,proto3" json:"retracted_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApprovalRetraction) Reset() {
+	*x = ApprovalRetraction{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApprovalRetraction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApprovalRetraction) ProtoMessage() {}
+
+func (x *ApprovalRetraction) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApprovalRetraction.ProtoReflect.Descriptor instead.
+func (*ApprovalRetraction) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ApprovalRetraction) GetApprovalRequestId() string {
+	if x != nil {
+		return x.ApprovalRequestId
+	}
+	return ""
+}
+
+func (x *ApprovalRetraction) GetReason() ApprovalRetractionReason {
+	if x != nil {
+		return x.Reason
+	}
+	return ApprovalRetractionReason_APPROVAL_RETRACTION_REASON_UNSPECIFIED
+}
+
+func (x *ApprovalRetraction) GetRetractedAt() string {
+	if x != nil {
+		return x.RetractedAt
+	}
+	return ""
+}
+
 // A user's decision on an approval request.
 type ApprovalDecision struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -567,7 +640,7 @@ type ApprovalDecision struct {
 
 func (x *ApprovalDecision) Reset() {
 	*x = ApprovalDecision{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -579,7 +652,7 @@ func (x *ApprovalDecision) String() string {
 func (*ApprovalDecision) ProtoMessage() {}
 
 func (x *ApprovalDecision) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -592,7 +665,7 @@ func (x *ApprovalDecision) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApprovalDecision.ProtoReflect.Descriptor instead.
 func (*ApprovalDecision) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ApprovalDecision) GetApprovalRequestId() string {
@@ -634,7 +707,7 @@ func (x *ApprovalDecision) GetComment() string {
 //
 // The payload is a closed oneof so each event type is type-safe and
 // self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /
-// SKIPPED carry an ApprovalDecision.
+// SKIPPED carry an ApprovalDecision; RETRACTED carries an ApprovalRetraction.
 type ApprovalEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique id of this event. In Phase 1 (derived events) it is deterministic
@@ -654,6 +727,7 @@ type ApprovalEvent struct {
 	//
 	//	*ApprovalEvent_Requested
 	//	*ApprovalEvent_Decided
+	//	*ApprovalEvent_Retracted
 	Payload       isApprovalEvent_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -661,7 +735,7 @@ type ApprovalEvent struct {
 
 func (x *ApprovalEvent) Reset() {
 	*x = ApprovalEvent{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -673,7 +747,7 @@ func (x *ApprovalEvent) String() string {
 func (*ApprovalEvent) ProtoMessage() {}
 
 func (x *ApprovalEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -686,7 +760,7 @@ func (x *ApprovalEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApprovalEvent.ProtoReflect.Descriptor instead.
 func (*ApprovalEvent) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ApprovalEvent) GetEventId() string {
@@ -749,6 +823,15 @@ func (x *ApprovalEvent) GetDecided() *ApprovalDecision {
 	return nil
 }
 
+func (x *ApprovalEvent) GetRetracted() *ApprovalRetraction {
+	if x != nil {
+		if x, ok := x.Payload.(*ApprovalEvent_Retracted); ok {
+			return x.Retracted
+		}
+	}
+	return nil
+}
+
 type isApprovalEvent_Payload interface {
 	isApprovalEvent_Payload()
 }
@@ -763,9 +846,17 @@ type ApprovalEvent_Decided struct {
 	Decided *ApprovalDecision `protobuf:"bytes,7,opt,name=decided,proto3,oneof"`
 }
 
+type ApprovalEvent_Retracted struct {
+	// Set when event_type == RETRACTED — the platform withdrew the request
+	// before any user decision. See ApprovalRetraction.
+	Retracted *ApprovalRetraction `protobuf:"bytes,8,opt,name=retracted,proto3,oneof"`
+}
+
 func (*ApprovalEvent_Requested) isApprovalEvent_Payload() {}
 
 func (*ApprovalEvent_Decided) isApprovalEvent_Payload() {}
+
+func (*ApprovalEvent_Retracted) isApprovalEvent_Payload() {}
 
 // The ordered sequence of approval events for a single agent execution.
 //
@@ -774,16 +865,25 @@ func (*ApprovalEvent_Decided) isApprovalEvent_Payload() {}
 // scan still feeds pending_approvals and the UI; this stream is the parallel,
 // independently-written ledger that (1) turns the projection parity check into a
 // real cross-writer guard and (2) holds the approval audit trail (decided_by +
-// comment) the flat ToolCall fields cannot. The source of truth does not flip
-// until a later phase — until then, ComputePendingApprovalsFromEvents over this
-// stream must agree with the message scan.
+// comment) the flat ToolCall fields cannot.
 //
-// Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED
-// events are authored by UpdateStatus (seeded once from the scan for executions
-// predating the field), decision events by SubmitApproval (with decided_by and
-// comment). Authoring the rich decision event in the same operation that records
-// the decision on the scan guarantees it can never be duplicated or clobbered by
-// a coarse re-derivation.
+// The lifecycle is total: every REQUESTED is eventually resolved by a decision
+// (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
+// when an in-flight gated call becomes unreachable without a decision. Combined
+// with the projection treating a terminal execution as zero pending approvals,
+// this makes ComputePendingApprovalsFromEvents over this stream agree with the
+// message scan after every write — the equality property the eventual
+// source-of-truth flip rides on. The source of truth does not flip in this
+// phase; the scan remains authoritative and is retained as the permanent
+// cross-writer guard.
+//
+// Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
+// RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
+// (REQUESTED seeded once from the scan for executions predating the field),
+// decision events by SubmitApproval (with decided_by and comment). Authoring the
+// rich decision event in the same operation that records the decision on the
+// scan guarantees it can never be duplicated or clobbered by a coarse
+// re-derivation.
 type ApprovalEventStream struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// AgentExecution.metadata.id this stream belongs to.
@@ -796,7 +896,7 @@ type ApprovalEventStream struct {
 
 func (x *ApprovalEventStream) Reset() {
 	*x = ApprovalEventStream{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -808,7 +908,7 @@ func (x *ApprovalEventStream) String() string {
 func (*ApprovalEventStream) ProtoMessage() {}
 
 func (x *ApprovalEventStream) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -821,7 +921,7 @@ func (x *ApprovalEventStream) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApprovalEventStream.ProtoReflect.Descriptor instead.
 func (*ApprovalEventStream) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ApprovalEventStream) GetExecutionId() string {
@@ -879,7 +979,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	" \x01(\tR\rmcpServerSlug\x12K\n" +
 	"\ttool_kind\x18\v \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\x12S\n" +
 	"\ffile_changes\x18\f \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\x12p\n" +
-	"\x16approval_policy_source\x18\r \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\"\xe8\x01\n" +
+	"\x16approval_policy_source\x18\r \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\"\xbf\x01\n" +
+	"\x12ApprovalRetraction\x12.\n" +
+	"\x13approval_request_id\x18\x01 \x01(\tR\x11approvalRequestId\x12V\n" +
+	"\x06reason\x18\x02 \x01(\x0e2>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReasonR\x06reason\x12!\n" +
+	"\fretracted_at\x18\x03 \x01(\tR\vretractedAt\"\xe8\x01\n" +
 	"\x10ApprovalDecision\x12.\n" +
 	"\x13approval_request_id\x18\x01 \x01(\tR\x11approvalRequestId\x12L\n" +
 	"\x06action\x18\x02 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x06action\x12\x1d\n" +
@@ -887,7 +991,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"decided_at\x18\x03 \x01(\tR\tdecidedAt\x12\x1d\n" +
 	"\n" +
 	"decided_by\x18\x04 \x01(\tR\tdecidedBy\x12\x18\n" +
-	"\acomment\x18\x05 \x01(\tR\acomment\"\x9c\x03\n" +
+	"\acomment\x18\x05 \x01(\tR\acomment\"\xf6\x03\n" +
 	"\rApprovalEvent\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12.\n" +
 	"\x13approval_request_id\x18\x02 \x01(\tR\x11approvalRequestId\x12V\n" +
@@ -896,7 +1000,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\ttimestamp\x18\x04 \x01(\tR\ttimestamp\x12\x14\n" +
 	"\x05actor\x18\x05 \x01(\tR\x05actor\x12U\n" +
 	"\trequested\x18\x06 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.ApprovalRequestH\x00R\trequested\x12R\n" +
-	"\adecided\x18\a \x01(\v26.ai.stigmer.agentic.agentexecution.v1.ApprovalDecisionH\x00R\adecidedB\t\n" +
+	"\adecided\x18\a \x01(\v26.ai.stigmer.agentic.agentexecution.v1.ApprovalDecisionH\x00R\adecided\x12X\n" +
+	"\tretracted\x18\b \x01(\v28.ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionH\x00R\tretractedB\t\n" +
 	"\apayload\"\x85\x01\n" +
 	"\x13ApprovalEventStream\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12K\n" +
@@ -915,38 +1020,42 @@ func file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescGZIP() []by
 	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_goTypes = []any{
 	(*PendingApproval)(nil),           // 0: ai.stigmer.agentic.agentexecution.v1.PendingApproval
 	(*ChildApprovalNotification)(nil), // 1: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification
 	(*ApprovalRequest)(nil),           // 2: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest
-	(*ApprovalDecision)(nil),          // 3: ai.stigmer.agentic.agentexecution.v1.ApprovalDecision
-	(*ApprovalEvent)(nil),             // 4: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent
-	(*ApprovalEventStream)(nil),       // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
-	(ToolKind)(0),                     // 6: ai.stigmer.agentic.agentexecution.v1.ToolKind
-	(*FileChange)(nil),                // 7: ai.stigmer.agentic.agentexecution.v1.FileChange
-	(ApprovalPolicySource)(0),         // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
-	(ApprovalAction)(0),               // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(ApprovalEventType)(0),            // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
+	(*ApprovalRetraction)(nil),        // 3: ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction
+	(*ApprovalDecision)(nil),          // 4: ai.stigmer.agentic.agentexecution.v1.ApprovalDecision
+	(*ApprovalEvent)(nil),             // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent
+	(*ApprovalEventStream)(nil),       // 6: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
+	(ToolKind)(0),                     // 7: ai.stigmer.agentic.agentexecution.v1.ToolKind
+	(*FileChange)(nil),                // 8: ai.stigmer.agentic.agentexecution.v1.FileChange
+	(ApprovalPolicySource)(0),         // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	(ApprovalRetractionReason)(0),     // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReason
+	(ApprovalAction)(0),               // 11: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(ApprovalEventType)(0),            // 12: ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
 }
 var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_depIdxs = []int32{
-	6,  // 0: ai.stigmer.agentic.agentexecution.v1.PendingApproval.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
-	7,  // 1: ai.stigmer.agentic.agentexecution.v1.PendingApproval.file_changes:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChange
-	8,  // 2: ai.stigmer.agentic.agentexecution.v1.PendingApproval.approval_policy_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	7,  // 0: ai.stigmer.agentic.agentexecution.v1.PendingApproval.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
+	8,  // 1: ai.stigmer.agentic.agentexecution.v1.PendingApproval.file_changes:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChange
+	9,  // 2: ai.stigmer.agentic.agentexecution.v1.PendingApproval.approval_policy_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
 	0,  // 3: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	6,  // 4: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
-	7,  // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.file_changes:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChange
-	8,  // 6: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.approval_policy_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
-	9,  // 7: ai.stigmer.agentic.agentexecution.v1.ApprovalDecision.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	10, // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.event_type:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
-	2,  // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.requested:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalRequest
-	3,  // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.decided:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalDecision
-	4,  // 11: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.events:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEvent
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	7,  // 4: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
+	8,  // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.file_changes:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChange
+	9,  // 6: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.approval_policy_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	10, // 7: ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.reason:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReason
+	11, // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalDecision.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	12, // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.event_type:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
+	2,  // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.requested:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalRequest
+	4,  // 11: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.decided:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalDecision
+	3,  // 12: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.retracted:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction
+	5,  // 13: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.events:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEvent
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_approval_proto_init() }
@@ -956,9 +1065,10 @@ func file_ai_stigmer_agentic_agentexecution_v1_approval_proto_init() {
 	}
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_message_proto_init()
-	file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[4].OneofWrappers = []any{
+	file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes[5].OneofWrappers = []any{
 		(*ApprovalEvent_Requested)(nil),
 		(*ApprovalEvent_Decided)(nil),
+		(*ApprovalEvent_Retracted)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -966,7 +1076,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_approval_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

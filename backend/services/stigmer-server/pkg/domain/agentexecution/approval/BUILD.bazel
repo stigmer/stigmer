@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "approval",
     srcs = [
+        "author.go",
         "canonicalize.go",
         "compute.go",
         "compute_from_events.go",
@@ -25,6 +26,7 @@ go_library(
 go_test(
     name = "approval_test",
     srcs = [
+        "author_test.go",
         "compute_test.go",
         "fingerprint_test.go",
         "fixtures_test.go",

@@ -120,21 +120,14 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status.Todos = statusUpdates.Todos
 	}
 
-	// Author REQUESTED events for any tool call now in the approval gate
-	// (seeding the persisted stream the first time it is touched). This server-only
-	// field is preserved in place across the merge above; decisions are authored
-	// separately by SubmitApproval.
-	approval.EnsureApprovalRequests(status, executionID)
-
-	// Compute pending_approvals from tool call state in messages, via the single
-	// projection seam (a pure read that also runs the event-stream parity check).
-	status.PendingApprovals = approval.ProjectPendingApprovals(
-		status.GetMessages(),
-		status.GetSubAgentExecutions(),
-		status.GetApprovalEventStream(),
-	)
-
-	// Phase: Update if provided
+	// Phase: Update if provided — applied BEFORE the approval projection so the
+	// phase-aware seam (ProjectPendingApprovals) sees the FINAL phase. A status
+	// that drives the execution terminal (notably the workflow's FAILED-at-gate
+	// update, which carries no messages and so preserves the gated tool call)
+	// must collapse pending_approvals to empty in the SAME write; otherwise a
+	// gated call left in the transcript would be re-projected as pending on a dead
+	// execution. This ordering is what makes terminal-execution gate-exits correct
+	// without a per-call retraction event.
 	if statusUpdates.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
 		log.Debug().
 			Str("old_phase", status.Phase.String()).
@@ -142,6 +135,22 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 			Msg("Updating phase")
 		status.Phase = statusUpdates.Phase
 	}
+
+	// Author REQUESTED events for any tool call now in the approval gate
+	// (seeding the persisted stream the first time it is touched). This server-only
+	// field is preserved in place across the merge above; decisions are authored
+	// separately by SubmitApproval. RETRACTED events for in-flight orphans are
+	// authored here too (skipped for the terminal phase set just above).
+	approval.EnsureApprovalRequests(status, executionID)
+
+	// Compute pending_approvals from tool call state in messages, via the single
+	// projection seam (a pure read that also runs the event-stream parity check).
+	status.PendingApprovals = approval.ProjectPendingApprovals(
+		status.GetPhase(),
+		status.GetMessages(),
+		status.GetSubAgentExecutions(),
+		status.GetApprovalEventStream(),
+	)
 
 	// Error: Update if provided
 	if statusUpdates.GetError() != "" {

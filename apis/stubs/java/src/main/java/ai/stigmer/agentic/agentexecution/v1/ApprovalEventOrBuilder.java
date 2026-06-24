@@ -165,5 +165,35 @@ public interface ApprovalEventOrBuilder extends
    */
   ai.stigmer.agentic.agentexecution.v1.ApprovalDecisionOrBuilder getDecidedOrBuilder();
 
+  /**
+   * <pre>
+   * Set when event_type == RETRACTED — the platform withdrew the request
+   * before any user decision. See ApprovalRetraction.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+   * @return Whether the retracted field is set.
+   */
+  boolean hasRetracted();
+  /**
+   * <pre>
+   * Set when event_type == RETRACTED — the platform withdrew the request
+   * before any user decision. See ApprovalRetraction.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+   * @return The retracted.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction getRetracted();
+  /**
+   * <pre>
+   * Set when event_type == RETRACTED — the platform withdrew the request
+   * before any user decision. See ApprovalRetraction.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8 [json_name = "retracted"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionOrBuilder getRetractedOrBuilder();
+
   ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.PayloadCase getPayloadCase();
 }

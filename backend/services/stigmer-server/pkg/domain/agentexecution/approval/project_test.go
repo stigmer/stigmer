@@ -98,7 +98,7 @@ func TestProjectPendingApprovalsReturnsMessageScan(t *testing.T) {
 		),
 	}
 	want := ComputePendingApprovals(msgs, nil)
-	got := ProjectPendingApprovals(msgs, nil, EmitApprovalEvents(msgs, nil))
+	got := ProjectPendingApprovals(agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, msgs, nil, EmitApprovalEvents(msgs, nil))
 
 	if diff := diffPendingApprovals(want, got); diff != "" {
 		t.Errorf("seam result differs from message scan: %s", diff)
@@ -161,6 +161,47 @@ func TestEmitProducesRequestAndDecisionEvents(t *testing.T) {
 	}
 	if dec.GetDecided().GetAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
 		t.Errorf("decision action = %v, want APPROVE_ALL preserved on payload", dec.GetDecided().GetAction())
+	}
+}
+
+// TestDivergenceCounterIncrementsOnDivergence proves the backstop counter the
+// flip is gated on actually moves when the seam detects a divergence, and stays
+// put when the projections agree. The counter never gates the returned value.
+func TestDivergenceCounterIncrementsOnDivergence(t *testing.T) {
+	waiting := agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL
+	approve := agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
+	unspecified := agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED
+
+	// Agreement case: counter must not move.
+	before := PendingApprovalDivergenceCount()
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeAIMessage(makeToolCall("tc1", "delete_file", waiting, true, unspecified)),
+	}
+	ProjectPendingApprovals(agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+		msgs, nil, EmitApprovalEvents(msgs, nil))
+	if got := PendingApprovalDivergenceCount(); got != before {
+		t.Errorf("counter moved on agreement: before=%d after=%d", before, got)
+	}
+
+	// Divergence case: scan decided tc1, but the stream is missing the DECIDED
+	// event, so the event projection still reports it pending.
+	decidedMsgs := []*agentexecutionv1.AgentMessage{
+		makeAIMessage(makeToolCall("tc1", "delete_file", waiting, true, approve)),
+	}
+	streamMissingDecision := &agentexecutionv1.ApprovalEventStream{
+		Events: []*agentexecutionv1.ApprovalEvent{
+			buildRequestedEvent(makeToolCall("tc1", "delete_file", waiting, true, approve), false, "", ""),
+		},
+	}
+	before = PendingApprovalDivergenceCount()
+	got := ProjectPendingApprovals(agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+		decidedMsgs, nil, streamMissingDecision)
+	if after := PendingApprovalDivergenceCount(); after != before+1 {
+		t.Errorf("counter did not increment on divergence: before=%d after=%d", before, after)
+	}
+	// And the returned value is still the authoritative scan (empty), never gated.
+	if len(got) != 0 {
+		t.Errorf("seam returned %d pending on divergence, want the scan's 0", len(got))
 	}
 }
 
