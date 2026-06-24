@@ -276,7 +276,13 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 	executionID := input.GetAgentExecutionId()
 	toolCallId := input.GetToolCallId()
 	action := input.GetAction()
+	comment := input.GetComment()
 	now := time.Now().UTC().Format(time.RFC3339)
+
+	// Decider identity for the approval ledger. OSS is single-user with no
+	// multi-tenant auth context, so the principal is empty; the Cloud edition
+	// populates decided_by/approved_by from the authenticated caller.
+	decidedBy := ""
 
 	updated := &agentexecutionv1.AgentExecution{}
 
@@ -299,8 +305,24 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 					toolCallId, tc.GetApprovalAction().String())
 			}
 
+			if updated.Status == nil {
+				updated.Status = &agentexecutionv1.AgentExecutionStatus{}
+			}
+
+			// Author REQUESTED events BEFORE recording the decision, while every
+			// gated tool call is still WAITING. This seeds the persisted stream
+			// for executions that predate the field, so a decision event always
+			// has a preceding request even for an execution parked at the gate
+			// across the deploy. See approval.EnsureApprovalRequests.
+			approval.EnsureApprovalRequests(updated.Status, executionID)
+
 			tc.ApprovalAction = action
 			tc.ApprovalDecidedAt = now
+			tc.ApprovedBy = decidedBy
+			// Author the rich decision event (decided_by + the user's comment) in
+			// the same locked write that records the decision on the scan, so it
+			// can never be duplicated or clobbered by a coarse re-derivation.
+			approval.RecordDecisionEvent(updated.Status, tc, decidedBy, comment)
 
 			// APPROVE_ALL ("approve all of this kind") grants a run-lifetime lease
 			// scoped to the clicked tool's class: every co-pending tool call of
@@ -313,19 +335,20 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 			// The runner detects the APPROVE_ALL decision in history and derives
 			// the same scope to auto-approve only that class going forward.
 			if action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
-				bulkApproveCoPendingToolCalls(updated, toolCallId, now)
-			}
-
-			if updated.Status == nil {
-				updated.Status = &agentexecutionv1.AgentExecutionStatus{}
+				for _, bulkTc := range bulkApproveCoPendingToolCalls(updated, toolCallId, now, decidedBy) {
+					// Co-pending tools carry a plain APPROVE and no comment — the
+					// escalation comment belongs to the clicked tool.
+					approval.RecordDecisionEvent(updated.Status, bulkTc, decidedBy, "")
+				}
 			}
 
 			// Recompute pending_approvals — the approved entry disappears because
 			// its approval_action is now set (no longer UNSPECIFIED). Via the single
-			// projection seam (also runs the shadow event-stream parity check).
+			// projection seam (a pure read that also runs the event-stream parity check).
 			updated.Status.PendingApprovals = approval.ProjectPendingApprovals(
 				updated.Status.GetMessages(),
 				updated.Status.GetSubAgentExecutions(),
+				updated.Status.GetApprovalEventStream(),
 			)
 
 			return nil
@@ -564,19 +587,24 @@ func (s *buildApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*agente
 // already set to APPROVE_ALL by the caller. Recording APPROVE on the matched
 // co-pending tools (rather than APPROVE_ALL) keeps the audit trail unambiguous:
 // exactly one tool carries APPROVE_ALL, marking the user's escalation point.
-func bulkApproveCoPendingToolCalls(execution *agentexecutionv1.AgentExecution, clickedToolCallID, decidedAt string) {
+// bulkApproveCoPendingToolCalls auto-approves every co-pending tool call of the
+// clicked tool's lease class and returns the calls it approved, so the caller can
+// author a decision event for each. decidedBy stamps approved_by for the audit
+// trail; OSS passes empty (no auth principal).
+func bulkApproveCoPendingToolCalls(execution *agentexecutionv1.AgentExecution, clickedToolCallID, decidedAt, decidedBy string) []*agentexecutionv1.ToolCall {
 	clicked := findToolCallInExecution(execution, clickedToolCallID)
 	if clicked == nil {
-		return
+		return nil
 	}
 	clickedScope, ok := approval.DeriveLeaseScope(clicked)
 	if !ok {
 		// The clicked tool has no leasable scope (an unknown/ungated name that
 		// somehow carried APPROVE_ALL). Nothing else can match it, so approve no
 		// co-pending tools. Defensive — a gated tool always has a scope.
-		return
+		return nil
 	}
 
+	var approved []*agentexecutionv1.ToolCall
 	approveIfWaitingInScope := func(tc *agentexecutionv1.ToolCall) {
 		if tc.GetId() == clickedToolCallID {
 			return
@@ -593,6 +621,8 @@ func bulkApproveCoPendingToolCalls(execution *agentexecutionv1.AgentExecution, c
 		}
 		tc.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
 		tc.ApprovalDecidedAt = decidedAt
+		tc.ApprovedBy = decidedBy
+		approved = append(approved, tc)
 	}
 
 	for _, msg := range execution.GetStatus().GetMessages() {
@@ -607,6 +637,7 @@ func bulkApproveCoPendingToolCalls(execution *agentexecutionv1.AgentExecution, c
 			}
 		}
 	}
+	return approved
 }
 
 // findToolCallInExecution searches for a ToolCall by ID in messages (root and

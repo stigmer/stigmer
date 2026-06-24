@@ -120,11 +120,18 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status.Todos = statusUpdates.Todos
 	}
 
+	// Author REQUESTED events for any tool call now in the approval gate
+	// (seeding the persisted stream the first time it is touched). This server-only
+	// field is preserved in place across the merge above; decisions are authored
+	// separately by SubmitApproval.
+	approval.EnsureApprovalRequests(status, executionID)
+
 	// Compute pending_approvals from tool call state in messages, via the single
-	// projection seam (also runs the shadow event-stream parity check).
+	// projection seam (a pure read that also runs the event-stream parity check).
 	status.PendingApprovals = approval.ProjectPendingApprovals(
 		status.GetMessages(),
 		status.GetSubAgentExecutions(),
+		status.GetApprovalEventStream(),
 	)
 
 	// Phase: Update if provided

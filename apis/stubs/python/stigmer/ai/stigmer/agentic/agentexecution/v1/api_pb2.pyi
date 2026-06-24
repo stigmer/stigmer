@@ -35,7 +35,7 @@ class AgentExecution(_message.Message):
     def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.AgentExecutionSpec, _Mapping]] = ..., status: _Optional[_Union[AgentExecutionStatus, _Mapping]] = ...) -> None: ...
 
 class AgentExecutionStatus(_message.Message):
-    __slots__ = ("audit", "messages", "phase", "sub_agent_executions", "error", "started_at", "completed_at", "todos", "callback_token", "resolved_context", "pending_approvals", "context_info", "artifacts", "workspace_write_backs", "setup_progress", "streaming_usage", "structured_output")
+    __slots__ = ("audit", "messages", "phase", "sub_agent_executions", "error", "started_at", "completed_at", "todos", "callback_token", "resolved_context", "pending_approvals", "approval_event_stream", "context_info", "artifacts", "workspace_write_backs", "setup_progress", "streaming_usage", "structured_output")
     class TodosEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -54,6 +54,7 @@ class AgentExecutionStatus(_message.Message):
     CALLBACK_TOKEN_FIELD_NUMBER: _ClassVar[int]
     RESOLVED_CONTEXT_FIELD_NUMBER: _ClassVar[int]
     PENDING_APPROVALS_FIELD_NUMBER: _ClassVar[int]
+    APPROVAL_EVENT_STREAM_FIELD_NUMBER: _ClassVar[int]
     CONTEXT_INFO_FIELD_NUMBER: _ClassVar[int]
     ARTIFACTS_FIELD_NUMBER: _ClassVar[int]
     WORKSPACE_WRITE_BACKS_FIELD_NUMBER: _ClassVar[int]
@@ -71,13 +72,14 @@ class AgentExecutionStatus(_message.Message):
     callback_token: bytes
     resolved_context: _context_pb2.ResolvedExecutionContext
     pending_approvals: _containers.RepeatedCompositeFieldContainer[_approval_pb2.PendingApproval]
+    approval_event_stream: _approval_pb2.ApprovalEventStream
     context_info: _context_pb2.ContextInfo
     artifacts: _containers.RepeatedCompositeFieldContainer[_artifact_pb2.ExecutionArtifact]
     workspace_write_backs: _containers.RepeatedCompositeFieldContainer[_writeback_pb2.WorkspaceWriteBack]
     setup_progress: SetupProgress
     streaming_usage: _usage_pb2.StreamingUsageSummary
     structured_output: _struct_pb2.Struct
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[_message_pb2.AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., sub_agent_executions: _Optional[_Iterable[_Union[_subagent_pb2.SubAgentExecution, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, _todo_pb2.TodoItem]] = ..., callback_token: _Optional[bytes] = ..., resolved_context: _Optional[_Union[_context_pb2.ResolvedExecutionContext, _Mapping]] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ..., context_info: _Optional[_Union[_context_pb2.ContextInfo, _Mapping]] = ..., artifacts: _Optional[_Iterable[_Union[_artifact_pb2.ExecutionArtifact, _Mapping]]] = ..., workspace_write_backs: _Optional[_Iterable[_Union[_writeback_pb2.WorkspaceWriteBack, _Mapping]]] = ..., setup_progress: _Optional[_Union[SetupProgress, _Mapping]] = ..., streaming_usage: _Optional[_Union[_usage_pb2.StreamingUsageSummary, _Mapping]] = ..., structured_output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[_message_pb2.AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., sub_agent_executions: _Optional[_Iterable[_Union[_subagent_pb2.SubAgentExecution, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, _todo_pb2.TodoItem]] = ..., callback_token: _Optional[bytes] = ..., resolved_context: _Optional[_Union[_context_pb2.ResolvedExecutionContext, _Mapping]] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ..., approval_event_stream: _Optional[_Union[_approval_pb2.ApprovalEventStream, _Mapping]] = ..., context_info: _Optional[_Union[_context_pb2.ContextInfo, _Mapping]] = ..., artifacts: _Optional[_Iterable[_Union[_artifact_pb2.ExecutionArtifact, _Mapping]]] = ..., workspace_write_backs: _Optional[_Iterable[_Union[_writeback_pb2.WorkspaceWriteBack, _Mapping]]] = ..., setup_progress: _Optional[_Union[SetupProgress, _Mapping]] = ..., streaming_usage: _Optional[_Union[_usage_pb2.StreamingUsageSummary, _Mapping]] = ..., structured_output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
 
 class SetupProgress(_message.Message):
     __slots__ = ("current_phase",)

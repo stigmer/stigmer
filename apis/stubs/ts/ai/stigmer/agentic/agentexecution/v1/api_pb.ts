@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { PendingApproval } from "./approval_pb.js";
+import type { ApprovalEventStream, PendingApproval } from "./approval_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_approval } from "./approval_pb.js";
 import type { ExecutionArtifact } from "./artifact_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_artifact } from "./artifact_pb.js";
@@ -36,7 +36,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBpLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEiywIKDkFnZW50RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiMKBGtpbmQYAiABKAlCFbpIEnIQCg5BZ2VudEV4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESRgoEc3BlYxgEIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEV4ZWN1dGlvblNwZWMSSgoGc3RhdHVzGAUgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3RhdHVzIrkJChRBZ2VudEV4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EkQKCG1lc3NhZ2VzGAEgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50TWVzc2FnZRJNCgVwaGFzZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZUIIukgFggECEAESVQoUc3ViX2FnZW50X2V4ZWN1dGlvbnMYBCADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU3ViQWdlbnRFeGVjdXRpb24SDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSVAoFdG9kb3MYCSADKAsyRS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXMuVG9kb3NFbnRyeRIWCg5jYWxsYmFja190b2tlbhgKIAEoDBJYChByZXNvbHZlZF9jb250ZXh0GAwgASgLMj4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlJlc29sdmVkRXhlY3V0aW9uQ29udGV4dBJQChFwZW5kaW5nX2FwcHJvdmFscxgQIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwSRwoMY29udGV4dF9pbmZvGA4gASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRJbmZvEkoKCWFydGlmYWN0cxgPIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdBJXChV3b3Jrc3BhY2Vfd3JpdGVfYmFja3MYESADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuV29ya3NwYWNlV3JpdGVCYWNrEksKDnNldHVwX3Byb2dyZXNzGBIgASgLMjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNldHVwUHJvZ3Jlc3MSVAoPc3RyZWFtaW5nX3VzYWdlGBQgASgLMjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlN0cmVhbWluZ1VzYWdlU3VtbWFyeRIyChFzdHJ1Y3R1cmVkX291dHB1dBgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QaXAoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSPQoFdmFsdWUYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9kb0l0ZW06AjgBIiYKDVNldHVwUHJvZ3Jlc3MSFQoNY3VycmVudF9waGFzZRgBIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_agentexecution_v1_artifact, file_ai_stigmer_agentic_agentexecution_v1_context, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_agentexecution_v1_subagent, file_ai_stigmer_agentic_agentexecution_v1_todo, file_ai_stigmer_agentic_agentexecution_v1_usage, file_ai_stigmer_agentic_agentexecution_v1_writeback, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBpLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEiywIKDkFnZW50RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiMKBGtpbmQYAiABKAlCFbpIEnIQCg5BZ2VudEV4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESRgoEc3BlYxgEIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEV4ZWN1dGlvblNwZWMSSgoGc3RhdHVzGAUgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3RhdHVzIpMKChRBZ2VudEV4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EkQKCG1lc3NhZ2VzGAEgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50TWVzc2FnZRJNCgVwaGFzZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZUIIukgFggECEAESVQoUc3ViX2FnZW50X2V4ZWN1dGlvbnMYBCADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU3ViQWdlbnRFeGVjdXRpb24SDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSVAoFdG9kb3MYCSADKAsyRS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXMuVG9kb3NFbnRyeRIWCg5jYWxsYmFja190b2tlbhgKIAEoDBJYChByZXNvbHZlZF9jb250ZXh0GAwgASgLMj4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlJlc29sdmVkRXhlY3V0aW9uQ29udGV4dBJQChFwZW5kaW5nX2FwcHJvdmFscxgQIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwSWAoVYXBwcm92YWxfZXZlbnRfc3RyZWFtGBYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsRXZlbnRTdHJlYW0SRwoMY29udGV4dF9pbmZvGA4gASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRJbmZvEkoKCWFydGlmYWN0cxgPIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdBJXChV3b3Jrc3BhY2Vfd3JpdGVfYmFja3MYESADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuV29ya3NwYWNlV3JpdGVCYWNrEksKDnNldHVwX3Byb2dyZXNzGBIgASgLMjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNldHVwUHJvZ3Jlc3MSVAoPc3RyZWFtaW5nX3VzYWdlGBQgASgLMjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlN0cmVhbWluZ1VzYWdlU3VtbWFyeRIyChFzdHJ1Y3R1cmVkX291dHB1dBgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QaXAoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSPQoFdmFsdWUYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9kb0l0ZW06AjgBIiYKDVNldHVwUHJvZ3Jlc3MSFQoNY3VycmVudF9waGFzZRgBIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_agentexecution_v1_artifact, file_ai_stigmer_agentic_agentexecution_v1_context, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_agentexecution_v1_subagent, file_ai_stigmer_agentic_agentexecution_v1_todo, file_ai_stigmer_agentic_agentexecution_v1_usage, file_ai_stigmer_agentic_agentexecution_v1_writeback, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * AgentExecution represents a single agent execution instance (conversational).
@@ -235,6 +235,42 @@ export type AgentExecutionStatus = Message<"ai.stigmer.agentic.agentexecution.v1
    * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 16;
    */
   pendingApprovals: PendingApproval[];
+
+  /**
+   * Server-authored, append-only record of every approval request and decision.
+   *
+   * @internal
+   *
+   * This is the persisted form of the append-only stream that is the target
+   * single source of truth for approvals (see ApprovalEventStream in
+   * approval.proto). It is NOT yet read by any surface: pending_approvals is
+   * still projected from the authoritative message scan, and the UI/SDK read
+   * that. The stream coexists as a parallel, independently-authored record so
+   * that (1) the message-scan vs event-stream projection parity check becomes a
+   * real cross-writer regression guard rather than a tautology, and (2) the
+   * approval audit trail — who decided, when, with what comment — has a home,
+   * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+   * capture a decision comment at all.
+   *
+   * Field ownership (one writer per event type):
+   *   - REQUESTED events are authored by the UpdateStatus handlers when a tool
+   *     call enters WAITING_APPROVAL (seeded once from the message scan for
+   *     executions that predate this field).
+   *   - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+   *     SubmitApproval handler, carrying decided_by and the user's comment.
+   *
+   * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+   * stream is idempotent under retries and the rich decision event (authored in
+   * the same operation that records the decision on the message scan) can never
+   * be duplicated or overwritten by a coarse re-derivation.
+   *
+   * Because it is server-only, the agent-runner never sends it; it is preserved
+   * across UpdateStatus writes automatically (the merge starts from the loaded
+   * execution and only replaces runner-owned fields).
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22;
+   */
+  approvalEventStream?: ApprovalEventStream;
 
   /**
    * Context window utilization and summarization tracking.

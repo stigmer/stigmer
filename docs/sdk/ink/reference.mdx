@@ -133,8 +133,10 @@ HITL approval prompt for tool call authorization.
 Displays the tool name and args preview, then presents
 Approve/Approve-all/Reject/Skip options navigable via arrow keys
 or shortcut keys (y/a/n/s). Press Enter to confirm the highlighted
-selection. "Approve & don't ask again" (a) maps to APPROVE_ALL, which
-stops gating the rest of the run.
+selection. The approve-all option (a) maps to APPROVE_ALL, which grants a
+run-lifetime lease scoped to the clicked tool's CLASS (its MCP server, or its
+file edit / delete / shell category) — other classes keep prompting. The
+option label names that class so the scope is never a surprise.
 
 **Props** — `ApprovalPromptProps`
 

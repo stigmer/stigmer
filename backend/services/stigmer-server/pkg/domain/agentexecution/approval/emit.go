@@ -4,23 +4,29 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 )
 
-// Phase-1 actors for approval events. REQUESTED is raised by the platform when a
-// gated tool call appears; decisions are attributed to the user.
+// Actors for approval events. REQUESTED is raised by the platform when a gated
+// tool call appears; decisions are attributed to the user.
 const (
 	actorSystem = "system"
 	actorUser   = "user"
 )
 
-// EmitApprovalEvents derives an append-only approval-event stream from the same
-// authoritative tool-call state that ComputePendingApprovals scans.
+// EmitApprovalEvents derives a complete append-only approval-event stream from
+// the same authoritative tool-call state that ComputePendingApprovals scans.
 //
-// This is the Phase-1 bridge: the stream is computed in shadow beside the
-// message scan so the two can be compared for parity (see ProjectPendingApprovals)
-// before the source of truth ever flips. It therefore reproduces the scan's
-// rules exactly — a REQUESTED event for every WAITING_APPROVAL tool call that
-// requires approval, a decision event for every such call that already carries
-// an approval_action, and the same terminal-sub-agent exclusion (orphaned
-// approvals inside a finished sub-agent never surface).
+// It is the seed for the persisted stream: EnsureApprovalRequests (author.go)
+// calls it once when an execution's stream is empty, so a new execution starts
+// with its REQUESTED events and an execution that predates the persisted field
+// gets a consistent ledger (REQUESTED plus the coarse decisions already on the
+// scan) without spurious projection-divergence warnings. The decisions it derives
+// are coarse (no decided_by/comment); the rich decision is authored separately by
+// RecordDecisionEvent and wins via append-if-absent.
+//
+// It reproduces the scan's rules exactly — a REQUESTED event for every
+// WAITING_APPROVAL tool call that requires approval, a decision event for every
+// such call that already carries an approval_action, and the same terminal
+// sub-agent exclusion (orphaned approvals inside a finished sub-agent never
+// surface) — so ComputePendingApprovalsFromEvents over the seed equals the scan.
 func EmitApprovalEvents(
 	messages []*agentexecutionv1.AgentMessage,
 	subAgentExecutions []*agentexecutionv1.SubAgentExecution,
@@ -60,53 +66,89 @@ func appendToolCallEvents(
 	// Only tool calls that actually entered the approval gate produce events — a
 	// call that never required approval is invisible to the stream, exactly as it
 	// is to the message scan.
-	if tc.GetStatus() != agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL {
-		return
-	}
-	if !tc.GetRequiresApproval() {
+	if !isGatedToolCall(tc) {
 		return
 	}
 
-	// Phase 1: events are derived from a single tool call, so the harness
-	// tool_call_id is a stable, deterministic correlation id. Correlation is
-	// never a content hash. A later phase authors a UUID when SubmitApproval
-	// emits events directly.
+	stream.Events = append(stream.Events, buildRequestedEvent(tc, fromSubAgent, subAgentName, subAgentSubject))
+
+	// The shadow seed carries a coarse decision (no decided_by/comment); the
+	// authoritative rich decision is authored by SubmitApproval via
+	// RecordDecisionEvent (author.go). Append-if-absent by event_id guarantees
+	// the rich one, written in the same op that records the decision, always wins.
+	if decided := buildDecisionEvent(tc, "", ""); decided != nil {
+		stream.Events = append(stream.Events, decided)
+	}
+}
+
+// isGatedToolCall reports whether a tool call has entered the approval gate, i.e.
+// it is the single condition under which a tool call produces approval events.
+// It is the exact gate the message scan uses (compute.go projectToolCall), minus
+// the decision check — a gated call produces a REQUESTED event whether or not a
+// decision has since been recorded.
+func isGatedToolCall(tc *agentexecutionv1.ToolCall) bool {
+	return tc.GetStatus() == agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL &&
+		tc.GetRequiresApproval()
+}
+
+// buildRequestedEvent constructs the REQUESTED event for a gated tool call.
+// Callers must have confirmed isGatedToolCall(tc).
+//
+// approval_request_id equals the harness tool_call_id: a stable, deterministic
+// correlation id for the run (never a content hash). The ApprovalRequest payload
+// carries the same display fields as PendingApproval so the event-stream
+// projection reconstructs the identical PendingApproval the message scan does
+// (compute.go), without joining back to the ToolCall.
+func buildRequestedEvent(
+	tc *agentexecutionv1.ToolCall,
+	fromSubAgent bool,
+	subAgentName, subAgentSubject string,
+) *agentexecutionv1.ApprovalEvent {
 	requestID := tc.GetId()
-
-	request := &agentexecutionv1.ApprovalRequest{
-		ApprovalRequestId: requestID,
-		ToolCallId:        tc.GetId(),
-		RequestedAt:       tc.GetApprovalRequestedAt(),
-		ToolName:          tc.GetName(),
-		Message:           tc.GetApprovalMessage(),
-		ArgsPreview:       tc.GetArgsPreview(),
-		FromSubAgent:      fromSubAgent,
-		SubAgentName:      subAgentName,
-		SubAgentSubject:   subAgentSubject,
-		McpServerSlug:     tc.GetMcpServerSlug(),
-		ToolKind:          tc.GetToolKind(),
-		// Carried so the event-stream projection reconstructs the same
-		// PendingApproval the message scan does (compute.go) — keeps
-		// ProjectPendingApprovals fromScan == fromEvents.
-		ApprovalPolicySource: tc.GetApprovalPolicySource(),
-		FileChanges:          tc.GetFileChanges(),
-	}
-	stream.Events = append(stream.Events, &agentexecutionv1.ApprovalEvent{
+	return &agentexecutionv1.ApprovalEvent{
 		EventId:           eventID(requestID, agentexecutionv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED),
 		ApprovalRequestId: requestID,
 		EventType:         agentexecutionv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED,
 		Timestamp:         tc.GetApprovalRequestedAt(),
 		Actor:             actorSystem,
-		Payload:           &agentexecutionv1.ApprovalEvent_Requested{Requested: request},
-	})
+		Payload: &agentexecutionv1.ApprovalEvent_Requested{Requested: &agentexecutionv1.ApprovalRequest{
+			ApprovalRequestId: requestID,
+			ToolCallId:        tc.GetId(),
+			RequestedAt:       tc.GetApprovalRequestedAt(),
+			ToolName:          tc.GetName(),
+			Message:           tc.GetApprovalMessage(),
+			ArgsPreview:       tc.GetArgsPreview(),
+			FromSubAgent:      fromSubAgent,
+			SubAgentName:      subAgentName,
+			SubAgentSubject:   subAgentSubject,
+			McpServerSlug:     tc.GetMcpServerSlug(),
+			ToolKind:          tc.GetToolKind(),
+			// Carried so the event-stream projection reconstructs the same
+			// PendingApproval the message scan does (compute.go) — keeps
+			// ProjectPendingApprovals fromScan == fromEvents.
+			ApprovalPolicySource: tc.GetApprovalPolicySource(),
+			FileChanges:          tc.GetFileChanges(),
+		}},
+	}
+}
 
+// buildDecisionEvent constructs the decision event for a tool call that carries
+// an approval_action, or returns nil when no decision has been recorded.
+//
+// decidedBy and comment are the audit metadata the flat ToolCall fields cannot
+// hold; the shadow seed (emit.go) passes them empty, while SubmitApproval passes
+// the real decider and the user's comment (author.go). The coarse event_type
+// buckets APPROVE_ALL as APPROVED; the precise action survives on the payload's
+// ApprovalDecision.action.
+func buildDecisionEvent(tc *agentexecutionv1.ToolCall, decidedBy, comment string) *agentexecutionv1.ApprovalEvent {
 	action := tc.GetApprovalAction()
 	if action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
-		return
+		return nil
 	}
 
+	requestID := tc.GetId()
 	eventType := decisionEventType(action)
-	stream.Events = append(stream.Events, &agentexecutionv1.ApprovalEvent{
+	return &agentexecutionv1.ApprovalEvent{
 		EventId:           eventID(requestID, eventType),
 		ApprovalRequestId: requestID,
 		EventType:         eventType,
@@ -116,8 +158,10 @@ func appendToolCallEvents(
 			ApprovalRequestId: requestID,
 			Action:            action,
 			DecidedAt:         tc.GetApprovalDecidedAt(),
+			DecidedBy:         decidedBy,
+			Comment:           comment,
 		}},
-	})
+	}
 }
 
 // decisionEventType maps a precise ApprovalAction to the coarse lifecycle bucket

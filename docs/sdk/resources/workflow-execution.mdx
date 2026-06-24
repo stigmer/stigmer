@@ -1531,6 +1531,7 @@ A pending approval request for a tool call that requires user consent before exe
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
     fileChanges: { type: "FileChange[]", description: "File changes the gated tool call would produce (create / modify / delete / rename), captured by the runner at approval-request time: `before` is read from the workspace when the approval is raised, `after` is derived from the tool args.", typeDescriptionLink: "#filechange" },
+    approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this tool call, copied from ToolCall.approval_policy_source by the server-side projection (exactly as tool_kind above is).", typeDescriptionLink: "#approvalpolicysource" },
   }}
 />
 
@@ -1592,7 +1593,7 @@ ApprovalAction represents the user's decision on an approval request.
 | `APPROVAL_ACTION_APPROVE` | Execute the tool normally. |
 | `APPROVAL_ACTION_SKIP` | Skip tool execution, continue without it. |
 | `APPROVAL_ACTION_REJECT` | Reject tool execution, fail the entire execution. |
-| `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND auto-approve every subsequent tool call for the rest of this execution ("approve and don't ask again"). |
+| `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND grant a run-lifetime lease that auto-approves every subsequent tool call of the SAME class for the rest of this execution ("approve all of this kind, don't ask again"). |
 
 ### ExecutionPhase
 
@@ -1697,6 +1698,20 @@ ToolKind is the harness-agnostic category of a tool call.
 | `TOOL_KIND_TODO` | Manage the agent's todo list. |
 | `TOOL_KIND_SUBAGENT` | Delegate work to a sub-agent. |
 | `TOOL_KIND_MCP` | A tool provided by an MCP server. |
+
+### ApprovalPolicySource
+
+ApprovalPolicySource is the policy layer that decided a tool call's approval requirement — the provenance recorded on every gated or auto-approved tool call so an execution's authorizations are auditable.
+
+| Value | Description |
+|-------|-------------|
+| `APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT` | Layer 1: the connect-time classifier's default for an MCP tool (McpServerStatus.tool_approvals). |
+| `APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE` | Layer 2: an operator's pinned override on the MCP server blueprint (McpServerSpec.pinned_tool_approvals). |
+| `APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE` | Layer 3: an agent-level override for an MCP tool (Agent McpServerUsage.tool_approval_overrides). |
+| `APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL` | Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global bypass cleared this call. |
+| `APPROVAL_POLICY_SOURCE_APPROVAL_LEASE` | Layer 4: a run-lifetime scoped lease (the successor to a global "approve all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched the leased class. |
+| `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | A non-MCP built-in tool gated by the shared tool taxonomy (write / delete / shell). |
+| `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The connect-time MCP destructiveHint tightener forced this tool to require approval, overriding a more permissive classifier verdict. |
 
 ### WorkflowTaskType
 

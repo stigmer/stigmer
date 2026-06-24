@@ -98,10 +98,40 @@ func TestProjectPendingApprovalsReturnsMessageScan(t *testing.T) {
 		),
 	}
 	want := ComputePendingApprovals(msgs, nil)
-	got := ProjectPendingApprovals(msgs, nil)
+	got := ProjectPendingApprovals(msgs, nil, EmitApprovalEvents(msgs, nil))
 
 	if diff := diffPendingApprovals(want, got); diff != "" {
 		t.Errorf("seam result differs from message scan: %s", diff)
+	}
+}
+
+// TestParityGuardDetectsMissingDecisionEvent proves the projection parity check
+// is a real cross-writer guard now that it reads the persisted stream: if the
+// scan records a decision but the stream is missing the matching DECIDED event
+// (the failure mode where SubmitApproval recorded on the scan but failed to
+// author the event), the scan and event projections diverge. This is the
+// regression the tautological shadow-derivation could never catch.
+func TestParityGuardDetectsMissingDecisionEvent(t *testing.T) {
+	waiting := agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL
+	approve := agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
+
+	// Scan: tc1 is decided (APPROVE) → not pending.
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeAIMessage(makeToolCall("tc1", "delete_file", waiting, true, approve)),
+	}
+	fromScan := ComputePendingApprovals(msgs, nil)
+
+	// Stream as authored by a buggy writer: REQUESTED present, DECIDED missing →
+	// the event projection still sees tc1 as pending.
+	streamMissingDecision := &agentexecutionv1.ApprovalEventStream{
+		Events: []*agentexecutionv1.ApprovalEvent{
+			buildRequestedEvent(makeToolCall("tc1", "delete_file", waiting, true, approve), false, "", ""),
+		},
+	}
+	fromEvents := ComputePendingApprovalsFromEvents(streamMissingDecision)
+
+	if diff := diffPendingApprovals(fromScan, fromEvents); diff == "" {
+		t.Error("expected the parity guard to detect a missing DECISION event, got no divergence")
 	}
 }
 

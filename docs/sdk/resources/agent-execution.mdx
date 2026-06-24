@@ -1614,6 +1614,7 @@ AgentExecutionStatus contains all execution results and state.
     callbackToken: { type: "Uint8Array", description: "Callback token for notifying a parent workflow when this execution completes." },
     resolvedContext: { type: "ResolvedExecutionContext", description: "Resolved execution context showing what resources the agent had access to.", typeDescriptionLink: "#resolvedexecutioncontext" },
     pendingApprovals: { type: "PendingApproval[]", description: "Active pending approval requests for this execution.", typeDescriptionLink: "#pendingapproval" },
+    approvalEventStream: { type: "ApprovalEventStream", description: "Server-authored, append-only record of every approval request and decision.", typeDescriptionLink: "#approvaleventstream" },
     contextInfo: { type: "ContextInfo", description: "Context window utilization and summarization tracking.", typeDescriptionLink: "#contextinfo" },
     artifacts: { type: "ExecutionArtifact[]", description: "Files/directories published by the agent for download.", typeDescriptionLink: "#executionartifact" },
     workspaceWriteBacks: { type: "WorkspaceWriteBack[]", description: "Git write-back outcomes for workspace entries that had changes.", typeDescriptionLink: "#workspacewriteback" },
@@ -1635,6 +1636,69 @@ Represents a single message in the agent conversation.
     toolCalls: { type: "ToolCall[]", description: "Tool calls associated with this message (if type == ai and tools were invoked).", typeDescriptionLink: "#toolcall" },
     metadata: { type: "object", description: "Optional message metadata." },
     isStreaming: { type: "boolean", description: "True while the AI is actively generating this message, false when complete." },
+  }}
+/>
+
+### ApprovalDecision
+
+A user's decision on an approval request.
+
+<TypeTable
+  type={{
+    approvalRequestId: { type: "string", description: "Correlates this decision to its ApprovalRequest." },
+    action: { type: "ApprovalAction", description: "The precise user action (APPROVE / SKIP / REJECT / APPROVE_ALL).", typeDescriptionLink: "#approvalaction" },
+    decidedAt: { type: "string", description: "ISO 8601 timestamp when the decision was made." },
+    decidedBy: { type: "string", description: "Identity of the decider (principal)." },
+    comment: { type: "string", description: "Optional free-text comment supplied with the decision (e.g. a rejection reason)." },
+  }}
+/>
+
+### ApprovalEvent
+
+An immutable event in the approval lifecycle.
+
+<TypeTable
+  type={{
+    eventId: { type: "string", description: "Unique id of this event." },
+    approvalRequestId: { type: "string", description: "Correlation id shared by every event for one approval (request + decision)." },
+    eventType: { type: "ApprovalEventType", description: "Coarse lifecycle bucket of this event.", typeDescriptionLink: "#approvaleventtype" },
+    timestamp: { type: "string", description: "ISO 8601 timestamp of the event." },
+    actor: { type: "string", description: "Who produced the event: \"system\" for REQUESTED, \"user\" for decisions." },
+    requested: { type: "ApprovalRequest", description: "Set when event_type == REQUESTED.", typeDescriptionLink: "#approvalrequest" },
+    decided: { type: "ApprovalDecision", description: "Set for decision events (APPROVED / REJECTED / SKIPPED).", typeDescriptionLink: "#approvaldecision" },
+  }}
+/>
+
+### ApprovalEventStream
+
+The ordered sequence of approval events for a single agent execution.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "AgentExecution.metadata.id this stream belongs to." },
+    events: { type: "ApprovalEvent[]", description: "Events in lifecycle order.", typeDescriptionLink: "#approvalevent" },
+  }}
+/>
+
+### ApprovalRequest
+
+A tool call requesting approval — the "ask" recorded when a gated tool call enters WAITING_APPROVAL.
+
+<TypeTable
+  type={{
+    approvalRequestId: { type: "string", description: "Stigmer-generated correlation id for this approval, stable across harness re-drives." },
+    toolCallId: { type: "string", description: "Harness tool-call id of the gated call." },
+    requestedAt: { type: "string", description: "ISO 8601 timestamp when approval was requested." },
+    toolName: { type: "string", description: "Name of the tool requiring approval." },
+    message: { type: "string", description: "Human-readable approval message for display." },
+    argsPreview: { type: "string", description: "Sanitized preview of tool arguments." },
+    fromSubAgent: { type: "boolean", description: "True if this approval originates from a sub-agent." },
+    subAgentName: { type: "string", description: "Name of the sub-agent when from_sub_agent is true; empty otherwise." },
+    subAgentSubject: { type: "string", description: "Concise subject of the sub-agent's task when from_sub_agent is true; empty otherwise." },
+    mcpServerSlug: { type: "string", description: "Slug of the MCP server providing this tool; empty for built-in tools." },
+    toolKind: { type: "ToolKind", description: "Harness-agnostic tool category.", typeDescriptionLink: "#toolkind" },
+    fileChanges: { type: "FileChange[]", description: "File changes the gated call would produce.", typeDescriptionLink: "#filechange" },
+    approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this call.", typeDescriptionLink: "#approvalpolicysource" },
   }}
 />
 
@@ -1735,6 +1799,7 @@ A pending approval request for a tool call that requires user consent before exe
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
     fileChanges: { type: "FileChange[]", description: "File changes the gated tool call would produce (create / modify / delete / rename), captured by the runner at approval-request time: `before` is read from the workspace when the approval is raised, `after` is derived from the tool args.", typeDescriptionLink: "#filechange" },
+    approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this tool call, copied from ToolCall.approval_policy_source by the server-side projection (exactly as tool_kind above is).", typeDescriptionLink: "#approvalpolicysource" },
   }}
 />
 
@@ -1862,6 +1927,8 @@ Represents a tool call made by the agent during execution.
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of this tool, set by the runner so clients render the tool identically regardless of which engine produced it.", typeDescriptionLink: "#toolkind" },
     outputRef: { type: "ToolCallOutputRef", description: "───────────────────────────────────────────────────────────────────────────── Offloaded Output (large tool results).", typeDescriptionLink: "#toolcalloutputref" },
     fileChanges: { type: "FileChange[]", description: "File changes produced by this tool call (create / modify / delete / rename).", typeDescriptionLink: "#filechange" },
+    approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that decided this tool call's approval requirement, set by the runner's approval gate so clients can explain \"why was this gated or auto-approved?\".", typeDescriptionLink: "#approvalpolicysource" },
+    policyEngineVersion: { type: "string", description: "Identifier of the policy-engine logic that produced approval_policy_source, bumped when the merge/classification semantics change so decisions made by different engine versions stay distinguishable in audits." },
   }}
 />
 
@@ -1916,7 +1983,7 @@ ApprovalAction represents the user's decision on an approval request.
 | `APPROVAL_ACTION_APPROVE` | Execute the tool normally. |
 | `APPROVAL_ACTION_SKIP` | Skip tool execution, continue without it. |
 | `APPROVAL_ACTION_REJECT` | Reject tool execution, fail the entire execution. |
-| `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND auto-approve every subsequent tool call for the rest of this execution ("approve and don't ask again"). |
+| `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND grant a run-lifetime lease that auto-approves every subsequent tool call of the SAME class for the rest of this execution ("approve all of this kind, don't ask again"). |
 
 ### ExecutionPhase
 
@@ -1956,6 +2023,51 @@ MessageType defines the type of message in the conversation.
 | `MESSAGE_SYSTEM` | A system-generated message injected by the platform (e.g., budget warnings, summarization notices). |
 | `MESSAGE_THINKING` | Reasoning/thinking content from the model. |
 
+### ApprovalEventType
+
+ApprovalEventType is the kind of event in the append-only approval-event stream (see ApprovalEvent in approval.proto).
+
+| Value | Description |
+|-------|-------------|
+| `APPROVAL_EVENT_TYPE_REQUESTED` | A tool call was gated and is awaiting a user decision. |
+| `APPROVAL_EVENT_TYPE_APPROVED` | The user approved the request (APPROVE or APPROVE_ALL); the tool may run. |
+| `APPROVAL_EVENT_TYPE_REJECTED` | The user rejected the request; the execution fails. |
+| `APPROVAL_EVENT_TYPE_SKIPPED` | The user skipped the request; execution continues without the tool. |
+
+### ToolKind
+
+ToolKind is the harness-agnostic category of a tool call.
+
+| Value | Description |
+|-------|-------------|
+| `TOOL_KIND_FILE_READ` | Read a file's contents. |
+| `TOOL_KIND_FILE_WRITE` | Create or overwrite an entire file. |
+| `TOOL_KIND_FILE_EDIT` | Modify part of an existing file. |
+| `TOOL_KIND_FILE_DELETE` | Delete a file. |
+| `TOOL_KIND_SHELL` | Execute a shell command. |
+| `TOOL_KIND_SEARCH` | Search file contents or names. |
+| `TOOL_KIND_LIST` | List a directory. |
+| `TOOL_KIND_FETCH` | Fetch the contents of a URL. |
+| `TOOL_KIND_WEB_SEARCH` | Search the web. |
+| `TOOL_KIND_THINK` | Record model reasoning via a think tool. |
+| `TOOL_KIND_TODO` | Manage the agent's todo list. |
+| `TOOL_KIND_SUBAGENT` | Delegate work to a sub-agent. |
+| `TOOL_KIND_MCP` | A tool provided by an MCP server. |
+
+### ApprovalPolicySource
+
+ApprovalPolicySource is the policy layer that decided a tool call's approval requirement — the provenance recorded on every gated or auto-approved tool call so an execution's authorizations are auditable.
+
+| Value | Description |
+|-------|-------------|
+| `APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT` | Layer 1: the connect-time classifier's default for an MCP tool (McpServerStatus.tool_approvals). |
+| `APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE` | Layer 2: an operator's pinned override on the MCP server blueprint (McpServerSpec.pinned_tool_approvals). |
+| `APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE` | Layer 3: an agent-level override for an MCP tool (Agent McpServerUsage.tool_approval_overrides). |
+| `APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL` | Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global bypass cleared this call. |
+| `APPROVAL_POLICY_SOURCE_APPROVAL_LEASE` | Layer 4: a run-lifetime scoped lease (the successor to a global "approve all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched the leased class. |
+| `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | A non-MCP built-in tool gated by the shared tool taxonomy (write / delete / shell). |
+| `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The connect-time MCP destructiveHint tightener forced this tool to require approval, overriding a more permissive classifier verdict. |
+
 ### ExecutionArtifactKind
 
 ExecutionArtifactKind defines the type of artifact published by an agent.
@@ -1984,26 +2096,6 @@ FileChangeCaptureLevel describes how complete a FileChange's captured content is
 |-------|-------------|
 | `FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE` | Full before+after content captured (native edit/write; future Cursor pre-read). |
 | `FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY` | Only a hunk-level unified_diff is available (Cursor today). |
-
-### ToolKind
-
-ToolKind is the harness-agnostic category of a tool call.
-
-| Value | Description |
-|-------|-------------|
-| `TOOL_KIND_FILE_READ` | Read a file's contents. |
-| `TOOL_KIND_FILE_WRITE` | Create or overwrite an entire file. |
-| `TOOL_KIND_FILE_EDIT` | Modify part of an existing file. |
-| `TOOL_KIND_FILE_DELETE` | Delete a file. |
-| `TOOL_KIND_SHELL` | Execute a shell command. |
-| `TOOL_KIND_SEARCH` | Search file contents or names. |
-| `TOOL_KIND_LIST` | List a directory. |
-| `TOOL_KIND_FETCH` | Fetch the contents of a URL. |
-| `TOOL_KIND_WEB_SEARCH` | Search the web. |
-| `TOOL_KIND_THINK` | Record model reasoning via a think tool. |
-| `TOOL_KIND_TODO` | Manage the agent's todo list. |
-| `TOOL_KIND_SUBAGENT` | Delegate work to a sub-agent. |
-| `TOOL_KIND_MCP` | A tool provided by an MCP server. |
 
 ### SubAgentStatus
 

@@ -531,6 +531,120 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
 
   /**
    * <pre>
+   * Server-authored, append-only record of every approval request and decision.
+   *
+   * &#64;internal
+   *
+   * This is the persisted form of the append-only stream that is the target
+   * single source of truth for approvals (see ApprovalEventStream in
+   * approval.proto). It is NOT yet read by any surface: pending_approvals is
+   * still projected from the authoritative message scan, and the UI/SDK read
+   * that. The stream coexists as a parallel, independently-authored record so
+   * that (1) the message-scan vs event-stream projection parity check becomes a
+   * real cross-writer regression guard rather than a tautology, and (2) the
+   * approval audit trail — who decided, when, with what comment — has a home,
+   * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+   * capture a decision comment at all.
+   *
+   * Field ownership (one writer per event type):
+   * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+   * call enters WAITING_APPROVAL (seeded once from the message scan for
+   * executions that predate this field).
+   * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+   * SubmitApproval handler, carrying decided_by and the user's comment.
+   *
+   * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+   * stream is idempotent under retries and the rich decision event (authored in
+   * the same operation that records the decision on the message scan) can never
+   * be duplicated or overwritten by a coarse re-derivation.
+   *
+   * Because it is server-only, the agent-runner never sends it; it is preserved
+   * across UpdateStatus writes automatically (the merge starts from the loaded
+   * execution and only replaces runner-owned fields).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+   * @return Whether the approvalEventStream field is set.
+   */
+  boolean hasApprovalEventStream();
+  /**
+   * <pre>
+   * Server-authored, append-only record of every approval request and decision.
+   *
+   * &#64;internal
+   *
+   * This is the persisted form of the append-only stream that is the target
+   * single source of truth for approvals (see ApprovalEventStream in
+   * approval.proto). It is NOT yet read by any surface: pending_approvals is
+   * still projected from the authoritative message scan, and the UI/SDK read
+   * that. The stream coexists as a parallel, independently-authored record so
+   * that (1) the message-scan vs event-stream projection parity check becomes a
+   * real cross-writer regression guard rather than a tautology, and (2) the
+   * approval audit trail — who decided, when, with what comment — has a home,
+   * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+   * capture a decision comment at all.
+   *
+   * Field ownership (one writer per event type):
+   * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+   * call enters WAITING_APPROVAL (seeded once from the message scan for
+   * executions that predate this field).
+   * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+   * SubmitApproval handler, carrying decided_by and the user's comment.
+   *
+   * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+   * stream is idempotent under retries and the rich decision event (authored in
+   * the same operation that records the decision on the message scan) can never
+   * be duplicated or overwritten by a coarse re-derivation.
+   *
+   * Because it is server-only, the agent-runner never sends it; it is preserved
+   * across UpdateStatus writes automatically (the merge starts from the loaded
+   * execution and only replaces runner-owned fields).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+   * @return The approvalEventStream.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream getApprovalEventStream();
+  /**
+   * <pre>
+   * Server-authored, append-only record of every approval request and decision.
+   *
+   * &#64;internal
+   *
+   * This is the persisted form of the append-only stream that is the target
+   * single source of truth for approvals (see ApprovalEventStream in
+   * approval.proto). It is NOT yet read by any surface: pending_approvals is
+   * still projected from the authoritative message scan, and the UI/SDK read
+   * that. The stream coexists as a parallel, independently-authored record so
+   * that (1) the message-scan vs event-stream projection parity check becomes a
+   * real cross-writer regression guard rather than a tautology, and (2) the
+   * approval audit trail — who decided, when, with what comment — has a home,
+   * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+   * capture a decision comment at all.
+   *
+   * Field ownership (one writer per event type):
+   * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+   * call enters WAITING_APPROVAL (seeded once from the message scan for
+   * executions that predate this field).
+   * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+   * SubmitApproval handler, carrying decided_by and the user's comment.
+   *
+   * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+   * stream is idempotent under retries and the rich decision event (authored in
+   * the same operation that records the decision on the message scan) can never
+   * be duplicated or overwritten by a coarse re-derivation.
+   *
+   * Because it is server-only, the agent-runner never sends it; it is preserved
+   * across UpdateStatus writes automatically (the merge starts from the loaded
+   * execution and only replaces runner-owned fields).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.ApprovalEventStreamOrBuilder getApprovalEventStreamOrBuilder();
+
+  /**
+   * <pre>
    * Context window utilization and summarization tracking.
    *
    * Provides visibility into how the agent is using its context window and

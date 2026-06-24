@@ -67,6 +67,18 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 			approval := waiting.GetStatus().GetPendingApprovals()[0]
 			t.Logf("pending approval: tool=%s, id=%s", approval.GetToolName(), approval.GetToolCallId())
 
+			// The server persists an append-only approval-event stream alongside the
+			// authoritative message scan. While WAITING it must already carry a
+			// REQUESTED event for the gated tool call, and projecting that persisted
+			// stream must reproduce pending_approvals exactly (the Scope-A parity that
+			// must hold before the source of truth can flip).
+			waitingStream := waiting.GetStatus().GetApprovalEventStream()
+			require.NotNil(t, waitingStream, "WAITING execution must persist an approval_event_stream")
+			require.True(t,
+				hitlStreamHasEvent(waitingStream, approval.GetToolCallId(),
+					agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED),
+				"persisted stream must carry a REQUESTED event for the pending tool call")
+
 			result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
 				exec.GetMetadata().GetId(),
 				agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
@@ -75,8 +87,28 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 			)
 			require.NoError(t, err, "execution should complete after approval")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+			// After approval, the stream carries the matching decision event authored
+			// by SubmitApproval (the rich, audit-bearing record the flat ToolCall
+			// fields cannot hold).
+			finalStream := result.GetStatus().GetApprovalEventStream()
+			require.True(t,
+				hitlStreamHasEvent(finalStream, approval.GetToolCallId(),
+					agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_APPROVED),
+				"persisted stream must carry the APPROVED decision event after approval")
 		})
 	}
+}
+
+// hitlStreamHasEvent reports whether the persisted approval-event stream contains
+// an event of the given type for the given approval request (== tool_call_id).
+func hitlStreamHasEvent(stream *agentexecv1.ApprovalEventStream, requestID string, eventType agentexecv1.ApprovalEventType) bool {
+	for _, ev := range stream.GetEvents() {
+		if ev.GetApprovalRequestId() == requestID && ev.GetEventType() == eventType {
+			return true
+		}
+	}
+	return false
 }
 
 func TestAgentExecution_HITL_Skip(t *testing.T) {

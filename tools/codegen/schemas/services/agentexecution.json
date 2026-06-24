@@ -1572,63 +1572,29 @@
       ]
     },
     {
-      "name": "ExecutionArtifactKind",
-      "description": "ExecutionArtifactKind defines the type of artifact published by an agent.\n\n When an agent publishes a file, it's stored as-is.\n When an agent publishes a directory, it's archived as a ZIP file.",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind",
+      "name": "ApprovalEventType",
+      "description": "ApprovalEventType is the kind of event in the append-only approval-event\n stream (see ApprovalEvent in approval.proto).\n\n The event stream is the future single source of truth for HITL approvals. In\n Phase 1 of the approval re-architecture it is computed in *shadow* beside the\n existing message-scan projection (PendingApproval) and compared for parity in\n CI — it never feeds the UI yet, so introducing it changes no behavior.\n\n The set is deliberately minimal: only the lifecycle transitions the Phase-1\n event bridge actually derives from tool-call state. Lease-expiry and\n execution-cancellation events are intentionally omitted until a component\n emits them. Enums extend additively, so adding them in a later phase is\n non-breaking.\n\n event_type is the coarse lifecycle bucket; the precise user action (including\n APPROVE_ALL, which buckets as APPROVED) lives on ApprovalDecision.action.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalEventType",
       "values": [
         {
-          "name": "EXECUTION_ARTIFACT_KIND_FILE",
+          "name": "APPROVAL_EVENT_TYPE_REQUESTED",
           "number": 1,
-          "description": "A single file published by the agent."
+          "description": "A tool call was gated and is awaiting a user decision.\n Payload: ApprovalRequest."
         },
         {
-          "name": "EXECUTION_ARTIFACT_KIND_DIRECTORY",
+          "name": "APPROVAL_EVENT_TYPE_APPROVED",
           "number": 2,
-          "description": "A directory published by the agent, archived as a ZIP file for download."
-        }
-      ]
-    },
-    {
-      "name": "FileChangeType",
-      "description": "FileChangeType is the per-file outcome of a file mutation in a tool call.\n\n Distinct from ToolKind, which classifies the tool: a single tool call may\n produce several FileChanges of different types (multi-file edits).\n\n @since First-Class Diff Review (#186)",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeType",
-      "values": [
-        {
-          "name": "FILE_CHANGE_TYPE_CREATE",
-          "number": 1,
-          "description": "A new file was created."
+          "description": "The user approved the request (APPROVE or APPROVE_ALL); the tool may run.\n Payload: ApprovalDecision."
         },
         {
-          "name": "FILE_CHANGE_TYPE_MODIFY",
-          "number": 2,
-          "description": "An existing file's contents were modified."
-        },
-        {
-          "name": "FILE_CHANGE_TYPE_DELETE",
+          "name": "APPROVAL_EVENT_TYPE_REJECTED",
           "number": 3,
-          "description": "A file was deleted."
+          "description": "The user rejected the request; the execution fails.\n Payload: ApprovalDecision."
         },
         {
-          "name": "FILE_CHANGE_TYPE_RENAME",
+          "name": "APPROVAL_EVENT_TYPE_SKIPPED",
           "number": 4,
-          "description": "A file was renamed or moved; FileChange.rename_from holds the source path."
-        }
-      ]
-    },
-    {
-      "name": "FileChangeCaptureLevel",
-      "description": "FileChangeCaptureLevel describes how complete a FileChange's captured content\n is, so clients render whole-file vs hunk-only diffs honestly per harness.\n\n @since First-Class Diff Review (#186)",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel",
-      "values": [
-        {
-          "name": "FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE",
-          "number": 1,
-          "description": "Full before+after content captured (native edit/write; future Cursor\n pre-read). Clients render a true two-pane diff."
-        },
-        {
-          "name": "FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY",
-          "number": 2,
-          "description": "Only a hunk-level unified_diff is available (Cursor today). Clients render\n the hunk diff; before/after whole-file content is absent."
+          "description": "The user skipped the request; execution continues without the tool.\n Payload: ApprovalDecision."
         }
       ]
     },
@@ -1743,6 +1709,67 @@
           "name": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
           "number": 7,
           "description": "The connect-time MCP destructiveHint tightener forced this tool to require\n approval, overriding a more permissive classifier verdict. First-class\n provenance so a tightened tool is distinguishable from a plain classifier\n default. See applyDestructiveHintTightener."
+        }
+      ]
+    },
+    {
+      "name": "ExecutionArtifactKind",
+      "description": "ExecutionArtifactKind defines the type of artifact published by an agent.\n\n When an agent publishes a file, it's stored as-is.\n When an agent publishes a directory, it's archived as a ZIP file.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind",
+      "values": [
+        {
+          "name": "EXECUTION_ARTIFACT_KIND_FILE",
+          "number": 1,
+          "description": "A single file published by the agent."
+        },
+        {
+          "name": "EXECUTION_ARTIFACT_KIND_DIRECTORY",
+          "number": 2,
+          "description": "A directory published by the agent, archived as a ZIP file for download."
+        }
+      ]
+    },
+    {
+      "name": "FileChangeType",
+      "description": "FileChangeType is the per-file outcome of a file mutation in a tool call.\n\n Distinct from ToolKind, which classifies the tool: a single tool call may\n produce several FileChanges of different types (multi-file edits).\n\n @since First-Class Diff Review (#186)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeType",
+      "values": [
+        {
+          "name": "FILE_CHANGE_TYPE_CREATE",
+          "number": 1,
+          "description": "A new file was created."
+        },
+        {
+          "name": "FILE_CHANGE_TYPE_MODIFY",
+          "number": 2,
+          "description": "An existing file's contents were modified."
+        },
+        {
+          "name": "FILE_CHANGE_TYPE_DELETE",
+          "number": 3,
+          "description": "A file was deleted."
+        },
+        {
+          "name": "FILE_CHANGE_TYPE_RENAME",
+          "number": 4,
+          "description": "A file was renamed or moved; FileChange.rename_from holds the source path."
+        }
+      ]
+    },
+    {
+      "name": "FileChangeCaptureLevel",
+      "description": "FileChangeCaptureLevel describes how complete a FileChange's captured content\n is, so clients render whole-file vs hunk-only diffs honestly per harness.\n\n @since First-Class Diff Review (#186)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel",
+      "values": [
+        {
+          "name": "FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE",
+          "number": 1,
+          "description": "Full before+after content captured (native edit/write; future Cursor\n pre-read). Clients render a true two-pane diff."
+        },
+        {
+          "name": "FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY",
+          "number": 2,
+          "description": "Only a hunk-level unified_diff is available (Cursor today). Clients render\n the hunk diff; before/after whole-file content is absent."
         }
       ]
     },
@@ -2098,6 +2125,17 @@
         "required": false
       },
       {
+        "name": "ApprovalEventStream",
+        "jsonName": "approvalEventStream",
+        "protoField": "approval_event_stream",
+        "type": {
+          "kind": "message",
+          "messageType": "ApprovalEventStream"
+        },
+        "description": "Server-authored, append-only record of every approval request and decision.\n\n @internal\n\n This is the persisted form of the append-only stream that is the target\n single source of truth for approvals (see ApprovalEventStream in\n approval.proto). It is NOT yet read by any surface: pending_approvals is\n still projected from the authoritative message scan, and the UI/SDK read\n that. The stream coexists as a parallel, independently-authored record so\n that (1) the message-scan vs event-stream projection parity check becomes a\n real cross-writer regression guard rather than a tautology, and (2) the\n approval audit trail — who decided, when, with what comment — has a home,\n since the flat ToolCall.approval_action / approval_decided_at fields cannot\n capture a decision comment at all.\n\n Field ownership (one writer per event type):\n   - REQUESTED events are authored by the UpdateStatus handlers when a tool\n     call enters WAITING_APPROVAL (seeded once from the message scan for\n     executions that predate this field).\n   - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the\n     SubmitApproval handler, carrying decided_by and the user's comment.\n\n Every append is keyed by the deterministic ApprovalEvent.event_id, so the\n stream is idempotent under retries and the rich decision event (authored in\n the same operation that records the decision on the message scan) can never\n be duplicated or overwritten by a coarse re-derivation.\n\n Because it is server-only, the agent-runner never sends it; it is preserved\n across UpdateStatus writes automatically (the merge starts from the loaded\n execution and only replaces runner-owned fields).",
+        "required": false
+      },
+      {
         "name": "ContextInfo",
         "jsonName": "contextInfo",
         "protoField": "context_info",
@@ -2365,6 +2403,360 @@
             "kind": "string"
           },
           "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApprovalDecision",
+      "description": "A user's decision on an approval request.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalDecision",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
+      "fields": [
+        {
+          "name": "ApprovalRequestId",
+          "jsonName": "approvalRequestId",
+          "protoField": "approval_request_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Correlates this decision to its ApprovalRequest.",
+          "required": false
+        },
+        {
+          "name": "Action",
+          "jsonName": "action",
+          "protoField": "action",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalAction",
+            "enumValues": [
+              "APPROVAL_ACTION_APPROVE",
+              "APPROVAL_ACTION_SKIP",
+              "APPROVAL_ACTION_REJECT",
+              "APPROVAL_ACTION_APPROVE_ALL"
+            ]
+          },
+          "description": "The precise user action (APPROVE / SKIP / REJECT / APPROVE_ALL).\n ApprovalEvent.event_type carries the coarse bucket; this carries fidelity.",
+          "required": false
+        },
+        {
+          "name": "DecidedAt",
+          "jsonName": "decidedAt",
+          "protoField": "decided_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the decision was made.",
+          "required": false
+        },
+        {
+          "name": "DecidedBy",
+          "jsonName": "decidedBy",
+          "protoField": "decided_by",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identity of the decider (principal). Empty when not attributed.",
+          "required": false
+        },
+        {
+          "name": "Comment",
+          "jsonName": "comment",
+          "protoField": "comment",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional free-text comment supplied with the decision (e.g. a rejection\n reason).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApprovalEvent",
+      "description": "An immutable event in the approval lifecycle.\n\n The payload is a closed oneof so each event type is type-safe and\n self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /\n SKIPPED carry an ApprovalDecision.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalEvent",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
+      "fields": [
+        {
+          "name": "EventId",
+          "jsonName": "eventId",
+          "protoField": "event_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique id of this event. In Phase 1 (derived events) it is deterministic\n (derived from approval_request_id + event_type) so re-derivation is stable.",
+          "required": false
+        },
+        {
+          "name": "ApprovalRequestId",
+          "jsonName": "approvalRequestId",
+          "protoField": "approval_request_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Correlation id shared by every event for one approval (request + decision).",
+          "required": false
+        },
+        {
+          "name": "EventType",
+          "jsonName": "eventType",
+          "protoField": "event_type",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalEventType",
+            "enumValues": [
+              "APPROVAL_EVENT_TYPE_REQUESTED",
+              "APPROVAL_EVENT_TYPE_APPROVED",
+              "APPROVAL_EVENT_TYPE_REJECTED",
+              "APPROVAL_EVENT_TYPE_SKIPPED"
+            ]
+          },
+          "description": "Coarse lifecycle bucket of this event. See ApprovalEventType.",
+          "required": false
+        },
+        {
+          "name": "Timestamp",
+          "jsonName": "timestamp",
+          "protoField": "timestamp",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp of the event.",
+          "required": false
+        },
+        {
+          "name": "Actor",
+          "jsonName": "actor",
+          "protoField": "actor",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Who produced the event: \"system\" for REQUESTED, \"user\" for decisions.",
+          "required": false
+        },
+        {
+          "name": "Requested",
+          "jsonName": "requested",
+          "protoField": "requested",
+          "type": {
+            "kind": "message",
+            "messageType": "ApprovalRequest"
+          },
+          "description": "Set when event_type == REQUESTED.",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "Decided",
+          "jsonName": "decided",
+          "protoField": "decided",
+          "type": {
+            "kind": "message",
+            "messageType": "ApprovalDecision"
+          },
+          "description": "Set for decision events (APPROVED / REJECTED / SKIPPED).",
+          "required": false,
+          "oneofGroup": "payload"
+        }
+      ]
+    },
+    {
+      "name": "ApprovalEventStream",
+      "description": "The ordered sequence of approval events for a single agent execution.\n\n Persisted on AgentExecutionStatus.approval_event_stream as a server-authored,\n append-only record that coexists with the authoritative message scan. The\n scan still feeds pending_approvals and the UI; this stream is the parallel,\n independently-written ledger that (1) turns the projection parity check into a\n real cross-writer guard and (2) holds the approval audit trail (decided_by +\n comment) the flat ToolCall fields cannot. The source of truth does not flip\n until a later phase — until then, ComputePendingApprovalsFromEvents over this\n stream must agree with the message scan.\n\n Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED\n events are authored by UpdateStatus (seeded once from the scan for executions\n predating the field), decision events by SubmitApproval (with decided_by and\n comment). Authoring the rich decision event in the same operation that records\n the decision on the scan guarantees it can never be duplicated or clobbered by\n a coarse re-derivation.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentExecution.metadata.id this stream belongs to.",
+          "required": false
+        },
+        {
+          "name": "Events",
+          "jsonName": "events",
+          "protoField": "events",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApprovalEvent"
+            }
+          },
+          "description": "Events in lifecycle order.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApprovalRequest",
+      "description": "A tool call requesting approval — the \"ask\" recorded when a gated tool call\n enters WAITING_APPROVAL.\n\n Carries the same display-facing field set as PendingApproval so a REQUESTED\n event can fully reconstruct the pending-approval projection without joining\n back to the originating ToolCall (which, for workflow-parent approvals, is not\n co-located with the approval).",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
+      "fields": [
+        {
+          "name": "ApprovalRequestId",
+          "jsonName": "approvalRequestId",
+          "protoField": "approval_request_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stigmer-generated correlation id for this approval, stable across harness\n re-drives. In Phase 1 (events derived from tool calls) this equals\n tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.",
+          "required": false
+        },
+        {
+          "name": "ToolCallId",
+          "jsonName": "toolCallId",
+          "protoField": "tool_call_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Harness tool-call id of the gated call. Matches ToolCall.id; the bridge\n between today's message scan and the event stream.",
+          "required": false
+        },
+        {
+          "name": "RequestedAt",
+          "jsonName": "requestedAt",
+          "protoField": "requested_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when approval was requested. Copied from\n ToolCall.approval_requested_at.",
+          "required": false
+        },
+        {
+          "name": "ToolName",
+          "jsonName": "toolName",
+          "protoField": "tool_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the tool requiring approval. Matches ToolCall.name.",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable approval message for display. Copied from\n ToolCall.approval_message (placeholders already resolved).",
+          "required": false
+        },
+        {
+          "name": "ArgsPreview",
+          "jsonName": "argsPreview",
+          "protoField": "args_preview",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Sanitized preview of tool arguments. Copied from ToolCall.args_preview.",
+          "required": false
+        },
+        {
+          "name": "FromSubAgent",
+          "jsonName": "fromSubAgent",
+          "protoField": "from_sub_agent",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True if this approval originates from a sub-agent.",
+          "required": false
+        },
+        {
+          "name": "SubAgentName",
+          "jsonName": "subAgentName",
+          "protoField": "sub_agent_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the sub-agent when from_sub_agent is true; empty otherwise.",
+          "required": false
+        },
+        {
+          "name": "SubAgentSubject",
+          "jsonName": "subAgentSubject",
+          "protoField": "sub_agent_subject",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Concise subject of the sub-agent's task when from_sub_agent is true; empty\n otherwise. Copied from SubAgentExecution.subject.",
+          "required": false
+        },
+        {
+          "name": "McpServerSlug",
+          "jsonName": "mcpServerSlug",
+          "protoField": "mcp_server_slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the MCP server providing this tool; empty for built-in tools.\n Copied from ToolCall.mcp_server_slug.",
+          "required": false
+        },
+        {
+          "name": "ToolKind",
+          "jsonName": "toolKind",
+          "protoField": "tool_kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ToolKind",
+            "enumValues": [
+              "TOOL_KIND_FILE_READ",
+              "TOOL_KIND_FILE_WRITE",
+              "TOOL_KIND_FILE_EDIT",
+              "TOOL_KIND_FILE_DELETE",
+              "TOOL_KIND_SHELL",
+              "TOOL_KIND_SEARCH",
+              "TOOL_KIND_LIST",
+              "TOOL_KIND_FETCH",
+              "TOOL_KIND_WEB_SEARCH",
+              "TOOL_KIND_THINK",
+              "TOOL_KIND_TODO",
+              "TOOL_KIND_SUBAGENT",
+              "TOOL_KIND_MCP"
+            ]
+          },
+          "description": "Harness-agnostic tool category. Copied from ToolCall.tool_kind.",
+          "required": false
+        },
+        {
+          "name": "FileChanges",
+          "jsonName": "fileChanges",
+          "protoField": "file_changes",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "FileChange"
+            }
+          },
+          "description": "File changes the gated call would produce. Copied from\n ToolCall.file_changes; large bodies are already offloaded to\n FileContent.ref before projection.",
+          "required": false
+        },
+        {
+          "name": "ApprovalPolicySource",
+          "jsonName": "approvalPolicySource",
+          "protoField": "approval_policy_source",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource",
+            "enumValues": [
+              "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT",
+              "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE",
+              "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE",
+              "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
+              "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
+              "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+              "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN"
+            ]
+          },
+          "description": "Policy layer that gated this call. Copied from\n ToolCall.approval_policy_source so the event-stream projection reconstructs\n the same PendingApproval as the message scan. See ApprovalPolicySource.",
           "required": false
         }
       ]

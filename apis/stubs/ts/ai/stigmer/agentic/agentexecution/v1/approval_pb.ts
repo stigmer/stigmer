@@ -542,8 +542,21 @@ export const ApprovalEventSchema: GenMessage<ApprovalEvent> = /*@__PURE__*/
 /**
  * The ordered sequence of approval events for a single agent execution.
  *
- * Phase 1 container for the shadow projection; not yet a field on
- * AgentExecutionStatus (that wiring lands when the source of truth flips).
+ * Persisted on AgentExecutionStatus.approval_event_stream as a server-authored,
+ * append-only record that coexists with the authoritative message scan. The
+ * scan still feeds pending_approvals and the UI; this stream is the parallel,
+ * independently-written ledger that (1) turns the projection parity check into a
+ * real cross-writer guard and (2) holds the approval audit trail (decided_by +
+ * comment) the flat ToolCall fields cannot. The source of truth does not flip
+ * until a later phase — until then, ComputePendingApprovalsFromEvents over this
+ * stream must agree with the message scan.
+ *
+ * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED
+ * events are authored by UpdateStatus (seeded once from the scan for executions
+ * predating the field), decision events by SubmitApproval (with decided_by and
+ * comment). Authoring the rich decision event in the same operation that records
+ * the decision on the scan guarantees it can never be duplicated or clobbered by
+ * a coarse re-derivation.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
  */

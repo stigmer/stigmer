@@ -197,6 +197,37 @@ type AgentExecutionStatus struct {
 	// 4. User submits decisions via SubmitApproval RPC (one per tool call)
 	// 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
 	PendingApprovals []*PendingApproval `protobuf:"bytes,16,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
+	// Server-authored, append-only record of every approval request and decision.
+	//
+	// @internal
+	//
+	// This is the persisted form of the append-only stream that is the target
+	// single source of truth for approvals (see ApprovalEventStream in
+	// approval.proto). It is NOT yet read by any surface: pending_approvals is
+	// still projected from the authoritative message scan, and the UI/SDK read
+	// that. The stream coexists as a parallel, independently-authored record so
+	// that (1) the message-scan vs event-stream projection parity check becomes a
+	// real cross-writer regression guard rather than a tautology, and (2) the
+	// approval audit trail — who decided, when, with what comment — has a home,
+	// since the flat ToolCall.approval_action / approval_decided_at fields cannot
+	// capture a decision comment at all.
+	//
+	// Field ownership (one writer per event type):
+	//   - REQUESTED events are authored by the UpdateStatus handlers when a tool
+	//     call enters WAITING_APPROVAL (seeded once from the message scan for
+	//     executions that predate this field).
+	//   - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+	//     SubmitApproval handler, carrying decided_by and the user's comment.
+	//
+	// Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+	// stream is idempotent under retries and the rich decision event (authored in
+	// the same operation that records the decision on the message scan) can never
+	// be duplicated or overwritten by a coarse re-derivation.
+	//
+	// Because it is server-only, the agent-runner never sends it; it is preserved
+	// across UpdateStatus writes automatically (the merge starts from the loaded
+	// execution and only replaces runner-owned fields).
+	ApprovalEventStream *ApprovalEventStream `protobuf:"bytes,22,opt,name=approval_event_stream,json=approvalEventStream,proto3" json:"approval_event_stream,omitempty"`
 	// Context window utilization and summarization tracking.
 	//
 	// Provides visibility into how the agent is using its context window and
@@ -372,6 +403,13 @@ func (x *AgentExecutionStatus) GetPendingApprovals() []*PendingApproval {
 	return nil
 }
 
+func (x *AgentExecutionStatus) GetApprovalEventStream() *ApprovalEventStream {
+	if x != nil {
+		return x.ApprovalEventStream
+	}
+	return nil
+}
+
 func (x *AgentExecutionStatus) GetContextInfo() *ContextInfo {
 	if x != nil {
 		return x.ContextInfo
@@ -480,7 +518,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xa7\v\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\x96\f\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -494,7 +532,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0ecallback_token\x18\n" +
 	" \x01(\fR\rcallbackToken\x12i\n" +
 	"\x10resolved_context\x18\f \x01(\v2>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextR\x0fresolvedContext\x12b\n" +
-	"\x11pending_approvals\x18\x10 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\x12T\n" +
+	"\x11pending_approvals\x18\x10 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\x12m\n" +
+	"\x15approval_event_stream\x18\x16 \x01(\v29.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStreamR\x13approvalEventStream\x12T\n" +
 	"\fcontext_info\x18\x0e \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ContextInfoR\vcontextInfo\x12U\n" +
 	"\tartifacts\x18\x0f \x03(\v27.ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactR\tartifacts\x12l\n" +
 	"\x15workspace_write_backs\x18\x11 \x03(\v28.ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackR\x13workspaceWriteBacks\x12Z\n" +
@@ -535,12 +574,13 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*SubAgentExecution)(nil),               // 9: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
 	(*ResolvedExecutionContext)(nil),        // 10: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
 	(*PendingApproval)(nil),                 // 11: ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	(*ContextInfo)(nil),                     // 12: ai.stigmer.agentic.agentexecution.v1.ContextInfo
-	(*ExecutionArtifact)(nil),               // 13: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
-	(*WorkspaceWriteBack)(nil),              // 14: ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
-	(*StreamingUsageSummary)(nil),           // 15: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
-	(*structpb.Struct)(nil),                 // 16: google.protobuf.Struct
-	(*TodoItem)(nil),                        // 17: ai.stigmer.agentic.agentexecution.v1.TodoItem
+	(*ApprovalEventStream)(nil),             // 12: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
+	(*ContextInfo)(nil),                     // 13: ai.stigmer.agentic.agentexecution.v1.ContextInfo
+	(*ExecutionArtifact)(nil),               // 14: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
+	(*WorkspaceWriteBack)(nil),              // 15: ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
+	(*StreamingUsageSummary)(nil),           // 16: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
+	(*structpb.Struct)(nil),                 // 17: google.protobuf.Struct
+	(*TodoItem)(nil),                        // 18: ai.stigmer.agentic.agentexecution.v1.TodoItem
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	4,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -553,18 +593,19 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	3,  // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.todos:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
 	10, // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.resolved_context:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
 	11, // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	12, // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.context_info:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextInfo
-	13, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.artifacts:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
-	14, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.workspace_write_backs:type_name -> ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
-	2,  // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.setup_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.SetupProgress
-	15, // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.streaming_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
-	16, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.structured_output:type_name -> google.protobuf.Struct
-	17, // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	12, // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.approval_event_stream:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
+	13, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.context_info:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextInfo
+	14, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.artifacts:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
+	15, // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.workspace_write_backs:type_name -> ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
+	2,  // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.setup_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.SetupProgress
+	16, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.streaming_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
+	17, // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.structured_output:type_name -> google.protobuf.Struct
+	18, // 17: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }

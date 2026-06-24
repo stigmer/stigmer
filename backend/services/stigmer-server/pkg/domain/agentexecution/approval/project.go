@@ -12,20 +12,27 @@ import (
 // ProjectPendingApprovals is the single seam every caller uses to recompute
 // pending_approvals. It exists so the approval projection has exactly one entry
 // point per edition: the message scan stays authoritative, but the same call
-// also derives the shadow approval-event stream and asserts the two agree.
+// also projects the persisted approval-event stream and asserts the two agree.
 //
-// It returns the message-scan result unchanged — callers keep their own
-// assignment and persistence. On divergence it emits a structured warning (the
-// signal monitoring alerts on) but never alters the returned value, so the
-// shadow projection can never affect runtime behavior. When the source of truth
-// flips in a later phase, it flips here, once, for all callers.
+// It is a PURE read — it never mutates the stream. Authoring the stream is the
+// job of the EnsureApprovalRequests / RecordDecisionEvent commands (author.go),
+// which callers run before this projection so the passed stream is current.
+//
+// The parity check projects the caller-supplied persisted stream (not a fresh
+// re-derivation), so it is a genuine cross-writer guard: a decision the
+// SubmitApproval writer failed to author shows up here as a divergence. It
+// returns the message-scan result unchanged — callers keep their own assignment
+// and persistence — and on divergence emits a structured warning (the signal
+// monitoring alerts on) but never alters the returned value, so the event stream
+// can never affect runtime behavior. When the source of truth flips in a later
+// phase, it flips here, once, for all callers.
 func ProjectPendingApprovals(
 	messages []*agentexecutionv1.AgentMessage,
 	subAgentExecutions []*agentexecutionv1.SubAgentExecution,
+	stream *agentexecutionv1.ApprovalEventStream,
 ) []*agentexecutionv1.PendingApproval {
 	fromScan := ComputePendingApprovals(messages, subAgentExecutions)
 
-	stream := EmitApprovalEvents(messages, subAgentExecutions)
 	fromEvents := ComputePendingApprovalsFromEvents(stream)
 
 	if diff := diffPendingApprovals(fromScan, fromEvents); diff != "" {

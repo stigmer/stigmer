@@ -327,7 +327,7 @@ func TestApproveAllApprovesSameCategoryAcrossRootAndSubAgent(t *testing.T) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	clicked.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
 	clicked.ApprovalDecidedAt = now
-	bulkApproveCoPendingToolCalls(exec, "call_001", now)
+	bulkApproveCoPendingToolCalls(exec, "call_001", now, "")
 
 	if clicked.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
 		t.Errorf("clicked tool call should retain APPROVE_ALL, got %v", clicked.GetApprovalAction())
@@ -370,7 +370,7 @@ func TestApproveAllLeavesDifferentCategoryPending(t *testing.T) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	clicked.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
 	clicked.ApprovalDecidedAt = now
-	bulkApproveCoPendingToolCalls(exec, "call_001", now)
+	bulkApproveCoPendingToolCalls(exec, "call_001", now, "")
 
 	// Same-class delete is approved.
 	if tc := findToolCallInExecution(exec, "call_003"); tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE {
@@ -409,7 +409,7 @@ func TestApproveAllMcpScopeIsServerLevel(t *testing.T) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	clicked.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
 	clicked.ApprovalDecidedAt = now
-	bulkApproveCoPendingToolCalls(exec, "call_001", now)
+	bulkApproveCoPendingToolCalls(exec, "call_001", now, "")
 
 	if tc := findToolCallInExecution(exec, "call_002"); tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE {
 		t.Errorf("same-server MCP tool should be APPROVE, got %v", tc.GetApprovalAction())
@@ -439,7 +439,7 @@ func TestApproveAllDoesNotOverwriteAlreadyDecidedToolCalls(t *testing.T) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	clicked.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
 	clicked.ApprovalDecidedAt = now
-	bulkApproveCoPendingToolCalls(exec, "call_001", now)
+	bulkApproveCoPendingToolCalls(exec, "call_001", now, "")
 
 	// The previously-rejected tool call must stay REJECT.
 	rejected := findToolCallInExecution(exec, "call_002")

@@ -255,11 +255,18 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.CompletedAt = ""
 	}
 
+	// Author REQUESTED events for any tool call now in the approval gate
+	// (seeding the persisted stream the first time it is touched). The runner
+	// never sends this server-only field; it rode along in the clone above and is
+	// mutated in place here. Decisions are authored separately by SubmitApproval.
+	approval.EnsureApprovalRequests(updated.Status, input.ExecutionId)
+
 	// Compute pending_approvals from tool call state in messages, via the single
-	// projection seam (also runs the shadow event-stream parity check).
+	// projection seam (a pure read that also runs the event-stream parity check).
 	updated.Status.PendingApprovals = approval.ProjectPendingApprovals(
 		updated.Status.GetMessages(),
 		updated.Status.GetSubAgentExecutions(),
+		updated.Status.GetApprovalEventStream(),
 	)
 
 	// Merge streaming_usage (replace with latest from request).
