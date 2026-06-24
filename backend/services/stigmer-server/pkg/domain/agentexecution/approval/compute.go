@@ -22,7 +22,7 @@ func ComputePendingApprovals(
 
 	for _, msg := range messages {
 		for _, tc := range msg.GetToolCalls() {
-			if pa := projectToolCall(tc, false, ""); pa != nil {
+			if pa := projectToolCall(tc, false, "", ""); pa != nil {
 				result = append(result, pa)
 			}
 		}
@@ -33,9 +33,10 @@ func ComputePendingApprovals(
 			continue
 		}
 		saName := sa.GetName()
+		saSubject := sa.GetSubject()
 		for _, msg := range sa.GetMessages() {
 			for _, tc := range msg.GetToolCalls() {
-				if pa := projectToolCall(tc, true, saName); pa != nil {
+				if pa := projectToolCall(tc, true, saName, saSubject); pa != nil {
 					result = append(result, pa)
 				}
 			}
@@ -59,7 +60,7 @@ func isTerminalSubAgent(status agentexecutionv1.SubAgentStatus) bool {
 	}
 }
 
-func projectToolCall(tc *agentexecutionv1.ToolCall, fromSubAgent bool, subAgentName string) *agentexecutionv1.PendingApproval {
+func projectToolCall(tc *agentexecutionv1.ToolCall, fromSubAgent bool, subAgentName, subAgentSubject string) *agentexecutionv1.PendingApproval {
 	if tc.GetStatus() != agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL {
 		return nil
 	}
@@ -71,14 +72,18 @@ func projectToolCall(tc *agentexecutionv1.ToolCall, fromSubAgent bool, subAgentN
 	}
 
 	return &agentexecutionv1.PendingApproval{
-		ToolCallId:    tc.GetId(),
-		ToolName:      tc.GetName(),
-		Message:       tc.GetApprovalMessage(),
-		ArgsPreview:   tc.GetArgsPreview(),
-		RequestedAt:   tc.GetApprovalRequestedAt(),
-		FromSubAgent:  fromSubAgent,
-		SubAgentName:  subAgentName,
-		McpServerSlug: tc.GetMcpServerSlug(),
+		ToolCallId:   tc.GetId(),
+		ToolName:     tc.GetName(),
+		Message:      tc.GetApprovalMessage(),
+		ArgsPreview:  tc.GetArgsPreview(),
+		RequestedAt:  tc.GetApprovalRequestedAt(),
+		FromSubAgent: fromSubAgent,
+		SubAgentName: subAgentName,
+		// Mirrors Java PendingApprovalComputer: the sub-agent's task subject lets
+		// approval surfaces label the card with the task ("Explore CLI rendering")
+		// instead of the generic agent type. Empty for root tool calls.
+		SubAgentSubject: subAgentSubject,
+		McpServerSlug:   tc.GetMcpServerSlug(),
 		// Denormalized for approval surfaces (like McpServerSlug above) so the
 		// approval UI classifies the tool without re-deriving it from the name.
 		ToolKind: tc.GetToolKind(),

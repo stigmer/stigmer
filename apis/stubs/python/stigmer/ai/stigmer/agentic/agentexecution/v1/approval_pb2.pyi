@@ -47,3 +47,71 @@ class ChildApprovalNotification(_message.Message):
     execution_id: str
     pending_approvals: _containers.RepeatedCompositeFieldContainer[PendingApproval]
     def __init__(self, execution_id: _Optional[str] = ..., pending_approvals: _Optional[_Iterable[_Union[PendingApproval, _Mapping]]] = ...) -> None: ...
+
+class ApprovalRequest(_message.Message):
+    __slots__ = ("approval_request_id", "tool_call_id", "requested_at", "tool_name", "message", "args_preview", "from_sub_agent", "sub_agent_name", "sub_agent_subject", "mcp_server_slug", "tool_kind", "file_changes")
+    APPROVAL_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
+    TOOL_CALL_ID_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_AT_FIELD_NUMBER: _ClassVar[int]
+    TOOL_NAME_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    ARGS_PREVIEW_FIELD_NUMBER: _ClassVar[int]
+    FROM_SUB_AGENT_FIELD_NUMBER: _ClassVar[int]
+    SUB_AGENT_NAME_FIELD_NUMBER: _ClassVar[int]
+    SUB_AGENT_SUBJECT_FIELD_NUMBER: _ClassVar[int]
+    MCP_SERVER_SLUG_FIELD_NUMBER: _ClassVar[int]
+    TOOL_KIND_FIELD_NUMBER: _ClassVar[int]
+    FILE_CHANGES_FIELD_NUMBER: _ClassVar[int]
+    approval_request_id: str
+    tool_call_id: str
+    requested_at: str
+    tool_name: str
+    message: str
+    args_preview: str
+    from_sub_agent: bool
+    sub_agent_name: str
+    sub_agent_subject: str
+    mcp_server_slug: str
+    tool_kind: _enum_pb2.ToolKind
+    file_changes: _containers.RepeatedCompositeFieldContainer[_message_pb2.FileChange]
+    def __init__(self, approval_request_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., requested_at: _Optional[str] = ..., tool_name: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., from_sub_agent: bool = ..., sub_agent_name: _Optional[str] = ..., sub_agent_subject: _Optional[str] = ..., mcp_server_slug: _Optional[str] = ..., tool_kind: _Optional[_Union[_enum_pb2.ToolKind, str]] = ..., file_changes: _Optional[_Iterable[_Union[_message_pb2.FileChange, _Mapping]]] = ...) -> None: ...
+
+class ApprovalDecision(_message.Message):
+    __slots__ = ("approval_request_id", "action", "decided_at", "decided_by", "comment")
+    APPROVAL_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
+    ACTION_FIELD_NUMBER: _ClassVar[int]
+    DECIDED_AT_FIELD_NUMBER: _ClassVar[int]
+    DECIDED_BY_FIELD_NUMBER: _ClassVar[int]
+    COMMENT_FIELD_NUMBER: _ClassVar[int]
+    approval_request_id: str
+    action: _enum_pb2.ApprovalAction
+    decided_at: str
+    decided_by: str
+    comment: str
+    def __init__(self, approval_request_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., decided_at: _Optional[str] = ..., decided_by: _Optional[str] = ..., comment: _Optional[str] = ...) -> None: ...
+
+class ApprovalEvent(_message.Message):
+    __slots__ = ("event_id", "approval_request_id", "event_type", "timestamp", "actor", "requested", "decided")
+    EVENT_ID_FIELD_NUMBER: _ClassVar[int]
+    APPROVAL_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
+    EVENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
+    ACTOR_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_FIELD_NUMBER: _ClassVar[int]
+    DECIDED_FIELD_NUMBER: _ClassVar[int]
+    event_id: str
+    approval_request_id: str
+    event_type: _enum_pb2.ApprovalEventType
+    timestamp: str
+    actor: str
+    requested: ApprovalRequest
+    decided: ApprovalDecision
+    def __init__(self, event_id: _Optional[str] = ..., approval_request_id: _Optional[str] = ..., event_type: _Optional[_Union[_enum_pb2.ApprovalEventType, str]] = ..., timestamp: _Optional[str] = ..., actor: _Optional[str] = ..., requested: _Optional[_Union[ApprovalRequest, _Mapping]] = ..., decided: _Optional[_Union[ApprovalDecision, _Mapping]] = ...) -> None: ...
+
+class ApprovalEventStream(_message.Message):
+    __slots__ = ("execution_id", "events")
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    EVENTS_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    events: _containers.RepeatedCompositeFieldContainer[ApprovalEvent]
+    def __init__(self, execution_id: _Optional[str] = ..., events: _Optional[_Iterable[_Union[ApprovalEvent, _Mapping]]] = ...) -> None: ...

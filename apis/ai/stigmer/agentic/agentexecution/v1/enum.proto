@@ -524,6 +524,43 @@ enum ApprovalAction {
   APPROVAL_ACTION_APPROVE_ALL = 4;
 }
 
+// ApprovalEventType is the kind of event in the append-only approval-event
+// stream (see ApprovalEvent in approval.proto).
+//
+// The event stream is the future single source of truth for HITL approvals. In
+// Phase 1 of the approval re-architecture it is computed in *shadow* beside the
+// existing message-scan projection (PendingApproval) and compared for parity in
+// CI — it never feeds the UI yet, so introducing it changes no behavior.
+//
+// The set is deliberately minimal: only the lifecycle transitions the Phase-1
+// event bridge actually derives from tool-call state. Lease-expiry and
+// execution-cancellation events are intentionally omitted until a component
+// emits them. Enums extend additively, so adding them in a later phase is
+// non-breaking.
+//
+// event_type is the coarse lifecycle bucket; the precise user action (including
+// APPROVE_ALL, which buckets as APPROVED) lives on ApprovalDecision.action.
+enum ApprovalEventType {
+  // Default value, not a valid event type.
+  APPROVAL_EVENT_TYPE_UNSPECIFIED = 0;
+
+  // A tool call was gated and is awaiting a user decision.
+  // Payload: ApprovalRequest.
+  APPROVAL_EVENT_TYPE_REQUESTED = 1;
+
+  // The user approved the request (APPROVE or APPROVE_ALL); the tool may run.
+  // Payload: ApprovalDecision.
+  APPROVAL_EVENT_TYPE_APPROVED = 2;
+
+  // The user rejected the request; the execution fails.
+  // Payload: ApprovalDecision.
+  APPROVAL_EVENT_TYPE_REJECTED = 3;
+
+  // The user skipped the request; execution continues without the tool.
+  // Payload: ApprovalDecision.
+  APPROVAL_EVENT_TYPE_SKIPPED = 4;
+}
+
 // InteractionMode controls the agent's behavioral posture for an execution.
 //
 // Determines what the agent is allowed to do — analysis only, or full

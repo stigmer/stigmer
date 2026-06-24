@@ -120,8 +120,9 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status.Todos = statusUpdates.Todos
 	}
 
-	// Compute pending_approvals from tool call state in messages
-	status.PendingApprovals = approval.ComputePendingApprovals(
+	// Compute pending_approvals from tool call state in messages, via the single
+	// projection seam (also runs the shadow event-stream parity check).
+	status.PendingApprovals = approval.ProjectPendingApprovals(
 		status.GetMessages(),
 		status.GetSubAgentExecutions(),
 	)

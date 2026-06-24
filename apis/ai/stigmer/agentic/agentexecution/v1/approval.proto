@@ -203,3 +203,142 @@ message ChildApprovalNotification {
   // One signal, complete picture, no partial states.
   repeated PendingApproval pending_approvals = 2;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Approval Event Stream (HITL re-architecture, Phase 1)
+//
+// An append-only event stream is the target single source of truth for
+// approvals: harnesses *propose* tool calls, the stream *records* requests and
+// decisions, and pending_approvals becomes a projection of the stream rather
+// than a scan of tool-call status embedded in messages.
+//
+// Phase 1 introduces these types and dual-projects pending_approvals from BOTH
+// the existing message scan (authoritative) and a shadow event stream derived
+// from the same tool calls, asserting equality in CI. The stream does not feed
+// the UI and the source of truth does not flip until a later phase, so adding
+// these messages changes no runtime behavior.
+//
+// Correlation is always by approval_request_id (Stigmer-generated), never by a
+// content hash. In Phase 1 the derived events set approval_request_id equal to
+// the harness tool_call_id (deterministic and stable for the run); when the
+// SubmitApproval path emits events directly in a later phase, it authors a
+// distinct UUID.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// A tool call requesting approval — the "ask" recorded when a gated tool call
+// enters WAITING_APPROVAL.
+//
+// Carries the same display-facing field set as PendingApproval so a REQUESTED
+// event can fully reconstruct the pending-approval projection without joining
+// back to the originating ToolCall (which, for workflow-parent approvals, is not
+// co-located with the approval).
+message ApprovalRequest {
+  // Stigmer-generated correlation id for this approval, stable across harness
+  // re-drives. In Phase 1 (events derived from tool calls) this equals
+  // tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+  string approval_request_id = 1;
+
+  // Harness tool-call id of the gated call. Matches ToolCall.id; the bridge
+  // between today's message scan and the event stream.
+  string tool_call_id = 2;
+
+  // ISO 8601 timestamp when approval was requested. Copied from
+  // ToolCall.approval_requested_at.
+  string requested_at = 3;
+
+  // Name of the tool requiring approval. Matches ToolCall.name.
+  string tool_name = 4;
+
+  // Human-readable approval message for display. Copied from
+  // ToolCall.approval_message (placeholders already resolved).
+  string message = 5;
+
+  // Sanitized preview of tool arguments. Copied from ToolCall.args_preview.
+  string args_preview = 6;
+
+  // True if this approval originates from a sub-agent.
+  bool from_sub_agent = 7;
+
+  // Name of the sub-agent when from_sub_agent is true; empty otherwise.
+  string sub_agent_name = 8;
+
+  // Concise subject of the sub-agent's task when from_sub_agent is true; empty
+  // otherwise. Copied from SubAgentExecution.subject.
+  string sub_agent_subject = 9;
+
+  // Slug of the MCP server providing this tool; empty for built-in tools.
+  // Copied from ToolCall.mcp_server_slug.
+  string mcp_server_slug = 10;
+
+  // Harness-agnostic tool category. Copied from ToolCall.tool_kind.
+  ToolKind tool_kind = 11;
+
+  // File changes the gated call would produce. Copied from
+  // ToolCall.file_changes; large bodies are already offloaded to
+  // FileContent.ref before projection.
+  repeated FileChange file_changes = 12;
+}
+
+// A user's decision on an approval request.
+message ApprovalDecision {
+  // Correlates this decision to its ApprovalRequest.
+  string approval_request_id = 1;
+
+  // The precise user action (APPROVE / SKIP / REJECT / APPROVE_ALL).
+  // ApprovalEvent.event_type carries the coarse bucket; this carries fidelity.
+  ApprovalAction action = 2;
+
+  // ISO 8601 timestamp when the decision was made.
+  string decided_at = 3;
+
+  // Identity of the decider (principal). Empty when not attributed.
+  string decided_by = 4;
+
+  // Optional free-text comment supplied with the decision (e.g. a rejection
+  // reason).
+  string comment = 5;
+}
+
+// An immutable event in the approval lifecycle.
+//
+// The payload is a closed oneof so each event type is type-safe and
+// self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /
+// SKIPPED carry an ApprovalDecision.
+message ApprovalEvent {
+  // Unique id of this event. In Phase 1 (derived events) it is deterministic
+  // (derived from approval_request_id + event_type) so re-derivation is stable.
+  string event_id = 1;
+
+  // Correlation id shared by every event for one approval (request + decision).
+  string approval_request_id = 2;
+
+  // Coarse lifecycle bucket of this event. See ApprovalEventType.
+  ApprovalEventType event_type = 3;
+
+  // ISO 8601 timestamp of the event.
+  string timestamp = 4;
+
+  // Who produced the event: "system" for REQUESTED, "user" for decisions.
+  string actor = 5;
+
+  // Typed payload, selected by event_type.
+  oneof payload {
+    // Set when event_type == REQUESTED.
+    ApprovalRequest requested = 6;
+
+    // Set for decision events (APPROVED / REJECTED / SKIPPED).
+    ApprovalDecision decided = 7;
+  }
+}
+
+// The ordered sequence of approval events for a single agent execution.
+//
+// Phase 1 container for the shadow projection; not yet a field on
+// AgentExecutionStatus (that wiring lands when the source of truth flips).
+message ApprovalEventStream {
+  // AgentExecution.metadata.id this stream belongs to.
+  string execution_id = 1;
+
+  // Events in lifecycle order.
+  repeated ApprovalEvent events = 2;
+}

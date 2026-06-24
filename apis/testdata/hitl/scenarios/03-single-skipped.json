@@ -1,0 +1,27 @@
+{
+  "name": "single-skipped",
+  "description": "A skipped tool call (approval_action = SKIP) is no longer pending.",
+  "input": {
+    "messages": [
+      {
+        "type": "MESSAGE_AI",
+        "tool_calls": [
+          {
+            "id": "tc1",
+            "name": "send_email",
+            "status": "TOOL_CALL_WAITING_APPROVAL",
+            "requires_approval": true,
+            "approval_action": "APPROVAL_ACTION_SKIP",
+            "approval_message": "Approve send_email",
+            "args_preview": "{\"to\":\"x@y.z\"}",
+            "approval_requested_at": "2026-03-27T10:00:00Z",
+            "approval_decided_at": "2026-03-27T10:02:00Z"
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "pending_approvals": []
+  }
+}

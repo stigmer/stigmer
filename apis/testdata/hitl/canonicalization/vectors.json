@@ -1,0 +1,55 @@
+{
+  "description": "Cross-language canonicalization vectors for HITL approval. Each vector's `expected` is the byte-exact canonical JSON that canonicalToolActionJson(input) must produce in every edition (TS now; Go/Java when the Phase-2 fingerprint lands). Secret redaction is covered by language-local tests (digests are not hand-writable here).",
+  "vectors": [
+    {
+      "name": "minimal",
+      "input": { "toolName": "read" },
+      "expected": "{\"args\":{},\"mcpServerSlug\":\"\",\"paths\":[],\"shellCommand\":\"\",\"toolName\":\"read\"}"
+    },
+    {
+      "name": "shell-whitespace-collapsed",
+      "input": { "toolName": "Shell", "shellCommand": "  npm   install   --save  " },
+      "expected": "{\"args\":{},\"mcpServerSlug\":\"\",\"paths\":[],\"shellCommand\":\"npm install --save\",\"toolName\":\"Shell\"}"
+    },
+    {
+      "name": "path-workspace-relative",
+      "input": { "toolName": "Write", "paths": ["/home/u/ws/src/a.ts"], "workspaceRoot": "/home/u/ws" },
+      "expected": "{\"args\":{},\"mcpServerSlug\":\"\",\"paths\":[\"src/a.ts\"],\"shellCommand\":\"\",\"toolName\":\"Write\"}"
+    },
+    {
+      "name": "path-backslash-normalized",
+      "input": { "toolName": "Write", "paths": ["src\\app\\main.ts"] },
+      "expected": "{\"args\":{},\"mcpServerSlug\":\"\",\"paths\":[\"src/app/main.ts\"],\"shellCommand\":\"\",\"toolName\":\"Write\"}"
+    },
+    {
+      "name": "paths-sorted-and-dotdot-collapsed",
+      "input": { "toolName": "MultiEdit", "paths": ["b/../c.ts", "a.ts"] },
+      "expected": "{\"args\":{},\"mcpServerSlug\":\"\",\"paths\":[\"a.ts\",\"c.ts\"],\"shellCommand\":\"\",\"toolName\":\"MultiEdit\"}"
+    },
+    {
+      "name": "mcp-slug-lowercased",
+      "input": { "toolName": "create_issue", "mcpServerSlug": "GitHub", "args": { "repo": "acme/x", "force": true } },
+      "expected": "{\"args\":{\"force\":true,\"repo\":\"acme/x\"},\"mcpServerSlug\":\"github\",\"paths\":[],\"shellCommand\":\"\",\"toolName\":\"create_issue\"}"
+    },
+    {
+      "name": "nested-key-sorting",
+      "input": { "toolName": "x", "args": { "b": 1, "a": { "d": 2, "c": 3 } } },
+      "expected": "{\"args\":{\"a\":{\"c\":3,\"d\":2},\"b\":1},\"mcpServerSlug\":\"\",\"paths\":[],\"shellCommand\":\"\",\"toolName\":\"x\"}"
+    },
+    {
+      "name": "unicode-string-value",
+      "input": { "toolName": "echo", "args": { "msg": "héllo→世界" } },
+      "expected": "{\"args\":{\"msg\":\"héllo→世界\"},\"mcpServerSlug\":\"\",\"paths\":[],\"shellCommand\":\"\",\"toolName\":\"echo\"}"
+    },
+    {
+      "name": "null-bool-int",
+      "input": { "toolName": "t", "args": { "a": null, "b": false, "c": 42 } },
+      "expected": "{\"args\":{\"a\":null,\"b\":false,\"c\":42},\"mcpServerSlug\":\"\",\"paths\":[],\"shellCommand\":\"\",\"toolName\":\"t\"}"
+    },
+    {
+      "name": "array-order-preserved",
+      "input": { "toolName": "t", "args": { "items": [3, 1, 2] } },
+      "expected": "{\"args\":{\"items\":[3,1,2]},\"mcpServerSlug\":\"\",\"paths\":[],\"shellCommand\":\"\",\"toolName\":\"t\"}"
+    }
+  ]
+}

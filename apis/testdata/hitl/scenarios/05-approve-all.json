@@ -1,0 +1,27 @@
+{
+  "name": "approve-all",
+  "description": "APPROVE_ALL is a recorded decision, so the tool call is no longer pending.",
+  "input": {
+    "messages": [
+      {
+        "type": "MESSAGE_AI",
+        "tool_calls": [
+          {
+            "id": "tc1",
+            "name": "shell",
+            "status": "TOOL_CALL_WAITING_APPROVAL",
+            "requires_approval": true,
+            "approval_action": "APPROVAL_ACTION_APPROVE_ALL",
+            "approval_message": "Approve shell",
+            "args_preview": "{\"command\":\"npm install\"}",
+            "approval_requested_at": "2026-03-27T10:00:00Z",
+            "approval_decided_at": "2026-03-27T10:04:00Z"
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "pending_approvals": []
+  }
+}

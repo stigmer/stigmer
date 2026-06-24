@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ToolKind } from "./enum_pb.js";
+import type { ApprovalAction, ApprovalEventType, ToolKind } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
 import type { FileChange } from "./message_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_message } from "./message_pb.js";
@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/approval.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_approval: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKxAwoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRJBCgl0b29sX2tpbmQYDSABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbEtpbmQSRgoMZmlsZV9jaGFuZ2VzGA4gAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVDaGFuZ2UigwEKGUNoaWxkQXBwcm92YWxOb3RpZmljYXRpb24SFAoMZXhlY3V0aW9uX2lkGAEgASgJElAKEXBlbmRpbmdfYXBwcm92YWxzGAIgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlBlbmRpbmdBcHByb3ZhbGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKxAwoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRJBCgl0b29sX2tpbmQYDSABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbEtpbmQSRgoMZmlsZV9jaGFuZ2VzGA4gAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVDaGFuZ2UigwEKGUNoaWxkQXBwcm92YWxOb3RpZmljYXRpb24SFAoMZXhlY3V0aW9uX2lkGAEgASgJElAKEXBlbmRpbmdfYXBwcm92YWxzGAIgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlBlbmRpbmdBcHByb3ZhbCKDAwoPQXBwcm92YWxSZXF1ZXN0EhsKE2FwcHJvdmFsX3JlcXVlc3RfaWQYASABKAkSFAoMdG9vbF9jYWxsX2lkGAIgASgJEhQKDHJlcXVlc3RlZF9hdBgDIAEoCRIRCgl0b29sX25hbWUYBCABKAkSDwoHbWVzc2FnZRgFIAEoCRIUCgxhcmdzX3ByZXZpZXcYBiABKAkSFgoOZnJvbV9zdWJfYWdlbnQYByABKAgSFgoOc3ViX2FnZW50X25hbWUYCCABKAkSGQoRc3ViX2FnZW50X3N1YmplY3QYCSABKAkSFwoPbWNwX3NlcnZlcl9zbHVnGAogASgJEkEKCXRvb2xfa2luZBgLIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sS2luZBJGCgxmaWxlX2NoYW5nZXMYDCADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNoYW5nZSKuAQoQQXBwcm92YWxEZWNpc2lvbhIbChNhcHByb3ZhbF9yZXF1ZXN0X2lkGAEgASgJEkQKBmFjdGlvbhgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEFjdGlvbhISCgpkZWNpZGVkX2F0GAMgASgJEhIKCmRlY2lkZWRfYnkYBCABKAkSDwoHY29tbWVudBgFIAEoCSLPAgoNQXBwcm92YWxFdmVudBIQCghldmVudF9pZBgBIAEoCRIbChNhcHByb3ZhbF9yZXF1ZXN0X2lkGAIgASgJEksKCmV2ZW50X3R5cGUYAyABKA4yNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXBwcm92YWxFdmVudFR5cGUSEQoJdGltZXN0YW1wGAQgASgJEg0KBWFjdG9yGAUgASgJEkoKCXJlcXVlc3RlZBgGIAEoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbFJlcXVlc3RIABJJCgdkZWNpZGVkGAcgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsRGVjaXNpb25IAEIJCgdwYXlsb2FkInAKE0FwcHJvdmFsRXZlbnRTdHJlYW0SFAoMZXhlY3V0aW9uX2lkGAEgASgJEkMKBmV2ZW50cxgCIAMoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEV2ZW50YgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message]);
 
 /**
  * A pending approval request for a tool call that requires user consent before execution.
@@ -277,4 +277,276 @@ export type ChildApprovalNotification = Message<"ai.stigmer.agentic.agentexecuti
  */
 export const ChildApprovalNotificationSchema: GenMessage<ChildApprovalNotification> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 1);
+
+/**
+ * A tool call requesting approval — the "ask" recorded when a gated tool call
+ * enters WAITING_APPROVAL.
+ *
+ * Carries the same display-facing field set as PendingApproval so a REQUESTED
+ * event can fully reconstruct the pending-approval projection without joining
+ * back to the originating ToolCall (which, for workflow-parent approvals, is not
+ * co-located with the approval).
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalRequest
+ */
+export type ApprovalRequest = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalRequest"> & {
+  /**
+   * Stigmer-generated correlation id for this approval, stable across harness
+   * re-drives. In Phase 1 (events derived from tool calls) this equals
+   * tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+   *
+   * @generated from field: string approval_request_id = 1;
+   */
+  approvalRequestId: string;
+
+  /**
+   * Harness tool-call id of the gated call. Matches ToolCall.id; the bridge
+   * between today's message scan and the event stream.
+   *
+   * @generated from field: string tool_call_id = 2;
+   */
+  toolCallId: string;
+
+  /**
+   * ISO 8601 timestamp when approval was requested. Copied from
+   * ToolCall.approval_requested_at.
+   *
+   * @generated from field: string requested_at = 3;
+   */
+  requestedAt: string;
+
+  /**
+   * Name of the tool requiring approval. Matches ToolCall.name.
+   *
+   * @generated from field: string tool_name = 4;
+   */
+  toolName: string;
+
+  /**
+   * Human-readable approval message for display. Copied from
+   * ToolCall.approval_message (placeholders already resolved).
+   *
+   * @generated from field: string message = 5;
+   */
+  message: string;
+
+  /**
+   * Sanitized preview of tool arguments. Copied from ToolCall.args_preview.
+   *
+   * @generated from field: string args_preview = 6;
+   */
+  argsPreview: string;
+
+  /**
+   * True if this approval originates from a sub-agent.
+   *
+   * @generated from field: bool from_sub_agent = 7;
+   */
+  fromSubAgent: boolean;
+
+  /**
+   * Name of the sub-agent when from_sub_agent is true; empty otherwise.
+   *
+   * @generated from field: string sub_agent_name = 8;
+   */
+  subAgentName: string;
+
+  /**
+   * Concise subject of the sub-agent's task when from_sub_agent is true; empty
+   * otherwise. Copied from SubAgentExecution.subject.
+   *
+   * @generated from field: string sub_agent_subject = 9;
+   */
+  subAgentSubject: string;
+
+  /**
+   * Slug of the MCP server providing this tool; empty for built-in tools.
+   * Copied from ToolCall.mcp_server_slug.
+   *
+   * @generated from field: string mcp_server_slug = 10;
+   */
+  mcpServerSlug: string;
+
+  /**
+   * Harness-agnostic tool category. Copied from ToolCall.tool_kind.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 11;
+   */
+  toolKind: ToolKind;
+
+  /**
+   * File changes the gated call would produce. Copied from
+   * ToolCall.file_changes; large bodies are already offloaded to
+   * FileContent.ref before projection.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 12;
+   */
+  fileChanges: FileChange[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.
+ * Use `create(ApprovalRequestSchema)` to create a new message.
+ */
+export const ApprovalRequestSchema: GenMessage<ApprovalRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 2);
+
+/**
+ * A user's decision on an approval request.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalDecision
+ */
+export type ApprovalDecision = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalDecision"> & {
+  /**
+   * Correlates this decision to its ApprovalRequest.
+   *
+   * @generated from field: string approval_request_id = 1;
+   */
+  approvalRequestId: string;
+
+  /**
+   * The precise user action (APPROVE / SKIP / REJECT / APPROVE_ALL).
+   * ApprovalEvent.event_type carries the coarse bucket; this carries fidelity.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 2;
+   */
+  action: ApprovalAction;
+
+  /**
+   * ISO 8601 timestamp when the decision was made.
+   *
+   * @generated from field: string decided_at = 3;
+   */
+  decidedAt: string;
+
+  /**
+   * Identity of the decider (principal). Empty when not attributed.
+   *
+   * @generated from field: string decided_by = 4;
+   */
+  decidedBy: string;
+
+  /**
+   * Optional free-text comment supplied with the decision (e.g. a rejection
+   * reason).
+   *
+   * @generated from field: string comment = 5;
+   */
+  comment: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ApprovalDecision.
+ * Use `create(ApprovalDecisionSchema)` to create a new message.
+ */
+export const ApprovalDecisionSchema: GenMessage<ApprovalDecision> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 3);
+
+/**
+ * An immutable event in the approval lifecycle.
+ *
+ * The payload is a closed oneof so each event type is type-safe and
+ * self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /
+ * SKIPPED carry an ApprovalDecision.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalEvent
+ */
+export type ApprovalEvent = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalEvent"> & {
+  /**
+   * Unique id of this event. In Phase 1 (derived events) it is deterministic
+   * (derived from approval_request_id + event_type) so re-derivation is stable.
+   *
+   * @generated from field: string event_id = 1;
+   */
+  eventId: string;
+
+  /**
+   * Correlation id shared by every event for one approval (request + decision).
+   *
+   * @generated from field: string approval_request_id = 2;
+   */
+  approvalRequestId: string;
+
+  /**
+   * Coarse lifecycle bucket of this event. See ApprovalEventType.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalEventType event_type = 3;
+   */
+  eventType: ApprovalEventType;
+
+  /**
+   * ISO 8601 timestamp of the event.
+   *
+   * @generated from field: string timestamp = 4;
+   */
+  timestamp: string;
+
+  /**
+   * Who produced the event: "system" for REQUESTED, "user" for decisions.
+   *
+   * @generated from field: string actor = 5;
+   */
+  actor: string;
+
+  /**
+   * Typed payload, selected by event_type.
+   *
+   * @generated from oneof ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.payload
+   */
+  payload: {
+    /**
+     * Set when event_type == REQUESTED.
+     *
+     * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest requested = 6;
+     */
+    value: ApprovalRequest;
+    case: "requested";
+  } | {
+    /**
+     * Set for decision events (APPROVED / REJECTED / SKIPPED).
+     *
+     * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalDecision decided = 7;
+     */
+    value: ApprovalDecision;
+    case: "decided";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.
+ * Use `create(ApprovalEventSchema)` to create a new message.
+ */
+export const ApprovalEventSchema: GenMessage<ApprovalEvent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 4);
+
+/**
+ * The ordered sequence of approval events for a single agent execution.
+ *
+ * Phase 1 container for the shadow projection; not yet a field on
+ * AgentExecutionStatus (that wiring lands when the source of truth flips).
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
+ */
+export type ApprovalEventStream = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream"> & {
+  /**
+   * AgentExecution.metadata.id this stream belongs to.
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Events in lifecycle order.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.ApprovalEvent events = 2;
+   */
+  events: ApprovalEvent[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.
+ * Use `create(ApprovalEventStreamSchema)` to create a new message.
+ */
+export const ApprovalEventStreamSchema: GenMessage<ApprovalEventStream> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 5);
 

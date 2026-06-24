@@ -1,0 +1,34 @@
+{
+  "name": "single-pending",
+  "description": "One gated root tool call awaiting a decision -> one pending approval.",
+  "input": {
+    "messages": [
+      {
+        "type": "MESSAGE_AI",
+        "tool_calls": [
+          {
+            "id": "tc1",
+            "name": "delete_file",
+            "status": "TOOL_CALL_WAITING_APPROVAL",
+            "requires_approval": true,
+            "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+            "approval_message": "Approve delete_file",
+            "args_preview": "{\"path\":\"a.txt\"}",
+            "approval_requested_at": "2026-03-27T10:00:00Z"
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "pending_approvals": [
+      {
+        "tool_call_id": "tc1",
+        "tool_name": "delete_file",
+        "message": "Approve delete_file",
+        "args_preview": "{\"path\":\"a.txt\"}",
+        "requested_at": "2026-03-27T10:00:00Z"
+      }
+    ]
+  }
+}

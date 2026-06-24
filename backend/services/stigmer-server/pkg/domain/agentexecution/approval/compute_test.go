@@ -363,3 +363,52 @@ func TestProjectToolCallNoFileChangesStaysEmpty(t *testing.T) {
 		t.Errorf("FileChanges = %d, want 0 for a non-file tool", len(got[0].GetFileChanges()))
 	}
 }
+
+// TestProjectToolCallCopiesSubAgentSubject locks the Go projection to the Java
+// PendingApprovalComputer: a sub-agent approval must carry the sub-agent's task
+// subject so approval surfaces label the card with the task instead of the
+// generic agent type. Before this was fixed the Go side dropped the field,
+// producing a live cross-edition divergence (OSS empty, Cloud populated) that
+// the shared HITL fixture corpus depends on being resolved.
+func TestProjectToolCallCopiesSubAgentSubject(t *testing.T) {
+	subAgents := []*agentexecutionv1.SubAgentExecution{
+		{
+			Name:    "code-reviewer",
+			Subject: "Explore CLI rendering code",
+			Status:  agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
+			Messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(
+					makeToolCall("tc-sub1", "run_tests", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+				),
+			},
+		},
+	}
+
+	got := ComputePendingApprovals(nil, subAgents)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1", len(got))
+	}
+	if !got[0].GetFromSubAgent() {
+		t.Errorf("FromSubAgent = false, want true")
+	}
+	if got[0].GetSubAgentName() != "code-reviewer" {
+		t.Errorf("SubAgentName = %q, want %q", got[0].GetSubAgentName(), "code-reviewer")
+	}
+	if got[0].GetSubAgentSubject() != "Explore CLI rendering code" {
+		t.Errorf("SubAgentSubject = %q, want %q", got[0].GetSubAgentSubject(), "Explore CLI rendering code")
+	}
+}
+
+// TestProjectToolCallRootHasNoSubAgentSubject verifies a root tool call leaves
+// sub_agent_subject empty (the field is sub-agent-only).
+func TestProjectToolCallRootHasNoSubAgentSubject(t *testing.T) {
+	tc := makeToolCall("tc1", "deploy", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+
+	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(tc)}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1", len(got))
+	}
+	if got[0].GetSubAgentSubject() != "" {
+		t.Errorf("SubAgentSubject = %q, want empty for a root tool call", got[0].GetSubAgentSubject())
+	}
+}

@@ -101,6 +101,14 @@ class ApprovalAction(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     APPROVAL_ACTION_REJECT: _ClassVar[ApprovalAction]
     APPROVAL_ACTION_APPROVE_ALL: _ClassVar[ApprovalAction]
 
+class ApprovalEventType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    APPROVAL_EVENT_TYPE_UNSPECIFIED: _ClassVar[ApprovalEventType]
+    APPROVAL_EVENT_TYPE_REQUESTED: _ClassVar[ApprovalEventType]
+    APPROVAL_EVENT_TYPE_APPROVED: _ClassVar[ApprovalEventType]
+    APPROVAL_EVENT_TYPE_REJECTED: _ClassVar[ApprovalEventType]
+    APPROVAL_EVENT_TYPE_SKIPPED: _ClassVar[ApprovalEventType]
+
 class InteractionMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     INTERACTION_MODE_UNSPECIFIED: _ClassVar[InteractionMode]
@@ -184,6 +192,11 @@ APPROVAL_ACTION_APPROVE: ApprovalAction
 APPROVAL_ACTION_SKIP: ApprovalAction
 APPROVAL_ACTION_REJECT: ApprovalAction
 APPROVAL_ACTION_APPROVE_ALL: ApprovalAction
+APPROVAL_EVENT_TYPE_UNSPECIFIED: ApprovalEventType
+APPROVAL_EVENT_TYPE_REQUESTED: ApprovalEventType
+APPROVAL_EVENT_TYPE_APPROVED: ApprovalEventType
+APPROVAL_EVENT_TYPE_REJECTED: ApprovalEventType
+APPROVAL_EVENT_TYPE_SKIPPED: ApprovalEventType
 INTERACTION_MODE_UNSPECIFIED: InteractionMode
 INTERACTION_MODE_AGENT: InteractionMode
 INTERACTION_MODE_PLAN: InteractionMode

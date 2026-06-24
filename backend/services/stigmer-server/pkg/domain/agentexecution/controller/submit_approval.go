@@ -318,8 +318,9 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 			}
 
 			// Recompute pending_approvals — the approved entry disappears because
-			// its approval_action is now set (no longer UNSPECIFIED).
-			updated.Status.PendingApprovals = approval.ComputePendingApprovals(
+			// its approval_action is now set (no longer UNSPECIFIED). Via the single
+			// projection seam (also runs the shadow event-stream parity check).
+			updated.Status.PendingApprovals = approval.ProjectPendingApprovals(
 				updated.Status.GetMessages(),
 				updated.Status.GetSubAgentExecutions(),
 			)
