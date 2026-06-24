@@ -11,102 +11,25 @@
  * Skipped automatically where bash is unavailable.
  */
 
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
-import { execFileSync, execSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { describe, it, expect, onTestFinished } from "vitest";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { generateHookScript } from "../hook-script.js";
-import { buildApprovalState, grantToken, toolIdentity, type ApprovalGrant } from "../approval-state.js";
-import type { McpToolPolicyEntry } from "../approval-state.js";
-
-let hasBash = false;
-try {
-  execSync("bash -c 'exit 0'", { stdio: "ignore" });
-  hasBash = true;
-} catch {
-  hasBash = false;
-}
+import { buildApprovalState, grantToken, toolIdentity } from "../approval-state.js";
+import {
+  setupCursorHookHarness as setup,
+  hasBash,
+  hookWrite,
+  hookShell,
+  hookDelete,
+  hookRead,
+  hookMcp,
+} from "../__test-utils__/cursor-hook-harness.js";
 
 const d = hasBash ? describe : describe.skip;
-
-const tempDirs: string[] = [];
-afterEach(() => {
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
-});
-
-interface Harness {
-  decide(input: object): { permission: string; raw: string };
-  ledger(): Array<{ toolName: string; token: string }>;
-  resetLedger(): void;
-}
-
-function setup(opts: {
-  autoApproveAll?: boolean;
-  grants?: ApprovalGrant[];
-  mcpPolicies?: Record<string, McpToolPolicyEntry>;
-  noStateFile?: boolean;
-  // Process the hook treats as "the runner". Defaults to this test process,
-  // which is an ancestor of the bash child execFileSync spawns — so the scope
-  // guard sees the call as the runner's own agent and applies the gate. Pass a
-  // non-ancestor PID to exercise the foreign-client path (issue #173).
-  runnerPid?: number;
-}): Harness {
-  const ws = mkdtempSync(join(tmpdir(), "hook-script-"));
-  tempDirs.push(ws);
-  const dir = join(ws, ".cursor", "hooks");
-  mkdirSync(dir, { recursive: true });
-  const statePath = join(dir, "state.json");
-  const ledgerPath = join(dir, "denials.jsonl");
-  const scriptPath = join(dir, "hook.sh");
-  writeFileSync(scriptPath, generateHookScript(statePath, ledgerPath, opts.runnerPid ?? process.pid), "utf-8");
-
-  if (!opts.noStateFile) {
-    const policies = new Map(
-      Object.entries(opts.mcpPolicies ?? {}).map(([name, p]) => [
-        `srv/${name}`,
-        { toolName: name, mcpServerSlug: "srv", requiresApproval: p.requiresApproval, approvalMessage: p.message ?? "" },
-      ]),
-    );
-    const state = buildApprovalState(policies, opts.autoApproveAll ?? false, opts.grants);
-    writeFileSync(statePath, JSON.stringify(state), "utf-8");
-  }
-
-  return {
-    decide(input: object) {
-      const raw = execFileSync("bash", [scriptPath], { input: JSON.stringify(input) }).toString();
-      const permission = raw.includes('"permission":"deny"') ? "deny" : raw.includes('"permission":"allow"') ? "allow" : "?";
-      return { permission, raw };
-    },
-    ledger() {
-      if (!existsSync(ledgerPath)) return [];
-      return readFileSync(ledgerPath, "utf-8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-    },
-    resetLedger() {
-      writeFileSync(ledgerPath, "", "utf-8");
-    },
-  };
-}
-
-// Real preToolUse hook-input shapes (PascalCase name, file_path/command in
-// tool_input). These omit hook_event_name on purpose: a payload with no event
-// must still take the built-in arm (the script only diverts to the MCP arm on an
-// explicit beforeMCPExecution).
-const hookWrite = (filePath: string) => ({ tool_name: "Write", tool_input: { file_path: filePath, content: "x" } });
-const hookShell = (command: string) => ({ tool_name: "Shell", tool_input: { command, cwd: "/x", timeout: 30000 } });
-const hookDelete = (filePath: string) => ({ tool_name: "Delete", tool_input: { file_path: filePath } });
-const hookRead = (filePath: string) => ({ tool_name: "Read", tool_input: { file_path: filePath } });
-
-// Real beforeMCPExecution shape (captured live): bare tool_name, tool_input as a
-// JSON STRING, server identity, and the hook_event_name discriminator.
-const hookMcp = (name: string, input: Record<string, unknown> = {}) => ({
-  tool_name: name,
-  tool_input: JSON.stringify(input),
-  mcp_server_name: "srv",
-  command: "npx -y srv mcp",
-  hook_event_name: "beforeMCPExecution",
-});
 
 d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
   it("denies gated built-ins (Write/Shell/Delete) and records a category+salient token", () => {
@@ -137,15 +60,10 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("allow");
   });
 
-  it("allows the EXACT granted resource and re-gates any other (no name-only over-grant)", () => {
-    const id = toolIdentity("edit", "", { path: "/x/a.txt" });
-    const h = setup({ grants: [{ toolName: "edit", mcpServerSlug: "", key: id.key, salient: id.salient }] });
-
-    // Same resource the user approved -> allowed on the resumed turn.
-    expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("allow");
-    // A different file is NOT covered by the grant -> still gated.
-    expect(h.decide(hookWrite("/x/OTHER.txt")).permission).toBe("deny");
-  });
+  // Exact-resource lease isolation ("no name-only over-grant") moved to the
+  // gateway Contract Test Kit's invariant 10, where the SAME bash hook is driven
+  // through the Cursor substrate adapter alongside the deep-agent substrate. See
+  // src/__tests__/approval-gateway-contract.test.ts.
 
   it("fails closed (deny) when the state file is missing", () => {
     const h = setup({ noStateFile: true });
@@ -310,7 +228,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
 
   it("still denies gated tools via the bash fallback when the Node binary is unavailable", () => {
     const ws = mkdtempSync(join(tmpdir(), "hook-script-fallback-"));
-    tempDirs.push(ws);
+    onTestFinished(() => rmSync(ws, { recursive: true, force: true }));
     const dir = join(ws, ".cursor", "hooks");
     mkdirSync(dir, { recursive: true });
     const statePath = join(dir, "state.json");

@@ -22,93 +22,35 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { AIMessage, HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
-import type { ChatResult } from "@langchain/core/outputs";
+import { HumanMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { Command, MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent, StateBackend } from "deepagents";
 import { createApprovalGateMiddleware } from "../../../middleware/approval-gate.js";
+import {
+  ScriptedModel,
+  readPendingInterrupts,
+  type ScriptSelector,
+} from "../__test-utils__/scripted-model.js";
 
-// A deterministic two-role chat model. It detects whether it is driving the
-// PARENT (the bound tools include `task`) or the WORKER (they don't), and walks
-// a fixed script: parent → call `task` → (after task result) finish; worker →
-// call the gated `overwrite_file` → (after the tool result) finish.
-class ScriptedModel extends BaseChatModel {
-  toolNames: string[] = [];
-
-  _llmType(): string {
-    return "scripted";
-  }
-
-  bindTools(tools: unknown[]): this {
-    const next = new ScriptedModel({});
-    next.toolNames = (tools as Array<{ name?: string }>).map((t) => t?.name ?? "");
-    return next as unknown as this;
-  }
-
-  async _generate(messages: BaseMessage[]): Promise<ChatResult> {
-    // createDeepAgent injects a `task` tool into BOTH agents, so role is keyed on
-    // the worker's unique gated tool instead.
-    const isWorker = this.toolNames.includes("overwrite_file");
-    const last = messages[messages.length - 1];
-    const lastIsToolResult = last instanceof ToolMessage;
-
-    let message: AIMessage;
-    if (isWorker) {
-      message = lastIsToolResult
-        ? new AIMessage({ content: "worker done" })
-        : new AIMessage({
-            content: "",
-            tool_calls: [
-              { name: "overwrite_file", args: { path: "/out.txt", content: "hello" }, id: "write_1", type: "tool_call" },
-            ],
-          });
-    } else {
-      message = lastIsToolResult
-        ? new AIMessage({ content: "parent done" })
-        : new AIMessage({
-            content: "",
-            tool_calls: [
-              { name: "task", args: { description: "write the file", subagent_type: "worker" }, id: "task_1", type: "tool_call" },
-            ],
-          });
-    }
-
-    const text = typeof message.content === "string" ? message.content : "";
-    return { generations: [{ message, text }] };
-  }
-}
-
-interface PendingInterrupt {
-  taskId: string;
-  interruptId: string;
-  toolCallId: string;
-  toolName: string;
-  message: string;
-}
-
-// Mirrors the extraction in hitl.ts / index.ts: read top-level parent tasks.
-function readPendingInterrupts(state: {
-  tasks?: ReadonlyArray<{ id: string; interrupts?: ReadonlyArray<{ id?: string; value?: unknown; resumeValue?: unknown }> }>;
-}): PendingInterrupt[] {
-  const out: PendingInterrupt[] = [];
-  for (const task of state.tasks ?? []) {
-    for (const intr of task.interrupts ?? []) {
-      if (intr.resumeValue !== undefined) continue;
-      const v = (intr.value ?? {}) as Record<string, unknown>;
-      out.push({
-        taskId: task.id,
-        interruptId: (intr.id as string) ?? task.id,
-        toolCallId: (v.tool_call_id as string) ?? "",
-        toolName: (v.tool_name as string) ?? "",
-        message: (v.message as string) ?? "",
-      });
-    }
-  }
-  return out;
-}
+// Role script for this test: the WORKER (its bound tools include the gated
+// `overwrite_file`) writes a file; the PARENT delegates via `task`. createDeepAgent
+// injects `task` into both, so the role is keyed on the worker's unique tool.
+const roleScript: ScriptSelector = (toolNames) =>
+  toolNames.includes("overwrite_file")
+    ? {
+        toolCalls: [
+          { name: "overwrite_file", args: { path: "/out.txt", content: "hello" }, id: "write_1" },
+        ],
+        done: "worker done",
+      }
+    : {
+        toolCalls: [
+          { name: "task", args: { description: "write the file", subagent_type: "worker" }, id: "task_1" },
+        ],
+        done: "parent done",
+      };
 
 describe("sub-agent approval interrupt propagation", () => {
   it("surfaces a sub-agent interrupt at the parent checkpoint AND resumes it", async () => {
@@ -129,7 +71,7 @@ describe("sub-agent approval interrupt propagation", () => {
     // compileSubagents builds a sub-agent. overwrite_file classifies as
     // FILE_WRITE, so the gate must interrupt before it runs.
     const worker = await createDeepAgent({
-      model: new ScriptedModel({}),
+      model: new ScriptedModel(roleScript),
       tools: [overwriteFile],
       middleware: [
         createApprovalGateMiddleware({ policies: new Map(), autoApproveAll: false, toolServerMap: new Map() }),
@@ -140,7 +82,7 @@ describe("sub-agent approval interrupt propagation", () => {
 
     const checkpointer = new MemorySaver();
     const parent = await createDeepAgent({
-      model: new ScriptedModel({}),
+      model: new ScriptedModel(roleScript),
       checkpointer: checkpointer as never,
       backend: new StateBackend(),
       subagents: [{ name: "worker", description: "writes files", runnable: worker as never }],
@@ -191,7 +133,7 @@ describe("sub-agent approval interrupt propagation", () => {
 
     const checkpointer = new MemorySaver();
     const parent = await createDeepAgent({
-      model: new ScriptedModel({}),
+      model: new ScriptedModel(roleScript),
       checkpointer: checkpointer as never,
       backend: new StateBackend(),
       tools: [overwriteFile],
