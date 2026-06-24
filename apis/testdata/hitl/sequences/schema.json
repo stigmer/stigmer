@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://stigmer.ai/testdata/hitl/sequence.schema.json",
+  "title": "HITL approval-stream sequence scenario",
+  "description": "A cross-edition fixture that replays the stateful, persisted-append approval path: an initial execution state followed by a series of write-site steps. After every step both editions must satisfy the equality-at-every-write-site property (the message-scan projection and the event-stream projection agree) and author the same approval-event lifecycle. Unlike the input->output scenarios/, this exercises the carried-forward stream the production reconciler mutates in place.",
+  "type": "object",
+  "required": ["name", "execution_id", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "execution_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stamped on the stream's identity at first seed (informational; never used for correlation). Passed to EnsureApprovalRequests at every step."
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered write sites. The driver carries the authored approval_event_stream forward across steps; each step's status carries only the author-visible state (phase, messages, sub-agents) and never the stream.",
+      "items": { "$ref": "#/definitions/step" }
+    }
+  },
+  "definitions": {
+    "step": {
+      "type": "object",
+      "required": ["name", "status", "expected"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "status": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The execution state at this write site (protojson). The driver attaches the carried-forward stream before authoring.",
+          "properties": {
+            "phase": {
+              "type": "string",
+              "description": "ExecutionPhase enum constant, e.g. EXECUTION_WAITING_FOR_APPROVAL or EXECUTION_COMPLETED."
+            },
+            "messages": {
+              "type": "array",
+              "description": "AgentMessage protos as protojson.",
+              "items": { "type": "object" }
+            },
+            "sub_agent_executions": {
+              "type": "array",
+              "description": "SubAgentExecution protos as protojson.",
+              "items": { "type": "object" }
+            }
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "description": "Present ⇒ this is a SubmitApproval write site; absent ⇒ an UpdateStatus write site. Each target tool call MUST be in its pre-decision gated state (WAITING_APPROVAL, APPROVAL_ACTION_UNSPECIFIED) in this step's status; the driver applies the decision to it exactly as the SubmitApproval handler does (set action/decided_at/approved_by, then author the decision event) AFTER EnsureApprovalRequests has run while the call is still gated. A multi-entry list models an APPROVE_ALL that resolves co-pending calls.",
+          "items": {
+            "type": "object",
+            "required": ["tool_call_id", "action"],
+            "additionalProperties": false,
+            "properties": {
+              "tool_call_id": { "type": "string", "minLength": 1 },
+              "action": {
+                "type": "string",
+                "description": "ApprovalAction enum constant: APPROVAL_ACTION_APPROVE | APPROVAL_ACTION_APPROVE_ALL | APPROVAL_ACTION_REJECT | APPROVAL_ACTION_SKIP."
+              },
+              "decided_by": { "type": "string" },
+              "comment": { "type": "string" },
+              "decided_at": { "type": "string" }
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "required": ["pending_approvals", "stream_events"],
+          "additionalProperties": false,
+          "properties": {
+            "pending_approvals": {
+              "type": "array",
+              "description": "PendingApproval protos as protojson; the seam result after this step, compared order-independently by tool_call_id. A terminal phase projects an empty list.",
+              "items": { "type": "object" }
+            },
+            "stream_events": {
+              "type": "array",
+              "description": "Normalized view of the authored approval_event_stream after this step, compared order-independently. Pins the lifecycle (type + correlation + retraction reason) without over-specifying internal event_id/timestamp/actor.",
+              "items": { "$ref": "#/definitions/streamEvent" }
+            }
+          }
+        }
+      }
+    },
+    "streamEvent": {
+      "type": "object",
+      "required": ["approval_request_id", "event_type"],
+      "additionalProperties": false,
+      "properties": {
+        "approval_request_id": { "type": "string", "minLength": 1 },
+        "event_type": {
+          "type": "string",
+          "description": "ApprovalEventType enum constant: APPROVAL_EVENT_TYPE_REQUESTED | APPROVAL_EVENT_TYPE_APPROVED | APPROVAL_EVENT_TYPE_REJECTED | APPROVAL_EVENT_TYPE_SKIPPED | APPROVAL_EVENT_TYPE_RETRACTED."
+        },
+        "reason": {
+          "type": "string",
+          "description": "ApprovalRetractionReason enum constant; present only on a RETRACTED event: APPROVAL_RETRACTION_REASON_SUB_AGENT_TERMINAL | APPROVAL_RETRACTION_REASON_SUPERSEDED."
+        }
+      }
+    }
+  }
+}

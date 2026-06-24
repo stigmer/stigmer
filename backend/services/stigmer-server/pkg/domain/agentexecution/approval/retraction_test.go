@@ -231,68 +231,10 @@ func TestTerminalExecutionProjectsEmpty(t *testing.T) {
 	}
 }
 
-// TestStatefulSequenceParity drives an adversarial multi-step sequence over the
-// persisted-append stream (the coverage the fresh-EmitApprovalEvents corpus
-// structurally cannot give) and asserts the equality property after EVERY write.
-func TestStatefulSequenceParity(t *testing.T) {
-	waiting := agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL
-	unspecified := agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED
-	approve := agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
-
-	// Initial: a root call and a sub-agent call, both gated, execution live.
-	status := statusWith(
-		[]*agentexecutionv1.AgentMessage{makeAIMessage(
-			makeToolCall("root-1", "shell", waiting, true, unspecified),
-			makeToolCall("root-2", "delete_file", waiting, true, unspecified),
-		)},
-		[]*agentexecutionv1.SubAgentExecution{{
-			Name:   "worker",
-			Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
-			Messages: []*agentexecutionv1.AgentMessage{
-				makeAIMessage(makeToolCall("sub-1", "write_file", waiting, true, unspecified)),
-			},
-		}},
-	)
-	status.Phase = agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL
-
-	// Each step mutates state then runs the reconciler; equality must hold after each.
-	steps := []struct {
-		name   string
-		mutate func()
-	}{
-		{"seed", func() {}},
-		{"decide root-1 (approve)", func() {
-			tc := status.Messages[0].ToolCalls[0]
-			tc.ApprovalAction = approve
-			tc.ApprovalDecidedAt = "2026-03-27T10:05:00Z"
-			RecordDecisionEvent(status, tc, "alice", "ok")
-			tc.Status = agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED
-		}},
-		{"supersede root-2 (no decision)", func() {
-			status.Messages[0].ToolCalls[1].Status = agentexecutionv1.ToolCallStatus_TOOL_CALL_FAILED
-		}},
-		{"sub-agent goes terminal with sub-1 undecided", func() {
-			status.SubAgentExecutions[0].Status = agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED
-		}},
-		{"execution completes", func() {
-			status.Phase = agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED
-		}},
-	}
-
-	for _, step := range steps {
-		step.mutate()
-		EnsureApprovalRequests(status, "exec-seq")
-		t.Run(step.name, func(t *testing.T) {
-			assertEqualityAtWriteSite(t, status)
-		})
-	}
-
-	// End state: root-1 decided (APPROVED), root-2 + sub-1 retracted, nothing pending.
-	stream := status.GetApprovalEventStream()
-	if got := countEvents(stream, agentexecutionv1.ApprovalEventType_APPROVAL_EVENT_TYPE_RETRACTED); got != 2 {
-		t.Errorf("final RETRACTED count = %d, want 2 (root-2 superseded, sub-1 orphaned)", got)
-	}
-	if got := countEvents(stream, agentexecutionv1.ApprovalEventType_APPROVAL_EVENT_TYPE_APPROVED); got != 1 {
-		t.Errorf("final APPROVED count = %d, want 1 (root-1)", got)
-	}
-}
+// Multi-step adversarial sequences (the persisted-append coverage the
+// fresh-EmitApprovalEvents corpus structurally cannot give) now live in the
+// shared cross-edition corpus apis/testdata/hitl/sequences, replayed by both
+// TestSequenceCorpus (Go) and SequenceFixtureTest (Java). The unit-level
+// retraction invariants above stay here; the former in-code TestStatefulSequenceParity
+// was a second, drift-prone copy of corpus sequence 01 and was removed in favor
+// of the single shared source.
