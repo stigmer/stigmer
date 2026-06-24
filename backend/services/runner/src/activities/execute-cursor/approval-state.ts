@@ -60,6 +60,10 @@ import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { MergedToolPolicy } from "./approval-policy.js";
 import { extractArgKey, approvalCategory } from "./approval-policy.js";
+import {
+  fingerprintCoarseIdentity,
+  type FingerprintKey,
+} from "../../shared/approval-fingerprint.js";
 
 export interface McpToolPolicyEntry {
   requiresApproval: boolean;
@@ -132,6 +136,61 @@ export interface ApprovalStateFile {
  */
 export function grantToken(key: string, salient: string): string {
   return Buffer.from(`${key}\n${salient}`, "utf-8").toString("base64");
+}
+
+/**
+ * The shared HMAC coarse fingerprint of an approval grant.
+ *
+ * This is the SAME canonical coarse identity the wire token (grantToken) encodes
+ * — `(key, salient)` plus the MCP slug — run through the one shared HMAC+canonical
+ * path ({@link fingerprintCoarseIdentity}). It is NOT the hook's wire-match value:
+ * the hook matches on the mechanically-reproducible base64 token (a bash script
+ * can recompute base64 but not a keyed HMAC over a workspace-root-normalized
+ * salient). This fingerprint is the cross-substrate, anti-forgery identity used
+ * for the runner-side shadow receipt today and as the successor wire token once a
+ * lease becomes a server-issued bearer token (Phase 7). Because it shares the
+ * exact category + salient the token uses, the hook-side and stream-side
+ * fingerprints of one action are equal by construction (see the parity tests).
+ */
+export function grantFingerprint(key: FingerprintKey, grant: ApprovalGrant): string {
+  return fingerprintCoarseIdentity(key, {
+    tool: grant.key,
+    mcpServerSlug: grant.mcpServerSlug,
+    salient: grant.salient,
+  });
+}
+
+/**
+ * Emit a best-effort shadow ExecutionReceipt for each grant the runner issues
+ * this turn (Phase 2, mirror of the deep-agent gateway's receipt).
+ *
+ * Cursor executes tools out-of-process, so unlike the in-process deep-agent
+ * gateway the runner cannot observe the actual side effect — the receipt is
+ * issued when the authorization GRANT is written (best-effort, `verified:false`),
+ * not at execution. Structured log only: never persisted, no proto. Shares the
+ * one HMAC+canonical fingerprint path so the value matches the deep-agent and
+ * cross-language corpus definitions.
+ */
+export function emitCursorGrantReceipts(
+  grants: readonly ApprovalGrant[],
+  fingerprintKey: FingerprintKey,
+  executionId: string,
+): void {
+  for (const g of grants) {
+    console.log(
+      "[hitl-gateway] receipt " +
+      JSON.stringify({
+        executionId,
+        toolName: g.toolName,
+        mcpServerSlug: g.mcpServerSlug,
+        category: g.mcpServerSlug ? "" : g.key,
+        authorization: "approval",
+        fingerprint: grantFingerprint(fingerprintKey, g),
+        substrate: "cursor",
+        verified: false,
+      }),
+    );
+  }
 }
 
 /**

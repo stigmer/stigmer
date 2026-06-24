@@ -68,4 +68,42 @@ describe("buildSubAgentMiddleware", () => {
 
     expect(stack[2].name).toBe("ToolTruncationMiddleware");
   });
+
+  it("installs the approval gate when an approvalGate config is provided", () => {
+    const stack = buildSubAgentMiddleware({
+      approvalGate: { policies: new Map(), autoApproveAll: false, toolServerMap: new Map() },
+    });
+
+    // loop, budget, truncation, approval gate
+    expect(stack).toHaveLength(4);
+    expect(stack[3].name).toBe("ApprovalGateMiddleware");
+    expect(stack[3].wrapToolCall).toBeDefined();
+  });
+
+  it("omits the approval gate when approvalGate is null (auto-approve-all parity)", () => {
+    const stack = buildSubAgentMiddleware({ approvalGate: null });
+
+    expect(stack).toHaveLength(3);
+    expect(stack.some((m) => m.name === "ApprovalGateMiddleware")).toBe(false);
+  });
+
+  it("orders the gate before the cost-cap view", () => {
+    const parentCostCap = createCostCapMiddleware({
+      maxCostUsd: 10,
+      inputPricePerMillion: 3,
+      outputPricePerMillion: 15,
+      cacheReadPricePerMillion: 0.3,
+      warningPct: 80,
+    });
+
+    const stack = buildSubAgentMiddleware({
+      costCap: parentCostCap,
+      approvalGate: { policies: new Map(), autoApproveAll: false, toolServerMap: new Map() },
+    });
+
+    // loop, budget, truncation, approval gate, cost cap view
+    expect(stack).toHaveLength(5);
+    expect(stack[3].name).toBe("ApprovalGateMiddleware");
+    expect(stack[4].name).toBe("CostCapSubAgentView");
+  });
 });

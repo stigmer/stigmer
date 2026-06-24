@@ -94,11 +94,11 @@ export interface OtelSpansConfig {
   readonly toolServerMap: ReadonlyMap<string, string>;
 }
 
-export interface ApprovalGateConfig {
-  readonly policies: ReadonlyMap<string, import("../shared/approval-policy.js").MergedToolPolicy>;
-  readonly autoApproveAll: boolean;
-  readonly toolServerMap: ReadonlyMap<string, string>;
-}
+// Single source of truth lives in approval-gate.ts (the gate consumes it);
+// imported as a type (no runtime cycle) and re-exported so existing importers of
+// `ApprovalGateConfig` from this module keep working.
+import type { ApprovalGateConfig } from "./approval-gate.js";
+export type { ApprovalGateConfig };
 
 /**
  * Top-level configuration for buildMiddlewareStack().

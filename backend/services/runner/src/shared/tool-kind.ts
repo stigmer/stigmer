@@ -89,3 +89,36 @@ export function classifyTool(name: string, mcpServerSlug?: string): ToolKind {
   }
   return ToolKind.UNSPECIFIED;
 }
+
+/**
+ * The coarse, cross-taxonomy approval category of a gated built-in tool, or
+ * undefined for tools that are not gated by category (read-only built-ins, MCP
+ * tools, and unknown names).
+ *
+ * FILE_WRITE and FILE_EDIT both collapse to "write" on purpose: the Cursor
+ * preToolUse hook reports every file mutation — create or edit — as `Write`,
+ * while the SDK stream names them `edit`/`write`. The category is therefore the
+ * only tool identity that is stable across the hook and stream taxonomies, which
+ * is exactly what the Cursor approval grant (and the Phase-2 coarse approval
+ * fingerprint) must match on. Built on {@link classifyTool} so this collapse is
+ * defined once.
+ *
+ * This is the single source of truth for the approval category;
+ * execute-cursor/approval-policy.ts re-exports it so the two harnesses cannot
+ * drift.
+ */
+export type ToolApprovalCategory = "write" | "delete" | "shell";
+
+export function toolApprovalCategory(name: string): ToolApprovalCategory | undefined {
+  switch (classifyTool(name)) {
+    case ToolKind.FILE_WRITE:
+    case ToolKind.FILE_EDIT:
+      return "write";
+    case ToolKind.FILE_DELETE:
+      return "delete";
+    case ToolKind.SHELL:
+      return "shell";
+    default:
+      return undefined;
+  }
+}

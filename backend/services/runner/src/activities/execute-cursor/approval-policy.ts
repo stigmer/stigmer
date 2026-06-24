@@ -16,8 +16,7 @@
  * a separate local policy applies.
  */
 
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { classifyTool } from "../../shared/tool-kind.js";
+import { toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 
 // The four-level MCP policy merge is harness-agnostic and lives in exactly one
 // place (shared/approval-policy.ts) so the Cursor and native harnesses can never
@@ -52,36 +51,24 @@ const BUILT_IN_GATED: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Canonical approval category for a gated tool, derived from EITHER taxonomy's
- * name via the shared {@link classifyTool}.
+ * Canonical approval category for a gated tool.
  *
- * The hook (`Write`/`Shell`/`Delete`) and the stream (`edit`/`shell`/`delete`)
- * name the same operation differently, so neither raw name is a stable
- * cross-layer identity. The category collapses both onto one value so the denial
- * ledger (recorded by the hook) correlates to the streamed tool call (read by
- * the runner) and so an approval grant matches the agent's re-attempt on
- * reinvocation regardless of which taxonomy named it. `FILE_WRITE` and
- * `FILE_EDIT` both map to `write` because the Cursor hook reports every file
- * mutation — create or edit — as `Write`.
+ * This is the cross-substrate identity, and it lives in ONE place:
+ * {@link toolApprovalCategory} in shared/tool-kind.ts (shared with the deep-agent
+ * gateway). The names below are kept as the Cursor harness's public surface
+ * (`approvalCategory` / `ApprovalCategory`) so existing imports do not churn, but
+ * they are exact aliases — there is no second implementation to drift.
  *
- * Returns undefined for non-gated tools (read-only built-ins, MCP tools, and
- * anything `classifyTool` does not place in a mutating kind).
+ * Why this matters here: the hook (`Write`/`Shell`/`Delete`) and the stream
+ * (`edit`/`shell`/`delete`) name the same operation differently, so neither raw
+ * name is a stable cross-layer identity. The category collapses both onto one
+ * value so the denial ledger (recorded by the hook) correlates to the streamed
+ * tool call (read by the runner) and an approval grant matches the agent's
+ * re-attempt on reinvocation regardless of which taxonomy named it.
  */
-export type ApprovalCategory = "write" | "delete" | "shell";
+export type ApprovalCategory = ToolApprovalCategory;
 
-export function approvalCategory(toolName: string): ApprovalCategory | undefined {
-  switch (classifyTool(toolName)) {
-    case ToolKind.FILE_WRITE:
-    case ToolKind.FILE_EDIT:
-      return "write";
-    case ToolKind.FILE_DELETE:
-      return "delete";
-    case ToolKind.SHELL:
-      return "shell";
-    default:
-      return undefined;
-  }
-}
+export const approvalCategory = toolApprovalCategory;
 
 /**
  * Human-readable approval-message template per canonical category. Keyed by

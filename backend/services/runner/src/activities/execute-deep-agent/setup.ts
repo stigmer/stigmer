@@ -38,6 +38,9 @@ import { resolveEnvironment, type EnvironmentResult } from "./environment.js";
 import { buildEnhancedSystemPrompt } from "./prompt-builder.js";
 import { buildMiddlewareStack, createThinkTool } from "../../middleware/index.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
+import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
+import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
+import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded } from "../../shared/model-pricing.js";
 import { getDefaultModel } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
@@ -300,6 +303,24 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       autoApproveAll,
     );
 
+    // The approval gate config is the single source of truth for HITL gating,
+    // built once and inherited verbatim by sub-agents (so a mutating tool inside
+    // a sub-agent is gated identically to one in the parent). Null under
+    // auto-approve-all, where the gate is inert. The per-execution fingerprint
+    // key (runner master secret + execution_id) drives the shadow ExecutionReceipt.
+    const approvalGateConfig: ApprovalGateConfig | null = !autoApproveAll
+      ? {
+          policies: approvalPolicies,
+          autoApproveAll,
+          toolServerMap,
+          fingerprintKey: deriveExecutionFingerprintKey(
+            getRunnerHitlMasterSecret(),
+            executionId,
+          ),
+          executionId,
+        }
+      : null;
+
     const maxCostUsd = execConfig?.maxCostUsd ?? 0;
     const { middleware, gracefulStop, costCap: costCapMiddleware } = buildMiddlewareStack({
       loopDetection: {
@@ -324,11 +345,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         warningPct: 80,
       } : null,
       otelSpans: { toolServerMap },
-      approvalGate: !autoApproveAll ? {
-        policies: approvalPolicies,
-        autoApproveAll,
-        toolServerMap,
-      } : null,
+      approvalGate: approvalGateConfig,
     });
 
     // Step 11: Build tools list (MCP tools + think tool)
@@ -358,8 +375,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         parentMcpUsages: mcpServerUsages,
         skillClient: client,
         workspaceBackend,
-        approvalPolicies,
-        autoApproveAll,
+        approvalGate: approvalGateConfig,
         parentModelName: modelName,
         parentHasNativeThinking: _modelHasNativeThinking(modelName),
         costCap: costCapMiddleware ?? undefined,

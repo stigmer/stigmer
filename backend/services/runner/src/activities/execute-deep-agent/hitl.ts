@@ -51,6 +51,16 @@ export interface GraphInterrupt {
 }
 
 export interface InterruptValue {
+  /**
+   * The interrupt's own id — the canonical key LangGraph matches a
+   * `Command(resume={...})` map against. For a parent-level tool interrupt this
+   * coincides with the owning task id, but for a *nested sub-agent* interrupt
+   * the two differ: the sub-agent's interrupt surfaces under the parent task
+   * that ran the `task` tool, and ONLY this id routes the resume value back into
+   * the sub-agent's `interrupt()`. Keying by `task.id` silently skips sub-agent
+   * approvals (verified empirically in subagent-approval-propagation.test.ts).
+   */
+  readonly id?: string;
   readonly value: Record<string, unknown>;
   readonly resumeValue?: unknown;
 }
@@ -154,7 +164,11 @@ function extractPendingInterrupts(state: GraphStateSnapshot): PendingInterrupt[]
       if (typeof value === "object" && value !== null) {
         const toolCallId = (value as Record<string, unknown>).tool_call_id;
         if (typeof toolCallId === "string" && toolCallId) {
-          result.push({ interruptId: task.id, toolCallId });
+          // Key on the interrupt's own id (falling back to task.id for the
+          // parent-level case where they coincide). This is what makes a
+          // sub-agent approval resume into the nested interrupt rather than
+          // being dropped — see InterruptValue.id.
+          result.push({ interruptId: intr.id ?? task.id, toolCallId });
         }
       }
     }

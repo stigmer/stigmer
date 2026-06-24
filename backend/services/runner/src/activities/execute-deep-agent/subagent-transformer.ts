@@ -25,7 +25,7 @@ import type { SubAgent, McpServerUsage } from "@stigmer/protos/ai/stigmer/agenti
 
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
-import type { MergedToolPolicy } from "../../shared/approval-policy.js";
+import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import type { CostCapMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createThinkTool } from "../../middleware/index.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
@@ -131,8 +131,13 @@ export interface SubagentTransformOptions {
   readonly parentMcpUsages: readonly McpServerUsage[];
   readonly skillClient: StigmerClient;
   readonly workspaceBackend: WorkspaceBackend;
-  readonly approvalPolicies: ReadonlyMap<string, MergedToolPolicy>;
-  readonly autoApproveAll: boolean;
+  /**
+   * The parent's approval-gate config, inherited verbatim so a mutating tool
+   * inside a sub-agent is gated identically to one in the parent (same policies,
+   * toolServerMap, fingerprint key, execution id). Null under auto-approve-all,
+   * where the parent gate is inert too — sub-agents then install no gate either.
+   */
+  readonly approvalGate: ApprovalGateConfig | null;
   readonly parentModelName: string;
   readonly parentHasNativeThinking: boolean;
   readonly costCap?: CostCapMiddleware;
@@ -405,6 +410,7 @@ export async function compileSubagents(
   transformed: readonly TransformedSubagent[],
   opts: {
     readonly costCap?: CostCapMiddleware;
+    readonly approvalGate?: ApprovalGateConfig | null;
     readonly parentModelName: string;
     readonly workspaceRootDir: string;
     readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
@@ -419,6 +425,7 @@ export async function compileSubagents(
     try {
       const middleware = buildSubAgentMiddleware({
         costCap: opts.costCap,
+        approvalGate: opts.approvalGate,
       });
 
       const modelName = spec.model ?? opts.parentModelName;
@@ -491,6 +498,7 @@ export async function transformAndCompileSubagents(
     parentMcpUsages,
     skillClient,
     workspaceBackend,
+    approvalGate,
     parentModelName,
     parentHasNativeThinking,
     costCap,
@@ -604,6 +612,7 @@ export async function transformAndCompileSubagents(
   // Step 4: Compile all subagents
   const compiled = await compileSubagents(allSpecs, {
     costCap,
+    approvalGate,
     parentModelName,
     workspaceRootDir: workspaceBackend.rootDir,
     modelFactory,

@@ -63,7 +63,9 @@ import { resolveAttachments } from "./attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
-import { buildApprovalState, buildApprovalGrants, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
+import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
+import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
+import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { closeProxySessions } from "./http2-interceptor.js";
@@ -357,6 +359,13 @@ async function executeCursorInner(
     const approvalGrants = approvalDecisions
       ? buildApprovalGrants(adjudicatedApprovals, approvalDecisions)
       : undefined;
+    if (approvalGrants && approvalGrants.length > 0 && !effectiveAutoApproveAll) {
+      emitCursorGrantReceipts(
+        approvalGrants,
+        deriveExecutionFingerprintKey(getRunnerHitlMasterSecret(), executionId),
+        executionId,
+      );
+    }
     const approvalState = buildApprovalState(
       mergedPolicies,
       effectiveAutoApproveAll,
