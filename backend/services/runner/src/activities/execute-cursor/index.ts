@@ -163,6 +163,13 @@ async function executeCursorInner(
   // message surfaced to the user; both feed the Phase 11a stall branch.
   let stallDetected = false;
   let stallError: StallTimeoutError | undefined;
+  // Set the moment the preToolUse hook records its first denial in the ledger.
+  // We then stop consuming the stream and cancel the run so the model never
+  // reacts to Cursor's tool-failure surface (narrate defeat, attempt a second
+  // gated tool) — converging the Cursor harness toward the native harness, which
+  // pauses BEFORE the model sees a denial. Phase 12 reconciles the denied tool
+  // calls into WAITING_FOR_APPROVAL exactly as after a natural stream end.
+  let firstDenialDetected = false;
   let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
   // Progress-based stall watchdog (see ../../shared/stall-watchdog.ts). Stopped
   // in the finally on every exit path; complements the liveness heartbeat.
@@ -653,6 +660,38 @@ async function executeCursorInner(
         );
       }
 
+      // First-denial stop (HITL clean pause). The preToolUse hook appends to the
+      // denial ledger the instant it gates a tool — before Cursor surfaces the
+      // failure to the model. Polling the ledger on tool_call events (never the
+      // high-frequency token deltas, so the cost stays bounded) lets us end the
+      // turn at that first denial, so the model cannot narrate defeat or attempt
+      // a workaround between two gated tools — the inter-tool narration the
+      // Phase 12 trim cannot remove. This mirrors the native harness's
+      // pause-before-react semantics. Phase 12 below still reconciles the denied
+      // tool calls and keeps the trim as a backstop for any token that streamed
+      // before the cancel lands.
+      if (!firstDenialDetected && event.type === "tool_call" && hitlDir) {
+        const denials = await readDenialLedger(hitlDir);
+        if (denials.length > 0) {
+          firstDenialDetected = true;
+          console.log(
+            `ExecuteCursor first denial detected (${denials.length} ledger ` +
+            `entr${denials.length === 1 ? "y" : "ies"}); stopping turn to pause ` +
+            `cleanly for approval: execution=${executionId}`,
+          );
+          if (run.supports?.("cancel")) {
+            void run.cancel().catch((cancelErr) => {
+              console.warn(
+                `ExecuteCursor run.cancel() after first denial failed (non-fatal): ` +
+                `execution=${executionId}, ` +
+                `error=${cancelErr instanceof Error ? cancelErr.message : cancelErr}`,
+              );
+            });
+          }
+          break;
+        }
+      }
+
       deltaEnricher.applyEnrichments(status.messages);
       eventCount++;
 
@@ -706,12 +745,16 @@ async function executeCursorInner(
       }
     }
     } catch (streamErr) {
-      // run.cancel() from the stall watchdog can make the stream iterator
-      // reject; that is the expected teardown, so swallow it and fall through
-      // to the stallDetected branch in Phase 11a. Anything else is a genuine
+      // run.cancel() — from the stall watchdog or the first-denial stop — can
+      // make the stream iterator reject as it tears down; that is the expected
+      // teardown for both, so swallow it and fall through (stallDetected ->
+      // Phase 11a; firstDenialDetected -> Phase 12). Anything else is a genuine
       // stream failure — rethrow it to the outer error handler.
-      if (!stallDetected) throw streamErr;
-      console.warn(`ExecuteCursor stream ended via stall cancel: execution=${executionId}`);
+      if (!stallDetected && !firstDenialDetected) throw streamErr;
+      console.warn(
+        `ExecuteCursor stream ended via cancel: execution=${executionId}, ` +
+        `stall=${stallDetected}, firstDenial=${firstDenialDetected}`,
+      );
     }
 
     periodicHeartbeat.stop();

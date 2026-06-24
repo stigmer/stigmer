@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -221,6 +222,95 @@ func TestCursorHarness_HITL_ResumedTurn_StillGated(t *testing.T) {
 	assertNoMutatingToolCompleted(t, waiting)
 }
 
+// TestCursorHarness_HITL_CleanPause_NoLoop_NoLeakedNarration is the end-to-end
+// proof of the runner<->backend approval-finalize contract: when a gated tool is
+// denied, the Cursor turn must pause CLEANLY on the tool call — a single, stable
+// WAITING_FOR_APPROVAL with a real pending approval — and must NOT (a) oscillate
+// back to RUNNING (the tight re-invocation loop), nor (b) leak the model's
+// post-denial narration ("blocked by a hook", "approve ... when prompted",
+// "I'll try the shell instead", "enable the hook in your Cursor settings") into
+// the transcript rendered next to the approval card.
+//
+// It deliberately uses a resourceful agent and a workaround-inviting prompt —
+// the exact conditions that, before the fix, made the model react to the denial
+// (narrate defeat, attempt a second gated tool), the runner trim that shrunk the
+// transcript, the backend append-only guard reject the shrink (stranding
+// pending_approvals at 0), and the workflow tight-loop WAITING<->RUNNING.
+//
+// Determinism note: the model's exact prose is non-deterministic, so the
+// authoritative regression locks live in the deterministic seam tests
+// (update_status_guard_test.go, invoke_workflow_pause_test.go, and their Java
+// mirrors). This test asserts the user-observable contract end to end.
+//
+// Requires CURSOR_API_KEY.
+func TestCursorHarness_HITL_CleanPause_NoLoop_NoLeakedNarration(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 6*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-hitl-clean-pause",
+		"You are a resourceful coding assistant. If one approach is blocked, you "+
+			"try alternative approaches to accomplish the task.",
+	)
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Create a file called clean-pause.txt containing the text: hi. "+
+			"If your file-editing tool is blocked, work around it by using the "+
+			"shell (e.g. echo) to create the file instead.",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, waiting.GetStatus().GetPendingApprovals(),
+		"a gated tool must surface a pending approval — not strand the execution at WAITING_FOR_APPROVAL with pending_approvals=0")
+
+	approval := waiting.GetStatus().GetPendingApprovals()[0]
+	assertToolCallWaitingApproval(t, waiting, approval.GetToolCallId())
+
+	// Contract 1 — STABILITY: the pause must hold. Before the fix the backend
+	// rejected the runner's WAITING_FOR_APPROVAL finalize, so pending_approvals
+	// collapsed to 0 and the workflow re-invoked immediately, flipping the phase
+	// RUNNING<->WAITING. Poll the live status and assert it stays a single stable
+	// gate with the pending approval intact (the tight-loop signature is the
+	// phase leaving WAITING_FOR_APPROVAL or pending_approvals emptying while the
+	// user has not acted).
+	assertApprovalPauseIsStable(t, ctx, clients, exec.GetMetadata().GetId(), 12*time.Second)
+
+	// Contract 2 — CLEAN TRANSCRIPT: no leaked post-denial narration sits next to
+	// the approval card. With the first-denial stop the model never emits the
+	// inter-tool reaction; this guards the user-visible regression directly.
+	assertNoLeakedDenialNarration(t, waiting)
+
+	// Contract 3 — RESUME: approving carries the re-attempt through to completion
+	// with the file actually written.
+	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		exec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		3*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "execution should complete after the gated mutation is approved")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+	assertCompletedWrite(t, result)
+}
+
 // TestCursorHarness_HITL_AutoApproveAll_NoGate verifies the bypass: with
 // auto_approve_all=true the same file mutation executes without ever pausing for
 // approval. Requires CURSOR_API_KEY.
@@ -405,6 +495,87 @@ func inspectCursorMcpDenyGroundTruth(t *testing.T, execID, toolName string) {
 			"'blocked by a hook' text on the MCP path — the model has no signal that this is " +
 			"an approval-in-progress (the root cause of the defeatist narration; drives the " +
 			"runner-side clean-pause and the .cursor/rules escalation).")
+	}
+}
+
+// assertApprovalPauseIsStable polls the live execution for the given window and
+// fails if the approval pause is not stable — i.e. the phase leaves
+// WAITING_FOR_APPROVAL, or pending_approvals empties, while the user has not
+// submitted any decision. That instability is the exact signature of the tight
+// re-invocation loop (backend rejected the runner's WAITING_FOR_APPROVAL
+// transcript -> pending_approvals=0 -> workflow re-invokes immediately ->
+// RUNNING) this fix eliminates. A stable gate stays WAITING_FOR_APPROVAL with a
+// non-empty pending list until acted upon.
+func assertApprovalPauseIsStable(
+	t *testing.T,
+	ctx context.Context,
+	clients *harness.Clients,
+	executionID string,
+	window time.Duration,
+) {
+	t.Helper()
+	deadline := time.Now().Add(window)
+	polls := 0
+	for time.Now().Before(deadline) {
+		exec, err := clients.AgentExecutionQuery.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
+		require.NoError(t, err, "polling execution %s during stability window", executionID)
+
+		phase := exec.GetStatus().GetPhase()
+		require.Equalf(t, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, phase,
+			"approval pause must remain stable: phase flipped to %s without any user decision "+
+				"(the tight re-invocation loop). poll=%d", phase.String(), polls)
+		require.NotEmptyf(t, exec.GetStatus().GetPendingApprovals(),
+			"approval pause must remain stable: pending_approvals emptied without any user decision "+
+				"(backend rejected the runner's WAITING_FOR_APPROVAL transcript). poll=%d", polls)
+		polls++
+
+		select {
+		case <-ctx.Done():
+			t.Fatalf("context cancelled during stability window: %v", ctx.Err())
+		case <-time.After(2 * time.Second):
+		}
+	}
+	t.Logf("approval pause stable across %d poll(s) over %v", polls, window)
+}
+
+// leakedDenialNarrationMarkers are characteristic substrings of the model's
+// post-denial reaction that must never reach the persisted transcript shown next
+// to the approval card. Cursor surfaces our hook deny to the model as a tool
+// failure (often its own generic "blocked by a hook" text), and a well-behaved
+// model reacts by narrating defeat or attempting a workaround. The first-denial
+// stop (runner) prevents that reaction from ever being produced; this list lets
+// the test assert the user-visible cleanliness directly. Lowercased compare.
+var leakedDenialNarrationMarkers = []string{
+	"blocked by a hook",
+	"enable the hook",
+	"cursor settings",
+	"approve the write when prompted",
+	"approve it when prompted",
+	"when prompted",
+	"i'll try the shell",
+	"try the shell instead",
+	"use the shell instead",
+	"work around",
+	"workaround",
+}
+
+// assertNoLeakedDenialNarration asserts no AI/thinking message content contains a
+// leaked post-denial narration marker. This is the user-visible regression: a
+// defeatist "I couldn't do this, approve it when prompted" verdict rendered right
+// next to the card that is, in fact, asking for that approval.
+func assertNoLeakedDenialNarration(t *testing.T, exec *agentexecv1.AgentExecution) {
+	t.Helper()
+	for i, msg := range exec.GetStatus().GetMessages() {
+		if msg.GetType() != agentexecv1.MessageType_MESSAGE_AI &&
+			msg.GetType() != agentexecv1.MessageType_MESSAGE_THINKING {
+			continue
+		}
+		content := strings.ToLower(msg.GetContent())
+		for _, marker := range leakedDenialNarrationMarkers {
+			assert.NotContainsf(t, content, marker,
+				"message[%d] leaks post-denial narration %q next to the approval card: %q",
+				i, marker, msg.GetContent())
+		}
 	}
 }
 

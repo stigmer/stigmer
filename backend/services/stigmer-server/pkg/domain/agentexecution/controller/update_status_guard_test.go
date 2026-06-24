@@ -75,6 +75,64 @@ func TestBuildNewState_RejectsShrinkingMessagesForNonTerminal(t *testing.T) {
 	}
 }
 
+// The runner<->backend approval-finalize contract: a WAITING_FOR_APPROVAL
+// finalize is the runner's authoritative clean-pause reshape. To match the
+// native harness shape ([pre-tool text][gated tool calls WAITING_APPROVAL]) the
+// runner trims trailing post-denial narration, so the incoming transcript is
+// SHORTER than the in-progress transcript it already streamed. The guard must
+// accept this specific shrink — keyed on the INCOMING phase — so the gated tool
+// call's WAITING_APPROVAL status (and the pending_approvals projected from it)
+// actually persist. Rejecting it strands the execution at WAITING_FOR_APPROVAL
+// with pending_approvals=0, which the workflow then tight-loops on.
+func TestBuildNewState_AcceptsApprovalFinalizeShrink(t *testing.T) {
+	existing := &agentexecutionv1.AgentExecution{
+		Metadata: &apiresource.ApiResourceMetadata{Id: "exec-guard", Name: "exec-guard"},
+		Spec:     &agentexecutionv1.AgentExecutionSpec{},
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			// In-progress full transcript already streamed: pre-tool text, the
+			// gated tool call (reported by the stream as a failure, NOT yet
+			// WAITING_APPROVAL), and the model's post-denial narration.
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+			Messages: []*agentexecutionv1.AgentMessage{
+				{Content: "let me create the file"},
+				{ToolCalls: []*agentexecutionv1.ToolCall{{
+					Id:               "tc-write",
+					Name:             "Write",
+					Status:           agentexecutionv1.ToolCallStatus_TOOL_CALL_FAILED,
+					RequiresApproval: true,
+				}}},
+				{Content: "I could not write the file; approve it when prompted"},
+			},
+		},
+	}
+	// Authoritative clean-pause finalize: trailing narration trimmed (shorter),
+	// the gated tool call now WAITING_APPROVAL.
+	incoming := &agentexecutionv1.AgentExecutionStatus{
+		Phase: agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+		Messages: []*agentexecutionv1.AgentMessage{
+			{Content: "let me create the file"},
+			{ToolCalls: []*agentexecutionv1.ToolCall{{
+				Id:               "tc-write",
+				Name:             "Write",
+				Status:           agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL,
+				RequiresApproval: true,
+			}}},
+		},
+	}
+
+	merged := runBuildStep(t, existing, incoming)
+
+	if got := len(merged.Status.Messages); got != 2 {
+		t.Fatalf("approval finalize must replace the transcript with the trimmed clean-pause shape; expected 2 messages, got %d", got)
+	}
+	if got := len(merged.Status.PendingApprovals); got != 1 {
+		t.Fatalf("the gated tool call's WAITING_APPROVAL must project exactly one pending approval; expected 1, got %d", got)
+	}
+	if got := merged.Status.PendingApprovals[0].GetToolCallId(); got != "tc-write" {
+		t.Fatalf("expected the pending approval to project the gated tool call tc-write, got %q", got)
+	}
+}
+
 // A growing transcript (the normal streaming case) is accepted.
 func TestBuildNewState_AcceptsGrowingMessages(t *testing.T) {
 	existing := existingWith(agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, "m1", "m2")

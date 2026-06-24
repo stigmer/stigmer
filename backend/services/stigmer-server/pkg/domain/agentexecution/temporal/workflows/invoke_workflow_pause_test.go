@@ -198,6 +198,53 @@ func TestHitlApprovalLoopWithoutPause(t *testing.T) {
 	require.Equal(t, 2, callCount)
 }
 
+// TestHitlZeroPendingApprovalFailsFast verifies the workflow does NOT tight-loop
+// the full agent activity when the execution is WAITING_FOR_APPROVAL but
+// pending_approvals is empty. That state is an inconsistency that should be
+// impossible once the runner<->backend approval-finalize contract holds, but the
+// workflow must still fail safe: it tolerates only a small bounded number of
+// consecutive zero-pending cycles (to absorb a transient read race) then fails
+// fast with a descriptive error — instead of re-invoking up to MaxApprovalCycles
+// (100) full agent runs, the production "RUNNING<->WAITING" churn.
+func TestHitlZeroPendingApprovalFailsFast(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-zero"
+	const executionID = "exec-zero-pending"
+	registerCommonMocks(env, threadID)
+
+	// DB always reports zero pending approvals (empty status) while the activity
+	// keeps returning WAITING_FOR_APPROVAL — the stuck-loop signature.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
+		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+			callCount++
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+		})
+
+	input := &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+	}
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.Error(t, env.GetWorkflowError(),
+		"a persistent zero-pending WAITING_FOR_APPROVAL must fail fast, not tight-loop")
+	// Initial invocation + MaxZeroPendingApprovalCycles bounded re-invocations
+	// before giving up — well below MaxApprovalCycles (100).
+	require.Equal(t, MaxZeroPendingApprovalCycles+1, callCount,
+		"workflow must stop after a small bounded number of zero-pending cycles")
+}
+
 func TestMultiplePauseResumeCycles(t *testing.T) {
 	s := testsuite.WorkflowTestSuite{}
 	env := s.NewTestWorkflowEnvironment()

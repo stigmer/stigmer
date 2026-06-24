@@ -528,6 +528,104 @@ describe("dropProvisionalPostDenialNarration", () => {
   });
 });
 
+// First-denial stop contract (index.ts stream loop). When the preToolUse hook
+// records its first denial, the runner ends the turn immediately — before the
+// model can react to Cursor's tool-failure surface with inter-tool narration or
+// a second gated tool. These pin the COMPOSED outcome of that stop using the
+// real ledger + reconcile + trim helpers; the live SDK orchestration is covered
+// by the end-to-end integration test (cursor_hitl_test.go).
+describe("first-denial stop contract", () => {
+  type SimEvent =
+    | { kind: "text"; content: string }
+    | { kind: "tool"; tool: ToolCall; denyToken?: { name: string; token: string } };
+
+  // Faithfully mirrors the index.ts loop rule: process each event, and on a
+  // tool_call event read the denial ledger — the instant it is non-empty, cancel
+  // the run and stop consuming the stream. The hook is simulated by appending the
+  // denial token to the ledger as the gated tool is evaluated (exactly when the
+  // real hook runs, before the runner reads it).
+  async function runTurnWithFirstDenialStop(
+    hitlDir: string,
+    events: SimEvent[],
+  ): Promise<{ messages: AgentMessage[]; cancelled: boolean; consumed: number }> {
+    await resetDenialLedger(hitlDir);
+    const messages: AgentMessage[] = [];
+    let cancelled = false;
+    let consumed = 0;
+
+    for (const ev of events) {
+      consumed++;
+      if (ev.kind === "text") {
+        messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: ev.content }));
+        continue;
+      }
+      // A tool_call event: the hook has already adjudicated it, appending to the
+      // ledger if it gated the tool.
+      messages.push(aiMessageWith([ev.tool]));
+      if (ev.denyToken) {
+        await writeFile(
+          denialLedgerPath(hitlDir),
+          `{"toolName":"${ev.denyToken.name}","token":"${ev.denyToken.token}"}\n`,
+          { flag: "a" },
+        );
+      }
+      const denials = await readDenialLedger(hitlDir);
+      if (denials.length > 0) {
+        cancelled = true;
+        break;
+      }
+    }
+
+    return { messages, cancelled, consumed };
+  }
+
+  it("stops at the first gated tool, never consuming the inter-tool narration or a second gated tool", async () => {
+    const ws = makeWorkspace();
+    const edit = toolCall({ id: "c1", name: "edit", status: ToolCallStatus.TOOL_CALL_COMPLETED, args: { path: "gated.txt" } });
+    const shell = toolCall({ id: "c2", name: "shell", status: ToolCallStatus.TOOL_CALL_COMPLETED, args: { command: "echo hi > gated.txt" } });
+
+    // The full turn the model WOULD produce if left running: pre-tool text, the
+    // gated edit (denied), a defeatist reaction, then a shell workaround (also
+    // gated). The stop must cut the turn after the gated edit.
+    const { messages, cancelled, consumed } = await runTurnWithFirstDenialStop(ws, [
+      { kind: "text", content: "Let me create the file." },
+      { kind: "tool", tool: edit, denyToken: { name: "Write", token: grantToken("write", "gated.txt") } },
+      { kind: "text", content: "I'm blocked by a hook — I'll try the shell instead." },
+      { kind: "tool", tool: shell, denyToken: { name: "Shell", token: grantToken("shell", "echo hi > gated.txt") } },
+    ]);
+
+    expect(cancelled).toBe(true);
+    expect(consumed).toBe(2); // pre-tool text + gated edit only
+    // The second gated tool and the inter-tool narration were never consumed.
+    expect(messages).toHaveLength(2);
+    expect(messages.some((m) => m.content.includes("try the shell"))).toBe(false);
+
+    // Phase 12 reconcile + trim on the stopped transcript yields the clean shape.
+    const denied = reconcileDeniedToolCalls(messages, await readDenialLedger(ws));
+    expect(denied).toHaveLength(1);
+    expect(edit.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    const dropped = dropProvisionalPostDenialNarration(messages, denied);
+    expect(dropped).toHaveLength(0); // nothing trailing to trim — the stop already did it
+    expect(messages).toHaveLength(2);
+    expect(messages[0].content).toBe("Let me create the file.");
+    expect(messages[1].toolCalls[0]).toBe(edit);
+  });
+
+  it("does not stop a turn with no denials (auto-approved / read-only tools run to completion)", async () => {
+    const ws = makeWorkspace();
+    const read = toolCall({ id: "c1", name: "read", status: ToolCallStatus.TOOL_CALL_COMPLETED, args: { path: "a.txt" } });
+
+    const { cancelled, consumed } = await runTurnWithFirstDenialStop(ws, [
+      { kind: "text", content: "Reading the file." },
+      { kind: "tool", tool: read },
+      { kind: "text", content: "Here is the content." },
+    ]);
+
+    expect(cancelled).toBe(false);
+    expect(consumed).toBe(3); // the whole turn is consumed
+  });
+});
+
 describe("generateHookScript ledger wiring", () => {
   it("wires the ledger path and records denials in both deny branches", () => {
     const script = generateHookScript(

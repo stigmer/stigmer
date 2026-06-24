@@ -1180,6 +1180,19 @@ export function reconcileDeniedToolCalls(
  * runner logs and the recorded cursor-event stream, and the model re-narrates a
  * correct summary on the resumed turn after approval.
  *
+ * THE RUNNER<->BACKEND CONTRACT. This trim deliberately makes the persisted
+ * WAITING_FOR_APPROVAL transcript SHORTER than the in-progress transcript the
+ * runner already streamed. The backend's append-only message guard
+ * (AgentExecutionUpdateStatusHandler in stigmer-cloud; update_status.go in
+ * stigmer-server) therefore special-cases an incoming WAITING_FOR_APPROVAL phase
+ * as the authoritative clean-pause reshape and accepts the shrink — without that,
+ * the finalize is rejected, pending_approvals collapses to 0, and the workflow
+ * tight-loops RUNNING<->WAITING. The two sides describe one contract; keep them
+ * in sync. The first-denial stop in index.ts is the primary mechanism that keeps
+ * this trim small (it ends the turn before the model produces inter-tool
+ * narration, which a positional trailing trim cannot remove); this trim remains
+ * the backstop for any token that streamed before the cancel landed.
+ *
  * Returns the dropped messages (for diagnostics); mutates `messages` in place.
  */
 export function dropProvisionalPostDenialNarration(

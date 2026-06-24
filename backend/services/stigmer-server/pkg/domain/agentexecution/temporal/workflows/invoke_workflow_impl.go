@@ -131,6 +131,15 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 // MaxApprovalCycles is the maximum number of approval iterations to prevent infinite loops.
 const MaxApprovalCycles = 100
 
+// MaxZeroPendingApprovalCycles bounds how many consecutive approval cycles the
+// workflow tolerates with phase=WAITING_FOR_APPROVAL but pending_approvals
+// empty. Once the runner<->backend approval-finalize contract holds this state
+// is unreachable, but if it ever occurs the workflow must fail fast rather than
+// tight-loop the full agent activity up to MaxApprovalCycles (the production
+// "RUNNING<->WAITING" churn). A small tolerance absorbs a transient read race
+// between the runner's WAITING_FOR_APPROVAL persist and the workflow's DB read.
+const MaxZeroPendingApprovalCycles = 3
+
 // MaxPauseCycles is the maximum number of pause/resume cycles to prevent infinite loops.
 const MaxPauseCycles = 100
 
@@ -385,6 +394,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 		"phase_value", int32(finalPhase))
 
 	approvalCycle := 0
+	zeroPendingApprovalCycles := 0
 	for finalPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
 		if approvalCycle > MaxApprovalCycles {
@@ -416,11 +426,23 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 			"pending_count", pendingCount)
 
 		if pendingCount == 0 {
+			// WAITING_FOR_APPROVAL with no pending approvals is an inconsistency
+			// the approval-finalize contract should make impossible. Tolerate a
+			// few consecutive occurrences (transient read race) then fail fast,
+			// rather than tight-looping the full activity to MaxApprovalCycles.
+			zeroPendingApprovalCycles++
+			if zeroPendingApprovalCycles > MaxZeroPendingApprovalCycles {
+				logger.Error("WAITING_FOR_APPROVAL with empty pending_approvals across consecutive cycles — failing fast to avoid a tight re-invocation loop",
+					"execution_id", executionID, "cycle", approvalCycle, "zero_pending_cycles", zeroPendingApprovalCycles)
+				return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with no pending approvals after %d consecutive cycles - approval propagation is broken", zeroPendingApprovalCycles)
+			}
 			logger.Warn("pending_approvals is empty but phase is WAITING_FOR_APPROVAL — "+
-				"re-invoking immediately to resolve inconsistency",
+				"re-invoking (bounded) to resolve inconsistency",
 				"execution_id", executionID,
-				"cycle", approvalCycle)
+				"cycle", approvalCycle,
+				"zero_pending_cycles", zeroPendingApprovalCycles)
 		} else {
+			zeroPendingApprovalCycles = 0
 			signalChan := workflow.GetSignalChannel(ctx, SignalApprovalGateResolved)
 			signalChan.Receive(ctx, nil)
 
@@ -621,6 +643,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 		"phase", finalPhase.String())
 
 	approvalCycle := 0
+	zeroPendingApprovalCycles := 0
 	for finalPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
 		if approvalCycle > MaxApprovalCycles {
@@ -649,9 +672,20 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 			"execution_id", executionID, "cycle", approvalCycle, "pending_count", pendingCount)
 
 		if pendingCount == 0 {
-			logger.Warn("pending_approvals empty but phase is WAITING_FOR_APPROVAL — re-invoking immediately",
-				"execution_id", executionID, "cycle", approvalCycle)
+			// WAITING_FOR_APPROVAL with no pending approvals is an inconsistency
+			// the approval-finalize contract should make impossible. Tolerate a
+			// few consecutive occurrences (transient read race) then fail fast,
+			// rather than tight-looping the full activity to MaxApprovalCycles.
+			zeroPendingApprovalCycles++
+			if zeroPendingApprovalCycles > MaxZeroPendingApprovalCycles {
+				logger.Error("WAITING_FOR_APPROVAL with empty pending_approvals across consecutive cycles — failing fast to avoid a tight re-invocation loop",
+					"execution_id", executionID, "cycle", approvalCycle, "zero_pending_cycles", zeroPendingApprovalCycles)
+				return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with no pending approvals after %d consecutive cycles - approval propagation is broken", zeroPendingApprovalCycles)
+			}
+			logger.Warn("pending_approvals empty but phase is WAITING_FOR_APPROVAL — re-invoking (bounded)",
+				"execution_id", executionID, "cycle", approvalCycle, "zero_pending_cycles", zeroPendingApprovalCycles)
 		} else {
+			zeroPendingApprovalCycles = 0
 			signalChan := workflow.GetSignalChannel(ctx, SignalApprovalGateResolved)
 			signalChan.Receive(ctx, nil)
 			logger.Info("Received approvalGateResolved signal",
