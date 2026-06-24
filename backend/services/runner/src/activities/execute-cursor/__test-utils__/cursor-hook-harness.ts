@@ -86,6 +86,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
           mcpServerSlug: "srv",
           requiresApproval: p.requiresApproval,
           approvalMessage: p.message ?? "",
+          source: "classifier_default" as const,
         },
       ]),
     );

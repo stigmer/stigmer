@@ -47,6 +47,18 @@ export interface DiscoveredToolResult {
   name: string;
   description: string;
   inputSchema?: Record<string, unknown> | null;
+  // MCP server-supplied behaviour hints. UNTRUSTED — the MCP spec is explicit
+  // that clients must never make tool-use decisions on annotations from
+  // untrusted servers. We therefore consume them only to TIGHTEN gating
+  // (destructiveHint → force-gate), never to relax it. Kept in-memory for the
+  // connect workflow's tightener; deliberately excluded from `toolsFingerprint`
+  // / `toolSignature` so incremental-classification reuse stays content-stable.
+  annotations?: DiscoveredToolAnnotations | null;
+}
+
+export interface DiscoveredToolAnnotations {
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
 }
 
 export interface DiscoveredResourceTemplateResult {
@@ -330,6 +342,14 @@ async function connectAndDiscover(
           description: tool.description ?? "",
           inputSchema: tool.inputSchema
             ? (tool.inputSchema as Record<string, unknown>)
+            : null,
+          // Capture only the two hints the tightener uses. Stored verbatim from
+          // the server (untrusted): used to tighten, never to relax.
+          annotations: tool.annotations
+            ? {
+                readOnlyHint: tool.annotations.readOnlyHint,
+                destructiveHint: tool.annotations.destructiveHint,
+              }
             : null,
         });
       }

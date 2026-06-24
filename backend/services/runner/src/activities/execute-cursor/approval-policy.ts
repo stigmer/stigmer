@@ -27,8 +27,9 @@ export {
   mergeApprovalPolicies,
   lookupMcpToolPolicy,
   resolveApprovalMessage,
+  POLICY_ENGINE_VERSION,
 } from "../../shared/approval-policy.js";
-export type { MergedToolPolicy } from "../../shared/approval-policy.js";
+export type { MergedToolPolicy, PolicySource } from "../../shared/approval-policy.js";
 
 /**
  * Built-in Cursor tools the preToolUse hook gates, named as the hook receives

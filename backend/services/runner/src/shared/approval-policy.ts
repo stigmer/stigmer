@@ -47,6 +47,34 @@ export function hasApproveAllDecision(execution: AgentExecution): boolean {
 }
 
 /**
+ * Provenance of a gate decision: which policy layer (or decision point) is
+ * responsible for the final requires-approval verdict. Stamped on the shadow
+ * ExecutionReceipt for audit, mirroring the Phase 1/2 shadow-log discipline —
+ * no proto, no persistence.
+ *
+ * Note on `annotation_destructive_tighten`: the connect-time destructiveHint
+ * tightener (see applyDestructiveHintTightener) writes its result INTO
+ * `McpServerStatus.tool_approvals`, so at policy-merge time it is indistinguishable
+ * from any other classifier default and correctly surfaces as `classifier_default`.
+ * Carrying it as a distinct, persisted provenance needs a proto field and is
+ * deferred to Phase 7; it is intentionally absent from this union to avoid
+ * claiming a distinction the merge cannot faithfully make.
+ */
+export type PolicySource =
+  | "classifier_default" // Layer 1: McpServerStatus.tool_approvals (connect-time classifier)
+  | "pinned_override"    // Layer 2: McpServerSpec.pinned_tool_approvals
+  | "agent_override"     // Layer 3: Agent McpServerUsage.tool_approval_overrides
+  | "auto_approve_all"   // Layer 4 / APPROVE_ALL: whole gate bypassed upstream
+  | "builtin_category";  // Non-MCP built-in gated by the shared tool taxonomy
+
+/**
+ * Monotonic identifier of the policy-engine logic that produced a decision.
+ * Bumped when the merge/classification semantics change so receipts emitted by
+ * different engine versions remain distinguishable in logs. Shadow-only.
+ */
+export const POLICY_ENGINE_VERSION = "phase-6";
+
+/**
  * A single MCP tool's merged approval decision after evaluating all policy
  * layers. This is the single, canonical shape shared by every harness; the
  * Cursor harness re-exports it from here so the two harnesses can never drift.
@@ -56,6 +84,8 @@ export interface MergedToolPolicy {
   mcpServerSlug: string;
   requiresApproval: boolean;
   approvalMessage: string;
+  /** Which policy layer set this verdict (provenance for the shadow receipt). */
+  source: PolicySource;
 }
 
 /**
@@ -88,7 +118,7 @@ export function mergeApprovalPolicies(
   if (autoApproveAll) return merged;
 
   for (const server of resolvedServers) {
-    const serverPolicies = new Map<string, { requiresApproval: boolean; message: string }>();
+    const serverPolicies = new Map<string, { requiresApproval: boolean; message: string; source: PolicySource }>();
 
     // Layer 1: system-generated defaults (presence = requires approval).
     for (const policy of server.toolApprovals) {
@@ -96,6 +126,7 @@ export function mergeApprovalPolicies(
       serverPolicies.set(policy.toolName, {
         requiresApproval: true,
         message: policy.message || `Execute tool: ${policy.toolName}`,
+        source: "classifier_default",
       });
     }
 
@@ -105,15 +136,19 @@ export function mergeApprovalPolicies(
       serverPolicies.set(pinned.toolName, {
         requiresApproval: true,
         message: pinned.message || serverPolicies.get(pinned.toolName)?.message || `Execute tool: ${pinned.toolName}`,
+        source: "pinned_override",
       });
     }
 
     // Layer 3: per-agent overrides (explicit boolean, can enable or disable).
+    // Touching a tool here makes the per-agent layer the responsible source,
+    // whether it enables, disables, or re-messages the gate.
     for (const override of agentOverrides) {
       if (!override.toolName) continue;
       const existing = serverPolicies.get(override.toolName);
       if (existing) {
         existing.requiresApproval = override.requiresApproval;
+        existing.source = "agent_override";
         if (override.message) {
           existing.message = override.message;
         }
@@ -121,6 +156,7 @@ export function mergeApprovalPolicies(
         serverPolicies.set(override.toolName, {
           requiresApproval: true,
           message: override.message || `Execute tool: ${override.toolName}`,
+          source: "agent_override",
         });
       }
     }
@@ -134,6 +170,7 @@ export function mergeApprovalPolicies(
         mcpServerSlug: server.slug,
         requiresApproval: true,
         approvalMessage: policy.message,
+        source: policy.source,
       });
     }
   }

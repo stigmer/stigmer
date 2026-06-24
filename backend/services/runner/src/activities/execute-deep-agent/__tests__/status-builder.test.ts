@@ -561,6 +561,7 @@ describe("StatusBuilder", () => {
           mcpServerSlug: serverSlug,
           requiresApproval: true,
           approvalMessage: message,
+          source: "classifier_default",
         },
       ];
     }
@@ -715,6 +716,7 @@ describe("StatusBuilder", () => {
             mcpServerSlug: serverSlug,
             requiresApproval: true,
             approvalMessage: "Approve?",
+            source: "classifier_default",
           }],
         ]),
         toolServerMap: new Map([[toolName, serverSlug]]),
@@ -1568,6 +1570,7 @@ describe("StatusBuilder", () => {
               mcpServerSlug: "github",
               requiresApproval: true,
               approvalMessage: "Create PR '{{args.title}}' in {{args.repo}}?",
+              source: "classifier_default",
             }],
           ]),
           toolServerMap: new Map([["create_pull_request", "github"]]),
@@ -1812,6 +1815,7 @@ describe("StatusBuilder", () => {
             mcpServerSlug: "my-server",
             requiresApproval: true,
             approvalMessage: "Execute dangerous_tool",
+            source: "classifier_default",
           }],
         ]),
         toolServerMap: new Map([["dangerous_tool", "my-server"]]),

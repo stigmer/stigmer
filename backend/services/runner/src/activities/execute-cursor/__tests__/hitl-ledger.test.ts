@@ -174,6 +174,7 @@ describe("reconcileDeniedToolCalls", () => {
         mcpServerSlug: "planton",
         requiresApproval: true,
         approvalMessage: "Apply infrastructure change",
+        source: "classifier_default",
       }],
     ]);
 

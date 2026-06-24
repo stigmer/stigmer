@@ -12,6 +12,7 @@ import {
   lookupMcpToolPolicy,
   resolveApprovalMessage,
   hasApproveAllDecision,
+  type MergedToolPolicy,
 } from "../approval-policy.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import type { ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -130,6 +131,48 @@ describe("mergeApprovalPolicies", () => {
     expect(result.has("github/delete_repo")).toBe(true);
   });
 
+  describe("provenance (source stamping)", () => {
+    it("stamps classifier_default for a layer-1 tool approval", () => {
+      const servers = [makeServer("github", [{ toolName: "create_issue" }])];
+      const result = mergeApprovalPolicies(servers, [], false);
+      expect(result.get("github/create_issue")!.source).toBe("classifier_default");
+    });
+
+    it("stamps pinned_override when a pinned approval wins", () => {
+      const servers = [
+        makeServer("github", [{ toolName: "push" }], [{ toolName: "push" }]),
+      ];
+      const result = mergeApprovalPolicies(servers, [], false);
+      expect(result.get("github/push")!.source).toBe("pinned_override");
+    });
+
+    it("stamps agent_override when a per-agent override adds a gate", () => {
+      const servers = [makeServer("github", [])];
+      const overrides: ToolApprovalOverride[] = [{
+        toolName: "delete_repo",
+        requiresApproval: true,
+        message: "Really delete?",
+      }] as any[];
+      const result = mergeApprovalPolicies(servers, overrides, false);
+      expect(result.get("github/delete_repo")!.source).toBe("agent_override");
+    });
+
+    it("stamps agent_override when it overrides a classifier/pinned entry", () => {
+      const servers = [
+        makeServer("github", [{ toolName: "push", message: "classifier" }]),
+      ];
+      const overrides: ToolApprovalOverride[] = [{
+        toolName: "push",
+        requiresApproval: true,
+        message: "agent says gate",
+      }] as any[];
+      const result = mergeApprovalPolicies(servers, overrides, false);
+      const policy = result.get("github/push")!;
+      expect(policy.source).toBe("agent_override");
+      expect(policy.approvalMessage).toBe("agent says gate");
+    });
+  });
+
   it("skips tools without names", () => {
     const servers = [
       makeServer("github", [{ toolName: "" }]),
@@ -189,12 +232,13 @@ describe("hasApproveAllDecision", () => {
 
 describe("lookupMcpToolPolicy", () => {
   it("finds policy by server/tool key", () => {
-    const policies = new Map([
+    const policies = new Map<string, MergedToolPolicy>([
       ["github/push", {
         toolName: "push",
         mcpServerSlug: "github",
         requiresApproval: true,
         approvalMessage: "Push?",
+        source: "classifier_default",
       }],
     ]);
 

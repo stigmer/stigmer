@@ -48,6 +48,8 @@ import { interrupt } from "@langchain/langgraph";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 import {
   type MergedToolPolicy,
+  type PolicySource,
+  POLICY_ENGINE_VERSION,
   resolveApprovalMessage,
 } from "../shared/approval-policy.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
@@ -113,7 +115,7 @@ export function createApprovalGateMiddleware(
 
       if (!requirement.requiresApproval) {
         // Backing authorization: the classifier/policy auto-approved this tool.
-        emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve");
+        emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", requirement.source);
         return await handler(request);
       }
 
@@ -134,7 +136,7 @@ export function createApprovalGateMiddleware(
 
       if (action === "approve") {
         // Backing authorization: the user approved THIS interrupted call.
-        emitExecutionReceipt(config, toolCall, serverSlug, category, "approval");
+        emitExecutionReceipt(config, toolCall, serverSlug, category, "approval", requirement.source);
         return await handler(request);
       }
 
@@ -172,6 +174,8 @@ export function createApprovalGateMiddleware(
 interface ApprovalRequirement {
   readonly requiresApproval: boolean;
   readonly message: string;
+  /** Which policy layer determined this verdict — stamped on the shadow receipt. */
+  readonly source: PolicySource;
 }
 
 function resolveToolApproval(
@@ -192,25 +196,29 @@ function resolveToolApproval(
       return {
         requiresApproval: policy.requiresApproval,
         message: resolveApprovalMessage(policy.approvalMessage, toolName, args),
+        source: policy.source,
       };
     }
-    return { requiresApproval: false, message: "" };
+    // Absent = cleared by the MCP four-level chain (classifier base).
+    return { requiresApproval: false, message: "", source: "classifier_default" };
   }
 
   // Built-in/platform tool: gate exactly the mutating categories via the shared
   // classifier. Fail-CLOSED for the mutating set — any built-in classifyTool
   // deems write/edit/delete/shell requires approval (APPROVE_ALL disables the
   // whole gate upstream in createApprovalGateMiddleware). Read-only and
-  // unclassified built-ins are not mutating, so they remain fail-open.
+  // unclassified built-ins are not mutating, so they remain fail-open. Either
+  // way the built-in taxonomy is the decider, so the provenance is the same.
   const category = toolApprovalCategory(toolName);
   if (category) {
     return {
       requiresApproval: true,
       message: resolveApprovalMessage(CATEGORY_APPROVAL_MESSAGE[category], toolName, args),
+      source: "builtin_category",
     };
   }
 
-  return { requiresApproval: false, message: "" };
+  return { requiresApproval: false, message: "", source: "builtin_category" };
 }
 
 type AuthorizationSource = "auto_approve" | "approval";
@@ -232,6 +240,7 @@ function emitExecutionReceipt(
   serverSlug: string,
   category: ToolApprovalCategory | undefined,
   source: AuthorizationSource,
+  policySource: PolicySource,
 ): void {
   if (!category && !serverSlug) return;
 
@@ -252,6 +261,8 @@ function emitExecutionReceipt(
       mcpServerSlug: serverSlug,
       category: category ?? "",
       authorization: source,
+      policySource,
+      policyEngineVersion: POLICY_ENGINE_VERSION,
       fingerprint,
       substrate: "deep-agent",
     }),

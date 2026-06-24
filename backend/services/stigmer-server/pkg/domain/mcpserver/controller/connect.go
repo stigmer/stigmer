@@ -46,10 +46,19 @@ type connectWorkflowInput struct {
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
 }
 
-// connectWorkflowOutput matches the Python DiscoverMcpServerOutput dataclass.
+// connectWorkflowOutput mirrors the connect workflow's result
+// (ConnectMcpServerWorkflowOutput in the runner). Every field the runner
+// emits must have a home here: a missing field is silently dropped during
+// JSON deserialization, which is exactly how tool_approvals used to be lost.
 type connectWorkflowOutput struct {
 	Tools             []discoveredToolResult             `json:"tools"`
 	ResourceTemplates []discoveredResourceTemplateResult `json:"resource_templates"`
+	// Per-tool approval policies produced by the connect-time classifier.
+	// These feed McpServerStatus.tool_approvals — layer 1 of the approval
+	// policy chain. The classifier returns only the gated tools, but each
+	// entry still carries requires_approval so a future runner that emits
+	// non-gated entries is handled defensively at conversion time.
+	ToolApprovals []toolApprovalResult `json:"tool_approvals"`
 }
 
 type discoveredToolResult struct {
@@ -63,6 +72,12 @@ type discoveredResourceTemplateResult struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	MimeType    string `json:"mime_type"`
+}
+
+type toolApprovalResult struct {
+	ToolName         string `json:"tool_name"`
+	RequiresApproval bool   `json:"requires_approval"`
+	Message          string `json:"message"`
 }
 
 // Connect triggers server-side MCP discovery and tool approval classification
@@ -139,6 +154,10 @@ func (c *McpServerController) Connect(
 	}
 	mcpServer.Status.DiscoveredCapabilities = capabilities
 
+	// Persist the connect-time classifier output (layer 1 of the approval
+	// policy chain). Overwrite on reconnect, but never wipe on an empty result.
+	toolApprovalCount := setToolApprovalsFromConnect(mcpServer.Status, result)
+
 	if err := c.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_mcp_server, mcpServerID, mcpServer); err != nil {
 		return nil, grpclib.InternalError(err, "failed to save mcp server after connect")
 	}
@@ -147,6 +166,7 @@ func (c *McpServerController) Connect(
 		Str("mcp_server_id", mcpServerID).
 		Int("tools", len(capabilities.GetTools())).
 		Int("resource_templates", len(capabilities.GetResourceTemplates())).
+		Int("tool_approvals", toolApprovalCount).
 		Msg("MCP server connect completed and stored")
 
 	return mcpServer, nil
@@ -517,6 +537,43 @@ func convertToDiscoveredCapabilities(output *connectWorkflowOutput) *mcpserverv1
 	}
 
 	return capabilities
+}
+
+// convertToToolApprovals converts the connect workflow's classifier output to
+// the proto ToolApprovalPolicy list stored on McpServerStatus.tool_approvals.
+//
+// Presence in the list means "requires approval" — there is no boolean on the
+// proto — so any entry explicitly marked requires_approval=false is dropped.
+// Mirrors the Cloud (Java) StoreConnectResults converter so both editions
+// persist identical classifier output (the historical OSS gap was that this
+// list was never written at all, leaving layer 1 of the policy chain empty).
+func convertToToolApprovals(output *connectWorkflowOutput) []*mcpserverv1.ToolApprovalPolicy {
+	var approvals []*mcpserverv1.ToolApprovalPolicy
+	for _, a := range output.ToolApprovals {
+		if !a.RequiresApproval || a.ToolName == "" {
+			continue
+		}
+		approvals = append(approvals, &mcpserverv1.ToolApprovalPolicy{
+			ToolName: a.ToolName,
+			Message:  a.Message,
+		})
+	}
+	return approvals
+}
+
+// setToolApprovalsFromConnect writes the freshly classified tool approvals onto
+// the status, returning how many were applied.
+//
+// Overwrite-on-reconnect: a new non-empty result replaces the prior list so a
+// reclassification takes effect. Preserve-on-empty: an empty result leaves the
+// existing list untouched, so a degraded or older runner that returns nothing
+// can never silently disarm previously persisted approval gates.
+func setToolApprovalsFromConnect(status *mcpserverv1.McpServerStatus, output *connectWorkflowOutput) int {
+	approvals := convertToToolApprovals(output)
+	if len(approvals) > 0 {
+		status.ToolApprovals = approvals
+	}
+	return len(approvals)
 }
 
 // refreshOAuthTokenIfNeeded checks whether the MCP server has an auth block

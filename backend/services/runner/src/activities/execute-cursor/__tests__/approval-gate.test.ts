@@ -191,7 +191,7 @@ describe("buildApprovalGrants", () => {
 
 describe("buildApprovalState", () => {
   const mcpPolicies = new Map<string, MergedToolPolicy>([
-    ["planton/apply_x", { toolName: "apply_x", mcpServerSlug: "planton", requiresApproval: true, approvalMessage: "Apply X" }],
+    ["planton/apply_x", { toolName: "apply_x", mcpServerSlug: "planton", requiresApproval: true, approvalMessage: "Apply X", source: "classifier_default" }],
   ]);
 
   it("carries MCP policies and exact-resource grant tokens (gated set is baked into the hook, not the state)", () => {

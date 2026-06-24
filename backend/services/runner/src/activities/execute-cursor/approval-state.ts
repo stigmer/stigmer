@@ -59,7 +59,7 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { MergedToolPolicy } from "./approval-policy.js";
-import { extractArgKey, approvalCategory } from "./approval-policy.js";
+import { extractArgKey, approvalCategory, POLICY_ENGINE_VERSION } from "./approval-policy.js";
 import {
   fingerprintCoarseIdentity,
   type FingerprintKey,
@@ -185,6 +185,7 @@ export function emitCursorGrantReceipts(
         mcpServerSlug: g.mcpServerSlug,
         category: g.mcpServerSlug ? "" : g.key,
         authorization: "approval",
+        policyEngineVersion: POLICY_ENGINE_VERSION,
         fingerprint: grantFingerprint(fingerprintKey, g),
         substrate: "cursor",
         verified: false,

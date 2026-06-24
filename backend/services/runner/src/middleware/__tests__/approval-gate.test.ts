@@ -72,6 +72,7 @@ describe("ApprovalGateMiddleware", () => {
         mcpServerSlug: "my-server",
         requiresApproval: true,
         approvalMessage: "Execute dangerous tool: {{args.target}}",
+        source: "classifier_default",
       }],
     ]);
 
@@ -102,6 +103,7 @@ describe("ApprovalGateMiddleware", () => {
         mcpServerSlug: "srv",
         requiresApproval: true,
         approvalMessage: "Run tool_a",
+        source: "classifier_default",
       }],
     ]);
 
@@ -127,6 +129,7 @@ describe("ApprovalGateMiddleware", () => {
         mcpServerSlug: "srv",
         requiresApproval: true,
         approvalMessage: "Run tool_b",
+        source: "classifier_default",
       }],
     ]);
 
@@ -256,6 +259,10 @@ describe("ApprovalGateMiddleware", () => {
       expect(r[0].category).toBe("write");
       expect(r[0].executionId).toBe("exec-1");
       expect(String(r[0].fingerprint)).toMatch(/^v1:[0-9a-f]{64}$/);
+      // Provenance: a built-in mutating tool is decided by the taxonomy, and the
+      // engine version is stamped for audit correlation.
+      expect(r[0].policySource).toBe("builtin_category");
+      expect(r[0].policyEngineVersion).toBe("phase-6");
     });
 
     it("emits an auto_approve receipt for an auto-approved MCP side effect", async () => {
@@ -271,6 +278,35 @@ describe("ApprovalGateMiddleware", () => {
       expect(r).toHaveLength(1);
       expect(r[0].authorization).toBe("auto_approve");
       expect(r[0].mcpServerSlug).toBe("github");
+      // Absent from the policy map = cleared by the MCP classifier chain.
+      expect(r[0].policySource).toBe("classifier_default");
+      expect(r[0].policyEngineVersion).toBe("phase-6");
+    });
+
+    it("stamps the matched policy's source on a user-approved MCP gate", async () => {
+      const policies = new Map<string, MergedToolPolicy>([
+        ["github/delete_repo", {
+          toolName: "delete_repo",
+          mcpServerSlug: "github",
+          requiresApproval: true,
+          approvalMessage: "Delete {{args.repo}}",
+          source: "agent_override",
+        }],
+      ]);
+      const mw = createApprovalGateMiddleware(makeConfig({
+        policies,
+        toolServerMap: new Map([["delete_repo", "github"]]),
+        fingerprintKey: "test-key",
+        executionId: "exec-3",
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(makeRequest({ name: "delete_repo", args: { repo: "x" } }), passthrough);
+
+      const r = receipts();
+      expect(r).toHaveLength(1);
+      expect(r[0].policySource).toBe("agent_override");
+      expect(r[0].policyEngineVersion).toBe("phase-6");
     });
 
     it("does NOT emit a receipt for read-only built-ins (not a side effect)", async () => {
@@ -309,6 +345,7 @@ describe("ApprovalGateMiddleware", () => {
         mcpServerSlug: "srv",
         requiresApproval: true,
         approvalMessage: "Run tool_c",
+        source: "classifier_default",
       }],
     ]);
 

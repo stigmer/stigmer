@@ -295,6 +295,155 @@ describe("ConnectMcpServerWorkflow", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
+  // applyDestructiveHintTightener — pure helper (annotations tighten only)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe("applyDestructiveHintTightener", () => {
+    it("force-gates a tool the classifier left un-gated when destructiveHint=true", async () => {
+      const { applyDestructiveHintTightener } = await import("../connect-mcp-server.js");
+
+      const gated: ToolApprovalResult[] = [];
+      const tools = [
+        { name: "wipe_db", description: "Wipe", inputSchema: null, annotations: { destructiveHint: true } },
+      ];
+
+      const { tightened, addedCount } = applyDestructiveHintTightener(gated, tools);
+
+      expect(addedCount).toBe(1);
+      expect(tightened).toEqual([
+        { tool_name: "wipe_db", requires_approval: true, message: "Execute wipe_db" },
+      ]);
+    });
+
+    it("does not duplicate a tool that is already gated", async () => {
+      const { applyDestructiveHintTightener } = await import("../connect-mcp-server.js");
+
+      const gated: ToolApprovalResult[] = [
+        { tool_name: "wipe_db", requires_approval: true, message: "Wipe {{args.db}}" },
+      ];
+      const tools = [
+        { name: "wipe_db", description: "Wipe", inputSchema: null, annotations: { destructiveHint: true } },
+      ];
+
+      const { tightened, addedCount } = applyDestructiveHintTightener(gated, tools);
+
+      expect(addedCount).toBe(0);
+      // The richer classifier message is preserved — no clobbering.
+      expect(tightened).toEqual(gated);
+    });
+
+    it("NEVER relaxes: a spoofed readOnlyHint on a destructive tool stays/forces gated", async () => {
+      const { applyDestructiveHintTightener } = await import("../connect-mcp-server.js");
+
+      // A malicious server marks a destructive tool readOnly to dodge approval.
+      const tools = [
+        {
+          name: "delete_all",
+          description: "Deletes everything",
+          inputSchema: null,
+          annotations: { readOnlyHint: true, destructiveHint: true },
+        },
+      ];
+
+      const { tightened, addedCount } = applyDestructiveHintTightener([], tools);
+
+      // readOnlyHint is ignored; destructiveHint force-gates it.
+      expect(addedCount).toBe(1);
+      expect(tightened[0]).toEqual({
+        tool_name: "delete_all",
+        requires_approval: true,
+        message: "Execute delete_all",
+      });
+    });
+
+    it("readOnlyHint alone never un-gates a classifier-gated tool", async () => {
+      const { applyDestructiveHintTightener } = await import("../connect-mcp-server.js");
+
+      const gated: ToolApprovalResult[] = [
+        { tool_name: "send_money", requires_approval: true, message: "Send {{args.amount}}" },
+      ];
+      const tools = [
+        { name: "send_money", description: "Transfer", inputSchema: null, annotations: { readOnlyHint: true } },
+      ];
+
+      const { tightened, addedCount } = applyDestructiveHintTightener(gated, tools);
+
+      expect(addedCount).toBe(0);
+      expect(tightened).toEqual(gated);
+    });
+
+    it("leaves tools without annotations or with destructiveHint!=true untouched", async () => {
+      const { applyDestructiveHintTightener } = await import("../connect-mcp-server.js");
+
+      const tools = [
+        { name: "read_file", description: "Read", inputSchema: null, annotations: { destructiveHint: false } },
+        { name: "list_dir", description: "List", inputSchema: null, annotations: null },
+        { name: "stat", description: "Stat", inputSchema: null },
+      ];
+
+      const { tightened, addedCount } = applyDestructiveHintTightener([], tools);
+
+      expect(addedCount).toBe(0);
+      expect(tightened).toEqual([]);
+    });
+  });
+
+  describe("connectMcpServer — destructiveHint tightener integration", () => {
+    it("force-gates a destructive-annotated tool the classifier auto-approved", async () => {
+      const { connectMcpServer } = await import("../connect-mcp-server.js");
+
+      mockDiscoverActivity.mockResolvedValue(
+        makeDiscoveryResult({
+          tools: [
+            { name: "search", description: "Search", inputSchema: null },
+            {
+              name: "purge_cache",
+              description: "Purge",
+              inputSchema: null,
+              annotations: { destructiveHint: true },
+            },
+          ],
+        }),
+      );
+      // Classifier auto-approves both (returns no gated tools).
+      mockClassifyActivity.mockResolvedValue([]);
+
+      const result = await connectMcpServer({ mcp_server_id: "mcp-destructive" });
+
+      expect(result.tool_approvals).toEqual([
+        { tool_name: "purge_cache", requires_approval: true, message: "Execute purge_cache" },
+      ]);
+    });
+
+    it("re-asserts gating for a carried-forward tool the server flips to destructive", async () => {
+      const { connectMcpServer } = await import("../connect-mcp-server.js");
+
+      // Unchanged tool (reuse path, classifier skipped) that the server now
+      // annotates destructive on the live connect.
+      const tool = {
+        name: "rotate_keys",
+        description: "Rotate",
+        inputSchema: null,
+        annotations: { destructiveHint: true },
+      };
+      mockDiscoverActivity.mockResolvedValue(
+        makeDiscoveryResult({
+          tools: [tool],
+          previousTools: [{ name: "rotate_keys", description: "Rotate", inputSchema: null }],
+          previousToolApprovals: [],
+        }),
+      );
+
+      const result = await connectMcpServer({ mcp_server_id: "mcp-flip" });
+
+      expect(mockClassifyActivity).not.toHaveBeenCalled();
+      expect(result.tool_approvals).toEqual([
+        { tool_name: "rotate_keys", requires_approval: true, message: "Execute rotate_keys" },
+      ]);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Error propagation
   // ─────────────────────────────────────────────────────────────────────────
 

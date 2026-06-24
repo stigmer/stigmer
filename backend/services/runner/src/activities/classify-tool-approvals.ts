@@ -123,57 +123,17 @@ For tools that do NOT require approval, leave message empty.
 Output one classification per tool, maintaining the input order.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Deterministic read-only guardrail
+// Read-only authority
 // ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Observation verbs that, when they LEAD a tool name, mark it unambiguously
- * read-only. Matched as the first token only (not anywhere) so a mutation like
- * `set_state` or `update_view` is never misread as read-only — only `get_*`,
- * `list_*`, `read_*`, `describe_*`, … qualify.
- */
-const READ_ONLY_LEADING_VERBS: ReadonlySet<string> = new Set([
-  "get", "list", "read", "describe", "search", "query", "fetch",
-  "count", "view", "inspect", "show", "find", "lookup", "status",
-  "scan", "browse", "retrieve",
-]);
-
-/**
- * Standalone read-only nouns that mark a tool read-only no matter where they
- * appear (e.g. `capture_screenshot`, `take_snapshot`). Restricted to nouns that
- * have no mutating sense, so "any-token" matching here is safe.
- */
-const READ_ONLY_NOUN_TOKENS: ReadonlySet<string> = new Set([
-  "screenshot", "snapshot",
-]);
-
-/** Split a tool name into lowercase word tokens across snake/kebab/camel case. */
-function tokenizeToolName(name: string): string[] {
-  return name
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .split(/[^A-Za-z0-9]+/)
-    .map((t) => t.trim().toLowerCase())
-    .filter((t) => t.length > 0);
-}
-
-/**
- * Deterministically decide whether a tool is an obvious read-only / observation
- * tool that must NOT be gated, regardless of what the LLM classifier returns.
- *
- * The connect-time LLM classifier occasionally flags benign perception tools
- * (e.g. open-computer-use's `get_app_state`, `list_apps`) as requiring approval,
- * which then gates every observation step and — on the Cursor harness — provokes
- * the defeatist "blocked by a hook" narration. This guardrail is the conservative
- * floor: it overrides the classifier (and the fail-closed fallback) DOWN to
- * auto-approve for names that are unambiguously read-only. It only ever relaxes
- * gating; it never adds it, so it cannot make a mutating tool unsafe.
- */
-export function isReadOnlyObservationTool(name: string): boolean {
-  const tokens = tokenizeToolName(name);
-  if (tokens.length === 0) return false;
-  if (READ_ONLY_LEADING_VERBS.has(tokens[0])) return true;
-  return tokens.some((t) => READ_ONLY_NOUN_TOKENS.has(t));
-}
+//
+// Read-only auto-approval is owned SOLELY by the trusted LLM classifier above.
+// There is deliberately no deterministic name-based relax here: a tool name is
+// an untrusted, server-supplied signal, and relaxing a gate on it is the unsafe
+// direction (e.g. `get_and_delete_stale_records` leads with `get` yet deletes).
+// A prior name-prefix heuristic was removed for exactly this reason. Annotations
+// are likewise never trusted to relax — the connect workflow uses `destructiveHint`
+// only to TIGHTEN (see applyDestructiveHintTightener). Anything the classifier
+// does not affirmatively clear stays gated (fail closed).
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Core Classification Logic (no Temporal coupling)
@@ -223,7 +183,17 @@ export async function classifyTools(
         batchIdx,
         totalBatches: batches.length,
       });
-      allApprovals.push(...batchResult);
+      // Reconcile against the input batch: a tool the model omitted must fail
+      // closed, never slip through un-gated. Partial output is as dangerous as
+      // an outage for the missing tools.
+      const { reconciled, failedClosedCount } = reconcileBatchClassifications(batch, batchResult);
+      if (failedClosedCount > 0) {
+        console.warn(
+          `[ClassifyToolApprovals] Batch ${batchIdx + 1}/${batches.length} for '${serverName}': ` +
+          `${failedClosedCount} tool(s) missing from classifier output — failing closed (requires_approval=true)`,
+        );
+      }
+      allApprovals.push(...reconciled);
     } catch (err) {
       console.error(
         `[ClassifyToolApprovals] Batch ${batchIdx + 1}/${batches.length} failed ` +
@@ -234,24 +204,15 @@ export async function classifyTools(
     }
   }
 
-  // Deterministic read-only floor: never gate an obvious observation tool, even
-  // if the LLM flagged it. This overrides DOWN only (auto-approve), so it can
-  // never make a mutating tool unsafe.
-  let relaxed = 0;
-  for (const a of allApprovals) {
-    if (a.requires_approval && isReadOnlyObservationTool(a.tool_name)) {
-      a.requires_approval = false;
-      a.message = "";
-      relaxed++;
-    }
-  }
-
+  // The LLM classifier is the sole read-only authority: only tools it
+  // affirmatively cleared (requires_approval=false) are auto-approved. Tools it
+  // gated, omitted (reconciled to fail-closed), or that fell back on an outage
+  // all remain gated. No name-based relax runs here by design.
   const approved = allApprovals.filter((a) => a.requires_approval);
 
   console.log(
     `[ClassifyToolApprovals] Classification complete for '${serverName}': ` +
-    `${approved.length}/${allApprovals.length} tools require approval` +
-    (relaxed > 0 ? ` (${relaxed} read-only tool(s) un-gated by the deterministic floor)` : ""),
+    `${approved.length}/${allApprovals.length} tools require approval`,
   );
 
   return approved;
@@ -332,19 +293,56 @@ async function classifyBatch(params: ClassifyBatchParams): Promise<ToolApprovalR
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function fallbackApprovals(tools: ToolDescriptor[]): ToolApprovalResult[] {
-  // Fail-closed for everything EXCEPT obvious read-only/observation tools: a
-  // classifier outage must not start gating `get_*`/`list_*`/`read_*` and
-  // friends, which would over-gate benign perception steps. The deterministic
-  // floor is conservative here too.
-  return tools.map((tool) => {
-    const readOnly = isReadOnlyObservationTool(tool.name);
-    return {
+/**
+ * Reconcile a batch's LLM classifications against the tools that were actually
+ * sent. The canonical result is built from the INPUT batch, never the raw model
+ * output, so the classifier can never silently disarm a gate by omission:
+ *
+ * - A tool the model classified is kept as-is (its requires_approval + message).
+ * - A tool the model OMITTED fails closed (requires_approval=true) — a missing
+ *   decision is treated exactly like an outage for that one tool.
+ * - A name the model returned that was never in the batch (a hallucinated or
+ *   duplicated entry) is dropped — only real tools earn a policy.
+ */
+export function reconcileBatchClassifications(
+  batch: ToolDescriptor[],
+  llmResults: ToolApprovalResult[],
+): { reconciled: ToolApprovalResult[]; failedClosedCount: number } {
+  const byName = new Map<string, ToolApprovalResult>();
+  for (const r of llmResults) {
+    if (r.tool_name) byName.set(r.tool_name, r);
+  }
+
+  const reconciled: ToolApprovalResult[] = [];
+  let failedClosedCount = 0;
+  for (const tool of batch) {
+    const classified = byName.get(tool.name);
+    if (classified) {
+      reconciled.push(classified);
+      continue;
+    }
+    reconciled.push({
       tool_name: tool.name,
-      requires_approval: !readOnly,
-      message: readOnly ? "" : `Execute ${tool.name}`,
-    };
-  });
+      requires_approval: true,
+      message: `Execute ${tool.name}`,
+    });
+    failedClosedCount++;
+  }
+
+  return { reconciled, failedClosedCount };
+}
+
+export function fallbackApprovals(tools: ToolDescriptor[]): ToolApprovalResult[] {
+  // Full fail-closed: when the classifier batch throws, every tool in it is
+  // gated. With no trusted classification we cannot safely auto-approve anything
+  // — a name is an untrusted signal — so the entire batch requires approval
+  // until a reconnect re-classifies it. The accepted tradeoff is that, during a
+  // rare classifier outage, benign read tools briefly prompt for approval.
+  return tools.map((tool) => ({
+    tool_name: tool.name,
+    requires_approval: true,
+    message: `Execute ${tool.name}`,
+  }));
 }
 
 export function buildToolsPayload(tools: ToolDescriptor[]): string {

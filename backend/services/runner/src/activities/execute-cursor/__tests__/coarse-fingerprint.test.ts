@@ -13,9 +13,16 @@
  *     so it carries the version tag and matches the corpus contract.
  */
 
-import { describe, it, expect } from "vitest";
-import { toolIdentity, grantFingerprint, grantToken, type ApprovalGrant } from "../approval-state.js";
+import { describe, it, expect, vi } from "vitest";
+import {
+  toolIdentity,
+  grantFingerprint,
+  grantToken,
+  emitCursorGrantReceipts,
+  type ApprovalGrant,
+} from "../approval-state.js";
 import { fingerprintCoarseIdentity } from "../../../shared/approval-fingerprint.js";
+import { POLICY_ENGINE_VERSION } from "../approval-policy.js";
 
 const KEY = "slice-d-test-key";
 
@@ -63,5 +70,23 @@ describe("Cursor coarse fingerprint (Slice D)", () => {
   it("is key-bound: a different key yields a different fingerprint", () => {
     const g = grantOf("Write", "", { file_path: "/x/a.txt" });
     expect(grantFingerprint("key-1", g)).not.toBe(grantFingerprint("key-2", g));
+  });
+
+  it("stamps the policy engine version on each emitted grant receipt", () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      emitCursorGrantReceipts([grantOf("Write", "", { file_path: "/x/a.txt" })], KEY, "exec-cursor-1");
+
+      const receipts = logSpy.mock.calls
+        .map((c) => String(c[0] ?? ""))
+        .filter((line) => line.startsWith("[hitl-gateway] receipt "))
+        .map((line) => JSON.parse(line.slice("[hitl-gateway] receipt ".length)) as Record<string, unknown>);
+
+      expect(receipts).toHaveLength(1);
+      expect(receipts[0].substrate).toBe("cursor");
+      expect(receipts[0].policyEngineVersion).toBe(POLICY_ENGINE_VERSION);
+    } finally {
+      logSpy.mockRestore();
+    }
   });
 });
