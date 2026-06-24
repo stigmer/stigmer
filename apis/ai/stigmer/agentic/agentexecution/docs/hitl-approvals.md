@@ -117,8 +117,37 @@ Each entry in `status.pending_approvals` is a `PendingApproval` message:
 | `requested_at` | `string` | ISO 8601 timestamp when approval was requested. |
 | `from_sub_agent` | `bool` | `true` if this approval originates from a sub-agent tool call. |
 | `sub_agent_name` | `string` | Name of the sub-agent when `from_sub_agent == true`. |
+| `approval_policy_source` | `ApprovalPolicySource` | **Why-gated provenance:** which policy layer is holding this call for approval. Projected from the tool call so a client can explain the gate (e.g. "required by agent override") while the tool is still waiting. See [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance). |
 | `interrupt_id` | `string` | LangGraph interrupt ID for targeted resume. Used internally — do not modify. |
 | `child_agent_execution_id` | `string` | Set when this `PendingApproval` is surfaced at a `WorkflowExecution` level, enabling approval forwarding. |
+
+---
+
+## Why a Tool Is Gated (Authorization Provenance)
+
+Every tool call the approval gate evaluates carries its **authorization provenance** — *which policy layer decided its approval requirement* — on two flat `ToolCall` fields, runner-written and persisted through `update_status` (no preserver involvement):
+
+| Field | Type | Description |
+|---|---|---|
+| `approval_policy_source` | `ApprovalPolicySource` | The policy layer that decided this call: the tool's classifier default, a pinned override, an agent override, a built-in category, a destructive-hint tightener, or a run-wide bypass / lease that cleared it. |
+| `policy_engine_version` | `string` | The version of the policy-evaluation logic that produced the decision, for auditing changes across releases. |
+
+`approval_policy_source` is also projected onto each `PendingApproval` (exactly as `tool_kind` is), so an approval surface can answer **"why is this gated?"** before any decision is made. The `@stigmer/react` `ApprovalCard` and `@stigmer/ink` approval prompt render this as a short "why" line; the tool-call detail view shows it as post-execution provenance. The mapping from source to human phrase lives in `@stigmer/sdk`'s `describeApprovalPolicySource`, shared across web, desktop, and CLI.
+
+`ApprovalPolicySource` values:
+
+| Value | Meaning |
+|---|---|
+| `UNSPECIFIED` | Legacy execution, or a tool the gate never evaluated (e.g. a read-only built-in). Clients render no provenance. |
+| `CLASSIFIER_DEFAULT` | The connect-time classifier's default for an MCP tool. |
+| `PINNED_OVERRIDE` | An operator's pinned override on the MCP server blueprint. |
+| `AGENT_OVERRIDE` | An agent-level override for an MCP tool. |
+| `AUTO_APPROVE_ALL` | The pre-armed `AgentExecutionSpec.auto_approve_all` whole-run bypass cleared the call. |
+| `APPROVAL_LEASE` | A run-lifetime scoped lease (the successor to a global "approve all") cleared the call. |
+| `BUILTIN_CATEGORY` | A non-MCP built-in tool gated by the shared write / delete / shell taxonomy. |
+| `ANNOTATION_DESTRUCTIVE_TIGHTEN` | The connect-time MCP `destructiveHint` tightener forced approval, overriding a more permissive classifier verdict. |
+
+The field is purely additive and data-compatible: old executions carry `UNSPECIFIED`, and clients fall back exactly as they do for `tool_kind`.
 
 ---
 
@@ -170,6 +199,8 @@ Every approval decision is recorded in the `ToolCall` fields:
 | `approval_decided_at` | When the decision was submitted |
 | `approved_by` | User ID who made the decision (from authentication context) |
 | `approval_action` | The action taken (APPROVE, SKIP, REJECT, APPROVE_ALL) |
+| `approval_policy_source` | Which policy layer authorized the call — see [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance) |
+| `policy_engine_version` | Version of the policy-evaluation logic that produced the decision |
 
 When a user chooses **Approve all**, the co-pending tool calls that are auto-resolved carry `approval_action = APPROVAL_ACTION_APPROVE`, while the tool the user actually clicked carries `APPROVAL_ACTION_APPROVE_ALL`. This keeps the trail honest: every executed tool shows an explicit decision, and the single APPROVE_ALL entry marks where the user opted into trusting the rest of the run.
 

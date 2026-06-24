@@ -12,13 +12,16 @@ import {
   lookupMcpToolPolicy,
   resolveApprovalMessage,
   deriveActiveLeases,
+  resolveApprovalProvenance,
+  toProtoPolicySource,
   type ActiveLeases,
   type MergedToolPolicy,
 } from "../approval-policy.js";
+import type { ToolApprovalCategory } from "../tool-kind.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import type { ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /** No active leases — the default gate-everything state used by most merge tests. */
 const NO_LEASES: ActiveLeases = { global: false, categories: new Set(), servers: new Set() };
@@ -382,5 +385,106 @@ describe("resolveApprovalMessage", () => {
   it("returns template unchanged when no placeholders", () => {
     expect(resolveApprovalMessage("Simple message", "tool", {}))
       .toBe("Simple message");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveApprovalProvenance — the read-side seam that stamps
+// ToolCall.approval_policy_source. Each branch must map to the right
+// PolicySource so the persisted provenance is correct per layer.
+// ---------------------------------------------------------------------------
+
+describe("resolveApprovalProvenance", () => {
+  const NO_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
+
+  function mcpPolicy(source: MergedToolPolicy["source"]): ReadonlyMap<string, MergedToolPolicy> {
+    return new Map([
+      [
+        "github/create_issue",
+        {
+          toolName: "create_issue",
+          mcpServerSlug: "github",
+          requiresApproval: true,
+          approvalMessage: "Create issue?",
+          source,
+        },
+      ],
+    ]);
+  }
+
+  it("returns auto_approve_all when the whole-run global bypass is armed", () => {
+    expect(
+      resolveApprovalProvenance("delete", "", new Map(), NO_CATEGORIES, true),
+    ).toBe("auto_approve_all");
+  });
+
+  it("surfaces the merged MCP policy's layer for a gated MCP tool", () => {
+    expect(
+      resolveApprovalProvenance("create_issue", "github", mcpPolicy("agent_override"), NO_CATEGORIES, false),
+    ).toBe("agent_override");
+  });
+
+  it("surfaces annotation_destructive_tighten for a destructive-hint-gated MCP tool", () => {
+    expect(
+      resolveApprovalProvenance(
+        "create_issue",
+        "github",
+        mcpPolicy("annotation_destructive_tighten"),
+        NO_CATEGORIES,
+        false,
+      ),
+    ).toBe("annotation_destructive_tighten");
+  });
+
+  it("reads classifier_default for an MCP tool the chain cleared (no entry)", () => {
+    expect(
+      resolveApprovalProvenance("list_issues", "github", new Map(), NO_CATEGORIES, false),
+    ).toBe("classifier_default");
+  });
+
+  it("returns builtin_category for a mutating built-in with no lease", () => {
+    expect(
+      resolveApprovalProvenance("write", "", new Map(), NO_CATEGORIES, false),
+    ).toBe("builtin_category");
+  });
+
+  it("returns approval_lease for a mutating built-in whose category is leased", () => {
+    expect(
+      resolveApprovalProvenance("write", "", new Map(), new Set<ToolApprovalCategory>(["write"]), false),
+    ).toBe("approval_lease");
+  });
+
+  it("returns undefined for a read-only built-in no layer governs", () => {
+    expect(
+      resolveApprovalProvenance("read", "", new Map(), NO_CATEGORIES, false),
+    ).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toProtoPolicySource — the runner-union -> proto-enum mapping. The
+// cross-edition corpus (policy-source-corpus.test.ts) pins the numbers; these
+// cases assert the mapping is total and that undefined collapses to UNSPECIFIED.
+// ---------------------------------------------------------------------------
+
+describe("toProtoPolicySource", () => {
+  it("maps undefined (no governing layer) to UNSPECIFIED", () => {
+    expect(toProtoPolicySource(undefined)).toBe(ApprovalPolicySource.UNSPECIFIED);
+  });
+
+  it("maps every union member to a distinct non-UNSPECIFIED enum value", () => {
+    const sources = [
+      "classifier_default",
+      "pinned_override",
+      "agent_override",
+      "auto_approve_all",
+      "approval_lease",
+      "builtin_category",
+      "annotation_destructive_tighten",
+    ] as const;
+    const mapped = sources.map((s) => toProtoPolicySource(s));
+    // All non-UNSPECIFIED and all distinct.
+    expect(mapped.every((v) => v !== ApprovalPolicySource.UNSPECIFIED)).toBe(true);
+    expect(new Set(mapped).size).toBe(sources.length);
   });
 });

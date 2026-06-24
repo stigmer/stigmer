@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { describeApprovalPolicySource } from "./approval-provenance";
 import {
   resolveToolCategoryFromKind,
   extractPrimaryArgFromPreview,
@@ -125,6 +126,15 @@ export const ApprovalCard = memo(function ApprovalCard({
     [categoryInfo.category, pendingApproval.mcpServerSlug],
   );
 
+  // Why-gated: the authorization provenance the server projected onto the
+  // PendingApproval (approval_policy_source). Explains which policy layer is
+  // holding this call for approval ("required by agent override") so the user
+  // understands the gate without guessing. Empty for legacy executions.
+  const gateReason = useMemo(
+    () => describeApprovalPolicySource(pendingApproval.approvalPolicySource),
+    [pendingApproval.approvalPolicySource],
+  );
+
   const borderClass =
     categoryInfo.category === "delete"
       ? "border-destructive/30 bg-destructive-subtle"
@@ -176,6 +186,12 @@ export const ApprovalCard = memo(function ApprovalCard({
         {pendingApproval.message && categoryInfo.category !== "shell" && (
           <p className="text-xs text-foreground">
             {pendingApproval.message}
+          </p>
+        )}
+
+        {gateReason && (
+          <p className="text-xs italic text-muted-foreground" data-cursor-target="approval-gate-reason">
+            {gateReason}
           </p>
         )}
 

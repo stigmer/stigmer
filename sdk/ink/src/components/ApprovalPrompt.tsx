@@ -2,7 +2,11 @@ import React, { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ToolKind, resolveToolKindByName } from "@stigmer/sdk";
+import {
+  ToolKind,
+  resolveToolKindByName,
+  describeApprovalPolicySource,
+} from "@stigmer/sdk";
 
 /** Props for {@link ApprovalPrompt}. */
 export interface ApprovalPromptProps {
@@ -128,6 +132,13 @@ export function ApprovalPrompt({
     ? `${serverSlug}/${pendingApproval.toolName}`
     : pendingApproval.toolName;
 
+  // Why-gated: the authorization provenance the server projected onto the
+  // PendingApproval. Mirrors the React card's gate-reason line so the terminal
+  // surface explains the gate at parity. Empty for legacy executions.
+  const gateReason = describeApprovalPolicySource(
+    pendingApproval.approvalPolicySource,
+  );
+
   return (
     <Box
       flexDirection="column"
@@ -157,6 +168,14 @@ export function ApprovalPrompt({
           <Box gap={1}>
             <Text dimColor>Args:</Text>
             <Text wrap="truncate-end">{pendingApproval.argsPreview}</Text>
+          </Box>
+        )}
+        {gateReason && (
+          <Box gap={1}>
+            <Text dimColor>Why:</Text>
+            <Text dimColor italic>
+              {gateReason}
+            </Text>
           </Box>
         )}
       </Box>

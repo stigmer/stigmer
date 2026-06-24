@@ -393,9 +393,23 @@ func TestAgentExecution_HITL_PendingApprovalDetails(t *testing.T) {
 			require.Equal(t, mcpSlug, approval.GetMcpServerSlug(),
 				"mcp_server_slug should match the MCP server used")
 
-			t.Logf("approval details: tool_call_id=%s, tool_name=%s, mcp_slug=%s, args_preview=%s",
+			// Why-gated provenance: the gate's policy-source verdict is projected
+			// onto the PendingApproval so the UI can explain the gate while the
+			// tool is still waiting. echo is gated by a per-agent override, so the
+			// source must be AGENT_OVERRIDE (and never UNSPECIFIED).
+			require.NotEqual(t,
+				agentexecv1.ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED,
+				approval.GetApprovalPolicySource(),
+				"pending approval must carry a why-gated authorization provenance")
+			require.Equal(t,
+				agentexecv1.ApprovalPolicySource_APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE,
+				approval.GetApprovalPolicySource(),
+				"echo is gated by a per-agent override")
+
+			t.Logf("approval details: tool_call_id=%s, tool_name=%s, mcp_slug=%s, source=%s, args_preview=%s",
 				approval.GetToolCallId(), approval.GetToolName(),
-				approval.GetMcpServerSlug(), approval.GetArgsPreview())
+				approval.GetMcpServerSlug(), approval.GetApprovalPolicySource(),
+				approval.GetArgsPreview())
 
 			// Clean up: approve so the execution can terminate
 			_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
@@ -405,8 +419,20 @@ func TestAgentExecution_HITL_PendingApprovalDetails(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			_, err = waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
+			result, err := waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
 			require.NoError(t, err)
+
+			// The authorization provenance must SURVIVE on the persisted tool call
+			// after the approval lands — it rides update_status like tool_kind and
+			// is never stripped by the SubmitApproval field preserver.
+			persisted := harness.FindToolCall(result, "echo")
+			require.NotNil(t, persisted, "the authorized echo tool call must be persisted")
+			require.NotEqual(t,
+				agentexecv1.ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED,
+				persisted.GetApprovalPolicySource(),
+				"the persisted authorized tool call must carry a non-UNSPECIFIED source")
+			require.NotEmpty(t, persisted.GetPolicyEngineVersion(),
+				"the persisted authorized tool call must record the policy engine version")
 		})
 	}
 }

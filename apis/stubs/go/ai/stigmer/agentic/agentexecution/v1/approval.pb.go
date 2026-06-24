@@ -142,9 +142,15 @@ type PendingApproval struct {
 	// Large before/after bodies are offloaded to object storage (FileContent.ref)
 	// at persist time before this projection runs, so this list carries references,
 	// not megabytes. Empty for non-file-modifying tools. See FileChange.
-	FileChanges   []*FileChange `protobuf:"bytes,14,rep,name=file_changes,json=fileChanges,proto3" json:"file_changes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	FileChanges []*FileChange `protobuf:"bytes,14,rep,name=file_changes,json=fileChanges,proto3" json:"file_changes,omitempty"`
+	// Policy layer that gated this tool call, copied from
+	// ToolCall.approval_policy_source by the server-side projection (exactly as
+	// tool_kind above is). Lets the approval surface explain WHY the tool requires
+	// approval (e.g. "required by agent override") without a client-side lookup.
+	// See ApprovalPolicySource.
+	ApprovalPolicySource ApprovalPolicySource `protobuf:"varint,15,opt,name=approval_policy_source,json=approvalPolicySource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource" json:"approval_policy_source,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *PendingApproval) Reset() {
@@ -275,6 +281,13 @@ func (x *PendingApproval) GetFileChanges() []*FileChange {
 	return nil
 }
 
+func (x *PendingApproval) GetApprovalPolicySource() ApprovalPolicySource {
+	if x != nil {
+		return x.ApprovalPolicySource
+	}
+	return ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED
+}
+
 // Notification sent to a parent workflow when a child agent needs tool approval.
 //
 // Contains all pending approvals from a single child agent execution,
@@ -403,9 +416,13 @@ type ApprovalRequest struct {
 	// File changes the gated call would produce. Copied from
 	// ToolCall.file_changes; large bodies are already offloaded to
 	// FileContent.ref before projection.
-	FileChanges   []*FileChange `protobuf:"bytes,12,rep,name=file_changes,json=fileChanges,proto3" json:"file_changes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	FileChanges []*FileChange `protobuf:"bytes,12,rep,name=file_changes,json=fileChanges,proto3" json:"file_changes,omitempty"`
+	// Policy layer that gated this call. Copied from
+	// ToolCall.approval_policy_source so the event-stream projection reconstructs
+	// the same PendingApproval as the message scan. See ApprovalPolicySource.
+	ApprovalPolicySource ApprovalPolicySource `protobuf:"varint,13,opt,name=approval_policy_source,json=approvalPolicySource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource" json:"approval_policy_source,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ApprovalRequest) Reset() {
@@ -520,6 +537,13 @@ func (x *ApprovalRequest) GetFileChanges() []*FileChange {
 		return x.FileChanges
 	}
 	return nil
+}
+
+func (x *ApprovalRequest) GetApprovalPolicySource() ApprovalPolicySource {
+	if x != nil {
+		return x.ApprovalPolicySource
+	}
+	return ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED
 }
 
 // A user's decision on an approval request.
@@ -805,7 +829,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_approval_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\"\xea\x04\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\"\xdc\x05\n" +
 	"\x0fPendingApproval\x12 \n" +
 	"\ftool_call_id\x18\x01 \x01(\tR\n" +
 	"toolCallId\x12\x1b\n" +
@@ -822,10 +846,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\x0ebranch_at_deny\x18\v \x01(\tR\fbranchAtDeny\x12'\n" +
 	"\x10head_sha_at_deny\x18\f \x01(\tR\rheadShaAtDeny\x12K\n" +
 	"\ttool_kind\x18\r \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\x12S\n" +
-	"\ffile_changes\x18\x0e \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\"\xa2\x01\n" +
+	"\ffile_changes\x18\x0e \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\x12p\n" +
+	"\x16approval_policy_source\x18\x0f \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\"\xa2\x01\n" +
 	"\x19ChildApprovalNotification\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12b\n" +
-	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\"\xa2\x04\n" +
+	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\"\x94\x05\n" +
 	"\x0fApprovalRequest\x12.\n" +
 	"\x13approval_request_id\x18\x01 \x01(\tR\x11approvalRequestId\x12 \n" +
 	"\ftool_call_id\x18\x02 \x01(\tR\n" +
@@ -840,7 +865,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\x0fmcp_server_slug\x18\n" +
 	" \x01(\tR\rmcpServerSlug\x12K\n" +
 	"\ttool_kind\x18\v \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\x12S\n" +
-	"\ffile_changes\x18\f \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\"\xe8\x01\n" +
+	"\ffile_changes\x18\f \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\x12p\n" +
+	"\x16approval_policy_source\x18\r \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\"\xe8\x01\n" +
 	"\x10ApprovalDecision\x12.\n" +
 	"\x13approval_request_id\x18\x01 \x01(\tR\x11approvalRequestId\x12L\n" +
 	"\x06action\x18\x02 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x06action\x12\x1d\n" +
@@ -886,25 +912,28 @@ var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_goTypes = []any{
 	(*ApprovalEventStream)(nil),       // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
 	(ToolKind)(0),                     // 6: ai.stigmer.agentic.agentexecution.v1.ToolKind
 	(*FileChange)(nil),                // 7: ai.stigmer.agentic.agentexecution.v1.FileChange
-	(ApprovalAction)(0),               // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(ApprovalEventType)(0),            // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
+	(ApprovalPolicySource)(0),         // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	(ApprovalAction)(0),               // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(ApprovalEventType)(0),            // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
 }
 var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_depIdxs = []int32{
 	6,  // 0: ai.stigmer.agentic.agentexecution.v1.PendingApproval.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
 	7,  // 1: ai.stigmer.agentic.agentexecution.v1.PendingApproval.file_changes:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChange
-	0,  // 2: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	6,  // 3: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
-	7,  // 4: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.file_changes:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChange
-	8,  // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalDecision.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	9,  // 6: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.event_type:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
-	2,  // 7: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.requested:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalRequest
-	3,  // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.decided:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalDecision
-	4,  // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.events:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEvent
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	8,  // 2: ai.stigmer.agentic.agentexecution.v1.PendingApproval.approval_policy_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	0,  // 3: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	6,  // 4: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
+	7,  // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.file_changes:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChange
+	8,  // 6: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.approval_policy_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	9,  // 7: ai.stigmer.agentic.agentexecution.v1.ApprovalDecision.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	10, // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.event_type:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
+	2,  // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.requested:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalRequest
+	3,  // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.decided:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalDecision
+	4,  // 11: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.events:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalEvent
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_approval_proto_init() }

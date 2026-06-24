@@ -18,7 +18,7 @@
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { toolApprovalCategory, type ToolApprovalCategory } from "./tool-kind.js";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 
@@ -149,32 +149,109 @@ export function deriveActiveLeases(execution: AgentExecution): ActiveLeases {
 
 /**
  * Provenance of a gate decision: which policy layer (or decision point) is
- * responsible for the final requires-approval verdict. Stamped on the shadow
- * ExecutionReceipt for audit, mirroring the Phase 1/2 shadow-log discipline —
- * no proto, no persistence.
+ * responsible for the final requires-approval verdict.
  *
- * Note on `annotation_destructive_tighten`: the connect-time destructiveHint
- * tightener (see applyDestructiveHintTightener) writes its result INTO
- * `McpServerStatus.tool_approvals`, so at policy-merge time it is indistinguishable
- * from any other classifier default and correctly surfaces as `classifier_default`.
- * Carrying it as a distinct, persisted provenance needs a proto field and is
- * deferred to Phase 7; it is intentionally absent from this union to avoid
- * claiming a distinction the merge cannot faithfully make.
+ * Mirrors the proto {@link ApprovalPolicySource} one for one (see
+ * {@link toProtoPolicySource}); persisted on `ToolCall.approval_policy_source`
+ * so every authorization is auditable, and still stamped on the shadow
+ * ExecutionReceipt as a defense-in-depth audit signal.
+ *
+ * `annotation_destructive_tighten` is first-class: the connect-time tightener
+ * (see applyDestructiveHintTightener) marks its force-gated entries with
+ * `ToolApprovalPolicy.from_destructive_hint`, which {@link mergeApprovalPolicies}
+ * reads to attribute the gate to the annotation rather than collapsing it into
+ * the classifier default.
  */
 export type PolicySource =
-  | "classifier_default" // Layer 1: McpServerStatus.tool_approvals (connect-time classifier)
-  | "pinned_override"    // Layer 2: McpServerSpec.pinned_tool_approvals
-  | "agent_override"     // Layer 3: Agent McpServerUsage.tool_approval_overrides
-  | "auto_approve_all"   // Layer 4: pre-armed spec.auto_approve_all (whole-run global bypass)
-  | "approval_lease"     // Layer 4: a run-lifetime scoped lease cleared this action
-  | "builtin_category";  // Non-MCP built-in gated by the shared tool taxonomy
+  | "classifier_default"             // Layer 1: McpServerStatus.tool_approvals (connect-time classifier)
+  | "pinned_override"                // Layer 2: McpServerSpec.pinned_tool_approvals
+  | "agent_override"                 // Layer 3: Agent McpServerUsage.tool_approval_overrides
+  | "auto_approve_all"               // Layer 4: pre-armed spec.auto_approve_all (whole-run global bypass)
+  | "approval_lease"                 // Layer 4: a run-lifetime scoped lease cleared this action
+  | "builtin_category"               // Non-MCP built-in gated by the shared tool taxonomy
+  | "annotation_destructive_tighten"; // Layer 1 sub-case: connect-time destructiveHint tightener force-gated this MCP tool
 
 /**
- * Monotonic identifier of the policy-engine logic that produced a decision.
- * Bumped when the merge/classification semantics change so receipts emitted by
- * different engine versions remain distinguishable in logs. Shadow-only.
+ * Monotonic identifier of the policy-engine logic that produced a decision,
+ * persisted on `ToolCall.policy_engine_version`. Bumped when the
+ * merge/classification semantics change so decisions made by different engine
+ * versions remain distinguishable in audits. Phase 7 made
+ * `annotation_destructive_tighten` a distinct, persisted source.
  */
-export const POLICY_ENGINE_VERSION = "phase-6";
+export const POLICY_ENGINE_VERSION = "phase-7";
+
+/**
+ * Map the runner-internal {@link PolicySource} to the persisted proto
+ * {@link ApprovalPolicySource}. `undefined` (a tool no policy layer governs —
+ * e.g. a read-only built-in) maps to UNSPECIFIED, so the persisted field is left
+ * at its default exactly as an unclassified `tool_kind` is. The 1:1 mapping keeps
+ * the runner's union and the proto enum from drifting (asserted by the
+ * cross-edition corpus).
+ */
+export function toProtoPolicySource(source: PolicySource | undefined): ApprovalPolicySource {
+  switch (source) {
+    case "classifier_default":
+      return ApprovalPolicySource.CLASSIFIER_DEFAULT;
+    case "pinned_override":
+      return ApprovalPolicySource.PINNED_OVERRIDE;
+    case "agent_override":
+      return ApprovalPolicySource.AGENT_OVERRIDE;
+    case "auto_approve_all":
+      return ApprovalPolicySource.AUTO_APPROVE_ALL;
+    case "approval_lease":
+      return ApprovalPolicySource.APPROVAL_LEASE;
+    case "builtin_category":
+      return ApprovalPolicySource.BUILTIN_CATEGORY;
+    case "annotation_destructive_tighten":
+      return ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN;
+    case undefined:
+      return ApprovalPolicySource.UNSPECIFIED;
+  }
+}
+
+/**
+ * Derive the authorization provenance — which policy layer governs this tool —
+ * for persisting on `ToolCall.approval_policy_source`.
+ *
+ * This is the read-side twin of the gate's decision logic: same layered
+ * precedence, but it answers "which layer governs this call?" for EVERY tool
+ * (gated or auto-approved), so the StatusBuilders can stamp provenance on the
+ * tool call exactly where they stamp `tool_kind`. It returns `undefined` for a
+ * plain read-only built-in that no policy layer touches (the proto's
+ * APPROVAL_POLICY_SOURCE_UNSPECIFIED).
+ *
+ * Precedence:
+ * 1. Whole-run global bypass (pre-armed auto_approve_all) governs everything —
+ *    it is *why* anything ran ungated, so it wins.
+ * 2. MCP tool: the merged policy carries the responsible layer when gated; an
+ *    absent entry means the four-level chain cleared it (classifier base). A
+ *    server-scoped lease also surfaces as an absent entry — distinguishing it
+ *    would need the lease set threaded here and is deferred with the rest of the
+ *    per-server lease provenance, so a lease-cleared MCP tool reads
+ *    classifier_default (matching the gate).
+ * 3. Built-in: a mutating category is governed (leased → approval_lease, else
+ *    builtin_category); a read-only built-in is governed by no layer → undefined.
+ */
+export function resolveApprovalProvenance(
+  toolName: string,
+  serverSlug: string,
+  policies: ReadonlyMap<string, MergedToolPolicy>,
+  leasedCategories: ReadonlySet<ToolApprovalCategory>,
+  globalBypass: boolean,
+): PolicySource | undefined {
+  if (globalBypass) return "auto_approve_all";
+
+  if (serverSlug) {
+    const policy = policies.get(`${serverSlug}/${toolName}`);
+    if (policy) return policy.source;
+    return "classifier_default";
+  }
+
+  const category = toolApprovalCategory(toolName);
+  if (!category) return undefined;
+  if (leasedCategories.has(category)) return "approval_lease";
+  return "builtin_category";
+}
 
 /**
  * A single MCP tool's merged approval decision after evaluating all policy
@@ -235,13 +312,18 @@ export function mergeApprovalPolicies(
 
     const serverPolicies = new Map<string, { requiresApproval: boolean; message: string; source: PolicySource }>();
 
-    // Layer 1: system-generated defaults (presence = requires approval).
+    // Layer 1: system-generated defaults (presence = requires approval). A tool
+    // the connect-time tightener force-gated from its destructiveHint annotation
+    // carries that provenance (from_destructive_hint) so it is attributed to the
+    // annotation rather than the classifier — the only sub-case within layer 1.
     for (const policy of server.toolApprovals) {
       if (!policy.toolName) continue;
       serverPolicies.set(policy.toolName, {
         requiresApproval: true,
         message: policy.message || `Execute tool: ${policy.toolName}`,
-        source: "classifier_default",
+        source: policy.fromDestructiveHint
+          ? "annotation_destructive_tighten"
+          : "classifier_default",
       });
     }
 

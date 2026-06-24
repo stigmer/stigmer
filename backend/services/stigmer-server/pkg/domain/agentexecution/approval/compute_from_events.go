@@ -65,9 +65,10 @@ func pendingApprovalFromRequest(req *agentexecutionv1.ApprovalRequest) *agentexe
 		RequestedAt:     req.GetRequestedAt(),
 		FromSubAgent:    req.GetFromSubAgent(),
 		SubAgentName:    req.GetSubAgentName(),
-		SubAgentSubject: req.GetSubAgentSubject(),
-		McpServerSlug:   req.GetMcpServerSlug(),
-		ToolKind:        req.GetToolKind(),
-		FileChanges:     req.GetFileChanges(),
+		SubAgentSubject:      req.GetSubAgentSubject(),
+		McpServerSlug:        req.GetMcpServerSlug(),
+		ToolKind:             req.GetToolKind(),
+		ApprovalPolicySource: req.GetApprovalPolicySource(),
+		FileChanges:          req.GetFileChanges(),
 	}
 }

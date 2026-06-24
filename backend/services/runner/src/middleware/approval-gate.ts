@@ -135,6 +135,10 @@ export function createApprovalGateMiddleware(
         tool_name: toolName,
         mcp_server_slug: serverSlug,
         message: requirement.message,
+        // Carry the gate's provenance verdict through the interrupt so the
+        // reinvocation that seeds the WAITING_APPROVAL tool call (index.ts) can
+        // persist ToolCall.approval_policy_source without re-deriving it.
+        policy_source: requirement.source,
       };
 
       const response = interrupt(approvalRequest) as ApprovalDecision;

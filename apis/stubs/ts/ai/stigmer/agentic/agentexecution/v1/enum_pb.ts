@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZW51bS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxKv8BCg5FeGVjdXRpb25QaGFzZRIfChtFWEVDVVRJT05fUEhBU0VfVU5TUEVDSUZJRUQQABIVChFFWEVDVVRJT05fUEVORElORxABEhkKFUVYRUNVVElPTl9JTl9QUk9HUkVTUxACEhcKE0VYRUNVVElPTl9DT01QTEVURUQQAxIUChBFWEVDVVRJT05fRkFJTEVEEAQSFwoTRVhFQ1VUSU9OX0NBTkNFTExFRBAFEhgKFEVYRUNVVElPTl9URVJNSU5BVEVEEAgSIgoeRVhFQ1VUSU9OX1dBSVRJTkdfRk9SX0FQUFJPVkFMEAYSFAoQRVhFQ1VUSU9OX1BBVVNFRBAHKooBCgtNZXNzYWdlVHlwZRIcChhNRVNTQUdFX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1NRVNTQUdFX0hVTUFOEAESDgoKTUVTU0FHRV9BSRACEhAKDE1FU1NBR0VfVE9PTBADEhIKDk1FU1NBR0VfU1lTVEVNEAQSFAoQTUVTU0FHRV9USElOS0lORxAFKsYBCg5Ub29sQ2FsbFN0YXR1cxIgChxUT09MX0NBTExfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFQoRVE9PTF9DQUxMX1BFTkRJTkcQARIVChFUT09MX0NBTExfUlVOTklORxACEhcKE1RPT0xfQ0FMTF9DT01QTEVURUQQAxIUChBUT09MX0NBTExfRkFJTEVEEAQSHgoaVE9PTF9DQUxMX1dBSVRJTkdfQVBQUk9WQUwQBRIVChFUT09MX0NBTExfU0tJUFBFRBAGKs4CCghUb29sS2luZBIZChVUT09MX0tJTkRfVU5TUEVDSUZJRUQQABIXChNUT09MX0tJTkRfRklMRV9SRUFEEAESGAoUVE9PTF9LSU5EX0ZJTEVfV1JJVEUQAhIXChNUT09MX0tJTkRfRklMRV9FRElUEAMSGQoVVE9PTF9LSU5EX0ZJTEVfREVMRVRFEAQSEwoPVE9PTF9LSU5EX1NIRUxMEAUSFAoQVE9PTF9LSU5EX1NFQVJDSBAGEhIKDlRPT0xfS0lORF9MSVNUEAcSEwoPVE9PTF9LSU5EX0ZFVENIEAgSGAoUVE9PTF9LSU5EX1dFQl9TRUFSQ0gQCRITCg9UT09MX0tJTkRfVEhJTksQChISCg5UT09MX0tJTkRfVE9ETxALEhYKElRPT0xfS0lORF9TVUJBR0VOVBAMEhEKDVRPT0xfS0lORF9NQ1AQDSp5CgpUb2RvU3RhdHVzEhsKF1RPRE9fU1RBVFVTX1VOU1BFQ0lGSUVEEAASEAoMVE9ET19QRU5ESU5HEAESFAoQVE9ET19JTl9QUk9HUkVTUxACEhIKDlRPRE9fQ09NUExFVEVEEAMSEgoOVE9ET19DQU5DRUxMRUQQBCqsAQoOU3ViQWdlbnRTdGF0dXMSIAocU1VCX0FHRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVNVQl9BR0VOVF9QRU5ESU5HEAESGQoVU1VCX0FHRU5UX0lOX1BST0dSRVNTEAISFwoTU1VCX0FHRU5UX0NPTVBMRVRFRBADEhQKEFNVQl9BR0VOVF9GQUlMRUQQBBIXChNTVUJfQUdFTlRfQ0FOQ0VMTEVEEAUqiQEKFUV4ZWN1dGlvbkFydGlmYWN0S2luZBInCiNFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9VTlNQRUNJRklFRBAAEiAKHEVYRUNVVElPTl9BUlRJRkFDVF9LSU5EX0ZJTEUQARIlCiFFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9ESVJFQ1RPUlkQAipfChNTdW1tYXJpemF0aW9uU291cmNlEiQKIFNVTU1BUklaQVRJT05fU09VUkNFX1VOU1BFQ0lGSUVEEAASDwoLZ3JhcGhfc3RhcnQQARIRCg1taWRfZXhlY3V0aW9uEAIqkgEKF1Rvb2xDYWxsU3RyZWFtaW5nU291cmNlEioKJlRPT0xfQ0FMTF9TVFJFQU1JTkdfU09VUkNFX1VOU1BFQ0lGSUVEEAASJAogVE9PTF9DQUxMX1NUUkVBTUlOR19TT1VSQ0VfSU5QVVQQARIlCiFUT09MX0NBTExfU1RSRUFNSU5HX1NPVVJDRV9PVVRQVVQQAiqLAQoWRXhlY3V0aW9uQ29udHJvbFNpZ25hbBIoCiRFWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfVU5TUEVDSUZJRUQQABIhCh1FWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfU1RPUBABEiQKIEVYRUNVVElPTl9DT05UUk9MX1NJR05BTF9XQVJOSU5HEAIqpQEKDkFwcHJvdmFsQWN0aW9uEh8KG0FQUFJPVkFMX0FDVElPTl9VTlNQRUNJRklFRBAAEhsKF0FQUFJPVkFMX0FDVElPTl9BUFBST1ZFEAESGAoUQVBQUk9WQUxfQUNUSU9OX1NLSVAQAhIaChZBUFBST1ZBTF9BQ1RJT05fUkVKRUNUEAMSHwobQVBQUk9WQUxfQUNUSU9OX0FQUFJPVkVfQUxMEAQqwAEKEUFwcHJvdmFsRXZlbnRUeXBlEiMKH0FQUFJPVkFMX0VWRU5UX1RZUEVfVU5TUEVDSUZJRUQQABIhCh1BUFBST1ZBTF9FVkVOVF9UWVBFX1JFUVVFU1RFRBABEiAKHEFQUFJPVkFMX0VWRU5UX1RZUEVfQVBQUk9WRUQQAhIgChxBUFBST1ZBTF9FVkVOVF9UWVBFX1JFSkVDVEVEEAMSHwobQVBQUk9WQUxfRVZFTlRfVFlQRV9TS0lQUEVEEAQqagoPSW50ZXJhY3Rpb25Nb2RlEiAKHElOVEVSQUNUSU9OX01PREVfVU5TUEVDSUZJRUQQABIaChZJTlRFUkFDVElPTl9NT0RFX0FHRU5UEAESGQoVSU5URVJBQ1RJT05fTU9ERV9QTEFOEAIqpgEKDkZpbGVDaGFuZ2VUeXBlEiAKHEZJTEVfQ0hBTkdFX1RZUEVfVU5TUEVDSUZJRUQQABIbChdGSUxFX0NIQU5HRV9UWVBFX0NSRUFURRABEhsKF0ZJTEVfQ0hBTkdFX1RZUEVfTU9ESUZZEAISGwoXRklMRV9DSEFOR0VfVFlQRV9ERUxFVEUQAxIbChdGSUxFX0NIQU5HRV9UWVBFX1JFTkFNRRAEKpYBChZGaWxlQ2hhbmdlQ2FwdHVyZUxldmVsEikKJUZJTEVfQ0hBTkdFX0NBUFRVUkVfTEVWRUxfVU5TUEVDSUZJRUQQABIoCiRGSUxFX0NIQU5HRV9DQVBUVVJFX0xFVkVMX1dIT0xFX0ZJTEUQARInCiNGSUxFX0NIQU5HRV9DQVBUVVJFX0xFVkVMX0hVTktfT05MWRACYgZwcm90bzM");
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZW51bS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxKv8BCg5FeGVjdXRpb25QaGFzZRIfChtFWEVDVVRJT05fUEhBU0VfVU5TUEVDSUZJRUQQABIVChFFWEVDVVRJT05fUEVORElORxABEhkKFUVYRUNVVElPTl9JTl9QUk9HUkVTUxACEhcKE0VYRUNVVElPTl9DT01QTEVURUQQAxIUChBFWEVDVVRJT05fRkFJTEVEEAQSFwoTRVhFQ1VUSU9OX0NBTkNFTExFRBAFEhgKFEVYRUNVVElPTl9URVJNSU5BVEVEEAgSIgoeRVhFQ1VUSU9OX1dBSVRJTkdfRk9SX0FQUFJPVkFMEAYSFAoQRVhFQ1VUSU9OX1BBVVNFRBAHKooBCgtNZXNzYWdlVHlwZRIcChhNRVNTQUdFX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1NRVNTQUdFX0hVTUFOEAESDgoKTUVTU0FHRV9BSRACEhAKDE1FU1NBR0VfVE9PTBADEhIKDk1FU1NBR0VfU1lTVEVNEAQSFAoQTUVTU0FHRV9USElOS0lORxAFKsYBCg5Ub29sQ2FsbFN0YXR1cxIgChxUT09MX0NBTExfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFQoRVE9PTF9DQUxMX1BFTkRJTkcQARIVChFUT09MX0NBTExfUlVOTklORxACEhcKE1RPT0xfQ0FMTF9DT01QTEVURUQQAxIUChBUT09MX0NBTExfRkFJTEVEEAQSHgoaVE9PTF9DQUxMX1dBSVRJTkdfQVBQUk9WQUwQBRIVChFUT09MX0NBTExfU0tJUFBFRBAGKs4CCghUb29sS2luZBIZChVUT09MX0tJTkRfVU5TUEVDSUZJRUQQABIXChNUT09MX0tJTkRfRklMRV9SRUFEEAESGAoUVE9PTF9LSU5EX0ZJTEVfV1JJVEUQAhIXChNUT09MX0tJTkRfRklMRV9FRElUEAMSGQoVVE9PTF9LSU5EX0ZJTEVfREVMRVRFEAQSEwoPVE9PTF9LSU5EX1NIRUxMEAUSFAoQVE9PTF9LSU5EX1NFQVJDSBAGEhIKDlRPT0xfS0lORF9MSVNUEAcSEwoPVE9PTF9LSU5EX0ZFVENIEAgSGAoUVE9PTF9LSU5EX1dFQl9TRUFSQ0gQCRITCg9UT09MX0tJTkRfVEhJTksQChISCg5UT09MX0tJTkRfVE9ETxALEhYKElRPT0xfS0lORF9TVUJBR0VOVBAMEhEKDVRPT0xfS0lORF9NQ1AQDSp5CgpUb2RvU3RhdHVzEhsKF1RPRE9fU1RBVFVTX1VOU1BFQ0lGSUVEEAASEAoMVE9ET19QRU5ESU5HEAESFAoQVE9ET19JTl9QUk9HUkVTUxACEhIKDlRPRE9fQ09NUExFVEVEEAMSEgoOVE9ET19DQU5DRUxMRUQQBCqsAQoOU3ViQWdlbnRTdGF0dXMSIAocU1VCX0FHRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVNVQl9BR0VOVF9QRU5ESU5HEAESGQoVU1VCX0FHRU5UX0lOX1BST0dSRVNTEAISFwoTU1VCX0FHRU5UX0NPTVBMRVRFRBADEhQKEFNVQl9BR0VOVF9GQUlMRUQQBBIXChNTVUJfQUdFTlRfQ0FOQ0VMTEVEEAUqiQEKFUV4ZWN1dGlvbkFydGlmYWN0S2luZBInCiNFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9VTlNQRUNJRklFRBAAEiAKHEVYRUNVVElPTl9BUlRJRkFDVF9LSU5EX0ZJTEUQARIlCiFFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9ESVJFQ1RPUlkQAipfChNTdW1tYXJpemF0aW9uU291cmNlEiQKIFNVTU1BUklaQVRJT05fU09VUkNFX1VOU1BFQ0lGSUVEEAASDwoLZ3JhcGhfc3RhcnQQARIRCg1taWRfZXhlY3V0aW9uEAIqkgEKF1Rvb2xDYWxsU3RyZWFtaW5nU291cmNlEioKJlRPT0xfQ0FMTF9TVFJFQU1JTkdfU09VUkNFX1VOU1BFQ0lGSUVEEAASJAogVE9PTF9DQUxMX1NUUkVBTUlOR19TT1VSQ0VfSU5QVVQQARIlCiFUT09MX0NBTExfU1RSRUFNSU5HX1NPVVJDRV9PVVRQVVQQAiqLAQoWRXhlY3V0aW9uQ29udHJvbFNpZ25hbBIoCiRFWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfVU5TUEVDSUZJRUQQABIhCh1FWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfU1RPUBABEiQKIEVYRUNVVElPTl9DT05UUk9MX1NJR05BTF9XQVJOSU5HEAIqpQEKDkFwcHJvdmFsQWN0aW9uEh8KG0FQUFJPVkFMX0FDVElPTl9VTlNQRUNJRklFRBAAEhsKF0FQUFJPVkFMX0FDVElPTl9BUFBST1ZFEAESGAoUQVBQUk9WQUxfQUNUSU9OX1NLSVAQAhIaChZBUFBST1ZBTF9BQ1RJT05fUkVKRUNUEAMSHwobQVBQUk9WQUxfQUNUSU9OX0FQUFJPVkVfQUxMEAQqhAMKFEFwcHJvdmFsUG9saWN5U291cmNlEiYKIkFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfVU5TUEVDSUZJRUQQABItCilBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0NMQVNTSUZJRVJfREVGQVVMVBABEioKJkFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfUElOTkVEX09WRVJSSURFEAISKQolQVBQUk9WQUxfUE9MSUNZX1NPVVJDRV9BR0VOVF9PVkVSUklERRADEisKJ0FQUFJPVkFMX1BPTElDWV9TT1VSQ0VfQVVUT19BUFBST1ZFX0FMTBAEEikKJUFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfQVBQUk9WQUxfTEVBU0UQBRIrCidBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0JVSUxUSU5fQ0FURUdPUlkQBhI5CjVBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0FOTk9UQVRJT05fREVTVFJVQ1RJVkVfVElHSFRFThAHKsABChFBcHByb3ZhbEV2ZW50VHlwZRIjCh9BUFBST1ZBTF9FVkVOVF9UWVBFX1VOU1BFQ0lGSUVEEAASIQodQVBQUk9WQUxfRVZFTlRfVFlQRV9SRVFVRVNURUQQARIgChxBUFBST1ZBTF9FVkVOVF9UWVBFX0FQUFJPVkVEEAISIAocQVBQUk9WQUxfRVZFTlRfVFlQRV9SRUpFQ1RFRBADEh8KG0FQUFJPVkFMX0VWRU5UX1RZUEVfU0tJUFBFRBAEKmoKD0ludGVyYWN0aW9uTW9kZRIgChxJTlRFUkFDVElPTl9NT0RFX1VOU1BFQ0lGSUVEEAASGgoWSU5URVJBQ1RJT05fTU9ERV9BR0VOVBABEhkKFUlOVEVSQUNUSU9OX01PREVfUExBThACKqYBCg5GaWxlQ2hhbmdlVHlwZRIgChxGSUxFX0NIQU5HRV9UWVBFX1VOU1BFQ0lGSUVEEAASGwoXRklMRV9DSEFOR0VfVFlQRV9DUkVBVEUQARIbChdGSUxFX0NIQU5HRV9UWVBFX01PRElGWRACEhsKF0ZJTEVfQ0hBTkdFX1RZUEVfREVMRVRFEAMSGwoXRklMRV9DSEFOR0VfVFlQRV9SRU5BTUUQBCqWAQoWRmlsZUNoYW5nZUNhcHR1cmVMZXZlbBIpCiVGSUxFX0NIQU5HRV9DQVBUVVJFX0xFVkVMX1VOU1BFQ0lGSUVEEAASKAokRklMRV9DSEFOR0VfQ0FQVFVSRV9MRVZFTF9XSE9MRV9GSUxFEAESJwojRklMRV9DSEFOR0VfQ0FQVFVSRV9MRVZFTF9IVU5LX09OTFkQAmIGcHJvdG8z");
 
 /**
  * ExecutionPhase defines the lifecycle phase of an agent execution.
@@ -848,45 +848,49 @@ export enum ApprovalAction {
   REJECT = 3,
 
   /**
-   * Approve this tool call AND auto-approve every subsequent tool call for
-   * the rest of this execution ("approve and don't ask again").
+   * Approve this tool call AND grant a run-lifetime lease that auto-approves
+   * every subsequent tool call of the SAME class for the rest of this execution
+   * ("approve all of this kind, don't ask again").
    *
-   * This is the gate-time analog of AgentExecutionSpec.auto_approve_all: it
-   * lets a human escalate from per-call approval to "trust the rest of this
-   * run" at the moment of friction, instead of pre-arming a bypass before the
-   * agent has done anything.
+   * This is the gate-time, scoped analog of AgentExecutionSpec.auto_approve_all:
+   * it lets a human escalate from per-call approval to "trust this whole class"
+   * at the moment of friction, without pre-arming a global bypass. The lease is
+   * scoped to one class — a built-in approval category (write / delete / shell,
+   * with write and edit collapsed) or a single MCP server — never the whole run.
    *
    * ## Canonical contract (every layer derives its behavior from this)
    *
-   * 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the
-   *    clicked tool call, and resolve the rest of the *current* approval gate
-   *    by setting every other tool call still in TOOL_CALL_WAITING_APPROVAL
-   *    (action UNSPECIFIED) — including sub-agent tool calls — to
-   *    APPROVAL_ACTION_APPROVE. pending_approvals is recomputed to empty, so
-   *    the standard "gate fully resolved" path sends the approvalGateResolved
-   *    signal. This keeps the audit trail honest: every tool that runs carries
-   *    an explicit approval_action.
+   * 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the clicked
+   *    tool call, and resolve any other still-pending tool call that shares the
+   *    clicked call's class — including sub-agent tool calls — to
+   *    APPROVAL_ACTION_APPROVE. Pending tool calls of a DIFFERENT class stay in
+   *    TOOL_CALL_WAITING_APPROVAL so the gate still holds for them. This keeps
+   *    the audit trail honest: every tool that runs carries an explicit
+   *    approval_action.
    *
-   * 2. Runner (native + cursor harness): on reinvocation, the presence of ANY
-   *    APPROVE_ALL decision in the persisted execution history means the
-   *    execution is auto-approved for the remainder of the run. New tool calls
-   *    (and sub-agent tool calls) skip the approval gate entirely, exactly as
-   *    if spec.auto_approve_all were true. The interrupted tool itself resumes
-   *    as an approval.
+   * 2. Runner (native + cursor harness): the lease is derived on read from the
+   *    persisted APPROVE_ALL decision plus the tool's class — there is no
+   *    separately stored lease. On reinvocation, a new tool call (or sub-agent
+   *    tool call) whose class matches an active lease skips the approval gate; a
+   *    tool call of any other class is still gated. The interrupted tool itself
+   *    resumes as an approval.
    *
    * ## Scope
    *
-   * APPROVE_ALL covers the rest of THIS execution. It is NOT persisted to the
-   * session or the agent; a subsequent execution starts gated again unless the
-   * caller sets it anew (interactive clients may carry a session-scoped
-   * preference forward in-memory, but that is a client concern, not a
-   * server-persisted state).
+   * The lease covers the rest of THIS execution and only the matched class. It
+   * is NOT persisted to the session or the agent; a subsequent execution starts
+   * gated again unless the caller sets it anew (interactive clients may carry a
+   * session-scoped preference forward in-memory, but that is a client concern,
+   * not server-persisted state). AgentExecutionSpec.auto_approve_all remains the
+   * single, explicit whole-run global bypass.
    *
    * ## Audit
    *
-   * Because this bypasses all remaining approval checks for the execution,
-   * executions containing an APPROVE_ALL decision should be auditable. The
-   * decision is recorded on ToolCall.approval_action like any other.
+   * Because it bypasses subsequent same-class approval checks, executions
+   * containing an APPROVE_ALL decision should be auditable. The decision is
+   * recorded on ToolCall.approval_action like any other; the policy layer that
+   * cleared each subsequent call is recorded on ToolCall.approval_policy_source
+   * (APPROVAL_POLICY_SOURCE_APPROVAL_LEASE).
    *
    * @generated from enum value: APPROVAL_ACTION_APPROVE_ALL = 4;
    */
@@ -898,6 +902,98 @@ export enum ApprovalAction {
  */
 export const ApprovalActionSchema: GenEnum<ApprovalAction> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 10);
+
+/**
+ * ApprovalPolicySource is the policy layer that decided a tool call's approval
+ * requirement — the provenance recorded on every gated or auto-approved tool
+ * call so an execution's authorizations are auditable.
+ *
+ * Set by the runner at the approval gate (the one component that evaluates the
+ * merged policy) and persisted on ToolCall.approval_policy_source, exactly as
+ * ToolCall.tool_kind is set and persisted. Clients render it to answer "why was
+ * this tool gated or auto-approved?".
+ *
+ * @internal
+ * Mirrors the runner's internal PolicySource union (approval-policy.ts) one for
+ * one. Layered precedence: a pinned or agent override wins over the classifier
+ * default; a lease or the global bypass clears an otherwise-required approval.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+ */
+export enum ApprovalPolicySource {
+  /**
+   * Default — the execution predates this field, or the tool was never evaluated
+   * by the approval gate (e.g. a read-only built-in). Clients show no provenance.
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Layer 1: the connect-time classifier's default for an MCP tool
+   * (McpServerStatus.tool_approvals).
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT = 1;
+   */
+  CLASSIFIER_DEFAULT = 1,
+
+  /**
+   * Layer 2: an operator's pinned override on the MCP server blueprint
+   * (McpServerSpec.pinned_tool_approvals).
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE = 2;
+   */
+  PINNED_OVERRIDE = 2,
+
+  /**
+   * Layer 3: an agent-level override for an MCP tool
+   * (Agent McpServerUsage.tool_approval_overrides).
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE = 3;
+   */
+  AGENT_OVERRIDE = 3,
+
+  /**
+   * Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global
+   * bypass cleared this call.
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL = 4;
+   */
+  AUTO_APPROVE_ALL = 4,
+
+  /**
+   * Layer 4: a run-lifetime scoped lease (the successor to a global "approve
+   * all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched
+   * the leased class.
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_APPROVAL_LEASE = 5;
+   */
+  APPROVAL_LEASE = 5,
+
+  /**
+   * A non-MCP built-in tool gated by the shared tool taxonomy
+   * (write / delete / shell).
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY = 6;
+   */
+  BUILTIN_CATEGORY = 6,
+
+  /**
+   * The connect-time MCP destructiveHint tightener forced this tool to require
+   * approval, overriding a more permissive classifier verdict. First-class
+   * provenance so a tightened tool is distinguishable from a plain classifier
+   * default. See applyDestructiveHintTightener.
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;
+   */
+  ANNOTATION_DESTRUCTIVE_TIGHTEN = 7,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.
+ */
+export const ApprovalPolicySourceSchema: GenEnum<ApprovalPolicySource> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 11);
 
 /**
  * ApprovalEventType is the kind of event in the append-only approval-event
@@ -964,7 +1060,7 @@ export enum ApprovalEventType {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.ApprovalEventType.
  */
 export const ApprovalEventTypeSchema: GenEnum<ApprovalEventType> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 11);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 12);
 
 /**
  * InteractionMode controls the agent's behavioral posture for an execution.
@@ -1023,7 +1119,7 @@ export enum InteractionMode {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.InteractionMode.
  */
 export const InteractionModeSchema: GenEnum<InteractionMode> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 12);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 13);
 
 /**
  * FileChangeType is the per-file outcome of a file mutation in a tool call.
@@ -1076,7 +1172,7 @@ export enum FileChangeType {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileChangeType.
  */
 export const FileChangeTypeSchema: GenEnum<FileChangeType> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 13);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 14);
 
 /**
  * FileChangeCaptureLevel describes how complete a FileChange's captured content
@@ -1115,5 +1211,5 @@ export enum FileChangeCaptureLevel {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel.
  */
 export const FileChangeCaptureLevelSchema: GenEnum<FileChangeCaptureLevel> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 14);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 15);
 

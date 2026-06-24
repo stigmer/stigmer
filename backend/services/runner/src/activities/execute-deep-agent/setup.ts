@@ -54,6 +54,7 @@ import {
   deriveActiveLeases,
   type MergedToolPolicy,
 } from "../../shared/approval-policy.js";
+import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
 import {
   mergeSkillRefs,
   fetchSkillsByRefs,
@@ -85,6 +86,13 @@ export interface SetupResult {
   readonly provisionResults: readonly ProvisionResult[];
   readonly approvalPolicies: ReadonlyMap<string, MergedToolPolicy>;
   readonly toolServerMap: ReadonlyMap<string, string>;
+  /**
+   * Built-in approval categories with a run-lifetime scoped lease (from an
+   * interactive APPROVE_ALL). Threaded to the StatusBuilder so a leased built-in
+   * call is attributed to its lease (approval_lease) rather than the plain
+   * category gate. Empty under a global pre-arm or when no lease is active.
+   */
+  readonly leasedCategories: ReadonlySet<ToolApprovalCategory>;
   /**
    * Pre-armed spec.auto_approve_all — the one unscoped, whole-run bypass. When
    * true the approval gate is not installed at all. Interactive "approve all"
@@ -475,6 +483,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       provisionResults,
       approvalPolicies,
       toolServerMap,
+      leasedCategories: leases.categories,
       globalBypass,
       hasStructuredOutput: !!outputSchema,
       streamVersion,

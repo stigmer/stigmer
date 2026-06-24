@@ -187,6 +187,32 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int FROM_DESTRUCTIVE_HINT_FIELD_NUMBER = 3;
+  private boolean fromDestructiveHint_ = false;
+  /**
+   * <pre>
+   * True when the connect-time fail-closed tightener force-gated this tool
+   * because the server's own MCP annotation declared destructiveHint=true,
+   * rather than the classifier (or a human) gating it. Lets the runner attribute
+   * a tightened tool to its true provenance
+   * (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN)
+   * instead of collapsing it into the classifier default. Carries no enforcement
+   * weight — gating is decided by presence in this list — so an absent/false
+   * value simply means "not attributed to the destructiveHint tightener".
+   *
+   * Set only on entries written to McpServerStatus.tool_approvals (the classifier
+   * layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human
+   * pin is, by definition, a pinned override) and left false there.
+   * </pre>
+   *
+   * <code>bool from_destructive_hint = 3 [json_name = "fromDestructiveHint"];</code>
+   * @return The fromDestructiveHint.
+   */
+  @java.lang.Override
+  public boolean getFromDestructiveHint() {
+    return fromDestructiveHint_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -207,6 +233,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, message_);
     }
+    if (fromDestructiveHint_ != false) {
+      output.writeBool(3, fromDestructiveHint_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -221,6 +250,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, message_);
+    }
+    if (fromDestructiveHint_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(3, fromDestructiveHint_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -241,6 +274,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getToolName())) return false;
     if (!getMessage()
         .equals(other.getMessage())) return false;
+    if (getFromDestructiveHint()
+        != other.getFromDestructiveHint()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -256,6 +291,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getToolName().hashCode();
     hash = (37 * hash) + MESSAGE_FIELD_NUMBER;
     hash = (53 * hash) + getMessage().hashCode();
+    hash = (37 * hash) + FROM_DESTRUCTIVE_HINT_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getFromDestructiveHint());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -410,6 +448,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       toolName_ = "";
       message_ = "";
+      fromDestructiveHint_ = false;
       return this;
     }
 
@@ -449,6 +488,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.message_ = message_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.fromDestructiveHint_ = fromDestructiveHint_;
+      }
     }
 
     @java.lang.Override
@@ -472,6 +514,9 @@ private static final long serialVersionUID = 0L;
         message_ = other.message_;
         bitField0_ |= 0x00000002;
         onChanged();
+      }
+      if (other.getFromDestructiveHint() != false) {
+        setFromDestructiveHint(other.getFromDestructiveHint());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -509,6 +554,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 24: {
+              fromDestructiveHint_ = input.readBool();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -761,6 +811,83 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       message_ = value;
       bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private boolean fromDestructiveHint_ ;
+    /**
+     * <pre>
+     * True when the connect-time fail-closed tightener force-gated this tool
+     * because the server's own MCP annotation declared destructiveHint=true,
+     * rather than the classifier (or a human) gating it. Lets the runner attribute
+     * a tightened tool to its true provenance
+     * (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN)
+     * instead of collapsing it into the classifier default. Carries no enforcement
+     * weight — gating is decided by presence in this list — so an absent/false
+     * value simply means "not attributed to the destructiveHint tightener".
+     *
+     * Set only on entries written to McpServerStatus.tool_approvals (the classifier
+     * layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human
+     * pin is, by definition, a pinned override) and left false there.
+     * </pre>
+     *
+     * <code>bool from_destructive_hint = 3 [json_name = "fromDestructiveHint"];</code>
+     * @return The fromDestructiveHint.
+     */
+    @java.lang.Override
+    public boolean getFromDestructiveHint() {
+      return fromDestructiveHint_;
+    }
+    /**
+     * <pre>
+     * True when the connect-time fail-closed tightener force-gated this tool
+     * because the server's own MCP annotation declared destructiveHint=true,
+     * rather than the classifier (or a human) gating it. Lets the runner attribute
+     * a tightened tool to its true provenance
+     * (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN)
+     * instead of collapsing it into the classifier default. Carries no enforcement
+     * weight — gating is decided by presence in this list — so an absent/false
+     * value simply means "not attributed to the destructiveHint tightener".
+     *
+     * Set only on entries written to McpServerStatus.tool_approvals (the classifier
+     * layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human
+     * pin is, by definition, a pinned override) and left false there.
+     * </pre>
+     *
+     * <code>bool from_destructive_hint = 3 [json_name = "fromDestructiveHint"];</code>
+     * @param value The fromDestructiveHint to set.
+     * @return This builder for chaining.
+     */
+    public Builder setFromDestructiveHint(boolean value) {
+
+      fromDestructiveHint_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * True when the connect-time fail-closed tightener force-gated this tool
+     * because the server's own MCP annotation declared destructiveHint=true,
+     * rather than the classifier (or a human) gating it. Lets the runner attribute
+     * a tightened tool to its true provenance
+     * (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN)
+     * instead of collapsing it into the classifier default. Carries no enforcement
+     * weight — gating is decided by presence in this list — so an absent/false
+     * value simply means "not attributed to the destructiveHint tightener".
+     *
+     * Set only on entries written to McpServerStatus.tool_approvals (the classifier
+     * layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human
+     * pin is, by definition, a pinned override) and left false there.
+     * </pre>
+     *
+     * <code>bool from_destructive_hint = 3 [json_name = "fromDestructiveHint"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearFromDestructiveHint() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      fromDestructiveHint_ = false;
       onChanged();
       return this;
     }

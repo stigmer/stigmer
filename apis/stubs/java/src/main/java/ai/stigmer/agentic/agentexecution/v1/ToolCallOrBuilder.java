@@ -664,4 +664,73 @@ public interface ToolCallOrBuilder extends
    */
   ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder getFileChangesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Policy layer that decided this tool call's approval requirement, set by the
+   * runner's approval gate so clients can explain "why was this gated or
+   * auto-approved?".
+   *
+   * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+   * or an execution that predates this field (clients fall back to no provenance,
+   * exactly as for an unset tool_kind). See ApprovalPolicySource.
+   *
+   * Field 23: appended after file_changes (22), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+   * @return The enum numeric value on the wire for approvalPolicySource.
+   */
+  int getApprovalPolicySourceValue();
+  /**
+   * <pre>
+   * Policy layer that decided this tool call's approval requirement, set by the
+   * runner's approval gate so clients can explain "why was this gated or
+   * auto-approved?".
+   *
+   * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+   * or an execution that predates this field (clients fall back to no provenance,
+   * exactly as for an unset tool_kind). See ApprovalPolicySource.
+   *
+   * Field 23: appended after file_changes (22), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+   * @return The approvalPolicySource.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource();
+
+  /**
+   * <pre>
+   * Identifier of the policy-engine logic that produced approval_policy_source,
+   * bumped when the merge/classification semantics change so decisions made by
+   * different engine versions stay distinguishable in audits.
+   *
+   * &#64;internal
+   * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+   *
+   * Field 24: appended after approval_policy_source (23), the prior maximum.
+   * </pre>
+   *
+   * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+   * @return The policyEngineVersion.
+   */
+  java.lang.String getPolicyEngineVersion();
+  /**
+   * <pre>
+   * Identifier of the policy-engine logic that produced approval_policy_source,
+   * bumped when the merge/classification semantics change so decisions made by
+   * different engine versions stay distinguishable in audits.
+   *
+   * &#64;internal
+   * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+   *
+   * Field 24: appended after approval_policy_source (23), the prior maximum.
+   * </pre>
+   *
+   * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+   * @return The bytes for policyEngineVersion.
+   */
+  com.google.protobuf.ByteString
+      getPolicyEngineVersionBytes();
 }

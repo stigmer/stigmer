@@ -82,6 +82,29 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
       });
     }
 
+    // Invariant 1 (provenance corollary): every side effect the gate withholds
+    // carries a non-UNSPECIFIED authorization provenance — so an authorized side
+    // effect is always auditable to the policy layer that governed it. Gated to
+    // substrates that decide the source at the gate (the deep-agent gate); the
+    // Cursor substrate projects provenance at reconstruction time and is covered
+    // by the message-translator + corpus suites.
+    if (substrate.capabilities.surfacesGatePolicySource) {
+      it("tags every gated side effect with a non-UNSPECIFIED policy source", async () => {
+        for (const action of [WRITE_A, SHELL, DELETE]) {
+          const outcome = await substrate.authorize(action, "none");
+          expect(outcome.gated, `${substrate.name}: ${action.kind} must be gated`).toBe(true);
+          expect(
+            outcome.policySource,
+            `${substrate.name}: a gated ${action.kind} must carry a policy source`,
+          ).toBeTruthy();
+          expect(
+            outcome.policySource,
+            `${substrate.name}: a gated ${action.kind}'s source must not be UNSPECIFIED`,
+          ).not.toBe("unspecified");
+        }
+      });
+    }
+
     // Invariant 7: a non-mutating built-in runs without a gate.
     it("executes a non-mutating built-in without a gate", async () => {
       const outcome = await substrate.authorize(READ, "none");

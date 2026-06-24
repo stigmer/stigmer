@@ -311,7 +311,12 @@ describe("ConnectMcpServerWorkflow", () => {
 
       expect(addedCount).toBe(1);
       expect(tightened).toEqual([
-        { tool_name: "wipe_db", requires_approval: true, message: "Execute wipe_db" },
+        {
+          tool_name: "wipe_db",
+          requires_approval: true,
+          message: "Execute wipe_db",
+          from_destructive_hint: true,
+        },
       ]);
     });
 
@@ -353,6 +358,7 @@ describe("ConnectMcpServerWorkflow", () => {
         tool_name: "delete_all",
         requires_approval: true,
         message: "Execute delete_all",
+        from_destructive_hint: true,
       });
     });
 
@@ -411,7 +417,12 @@ describe("ConnectMcpServerWorkflow", () => {
       const result = await connectMcpServer({ mcp_server_id: "mcp-destructive" });
 
       expect(result.tool_approvals).toEqual([
-        { tool_name: "purge_cache", requires_approval: true, message: "Execute purge_cache" },
+        {
+          tool_name: "purge_cache",
+          requires_approval: true,
+          message: "Execute purge_cache",
+          from_destructive_hint: true,
+        },
       ]);
     });
 
@@ -438,7 +449,12 @@ describe("ConnectMcpServerWorkflow", () => {
 
       expect(mockClassifyActivity).not.toHaveBeenCalled();
       expect(result.tool_approvals).toEqual([
-        { tool_name: "rotate_keys", requires_approval: true, message: "Execute rotate_keys" },
+        {
+          tool_name: "rotate_keys",
+          requires_approval: true,
+          message: "Execute rotate_keys",
+          from_destructive_hint: true,
+        },
       ]);
     });
   });

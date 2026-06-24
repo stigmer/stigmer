@@ -85,7 +85,11 @@ func appendToolCallEvents(
 		SubAgentSubject:   subAgentSubject,
 		McpServerSlug:     tc.GetMcpServerSlug(),
 		ToolKind:          tc.GetToolKind(),
-		FileChanges:       tc.GetFileChanges(),
+		// Carried so the event-stream projection reconstructs the same
+		// PendingApproval the message scan does (compute.go) — keeps
+		// ProjectPendingApprovals fromScan == fromEvents.
+		ApprovalPolicySource: tc.GetApprovalPolicySource(),
+		FileChanges:          tc.GetFileChanges(),
 	}
 	stream.Events = append(stream.Events, &agentexecutionv1.ApprovalEvent{
 		EventId:           eventID(requestID, agentexecutionv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED),

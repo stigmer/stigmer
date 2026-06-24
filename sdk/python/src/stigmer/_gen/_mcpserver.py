@@ -249,11 +249,13 @@ class ToolApprovalPolicyInput:
 
     tool_name: str = ""
     message: str = ""
+    from_destructive_hint: bool = False
 
     def _to_proto(self) -> spec_pb2.ToolApprovalPolicy:
         msg = spec_pb2.ToolApprovalPolicy(
             tool_name=self.tool_name,
             message=self.message,
+            from_destructive_hint=self.from_destructive_hint,
         )
         return msg
 

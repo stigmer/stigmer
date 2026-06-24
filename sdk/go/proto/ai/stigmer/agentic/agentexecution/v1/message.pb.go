@@ -260,9 +260,28 @@ type ToolCall struct {
 	// Field 22: appended after output_ref (21), the prior maximum.
 	//
 	// @since First-Class Diff Review (#186)
-	FileChanges   []*FileChange `protobuf:"bytes,22,rep,name=file_changes,json=fileChanges,proto3" json:"file_changes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	FileChanges []*FileChange `protobuf:"bytes,22,rep,name=file_changes,json=fileChanges,proto3" json:"file_changes,omitempty"`
+	// Policy layer that decided this tool call's approval requirement, set by the
+	// runner's approval gate so clients can explain "why was this gated or
+	// auto-approved?".
+	//
+	// APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+	// or an execution that predates this field (clients fall back to no provenance,
+	// exactly as for an unset tool_kind). See ApprovalPolicySource.
+	//
+	// Field 23: appended after file_changes (22), the prior maximum.
+	ApprovalPolicySource ApprovalPolicySource `protobuf:"varint,23,opt,name=approval_policy_source,json=approvalPolicySource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource" json:"approval_policy_source,omitempty"`
+	// Identifier of the policy-engine logic that produced approval_policy_source,
+	// bumped when the merge/classification semantics change so decisions made by
+	// different engine versions stay distinguishable in audits.
+	//
+	// @internal
+	// Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+	//
+	// Field 24: appended after approval_policy_source (23), the prior maximum.
+	PolicyEngineVersion string `protobuf:"bytes,24,opt,name=policy_engine_version,json=policyEngineVersion,proto3" json:"policy_engine_version,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ToolCall) Reset() {
@@ -440,6 +459,20 @@ func (x *ToolCall) GetFileChanges() []*FileChange {
 		return x.FileChanges
 	}
 	return nil
+}
+
+func (x *ToolCall) GetApprovalPolicySource() ApprovalPolicySource {
+	if x != nil {
+		return x.ApprovalPolicySource
+	}
+	return ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED
+}
+
+func (x *ToolCall) GetPolicyEngineVersion() string {
+	if x != nil {
+		return x.PolicyEngineVersion
+	}
+	return ""
 }
 
 // ToolCallOutputRef points to a tool call's full output after the runner
@@ -816,7 +849,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"tool_calls\x18\x04 \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x123\n" +
 	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
-	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\xb1\b\n" +
+	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\xd7\t\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -842,7 +875,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\ttool_kind\x18\x14 \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\x12V\n" +
 	"\n" +
 	"output_ref\x18\x15 \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefR\toutputRef\x12S\n" +
-	"\ffile_changes\x18\x16 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\"\xdb\x01\n" +
+	"\ffile_changes\x18\x16 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\x12p\n" +
+	"\x16approval_policy_source\x18\x17 \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\x122\n" +
+	"\x15policy_engine_version\x18\x18 \x01(\tR\x13policyEngineVersion\"\xdb\x01\n" +
 	"\x11ToolCallOutputRef\x12\x1f\n" +
 	"\vstorage_key\x18\x01 \x01(\tR\n" +
 	"storageKey\x12\x1d\n" +
@@ -900,8 +935,9 @@ var file_ai_stigmer_agentic_agentexecution_v1_message_proto_goTypes = []any{
 	(ApprovalAction)(0),          // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	(ToolCallStreamingSource)(0), // 9: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
 	(ToolKind)(0),                // 10: ai.stigmer.agentic.agentexecution.v1.ToolKind
-	(FileChangeType)(0),          // 11: ai.stigmer.agentic.agentexecution.v1.FileChangeType
-	(FileChangeCaptureLevel)(0),  // 12: ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
+	(ApprovalPolicySource)(0),    // 11: ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	(FileChangeType)(0),          // 12: ai.stigmer.agentic.agentexecution.v1.FileChangeType
+	(FileChangeCaptureLevel)(0),  // 13: ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
 }
 var file_ai_stigmer_agentic_agentexecution_v1_message_proto_depIdxs = []int32{
 	5,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -914,16 +950,17 @@ var file_ai_stigmer_agentic_agentexecution_v1_message_proto_depIdxs = []int32{
 	10, // 7: ai.stigmer.agentic.agentexecution.v1.ToolCall.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
 	2,  // 8: ai.stigmer.agentic.agentexecution.v1.ToolCall.output_ref:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
 	3,  // 9: ai.stigmer.agentic.agentexecution.v1.ToolCall.file_changes:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChange
-	11, // 10: ai.stigmer.agentic.agentexecution.v1.FileChange.change_type:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeType
-	12, // 11: ai.stigmer.agentic.agentexecution.v1.FileChange.capture_level:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
-	4,  // 12: ai.stigmer.agentic.agentexecution.v1.FileChange.before:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
-	4,  // 13: ai.stigmer.agentic.agentexecution.v1.FileChange.after:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
-	2,  // 14: ai.stigmer.agentic.agentexecution.v1.FileContent.ref:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	11, // 10: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_policy_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	12, // 11: ai.stigmer.agentic.agentexecution.v1.FileChange.change_type:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeType
+	13, // 12: ai.stigmer.agentic.agentexecution.v1.FileChange.capture_level:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
+	4,  // 13: ai.stigmer.agentic.agentexecution.v1.FileChange.before:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
+	4,  // 14: ai.stigmer.agentic.agentexecution.v1.FileChange.after:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
+	2,  // 15: ai.stigmer.agentic.agentexecution.v1.FileContent.ref:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_message_proto_init() }

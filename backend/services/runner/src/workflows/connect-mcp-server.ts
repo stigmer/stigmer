@@ -174,6 +174,7 @@ export function applyDestructiveHintTightener(
         tool_name: tool.name,
         requires_approval: true,
         message: `Execute ${tool.name}`,
+        from_destructive_hint: true,
       });
       gatedNames.add(tool.name);
       addedCount++;

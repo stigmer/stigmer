@@ -50,6 +50,15 @@ export interface ToolApprovalResult {
   tool_name: string;
   requires_approval: boolean;
   message: string;
+  /**
+   * True when the connect-time fail-closed tightener force-gated this tool from
+   * its destructiveHint annotation (see applyDestructiveHintTightener), not the
+   * classifier. Persisted on ToolApprovalPolicy.from_destructive_hint so the
+   * runner attributes the gate to the annotation
+   * (ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN) instead of the
+   * classifier default. Absent/false on classifier and human-pinned entries.
+   */
+  from_destructive_hint?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -90,6 +90,13 @@ export interface PendingInterrupt {
   toolCallId: string;
   toolName: string;
   message: string;
+  /**
+   * Authorization provenance the gate attached to the interrupt
+   * (approval-gate.ts `policy_source`) — the PolicySource union string, or "" for
+   * legacy. Lets the gateway contract assert every gated side effect is
+   * provenance-tagged.
+   */
+  policySource: string;
 }
 
 /**
@@ -119,6 +126,7 @@ export function readPendingInterrupts(state: {
         toolCallId: (v.tool_call_id as string) ?? "",
         toolName: (v.tool_name as string) ?? "",
         message: (v.message as string) ?? "",
+        policySource: (v.policy_source as string) ?? "",
       });
     }
   }

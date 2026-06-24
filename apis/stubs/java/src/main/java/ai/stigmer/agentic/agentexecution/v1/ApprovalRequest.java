@@ -49,6 +49,7 @@ private static final long serialVersionUID = 0L;
     mcpServerSlug_ = "";
     toolKind_ = 0;
     fileChanges_ = java.util.Collections.emptyList();
+    approvalPolicySource_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -618,6 +619,36 @@ private static final long serialVersionUID = 0L;
     return fileChanges_.get(index);
   }
 
+  public static final int APPROVAL_POLICY_SOURCE_FIELD_NUMBER = 13;
+  private int approvalPolicySource_ = 0;
+  /**
+   * <pre>
+   * Policy layer that gated this call. Copied from
+   * ToolCall.approval_policy_source so the event-stream projection reconstructs
+   * the same PendingApproval as the message scan. See ApprovalPolicySource.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 13 [json_name = "approvalPolicySource"];</code>
+   * @return The enum numeric value on the wire for approvalPolicySource.
+   */
+  @java.lang.Override public int getApprovalPolicySourceValue() {
+    return approvalPolicySource_;
+  }
+  /**
+   * <pre>
+   * Policy layer that gated this call. Copied from
+   * ToolCall.approval_policy_source so the event-stream projection reconstructs
+   * the same PendingApproval as the message scan. See ApprovalPolicySource.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 13 [json_name = "approvalPolicySource"];</code>
+   * @return The approvalPolicySource.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource() {
+    ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource result = ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.forNumber(approvalPolicySource_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -667,6 +698,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < fileChanges_.size(); i++) {
       output.writeMessage(12, fileChanges_.get(i));
+    }
+    if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(13, approvalPolicySource_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -721,6 +755,10 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(13, approvalPolicySource_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -759,6 +797,7 @@ private static final long serialVersionUID = 0L;
     if (toolKind_ != other.toolKind_) return false;
     if (!getFileChangesList()
         .equals(other.getFileChangesList())) return false;
+    if (approvalPolicySource_ != other.approvalPolicySource_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -797,6 +836,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + FILE_CHANGES_FIELD_NUMBER;
       hash = (53 * hash) + getFileChangesList().hashCode();
     }
+    hash = (37 * hash) + APPROVAL_POLICY_SOURCE_FIELD_NUMBER;
+    hash = (53 * hash) + approvalPolicySource_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -956,6 +997,7 @@ private static final long serialVersionUID = 0L;
         fileChangesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000800);
+      approvalPolicySource_ = 0;
       return this;
     }
 
@@ -1034,6 +1076,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.toolKind_ = toolKind_;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.approvalPolicySource_ = approvalPolicySource_;
       }
     }
 
@@ -1125,6 +1170,9 @@ private static final long serialVersionUID = 0L;
             fileChangesBuilder_.addAllMessages(other.fileChanges_);
           }
         }
+      }
+      if (other.approvalPolicySource_ != 0) {
+        setApprovalPolicySourceValue(other.getApprovalPolicySourceValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1220,6 +1268,11 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 98
+            case 104: {
+              approvalPolicySource_ = input.readEnum();
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 104
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2562,6 +2615,88 @@ private static final long serialVersionUID = 0L;
         fileChanges_ = null;
       }
       return fileChangesBuilder_;
+    }
+
+    private int approvalPolicySource_ = 0;
+    /**
+     * <pre>
+     * Policy layer that gated this call. Copied from
+     * ToolCall.approval_policy_source so the event-stream projection reconstructs
+     * the same PendingApproval as the message scan. See ApprovalPolicySource.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 13 [json_name = "approvalPolicySource"];</code>
+     * @return The enum numeric value on the wire for approvalPolicySource.
+     */
+    @java.lang.Override public int getApprovalPolicySourceValue() {
+      return approvalPolicySource_;
+    }
+    /**
+     * <pre>
+     * Policy layer that gated this call. Copied from
+     * ToolCall.approval_policy_source so the event-stream projection reconstructs
+     * the same PendingApproval as the message scan. See ApprovalPolicySource.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 13 [json_name = "approvalPolicySource"];</code>
+     * @param value The enum numeric value on the wire for approvalPolicySource to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicySourceValue(int value) {
+      approvalPolicySource_ = value;
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Policy layer that gated this call. Copied from
+     * ToolCall.approval_policy_source so the event-stream projection reconstructs
+     * the same PendingApproval as the message scan. See ApprovalPolicySource.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 13 [json_name = "approvalPolicySource"];</code>
+     * @return The approvalPolicySource.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource() {
+      ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource result = ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.forNumber(approvalPolicySource_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Policy layer that gated this call. Copied from
+     * ToolCall.approval_policy_source so the event-stream projection reconstructs
+     * the same PendingApproval as the message scan. See ApprovalPolicySource.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 13 [json_name = "approvalPolicySource"];</code>
+     * @param value The approvalPolicySource to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicySource(ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00001000;
+      approvalPolicySource_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Policy layer that gated this call. Copied from
+     * ToolCall.approval_policy_source so the event-stream projection reconstructs
+     * the same PendingApproval as the message scan. See ApprovalPolicySource.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 13 [json_name = "approvalPolicySource"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApprovalPolicySource() {
+      bitField0_ = (bitField0_ & ~0x00001000);
+      approvalPolicySource_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.ApprovalRequest)

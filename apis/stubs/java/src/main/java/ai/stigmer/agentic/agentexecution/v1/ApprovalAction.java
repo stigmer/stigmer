@@ -75,45 +75,49 @@ public enum ApprovalAction
   APPROVAL_ACTION_REJECT(3),
   /**
    * <pre>
-   * Approve this tool call AND auto-approve every subsequent tool call for
-   * the rest of this execution ("approve and don't ask again").
+   * Approve this tool call AND grant a run-lifetime lease that auto-approves
+   * every subsequent tool call of the SAME class for the rest of this execution
+   * ("approve all of this kind, don't ask again").
    *
-   * This is the gate-time analog of AgentExecutionSpec.auto_approve_all: it
-   * lets a human escalate from per-call approval to "trust the rest of this
-   * run" at the moment of friction, instead of pre-arming a bypass before the
-   * agent has done anything.
+   * This is the gate-time, scoped analog of AgentExecutionSpec.auto_approve_all:
+   * it lets a human escalate from per-call approval to "trust this whole class"
+   * at the moment of friction, without pre-arming a global bypass. The lease is
+   * scoped to one class — a built-in approval category (write / delete / shell,
+   * with write and edit collapsed) or a single MCP server — never the whole run.
    *
    * ## Canonical contract (every layer derives its behavior from this)
    *
-   * 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the
-   * clicked tool call, and resolve the rest of the *current* approval gate
-   * by setting every other tool call still in TOOL_CALL_WAITING_APPROVAL
-   * (action UNSPECIFIED) — including sub-agent tool calls — to
-   * APPROVAL_ACTION_APPROVE. pending_approvals is recomputed to empty, so
-   * the standard "gate fully resolved" path sends the approvalGateResolved
-   * signal. This keeps the audit trail honest: every tool that runs carries
-   * an explicit approval_action.
+   * 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the clicked
+   * tool call, and resolve any other still-pending tool call that shares the
+   * clicked call's class — including sub-agent tool calls — to
+   * APPROVAL_ACTION_APPROVE. Pending tool calls of a DIFFERENT class stay in
+   * TOOL_CALL_WAITING_APPROVAL so the gate still holds for them. This keeps
+   * the audit trail honest: every tool that runs carries an explicit
+   * approval_action.
    *
-   * 2. Runner (native + cursor harness): on reinvocation, the presence of ANY
-   * APPROVE_ALL decision in the persisted execution history means the
-   * execution is auto-approved for the remainder of the run. New tool calls
-   * (and sub-agent tool calls) skip the approval gate entirely, exactly as
-   * if spec.auto_approve_all were true. The interrupted tool itself resumes
-   * as an approval.
+   * 2. Runner (native + cursor harness): the lease is derived on read from the
+   * persisted APPROVE_ALL decision plus the tool's class — there is no
+   * separately stored lease. On reinvocation, a new tool call (or sub-agent
+   * tool call) whose class matches an active lease skips the approval gate; a
+   * tool call of any other class is still gated. The interrupted tool itself
+   * resumes as an approval.
    *
    * ## Scope
    *
-   * APPROVE_ALL covers the rest of THIS execution. It is NOT persisted to the
-   * session or the agent; a subsequent execution starts gated again unless the
-   * caller sets it anew (interactive clients may carry a session-scoped
-   * preference forward in-memory, but that is a client concern, not a
-   * server-persisted state).
+   * The lease covers the rest of THIS execution and only the matched class. It
+   * is NOT persisted to the session or the agent; a subsequent execution starts
+   * gated again unless the caller sets it anew (interactive clients may carry a
+   * session-scoped preference forward in-memory, but that is a client concern,
+   * not server-persisted state). AgentExecutionSpec.auto_approve_all remains the
+   * single, explicit whole-run global bypass.
    *
    * ## Audit
    *
-   * Because this bypasses all remaining approval checks for the execution,
-   * executions containing an APPROVE_ALL decision should be auditable. The
-   * decision is recorded on ToolCall.approval_action like any other.
+   * Because it bypasses subsequent same-class approval checks, executions
+   * containing an APPROVE_ALL decision should be auditable. The decision is
+   * recorded on ToolCall.approval_action like any other; the policy layer that
+   * cleared each subsequent call is recorded on ToolCall.approval_policy_source
+   * (APPROVAL_POLICY_SOURCE_APPROVAL_LEASE).
    * </pre>
    *
    * <code>APPROVAL_ACTION_APPROVE_ALL = 4;</code>
@@ -173,45 +177,49 @@ public enum ApprovalAction
   public static final int APPROVAL_ACTION_REJECT_VALUE = 3;
   /**
    * <pre>
-   * Approve this tool call AND auto-approve every subsequent tool call for
-   * the rest of this execution ("approve and don't ask again").
+   * Approve this tool call AND grant a run-lifetime lease that auto-approves
+   * every subsequent tool call of the SAME class for the rest of this execution
+   * ("approve all of this kind, don't ask again").
    *
-   * This is the gate-time analog of AgentExecutionSpec.auto_approve_all: it
-   * lets a human escalate from per-call approval to "trust the rest of this
-   * run" at the moment of friction, instead of pre-arming a bypass before the
-   * agent has done anything.
+   * This is the gate-time, scoped analog of AgentExecutionSpec.auto_approve_all:
+   * it lets a human escalate from per-call approval to "trust this whole class"
+   * at the moment of friction, without pre-arming a global bypass. The lease is
+   * scoped to one class — a built-in approval category (write / delete / shell,
+   * with write and edit collapsed) or a single MCP server — never the whole run.
    *
    * ## Canonical contract (every layer derives its behavior from this)
    *
-   * 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the
-   * clicked tool call, and resolve the rest of the *current* approval gate
-   * by setting every other tool call still in TOOL_CALL_WAITING_APPROVAL
-   * (action UNSPECIFIED) — including sub-agent tool calls — to
-   * APPROVAL_ACTION_APPROVE. pending_approvals is recomputed to empty, so
-   * the standard "gate fully resolved" path sends the approvalGateResolved
-   * signal. This keeps the audit trail honest: every tool that runs carries
-   * an explicit approval_action.
+   * 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the clicked
+   * tool call, and resolve any other still-pending tool call that shares the
+   * clicked call's class — including sub-agent tool calls — to
+   * APPROVAL_ACTION_APPROVE. Pending tool calls of a DIFFERENT class stay in
+   * TOOL_CALL_WAITING_APPROVAL so the gate still holds for them. This keeps
+   * the audit trail honest: every tool that runs carries an explicit
+   * approval_action.
    *
-   * 2. Runner (native + cursor harness): on reinvocation, the presence of ANY
-   * APPROVE_ALL decision in the persisted execution history means the
-   * execution is auto-approved for the remainder of the run. New tool calls
-   * (and sub-agent tool calls) skip the approval gate entirely, exactly as
-   * if spec.auto_approve_all were true. The interrupted tool itself resumes
-   * as an approval.
+   * 2. Runner (native + cursor harness): the lease is derived on read from the
+   * persisted APPROVE_ALL decision plus the tool's class — there is no
+   * separately stored lease. On reinvocation, a new tool call (or sub-agent
+   * tool call) whose class matches an active lease skips the approval gate; a
+   * tool call of any other class is still gated. The interrupted tool itself
+   * resumes as an approval.
    *
    * ## Scope
    *
-   * APPROVE_ALL covers the rest of THIS execution. It is NOT persisted to the
-   * session or the agent; a subsequent execution starts gated again unless the
-   * caller sets it anew (interactive clients may carry a session-scoped
-   * preference forward in-memory, but that is a client concern, not a
-   * server-persisted state).
+   * The lease covers the rest of THIS execution and only the matched class. It
+   * is NOT persisted to the session or the agent; a subsequent execution starts
+   * gated again unless the caller sets it anew (interactive clients may carry a
+   * session-scoped preference forward in-memory, but that is a client concern,
+   * not server-persisted state). AgentExecutionSpec.auto_approve_all remains the
+   * single, explicit whole-run global bypass.
    *
    * ## Audit
    *
-   * Because this bypasses all remaining approval checks for the execution,
-   * executions containing an APPROVE_ALL decision should be auditable. The
-   * decision is recorded on ToolCall.approval_action like any other.
+   * Because it bypasses subsequent same-class approval checks, executions
+   * containing an APPROVE_ALL decision should be auditable. The decision is
+   * recorded on ToolCall.approval_action like any other; the policy layer that
+   * cleared each subsequent call is recorded on ToolCall.approval_policy_source
+   * (APPROVAL_POLICY_SOURCE_APPROVAL_LEASE).
    * </pre>
    *
    * <code>APPROVAL_ACTION_APPROVE_ALL = 4;</code>

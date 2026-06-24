@@ -474,4 +474,31 @@ public interface PendingApprovalOrBuilder extends
    */
   ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder getFileChangesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Policy layer that gated this tool call, copied from
+   * ToolCall.approval_policy_source by the server-side projection (exactly as
+   * tool_kind above is). Lets the approval surface explain WHY the tool requires
+   * approval (e.g. "required by agent override") without a client-side lookup.
+   * See ApprovalPolicySource.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 15 [json_name = "approvalPolicySource"];</code>
+   * @return The enum numeric value on the wire for approvalPolicySource.
+   */
+  int getApprovalPolicySourceValue();
+  /**
+   * <pre>
+   * Policy layer that gated this tool call, copied from
+   * ToolCall.approval_policy_source by the server-side projection (exactly as
+   * tool_kind above is). Lets the approval surface explain WHY the tool requires
+   * approval (e.g. "required by agent override") without a client-side lookup.
+   * See ApprovalPolicySource.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 15 [json_name = "approvalPolicySource"];</code>
+   * @return The approvalPolicySource.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource();
 }

@@ -87,6 +87,12 @@ func projectToolCall(tc *agentexecutionv1.ToolCall, fromSubAgent bool, subAgentN
 		// Denormalized for approval surfaces (like McpServerSlug above) so the
 		// approval UI classifies the tool without re-deriving it from the name.
 		ToolKind: tc.GetToolKind(),
+		// Denormalized (like ToolKind) so the approval surface can explain WHY the
+		// tool is gated ("required by agent override") without re-deriving the
+		// policy. Runner-written on the ToolCall; copied through verbatim. The
+		// event-stream projection copies it too (emit.go / compute_from_events.go)
+		// so ProjectPendingApprovals fromScan == fromEvents holds.
+		ApprovalPolicySource: tc.GetApprovalPolicySource(),
 		// Denormalized so the gate can render an inline before/after diff without
 		// correlating back to the originating ToolCall (which, for workflow-parent
 		// approvals, is not co-located with the approval). The runner captures

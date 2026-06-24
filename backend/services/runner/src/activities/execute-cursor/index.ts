@@ -637,6 +637,7 @@ async function executeCursorInner(
 
     const accumulator = new MessageAccumulator(status.messages, {
       mergedPolicies,
+      provenance: { globalBypass, leasedCategories: leases.categories },
       workspaceRoot: primaryWorkspaceDir,
     });
     // Shared cadence with the native harness: discrete state changes force a

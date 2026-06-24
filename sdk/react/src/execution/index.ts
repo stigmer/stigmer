@@ -98,6 +98,8 @@ export type { ToolCallGroupProps } from "./ToolCallGroup";
 export { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 export type { ToolCallDetailProps } from "./ToolCallDetail";
 
+export { describeApprovalPolicySource } from "./approval-provenance";
+
 export { McpToolDetail, McpArgsView, McpMetadataRow, parseMcpResult } from "./McpToolDetail";
 export type {
   McpToolDetailProps,

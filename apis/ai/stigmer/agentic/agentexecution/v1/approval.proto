@@ -154,6 +154,13 @@ message PendingApproval {
   // at persist time before this projection runs, so this list carries references,
   // not megabytes. Empty for non-file-modifying tools. See FileChange.
   repeated FileChange file_changes = 14;
+
+  // Policy layer that gated this tool call, copied from
+  // ToolCall.approval_policy_source by the server-side projection (exactly as
+  // tool_kind above is). Lets the approval surface explain WHY the tool requires
+  // approval (e.g. "required by agent override") without a client-side lookup.
+  // See ApprovalPolicySource.
+  ApprovalPolicySource approval_policy_source = 15;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -277,6 +284,11 @@ message ApprovalRequest {
   // ToolCall.file_changes; large bodies are already offloaded to
   // FileContent.ref before projection.
   repeated FileChange file_changes = 12;
+
+  // Policy layer that gated this call. Copied from
+  // ToolCall.approval_policy_source so the event-stream projection reconstructs
+  // the same PendingApproval as the message scan. See ApprovalPolicySource.
+  ApprovalPolicySource approval_policy_source = 13;
 }
 
 // A user's decision on an approval request.

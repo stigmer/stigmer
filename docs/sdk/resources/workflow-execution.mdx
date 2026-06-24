@@ -1480,6 +1480,37 @@ WorkflowExecutionStatus contains all system-managed execution state and results.
   }}
 />
 
+### FileChange
+
+A single file mutation produced by a tool call.
+
+<TypeTable
+  type={{
+    path: { type: "string", description: "Workspace-root-relative path for display, e.g. \"src/app/main.ts\"." },
+    absolutePath: { type: "string", description: "Absolute on-disk path, retained for \"open in editor\" and diagnostics." },
+    changeType: { type: "FileChangeType", description: "The per-file outcome of this change.", typeDescriptionLink: "#filechangetype" },
+    captureLevel: { type: "FileChangeCaptureLevel", description: "How complete the captured content is.", typeDescriptionLink: "#filechangecapturelevel" },
+    before: { type: "FileContent", description: "Pre-edit content.", typeDescriptionLink: "#filecontent" },
+    after: { type: "FileContent", description: "Post-edit content.", typeDescriptionLink: "#filecontent" },
+    unifiedDiff: { type: "string", description: "Unified hunk-level diff." },
+    linesAdded: { type: "number", description: "Lines added by this change." },
+    linesRemoved: { type: "number", description: "Lines removed by this change." },
+    renameFrom: { type: "string", description: "Source path for RENAME; path holds the destination." },
+  }}
+/>
+
+### FileContent
+
+One side (before or after) of a file's content.
+
+<TypeTable
+  type={{
+    inline: { type: "string", description: "Full UTF-8 content, inline." },
+    ref: { type: "ToolCallOutputRef", description: "Offload pointer for large content; reuses the tool-output offload envelope (storage_key, size_bytes, content_hash, truncated_preview).", typeDescriptionLink: "#toolcalloutputref" },
+    isBinary: { type: "boolean", description: "True when this side is binary; clients skip text diffing and render \"binary file changed\" instead." },
+  }}
+/>
+
 ### PendingApproval
 
 A pending approval request for a tool call that requires user consent before execution.
@@ -1499,6 +1530,22 @@ A pending approval request for a tool call that requires user consent before exe
     branchAtDeny: { type: "string", description: "Git branch name at the time the tool was denied." },
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
+    fileChanges: { type: "FileChange[]", description: "File changes the gated tool call would produce (create / modify / delete / rename), captured by the runner at approval-request time: `before` is read from the workspace when the approval is raised, `after` is derived from the tool args.", typeDescriptionLink: "#filechange" },
+  }}
+/>
+
+### ToolCallOutputRef
+
+ToolCallOutputRef points to a tool call's full output after the runner offloaded it to artifact storage to keep AgentExecutionStatus under the gRPC message-size limit.
+
+<TypeTable
+  type={{
+    storageKey: { type: "string", description: "Storage location of the full output bytes." },
+    sizeBytes: { type: "number", description: "Size in bytes of the full (original, pre-truncation) output." },
+    contentHash: { type: "string", description: "SHA-256 hex digest of the full output bytes." },
+    mimeType: { type: "string", description: "MIME type of the offloaded content." },
+    isImage: { type: "boolean", description: "True when the offloaded content is an image the UI should render inline (e.g. a screenshot from a computer-use MCP server)." },
+    truncatedPreview: { type: "string", description: "Short head of the original text content, kept inline for an at-a-glance preview without fetching the full artifact." },
   }}
 />
 
@@ -1610,6 +1657,26 @@ SummaryTimeWindow controls the time range for aggregated dashboard queries.
 | `SUMMARY_TIME_WINDOW_LAST_7D` |  |
 | `SUMMARY_TIME_WINDOW_LAST_30D` |  |
 | `SUMMARY_TIME_WINDOW_ALL_TIME` |  |
+
+### FileChangeType
+
+FileChangeType is the per-file outcome of a file mutation in a tool call.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_CHANGE_TYPE_CREATE` | A new file was created. |
+| `FILE_CHANGE_TYPE_MODIFY` | An existing file's contents were modified. |
+| `FILE_CHANGE_TYPE_DELETE` | A file was deleted. |
+| `FILE_CHANGE_TYPE_RENAME` | A file was renamed or moved; FileChange.rename_from holds the source path. |
+
+### FileChangeCaptureLevel
+
+FileChangeCaptureLevel describes how complete a FileChange's captured content is, so clients render whole-file vs hunk-only diffs honestly per harness.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE` | Full before+after content captured (native edit/write; future Cursor pre-read). |
+| `FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY` | Only a hunk-level unified_diff is available (Cursor today). |
 
 ### ToolKind
 

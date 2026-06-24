@@ -1610,9 +1610,11 @@ structure as an expanded [`ToolCallItem`](#toolcallitem) in the history list.
 The compact header row matches the ToolCallItem layout:
   [CategoryIcon] Label  primaryArg  [⏳ waiting Xm]
 
-Arguments are rendered through the shared [`ToolArgsView`](#toolargsview)
-dispatch, ensuring pixel-level parity between the approval
-preview and the post-execution detail view.
+The body shows the most decision-relevant preview: when the
+approval carries the runner's `file_changes` capture, a real
+before/after [`FileChangeDiff`](#filechangediff) (one per changed file);
+otherwise the shared [`ToolArgsView`](#toolargsview) dispatch, keeping
+pixel-level parity with the post-execution detail view.
 
 Wrapped in `React.memo` — structural sharing (T04) preserves the
 `PendingApproval` reference when unchanged, so approval cards

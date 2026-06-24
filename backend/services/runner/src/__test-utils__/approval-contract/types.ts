@@ -76,6 +76,14 @@ export interface GatewayOutcome {
    * substrate can count; an out-of-process one cannot observe execution at all).
    */
   readonly executionCount?: number;
+  /**
+   * The authorization provenance the gate attached when it withheld the action —
+   * the PolicySource union string (e.g. "builtin_category", "agent_override").
+   * Populated only when {@link SubstrateCapabilities.surfacesGatePolicySource} is
+   * true; empty/undefined otherwise. Lets the contract assert every gated side
+   * effect is provenance-tagged.
+   */
+  readonly policySource?: string;
 }
 
 /**
@@ -107,6 +115,16 @@ export interface SubstrateCapabilities {
    * and implement {@link GatewaySubstrate.authorizeUnderClassLease}.
    */
   readonly appliesRunLifetimeLease: boolean;
+  /**
+   * True when the substrate attaches authorization provenance
+   * (approval_policy_source) at the gate, so a withheld action's
+   * {@link GatewayOutcome.policySource} is populated. The deep-agent gate decides
+   * and stamps the source at interrupt time (`true`); the Cursor substrate's
+   * provenance is a reconstruction-time projection over the persisted tool call,
+   * not a property of the hook's deny decision, so it is `false` here and is
+   * covered instead by the message-translator and corpus suites.
+   */
+  readonly surfacesGatePolicySource: boolean;
 }
 
 /**

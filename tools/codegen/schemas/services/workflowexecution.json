@@ -1606,7 +1606,7 @@
         {
           "name": "APPROVAL_ACTION_APPROVE_ALL",
           "number": 4,
-          "description": "Approve this tool call AND auto-approve every subsequent tool call for\n the rest of this execution (\"approve and don't ask again\").\n\n This is the gate-time analog of AgentExecutionSpec.auto_approve_all: it\n lets a human escalate from per-call approval to \"trust the rest of this\n run\" at the moment of friction, instead of pre-arming a bypass before the\n agent has done anything.\n\n ## Canonical contract (every layer derives its behavior from this)\n\n 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the\n    clicked tool call, and resolve the rest of the *current* approval gate\n    by setting every other tool call still in TOOL_CALL_WAITING_APPROVAL\n    (action UNSPECIFIED) — including sub-agent tool calls — to\n    APPROVAL_ACTION_APPROVE. pending_approvals is recomputed to empty, so\n    the standard \"gate fully resolved\" path sends the approvalGateResolved\n    signal. This keeps the audit trail honest: every tool that runs carries\n    an explicit approval_action.\n\n 2. Runner (native + cursor harness): on reinvocation, the presence of ANY\n    APPROVE_ALL decision in the persisted execution history means the\n    execution is auto-approved for the remainder of the run. New tool calls\n    (and sub-agent tool calls) skip the approval gate entirely, exactly as\n    if spec.auto_approve_all were true. The interrupted tool itself resumes\n    as an approval.\n\n ## Scope\n\n APPROVE_ALL covers the rest of THIS execution. It is NOT persisted to the\n session or the agent; a subsequent execution starts gated again unless the\n caller sets it anew (interactive clients may carry a session-scoped\n preference forward in-memory, but that is a client concern, not a\n server-persisted state).\n\n ## Audit\n\n Because this bypasses all remaining approval checks for the execution,\n executions containing an APPROVE_ALL decision should be auditable. The\n decision is recorded on ToolCall.approval_action like any other."
+          "description": "Approve this tool call AND grant a run-lifetime lease that auto-approves\n every subsequent tool call of the SAME class for the rest of this execution\n (\"approve all of this kind, don't ask again\").\n\n This is the gate-time, scoped analog of AgentExecutionSpec.auto_approve_all:\n it lets a human escalate from per-call approval to \"trust this whole class\"\n at the moment of friction, without pre-arming a global bypass. The lease is\n scoped to one class — a built-in approval category (write / delete / shell,\n with write and edit collapsed) or a single MCP server — never the whole run.\n\n ## Canonical contract (every layer derives its behavior from this)\n\n 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the clicked\n    tool call, and resolve any other still-pending tool call that shares the\n    clicked call's class — including sub-agent tool calls — to\n    APPROVAL_ACTION_APPROVE. Pending tool calls of a DIFFERENT class stay in\n    TOOL_CALL_WAITING_APPROVAL so the gate still holds for them. This keeps\n    the audit trail honest: every tool that runs carries an explicit\n    approval_action.\n\n 2. Runner (native + cursor harness): the lease is derived on read from the\n    persisted APPROVE_ALL decision plus the tool's class — there is no\n    separately stored lease. On reinvocation, a new tool call (or sub-agent\n    tool call) whose class matches an active lease skips the approval gate; a\n    tool call of any other class is still gated. The interrupted tool itself\n    resumes as an approval.\n\n ## Scope\n\n The lease covers the rest of THIS execution and only the matched class. It\n is NOT persisted to the session or the agent; a subsequent execution starts\n gated again unless the caller sets it anew (interactive clients may carry a\n session-scoped preference forward in-memory, but that is a client concern,\n not server-persisted state). AgentExecutionSpec.auto_approve_all remains the\n single, explicit whole-run global bypass.\n\n ## Audit\n\n Because it bypasses subsequent same-class approval checks, executions\n containing an APPROVE_ALL decision should be auditable. The decision is\n recorded on ToolCall.approval_action like any other; the policy layer that\n cleared each subsequent call is recorded on ToolCall.approval_policy_source\n (APPROVAL_POLICY_SOURCE_APPROVAL_LEASE)."
         }
       ]
     },
@@ -1931,6 +1931,48 @@
           "name": "TOOL_KIND_MCP",
           "number": 13,
           "description": "A tool provided by an MCP server. The server is identified by\n ToolCall.mcp_server_slug; the tool's bare name is in ToolCall.name."
+        }
+      ]
+    },
+    {
+      "name": "ApprovalPolicySource",
+      "description": "ApprovalPolicySource is the policy layer that decided a tool call's approval\n requirement — the provenance recorded on every gated or auto-approved tool\n call so an execution's authorizations are auditable.\n\n Set by the runner at the approval gate (the one component that evaluates the\n merged policy) and persisted on ToolCall.approval_policy_source, exactly as\n ToolCall.tool_kind is set and persisted. Clients render it to answer \"why was\n this tool gated or auto-approved?\".\n\n @internal\n Mirrors the runner's internal PolicySource union (approval-policy.ts) one for\n one. Layered precedence: a pinned or agent override wins over the classifier\n default; a lease or the global bypass clears an otherwise-required approval.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource",
+      "values": [
+        {
+          "name": "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT",
+          "number": 1,
+          "description": "Layer 1: the connect-time classifier's default for an MCP tool\n (McpServerStatus.tool_approvals)."
+        },
+        {
+          "name": "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE",
+          "number": 2,
+          "description": "Layer 2: an operator's pinned override on the MCP server blueprint\n (McpServerSpec.pinned_tool_approvals)."
+        },
+        {
+          "name": "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE",
+          "number": 3,
+          "description": "Layer 3: an agent-level override for an MCP tool\n (Agent McpServerUsage.tool_approval_overrides)."
+        },
+        {
+          "name": "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
+          "number": 4,
+          "description": "Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global\n bypass cleared this call."
+        },
+        {
+          "name": "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
+          "number": 5,
+          "description": "Layer 4: a run-lifetime scoped lease (the successor to a global \"approve\n all\"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched\n the leased class."
+        },
+        {
+          "name": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "number": 6,
+          "description": "A non-MCP built-in tool gated by the shared tool taxonomy\n (write / delete / shell)."
+        },
+        {
+          "name": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
+          "number": 7,
+          "description": "The connect-time MCP destructiveHint tightener forced this tool to require\n approval, overriding a more permissive classifier verdict. First-class\n provenance so a tightened tool is distinguishable from a plain classifier\n default. See applyDestructiveHintTightener."
         }
       ]
     },
@@ -2838,6 +2880,26 @@
             }
           },
           "description": "File changes the gated tool call would produce (create / modify / delete /\n rename), captured by the runner at approval-request time: `before` is read\n from the workspace when the approval is raised, `after` is derived from the\n tool args. Copied from ToolCall.file_changes by the server-side projection\n (exactly as tool_kind above is), so approval surfaces — including\n workflow-parent approvals, where the originating ToolCall is not co-located\n with the approval — can render an inline before/after diff in the gate\n without a client-side lookup.\n\n Large before/after bodies are offloaded to object storage (FileContent.ref)\n at persist time before this projection runs, so this list carries references,\n not megabytes. Empty for non-file-modifying tools. See FileChange.",
+          "required": false
+        },
+        {
+          "name": "ApprovalPolicySource",
+          "jsonName": "approvalPolicySource",
+          "protoField": "approval_policy_source",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource",
+            "enumValues": [
+              "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT",
+              "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE",
+              "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE",
+              "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
+              "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
+              "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+              "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN"
+            ]
+          },
+          "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required by agent override\") without a client-side lookup.\n See ApprovalPolicySource.",
           "required": false
         }
       ]

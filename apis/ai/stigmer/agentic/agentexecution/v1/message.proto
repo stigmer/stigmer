@@ -229,6 +229,36 @@ message ToolCall {
   //
   // @since First-Class Diff Review (#186)
   repeated FileChange file_changes = 22;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Authorization Provenance (HITL)
+  //
+  // Which policy layer decided this tool call's approval requirement, recorded so
+  // an execution's authorizations are auditable. Runner-written and carried
+  // through update_status exactly like tool_kind — not owned by SubmitApproval,
+  // so no preserve logic is needed.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Policy layer that decided this tool call's approval requirement, set by the
+  // runner's approval gate so clients can explain "why was this gated or
+  // auto-approved?".
+  //
+  // APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+  // or an execution that predates this field (clients fall back to no provenance,
+  // exactly as for an unset tool_kind). See ApprovalPolicySource.
+  //
+  // Field 23: appended after file_changes (22), the prior maximum.
+  ApprovalPolicySource approval_policy_source = 23;
+
+  // Identifier of the policy-engine logic that produced approval_policy_source,
+  // bumped when the merge/classification semantics change so decisions made by
+  // different engine versions stay distinguishable in audits.
+  //
+  // @internal
+  // Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+  //
+  // Field 24: appended after approval_policy_source (23), the prior maximum.
+  string policy_engine_version = 24;
 }
 
 // ToolCallOutputRef points to a tool call's full output after the runner

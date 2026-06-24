@@ -39,9 +39,14 @@ import { MessageType, ToolCallStatus, SubAgentStatus, ToolKind, FileChangeType, 
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
 import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage } from "./approval-policy.js";
+import {
+  POLICY_ENGINE_VERSION,
+  resolveApprovalProvenance,
+  toProtoPolicySource,
+} from "../../shared/approval-policy.js";
 import { grantToken, toolIdentity, type DeniedLedgerEntry } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
-import { classifyTool } from "../../shared/tool-kind.js";
+import { classifyTool, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { buildFileChange, resolveWorkspacePath } from "../../shared/file-change.js";
 import { synthesizeHunkDiff } from "../../shared/hunk-diff.js";
 
@@ -165,10 +170,17 @@ function translateToolCall(event: Extract<SDKMessage, { type: "tool_call" }>): A
  *
  * Approval fields are populated when mergedPolicies are provided.
  * Without policies, only basic fields are set (backward compatible).
+ *
+ * When mergedPolicies are provided, the tool call also carries its authorization
+ * provenance (approval_policy_source) — which policy layer gated or cleared it —
+ * derived from the same merged policy chain the gate uses, so the Cursor
+ * reconstruction is as auditable as the native harness. `provenance` supplies the
+ * run-scoped context (global bypass, active leases) the per-tool map cannot.
  */
 export function buildToolCallProto(
   event: Extract<SDKMessage, { type: "tool_call" }>,
   mergedPolicies?: Map<string, MergedToolPolicy>,
+  provenance?: ApprovalProvenanceContext,
 ): ToolCall {
   const status = mapToolCallStatus(event.status);
   const mcpDetails = extractMcpToolDetails(event);
@@ -233,8 +245,37 @@ export function buildToolCallProto(
     }
   }
 
+  // Stamp authorization provenance from the same merged policy chain the gate
+  // (the deny-oracle hook + this map) uses, so the persisted record explains WHY
+  // each tool was gated or cleared. Only when policies are present — the stateless
+  // path leaves it UNSPECIFIED, like an unclassified tool_kind.
+  if (mergedPolicies) {
+    const source = resolveApprovalProvenance(
+      actualName,
+      mcpServerSlug,
+      mergedPolicies,
+      provenance?.leasedCategories ?? NO_LEASED_CATEGORIES,
+      provenance?.globalBypass ?? false,
+    );
+    toolCall.approvalPolicySource = toProtoPolicySource(source);
+    if (source) toolCall.policyEngineVersion = POLICY_ENGINE_VERSION;
+  }
+
   return toolCall;
 }
+
+/**
+ * Run-scoped approval context the Cursor reconstruction needs to attribute a tool
+ * call's provenance beyond the per-tool merged policy map: the pre-armed global
+ * bypass and the built-in categories holding a run-lifetime lease.
+ */
+export interface ApprovalProvenanceContext {
+  readonly globalBypass: boolean;
+  readonly leasedCategories: ReadonlySet<ToolApprovalCategory>;
+}
+
+/** Shared empty set so a reconstruction without leases allocates nothing. */
+const NO_LEASED_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
 
 /** Tool-arg keys Cursor uses for a file path / write content (mirrors the SDK). */
 const FILE_PATH_FIELDS = ["path", "file_path", "file", "filename"] as const;
@@ -689,6 +730,12 @@ export function extractConversationSteps(
 export interface MessageAccumulatorOptions {
   mergedPolicies?: Map<string, MergedToolPolicy>;
   /**
+   * Run-scoped approval context (global bypass + active leases) so reconstructed
+   * tool calls carry their authorization provenance. Omitted in unit tests that
+   * only assert basic translation; provenance then stays UNSPECIFIED.
+   */
+  provenance?: ApprovalProvenanceContext;
+  /**
    * Absolute workspace root, used to render file-change paths relative to the
    * workspace (with the absolute path retained). Omitted in unit tests, in
    * which case raw tool-arg paths are used verbatim.
@@ -756,6 +803,7 @@ export class MessageAccumulator {
   private readonly _subAgentExecutions: SubAgentExecution[] = [];
   private readonly subAgentMap = new Map<string, SubAgentExecution>();
   private readonly mergedPolicies?: Map<string, MergedToolPolicy>;
+  private readonly provenance?: ApprovalProvenanceContext;
   private readonly workspaceRoot?: string;
   private readonly toolCallIndex = new Map<string, ToolCall>();
   private _dirty = false;
@@ -763,6 +811,7 @@ export class MessageAccumulator {
   constructor(messages: AgentMessage[], options?: MessageAccumulatorOptions) {
     this.messages = messages;
     this.mergedPolicies = options?.mergedPolicies;
+    this.provenance = options?.provenance;
     this.workspaceRoot = options?.workspaceRoot;
   }
 
@@ -859,7 +908,7 @@ export class MessageAccumulator {
 
     const existing = this.toolCallIndex.get(event.call_id);
     if (!existing) {
-      const tc = buildToolCallProto(event, this.mergedPolicies);
+      const tc = buildToolCallProto(event, this.mergedPolicies, this.provenance);
       // A write carries whole-file content at creation; an edit's diff arrives
       // with its terminal result and is attached in mergeToolCallEvent.
       const fileChanges = buildCursorFileChanges(event, this.workspaceRoot);
@@ -1318,6 +1367,18 @@ function synthesizeWaitingApprovalToolCall(
   tc.approvalMessage = salient
     ? `Tool requires approval: ${displayName} (${salient})`
     : resolveDeniedApprovalMessage(displayName, "", {}, mergedPolicies);
+  // A synthesized call is a ledger denial — it was gated, so it has a governing
+  // layer. A denied call never occurs under a global bypass or a matching lease,
+  // so empty leases + no bypass faithfully attribute it (a built-in resolves to
+  // builtin_category; an MCP placeholder lacks a reconstructed slug and stays
+  // UNSPECIFIED rather than be mislabeled).
+  if (mergedPolicies) {
+    const source = resolveApprovalProvenance(
+      displayName, "", mergedPolicies, NO_LEASED_CATEGORIES, false,
+    );
+    tc.approvalPolicySource = toProtoPolicySource(source);
+    if (source) tc.policyEngineVersion = POLICY_ENGINE_VERSION;
+  }
   return tc;
 }
 

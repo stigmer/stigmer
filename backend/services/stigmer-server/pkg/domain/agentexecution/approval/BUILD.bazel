@@ -3,13 +3,22 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "approval",
     srcs = [
+        "canonicalize.go",
         "compute.go",
+        "compute_from_events.go",
+        "emit.go",
+        "fingerprint.go",
+        "lease_scope.go",
         "preserve.go",
+        "project.go",
+        "tool_category.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval",
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "@com_github_rs_zerolog//log",
+        "@org_golang_google_protobuf//proto",
     ],
 )
 
@@ -17,8 +26,16 @@ go_test(
     name = "approval_test",
     srcs = [
         "compute_test.go",
+        "fingerprint_test.go",
+        "fixtures_test.go",
+        "lease_scope_corpus_test.go",
+        "lease_scope_test.go",
         "preserve_test.go",
+        "project_test.go",
     ],
     embed = [":approval"],
-    deps = ["//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
 )

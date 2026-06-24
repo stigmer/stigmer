@@ -9,6 +9,7 @@ import { ResultView } from "./ResultView";
 import { useToolPresentation } from "./tool-presenter";
 import type { ToolCategory } from "./tool-categories";
 import { CollapsiblePre } from "./tool-rendering-primitives";
+import { describeApprovalPolicySource } from "./approval-provenance";
 
 /** Props for {@link ToolCallDetail}. */
 export interface ToolCallDetailProps {
@@ -142,7 +143,12 @@ function ThinkToolDetail({ toolCall }: { toolCall: ToolCall }) {
 
 function MetadataRow({ toolCall }: { toolCall: ToolCall }) {
   const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
-  const hasMetadata = toolCall.mcpServerSlug || duration;
+  // Authorization provenance the runner stamped onto the tool call
+  // (approval_policy_source). Explains how this side effect was authorized —
+  // gated and approved, or cleared by a lease / run-wide bypass. Empty for
+  // legacy executions and ungated read-only tools.
+  const provenance = describeApprovalPolicySource(toolCall.approvalPolicySource);
+  const hasMetadata = toolCall.mcpServerSlug || duration || provenance;
   if (!hasMetadata) return null;
 
   return (
@@ -153,6 +159,7 @@ function MetadataRow({ toolCall }: { toolCall: ToolCall }) {
         </span>
       )}
       {duration && <span>{duration}</span>}
+      {provenance && <span className="italic">{provenance}</span>}
     </div>
   );
 }

@@ -194,6 +194,10 @@ export {
   type ToolSearchMatch,
   type ToolContentBlock,
 } from "./execution/tool-view";
+export {
+  ApprovalPolicySource,
+  describeApprovalPolicySource,
+} from "./execution/approval-provenance";
 export { SkillClient, type SkillInput } from "./gen/skill";
 export {
   WorkflowClient,

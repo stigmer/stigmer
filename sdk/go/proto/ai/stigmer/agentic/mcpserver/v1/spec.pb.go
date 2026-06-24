@@ -481,9 +481,22 @@ type ToolApprovalPolicy struct {
 	//   - Include the most important argument values using placeholders
 	//   - Keep under 100 characters for UI display
 	//   - Use action verbs: "Delete", "Send", "Execute", "Create"
-	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// True when the connect-time fail-closed tightener force-gated this tool
+	// because the server's own MCP annotation declared destructiveHint=true,
+	// rather than the classifier (or a human) gating it. Lets the runner attribute
+	// a tightened tool to its true provenance
+	// (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN)
+	// instead of collapsing it into the classifier default. Carries no enforcement
+	// weight — gating is decided by presence in this list — so an absent/false
+	// value simply means "not attributed to the destructiveHint tightener".
+	//
+	// Set only on entries written to McpServerStatus.tool_approvals (the classifier
+	// layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human
+	// pin is, by definition, a pinned override) and left false there.
+	FromDestructiveHint bool `protobuf:"varint,3,opt,name=from_destructive_hint,json=fromDestructiveHint,proto3" json:"from_destructive_hint,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ToolApprovalPolicy) Reset() {
@@ -528,6 +541,13 @@ func (x *ToolApprovalPolicy) GetMessage() string {
 		return x.Message
 	}
 	return ""
+}
+
+func (x *ToolApprovalPolicy) GetFromDestructiveHint() bool {
+	if x != nil {
+		return x.FromDestructiveHint
+	}
+	return false
 }
 
 // McpServerAuth configures automated credential acquisition via OAuth.
@@ -709,10 +729,11 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +
 	"\x10QueryParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x88\x01\n" +
 	"\x12ToolApprovalPolicy\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xa8\x03\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x122\n" +
+	"\x15from_destructive_hint\x18\x03 \x01(\bR\x13fromDestructiveHint\"\xa8\x03\n" +
 	"\rMcpServerAuth\x12\xd9\x01\n" +
 	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x7f\xbaHx\xba\x01u\n" +
 	"\x12oauth_app_ref.kind\x12;oauth_app_ref must reference a resource with kind=oauth_app\x1a\"this.slug == '' || this.kind == 22\xe0\x85,\x16R\voauthAppRef\x12-\n" +

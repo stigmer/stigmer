@@ -167,8 +167,9 @@ type HttpServerConfigInput struct {
 
 // ToolApprovalPolicyInput is the SDK input type for ToolApprovalPolicy.
 type ToolApprovalPolicyInput struct {
-	ToolName string
-	Message  string
+	ToolName            string
+	Message             string
+	FromDestructiveHint bool
 }
 
 // McpServerAuthInput is the SDK input type for McpServerAuth.
@@ -234,8 +235,9 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 
 func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
 	return &mcpserverv1.ToolApprovalPolicy{
-		ToolName: i.ToolName,
-		Message:  i.Message,
+		ToolName:            i.ToolName,
+		Message:             i.Message,
+		FromDestructiveHint: i.FromDestructiveHint,
 	}
 }
 
@@ -331,6 +333,7 @@ func toolApprovalPolicyInputFromProto(p *mcpserverv1.ToolApprovalPolicy) *ToolAp
 	input := &ToolApprovalPolicyInput{}
 	input.ToolName = p.GetToolName()
 	input.Message = p.GetMessage()
+	input.FromDestructiveHint = p.GetFromDestructiveHint()
 	return input
 }
 

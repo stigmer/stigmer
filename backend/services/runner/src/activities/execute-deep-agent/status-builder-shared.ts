@@ -9,7 +9,15 @@
 import { create } from "@bufbuild/protobuf";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import type { StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { utcTimestamp } from "../../shared/status.js";
+import {
+  POLICY_ENGINE_VERSION,
+  resolveApprovalProvenance,
+  toProtoPolicySource,
+  type MergedToolPolicy,
+} from "../../shared/approval-policy.js";
+import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
 
 // ── Usage Accumulator ──────────────────────────────────────────────
 
@@ -127,6 +135,58 @@ export function extractToolResultV3(output: unknown): string {
   } catch {
     return "[serialization error]";
   }
+}
+
+// ── Authorization Provenance ───────────────────────────────────────
+
+/**
+ * The policy inputs the StatusBuilders need to attribute a tool call's approval
+ * provenance. The full {@link ApprovalPolicyProvider} (status-builder.ts) is
+ * structurally this — defined here so the shared stamper has no import cycle back
+ * into the builders.
+ */
+export interface ApprovalProvenanceInputs {
+  readonly policies: ReadonlyMap<string, MergedToolPolicy>;
+  readonly toolServerMap: ReadonlyMap<string, string>;
+  /**
+   * Built-in categories with a run-lifetime lease, so a leased built-in is
+   * attributed to its lease (approval_lease) rather than the plain category gate.
+   * Optional (mirroring {@link ApprovalGateConfig.leasedCategories}); absent =
+   * no lease active.
+   */
+  readonly leasedCategories?: ReadonlySet<ToolApprovalCategory>;
+  /** Pre-armed spec.auto_approve_all — the one whole-run global bypass. */
+  readonly globalBypass: boolean;
+}
+
+/** Shared empty set so a provider without leases allocates nothing per call. */
+const NO_LEASED_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
+
+/**
+ * Stamp a tool call's authorization provenance — which policy layer governs it —
+ * alongside `tool_kind`, in exactly the spot both builders classify the tool.
+ *
+ * This is the read-side companion to the gate: it records WHY a tool is gated or
+ * auto-approved for every observed tool call, so the persisted record is
+ * auditable and the UI can explain the gate. Built-ins that no layer governs (a
+ * read-only built-in) and the no-provider path both leave the field at
+ * UNSPECIFIED, like an unclassified tool_kind.
+ */
+export function stampApprovalProvenance(
+  tc: ToolCall,
+  provider: ApprovalProvenanceInputs | null,
+): void {
+  if (!provider) return;
+  const serverSlug = tc.mcpServerSlug || provider.toolServerMap.get(tc.name) || "";
+  const source = resolveApprovalProvenance(
+    tc.name,
+    serverSlug,
+    provider.policies,
+    provider.leasedCategories ?? NO_LEASED_CATEGORIES,
+    provider.globalBypass,
+  );
+  tc.approvalPolicySource = toProtoPolicySource(source);
+  if (source) tc.policyEngineVersion = POLICY_ENGINE_VERSION;
 }
 
 // ── Approval Args Sanitization ─────────────────────────────────────

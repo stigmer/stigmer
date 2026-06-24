@@ -1,5 +1,5 @@
 import { create } from "@bufbuild/protobuf";
-import { ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalPolicySource, ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -43,6 +43,9 @@ const pendingApproval = create(PendingApprovalSchema, {
   }, null, 2),
   requestedAt: new Date().toISOString(),
   mcpServerSlug: "order-management-api",
+  // Why-gated provenance the server projects onto the pending approval; renders
+  // the ApprovalCard's "why this needs approval" line in the demo.
+  approvalPolicySource: ApprovalPolicySource.CLASSIFIER_DEFAULT,
 });
 
 const completedToolCall = samples.toolCall(

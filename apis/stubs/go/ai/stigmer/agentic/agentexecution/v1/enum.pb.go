@@ -940,45 +940,49 @@ const (
 	// Execution phase transitions to FAILED.
 	// Error message includes rejection reason from user's comment.
 	ApprovalAction_APPROVAL_ACTION_REJECT ApprovalAction = 3
-	// Approve this tool call AND auto-approve every subsequent tool call for
-	// the rest of this execution ("approve and don't ask again").
+	// Approve this tool call AND grant a run-lifetime lease that auto-approves
+	// every subsequent tool call of the SAME class for the rest of this execution
+	// ("approve all of this kind, don't ask again").
 	//
-	// This is the gate-time analog of AgentExecutionSpec.auto_approve_all: it
-	// lets a human escalate from per-call approval to "trust the rest of this
-	// run" at the moment of friction, instead of pre-arming a bypass before the
-	// agent has done anything.
+	// This is the gate-time, scoped analog of AgentExecutionSpec.auto_approve_all:
+	// it lets a human escalate from per-call approval to "trust this whole class"
+	// at the moment of friction, without pre-arming a global bypass. The lease is
+	// scoped to one class — a built-in approval category (write / delete / shell,
+	// with write and edit collapsed) or a single MCP server — never the whole run.
 	//
 	// ## Canonical contract (every layer derives its behavior from this)
 	//
-	//  1. Control plane (SubmitApproval handler): record APPROVE_ALL on the
-	//     clicked tool call, and resolve the rest of the *current* approval gate
-	//     by setting every other tool call still in TOOL_CALL_WAITING_APPROVAL
-	//     (action UNSPECIFIED) — including sub-agent tool calls — to
-	//     APPROVAL_ACTION_APPROVE. pending_approvals is recomputed to empty, so
-	//     the standard "gate fully resolved" path sends the approvalGateResolved
-	//     signal. This keeps the audit trail honest: every tool that runs carries
-	//     an explicit approval_action.
+	//  1. Control plane (SubmitApproval handler): record APPROVE_ALL on the clicked
+	//     tool call, and resolve any other still-pending tool call that shares the
+	//     clicked call's class — including sub-agent tool calls — to
+	//     APPROVAL_ACTION_APPROVE. Pending tool calls of a DIFFERENT class stay in
+	//     TOOL_CALL_WAITING_APPROVAL so the gate still holds for them. This keeps
+	//     the audit trail honest: every tool that runs carries an explicit
+	//     approval_action.
 	//
-	//  2. Runner (native + cursor harness): on reinvocation, the presence of ANY
-	//     APPROVE_ALL decision in the persisted execution history means the
-	//     execution is auto-approved for the remainder of the run. New tool calls
-	//     (and sub-agent tool calls) skip the approval gate entirely, exactly as
-	//     if spec.auto_approve_all were true. The interrupted tool itself resumes
-	//     as an approval.
+	//  2. Runner (native + cursor harness): the lease is derived on read from the
+	//     persisted APPROVE_ALL decision plus the tool's class — there is no
+	//     separately stored lease. On reinvocation, a new tool call (or sub-agent
+	//     tool call) whose class matches an active lease skips the approval gate; a
+	//     tool call of any other class is still gated. The interrupted tool itself
+	//     resumes as an approval.
 	//
 	// ## Scope
 	//
-	// APPROVE_ALL covers the rest of THIS execution. It is NOT persisted to the
-	// session or the agent; a subsequent execution starts gated again unless the
-	// caller sets it anew (interactive clients may carry a session-scoped
-	// preference forward in-memory, but that is a client concern, not a
-	// server-persisted state).
+	// The lease covers the rest of THIS execution and only the matched class. It
+	// is NOT persisted to the session or the agent; a subsequent execution starts
+	// gated again unless the caller sets it anew (interactive clients may carry a
+	// session-scoped preference forward in-memory, but that is a client concern,
+	// not server-persisted state). AgentExecutionSpec.auto_approve_all remains the
+	// single, explicit whole-run global bypass.
 	//
 	// ## Audit
 	//
-	// Because this bypasses all remaining approval checks for the execution,
-	// executions containing an APPROVE_ALL decision should be auditable. The
-	// decision is recorded on ToolCall.approval_action like any other.
+	// Because it bypasses subsequent same-class approval checks, executions
+	// containing an APPROVE_ALL decision should be auditable. The decision is
+	// recorded on ToolCall.approval_action like any other; the policy layer that
+	// cleared each subsequent call is recorded on ToolCall.approval_policy_source
+	// (APPROVAL_POLICY_SOURCE_APPROVAL_LEASE).
 	ApprovalAction_APPROVAL_ACTION_APPROVE_ALL ApprovalAction = 4
 )
 
@@ -1025,6 +1029,102 @@ func (x ApprovalAction) Number() protoreflect.EnumNumber {
 // Deprecated: Use ApprovalAction.Descriptor instead.
 func (ApprovalAction) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{10}
+}
+
+// ApprovalPolicySource is the policy layer that decided a tool call's approval
+// requirement — the provenance recorded on every gated or auto-approved tool
+// call so an execution's authorizations are auditable.
+//
+// Set by the runner at the approval gate (the one component that evaluates the
+// merged policy) and persisted on ToolCall.approval_policy_source, exactly as
+// ToolCall.tool_kind is set and persisted. Clients render it to answer "why was
+// this tool gated or auto-approved?".
+//
+// @internal
+// Mirrors the runner's internal PolicySource union (approval-policy.ts) one for
+// one. Layered precedence: a pinned or agent override wins over the classifier
+// default; a lease or the global bypass clears an otherwise-required approval.
+type ApprovalPolicySource int32
+
+const (
+	// Default — the execution predates this field, or the tool was never evaluated
+	// by the approval gate (e.g. a read-only built-in). Clients show no provenance.
+	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED ApprovalPolicySource = 0
+	// Layer 1: the connect-time classifier's default for an MCP tool
+	// (McpServerStatus.tool_approvals).
+	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT ApprovalPolicySource = 1
+	// Layer 2: an operator's pinned override on the MCP server blueprint
+	// (McpServerSpec.pinned_tool_approvals).
+	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE ApprovalPolicySource = 2
+	// Layer 3: an agent-level override for an MCP tool
+	// (Agent McpServerUsage.tool_approval_overrides).
+	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE ApprovalPolicySource = 3
+	// Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global
+	// bypass cleared this call.
+	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL ApprovalPolicySource = 4
+	// Layer 4: a run-lifetime scoped lease (the successor to a global "approve
+	// all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched
+	// the leased class.
+	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_APPROVAL_LEASE ApprovalPolicySource = 5
+	// A non-MCP built-in tool gated by the shared tool taxonomy
+	// (write / delete / shell).
+	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY ApprovalPolicySource = 6
+	// The connect-time MCP destructiveHint tightener forced this tool to require
+	// approval, overriding a more permissive classifier verdict. First-class
+	// provenance so a tightened tool is distinguishable from a plain classifier
+	// default. See applyDestructiveHintTightener.
+	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN ApprovalPolicySource = 7
+)
+
+// Enum value maps for ApprovalPolicySource.
+var (
+	ApprovalPolicySource_name = map[int32]string{
+		0: "APPROVAL_POLICY_SOURCE_UNSPECIFIED",
+		1: "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT",
+		2: "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE",
+		3: "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE",
+		4: "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
+		5: "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
+		6: "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+		7: "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
+	}
+	ApprovalPolicySource_value = map[string]int32{
+		"APPROVAL_POLICY_SOURCE_UNSPECIFIED":                    0,
+		"APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT":             1,
+		"APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE":                2,
+		"APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE":                 3,
+		"APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL":               4,
+		"APPROVAL_POLICY_SOURCE_APPROVAL_LEASE":                 5,
+		"APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY":               6,
+		"APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN": 7,
+	}
+)
+
+func (x ApprovalPolicySource) Enum() *ApprovalPolicySource {
+	p := new(ApprovalPolicySource)
+	*p = x
+	return p
+}
+
+func (x ApprovalPolicySource) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ApprovalPolicySource) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[11].Descriptor()
+}
+
+func (ApprovalPolicySource) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[11]
+}
+
+func (x ApprovalPolicySource) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ApprovalPolicySource.Descriptor instead.
+func (ApprovalPolicySource) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{11}
 }
 
 // ApprovalEventType is the kind of event in the append-only approval-event
@@ -1091,11 +1191,11 @@ func (x ApprovalEventType) String() string {
 }
 
 func (ApprovalEventType) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[11].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[12].Descriptor()
 }
 
 func (ApprovalEventType) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[11]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[12]
 }
 
 func (x ApprovalEventType) Number() protoreflect.EnumNumber {
@@ -1104,7 +1204,7 @@ func (x ApprovalEventType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ApprovalEventType.Descriptor instead.
 func (ApprovalEventType) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{12}
 }
 
 // InteractionMode controls the agent's behavioral posture for an execution.
@@ -1169,11 +1269,11 @@ func (x InteractionMode) String() string {
 }
 
 func (InteractionMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[12].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[13].Descriptor()
 }
 
 func (InteractionMode) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[12]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[13]
 }
 
 func (x InteractionMode) Number() protoreflect.EnumNumber {
@@ -1182,7 +1282,7 @@ func (x InteractionMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use InteractionMode.Descriptor instead.
 func (InteractionMode) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{12}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{13}
 }
 
 // FileChangeType is the per-file outcome of a file mutation in a tool call.
@@ -1235,11 +1335,11 @@ func (x FileChangeType) String() string {
 }
 
 func (FileChangeType) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[13].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[14].Descriptor()
 }
 
 func (FileChangeType) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[13]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[14]
 }
 
 func (x FileChangeType) Number() protoreflect.EnumNumber {
@@ -1248,7 +1348,7 @@ func (x FileChangeType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileChangeType.Descriptor instead.
 func (FileChangeType) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{13}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{14}
 }
 
 // FileChangeCaptureLevel describes how complete a FileChange's captured content
@@ -1293,11 +1393,11 @@ func (x FileChangeCaptureLevel) String() string {
 }
 
 func (FileChangeCaptureLevel) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[14].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[15].Descriptor()
 }
 
 func (FileChangeCaptureLevel) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[14]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[15]
 }
 
 func (x FileChangeCaptureLevel) Number() protoreflect.EnumNumber {
@@ -1306,7 +1406,7 @@ func (x FileChangeCaptureLevel) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FileChangeCaptureLevel.Descriptor instead.
 func (FileChangeCaptureLevel) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{14}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{15}
 }
 
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
@@ -1391,7 +1491,16 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x17APPROVAL_ACTION_APPROVE\x10\x01\x12\x18\n" +
 	"\x14APPROVAL_ACTION_SKIP\x10\x02\x12\x1a\n" +
 	"\x16APPROVAL_ACTION_REJECT\x10\x03\x12\x1f\n" +
-	"\x1bAPPROVAL_ACTION_APPROVE_ALL\x10\x04*\xc0\x01\n" +
+	"\x1bAPPROVAL_ACTION_APPROVE_ALL\x10\x04*\x84\x03\n" +
+	"\x14ApprovalPolicySource\x12&\n" +
+	"\"APPROVAL_POLICY_SOURCE_UNSPECIFIED\x10\x00\x12-\n" +
+	")APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT\x10\x01\x12*\n" +
+	"&APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE\x10\x02\x12)\n" +
+	"%APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE\x10\x03\x12+\n" +
+	"'APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL\x10\x04\x12)\n" +
+	"%APPROVAL_POLICY_SOURCE_APPROVAL_LEASE\x10\x05\x12+\n" +
+	"'APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY\x10\x06\x129\n" +
+	"5APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN\x10\a*\xc0\x01\n" +
 	"\x11ApprovalEventType\x12#\n" +
 	"\x1fAPPROVAL_EVENT_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dAPPROVAL_EVENT_TYPE_REQUESTED\x10\x01\x12 \n" +
@@ -1426,7 +1535,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 15)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 16)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionPhase)(0),          // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(MessageType)(0),             // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -1439,10 +1548,11 @@ var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ToolCallStreamingSource)(0), // 8: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
 	(ExecutionControlSignal)(0),  // 9: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
 	(ApprovalAction)(0),          // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(ApprovalEventType)(0),       // 11: ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
-	(InteractionMode)(0),         // 12: ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	(FileChangeType)(0),          // 13: ai.stigmer.agentic.agentexecution.v1.FileChangeType
-	(FileChangeCaptureLevel)(0),  // 14: ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
+	(ApprovalPolicySource)(0),    // 11: ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	(ApprovalEventType)(0),       // 12: ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
+	(InteractionMode)(0),         // 13: ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	(FileChangeType)(0),          // 14: ai.stigmer.agentic.agentexecution.v1.FileChangeType
+	(FileChangeCaptureLevel)(0),  // 15: ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1462,7 +1572,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      15,
+			NumEnums:      16,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

@@ -24,7 +24,7 @@ import {
   MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { type MergedToolPolicy, resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
+import { resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
@@ -37,6 +37,7 @@ import {
   UsageAccumulator,
   extractToolResultV3,
   sanitizeArgsPreview,
+  stampApprovalProvenance,
 } from "./status-builder-shared.js";
 import { SubAgentTracker } from "./subagent-tracker.js";
 
@@ -305,6 +306,11 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
 
     // Classify after mcpServerSlug is set so MCP tools resolve correctly.
     tc.toolKind = classifyTool(tc.name, tc.mcpServerSlug);
+
+    // Stamp authorization provenance in the same spot as tool_kind, for every
+    // observed tool call (gated or auto-approved). A gated call is re-seeded on
+    // reinvocation (index.ts) with the same source carried through the interrupt.
+    stampApprovalProvenance(tc, this.approvalProvider);
 
     if (approvalReq.requiresApproval) {
       tc.requiresApproval = true;

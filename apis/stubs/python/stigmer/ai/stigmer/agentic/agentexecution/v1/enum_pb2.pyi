@@ -101,6 +101,17 @@ class ApprovalAction(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     APPROVAL_ACTION_REJECT: _ClassVar[ApprovalAction]
     APPROVAL_ACTION_APPROVE_ALL: _ClassVar[ApprovalAction]
 
+class ApprovalPolicySource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    APPROVAL_POLICY_SOURCE_UNSPECIFIED: _ClassVar[ApprovalPolicySource]
+    APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT: _ClassVar[ApprovalPolicySource]
+    APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE: _ClassVar[ApprovalPolicySource]
+    APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE: _ClassVar[ApprovalPolicySource]
+    APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL: _ClassVar[ApprovalPolicySource]
+    APPROVAL_POLICY_SOURCE_APPROVAL_LEASE: _ClassVar[ApprovalPolicySource]
+    APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY: _ClassVar[ApprovalPolicySource]
+    APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN: _ClassVar[ApprovalPolicySource]
+
 class ApprovalEventType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     APPROVAL_EVENT_TYPE_UNSPECIFIED: _ClassVar[ApprovalEventType]
@@ -192,6 +203,14 @@ APPROVAL_ACTION_APPROVE: ApprovalAction
 APPROVAL_ACTION_SKIP: ApprovalAction
 APPROVAL_ACTION_REJECT: ApprovalAction
 APPROVAL_ACTION_APPROVE_ALL: ApprovalAction
+APPROVAL_POLICY_SOURCE_UNSPECIFIED: ApprovalPolicySource
+APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT: ApprovalPolicySource
+APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE: ApprovalPolicySource
+APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE: ApprovalPolicySource
+APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL: ApprovalPolicySource
+APPROVAL_POLICY_SOURCE_APPROVAL_LEASE: ApprovalPolicySource
+APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY: ApprovalPolicySource
+APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN: ApprovalPolicySource
 APPROVAL_EVENT_TYPE_UNSPECIFIED: ApprovalEventType
 APPROVAL_EVENT_TYPE_REQUESTED: ApprovalEventType
 APPROVAL_EVENT_TYPE_APPROVED: ApprovalEventType

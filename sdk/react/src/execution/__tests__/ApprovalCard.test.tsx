@@ -10,6 +10,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   ApprovalAction,
+  ApprovalPolicySource,
   FileChangeCaptureLevel,
   FileChangeType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -120,6 +121,41 @@ describe("ApprovalCard tool classification", () => {
     );
 
     expect(getByText("Delete")).toBeTruthy();
+  });
+});
+
+describe("ApprovalCard why-gated provenance", () => {
+  it("renders the why-gated line from the projected approval_policy_source", () => {
+    // The server projects approval_policy_source onto PendingApproval so the card
+    // can explain the gate before any decision. AGENT_OVERRIDE → the agent forced
+    // this tool to require approval.
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-why",
+      toolName: "delete_file",
+      argsPreview: '{"path":"/tmp/x"}',
+      approvalPolicySource: ApprovalPolicySource.AGENT_OVERRIDE,
+    });
+
+    const { getByText } = render(
+      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+    );
+
+    expect(getByText("required by agent override")).toBeTruthy();
+  });
+
+  it("renders no why-gated line for a legacy approval (UNSPECIFIED source)", () => {
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-why-legacy",
+      toolName: "delete_file",
+      argsPreview: '{"path":"/tmp/x"}',
+      // approvalPolicySource left UNSPECIFIED — legacy execution.
+    });
+
+    const { queryByText } = render(
+      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+    );
+
+    expect(queryByText(/required by/)).toBeNull();
   });
 });
 

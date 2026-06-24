@@ -99,6 +99,10 @@ export function createCursorSubstrate(): GatewaySubstrate {
       observesExecution: false,
       enforcesExactResource: true,
       appliesRunLifetimeLease: true,
+      // The Cursor hook's deny decision does not carry approval_policy_source;
+      // provenance is projected at message-reconstruction time (message-translator)
+      // and asserted by the corpus + resolveApprovalProvenance suites instead.
+      surfacesGatePolicySource: false,
     },
 
     async authorize(action: ProposedAction, decision: GatewayDecision): Promise<GatewayOutcome> {

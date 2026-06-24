@@ -86,6 +86,11 @@ type toolApprovalResult struct {
 	ToolName         string `json:"tool_name"`
 	RequiresApproval bool   `json:"requires_approval"`
 	Message          string `json:"message"`
+	// FromDestructiveHint is true when the connect-time tightener force-gated this
+	// tool from its destructiveHint annotation (not the classifier). Persisted to
+	// ToolApprovalPolicy.from_destructive_hint so the runner attributes the gate to
+	// the annotation rather than the classifier default.
+	FromDestructiveHint bool `json:"from_destructive_hint"`
 }
 
 // Connect triggers server-side MCP discovery and tool approval classification
@@ -578,8 +583,9 @@ func convertToToolApprovals(output *connectWorkflowOutput) []*mcpserverv1.ToolAp
 			continue
 		}
 		approvals = append(approvals, &mcpserverv1.ToolApprovalPolicy{
-			ToolName: a.ToolName,
-			Message:  a.Message,
+			ToolName:            a.ToolName,
+			Message:             a.Message,
+			FromDestructiveHint: a.FromDestructiveHint,
 		})
 	}
 	return approvals

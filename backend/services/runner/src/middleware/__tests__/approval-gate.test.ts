@@ -118,6 +118,7 @@ describe("ApprovalGateMiddleware", () => {
       tool_name: "dangerous_tool",
       mcp_server_slug: "my-server",
       message: "Execute dangerous tool: prod",
+      policy_source: "classifier_default",
     });
     expect(result).toBeInstanceOf(ToolMessage);
     expect((result as ToolMessage).content).toBe("tool result");
@@ -222,6 +223,7 @@ describe("ApprovalGateMiddleware", () => {
         tool_name: "write",
         mcp_server_slug: "",
         message: "Write file: /home/code/main.ts",
+        policy_source: "builtin_category",
       });
     });
 
@@ -289,7 +291,7 @@ describe("ApprovalGateMiddleware", () => {
       // Provenance: a built-in mutating tool is decided by the taxonomy, and the
       // engine version is stamped for audit correlation.
       expect(r[0].policySource).toBe("builtin_category");
-      expect(r[0].policyEngineVersion).toBe("phase-6");
+      expect(r[0].policyEngineVersion).toBe("phase-7");
     });
 
     it("emits an auto_approve receipt for an auto-approved MCP side effect", async () => {
@@ -307,7 +309,7 @@ describe("ApprovalGateMiddleware", () => {
       expect(r[0].mcpServerSlug).toBe("github");
       // Absent from the policy map = cleared by the MCP classifier chain.
       expect(r[0].policySource).toBe("classifier_default");
-      expect(r[0].policyEngineVersion).toBe("phase-6");
+      expect(r[0].policyEngineVersion).toBe("phase-7");
     });
 
     it("stamps the matched policy's source on a user-approved MCP gate", async () => {
@@ -333,7 +335,7 @@ describe("ApprovalGateMiddleware", () => {
       const r = receipts();
       expect(r).toHaveLength(1);
       expect(r[0].policySource).toBe("agent_override");
-      expect(r[0].policyEngineVersion).toBe("phase-6");
+      expect(r[0].policyEngineVersion).toBe("phase-7");
     });
 
     it("does NOT emit a receipt for read-only built-ins (not a side effect)", async () => {

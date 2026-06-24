@@ -49,6 +49,8 @@ private static final long serialVersionUID = 0L;
     argsPreview_ = "";
     toolKind_ = 0;
     fileChanges_ = java.util.Collections.emptyList();
+    approvalPolicySource_ = 0;
+    policyEngineVersion_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1126,6 +1128,109 @@ private static final long serialVersionUID = 0L;
     return fileChanges_.get(index);
   }
 
+  public static final int APPROVAL_POLICY_SOURCE_FIELD_NUMBER = 23;
+  private int approvalPolicySource_ = 0;
+  /**
+   * <pre>
+   * Policy layer that decided this tool call's approval requirement, set by the
+   * runner's approval gate so clients can explain "why was this gated or
+   * auto-approved?".
+   *
+   * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+   * or an execution that predates this field (clients fall back to no provenance,
+   * exactly as for an unset tool_kind). See ApprovalPolicySource.
+   *
+   * Field 23: appended after file_changes (22), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+   * @return The enum numeric value on the wire for approvalPolicySource.
+   */
+  @java.lang.Override public int getApprovalPolicySourceValue() {
+    return approvalPolicySource_;
+  }
+  /**
+   * <pre>
+   * Policy layer that decided this tool call's approval requirement, set by the
+   * runner's approval gate so clients can explain "why was this gated or
+   * auto-approved?".
+   *
+   * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+   * or an execution that predates this field (clients fall back to no provenance,
+   * exactly as for an unset tool_kind). See ApprovalPolicySource.
+   *
+   * Field 23: appended after file_changes (22), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+   * @return The approvalPolicySource.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource() {
+    ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource result = ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.forNumber(approvalPolicySource_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.UNRECOGNIZED : result;
+  }
+
+  public static final int POLICY_ENGINE_VERSION_FIELD_NUMBER = 24;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object policyEngineVersion_ = "";
+  /**
+   * <pre>
+   * Identifier of the policy-engine logic that produced approval_policy_source,
+   * bumped when the merge/classification semantics change so decisions made by
+   * different engine versions stay distinguishable in audits.
+   *
+   * &#64;internal
+   * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+   *
+   * Field 24: appended after approval_policy_source (23), the prior maximum.
+   * </pre>
+   *
+   * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+   * @return The policyEngineVersion.
+   */
+  @java.lang.Override
+  public java.lang.String getPolicyEngineVersion() {
+    java.lang.Object ref = policyEngineVersion_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      policyEngineVersion_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Identifier of the policy-engine logic that produced approval_policy_source,
+   * bumped when the merge/classification semantics change so decisions made by
+   * different engine versions stay distinguishable in audits.
+   *
+   * &#64;internal
+   * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+   *
+   * Field 24: appended after approval_policy_source (23), the prior maximum.
+   * </pre>
+   *
+   * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+   * @return The bytes for policyEngineVersion.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPolicyEngineVersionBytes() {
+    java.lang.Object ref = policyEngineVersion_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      policyEngineVersion_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1202,6 +1307,12 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < fileChanges_.size(); i++) {
       output.writeMessage(22, fileChanges_.get(i));
+    }
+    if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(23, approvalPolicySource_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policyEngineVersion_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 24, policyEngineVersion_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1289,6 +1400,13 @@ private static final long serialVersionUID = 0L;
           }
           size += 2 * count;
         }
+    if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(23, approvalPolicySource_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policyEngineVersion_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(24, policyEngineVersion_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1348,6 +1466,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!getFileChangesList()
         .equals(other.getFileChangesList())) return false;
+    if (approvalPolicySource_ != other.approvalPolicySource_) return false;
+    if (!getPolicyEngineVersion()
+        .equals(other.getPolicyEngineVersion())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1409,6 +1530,10 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + FILE_CHANGES_FIELD_NUMBER;
       hash = (53 * hash) + getFileChangesList().hashCode();
     }
+    hash = (37 * hash) + APPROVAL_POLICY_SOURCE_FIELD_NUMBER;
+    hash = (53 * hash) + approvalPolicySource_;
+    hash = (37 * hash) + POLICY_ENGINE_VERSION_FIELD_NUMBER;
+    hash = (53 * hash) + getPolicyEngineVersion().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1587,6 +1712,8 @@ private static final long serialVersionUID = 0L;
         fileChangesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00100000);
+      approvalPolicySource_ = 0;
+      policyEngineVersion_ = "";
       return this;
     }
 
@@ -1699,6 +1826,12 @@ private static final long serialVersionUID = 0L;
             ? outputRef_
             : outputRefBuilder_.build();
         to_bitField0_ |= 0x00000002;
+      }
+      if (((from_bitField0_ & 0x00200000) != 0)) {
+        result.approvalPolicySource_ = approvalPolicySource_;
+      }
+      if (((from_bitField0_ & 0x00400000) != 0)) {
+        result.policyEngineVersion_ = policyEngineVersion_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1824,6 +1957,14 @@ private static final long serialVersionUID = 0L;
             fileChangesBuilder_.addAllMessages(other.fileChanges_);
           }
         }
+      }
+      if (other.approvalPolicySource_ != 0) {
+        setApprovalPolicySourceValue(other.getApprovalPolicySourceValue());
+      }
+      if (!other.getPolicyEngineVersion().isEmpty()) {
+        policyEngineVersion_ = other.policyEngineVersion_;
+        bitField0_ |= 0x00400000;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1968,6 +2109,16 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 178
+            case 184: {
+              approvalPolicySource_ = input.readEnum();
+              bitField0_ |= 0x00200000;
+              break;
+            } // case 184
+            case 194: {
+              policyEngineVersion_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00400000;
+              break;
+            } // case 194
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -4728,6 +4879,245 @@ private static final long serialVersionUID = 0L;
         fileChanges_ = null;
       }
       return fileChangesBuilder_;
+    }
+
+    private int approvalPolicySource_ = 0;
+    /**
+     * <pre>
+     * Policy layer that decided this tool call's approval requirement, set by the
+     * runner's approval gate so clients can explain "why was this gated or
+     * auto-approved?".
+     *
+     * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+     * or an execution that predates this field (clients fall back to no provenance,
+     * exactly as for an unset tool_kind). See ApprovalPolicySource.
+     *
+     * Field 23: appended after file_changes (22), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+     * @return The enum numeric value on the wire for approvalPolicySource.
+     */
+    @java.lang.Override public int getApprovalPolicySourceValue() {
+      return approvalPolicySource_;
+    }
+    /**
+     * <pre>
+     * Policy layer that decided this tool call's approval requirement, set by the
+     * runner's approval gate so clients can explain "why was this gated or
+     * auto-approved?".
+     *
+     * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+     * or an execution that predates this field (clients fall back to no provenance,
+     * exactly as for an unset tool_kind). See ApprovalPolicySource.
+     *
+     * Field 23: appended after file_changes (22), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+     * @param value The enum numeric value on the wire for approvalPolicySource to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicySourceValue(int value) {
+      approvalPolicySource_ = value;
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Policy layer that decided this tool call's approval requirement, set by the
+     * runner's approval gate so clients can explain "why was this gated or
+     * auto-approved?".
+     *
+     * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+     * or an execution that predates this field (clients fall back to no provenance,
+     * exactly as for an unset tool_kind). See ApprovalPolicySource.
+     *
+     * Field 23: appended after file_changes (22), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+     * @return The approvalPolicySource.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource() {
+      ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource result = ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.forNumber(approvalPolicySource_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Policy layer that decided this tool call's approval requirement, set by the
+     * runner's approval gate so clients can explain "why was this gated or
+     * auto-approved?".
+     *
+     * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+     * or an execution that predates this field (clients fall back to no provenance,
+     * exactly as for an unset tool_kind). See ApprovalPolicySource.
+     *
+     * Field 23: appended after file_changes (22), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+     * @param value The approvalPolicySource to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicySource(ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00200000;
+      approvalPolicySource_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Policy layer that decided this tool call's approval requirement, set by the
+     * runner's approval gate so clients can explain "why was this gated or
+     * auto-approved?".
+     *
+     * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+     * or an execution that predates this field (clients fall back to no provenance,
+     * exactly as for an unset tool_kind). See ApprovalPolicySource.
+     *
+     * Field 23: appended after file_changes (22), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApprovalPolicySource() {
+      bitField0_ = (bitField0_ & ~0x00200000);
+      approvalPolicySource_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object policyEngineVersion_ = "";
+    /**
+     * <pre>
+     * Identifier of the policy-engine logic that produced approval_policy_source,
+     * bumped when the merge/classification semantics change so decisions made by
+     * different engine versions stay distinguishable in audits.
+     *
+     * &#64;internal
+     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+     *
+     * Field 24: appended after approval_policy_source (23), the prior maximum.
+     * </pre>
+     *
+     * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+     * @return The policyEngineVersion.
+     */
+    public java.lang.String getPolicyEngineVersion() {
+      java.lang.Object ref = policyEngineVersion_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        policyEngineVersion_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Identifier of the policy-engine logic that produced approval_policy_source,
+     * bumped when the merge/classification semantics change so decisions made by
+     * different engine versions stay distinguishable in audits.
+     *
+     * &#64;internal
+     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+     *
+     * Field 24: appended after approval_policy_source (23), the prior maximum.
+     * </pre>
+     *
+     * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+     * @return The bytes for policyEngineVersion.
+     */
+    public com.google.protobuf.ByteString
+        getPolicyEngineVersionBytes() {
+      java.lang.Object ref = policyEngineVersion_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        policyEngineVersion_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Identifier of the policy-engine logic that produced approval_policy_source,
+     * bumped when the merge/classification semantics change so decisions made by
+     * different engine versions stay distinguishable in audits.
+     *
+     * &#64;internal
+     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+     *
+     * Field 24: appended after approval_policy_source (23), the prior maximum.
+     * </pre>
+     *
+     * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+     * @param value The policyEngineVersion to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPolicyEngineVersion(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      policyEngineVersion_ = value;
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Identifier of the policy-engine logic that produced approval_policy_source,
+     * bumped when the merge/classification semantics change so decisions made by
+     * different engine versions stay distinguishable in audits.
+     *
+     * &#64;internal
+     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+     *
+     * Field 24: appended after approval_policy_source (23), the prior maximum.
+     * </pre>
+     *
+     * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPolicyEngineVersion() {
+      policyEngineVersion_ = getDefaultInstance().getPolicyEngineVersion();
+      bitField0_ = (bitField0_ & ~0x00400000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Identifier of the policy-engine logic that produced approval_policy_source,
+     * bumped when the merge/classification semantics change so decisions made by
+     * different engine versions stay distinguishable in audits.
+     *
+     * &#64;internal
+     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+     *
+     * Field 24: appended after approval_policy_source (23), the prior maximum.
+     * </pre>
+     *
+     * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+     * @param value The bytes for policyEngineVersion to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPolicyEngineVersionBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      policyEngineVersion_ = value;
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.ToolCall)

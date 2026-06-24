@@ -20,6 +20,11 @@ import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js"
 import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { classifyTool } from "../../shared/tool-kind.js";
+import {
+  POLICY_ENGINE_VERSION,
+  toProtoPolicySource,
+  type PolicySource,
+} from "../../shared/approval-policy.js";
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
 import { performSetup, type SetupResult } from "./setup.js";
@@ -82,6 +87,7 @@ export function createDeepAgentActivities(config: Config) {
         statusBuilder.setApprovalProvider({
           policies: setup.approvalPolicies,
           toolServerMap: setup.toolServerMap,
+          leasedCategories: setup.leasedCategories,
           globalBypass: setup.globalBypass,
         });
 
@@ -156,6 +162,7 @@ export function createDeepAgentActivities(config: Config) {
           approvalProvider: {
             policies: setup.approvalPolicies,
             toolServerMap: setup.toolServerMap,
+            leasedCategories: setup.leasedCategories,
             globalBypass: setup.globalBypass,
           },
           streamVersion: setup.streamVersion,
@@ -194,6 +201,10 @@ export function createDeepAgentActivities(config: Config) {
                     toolName: (val?.tool_name as string) ?? "",
                     mcpServerSlug: (val?.mcp_server_slug as string) ?? "",
                     message: (val?.message as string) ?? "",
+                    // Provenance verdict carried through the gate's interrupt
+                    // (approval-gate.ts). Absent on interrupts seeded before this
+                    // field existed → undefined → UNSPECIFIED, like an unset tool_kind.
+                    policySource: (val?.policy_source as PolicySource) || undefined,
                   };
                 }),
           ) ?? [];
@@ -222,6 +233,8 @@ export function createDeepAgentActivities(config: Config) {
                 mcpServerSlug: intr.mcpServerSlug,
                 startedAt: utcTimestamp(),
                 toolKind: classifyTool(intr.toolName, intr.mcpServerSlug),
+                approvalPolicySource: toProtoPolicySource(intr.policySource),
+                policyEngineVersion: intr.policySource ? POLICY_ENGINE_VERSION : "",
               });
 
               // Capture the proposed edit (and a sanitized args preview) while the

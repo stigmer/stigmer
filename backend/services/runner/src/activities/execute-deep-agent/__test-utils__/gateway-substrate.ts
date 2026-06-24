@@ -128,6 +128,9 @@ async function runProbe(
   await agent.invoke({ messages: [new HumanMessage({ content: "go" })] }, config);
   const pending = readPendingInterrupts((await agent.getState(config)) as never);
   const gated = pending.length > 0;
+  // The gate stamps the authorization provenance on every interrupt it raises;
+  // surface it so the contract can assert no side effect is gated without one.
+  const policySource = gated ? pending[0].policySource : "";
 
   // `none` is the "no decision yet" probe: leave the action withheld.
   if (gated && decision !== "none") {
@@ -136,7 +139,7 @@ async function runProbe(
     await agent.invoke(new Command({ resume }), config);
   }
 
-  return { executed: executionCount > 0, gated, executionCount };
+  return { executed: executionCount > 0, gated, executionCount, policySource };
 }
 
 const NO_LEASED_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
@@ -149,6 +152,7 @@ export function createDeepAgentSubstrate(): GatewaySubstrate {
       observesExecution: true,
       enforcesExactResource: false,
       appliesRunLifetimeLease: true,
+      surfacesGatePolicySource: true,
     },
 
     async authorize(action: ProposedAction, decision: GatewayDecision): Promise<GatewayOutcome> {
