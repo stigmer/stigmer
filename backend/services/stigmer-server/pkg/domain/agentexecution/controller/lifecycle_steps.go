@@ -837,6 +837,17 @@ func (s *LifecyclePersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) error
 	execution := ctx.Get(LoadedExecutionKey).(*agentexecutionv1.AgentExecution)
 	executionID := execution.GetMetadata().GetId()
 
+	// NOTE: This is a non-atomic whole-resource save (load in an earlier step,
+	// modify, then SaveResource here) shared by cancel/terminate/pause/resume/
+	// recover. For the terminal transitions (CANCELLED/TERMINATED) it is safe:
+	// pending_approvals is blind-cleared and the execution is dead, so a clobbered
+	// approval_event_stream is moot. For the NON-terminal transitions (pause from
+	// IN_PROGRESS, resume, recover) it shares the lost-update window the heartbeat
+	// UpdateStatus path just closed: a concurrent SubmitApproval append can be
+	// overwritten. This is a known, deliberately-deferred gap (tracked in
+	// next-task.md); the heartbeat paths were prioritized as the high-frequency
+	// surface. Closing it means converting these lifecycle persists to an atomic
+	// store.UpdateResource as well.
 	err := s.store.SaveResource(
 		ctx.Context(),
 		apiresourcekind.ApiResourceKind_agent_execution,

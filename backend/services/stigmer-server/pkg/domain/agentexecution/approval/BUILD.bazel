@@ -36,6 +36,7 @@ go_test(
         "preserve_test.go",
         "project_test.go",
         "retraction_test.go",
+        "sequence_corpus_test.go",
     ],
     embed = [":approval"],
     deps = [

@@ -1,17 +1,16 @@
 package agentexecution
 
 import (
-	"context"
 	"testing"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"google.golang.org/protobuf/proto"
 )
 
-// runBuildStep wires an existing execution into the pipeline context and runs
-// BuildNewStateWithStatusStep with the given incoming status, returning the
-// merged execution.
+// runBuildStep applies the UpdateStatus merge to a clone of the existing
+// execution and returns the merged result. Cloning mirrors the freshly-loaded
+// resource the merge mutates in place inside the UpdateResource write lock.
 func runBuildStep(
 	t *testing.T,
 	existing *agentexecutionv1.AgentExecution,
@@ -23,17 +22,8 @@ func runBuildStep(
 		ExecutionId: existing.Metadata.Id,
 		Status:      incoming,
 	}
-	reqCtx := pipeline.NewRequestContext(context.Background(), input)
-	reqCtx.Set("existingExecution", existing)
-
-	if err := newBuildNewStateWithStatusStep().Execute(reqCtx); err != nil {
-		t.Fatalf("BuildNewStateWithStatusStep.Execute returned error: %v", err)
-	}
-
-	merged, ok := reqCtx.Get("execution").(*agentexecutionv1.AgentExecution)
-	if !ok {
-		t.Fatalf("merged execution not found in context")
-	}
+	merged := proto.Clone(existing).(*agentexecutionv1.AgentExecution)
+	applyUpdateStatusMerge(merged, input)
 	return merged
 }
 

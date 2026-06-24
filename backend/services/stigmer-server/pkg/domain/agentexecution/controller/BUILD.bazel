@@ -81,6 +81,7 @@ go_test(
         "agentexecution_controller_test.go",
         "lifecycle_cancel_cascade_test.go",
         "submit_approval_contract_test.go",
+        "update_status_concurrency_test.go",
         "update_status_guard_test.go",
         "usage_aggregation_test.go",
     ],
@@ -96,5 +97,6 @@ go_test(
         "//backend/services/stigmer-server/pkg/domain/agentexecution/approval",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//proto",
     ],
 )

@@ -514,6 +514,10 @@ func (s *signalWorkflowStep) reconcileStaleExecution(ctx context.Context, execut
 		Content: "The workflow backing this execution is no longer running. This can happen due to infrastructure issues or manual termination. The execution has been marked as failed.",
 	})
 
+	// Whole-resource save is intentional here (exempt from the atomic UpdateStatus
+	// path): this writes a TERMINAL (FAILED) state because the backing workflow is
+	// gone, so there is no live appender racing the approval_event_stream — which is
+	// preserved verbatim above for the audit trail, not rewritten from a scan.
 	if err := s.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, executionID, reconciledExecution); err != nil {
 		log.Error().
 			Err(err).

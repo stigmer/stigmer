@@ -2,6 +2,7 @@ package agentexecution
 
 import (
 	"context"
+	"errors"
 
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -10,7 +11,6 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
-	"google.golang.org/protobuf/proto"
 )
 
 // UpdateStatus updates execution status during agent execution
@@ -20,10 +20,16 @@ import (
 //
 // Pipeline Steps:
 // 1. ValidateInput - Validate execution_id and status are provided
-// 2. LoadExisting - Load existing execution from DB
-// 3. BuildNewStateWithStatus - Merge status updates from input
-// 4. Persist - Save to database
-// 5. BroadcastToStreams - Push update to active Go channels (ADR 011)
+// 2. MergeAndPersist - Atomically load, merge status updates, and persist
+// 3. BroadcastToStreams - Push update to active Go channels (ADR 011)
+//
+// The merge+persist is a single atomic read-modify-write (store.UpdateResource)
+// rather than a load step followed by a separate whole-resource save. This is the
+// same discipline SubmitApproval uses, and it is load-bearing now that the
+// append-only approval_event_stream is the source of truth for pending_approvals:
+// a non-atomic load-then-save could drop an approval event a concurrent
+// SubmitApproval appended in the window between the load and the save (a user
+// approving one sub-agent's gated call while another sub-agent still streams).
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
@@ -36,9 +42,7 @@ func (c *AgentExecutionController) UpdateStatus(ctx context.Context, input *agen
 	// Build pipeline
 	p := pipeline.NewPipeline[*agentexecutionv1.AgentExecutionUpdateStatusInput]("agentexecution-update-status").
 		AddStep(newValidateUpdateStatusInputStep()).
-		AddStep(newLoadExistingExecutionStep(c.store)).
-		AddStep(newBuildNewStateWithStatusStep()).
-		AddStep(newPersistExecutionStep(c.store)).
+		AddStep(newMergeAndPersistExecutionStep(c.store)).
 		AddStep(newBroadcastToStreamsStep(c.streamBroker)).
 		Build()
 
@@ -85,78 +89,35 @@ func (s *ValidateUpdateStatusInputStep) Execute(ctx *pipeline.RequestContext[*ag
 	return nil
 }
 
-// LoadExistingExecutionStep loads the existing execution from database
-type LoadExistingExecutionStep struct {
-	store store.Store
-}
-
-func newLoadExistingExecutionStep(store store.Store) *LoadExistingExecutionStep {
-	return &LoadExistingExecutionStep{store: store}
-}
-
-func (s *LoadExistingExecutionStep) Name() string {
-	return "LoadExistingExecution"
-}
-
-func (s *LoadExistingExecutionStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecutionUpdateStatusInput]) error {
-	input := ctx.Input()
-	executionID := input.ExecutionId
-
-	log.Debug().
-		Str("execution_id", executionID).
-		Msg("Loading existing execution")
-
-	existing := &agentexecutionv1.AgentExecution{}
-	if err := s.store.GetResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution, executionID, existing); err != nil {
-		return grpclib.NotFoundError("AgentExecution", executionID)
-	}
-
-	// Store existing execution in context for merge step
-	ctx.Set("existingExecution", existing)
-
-	log.Debug().
-		Str("execution_id", executionID).
-		Str("phase", existing.Status.GetPhase().String()).
-		Msg("Loaded existing execution")
-
-	return nil
-}
-
-// BuildNewStateWithStatusStep merges status updates from input with existing execution
+// applyUpdateStatusMerge merges an incoming status update into execution in place,
+// following the runner-owns-the-transcript merge rules. It is the body run inside
+// the UpdateResource closure (and exercised directly by the guard tests), so
+// execution carries the freshly-loaded, locked state — the merge, the approval
+// event authoring, and the pending_approvals projection all see the same snapshot
+// that will be persisted.
 //
-// This step follows the Java implementation's merge logic:
-// - Replaces messages, tool_calls, sub_agent_executions, todos arrays
-// - Updates phase, error, timestamps if provided
-// - Preserves spec from existing execution (does NOT update spec)
-type BuildNewStateWithStatusStep struct{}
-
-func newBuildNewStateWithStatusStep() *BuildNewStateWithStatusStep {
-	return &BuildNewStateWithStatusStep{}
-}
-
-func (s *BuildNewStateWithStatusStep) Name() string {
-	return "BuildNewStateWithStatus"
-}
-
-func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecutionUpdateStatusInput]) error {
-	input := ctx.Input()
-	existing, ok := ctx.Get("existingExecution").(*agentexecutionv1.AgentExecution)
-	if !ok {
-		return grpclib.InternalError(nil, "existing execution not found in context")
+// It mirrors the Java BuildNewStateWithStatusStep merge strategy: most fields are
+// replaced wholesale with the runner's latest complete state, while server-owned
+// fields (approval decisions, the approval_event_stream) are preserved/authored
+// here because the runner never sends them.
+func applyUpdateStatusMerge(
+	execution *agentexecutionv1.AgentExecution,
+	input *agentexecutionv1.AgentExecutionUpdateStatusInput,
+) {
+	if execution.Status == nil {
+		execution.Status = &agentexecutionv1.AgentExecutionStatus{}
 	}
-
-	// Start with existing execution as base (cloning)
-	updated := proto.Clone(existing).(*agentexecutionv1.AgentExecution)
-
-	// Ensure status is initialized
-	if updated.Status == nil {
-		updated.Status = &agentexecutionv1.AgentExecutionStatus{}
-	}
-
+	status := execution.Status
 	requestStatus := input.Status
 
-	// CRITICAL: Merge status from input (for progressive updates from agent-runner)
-	// Following Java implementation's merge strategy
+	// Snapshot the pre-merge transcript before any replacement: the shrink guard
+	// compares against the persisted length, and PreserveApprovalFields copies the
+	// SubmitApproval-owned decision fields from these existing messages onto the
+	// incoming ones. Reassigning status.Messages below does not mutate this slice.
+	existingMessages := status.GetMessages()
+	existingSubAgents := status.GetSubAgentExecutions()
+	existingMessageCount := len(existingMessages)
+	existingPhase := status.GetPhase()
 
 	// Merge messages (replace with latest from request).
 	//
@@ -177,41 +138,40 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 	// (execute-cursor/message-translator.ts). Keep this guard phase-agnostic: a
 	// shrinking WAITING_FOR_APPROVAL update is now a bug to reject, not trust.
 	if len(requestStatus.Messages) > 0 {
-		existingCount := len(existing.Status.GetMessages())
-		wouldShrink := len(requestStatus.Messages) < existingCount
-		if wouldShrink && !isTerminalPhase(existing.Status.GetPhase()) {
+		wouldShrink := len(requestStatus.Messages) < existingMessageCount
+		if wouldShrink && !isTerminalPhase(existingPhase) {
 			log.Warn().
 				Str("execution_id", input.ExecutionId).
-				Int("existing_messages", existingCount).
+				Int("existing_messages", existingMessageCount).
 				Int("incoming_messages", len(requestStatus.Messages)).
 				Msg("Rejected status update that would shrink the message transcript for a non-terminal execution; keeping existing messages")
 		} else {
-			updated.Status.Messages = requestStatus.Messages
+			status.Messages = requestStatus.Messages
 		}
 	}
 
 	// Merge sub_agent_executions (replace with latest from request)
 	if len(requestStatus.SubAgentExecutions) > 0 {
-		updated.Status.SubAgentExecutions = requestStatus.SubAgentExecutions
+		status.SubAgentExecutions = requestStatus.SubAgentExecutions
 	}
 
 	// Merge todos (replace with latest from request)
 	if len(requestStatus.Todos) > 0 {
-		updated.Status.Todos = requestStatus.Todos
+		status.Todos = requestStatus.Todos
 	}
 
 	// Merge artifacts (replace with latest from request)
 	// Artifacts are published by agents via the publish_artifact tool during execution.
 	// When Python agent-runner sends artifacts via updateStatus RPC, they are persisted here.
 	if len(requestStatus.Artifacts) > 0 {
-		updated.Status.Artifacts = requestStatus.Artifacts
+		status.Artifacts = requestStatus.Artifacts
 	}
 
 	// Merge workspace write-backs (replace with latest from request).
 	// Write-backs are populated during post-execution processing when
 	// the platform detects git changes and creates PRs.
 	if len(requestStatus.WorkspaceWriteBacks) > 0 {
-		updated.Status.WorkspaceWriteBacks = requestStatus.WorkspaceWriteBacks
+		status.WorkspaceWriteBacks = requestStatus.WorkspaceWriteBacks
 	}
 
 	// Preserve approval fields (approval_action, approval_decided_at, approved_by)
@@ -219,28 +179,28 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 	// UNSPECIFIED for these fields, so without this step the wholesale message
 	// replacement above would erase user-submitted approval decisions.
 	approval.PreserveApprovalFields(
-		updated.Status.GetMessages(),
-		updated.Status.GetSubAgentExecutions(),
-		existing.Status.GetMessages(),
-		existing.Status.GetSubAgentExecutions(),
+		status.GetMessages(),
+		status.GetSubAgentExecutions(),
+		existingMessages,
+		existingSubAgents,
 	)
 
 	// Update phase (if provided)
 	if requestStatus.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
-		updated.Status.Phase = requestStatus.Phase
+		status.Phase = requestStatus.Phase
 	}
 
 	// Update error (if provided)
 	if requestStatus.Error != "" {
-		updated.Status.Error = requestStatus.Error
+		status.Error = requestStatus.Error
 	}
 
 	// Update timestamps (if provided)
 	if requestStatus.StartedAt != "" {
-		updated.Status.StartedAt = requestStatus.StartedAt
+		status.StartedAt = requestStatus.StartedAt
 	}
 	if requestStatus.CompletedAt != "" {
-		updated.Status.CompletedAt = requestStatus.CompletedAt
+		status.CompletedAt = requestStatus.CompletedAt
 	}
 
 	// Defense-in-depth: completed_at must not be set for non-terminal phases.
@@ -249,25 +209,29 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 	// condition guards against empty values.  This explicit guard prevents the
 	// contradictory state (completed_at set + phase=WAITING_FOR_APPROVAL) that
 	// was observed in production.
-	if updated.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS ||
-		updated.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL ||
-		updated.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_PENDING {
-		updated.Status.CompletedAt = ""
+	if status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS ||
+		status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL ||
+		status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_PENDING {
+		status.CompletedAt = ""
 	}
 
 	// Author REQUESTED events for any tool call now in the approval gate
 	// (seeding the persisted stream the first time it is touched). The runner
-	// never sends this server-only field; it rode along in the clone above and is
-	// mutated in place here. Decisions are authored separately by SubmitApproval.
-	approval.EnsureApprovalRequests(updated.Status, input.ExecutionId)
+	// never sends this server-only field; it is carried over from the loaded
+	// resource and mutated in place here. Decisions are authored separately by
+	// SubmitApproval. Because this runs inside the UpdateResource write lock on
+	// the freshly-loaded stream, the events it appends can never clobber a
+	// decision a concurrent SubmitApproval appended.
+	approval.EnsureApprovalRequests(status, input.ExecutionId)
 
-	// Compute pending_approvals from tool call state in messages, via the single
-	// projection seam (a pure read that also runs the event-stream parity check).
-	updated.Status.PendingApprovals = approval.ProjectPendingApprovals(
-		updated.Status.GetPhase(),
-		updated.Status.GetMessages(),
-		updated.Status.GetSubAgentExecutions(),
-		updated.Status.GetApprovalEventStream(),
+	// Compute pending_approvals from the authored event stream, via the single
+	// projection seam (returns the event-stream projection and runs the
+	// scan parity cross-check).
+	status.PendingApprovals = approval.ProjectPendingApprovals(
+		status.GetPhase(),
+		status.GetMessages(),
+		status.GetSubAgentExecutions(),
+		status.GetApprovalEventStream(),
 	)
 
 	// Merge streaming_usage (replace with latest from request).
@@ -275,80 +239,96 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 	// used by the frontend as a display-only fallback when proxy-reported
 	// usage is unavailable (e.g., Cursor harness).
 	if requestStatus.StreamingUsage != nil {
-		updated.Status.StreamingUsage = requestStatus.StreamingUsage
+		status.StreamingUsage = requestStatus.StreamingUsage
 	}
 
 	// Merge context_info (replace with latest from request)
 	if requestStatus.ContextInfo != nil {
-		updated.Status.ContextInfo = requestStatus.ContextInfo
+		status.ContextInfo = requestStatus.ContextInfo
 	}
 
 	// Merge resolved_context (replace with latest from request)
 	if requestStatus.ResolvedContext != nil {
-		updated.Status.ResolvedContext = requestStatus.ResolvedContext
+		status.ResolvedContext = requestStatus.ResolvedContext
 	}
 
 	// Merge setup_progress (replace with latest from request)
 	if requestStatus.SetupProgress != nil {
-		updated.Status.SetupProgress = requestStatus.SetupProgress
+		status.SetupProgress = requestStatus.SetupProgress
 	}
 	// Clear setup_progress when phase leaves PENDING (defense-in-depth).
 	// The worker stops sending setup_progress once streaming begins, but
 	// an explicit clear prevents stale data from persisting if the phase
 	// transitions via a different code path.
-	if updated.Status.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PENDING {
-		updated.Status.SetupProgress = nil
+	if status.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PENDING {
+		status.SetupProgress = nil
 	}
 
 	// Merge structured_output (replace with latest from request).
 	// Populated by the runner on COMPLETED when ExecutionConfig had
 	// structured_output_schema. Immutable after first population.
 	if requestStatus.StructuredOutput != nil {
-		updated.Status.StructuredOutput = requestStatus.StructuredOutput
+		status.StructuredOutput = requestStatus.StructuredOutput
 	}
 
 	log.Debug().
 		Str("execution_id", input.ExecutionId).
-		Str("phase", updated.Status.Phase.String()).
-		Int("messages_count", len(updated.Status.Messages)).
-		Int("artifacts_count", len(updated.Status.Artifacts)).
-		Int("write_backs_count", len(updated.Status.WorkspaceWriteBacks)).
-		Int("pending_approvals_count", len(updated.Status.PendingApprovals)).
-		Bool("has_context_info", updated.Status.ContextInfo != nil).
-		Bool("has_resolved_context", updated.Status.ResolvedContext != nil).
-		Bool("has_setup_progress", updated.Status.SetupProgress != nil).
-		Bool("has_streaming_usage", updated.Status.StreamingUsage != nil).
-		Bool("has_structured_output", updated.Status.StructuredOutput != nil).
+		Str("phase", status.Phase.String()).
+		Int("messages_count", len(status.Messages)).
+		Int("artifacts_count", len(status.Artifacts)).
+		Int("write_backs_count", len(status.WorkspaceWriteBacks)).
+		Int("pending_approvals_count", len(status.PendingApprovals)).
+		Bool("has_context_info", status.ContextInfo != nil).
+		Bool("has_resolved_context", status.ResolvedContext != nil).
+		Bool("has_setup_progress", status.SetupProgress != nil).
+		Bool("has_streaming_usage", status.StreamingUsage != nil).
+		Bool("has_structured_output", status.StructuredOutput != nil).
 		Msg("Merged status fields")
-
-	// Store merged execution in context for persist step
-	ctx.Set("execution", updated)
-
-	return nil
 }
 
-// PersistExecutionStep saves the execution to database
-type PersistExecutionStep struct {
+// MergeAndPersistExecutionStep atomically loads the execution, merges the incoming
+// status update, and persists the result in a single read-modify-write under the
+// store's per-resource write lock (store.UpdateResource).
+//
+// Doing the load and the save as one atomic unit — rather than a load step
+// followed by a separate whole-resource save — is what keeps the append-only
+// approval_event_stream correct by construction: an approval event a concurrent
+// SubmitApproval appends can never be lost to a stale-read overwrite.
+type MergeAndPersistExecutionStep struct {
 	store store.Store
 }
 
-func newPersistExecutionStep(store store.Store) *PersistExecutionStep {
-	return &PersistExecutionStep{store: store}
+func newMergeAndPersistExecutionStep(store store.Store) *MergeAndPersistExecutionStep {
+	return &MergeAndPersistExecutionStep{store: store}
 }
 
-func (s *PersistExecutionStep) Name() string {
-	return "PersistExecution"
+func (s *MergeAndPersistExecutionStep) Name() string {
+	return "MergeAndPersistExecution"
 }
 
-func (s *PersistExecutionStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecutionUpdateStatusInput]) error {
-	execution, ok := ctx.Get("execution").(*agentexecutionv1.AgentExecution)
-	if !ok {
-		return grpclib.InternalError(nil, "execution not found in context")
-	}
+func (s *MergeAndPersistExecutionStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecutionUpdateStatusInput]) error {
+	input := ctx.Input()
+	executionID := input.ExecutionId
 
-	executionID := execution.Metadata.Id
+	log.Debug().
+		Str("execution_id", executionID).
+		Msg("Merging and persisting execution status")
 
-	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution, executionID, execution); err != nil {
+	updated := &agentexecutionv1.AgentExecution{}
+	err := s.store.UpdateResource(
+		ctx.Context(),
+		apiresourcekind.ApiResourceKind_agent_execution,
+		executionID,
+		updated,
+		func() error {
+			applyUpdateStatusMerge(updated, input)
+			return nil
+		},
+	)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return grpclib.NotFoundError("AgentExecution", executionID)
+		}
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).
@@ -356,9 +336,12 @@ func (s *PersistExecutionStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 		return grpclib.InternalError(err, "failed to update execution status")
 	}
 
+	// Hand the merged result to the broadcast step.
+	ctx.Set("execution", updated)
+
 	log.Info().
 		Str("execution_id", executionID).
-		Str("phase", execution.Status.Phase.String()).
+		Str("phase", updated.Status.GetPhase().String()).
 		Msg("Successfully updated execution status")
 
 	return nil
