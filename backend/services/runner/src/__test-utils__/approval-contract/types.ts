@@ -98,6 +98,15 @@ export interface SubstrateCapabilities {
    * not a property of that gate (`false`).
    */
   readonly enforcesExactResource: boolean;
+  /**
+   * True when the substrate honors a run-lifetime CLASS lease: an APPROVE_ALL on
+   * one action auto-approves later actions of the SAME class (built-in category)
+   * for the rest of the run, while a DIFFERENT class stays gated. Both production
+   * substrates enforce this (the deep-agent gate clears leased categories; the
+   * Cursor hook reads `leasedCategories` from its state file), so both set `true`
+   * and implement {@link GatewaySubstrate.authorizeUnderClassLease}.
+   */
+  readonly appliesRunLifetimeLease: boolean;
 }
 
 /**
@@ -126,4 +135,12 @@ export interface GatewaySubstrate {
    * {@link SubstrateCapabilities.enforcesExactResource} is true.
    */
   authorizeAfterGrant?(granted: ProposedAction, probe: ProposedAction): Promise<GatewayOutcome>;
+  /**
+   * Grant a run-lifetime CLASS lease by choosing APPROVE_ALL on `leased`, then
+   * probe `probe` against that standing lease — the scoped-lease drive that
+   * proves "approving all of class A never auto-approves class B." `leased` must
+   * be a gated built-in (write/shell/delete). Implemented only when
+   * {@link SubstrateCapabilities.appliesRunLifetimeLease} is true.
+   */
+  authorizeUnderClassLease?(leased: ProposedAction, probe: ProposedAction): Promise<GatewayOutcome>;
 }

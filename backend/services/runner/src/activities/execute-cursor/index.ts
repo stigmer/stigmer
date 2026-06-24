@@ -53,7 +53,7 @@ import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/stre
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
 import { resolveMcpServers, validateMcpServerEnv } from "./mcp-resolver.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
-import { hasApproveAllDecision } from "../../shared/approval-policy.js";
+import { deriveActiveLeases } from "../../shared/approval-policy.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
@@ -293,20 +293,20 @@ async function executeCursorInner(
 
     // Phase 4b: Merge approval policies from all layers.
     //
-    // Effective auto-approve is true when EITHER the execution was pre-armed via
-    // spec.auto_approve_all OR a user chose APPROVE_ALL ("approve and don't ask
-    // again") at some gate earlier in this run. The shared hasApproveAllDecision
-    // helper (used by the native harness too) keeps this contract defined once.
-    // When true, the merged policy map is empty and the hook state file disables
-    // gating for the rest of the run.
-    const effectiveAutoApproveAll =
-      (execution.spec?.autoApproveAll ?? false) || hasApproveAllDecision(execution);
+    // Two bypasses (see ActiveLeases, shared with the native harness): the
+    // pre-armed spec.auto_approve_all is the one whole-run global bypass; an
+    // interactive APPROVE_ALL grants a run-lifetime lease scoped to that action's
+    // class. deriveActiveLeases keeps this contract defined once. Server-scoped
+    // leases drop that server's tools from the merged map (so the hook treats
+    // them as auto-approved); the global bypass empties the map entirely.
+    const leases = deriveActiveLeases(execution);
+    const globalBypass = leases.global;
     const agentOverrides = blueprint.mergedMcpServerUsages
       .flatMap((u) => u.toolApprovalOverrides ?? []);
     const mergedPolicies = mergeApprovalPolicies(
       mcpResolution.resolvedServers,
       agentOverrides,
-      effectiveAutoApproveAll,
+      leases,
     );
     heartbeat();
 
@@ -359,7 +359,7 @@ async function executeCursorInner(
     const approvalGrants = approvalDecisions
       ? buildApprovalGrants(adjudicatedApprovals, approvalDecisions)
       : undefined;
-    if (approvalGrants && approvalGrants.length > 0 && !effectiveAutoApproveAll) {
+    if (approvalGrants && approvalGrants.length > 0 && !globalBypass) {
       emitCursorGrantReceipts(
         approvalGrants,
         deriveExecutionFingerprintKey(getRunnerHitlMasterSecret(), executionId),
@@ -368,7 +368,8 @@ async function executeCursorInner(
     }
     const approvalState = buildApprovalState(
       mergedPolicies,
-      effectiveAutoApproveAll,
+      globalBypass,
+      leases.categories,
       approvalGrants,
     );
     const hitlGate = await installHitlGate({

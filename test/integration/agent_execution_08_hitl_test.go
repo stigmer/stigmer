@@ -181,12 +181,21 @@ func TestAgentExecution_HITL_Reject(t *testing.T) {
 	}
 }
 
-// TestAgentExecution_HITL_ApproveAll proves the APPROVE_ALL contract end-to-end:
-// a single "approve and don't ask again" decision at the first gate resolves the
-// current gate AND lets the rest of the run proceed un-gated. The agent is asked
-// to call the approval-gated echo tool twice; with a normal APPROVE the run would
-// gate a second time, so reaching COMPLETED after one APPROVE_ALL submission is
-// the proof that subsequent tool calls were auto-approved.
+// TestAgentExecution_HITL_ApproveAll proves the APPROVE_ALL lease end-to-end for
+// the SAME scope: a single "approve all of this kind" decision at the first gate
+// resolves the current gate AND auto-approves later calls WITHIN THAT SCOPE for
+// the rest of the run. The agent calls the approval-gated echo tool twice on the
+// same MCP server; under Phase-7 scoped leases the first APPROVE_ALL leases that
+// server, so the second same-server echo is auto-approved and the run reaches
+// COMPLETED after one submission (a normal APPROVE would gate a second time).
+//
+// The COMPLEMENTARY isolation property — an APPROVE_ALL of class A never
+// auto-approves class B — is locked deterministically (no live LLM) against BOTH
+// real enforcement substrates by invariant 11 of the runner gateway contract
+// (backend/services/runner/src/__tests__/approval-gateway-contract.test.ts). It
+// is asserted there rather than here because forcing an unconstrained agent to
+// emit two DIFFERENT gated classes in a fixed order is inherently flaky, whereas
+// the contract drives the real gate and real hook directly.
 func TestAgentExecution_HITL_ApproveAll(t *testing.T) {
 	require.NotNil(t, grpcConn)
 

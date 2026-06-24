@@ -9,6 +9,7 @@
  * State file format (JSON):
  * {
  *   "autoApproveAll": false,
+ *   "leasedCategories": ["shell"],
  *   "mcpToolPolicies": {
  *     "apply_cloud_resource": { "requiresApproval": true, "message": "..." }
  *   },
@@ -21,9 +22,18 @@
  * entries); every other tool is allowed. The gated built-in set and its
  * name->category mapping are baked into the generated hook script (from
  * approval-policy.ts), not carried in the state file — only the dynamic inputs
- * (autoApproveAll, mcpToolPolicies, approvedGrantTokens) live here. This mirrors
- * the native harness and avoids denying auto-approved MCP tools, which are
- * absent from the policy map and indistinguishable from unknown tools by name.
+ * (autoApproveAll, leasedCategories, mcpToolPolicies, approvedGrantTokens) live
+ * here. This mirrors the native harness and avoids denying auto-approved MCP
+ * tools, which are absent from the policy map and indistinguishable from unknown
+ * tools by name.
+ *
+ * Approval leases (the scoped successor to autoApproveAll): `autoApproveAll` is
+ * now ONLY the pre-armed spec.auto_approve_all global bypass. An interactive
+ * "approve all" of a given class becomes a run-lifetime lease: a built-in
+ * category lease is listed in `leasedCategories` (the hook allows any built-in of
+ * that category), and an MCP-server lease is applied upstream by dropping the
+ * server's tools from mcpToolPolicies (so the hook allows them as auto-approved)
+ * — the hook is not server-aware, so omission is the lever there.
  *
  * Why grants instead of tool-call ids: a resumed Cursor agent re-issues the
  * approved tool with a BRAND NEW call id, so matching on the original call id
@@ -58,7 +68,7 @@ import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agent
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { MergedToolPolicy } from "./approval-policy.js";
+import type { MergedToolPolicy, ApprovalCategory } from "./approval-policy.js";
 import { extractArgKey, approvalCategory, POLICY_ENGINE_VERSION } from "./approval-policy.js";
 import {
   fingerprintCoarseIdentity,
@@ -122,7 +132,15 @@ export interface ApprovalGrant {
 }
 
 export interface ApprovalStateFile {
+  /** Pre-armed spec.auto_approve_all: the whole-run global bypass. */
   autoApproveAll: boolean;
+  /**
+   * Built-in approval categories with a run-lifetime lease (the scoped successor
+   * to a global "approve all"). The hook allows any built-in whose category is
+   * listed. MCP-server leases are NOT listed here — they are applied by dropping
+   * the server's tools from mcpToolPolicies, since the hook is not server-aware.
+   */
+  leasedCategories: string[];
   mcpToolPolicies: Record<string, McpToolPolicyEntry>;
   approvedGrants: ApprovalGrant[];
   approvedGrantTokens: string[];
@@ -207,10 +225,10 @@ export function buildApprovalGrants(
   const grants: ApprovalGrant[] = [];
   for (const pa of pendingApprovals) {
     // Both APPROVE and APPROVE_ALL allow the adjudicated tool through on the
-    // resumed turn. APPROVE_ALL additionally flips autoApproveAll for the whole
-    // run (handled by the caller via hasApproveAllDecision), but we still emit a
-    // grant here so the clicked tool is allowed regardless of how the hook reads
-    // the state file.
+    // resumed turn. APPROVE_ALL additionally grants a run-lifetime lease for the
+    // clicked action's class (handled by the caller via deriveActiveLeases ->
+    // leasedCategories / dropped MCP server), but we still emit a grant here so
+    // the clicked tool itself is allowed regardless of how the hook reads state.
     const decision = decisions.get(pa.toolCallId);
     if (decision !== ApprovalAction.APPROVE && decision !== ApprovalAction.APPROVE_ALL) continue;
 
@@ -240,7 +258,10 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  * grants from a previous HITL cycle.
  *
  * The state file carries the hook script's DYNAMIC inputs:
- * - mcpToolPolicies: per-tool policy for MCP tools requiring approval
+ * - globalBypass: the pre-armed spec.auto_approve_all (written as autoApproveAll)
+ * - leasedCategories: built-in categories with a run-lifetime lease
+ * - mcpToolPolicies: per-tool policy for MCP tools requiring approval (leased
+ *   servers are already absent — dropped upstream by mergeApprovalPolicies)
  * - approvedGrants / approvedGrantTokens: tools approved in the current HITL
  *   cycle, allowed through on reinvocation
  *
@@ -249,7 +270,8 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  */
 export function buildApprovalState(
   mergedPolicies: Map<string, MergedToolPolicy>,
-  autoApproveAll: boolean,
+  globalBypass: boolean,
+  leasedCategories: ReadonlySet<ApprovalCategory>,
   grants?: ApprovalGrant[],
 ): ApprovalStateFile {
   const approvedGrants = grants ?? [];
@@ -263,7 +285,8 @@ export function buildApprovalState(
   }
 
   return {
-    autoApproveAll,
+    autoApproveAll: globalBypass,
+    leasedCategories: [...leasedCategories],
     mcpToolPolicies,
     approvedGrants,
     approvedGrantTokens: approvedGrants.map((g) => grantToken(g.key, g.salient)),

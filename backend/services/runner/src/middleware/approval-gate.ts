@@ -60,7 +60,16 @@ import {
 
 export interface ApprovalGateConfig {
   readonly policies: ReadonlyMap<string, MergedToolPolicy>;
-  readonly autoApproveAll: boolean;
+  /**
+   * Built-in approval categories with a run-lifetime lease (the scoped successor
+   * to auto-approve-all; see ActiveLeases). A built-in whose category is leased
+   * is auto-approved for the rest of the run. MCP-server leases are NOT carried
+   * here — they are applied upstream by dropping the server's tools from
+   * `policies` (mergeApprovalPolicies), which clears them for this gate too.
+   * Absent/empty means no built-in lease is active. Inherited verbatim by
+   * sub-agents along with the rest of this config.
+   */
+  readonly leasedCategories?: ReadonlySet<ToolApprovalCategory>;
   readonly toolServerMap: ReadonlyMap<string, string>;
   /**
    * Per-execution HMAC key for the shadow receipt's action fingerprint. Derived
@@ -91,11 +100,12 @@ const CATEGORY_APPROVAL_MESSAGE: Record<ToolApprovalCategory, string> = {
 export function createApprovalGateMiddleware(
   config: ApprovalGateConfig,
 ): StigmerMiddleware {
-  const { policies, autoApproveAll, toolServerMap } = config;
+  const { policies, toolServerMap } = config;
+  const leasedCategories = config.leasedCategories ?? EMPTY_CATEGORY_SET;
 
-  if (autoApproveAll) {
-    return { name: "ApprovalGateMiddleware" };
-  }
+  // No global-bypass early return: a pre-armed spec.auto_approve_all means the
+  // gate is never even installed (setup.ts builds this config only when not
+  // global). Scoped leases keep the gate active so non-leased actions still gate.
 
   return {
     name: "ApprovalGateMiddleware",
@@ -111,6 +121,7 @@ export function createApprovalGateMiddleware(
         serverSlug,
         toolCall.args,
         policies,
+        leasedCategories,
       );
 
       if (!requirement.requiresApproval) {
@@ -183,6 +194,7 @@ function resolveToolApproval(
   serverSlug: string,
   args: Record<string, unknown>,
   policies: ReadonlyMap<string, MergedToolPolicy>,
+  leasedCategories: ReadonlySet<ToolApprovalCategory>,
 ): ApprovalRequirement {
   if (serverSlug) {
     // MCP tools stay governed by the connect-flow classifier + four-level policy
@@ -190,6 +202,13 @@ function resolveToolApproval(
     // absent entry means the classifier already auto-approved it — fail-OPEN is
     // correct here (a fail-closed default would re-gate everything the classifier
     // cleared). This is deliberately NOT changed by the built-in fail-closed flip.
+    //
+    // A server-scoped lease surfaces here as an absent entry too: the leased
+    // server's tools are dropped from `policies` upstream (mergeApprovalPolicies),
+    // so a lease-cleared MCP tool takes this same auto-approve path. (Its shadow
+    // receipt therefore reads classifier_default rather than approval_lease; a
+    // faithful per-server lease provenance would need the lease set threaded here
+    // and is deferred with the rest of the persisted-receipt work.)
     const key = `${serverSlug}/${toolName}`;
     const policy = policies.get(key);
     if (policy) {
@@ -199,18 +218,23 @@ function resolveToolApproval(
         source: policy.source,
       };
     }
-    // Absent = cleared by the MCP four-level chain (classifier base).
+    // Absent = cleared by the MCP four-level chain (classifier base) or by a
+    // server-scoped lease (dropped upstream).
     return { requiresApproval: false, message: "", source: "classifier_default" };
   }
 
   // Built-in/platform tool: gate exactly the mutating categories via the shared
   // classifier. Fail-CLOSED for the mutating set — any built-in classifyTool
-  // deems write/edit/delete/shell requires approval (APPROVE_ALL disables the
-  // whole gate upstream in createApprovalGateMiddleware). Read-only and
-  // unclassified built-ins are not mutating, so they remain fail-open. Either
-  // way the built-in taxonomy is the decider, so the provenance is the same.
+  // deems write/edit/delete/shell requires approval. Read-only and unclassified
+  // built-ins are not mutating, so they remain fail-open.
   const category = toolApprovalCategory(toolName);
   if (category) {
+    // Run-lifetime category lease: the user chose "approve all <category>"
+    // earlier in this run, so every built-in of that category is auto-approved
+    // for the rest of the run (the scoped successor to auto-approve-all).
+    if (leasedCategories.has(category)) {
+      return { requiresApproval: false, message: "", source: "approval_lease" };
+    }
     return {
       requiresApproval: true,
       message: resolveApprovalMessage(CATEGORY_APPROVAL_MESSAGE[category], toolName, args),
@@ -220,6 +244,9 @@ function resolveToolApproval(
 
   return { requiresApproval: false, message: "", source: "builtin_category" };
 }
+
+/** Shared empty set so a config without leases allocates nothing per call. */
+const EMPTY_CATEGORY_SET: ReadonlySet<ToolApprovalCategory> = new Set();
 
 type AuthorizationSource = "auto_approve" | "approval";
 

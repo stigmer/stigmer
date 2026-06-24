@@ -1,0 +1,80 @@
+{
+  "description": "Cross-language HITL lease-scope derivation vectors. Given a tool call's (toolName, mcpServerSlug), every edition must derive the same APPROVE_ALL lease scope: {\"category\": <write|delete|shell>} for a gated built-in, {\"server\": <slug>} for an MCP tool, or null for a tool with no leasable scope (read-only built-ins, unknown names). The MCP server slug takes precedence over the built-in category and is compared RAW (no case folding). TS deriveLeaseScope, Go DeriveLeaseScope, and Java LeaseScope.deriveKey must all agree.",
+  "vectors": [
+    {
+      "name": "builtin-write-native",
+      "input": { "toolName": "write_file" },
+      "expected": { "category": "write" }
+    },
+    {
+      "name": "builtin-write-cursor",
+      "input": { "toolName": "Write" },
+      "expected": { "category": "write" }
+    },
+    {
+      "name": "builtin-edit-collapses-to-write",
+      "input": { "toolName": "edit" },
+      "expected": { "category": "write" }
+    },
+    {
+      "name": "builtin-edit-cursor-collapses-to-write",
+      "input": { "toolName": "StrReplace" },
+      "expected": { "category": "write" }
+    },
+    {
+      "name": "builtin-delete-native",
+      "input": { "toolName": "delete_file" },
+      "expected": { "category": "delete" }
+    },
+    {
+      "name": "builtin-delete-cursor",
+      "input": { "toolName": "Delete" },
+      "expected": { "category": "delete" }
+    },
+    {
+      "name": "builtin-shell-native",
+      "input": { "toolName": "execute" },
+      "expected": { "category": "shell" }
+    },
+    {
+      "name": "builtin-shell-cursor",
+      "input": { "toolName": "Shell" },
+      "expected": { "category": "shell" }
+    },
+    {
+      "name": "builtin-read-is-ungated",
+      "input": { "toolName": "read" },
+      "expected": null
+    },
+    {
+      "name": "builtin-search-is-ungated",
+      "input": { "toolName": "Grep" },
+      "expected": null
+    },
+    {
+      "name": "unknown-name-no-slug-is-ungated",
+      "input": { "toolName": "process_return" },
+      "expected": null
+    },
+    {
+      "name": "mcp-tool-leases-its-server",
+      "input": { "toolName": "create_issue", "mcpServerSlug": "github" },
+      "expected": { "server": "github" }
+    },
+    {
+      "name": "mcp-tool-other-server",
+      "input": { "toolName": "list_resources", "mcpServerSlug": "planton" },
+      "expected": { "server": "planton" }
+    },
+    {
+      "name": "mcp-slug-is-not-case-folded",
+      "input": { "toolName": "create_issue", "mcpServerSlug": "GitHub" },
+      "expected": { "server": "GitHub" }
+    },
+    {
+      "name": "mcp-slug-takes-precedence-over-builtin-name",
+      "input": { "toolName": "write", "mcpServerSlug": "github" },
+      "expected": { "server": "github" }
+    }
+  ]
+}

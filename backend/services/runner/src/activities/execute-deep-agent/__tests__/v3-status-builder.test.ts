@@ -279,7 +279,7 @@ describe("V3StatusBuilder", () => {
             }],
           ]),
           toolServerMap: new Map([["dangerous_tool", "my-server"]]),
-          autoApproveAll: false,
+          globalBypass: false,
         } as ApprovalPolicyProvider);
 
         feedAll(sb, [

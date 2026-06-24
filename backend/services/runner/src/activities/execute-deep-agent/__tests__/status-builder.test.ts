@@ -544,7 +544,7 @@ describe("StatusBuilder", () => {
       return {
         policies: new Map(),
         toolServerMap: new Map(),
-        autoApproveAll: false,
+        globalBypass: false,
         ...overrides,
       };
     }
@@ -598,13 +598,13 @@ describe("StatusBuilder", () => {
       expect(sb.currentStatus.phase).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
     });
 
-    it("does not require approval when autoApproveAll is true", () => {
+    it("does not require approval under the global bypass (spec.auto_approve_all)", () => {
       const sb = makeBuilder();
       const [key, policy] = policyFor("github", "delete_repo");
       sb.setApprovalProvider(makeApprovalProvider({
         policies: new Map([[key, policy]]),
         toolServerMap: new Map([["delete_repo", "github"]]),
-        autoApproveAll: true,
+        globalBypass: true,
       }));
 
       sb.processEvent(chatStreamEvent("run-1", "deleting"));
@@ -615,11 +615,11 @@ describe("StatusBuilder", () => {
       expect(tc.requiresApproval).toBe(false);
     });
 
-    it("sets mcpServerSlug even when autoApproveAll is true", () => {
+    it("sets mcpServerSlug even under the global bypass (spec.auto_approve_all)", () => {
       const sb = makeBuilder();
       sb.setApprovalProvider(makeApprovalProvider({
         toolServerMap: new Map([["echo", "test-mcp-server"]]),
-        autoApproveAll: true,
+        globalBypass: true,
       }));
 
       sb.processEvent(chatStreamEvent("run-1", "echoing"));
@@ -720,7 +720,7 @@ describe("StatusBuilder", () => {
           }],
         ]),
         toolServerMap: new Map([[toolName, serverSlug]]),
-        autoApproveAll: false,
+        globalBypass: false,
       });
       return sb;
     }
@@ -1574,7 +1574,7 @@ describe("StatusBuilder", () => {
             }],
           ]),
           toolServerMap: new Map([["create_pull_request", "github"]]),
-          autoApproveAll: false,
+          globalBypass: false,
         });
 
         // Model streams text then calls the approval-gated tool
@@ -1819,7 +1819,7 @@ describe("StatusBuilder", () => {
           }],
         ]),
         toolServerMap: new Map([["dangerous_tool", "my-server"]]),
-        autoApproveAll: false,
+        globalBypass: false,
       });
       return sb;
     }

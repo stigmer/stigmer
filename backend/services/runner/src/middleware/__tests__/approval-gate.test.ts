@@ -37,7 +37,6 @@ function passthrough(req: ToolCallRequest) {
 function makeConfig(overrides: Partial<ApprovalGateConfig> = {}): ApprovalGateConfig {
   return {
     policies: new Map<string, MergedToolPolicy>(),
-    autoApproveAll: false,
     toolServerMap: new Map<string, string>(),
     ...overrides,
   };
@@ -48,9 +47,37 @@ describe("ApprovalGateMiddleware", () => {
     mockedInterrupt.mockReset();
   });
 
-  it("is a no-op when autoApproveAll is true", async () => {
-    const mw = createApprovalGateMiddleware(makeConfig({ autoApproveAll: true }));
-    expect(mw.wrapToolCall).toBeUndefined();
+  // The global pre-arm (spec.auto_approve_all) is no longer the gate's concern:
+  // setup.ts simply does not install the gate when it is set. The gate is always
+  // active once built; scoped leases (below) decide what it lets through.
+
+  it("auto-approves a built-in whose category holds a run-lifetime lease", async () => {
+    const mw = createApprovalGateMiddleware(
+      makeConfig({ leasedCategories: new Set(["shell"]) }),
+    );
+
+    const result = await mw.wrapToolCall!(
+      makeRequest({ name: "shell", args: { command: "ls" } }),
+      passthrough,
+    );
+
+    expect((result as ToolMessage).content).toBe("tool result");
+    expect(mockedInterrupt).not.toHaveBeenCalled();
+  });
+
+  it("still gates a built-in of a DIFFERENT class than the leased one", async () => {
+    // Core invariant: a "approve all shell" lease must never clear a write.
+    const mw = createApprovalGateMiddleware(
+      makeConfig({ leasedCategories: new Set(["shell"]) }),
+    );
+    mockedInterrupt.mockReturnValue({ action: "approve" });
+
+    await mw.wrapToolCall!(
+      makeRequest({ name: "write", args: { path: "/a.txt" } }),
+      passthrough,
+    );
+
+    expect(mockedInterrupt).toHaveBeenCalledTimes(1);
   });
 
   it("passes through tools with no matching policy", async () => {

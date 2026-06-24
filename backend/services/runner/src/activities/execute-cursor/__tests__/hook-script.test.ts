@@ -60,6 +60,17 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("allow");
   });
 
+  it("a run-lifetime category lease allows that category and ONLY that category", () => {
+    // "Approve all shell commands" must let later shell calls through while still
+    // gating a write — the scoped successor to the old global auto-approve-all.
+    const h = setup({ leasedCategories: ["shell"] });
+    expect(h.decide(hookShell("rm -rf build")).permission).toBe("allow");
+    const writeDecision = h.decide(hookWrite("/x/a.txt"));
+    expect(writeDecision.permission).toBe("deny");
+    // The denied, non-leased write is still recorded for the runner.
+    expect(h.ledger().map((e) => e.toolName)).toContain("Write");
+  });
+
   // Exact-resource lease isolation ("no name-only over-grant") moved to the
   // gateway Contract Test Kit's invariant 10, where the SAME bash hook is driven
   // through the Cursor substrate adapter alongside the deep-agent substrate. See
@@ -238,7 +249,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     const script = generateHookScript(statePath, ledgerPath, process.pid)
       .replace(`NODE_BIN="${process.execPath}"`, 'NODE_BIN="/nonexistent/node"');
     writeFileSync(scriptPath, script, "utf-8");
-    writeFileSync(statePath, JSON.stringify(buildApprovalState(new Map(), false)), "utf-8");
+    writeFileSync(statePath, JSON.stringify(buildApprovalState(new Map(), false, new Set())), "utf-8");
 
     const raw = execFileSync("bash", [scriptPath], {
       input: JSON.stringify(hookWrite("/x/a.txt")),

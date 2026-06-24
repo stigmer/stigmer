@@ -74,7 +74,7 @@ describe("sub-agent approval interrupt propagation", () => {
       model: new ScriptedModel(roleScript),
       tools: [overwriteFile],
       middleware: [
-        createApprovalGateMiddleware({ policies: new Map(), autoApproveAll: false, toolServerMap: new Map() }),
+        createApprovalGateMiddleware({ policies: new Map(), toolServerMap: new Map() }),
       ],
       backend: new StateBackend(),
       generalPurposeAgent: false,
@@ -138,7 +138,7 @@ describe("sub-agent approval interrupt propagation", () => {
       backend: new StateBackend(),
       tools: [overwriteFile],
       middleware: [
-        createApprovalGateMiddleware({ policies: new Map(), autoApproveAll: false, toolServerMap: new Map() }),
+        createApprovalGateMiddleware({ policies: new Map(), toolServerMap: new Map() }),
       ],
     } as unknown as Parameters<typeof createDeepAgent>[0]);
 

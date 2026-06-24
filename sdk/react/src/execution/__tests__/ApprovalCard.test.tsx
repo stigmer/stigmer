@@ -124,7 +124,7 @@ describe("ApprovalCard tool classification", () => {
 });
 
 describe("ApprovalCard approve-all action", () => {
-  it("renders the subordinate 'Approve & don't ask again' action", () => {
+  it("renders the subordinate scope-truthful approve-all action", () => {
     const approval = create(PendingApprovalSchema, {
       toolCallId: "tc3",
       toolName: "delete_file",
@@ -136,7 +136,42 @@ describe("ApprovalCard approve-all action", () => {
     );
 
     expect(getByText("Approve")).toBeTruthy();
-    expect(getByLabelText("Approve & don't ask again")).toBeTruthy();
+    // The label names the leased class (delete), never an unbounded "all".
+    expect(getByLabelText("Approve all file deletions")).toBeTruthy();
+  });
+
+  it("labels the approve-all action by the clicked tool's lease scope", () => {
+    // delete -> "file deletions"; write/edit collapse to "file edits";
+    // shell -> "shell commands"; an MCP tool -> "<server> tools".
+    const cases: ReadonlyArray<{
+      toolName: string;
+      mcpServerSlug?: string;
+      expected: string;
+    }> = [
+      { toolName: "delete_file", expected: "Approve all file deletions" },
+      { toolName: "write_file", expected: "Approve all file edits" },
+      { toolName: "edit_file", expected: "Approve all file edits" },
+      { toolName: "shell", expected: "Approve all shell commands" },
+      {
+        toolName: "create_issue",
+        mcpServerSlug: "github",
+        expected: "Approve all github tools",
+      },
+    ];
+
+    for (const { toolName, mcpServerSlug, expected } of cases) {
+      const approval = create(PendingApprovalSchema, {
+        toolCallId: `tc-${toolName}`,
+        toolName,
+        mcpServerSlug: mcpServerSlug ?? "",
+        argsPreview: "{}",
+      });
+      const { getByLabelText, unmount } = render(
+        <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+      );
+      expect(getByLabelText(expected)).toBeTruthy();
+      unmount();
+    }
   });
 
   it("submits APPROVE_ALL when the subordinate action is clicked", () => {
@@ -151,7 +186,7 @@ describe("ApprovalCard approve-all action", () => {
       <ApprovalCard pendingApproval={approval} onSubmit={onSubmit} />,
     );
 
-    fireEvent.click(getByLabelText("Approve & don't ask again"));
+    fireEvent.click(getByLabelText("Approve all file deletions"));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onSubmit).toHaveBeenCalledWith(ApprovalAction.APPROVE_ALL);

@@ -403,7 +403,7 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
 
     const serverSlug = this.approvalProvider.toolServerMap.get(toolName) ?? "";
 
-    if (this.approvalProvider.autoApproveAll) {
+    if (this.approvalProvider.globalBypass) {
       return { requiresApproval: false, message: "", serverSlug };
     }
 

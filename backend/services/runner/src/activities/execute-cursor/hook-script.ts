@@ -58,15 +58,18 @@
  * set, allow the rest" — matching the native harness and avoiding denial of
  * auto-approved MCP tools (which are absent from mcpToolPolicies):
  * 0. Scope guard: not the runner's own agent → allow (never touch the ledger)
- * 1. Missing state file → deny (fail-closed); autoApproveAll → allow
+ * 1. Missing state file → deny (fail-closed); autoApproveAll (the pre-armed
+ *    spec.auto_approve_all global bypass) → allow
  * 2. beforeMCPExecution event → MCP tool present in mcpToolPolicies
  *    (require-approval):
  *    a. name token in approvedGrantTokens → allow (reinvocation grant)
  *    b. otherwise → record denial, deny
- *    (auto-approved / unlisted MCP tools fall through → allow)
+ *    (auto-approved / unlisted MCP tools fall through → allow; a server-scoped
+ *     lease drops the server's tools from mcpToolPolicies, so they fall through)
  * 3. preToolUse event → gated built-in (category non-empty):
  *    a. identity token in approvedGrantTokens → allow (reinvocation grant)
- *    b. otherwise → record denial, deny
+ *    b. category in leasedCategories → allow (run-lifetime scoped lease)
+ *    c. otherwise → record denial, deny
  *    (read-only / ungated built-ins fall through → allow)
  */
 
@@ -149,8 +152,8 @@ function buildNodeIdentityScript(): string {
  *
  * The script reads a JSON state file written by the cursor-runner before
  * each agent.send() call. The state file is the single source of truth
- * for the dynamic approval inputs (autoApproveAll, mcpToolPolicies,
- * approvedGrantTokens). The static policy (which built-ins are gated and their
+ * for the dynamic approval inputs (autoApproveAll, leasedCategories,
+ * mcpToolPolicies, approvedGrantTokens). The static policy (which built-ins are gated and their
  * categories, and which arg fields are salient) is baked into the script at
  * generation time from approval-policy.ts.
  *
@@ -325,6 +328,15 @@ fi
 if [ -n "$CATEGORY" ]; then
   # Reinvocation grant: this exact resource was approved earlier → allow.
   if echo "$STATE" | grep -qF "\\"$TOKEN\\""; then
+    echo '{"permission":"allow"}'
+    exit 0
+  fi
+  # Run-lifetime category lease: the user chose "approve all <category>" earlier
+  # in this run (the scoped successor to autoApproveAll), so every built-in of
+  # this category is allowed for the rest of the run. Matched within the extracted
+  # leasedCategories array so a category word elsewhere in the state can't grant.
+  LEASED_CATEGORIES=$(echo "$STATE" | grep -o '"leasedCategories":\\[[^]]*\\]' | head -1 || true)
+  if [ -n "$LEASED_CATEGORIES" ] && echo "$LEASED_CATEGORIES" | grep -q "\\"$CATEGORY\\""; then
     echo '{"permission":"allow"}'
     exit 0
   fi

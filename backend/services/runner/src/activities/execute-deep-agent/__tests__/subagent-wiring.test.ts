@@ -71,7 +71,7 @@ describe("buildSubAgentMiddleware", () => {
 
   it("installs the approval gate when an approvalGate config is provided", () => {
     const stack = buildSubAgentMiddleware({
-      approvalGate: { policies: new Map(), autoApproveAll: false, toolServerMap: new Map() },
+      approvalGate: { policies: new Map(), toolServerMap: new Map() },
     });
 
     // loop, budget, truncation, approval gate
@@ -98,7 +98,7 @@ describe("buildSubAgentMiddleware", () => {
 
     const stack = buildSubAgentMiddleware({
       costCap: parentCostCap,
-      approvalGate: { policies: new Map(), autoApproveAll: false, toolServerMap: new Map() },
+      approvalGate: { policies: new Map(), toolServerMap: new Map() },
     });
 
     // loop, budget, truncation, approval gate, cost cap view

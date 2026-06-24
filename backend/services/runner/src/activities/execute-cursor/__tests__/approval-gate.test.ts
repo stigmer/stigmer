@@ -196,18 +196,26 @@ describe("buildApprovalState", () => {
 
   it("carries MCP policies and exact-resource grant tokens (gated set is baked into the hook, not the state)", () => {
     const grants = [{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt" }];
-    const state = buildApprovalState(mcpPolicies, false, grants);
+    const state = buildApprovalState(mcpPolicies, false, new Set(), grants);
 
     expect(state.autoApproveAll).toBe(false);
+    expect(state.leasedCategories).toEqual([]);
     expect(state.mcpToolPolicies.apply_x).toEqual({ requiresApproval: true, message: "Apply X" });
     expect(state.approvedGrantTokens).toEqual([grantToken("write", "/x/gated.txt")]);
     // builtInGatedList is no longer part of the state file (baked into the hook).
-    expect((state as Record<string, unknown>).builtInGatedList).toBeUndefined();
+    expect((state as unknown as Record<string, unknown>).builtInGatedList).toBeUndefined();
+  });
+
+  it("writes leasedCategories for run-lifetime scoped leases", () => {
+    const state = buildApprovalState(mcpPolicies, false, new Set(["shell", "write"]));
+    expect(state.autoApproveAll).toBe(false);
+    expect(state.leasedCategories.sort()).toEqual(["shell", "write"]);
   });
 
   it("defaults grants to empty when none provided", () => {
-    const state = buildApprovalState(mcpPolicies, true);
+    const state = buildApprovalState(mcpPolicies, true, new Set());
     expect(state.autoApproveAll).toBe(true);
+    expect(state.leasedCategories).toEqual([]);
     expect(state.approvedGrants).toEqual([]);
     expect(state.approvedGrantTokens).toEqual([]);
   });

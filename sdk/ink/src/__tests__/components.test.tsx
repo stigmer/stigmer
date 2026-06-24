@@ -164,7 +164,7 @@ describe("ToolCallItem", () => {
 });
 
 describe("ApprovalPrompt", () => {
-  it("offers Approve, Approve & don't ask again, Reject, and Skip", () => {
+  it("offers Approve, scope-truthful approve-all, Reject, and Skip", () => {
     const pending = create(PendingApprovalSchema);
     pending.toolCallId = "tc-1";
     pending.toolName = "write_file";
@@ -174,7 +174,8 @@ describe("ApprovalPrompt", () => {
     );
     const output = lastFrame() ?? "";
     expect(output).toContain("[y] Approve");
-    expect(output).toContain("[a] Approve & don't ask again");
+    // write_file leases the "file edits" class — the label names that class.
+    expect(output).toContain("[a] Approve all file edits");
     expect(output).toContain("[n] Reject");
     expect(output).toContain("[s] Skip");
   });

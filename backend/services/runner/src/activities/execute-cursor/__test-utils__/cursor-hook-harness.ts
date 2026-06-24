@@ -23,7 +23,7 @@ import { join } from "node:path";
 
 import { generateHookScript } from "../hook-script.js";
 import { buildApprovalState, type ApprovalGrant, type McpToolPolicyEntry } from "../approval-state.js";
-import type { MergedToolPolicy } from "../approval-policy.js";
+import type { MergedToolPolicy, ApprovalCategory } from "../approval-policy.js";
 
 /**
  * Whether `bash` is available on this machine. Hook tests must be skipped where
@@ -48,7 +48,10 @@ export interface CursorHookHarness {
 }
 
 export interface CursorHookHarnessOptions {
+  /** Pre-armed spec.auto_approve_all (the whole-run global bypass). */
   autoApproveAll?: boolean;
+  /** Built-in categories with a run-lifetime scoped lease. */
+  leasedCategories?: ApprovalCategory[];
   grants?: ApprovalGrant[];
   mcpPolicies?: Record<string, McpToolPolicyEntry>;
   /** Omit the state file to exercise the fail-closed (deny) path. */
@@ -90,7 +93,12 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
         },
       ]),
     );
-    const state = buildApprovalState(policies, opts.autoApproveAll ?? false, opts.grants);
+    const state = buildApprovalState(
+      policies,
+      opts.autoApproveAll ?? false,
+      new Set(opts.leasedCategories ?? []),
+      opts.grants,
+    );
     writeFileSync(statePath, JSON.stringify(state), "utf-8");
   }
 

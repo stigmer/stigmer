@@ -82,7 +82,7 @@ export function createDeepAgentActivities(config: Config) {
         statusBuilder.setApprovalProvider({
           policies: setup.approvalPolicies,
           toolServerMap: setup.toolServerMap,
-          autoApproveAll: setup.autoApproveAll,
+          globalBypass: setup.globalBypass,
         });
 
         const resume = resolveResumeInput(
@@ -156,7 +156,7 @@ export function createDeepAgentActivities(config: Config) {
           approvalProvider: {
             policies: setup.approvalPolicies,
             toolServerMap: setup.toolServerMap,
-            autoApproveAll: setup.autoApproveAll,
+            globalBypass: setup.globalBypass,
           },
           streamVersion: setup.streamVersion,
         });
@@ -179,7 +179,7 @@ export function createDeepAgentActivities(config: Config) {
           return result.terminalStatus;
         }
 
-        if (!setup.autoApproveAll) {
+        if (!setup.globalBypass) {
           const graphState = await setup.agentGraph.getState(setup.langgraphConfig);
           const graphMessages = (graphState.values as { messages?: unknown }).messages;
           const aiMessages = Array.isArray(graphMessages) ? graphMessages : [];

@@ -162,7 +162,7 @@ describe("buildMergedConfig", () => {
 });
 
 describe("installHitlGate / removeHitlGate", () => {
-  const approvalState = buildApprovalState(new Map(), false);
+  const approvalState = buildApprovalState(new Map(), false, new Set());
 
   function dirs() {
     const root = freshRoot();

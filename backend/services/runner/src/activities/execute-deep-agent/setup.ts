@@ -51,7 +51,7 @@ import {
 } from "../../shared/artifact-storage.js";
 import {
   mergeApprovalPolicies,
-  hasApproveAllDecision,
+  deriveActiveLeases,
   type MergedToolPolicy,
 } from "../../shared/approval-policy.js";
 import {
@@ -85,7 +85,13 @@ export interface SetupResult {
   readonly provisionResults: readonly ProvisionResult[];
   readonly approvalPolicies: ReadonlyMap<string, MergedToolPolicy>;
   readonly toolServerMap: ReadonlyMap<string, string>;
-  readonly autoApproveAll: boolean;
+  /**
+   * Pre-armed spec.auto_approve_all — the one unscoped, whole-run bypass. When
+   * true the approval gate is not installed at all. Interactive "approve all"
+   * decisions are NOT folded in here; they become scoped leases applied inside
+   * the gate (see ActiveLeases / deriveActiveLeases).
+   */
+  readonly globalBypass: boolean;
   readonly hasStructuredOutput: boolean;
   readonly streamVersion: "v2" | "v3";
   /** Race-free before/after captures from the wrapped FilesystemBackend. */
@@ -284,34 +290,35 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       }
     }
 
-    // Step 10b: Resolve approval policies
+    // Step 10b: Resolve approval policies + leases.
     //
-    // Effective auto-approve is true when EITHER the execution was pre-armed via
-    // spec.auto_approve_all (CLI --auto-approve, API, CI/CD) OR a user chose
-    // APPROVE_ALL ("approve and don't ask again") at some gate earlier in this
-    // run. In both cases the gate is disabled for the rest of the execution, and
-    // the value propagates to mergeApprovalPolicies and (below) to sub-agents so
-    // they inherit it. See the ApprovalAction doc in enum.proto.
-    const autoApproveAll =
-      (execution.spec!.autoApproveAll ?? false) || hasApproveAllDecision(execution);
+    // Two distinct bypasses (see ActiveLeases): the pre-armed
+    // spec.auto_approve_all is the one whole-run global bypass; an interactive
+    // APPROVE_ALL grants a run-lifetime lease scoped to that action's class (its
+    // built-in category, or its MCP server). Server leases shape the policy map
+    // (leased servers dropped); built-in category leases are applied inside the
+    // gate. Both flow into sub-agents via the shared config below.
+    const leases = deriveActiveLeases(execution);
+    const globalBypass = leases.global;
     const agentOverrides = agent.spec!.mcpServerUsages?.flatMap(
       u => u.toolApprovalOverrides ?? [],
     ) ?? [];
     const approvalPolicies = mergeApprovalPolicies(
       resolvedMcpServers?.resolvedServers ?? [],
       agentOverrides,
-      autoApproveAll,
+      leases,
     );
 
     // The approval gate config is the single source of truth for HITL gating,
     // built once and inherited verbatim by sub-agents (so a mutating tool inside
-    // a sub-agent is gated identically to one in the parent). Null under
-    // auto-approve-all, where the gate is inert. The per-execution fingerprint
-    // key (runner master secret + execution_id) drives the shadow ExecutionReceipt.
-    const approvalGateConfig: ApprovalGateConfig | null = !autoApproveAll
+    // a sub-agent is gated identically to one in the parent). Null under the
+    // global pre-arm, where the gate is inert; under scoped leases the gate stays
+    // active and clears only leased categories. The per-execution fingerprint key
+    // (runner master secret + execution_id) drives the shadow ExecutionReceipt.
+    const approvalGateConfig: ApprovalGateConfig | null = !globalBypass
       ? {
           policies: approvalPolicies,
-          autoApproveAll,
+          leasedCategories: leases.categories,
           toolServerMap,
           fingerprintKey: deriveExecutionFingerprintKey(
             getRunnerHitlMasterSecret(),
@@ -468,7 +475,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       provisionResults,
       approvalPolicies,
       toolServerMap,
-      autoApproveAll,
+      globalBypass,
       hasStructuredOutput: !!outputSchema,
       streamVersion,
       fileChangeBuffer,

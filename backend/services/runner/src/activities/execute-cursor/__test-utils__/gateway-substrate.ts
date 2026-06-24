@@ -25,6 +25,7 @@ import {
   hookMcp,
 } from "./cursor-hook-harness.js";
 import { toolIdentity, type ApprovalGrant } from "../approval-state.js";
+import type { ApprovalCategory } from "../approval-policy.js";
 import type {
   GatewayDecision,
   GatewayOutcome,
@@ -81,11 +82,24 @@ async function decide(grants: ApprovalGrant[], action: ProposedAction): Promise<
   return { executed, gated: !executed };
 }
 
+// A gated built-in's contract kind IS its approval category (write/shell/delete),
+// so it doubles as the leasedCategories entry the hook reads.
+function leaseCategoryOf(action: ProposedAction): ApprovalCategory {
+  if (action.kind === "read" || action.kind === "mcp") {
+    throw new Error(`leaseCategoryOf: ${action.kind} is not a leasable built-in class`);
+  }
+  return action.kind;
+}
+
 export function createCursorSubstrate(): GatewaySubstrate {
   return {
     name: "cursor",
     available: hasBash,
-    capabilities: { observesExecution: false, enforcesExactResource: true },
+    capabilities: {
+      observesExecution: false,
+      enforcesExactResource: true,
+      appliesRunLifetimeLease: true,
+    },
 
     async authorize(action: ProposedAction, decision: GatewayDecision): Promise<GatewayOutcome> {
       const grants = decision === "approve" ? [grantFor(action)] : [];
@@ -94,6 +108,16 @@ export function createCursorSubstrate(): GatewaySubstrate {
 
     async authorizeAfterGrant(granted: ProposedAction, probe: ProposedAction): Promise<GatewayOutcome> {
       return decide([grantFor(granted)], probe);
+    },
+
+    async authorizeUnderClassLease(leased: ProposedAction, probe: ProposedAction): Promise<GatewayOutcome> {
+      // A run-lifetime category lease is carried in the state file (no per-call
+      // grant), exactly as the runner writes it after an APPROVE_ALL; the hook
+      // allows a probe iff its category is leased.
+      const harness = setupCursorHookHarness({ leasedCategories: [leaseCategoryOf(leased)] });
+      const { permission } = harness.decide(hookInputFor(probe));
+      const executed = permission === "allow";
+      return { executed, gated: !executed };
     },
   };
 }

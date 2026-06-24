@@ -38,11 +38,13 @@ const (
 //   - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
 //   - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
 //   - REJECT: Execution fails with rejection error, phase becomes FAILED
-//   - APPROVE_ALL: Like APPROVE for the clicked tool, but also resolves the rest
-//     of the current gate — every other tool call still WAITING_APPROVAL (root
-//     and sub-agents) is set to APPROVE. pending_approvals becomes empty, so the
-//     gate resolves in one action. The runner then treats the rest of the
-//     execution as auto-approved (see ApprovalAction doc in enum.proto).
+//   - APPROVE_ALL: Like APPROVE for the clicked tool, and also auto-approves the
+//     co-pending tool calls of the SAME lease class (the clicked tool's built-in
+//     category, or its MCP server — see approval.DeriveLeaseScope). Co-pending
+//     calls of a different class stay WAITING_APPROVAL, so pending_approvals
+//     becomes empty (and the gate resolves) only when no other-class approval is
+//     outstanding. The runner then auto-approves only that class for the rest of
+//     the execution (a run-lifetime lease, see ApprovalAction doc in enum.proto).
 //
 // ## Immediate State Transitions (in this handler)
 //
@@ -300,15 +302,16 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 			tc.ApprovalAction = action
 			tc.ApprovalDecidedAt = now
 
-			// APPROVE_ALL ("approve and don't ask again") resolves the entire
-			// current gate in one decision: every other tool call still waiting
-			// for approval (root and sub-agents) is auto-approved. The clicked
-			// tool keeps APPROVE_ALL as its recorded action — that single entry
-			// marks where the user opted into trusting the rest of the run; the
-			// co-pending tools carry a plain APPROVE so the audit trail stays
-			// honest (every executed tool shows an explicit decision). The runner
-			// detects the APPROVE_ALL decision in history and skips the gate for
-			// all subsequent tool calls in this execution.
+			// APPROVE_ALL ("approve all of this kind") grants a run-lifetime lease
+			// scoped to the clicked tool's class: every co-pending tool call of
+			// the SAME class (root and sub-agents) is auto-approved; co-pending
+			// calls of a different class stay WAITING_APPROVAL. The clicked tool
+			// keeps APPROVE_ALL as its recorded action — that single entry marks
+			// where the user opted into trusting that class for the rest of the
+			// run; the matched co-pending tools carry a plain APPROVE so the audit
+			// trail stays honest (every executed tool shows an explicit decision).
+			// The runner detects the APPROVE_ALL decision in history and derives
+			// the same scope to auto-approve only that class going forward.
 			if action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
 				bulkApproveCoPendingToolCalls(updated, toolCallId, now)
 			}
@@ -543,16 +546,38 @@ func (s *buildApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*agente
 }
 
 // bulkApproveCoPendingToolCalls implements the gate-resolving half of an
-// APPROVE_ALL decision. It scans the same surface as findToolCallInExecution
-// (root messages and sub-agent messages) and sets every tool call still
-// WAITING_APPROVAL with no recorded decision to APPROVE.
+// APPROVE_ALL decision, SCOPED to the clicked tool's lease class. It scans the
+// same surface as findToolCallInExecution (root messages and sub-agent messages)
+// and sets every co-pending tool call (still WAITING_APPROVAL, no decision)
+// whose lease scope MATCHES the clicked tool's scope to APPROVE. Co-pending tool
+// calls of a DIFFERENT class stay WAITING_APPROVAL.
+//
+// This scoping is required for correctness, not cosmetics. APPROVE_ALL now means
+// "approve all of THIS kind" (the clicked tool's built-in category, or its MCP
+// server — see approval.DeriveLeaseScope), not "approve everything". If a write
+// and a shell are co-pending and the user approves-all the shell, the write must
+// remain pending: pending_approvals must still list it, and the
+// approvalGateResolved signal must NOT fire (the SignalWorkflow step keys off a
+// non-empty pending_approvals), so the workflow keeps waiting for the write.
 //
 // The tool the user clicked (clickedToolCallID) is skipped here — its action is
-// already set to APPROVE_ALL by the caller. Recording APPROVE on the co-pending
-// tools (rather than APPROVE_ALL) keeps the audit trail unambiguous: exactly one
-// tool carries APPROVE_ALL, marking the user's escalation point.
+// already set to APPROVE_ALL by the caller. Recording APPROVE on the matched
+// co-pending tools (rather than APPROVE_ALL) keeps the audit trail unambiguous:
+// exactly one tool carries APPROVE_ALL, marking the user's escalation point.
 func bulkApproveCoPendingToolCalls(execution *agentexecutionv1.AgentExecution, clickedToolCallID, decidedAt string) {
-	approveIfWaiting := func(tc *agentexecutionv1.ToolCall) {
+	clicked := findToolCallInExecution(execution, clickedToolCallID)
+	if clicked == nil {
+		return
+	}
+	clickedScope, ok := approval.DeriveLeaseScope(clicked)
+	if !ok {
+		// The clicked tool has no leasable scope (an unknown/ungated name that
+		// somehow carried APPROVE_ALL). Nothing else can match it, so approve no
+		// co-pending tools. Defensive — a gated tool always has a scope.
+		return
+	}
+
+	approveIfWaitingInScope := func(tc *agentexecutionv1.ToolCall) {
 		if tc.GetId() == clickedToolCallID {
 			return
 		}
@@ -562,19 +587,23 @@ func bulkApproveCoPendingToolCalls(execution *agentexecutionv1.AgentExecution, c
 		if tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
 			return
 		}
+		// Only co-pending tools of the SAME lease class are auto-approved.
+		if scope, ok := approval.DeriveLeaseScope(tc); !ok || scope != clickedScope {
+			return
+		}
 		tc.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
 		tc.ApprovalDecidedAt = decidedAt
 	}
 
 	for _, msg := range execution.GetStatus().GetMessages() {
 		for _, tc := range msg.GetToolCalls() {
-			approveIfWaiting(tc)
+			approveIfWaitingInScope(tc)
 		}
 	}
 	for _, sa := range execution.GetStatus().GetSubAgentExecutions() {
 		for _, msg := range sa.GetMessages() {
 			for _, tc := range msg.GetToolCalls() {
-				approveIfWaiting(tc)
+				approveIfWaitingInScope(tc)
 			}
 		}
 	}

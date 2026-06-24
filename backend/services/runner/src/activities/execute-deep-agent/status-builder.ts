@@ -52,7 +52,13 @@ type EventHandler = (event: StreamEvent, namespace: string) => void;
 export interface ApprovalPolicyProvider {
   readonly policies: ReadonlyMap<string, MergedToolPolicy>;
   readonly toolServerMap: ReadonlyMap<string, string>;
-  readonly autoApproveAll: boolean;
+  /**
+   * Pre-armed spec.auto_approve_all (the one whole-run global bypass). Built-ins
+   * are never gated by the status builder regardless, and server-scoped leases
+   * are already reflected in `policies` (leased servers dropped), so this flag is
+   * the only lease input the status builder needs.
+   */
+  readonly globalBypass: boolean;
 }
 
 export class StatusBuilder {
@@ -308,7 +314,7 @@ export class StatusBuilder {
 
     const serverSlug = this.approvalProvider.toolServerMap.get(toolName) ?? "";
 
-    if (this.approvalProvider.autoApproveAll) {
+    if (this.approvalProvider.globalBypass) {
       return { requiresApproval: false, message: "", serverSlug };
     }
 

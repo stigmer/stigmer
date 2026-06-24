@@ -22,9 +22,11 @@
  *     (capability: enforcesExactResource).
  * 10. exact-resource: approving write /a never authorizes write /b
  *     (capability: enforcesExactResource).
+ * 11. class-lease isolation: APPROVE_ALL on class A auto-approves later class-A
+ *     actions but never class B (capability: appliesRunLifetimeLease).
  *
- * Capability-gated invariants (9, 10) run only where the substrate's lease binds
- * the exact resource; the "executes exactly once" count in (2) is asserted only
+ * Capability-gated invariants (9, 10, 11) run only where the substrate supports
+ * the relevant lease; the "executes exactly once" count in (2) is asserted only
  * where the substrate observes execution. Differences are gated, never forked —
  * the same philosophy as the conformance suite's CapabilityFlags.
  */
@@ -110,6 +112,34 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
       it("never lets one tool's approval authorize another tool (invariant 9)", async () => {
         const crossTool = await afterGrant(WRITE_A, SHELL);
         expect(crossTool.executed, `${substrate.name}: approving a write must never authorize a shell`).toBe(false);
+      });
+    }
+
+    // Invariant 11: a run-lifetime CLASS lease (APPROVE_ALL) auto-approves later
+    // actions of the SAME class but never a different class — the core Phase-7
+    // scoped-lease safety property, enforced independently on each substrate (the
+    // gate clears leased categories; the hook reads leasedCategories).
+    if (substrate.capabilities.appliesRunLifetimeLease && substrate.authorizeUnderClassLease) {
+      const underLease = substrate.authorizeUnderClassLease.bind(substrate);
+
+      it("a class lease auto-approves that class and ONLY that class (invariant 11)", async () => {
+        // Lease "write": a later write of a DIFFERENT resource runs ungated...
+        const sameClass = await underLease(WRITE_A, WRITE_B);
+        expect(sameClass.executed, `${substrate.name}: a write lease must auto-approve another write`).toBe(true);
+
+        // ...but later actions of OTHER classes are still gated, never leaked.
+        const shellUnderWrite = await underLease(WRITE_A, SHELL);
+        expect(shellUnderWrite.executed, `${substrate.name}: a write lease must NOT authorize a shell`).toBe(false);
+
+        const deleteUnderWrite = await underLease(WRITE_A, DELETE);
+        expect(deleteUnderWrite.executed, `${substrate.name}: a write lease must NOT authorize a delete`).toBe(false);
+
+        // Symmetry: a shell lease auto-approves shell but not write.
+        const shellUnderShell = await underLease(SHELL, { kind: "shell", resource: "make build" });
+        expect(shellUnderShell.executed, `${substrate.name}: a shell lease must auto-approve another shell`).toBe(true);
+
+        const writeUnderShell = await underLease(SHELL, WRITE_A);
+        expect(writeUnderShell.executed, `${substrate.name}: a shell lease must NOT authorize a write`).toBe(false);
       });
     }
   });

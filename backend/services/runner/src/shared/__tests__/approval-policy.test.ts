@@ -11,7 +11,8 @@ import {
   mergeApprovalPolicies,
   lookupMcpToolPolicy,
   resolveApprovalMessage,
-  hasApproveAllDecision,
+  deriveActiveLeases,
+  type ActiveLeases,
   type MergedToolPolicy,
 } from "../approval-policy.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
@@ -19,31 +20,57 @@ import type { ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/ag
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
+/** No active leases — the default gate-everything state used by most merge tests. */
+const NO_LEASES: ActiveLeases = { global: false, categories: new Set(), servers: new Set() };
+
+/** ActiveLeases with the given scopes; `global` defaults to false. */
+function leases(opts: {
+  global?: boolean;
+  categories?: Array<"write" | "delete" | "shell">;
+  servers?: string[];
+}): ActiveLeases {
+  return {
+    global: opts.global ?? false,
+    categories: new Set(opts.categories ?? []),
+    servers: new Set(opts.servers ?? []),
+  };
+}
+
+/** A single tool call shaped just enough for deriveActiveLeases. */
+interface TestToolCall {
+  approvalAction: ApprovalAction;
+  name?: string;
+  mcpServerSlug?: string;
+}
+
 /**
- * Builds a minimal AgentExecution shaped just enough for
- * hasApproveAllDecision, which only reads tool-call approval actions on
- * root and sub-agent messages.
+ * Builds a minimal AgentExecution shaped just enough for deriveActiveLeases,
+ * which reads each tool call's approval action plus its name / mcp_server_slug
+ * (the scope inputs) on root and sub-agent messages, and spec.auto_approve_all.
  */
 function makeExecution(opts: {
-  rootActions?: ApprovalAction[];
-  subAgentActions?: ApprovalAction[];
+  rootCalls?: TestToolCall[];
+  subAgentCalls?: TestToolCall[];
+  autoApproveAll?: boolean;
   hasStatus?: boolean;
 }): AgentExecution {
   const hasStatus = opts.hasStatus ?? true;
+  const spec = { autoApproveAll: opts.autoApproveAll ?? false };
   if (!hasStatus) {
-    return { status: undefined } as unknown as AgentExecution;
+    return { spec, status: undefined } as unknown as AgentExecution;
   }
+  const toCalls = (calls: TestToolCall[] = []) =>
+    calls.map(c => ({
+      approvalAction: c.approvalAction,
+      name: c.name ?? "",
+      mcpServerSlug: c.mcpServerSlug ?? "",
+    }));
   return {
+    spec,
     status: {
-      messages: [
-        { toolCalls: (opts.rootActions ?? []).map(a => ({ approvalAction: a })) },
-      ],
+      messages: [{ toolCalls: toCalls(opts.rootCalls) }],
       subAgentExecutions: [
-        {
-          messages: [
-            { toolCalls: (opts.subAgentActions ?? []).map(a => ({ approvalAction: a })) },
-          ],
-        },
+        { messages: [{ toolCalls: toCalls(opts.subAgentCalls) }] },
       ],
     },
   } as unknown as AgentExecution;
@@ -70,10 +97,20 @@ function makeServer(
 }
 
 describe("mergeApprovalPolicies", () => {
-  it("returns empty map when autoApproveAll is true", () => {
+  it("returns empty map under a global lease (spec.auto_approve_all)", () => {
     const servers = [makeServer("github", [{ toolName: "push" }])];
-    const result = mergeApprovalPolicies(servers, [], true);
+    const result = mergeApprovalPolicies(servers, [], leases({ global: true }));
     expect(result.size).toBe(0);
+  });
+
+  it("drops a leased server's tools while keeping other servers gated", () => {
+    const servers = [
+      makeServer("github", [{ toolName: "push" }]),
+      makeServer("database", [{ toolName: "drop_table" }]),
+    ];
+    const result = mergeApprovalPolicies(servers, [], leases({ servers: ["github"] }));
+    expect(result.has("github/push")).toBe(false);
+    expect(result.has("database/drop_table")).toBe(true);
   });
 
   it("creates policies from toolApprovals", () => {
@@ -82,7 +119,7 @@ describe("mergeApprovalPolicies", () => {
         { toolName: "create_issue", message: "Create issue?" },
       ]),
     ];
-    const result = mergeApprovalPolicies(servers, [], false);
+    const result = mergeApprovalPolicies(servers, [], NO_LEASES);
 
     expect(result.size).toBe(1);
     const policy = result.get("github/create_issue")!;
@@ -99,7 +136,7 @@ describe("mergeApprovalPolicies", () => {
         [{ toolName: "push", message: "pinned message" }],
       ),
     ];
-    const result = mergeApprovalPolicies(servers, [], false);
+    const result = mergeApprovalPolicies(servers, [], NO_LEASES);
 
     const policy = result.get("github/push")!;
     expect(policy.approvalMessage).toBe("pinned message");
@@ -115,7 +152,7 @@ describe("mergeApprovalPolicies", () => {
       message: "",
     }] as any[];
 
-    const result = mergeApprovalPolicies(servers, overrides, false);
+    const result = mergeApprovalPolicies(servers, overrides, NO_LEASES);
     expect(result.size).toBe(0);
   });
 
@@ -127,14 +164,14 @@ describe("mergeApprovalPolicies", () => {
       message: "Really delete?",
     }] as any[];
 
-    const result = mergeApprovalPolicies(servers, overrides, false);
+    const result = mergeApprovalPolicies(servers, overrides, NO_LEASES);
     expect(result.has("github/delete_repo")).toBe(true);
   });
 
   describe("provenance (source stamping)", () => {
     it("stamps classifier_default for a layer-1 tool approval", () => {
       const servers = [makeServer("github", [{ toolName: "create_issue" }])];
-      const result = mergeApprovalPolicies(servers, [], false);
+      const result = mergeApprovalPolicies(servers, [], NO_LEASES);
       expect(result.get("github/create_issue")!.source).toBe("classifier_default");
     });
 
@@ -142,7 +179,7 @@ describe("mergeApprovalPolicies", () => {
       const servers = [
         makeServer("github", [{ toolName: "push" }], [{ toolName: "push" }]),
       ];
-      const result = mergeApprovalPolicies(servers, [], false);
+      const result = mergeApprovalPolicies(servers, [], NO_LEASES);
       expect(result.get("github/push")!.source).toBe("pinned_override");
     });
 
@@ -153,7 +190,7 @@ describe("mergeApprovalPolicies", () => {
         requiresApproval: true,
         message: "Really delete?",
       }] as any[];
-      const result = mergeApprovalPolicies(servers, overrides, false);
+      const result = mergeApprovalPolicies(servers, overrides, NO_LEASES);
       expect(result.get("github/delete_repo")!.source).toBe("agent_override");
     });
 
@@ -166,7 +203,7 @@ describe("mergeApprovalPolicies", () => {
         requiresApproval: true,
         message: "agent says gate",
       }] as any[];
-      const result = mergeApprovalPolicies(servers, overrides, false);
+      const result = mergeApprovalPolicies(servers, overrides, NO_LEASES);
       const policy = result.get("github/push")!;
       expect(policy.source).toBe("agent_override");
       expect(policy.approvalMessage).toBe("agent says gate");
@@ -177,7 +214,7 @@ describe("mergeApprovalPolicies", () => {
     const servers = [
       makeServer("github", [{ toolName: "" }]),
     ];
-    const result = mergeApprovalPolicies(servers, [], false);
+    const result = mergeApprovalPolicies(servers, [], NO_LEASES);
     expect(result.size).toBe(0);
   });
 
@@ -185,7 +222,7 @@ describe("mergeApprovalPolicies", () => {
     const servers = [
       makeServer("github", [{ toolName: "push" }]),
     ];
-    const result = mergeApprovalPolicies(servers, [], false);
+    const result = mergeApprovalPolicies(servers, [], NO_LEASES);
     expect(result.get("github/push")!.approvalMessage).toContain("Execute tool: push");
   });
 
@@ -194,39 +231,88 @@ describe("mergeApprovalPolicies", () => {
       makeServer("github", [{ toolName: "push" }]),
       makeServer("database", [{ toolName: "drop_table" }]),
     ];
-    const result = mergeApprovalPolicies(servers, [], false);
+    const result = mergeApprovalPolicies(servers, [], NO_LEASES);
     expect(result.size).toBe(2);
     expect(result.has("github/push")).toBe(true);
     expect(result.has("database/drop_table")).toBe(true);
   });
 });
 
-describe("hasApproveAllDecision", () => {
-  it("returns false when there is no status", () => {
-    expect(hasApproveAllDecision(makeExecution({ hasStatus: false }))).toBe(false);
+describe("deriveActiveLeases", () => {
+  it("returns no leases when there is no status", () => {
+    const result = deriveActiveLeases(makeExecution({ hasStatus: false }));
+    expect(result.global).toBe(false);
+    expect(result.categories.size).toBe(0);
+    expect(result.servers.size).toBe(0);
   });
 
-  it("returns false when no tool call carries APPROVE_ALL", () => {
+  it("returns no scoped leases when no tool call carries APPROVE_ALL", () => {
     const exec = makeExecution({
-      rootActions: [ApprovalAction.APPROVE, ApprovalAction.SKIP],
-      subAgentActions: [ApprovalAction.REJECT],
+      rootCalls: [
+        { approvalAction: ApprovalAction.APPROVE, name: "shell" },
+        { approvalAction: ApprovalAction.SKIP, name: "write" },
+      ],
+      subAgentCalls: [{ approvalAction: ApprovalAction.REJECT, name: "delete" }],
     });
-    expect(hasApproveAllDecision(exec)).toBe(false);
+    const result = deriveActiveLeases(exec);
+    expect(result.categories.size).toBe(0);
+    expect(result.servers.size).toBe(0);
   });
 
-  it("detects APPROVE_ALL on a root message tool call", () => {
-    const exec = makeExecution({
-      rootActions: [ApprovalAction.APPROVE, ApprovalAction.APPROVE_ALL],
-    });
-    expect(hasApproveAllDecision(exec)).toBe(true);
+  it("reflects the global pre-arm from spec.auto_approve_all", () => {
+    const result = deriveActiveLeases(makeExecution({ autoApproveAll: true }));
+    expect(result.global).toBe(true);
   });
 
-  it("detects APPROVE_ALL on a sub-agent message tool call", () => {
+  it("derives a built-in CATEGORY lease from an APPROVE_ALL on a built-in", () => {
     const exec = makeExecution({
-      rootActions: [ApprovalAction.APPROVE],
-      subAgentActions: [ApprovalAction.APPROVE_ALL],
+      rootCalls: [{ approvalAction: ApprovalAction.APPROVE_ALL, name: "shell" }],
     });
-    expect(hasApproveAllDecision(exec)).toBe(true);
+    const result = deriveActiveLeases(exec);
+    expect([...result.categories]).toEqual(["shell"]);
+    expect(result.servers.size).toBe(0);
+  });
+
+  it("collapses FILE_WRITE and FILE_EDIT to a single 'write' category lease", () => {
+    const exec = makeExecution({
+      rootCalls: [
+        { approvalAction: ApprovalAction.APPROVE_ALL, name: "write_file" },
+        { approvalAction: ApprovalAction.APPROVE_ALL, name: "edit_file" },
+      ],
+    });
+    expect([...deriveActiveLeases(exec).categories]).toEqual(["write"]);
+  });
+
+  it("derives a SERVER lease from an APPROVE_ALL on an MCP tool", () => {
+    const exec = makeExecution({
+      rootCalls: [
+        { approvalAction: ApprovalAction.APPROVE_ALL, name: "create_issue", mcpServerSlug: "github" },
+      ],
+    });
+    const result = deriveActiveLeases(exec);
+    expect([...result.servers]).toEqual(["github"]);
+    expect(result.categories.size).toBe(0);
+  });
+
+  it("derives leases from sub-agent tool calls too", () => {
+    const exec = makeExecution({
+      subAgentCalls: [
+        { approvalAction: ApprovalAction.APPROVE_ALL, name: "delete" },
+        { approvalAction: ApprovalAction.APPROVE_ALL, name: "drop", mcpServerSlug: "database" },
+      ],
+    });
+    const result = deriveActiveLeases(exec);
+    expect([...result.categories]).toEqual(["delete"]);
+    expect([...result.servers]).toEqual(["database"]);
+  });
+
+  it("does not lease a read-only built-in (no category) on APPROVE_ALL", () => {
+    const exec = makeExecution({
+      rootCalls: [{ approvalAction: ApprovalAction.APPROVE_ALL, name: "read" }],
+    });
+    const result = deriveActiveLeases(exec);
+    expect(result.categories.size).toBe(0);
+    expect(result.servers.size).toBe(0);
   });
 });
 

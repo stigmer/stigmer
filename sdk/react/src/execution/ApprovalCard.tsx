@@ -7,6 +7,7 @@ import { cn } from "@stigmer/theme";
 import {
   resolveToolCategoryFromKind,
   extractPrimaryArgFromPreview,
+  type ToolCategory,
 } from "./tool-categories";
 import { CATEGORY_ICON } from "./ToolCallItem";
 import { ToolArgsView } from "./ToolArgsView";
@@ -114,6 +115,16 @@ export const ApprovalCard = memo(function ApprovalCard({
     }
   }, [pendingApproval.argsPreview]);
 
+  // APPROVE_ALL now grants a run-lifetime lease scoped to the clicked tool's
+  // CLASS — its MCP server for an MCP tool, else its approval category (where
+  // write and edit collapse to one "file edits" class, mirroring the runner's
+  // toolApprovalCategory). The label must name that exact class so the button
+  // never over-promises: it does NOT silence other classes.
+  const approveAllLabel = useMemo(
+    () => buildApproveAllLabel(categoryInfo.category, pendingApproval.mcpServerSlug),
+    [categoryInfo.category, pendingApproval.mcpServerSlug],
+  );
+
   const borderClass =
     categoryInfo.category === "delete"
       ? "border-destructive/30 bg-destructive-subtle"
@@ -197,11 +208,14 @@ export const ApprovalCard = memo(function ApprovalCard({
             variant="approve"
             cursorTarget="approve-button"
           />
-          {/* Subordinate escalation: approve this call and stop asking for the
-              rest of the run. Kept visually quieter than the primary Approve so
-              it never competes with the per-call decision the user is making. */}
+          {/* Subordinate escalation: approve this call and stop asking for THIS
+              CLASS of tool for the rest of the run (its MCP server, or its file
+              edit / delete / shell category) — other classes keep prompting. The
+              label names the leased class so the scope is never a surprise. Kept
+              visually quieter than the primary Approve so it never competes with
+              the per-call decision the user is making. */}
           <ActionButton
-            label="Approve & don't ask again"
+            label={approveAllLabel}
             action={ApprovalAction.APPROVE_ALL}
             activeAction={activeAction}
             isSubmitting={isSubmitting}
@@ -230,6 +244,41 @@ export const ApprovalCard = memo(function ApprovalCard({
     </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds the truthful APPROVE_ALL button label for a tool's lease class.
+ *
+ * The lease an APPROVE_ALL grants is scoped to ONE class: the MCP server for an
+ * MCP tool, otherwise the approval category (write/delete/shell) — where the
+ * presentation "write" and "edit" categories collapse to a single "file edits"
+ * class, exactly as the runner's `toolApprovalCategory` collapses FILE_WRITE and
+ * FILE_EDIT to "write". The label names that class so the button never implies a
+ * broader effect than the lease actually has. The generic fallback only applies
+ * to a tool with no leasable class, which is not normally gated for approval.
+ */
+function buildApproveAllLabel(
+  category: ToolCategory,
+  mcpServerSlug: string,
+): string {
+  if (mcpServerSlug) {
+    return `Approve all ${mcpServerSlug} tools`;
+  }
+  switch (category) {
+    case "shell":
+      return "Approve all shell commands";
+    case "delete":
+      return "Approve all file deletions";
+    case "write":
+    case "edit":
+      return "Approve all file edits";
+    default:
+      return "Approve all of this kind";
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Internal sub-components
