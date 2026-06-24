@@ -151,8 +151,10 @@ func TestEmitProducesRequestAndDecisionEvents(t *testing.T) {
 	if req.GetEventType() != agentexecutionv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED {
 		t.Errorf("event[0] type = %v, want REQUESTED", req.GetEventType())
 	}
+	// approval_request_id == tool_call_id is a deliberate identity decision, not a
+	// placeholder — see TestApprovalRequestIDEqualsToolCallID_DeliberateInvariant.
 	if req.GetRequested().GetApprovalRequestId() != "tc1" {
-		t.Errorf("approval_request_id = %q, want %q (== tool_call_id in Phase 1)", req.GetRequested().GetApprovalRequestId(), "tc1")
+		t.Errorf("approval_request_id = %q, want %q (== tool_call_id by design)", req.GetRequested().GetApprovalRequestId(), "tc1")
 	}
 
 	dec := stream.GetEvents()[1]
@@ -161,6 +163,51 @@ func TestEmitProducesRequestAndDecisionEvents(t *testing.T) {
 	}
 	if dec.GetDecided().GetAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
 		t.Errorf("decision action = %v, want APPROVE_ALL preserved on payload", dec.GetDecided().GetAction())
+	}
+}
+
+// TestApprovalRequestIDEqualsToolCallID_DeliberateInvariant guards the identity
+// decision recorded in
+// _projects/2026-06/20260624.01.hitl-approval-architecture/design-decisions/approval-request-id-equals-tool-call-id.md:
+// approval_request_id == tool_call_id, deliberately and indefinitely — NOT a
+// Phase-1 placeholder for a later minted UUID. Minting a random id would split a
+// REQUESTED from the DECISION that resolves it under the lock-free Cloud write
+// model, stranding a phantom pending approval. If a future change mints an
+// independent approval_request_id, this guard fails loudly so that change is
+// forced to first satisfy the mint-trigger and the safe-minting rules in the doc.
+// It also pins event_id to the deterministic (tool_call_id:type) idempotency
+// anchor that the same decision keeps stable.
+func TestApprovalRequestIDEqualsToolCallID_DeliberateInvariant(t *testing.T) {
+	const toolCallID = "tc-identity"
+	waiting := agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL
+	approve := agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
+
+	tc := makeToolCall(toolCallID, "delete_file", waiting, true, approve)
+	tc.ApprovalDecidedAt = "2026-03-27T10:05:00Z"
+
+	stream := EmitApprovalEvents([]*agentexecutionv1.AgentMessage{makeAIMessage(tc)}, nil)
+	if len(stream.GetEvents()) != 2 {
+		t.Fatalf("got %d events, want 2 (requested + decided)", len(stream.GetEvents()))
+	}
+
+	req := stream.GetEvents()[0]
+	if got := req.GetApprovalRequestId(); got != toolCallID {
+		t.Errorf("REQUESTED event approval_request_id = %q, want %q (== tool_call_id by design)", got, toolCallID)
+	}
+	if got := req.GetRequested().GetApprovalRequestId(); got != toolCallID {
+		t.Errorf("ApprovalRequest.approval_request_id = %q, want %q (== tool_call_id by design)", got, toolCallID)
+	}
+	wantReqEventID := toolCallID + ":" + agentexecutionv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED.String()
+	if got := req.GetEventId(); got != wantReqEventID {
+		t.Errorf("REQUESTED event_id = %q, want deterministic %q", got, wantReqEventID)
+	}
+
+	dec := stream.GetEvents()[1]
+	if got := dec.GetApprovalRequestId(); got != toolCallID {
+		t.Errorf("DECISION event approval_request_id = %q, want %q (correlates to the same tool_call_id)", got, toolCallID)
+	}
+	if got := dec.GetDecided().GetApprovalRequestId(); got != toolCallID {
+		t.Errorf("ApprovalDecision.approval_request_id = %q, want %q (correlates to the same tool_call_id)", got, toolCallID)
 	}
 }
 

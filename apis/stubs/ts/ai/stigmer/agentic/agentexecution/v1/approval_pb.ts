@@ -302,9 +302,9 @@ export const ChildApprovalNotificationSchema: GenMessage<ChildApprovalNotificati
  */
 export type ApprovalRequest = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalRequest"> & {
   /**
-   * Stigmer-generated correlation id for this approval, stable across harness
-   * re-drives. In Phase 1 (events derived from tool calls) this equals
-   * tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+   * Correlation id shared by every event for this approval. Equal to
+   * tool_call_id by a deliberate decision (see the file header); the reserved
+   * seam for a future independent id, not a temporary placeholder.
    *
    * @generated from field: string approval_request_id = 1;
    */
@@ -517,8 +517,10 @@ export const ApprovalDecisionSchema: GenMessage<ApprovalDecision> = /*@__PURE__*
  */
 export type ApprovalEvent = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalEvent"> & {
   /**
-   * Unique id of this event. In Phase 1 (derived events) it is deterministic
-   * (derived from approval_request_id + event_type) so re-derivation is stable.
+   * Unique id of this event, deterministic by design: derived from
+   * tool_call_id + event_type. This is the permanent idempotency key for
+   * append-only authoring (a single approval has at most one event per type), so
+   * re-deriving or re-authoring the stream never duplicates an event.
    *
    * @generated from field: string event_id = 1;
    */

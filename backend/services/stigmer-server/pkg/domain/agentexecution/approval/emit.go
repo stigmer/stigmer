@@ -94,11 +94,14 @@ func isGatedToolCall(tc *agentexecutionv1.ToolCall) bool {
 // buildRequestedEvent constructs the REQUESTED event for a gated tool call.
 // Callers must have confirmed isGatedToolCall(tc).
 //
-// approval_request_id equals the harness tool_call_id: a stable, deterministic
-// correlation id for the run (never a content hash). The ApprovalRequest payload
-// carries the same display fields as PendingApproval so the event-stream
-// projection reconstructs the identical PendingApproval the message scan does
-// (compute.go), without joining back to the ToolCall.
+// approval_request_id equals the harness tool_call_id by a deliberate, documented
+// decision (see the "approval-request-id-equals-tool-call-id" HITL design
+// decision): tool_call_id is already a stable, run-unique correlation key, so a
+// separately minted id would be parallel state with no reader — and a random one
+// would break the lock-free Cloud write model. It is never a content hash. The
+// ApprovalRequest payload carries the same display fields as PendingApproval so
+// the event-stream projection reconstructs the identical PendingApproval the
+// message scan does (compute.go), without joining back to the ToolCall.
 func buildRequestedEvent(
 	tc *agentexecutionv1.ToolCall,
 	fromSubAgent bool,
@@ -205,9 +208,10 @@ func decisionEventType(action agentexecutionv1.ApprovalAction) agentexecutionv1.
 	}
 }
 
-// eventID derives a deterministic event id so re-deriving the shadow stream from
-// the same tool calls yields stable ids (no churn between projections). A single
-// approval has at most one event per type, so (request_id, type) is unique.
+// eventID derives a deterministic event id from (request_id, type). This is the
+// permanent idempotency anchor for append-only authoring, not a provisional
+// scheme: a single approval has at most one event per type, so (request_id, type)
+// is unique and re-deriving or re-authoring the stream never duplicates an event.
 func eventID(requestID string, eventType agentexecutionv1.ApprovalEventType) string {
 	return requestID + ":" + eventType.String()
 }

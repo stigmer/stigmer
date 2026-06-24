@@ -75,9 +75,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object approvalRequestId_ = "";
   /**
    * <pre>
-   * Stigmer-generated correlation id for this approval, stable across harness
-   * re-drives. In Phase 1 (events derived from tool calls) this equals
-   * tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+   * Correlation id shared by every event for this approval. Equal to
+   * tool_call_id by a deliberate decision (see the file header); the reserved
+   * seam for a future independent id, not a temporary placeholder.
    * </pre>
    *
    * <code>string approval_request_id = 1 [json_name = "approvalRequestId"];</code>
@@ -98,9 +98,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Stigmer-generated correlation id for this approval, stable across harness
-   * re-drives. In Phase 1 (events derived from tool calls) this equals
-   * tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+   * Correlation id shared by every event for this approval. Equal to
+   * tool_call_id by a deliberate decision (see the file header); the reserved
+   * seam for a future independent id, not a temporary placeholder.
    * </pre>
    *
    * <code>string approval_request_id = 1 [json_name = "approvalRequestId"];</code>
@@ -1293,9 +1293,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object approvalRequestId_ = "";
     /**
      * <pre>
-     * Stigmer-generated correlation id for this approval, stable across harness
-     * re-drives. In Phase 1 (events derived from tool calls) this equals
-     * tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+     * Correlation id shared by every event for this approval. Equal to
+     * tool_call_id by a deliberate decision (see the file header); the reserved
+     * seam for a future independent id, not a temporary placeholder.
      * </pre>
      *
      * <code>string approval_request_id = 1 [json_name = "approvalRequestId"];</code>
@@ -1315,9 +1315,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer-generated correlation id for this approval, stable across harness
-     * re-drives. In Phase 1 (events derived from tool calls) this equals
-     * tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+     * Correlation id shared by every event for this approval. Equal to
+     * tool_call_id by a deliberate decision (see the file header); the reserved
+     * seam for a future independent id, not a temporary placeholder.
      * </pre>
      *
      * <code>string approval_request_id = 1 [json_name = "approvalRequestId"];</code>
@@ -1338,9 +1338,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer-generated correlation id for this approval, stable across harness
-     * re-drives. In Phase 1 (events derived from tool calls) this equals
-     * tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+     * Correlation id shared by every event for this approval. Equal to
+     * tool_call_id by a deliberate decision (see the file header); the reserved
+     * seam for a future independent id, not a temporary placeholder.
      * </pre>
      *
      * <code>string approval_request_id = 1 [json_name = "approvalRequestId"];</code>
@@ -1357,9 +1357,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer-generated correlation id for this approval, stable across harness
-     * re-drives. In Phase 1 (events derived from tool calls) this equals
-     * tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+     * Correlation id shared by every event for this approval. Equal to
+     * tool_call_id by a deliberate decision (see the file header); the reserved
+     * seam for a future independent id, not a temporary placeholder.
      * </pre>
      *
      * <code>string approval_request_id = 1 [json_name = "approvalRequestId"];</code>
@@ -1373,9 +1373,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer-generated correlation id for this approval, stable across harness
-     * re-drives. In Phase 1 (events derived from tool calls) this equals
-     * tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+     * Correlation id shared by every event for this approval. Equal to
+     * tool_call_id by a deliberate decision (see the file header); the reserved
+     * seam for a future independent id, not a temporary placeholder.
      * </pre>
      *
      * <code>string approval_request_id = 1 [json_name = "approvalRequestId"];</code>

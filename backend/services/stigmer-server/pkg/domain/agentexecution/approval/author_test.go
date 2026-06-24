@@ -177,6 +177,11 @@ func TestAuthoredStreamProjectsToScan(t *testing.T) {
 	}
 }
 
+// findDecisionEvent locates a decision by approval_request_id. Callers pass a
+// tool_call_id, which works because approval_request_id == tool_call_id is a
+// deliberate invariant (see TestApprovalRequestIDEqualsToolCallID_DeliberateInvariant
+// in project_test.go and the HITL "approval-request-id-equals-tool-call-id"
+// design decision).
 func findDecisionEvent(t *testing.T, stream *agentexecutionv1.ApprovalEventStream, requestID string) *agentexecutionv1.ApprovalEvent {
 	t.Helper()
 	for _, ev := range stream.GetEvents() {

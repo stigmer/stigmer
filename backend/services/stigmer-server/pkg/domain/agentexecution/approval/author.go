@@ -37,7 +37,10 @@ import (
 // keeping the parity check a real cross-writer guard rather than a tautology.
 //
 // executionID stamps the stream's identity on first seed; it is informational and
-// never used for correlation (that is approval_request_id == tool_call_id).
+// never used for correlation. Correlation is by approval_request_id, which equals
+// tool_call_id by a deliberate, documented decision (see the
+// "approval-request-id-equals-tool-call-id" HITL design decision) — not a
+// temporary placeholder for a future minted UUID.
 func EnsureApprovalRequests(status *agentexecutionv1.AgentExecutionStatus, executionID string) {
 	if status == nil {
 		return

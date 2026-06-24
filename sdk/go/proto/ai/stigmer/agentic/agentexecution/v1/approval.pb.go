@@ -384,9 +384,9 @@ func (x *ChildApprovalNotification) GetPendingApprovals() []*PendingApproval {
 // co-located with the approval).
 type ApprovalRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stigmer-generated correlation id for this approval, stable across harness
-	// re-drives. In Phase 1 (events derived from tool calls) this equals
-	// tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.
+	// Correlation id shared by every event for this approval. Equal to
+	// tool_call_id by a deliberate decision (see the file header); the reserved
+	// seam for a future independent id, not a temporary placeholder.
 	ApprovalRequestId string `protobuf:"bytes,1,opt,name=approval_request_id,json=approvalRequestId,proto3" json:"approval_request_id,omitempty"`
 	// Harness tool-call id of the gated call. Matches ToolCall.id; the bridge
 	// between today's message scan and the event stream.
@@ -710,8 +710,10 @@ func (x *ApprovalDecision) GetComment() string {
 // SKIPPED carry an ApprovalDecision; RETRACTED carries an ApprovalRetraction.
 type ApprovalEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Unique id of this event. In Phase 1 (derived events) it is deterministic
-	// (derived from approval_request_id + event_type) so re-derivation is stable.
+	// Unique id of this event, deterministic by design: derived from
+	// tool_call_id + event_type. This is the permanent idempotency key for
+	// append-only authoring (a single approval has at most one event per type), so
+	// re-deriving or re-authoring the stream never duplicates an event.
 	EventId string `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	// Correlation id shared by every event for one approval (request + decision).
 	ApprovalRequestId string `protobuf:"bytes,2,opt,name=approval_request_id,json=approvalRequestId,proto3" json:"approval_request_id,omitempty"`

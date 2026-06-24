@@ -35,6 +35,7 @@ go_test(
         "policy_source_corpus_test.go",
         "preserve_test.go",
         "project_test.go",
+        "retraction_test.go",
     ],
     embed = [":approval"],
     deps = [

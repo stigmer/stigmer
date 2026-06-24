@@ -2507,7 +2507,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique id of this event. In Phase 1 (derived events) it is deterministic\n (derived from approval_request_id + event_type) so re-derivation is stable.",
+          "description": "Unique id of this event, deterministic by design: derived from\n tool_call_id + event_type. This is the permanent idempotency key for\n append-only authoring (a single approval has at most one event per type), so\n re-deriving or re-authoring the stream never duplicates an event.",
           "required": false
         },
         {
@@ -2641,7 +2641,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Stigmer-generated correlation id for this approval, stable across harness\n re-drives. In Phase 1 (events derived from tool calls) this equals\n tool_call_id; a later phase authors a distinct UUID at SubmitApproval time.",
+          "description": "Correlation id shared by every event for this approval. Equal to\n tool_call_id by a deliberate decision (see the file header); the reserved\n seam for a future independent id, not a temporary placeholder.",
           "required": false
         },
         {

@@ -12,8 +12,10 @@ public interface ApprovalEventOrBuilder extends
 
   /**
    * <pre>
-   * Unique id of this event. In Phase 1 (derived events) it is deterministic
-   * (derived from approval_request_id + event_type) so re-derivation is stable.
+   * Unique id of this event, deterministic by design: derived from
+   * tool_call_id + event_type. This is the permanent idempotency key for
+   * append-only authoring (a single approval has at most one event per type), so
+   * re-deriving or re-authoring the stream never duplicates an event.
    * </pre>
    *
    * <code>string event_id = 1 [json_name = "eventId"];</code>
@@ -22,8 +24,10 @@ public interface ApprovalEventOrBuilder extends
   java.lang.String getEventId();
   /**
    * <pre>
-   * Unique id of this event. In Phase 1 (derived events) it is deterministic
-   * (derived from approval_request_id + event_type) so re-derivation is stable.
+   * Unique id of this event, deterministic by design: derived from
+   * tool_call_id + event_type. This is the permanent idempotency key for
+   * append-only authoring (a single approval has at most one event per type), so
+   * re-deriving or re-authoring the stream never duplicates an event.
    * </pre>
    *
    * <code>string event_id = 1 [json_name = "eventId"];</code>
