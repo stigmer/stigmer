@@ -5,6 +5,31 @@ import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1
 
 const DEFAULT_ORG = "default";
 
+/**
+ * Ensures the OSS `default` organization exists on a freshly-booted stack.
+ *
+ * In OSS, `FindMyOrganizations` lists every `Organization` entity in the store
+ * (no IAM filtering), and the web's `OrgGate` blocks all authenticated routes
+ * until at least one exists. A fresh e2e server starts with an empty store and
+ * nothing auto-seeds an org — so without this, every seeded resource lives under
+ * the `default` string namespace while the browser is stuck on the
+ * "Create an organization" onboarding screen.
+ *
+ * This mirrors a first-run OSS user creating their org through
+ * `CreateOrganizationForm` (organizations are self-owning: slug == org).
+ * Idempotent — a no-op when the org already exists (e.g. a reused stack).
+ */
+export async function ensureDefaultOrg(client: Stigmer): Promise<void> {
+  const existing = await client.organization.findMyOrganizations();
+  if (existing.entries.some((o) => o.metadata?.slug === DEFAULT_ORG)) return;
+
+  await client.organization.create({
+    name: "Default",
+    slug: DEFAULT_ORG,
+    org: DEFAULT_ORG,
+  });
+}
+
 export interface TestAgentResult {
   id: string;
   slug: string;

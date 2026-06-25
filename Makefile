@@ -430,7 +430,7 @@ tidy: ## Run go mod tidy on all Go modules
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
-       test-web test-desktop test-runner-host test-e2e check check-all \
+       test-web test-desktop test-runner-host test-e2e test-e2e-approval check check-all \
        check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
@@ -580,6 +580,15 @@ test-e2e-smoke: ## Run Playwright smoke tests against a deployed instance (set S
 
 test-e2e-all: ## Run all Playwright E2E tests (smoke + functional)
 	cd test/e2e && npm ci && npx playwright install --with-deps chromium && npx playwright test
+
+test-e2e-approval: ## Run the deterministic HITL approval E2E (mock LLM, serial, full backend stack)
+	# Install workspace deps from the ROOT (matches .github/workflows/ci.e2e.yaml).
+	# `cd test/e2e && npm ci` would prune the root-hoisted packages because
+	# test/e2e is a workspace member — fine in isolated CI, but it breaks a local
+	# monorepo checkout. The browser fetch stays scoped to test/e2e.
+	npm ci
+	cd test/e2e && npx playwright install --with-deps chromium && \
+		STIGMER_E2E_MOCK_LLM=1 npx playwright test --project=interactive-approval --workers=1
 
 # Parallel CI gate.
 #

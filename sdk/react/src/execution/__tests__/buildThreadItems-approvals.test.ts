@@ -268,3 +268,37 @@ describe("buildThreadItems — approve-all transcript renders faithfully (client
     ).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Active-execution dedupe (regression for the duplicate-key flake)
+//
+// The hook passes `completedExecutions` (filtered on activeExecutionId) plus
+// `activeStreamExecution` (resolved from stream.execution ??
+// fetchedActiveExecution). A transient skew between those two sources can leave
+// the active execution in BOTH inputs. Without deduping, the same execution is
+// emitted twice → duplicate React keys → React drops one subtree, intermittently
+// the one carrying a live ApprovalCard, so the gate buttons vanish ("0 approvals
+// needed"). buildThreadItems must treat activeStreamExecution as authoritative
+// for its id and emit each execution exactly once.
+// ---------------------------------------------------------------------------
+
+describe("buildThreadItems — active-execution dedupe", () => {
+  it("emits each execution once when the active one is in BOTH inputs (no duplicate keys)", () => {
+    const exec = execution({
+      messages: [aiWithTools([toolCall("tc-edit", "edit_file")])],
+      pendingApprovals: [approval("tc-edit", "edit_file")],
+    });
+
+    // Same execution arrives via the list AND as the active stream copy.
+    const items = buildThreadItems([exec], exec, null, true, undefined);
+
+    const keys = items.map((i) => i.key);
+    expect(new Set(keys).size).toBe(keys.length); // all keys unique
+    // Exactly one synthetic spec message and one tool group survive.
+    expect(items.filter((i) => i.kind === "message")).toHaveLength(1);
+    expect(items.filter((i) => i.kind === "tool-group")).toHaveLength(1);
+    // The inline gate is preserved (not dropped with a duplicated subtree).
+    expect(hasToolInGroup(items, "tc-edit")).toBe(true);
+    expect(approvalItems(items)).toHaveLength(0);
+  });
+});

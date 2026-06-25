@@ -297,8 +297,23 @@ export function buildThreadItems(
   // a task-spawn call (rendered as a SubAgentSection, not a tool row) is NOT
   // collected, so its spawn-gate approval still surfaces at the bottom.
   const inlineToolCallIds = new Set<string>();
+  // Dedupe by execution id, with activeStreamExecution authoritative for its own
+  // id. The hook passes `completedExecutions` (filtered on activeExecutionId),
+  // but that filter and activeStreamExecution (stream.execution ??
+  // fetchedActiveExecution) derive from different sources, so a transient skew
+  // can leave the active execution in BOTH lists. Concatenating blindly then
+  // emits the same execution twice → duplicate React keys → React silently drops
+  // one subtree, intermittently the one carrying a live ApprovalCard (the gate
+  // buttons vanish). Dropping any prior entry sharing the active id keeps the
+  // streamed copy as the single source of truth and the append-at-end invariant
+  // (activeStreamIndex === last) intact.
   const allExecutions = activeStreamExecution
-    ? [...executions, activeStreamExecution]
+    ? [
+        ...executions.filter(
+          (e) => e.metadata?.id !== activeStreamExecution.metadata?.id,
+        ),
+        activeStreamExecution,
+      ]
     : executions;
   const activeStreamIndex = activeStreamExecution
     ? allExecutions.length - 1
