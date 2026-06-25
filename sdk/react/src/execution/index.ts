@@ -95,8 +95,17 @@ export type { SetupProgressProps } from "./SetupProgress";
 export { ToolCallGroup } from "./ToolCallGroup";
 export type { ToolCallGroupProps } from "./ToolCallGroup";
 
+export { ToolRunGroup } from "./ToolRunGroup";
+export type { ToolRunGroupProps } from "./ToolRunGroup";
+
+export { segmentToolCalls } from "./segment-tool-calls";
+export type { ToolSegment } from "./segment-tool-calls";
+
 export { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 export type { ToolCallDetailProps } from "./ToolCallDetail";
+
+export { ToolCallPreview } from "./ToolCallPreview";
+export type { ToolCallPreviewProps } from "./ToolCallPreview";
 
 export { describeApprovalPolicySource } from "./approval-provenance";
 
@@ -205,6 +214,7 @@ export {
   extractPrimaryArgFromPreview,
   humanizeToolName,
   defaultDisclosureForCategory,
+  isRunGroupableCategory,
 } from "./tool-categories";
 export type { ToolCategory, ToolCategoryInfo, ToolDisclosure } from "./tool-categories";
 

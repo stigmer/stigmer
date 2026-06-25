@@ -215,6 +215,111 @@ export async function seedGatedSession(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Node-client seeding — ungated tool run that completes (for disclosure specs)
+// ---------------------------------------------------------------------------
+
+/** A single `read_file` block (built-in, approval category `read` — never gated). */
+export function readFileBlock(toolCallId: string, filePath: string): ToolUseBlock {
+  return { toolCallId, toolName: "read_file", toolInput: { file_path: filePath } };
+}
+
+export interface SeedToolRunSessionOptions {
+  /** Org to seed in. Defaults to the OSS `default` org. */
+  readonly org?: string;
+  /**
+   * SEQUENTIAL tool_use turns to run to completion. Defaults to a single
+   * `write_file` turn. Every call runs un-gated because the execution is created
+   * with `auto_approve_all`, so the run drives straight through to
+   * `EXECUTION_COMPLETED` with no approval interrupt — the deterministic shape a
+   * disclosure spec needs to assert that *settled* rows persist.
+   *
+   * NOTE on tool choice: the native deep-agent harness exposes the `deepagents`
+   * built-ins (write_file / read_file / ls / edit_file / task); `shell` is a
+   * sub-agent type, not a directly-callable tool. So the e2e exercises a
+   * write/read row (the persistence guarantee is category-agnostic); the
+   * shell/MCP *bounded-preview* rendering is proven exhaustively at the jsdom
+   * layer, where the result shape is controllable without a live MCP fixture.
+   */
+  readonly toolTurns?: ToolUseBlock[][];
+  /** The user message that triggers the run. */
+  readonly message?: string;
+}
+
+/**
+ * Seeds an agent + native session + an `auto_approve_all` AgentExecution that
+ * runs the given tool turns to completion, then a terminating text turn. Sibling
+ * of {@link seedGatedSession} (the seeding shape is deliberately parallel; the
+ * one difference is `autoApproveAll: true` + no gate), kept separate so the
+ * proven, sensitive gated path is untouched.
+ *
+ * The browser is then used only to assert the *rendered timeline* — that
+ * completed tool rows stay visible after the run settles, rather than collapsing
+ * behind a single "Ran N tools" pill.
+ */
+export async function seedToolRunSession(
+  client: Stigmer,
+  control: MockControl,
+  opts: SeedToolRunSessionOptions = {},
+): Promise<SeededGatedExecution> {
+  const org = opts.org ?? DEFAULT_ORG;
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const toolTurns: ToolUseBlock[][] =
+    opts.toolTurns ??
+    [[writeFileBlock("call_run_1", "/tmp/e2e-tool-run.txt", "hello from e2e")]];
+
+  const agent = await client.agent.create({
+    name: `e2e-toolrun-agent-${stamp}`,
+    org,
+    instructions: "You are a test assistant for the tool-disclosure e2e.",
+  });
+  const agentId = agent.metadata!.id;
+  const agentInstanceId = agent.status!.defaultInstanceId;
+
+  const session = await client.session.create({
+    name: `e2e-toolrun-session-${stamp}`,
+    org,
+    agentInstanceId,
+    harness: Harness.NATIVE,
+  });
+  const sessionId = session.metadata!.id;
+
+  for (const turn of toolTurns) {
+    await control.enqueue(anthropicToolUses(turn));
+  }
+  await control.enqueue(anthropicText("Done."));
+
+  const execution = await client.agentExecution.create({
+    name: `e2e-toolrun-exec-${stamp}`,
+    org,
+    sessionId,
+    message: opts.message ?? "Please run the tools.",
+    // The whole point: no gate, so the run settles deterministically and the
+    // spec can assert on the COMPLETED timeline.
+    autoApproveAll: true,
+  });
+  const executionId = execution.metadata!.id;
+
+  return {
+    sessionId,
+    executionId,
+    cleanup: async () => {
+      await withTimeout(
+        client.agentExecution.terminate(
+          create(TerminateAgentExecutionInputSchema, {
+            id: executionId,
+            reason: "e2e tool-run spec teardown",
+          }),
+        ),
+        3_000,
+      ).catch(() => {});
+      await withTimeout(client.agentExecution.delete(executionId), 5_000).catch(() => {});
+      await withTimeout(client.session.delete(sessionId), 5_000).catch(() => {});
+      await withTimeout(client.agent.delete(agentId), 5_000).catch(() => {});
+    },
+  };
+}
+
 /**
  * Resolves `p`, or rejects after `ms` — so a best-effort cleanup call against a
  * wedged backend can never block the suite. The losing promise is abandoned
@@ -368,4 +473,23 @@ export function autoApproveIndicator(page: Page): Locator {
 /** The scrollable message thread container. */
 export function messageThread(page: Page): Locator {
   return page.getByRole("log");
+}
+
+// ---------------------------------------------------------------------------
+// Tool-call disclosure locators (persistent-row timeline)
+// ---------------------------------------------------------------------------
+
+/** A persistent tool-call row in the timeline. */
+export function toolCallRow(scope: Page | Locator): Locator {
+  return scope.locator('[data-cursor-target="tool-call-row"]');
+}
+
+/** A folded "Read N files" run chip. */
+export function toolRunGroup(scope: Page | Locator): Locator {
+  return scope.locator('[data-cursor-target="tool-run-group"]');
+}
+
+/** The "Show more" affordance on a settled row's bounded preview. */
+export function toolPreviewExpand(scope: Page | Locator): Locator {
+  return scope.locator('[data-cursor-target="tool-preview-expand"]');
 }

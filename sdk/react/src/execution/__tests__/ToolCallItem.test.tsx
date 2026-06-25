@@ -46,29 +46,59 @@ function expanded(container: HTMLElement): boolean {
 
 describe("ToolCallItem disclosure", () => {
   it("keeps a settled summary tool collapsed", () => {
+    // Edit is a genuine `summary` category — its one-line row (file + ± stats)
+    // tells the story, so it neither force-opens nor shows a bounded preview.
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
-          name: "Shell",
-          args: { command: "ls" },
-          result: "files",
+          name: "StrReplace",
+          args: { path: "/x.ts", old_string: "a", new_string: "b" },
+          result: '{"status":"success","value":{"linesAdded":1,"linesRemoved":1}}',
         })}
       />,
     );
     expect(expanded(container)).toBe(false);
+    expect(screen.queryByText("Show more")).toBeNull();
   });
 
-  it("foregrounds a settled preview (MCP) tool", () => {
+  it("shows a settled preview (MCP) tool as a bounded preview, not force-open", () => {
+    // New model: a settled `preview` row is NOT force-expanded. It keeps a
+    // bounded ToolCallPreview (aria-expanded stays false) with "Show more" to
+    // reach the full detail — so the result stays visible without burying the
+    // thread in expanded panels.
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
           name: "send_message",
           mcpServerSlug: "acme/slack",
-          result: "{}",
+          result: '{"ok":true}',
         })}
       />,
     );
+    expect(expanded(container)).toBe(false);
+    const showMore = screen.getByText("Show more");
+    expect(showMore).toBeTruthy();
+
+    // "Show more" promotes the row to full detail via its own toggle.
+    fireEvent.click(showMore);
     expect(expanded(container)).toBe(true);
+  });
+
+  it("keeps a settled shell tool's output as a bounded preview", () => {
+    // Shell is a `preview` category: its output IS the information, so a settled
+    // shell row persists a bounded preview of stdout with a "Show more" affordance.
+    const { container } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          name: "Shell",
+          args: { command: "echo hello" },
+          result: "hello",
+        })}
+      />,
+    );
+    expect(expanded(container)).toBe(false);
+    expect(screen.getByText("hello")).toBeTruthy();
+    expect(screen.getByText("Show more")).toBeTruthy();
   });
 
   it("foregrounds a running tool regardless of category", () => {
@@ -92,9 +122,39 @@ describe("ToolCallItem disclosure", () => {
     const { container, rerender } = render(
       <ToolCallItem
         toolCall={makeToolCall({
+          id: "tc-edit",
+          name: "StrReplace",
+          args: { path: "/x.ts", old_string: "a", new_string: "b" },
+          status: ToolCallStatus.TOOL_CALL_RUNNING,
+        })}
+      />,
+    );
+    expect(expanded(container)).toBe(true);
+
+    rerender(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          id: "tc-edit",
+          name: "StrReplace",
+          args: { path: "/x.ts", old_string: "a", new_string: "b" },
+          result: '{"status":"success","value":{"linesAdded":1,"linesRemoved":1}}',
+          status: ToolCallStatus.TOOL_CALL_COMPLETED,
+        })}
+      />,
+    );
+    expect(expanded(container)).toBe(false);
+    expect(screen.queryByText("Show more")).toBeNull();
+  });
+
+  it("settles a running shell tool to a bounded preview", () => {
+    // A running shell force-opens full detail; on completion it settles to the
+    // persistent bounded preview (not force-open, but not hidden either).
+    const { container, rerender } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
           id: "tc-shell",
           name: "Shell",
-          args: { command: "ls" },
+          args: { command: "echo hello" },
           status: ToolCallStatus.TOOL_CALL_RUNNING,
         })}
       />,
@@ -106,13 +166,14 @@ describe("ToolCallItem disclosure", () => {
         toolCall={makeToolCall({
           id: "tc-shell",
           name: "Shell",
-          args: { command: "ls" },
-          result: "files",
+          args: { command: "echo hello" },
+          result: "hello",
           status: ToolCallStatus.TOOL_CALL_COMPLETED,
         })}
       />,
     );
     expect(expanded(container)).toBe(false);
+    expect(screen.getByText("Show more")).toBeTruthy();
   });
 
   it("foregrounds a gated tool and renders its approval actions inline", () => {

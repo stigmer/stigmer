@@ -78,11 +78,20 @@ describe("useToolPresentation", () => {
 
   describe("disclosure", () => {
     it("keeps known compact tools as summary", () => {
-      for (const name of ["Read", "StrReplace", "Shell", "Grep", "Glob"]) {
+      // Shell is intentionally excluded — it is a `preview` category (its output
+      // is the information), asserted separately below.
+      for (const name of ["Read", "StrReplace", "Grep", "Glob"]) {
         const tc = makeToolCall({ name, args: { path: "/x", command: "ls", pattern: "p" } });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.disclosure).toBe("summary");
       }
+    });
+
+    it("keeps a shell tool's output as a persistent preview", () => {
+      const tc = makeToolCall({ name: "Shell", args: { command: "ls" }, result: "files" });
+      const { result } = renderHook(() => useToolPresentation(tc));
+      expect(result.current.category).toBe("shell");
+      expect(result.current.disclosure).toBe("preview");
     });
 
     it("foregrounds MCP tools as preview", () => {
@@ -114,6 +123,37 @@ describe("useToolPresentation", () => {
         });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.disclosure).toBe("summary");
+      } finally {
+        dispose();
+      }
+    });
+  });
+
+  describe("runGroupable", () => {
+    it("folds read-only repetitive categories", () => {
+      for (const name of ["Read", "Grep", "Glob"]) {
+        const tc = makeToolCall({ name, args: { path: "/x", pattern: "p" } });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.runGroupable).toBe(true);
+      }
+    });
+
+    it("never folds high-signal categories", () => {
+      for (const name of ["Shell", "StrReplace"]) {
+        const tc = makeToolCall({ name, args: { command: "ls", path: "/x" } });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.runGroupable).toBe(false);
+      }
+    });
+
+    it("lets a registered presenter override run-grouping", () => {
+      const dispose = registerToolPresenter(ToolKind.SHELL, {
+        runGroupable: () => true,
+      });
+      try {
+        const tc = makeToolCall({ name: "Shell", args: { command: "ls" } });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.runGroupable).toBe(true);
       } finally {
         dispose();
       }

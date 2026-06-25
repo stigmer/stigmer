@@ -3,15 +3,11 @@
 import { memo, useMemo } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import {
-  ApprovalAction,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev";
-import { useAutoDisclosure } from "../internal/useAutoDisclosure";
 import { ToolCallItem } from "./ToolCallItem";
-import { resolveToolCategoryFromCall, extractPrimaryArg } from "./tool-categories";
+import { ToolRunGroup } from "./ToolRunGroup";
+import { segmentToolCalls } from "./segment-tool-calls";
 
 /** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {
@@ -25,113 +21,23 @@ export interface ToolCallGroupProps {
    */
   readonly subAgentExecutions?: readonly SubAgentExecution[];
   /**
-   * Custom summary formatter. Receives the tool calls and returns a
-   * display string. When omitted, the component uses a default that
-   * shows the tool name for single calls and a count for multiple.
+   * Custom label formatter for a folded run chip (e.g. a run of reads).
+   * Receives the run's tool calls and returns the chip's collapsed label.
+   *
+   * NOTE: the unit of summary moved from the *turn* to the *run*. This used to
+   * label the whole turn ("Ran 3 tools"); since the turn no longer collapses,
+   * it now labels each {@link ToolRunGroup} chip. The signature is unchanged.
    */
   readonly formatSummary?: (toolCalls: readonly ToolCall[]) => string;
   /**
-   * Initial expansion state. Defaults to `false`.
+   * @deprecated No-op. The turn no longer collapses as a unit — rows persist
+   * and only repetitive runs fold (see {@link ToolRunGroup}). Kept for
+   * back-compat so existing call sites keep type-checking.
    */
   readonly defaultExpanded?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
-
-type AggregateStatus = "running" | "waiting" | "failed" | "completed" | "pending";
-
-function isResolvedApproval(tc: ToolCall): boolean {
-  return (
-    tc.approvalAction === ApprovalAction.APPROVE ||
-    tc.approvalAction === ApprovalAction.SKIP ||
-    tc.approvalAction === ApprovalAction.REJECT
-  );
-}
-
-function deriveAggregateStatus(toolCalls: readonly ToolCall[]): AggregateStatus {
-  let hasRunning = false;
-  let hasWaiting = false;
-  let hasFailed = false;
-  let allTerminal = true;
-
-  for (const tc of toolCalls) {
-    switch (tc.status) {
-      case ToolCallStatus.TOOL_CALL_RUNNING:
-        hasRunning = true;
-        allTerminal = false;
-        break;
-      case ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
-        if (isResolvedApproval(tc)) {
-          break;
-        }
-        hasWaiting = true;
-        allTerminal = false;
-        break;
-      case ToolCallStatus.TOOL_CALL_FAILED:
-        hasFailed = true;
-        break;
-      case ToolCallStatus.TOOL_CALL_COMPLETED:
-      case ToolCallStatus.TOOL_CALL_SKIPPED:
-        break;
-      default:
-        allTerminal = false;
-        break;
-    }
-  }
-
-  if (hasRunning) return "running";
-  if (hasWaiting) return "waiting";
-  if (hasFailed) return "failed";
-  if (allTerminal) return "completed";
-  return "pending";
-}
-
-function defaultFormatSummary(
-  toolCalls: readonly ToolCall[],
-  status: AggregateStatus,
-): string {
-  if (toolCalls.length === 1) {
-    const tc = toolCalls[0];
-    const cat = resolveToolCategoryFromCall(tc);
-    const primary = extractPrimaryArg(tc);
-    if (primary) {
-      const truncated =
-        primary.length > 60 ? primary.slice(0, 57) + "\u2026" : primary;
-      return `${cat.label}: ${truncated}`;
-    }
-    return cat.label;
-  }
-
-  const noun = toolCalls.length === 1 ? "tool" : "tools";
-  switch (status) {
-    case "running":
-      return `Running ${toolCalls.length} ${noun}`;
-    case "waiting":
-      return "Waiting for approval";
-    case "failed":
-      return `Ran ${toolCalls.length} ${noun} (with errors)`;
-    case "completed":
-      return `Ran ${toolCalls.length} ${noun}`;
-    case "pending":
-      return `${toolCalls.length} ${noun} pending`;
-  }
-}
-
-const STATUS_ICON: Record<AggregateStatus, () => React.JSX.Element> = {
-  running: SpinnerIcon,
-  waiting: ClockIcon,
-  failed: XCircleIcon,
-  completed: CheckCircleIcon,
-  pending: DotIcon,
-};
-
-const STATUS_COLOR: Record<AggregateStatus, string> = {
-  running: "text-foreground",
-  waiting: "text-warning",
-  failed: "text-destructive",
-  completed: "text-success",
-  pending: "text-muted-foreground",
-};
 
 /**
  * Shallow comparison for `ToolCallGroupProps`.
@@ -160,23 +66,27 @@ export function toolCallGroupPropsEqual(
 }
 
 /**
- * Renders a summary line for a group of tool calls from a single
- * AI turn. Click to expand and see individual tool calls.
+ * Renders one AI turn's tool activity as a **persistent-row timeline** rather
+ * than a collapsible "Ran N tools" box. Each call stays visible after it
+ * settles, so completed work is never hidden behind a pill — the thread reads
+ * like a virtual human at work.
  *
- * Two-level progressive disclosure:
- * 1. **Collapsed** — aggregate status icon + summary label.
- * 2. **Expanded** — list of {@link ToolCallItem} rows, each
- *    expandable to show detail (args, result, error, timing) or
- *    a nested sub-agent thread.
+ * The turn is segmented by {@link segmentToolCalls}:
+ * - high-signal calls (edits, shell, MCP, sub-agents, …) render as persistent
+ *   {@link ToolCallItem} rows, each with its own Tier 2 preview / Tier 3 detail;
+ * - runs of consecutive low-signal same-category calls (read / list / search)
+ *   fold into one collapsible {@link ToolRunGroup} chip — the *only* collapse,
+ *   because that is the only genuine noise.
  *
- * Default summaries use active-voice phrasing ("Ran 3 tools",
- * "Running 2 tools") with category-aware labels for single tools
- * (e.g., "Shell: ls -la /tmp"). Platform builders can override
- * via the `formatSummary` prop.
+ * The rows are clustered under a light left rail (the neutral counterpart to
+ * {@link SubAgentSection}'s primary-tinted rail for delegated work), keeping a
+ * turn's tools visually associated with their AI message without a tab that
+ * hides things.
  *
- * Wrapped in `React.memo` with a custom comparator that checks
- * `toolCalls` elements by reference (structural sharing keeps
- * individual `ToolCall` objects stable for unchanged calls).
+ * Wrapped in `React.memo` with a custom comparator that checks `toolCalls`
+ * elements by reference (structural sharing keeps individual `ToolCall` objects
+ * stable for unchanged calls), so settled rows skip re-renders while siblings
+ * stream (DD-009/010).
  *
  * @example
  * ```tsx
@@ -187,20 +97,11 @@ export const ToolCallGroup = memo(function ToolCallGroup({
   toolCalls,
   subAgentExecutions,
   formatSummary,
-  defaultExpanded = false,
   className,
 }: ToolCallGroupProps) {
   useRenderTracer("ToolCallGroup", { toolCallCount: toolCalls.length });
 
-  const status = deriveAggregateStatus(toolCalls);
-  const isActive = status === "running" || status === "pending" || status === "waiting";
-
-  // Open while the turn is live; settle closed when it finishes — unless the
-  // user has taken manual control. Shared with ToolCallItem / SubAgentSection
-  // so the disclosure behaviour is one shape across the thread.
-  const [expanded, handleToggle] = useAutoDisclosure(isActive, {
-    initialOpen: defaultExpanded || isActive,
-  });
+  const segments = useMemo(() => segmentToolCalls(toolCalls), [toolCalls]);
 
   const subAgentMap = useMemo(() => {
     if (!subAgentExecutions || subAgentExecutions.length === 0) return null;
@@ -213,172 +114,38 @@ export const ToolCallGroup = memo(function ToolCallGroup({
 
   if (toolCalls.length === 0) return null;
 
-  const summary = formatSummary
-    ? formatSummary(toolCalls)
-    : defaultFormatSummary(toolCalls, status);
-  const Icon = STATUS_ICON[status];
-  const ariaLabel = `${summary}, ${status}`;
+  const ariaLabel = `${toolCalls.length} tool ${toolCalls.length === 1 ? "call" : "calls"}`;
 
   return (
     <div
       role="group"
       aria-label={ariaLabel}
+      data-cursor-target="tool-call-group"
       className={cn(
-        "rounded-md border border-border bg-muted-faint",
+        // A light neutral left rail clusters the turn's tools with its AI
+        // message — the counterpart to SubAgentSection's primary-tinted rail —
+        // without a card background, so a collapsed row's bounded preview fades
+        // cleanly into the thread surface.
+        "border-l-2 border-l-border-muted",
         className,
       )}
     >
-      {/* Summary trigger */}
-      <button
-        type="button"
-        aria-expanded={expanded}
-        onClick={handleToggle}
-        className={cn(
-          "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
-          "hover:bg-muted-subtle",
-          "cursor-pointer",
-        )}
-      >
-        <span className={cn("shrink-0", STATUS_COLOR[status])} aria-hidden="true">
-          <Icon />
-        </span>
-        <span className="min-w-0 flex-1 truncate">{summary}</span>
-        <ChevronIcon expanded={expanded} />
-      </button>
-
-      {/* Expanded tool call list — CSS grid-rows animation */}
-      <div
-        className={cn(
-          "grid transition-[grid-template-rows] duration-150 ease-out",
-          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-        )}
-      >
-        <div className="overflow-hidden">
-          {expanded && (
-            <div className="border-t border-border-muted">
-              {toolCalls.map((tc) => (
-                <ToolCallItem
-                  key={tc.id || tc.name}
-                  toolCall={tc}
-                  subAgentExecution={subAgentMap?.get(tc.id) ?? null}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      {segments.map((segment) =>
+        segment.kind === "run" ? (
+          <ToolRunGroup
+            key={segment.key}
+            category={segment.category}
+            toolCalls={segment.toolCalls}
+            formatLabel={formatSummary}
+          />
+        ) : (
+          <ToolCallItem
+            key={segment.key}
+            toolCall={segment.toolCall}
+            subAgentExecution={subAgentMap?.get(segment.toolCall.id) ?? null}
+          />
+        ),
+      )}
     </div>
   );
 }, toolCallGroupPropsEqual);
-
-// ---------------------------------------------------------------------------
-// Inline SVG icons — same as SP1, kept inline for SDK independence
-// ---------------------------------------------------------------------------
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="animate-spin"
-    >
-      <path
-        d="M6 1.5A4.5 4.5 0 1 1 1.5 6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M6 3.5V6L7.5 7.5" />
-    </svg>
-  );
-}
-
-function CheckCircleIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M4 6L5.5 7.5L8 4.5" />
-    </svg>
-  );
-}
-
-function XCircleIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M4.5 4.5L7.5 7.5M7.5 4.5L4.5 7.5" />
-    </svg>
-  );
-}
-
-function DotIcon() {
-  return (
-    <svg
-      width="8"
-      height="8"
-      viewBox="0 0 8 8"
-      fill="currentColor"
-    >
-      <circle cx="4" cy="4" r="3" />
-    </svg>
-  );
-}
-
-function ChevronIcon({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cn(
-        "shrink-0 text-muted-foreground transition-transform duration-150",
-        expanded && "rotate-90",
-      )}
-      aria-hidden="true"
-    >
-      <path d="M4.5 2.5L7.5 6L4.5 9.5" />
-    </svg>
-  );
-}

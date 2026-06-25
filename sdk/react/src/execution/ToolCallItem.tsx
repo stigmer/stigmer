@@ -11,6 +11,7 @@ import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure";
 import { ToolCallDetail, formatDuration } from "./ToolCallDetail";
+import { ToolCallPreview } from "./ToolCallPreview";
 import { SubAgentSection } from "./SubAgentSection";
 import { ApprovalCardBody } from "./ApprovalCard";
 import { useApproval } from "./ApprovalContext";
@@ -51,14 +52,16 @@ export interface ToolCallItemProps {
  *   detail panel — {@link ToolCallDetail}, a {@link SubAgentSection},
  *   or, when the call is gated, an inline {@link ApprovalCardBody}.
  *
- * **Disclosure (the "live progress" balance).** The panel opens on its
- * own — via {@link useAutoDisclosure} — when the call is *running*, is
- * *awaiting approval*, or its {@link useToolPresentation} category
- * defaults to `"preview"` (MCP / fetch / web-search / unknown, whose
- * result IS the information, e.g. a screenshot). Tools with a meaningful
- * one-line summary (read / edit / shell / search …) stay compact. A
- * manual click always wins thereafter. This is what restores the sense
- * of a virtual human working without flooding the thread with every row.
+ * **Disclosure (the three-tier "live progress" model).** The full detail
+ * panel opens on its own — via {@link useAutoDisclosure} — while the call is
+ * *running* or is *awaiting approval*, then settles closed. A settled row is
+ * never hidden: when its {@link useToolPresentation} category is `"preview"`
+ * (shell / MCP / fetch / web-search / unknown, whose result IS the
+ * information), it keeps a **bounded {@link ToolCallPreview}** beneath the row
+ * (Tier 2); "Show more" promotes to the full detail (Tier 3). Tools with a
+ * meaningful one-line summary (read / edit / search …) stay compact (Tier 1).
+ * A manual click always wins thereafter. This is what reads as a virtual human
+ * working — every step stays visible — without flooding the thread.
  *
  * Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
  * the primary argument as a subtitle, a category-specific icon, and
@@ -87,7 +90,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
   const isSubAgent = subAgentExecution != null;
 
-  const { category, label, primaryArg, resultSummary, disclosure } =
+  const { category, label, primaryArg, result, resultSummary, disclosure } =
     useToolPresentation(toolCall);
   const CategoryIcon = CATEGORY_ICON[category];
 
@@ -95,14 +98,13 @@ export const ToolCallItem = memo(function ToolCallItem({
   // or null. Drives the inline approval panel and forces the row open.
   const approval = useApproval(toolCall.id);
 
-  // Foreground the row when it carries live or actionable content: while it
-  // runs, while it awaits approval, or when its category's result is the
-  // information itself. Otherwise it settles to a compact summary. A manual
-  // toggle takes over from there (see useAutoDisclosure).
+  // Force the full detail open only while the row carries *live or actionable*
+  // content: while it runs, or while it awaits approval. A settled `preview`
+  // row does NOT force open — it shows a bounded ToolCallPreview instead (see
+  // below), so a running shell auto-opens full detail and then settles to the
+  // persistent preview on completion. A manual toggle takes over from there.
   const autoOpen =
-    toolCall.status === ToolCallStatus.TOOL_CALL_RUNNING ||
-    approval != null ||
-    disclosure === "preview";
+    toolCall.status === ToolCallStatus.TOOL_CALL_RUNNING || approval != null;
   const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
     initialOpen: defaultExpanded || autoOpen,
   });
@@ -178,11 +180,14 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   if (isNonExpandableRead) {
     return (
-      <div className={cn(
-        "border-b border-border-muted last:border-b-0",
-        selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
-        className,
-      )}>
+      <div
+        data-cursor-target="tool-call-row"
+        className={cn(
+          "border-b border-border-muted last:border-b-0",
+          selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
+          className,
+        )}
+      >
         <div
           className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs"
         >
@@ -211,12 +216,24 @@ export const ToolCallItem = memo(function ToolCallItem({
       ? normalize(primaryArg)
       : primaryArg;
 
+  // A settled `preview`-category row keeps a bounded result preview beneath it
+  // (Tier 2) instead of vanishing — but only when there is something to show
+  // and only while collapsed (the expanded branch already renders full detail).
+  const showPreview =
+    !isSubAgent &&
+    !expanded &&
+    disclosure === "preview" &&
+    result.type !== "empty";
+
   return (
-    <div className={cn(
-      "border-b border-border-muted last:border-b-0",
-      selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
-      className,
-    )}>
+    <div
+      data-cursor-target="tool-call-row"
+      className={cn(
+        "border-b border-border-muted last:border-b-0",
+        selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
+        className,
+      )}
+    >
       {/*
         Disclosure header is a div[role=button], not a <button>: the row carries
         a nested "Inspect tool call" <button> in its trailing content, and a
@@ -284,6 +301,10 @@ export const ToolCallItem = memo(function ToolCallItem({
             <ToolCallDetail toolCall={toolCall} />
           )}
         </div>
+      )}
+
+      {showPreview && (
+        <ToolCallPreview result={result} onShowMore={handleToggle} />
       )}
     </div>
   );

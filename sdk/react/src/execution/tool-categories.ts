@@ -28,24 +28,31 @@ export type ToolCategory =
   | "unknown";
 
 /**
- * How much of a tool call to reveal inline by default in the thread.
+ * How much of a settled tool call to reveal inline by default in the thread.
  *
  * - `"summary"` — a compact one-line row. Used when the label + primary arg +
  *   result summary already tell the story (`Read foo.ts`, `Edit bar.ts +40 -0`,
  *   `Search … 2 matches`). The full detail is one click away.
- * - `"preview"` — the result is rendered inline. Used when the one-liner cannot
- *   convey what happened, so the content itself IS the information (an MCP
- *   result such as a screenshot, a fetched page, a web-search answer, or an
- *   unrecognised tool's output).
+ * - `"preview"` — the row keeps a **bounded, persistent preview** of its result
+ *   beneath it after settling, because the one-liner cannot convey what
+ *   happened so the content itself IS the information (a shell command's output,
+ *   an MCP result such as a screenshot, a fetched page, a web-search answer, or
+ *   an unrecognised tool's output). "Show more" expands to the full detail.
+ *
+ * This is the *disclosure* axis (how much of a result to show); it is
+ * orthogonal to {@link isRunGroupableCategory} (whether consecutive same-kind
+ * calls fold into one chip). A category can be result-rich but never folded
+ * (`shell`), or foldable but never previewed (`read`).
  */
 export type ToolDisclosure = "summary" | "preview";
 
 /**
- * Categories whose result is foregrounded inline by default — those for which
- * there is no rich compact renderer, so the output carries the meaning. All
- * other categories default to `"summary"`.
+ * Categories whose result is foregrounded as a persistent bounded preview by
+ * default — those for which there is no rich compact one-liner, so the output
+ * carries the meaning. All other categories default to `"summary"`.
  */
 const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
+  "shell",
   "mcp",
   "web-search",
   "fetch",
@@ -53,15 +60,37 @@ const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
 ]);
 
 /**
+ * Low-signal categories whose consecutive runs fold into a single collapsible
+ * "Read 5 files" chip in the thread. These are the read-only, repetitive
+ * operations whose individual rows are noise in bulk; everything else renders
+ * as a persistent row. This is the *run-grouping* axis, orthogonal to
+ * {@link ToolDisclosure} — see {@link isRunGroupableCategory}.
+ */
+const RUN_GROUPABLE_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
+  "read",
+  "list",
+  "search",
+]);
+
+/**
  * Returns the default inline {@link ToolDisclosure} for a presentation
- * category. This is the headless policy behind the thread's "show MCP/unknown
- * tools live, keep generic tools compact" behaviour; consumers can override
- * per {@link ToolKind} via {@link registerToolPresenter}.
+ * category. This is the headless policy behind the thread's "keep a live
+ * preview for shell/MCP/unknown, keep generic tools compact" behaviour;
+ * consumers can override per {@link ToolKind} via {@link registerToolPresenter}.
  */
 export function defaultDisclosureForCategory(
   category: ToolCategory,
 ): ToolDisclosure {
   return PREVIEW_CATEGORIES.has(category) ? "preview" : "summary";
+}
+
+/**
+ * Returns whether a presentation category participates in run-grouping — i.e.
+ * whether a maximal run of consecutive calls of this category folds into one
+ * collapsible chip. See {@link RUN_GROUPABLE_CATEGORIES} and `segmentToolCalls`.
+ */
+export function isRunGroupableCategory(category: ToolCategory): boolean {
+  return RUN_GROUPABLE_CATEGORIES.has(category);
 }
 
 /** Resolved display metadata for a tool call, returned by {@link resolveToolCategory}. */
