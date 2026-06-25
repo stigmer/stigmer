@@ -583,6 +583,41 @@ func AnthropicToolUseResponse(toolID, toolName string, toolInput map[string]any,
 	}
 }
 
+// ToolUseBlock describes one tool_use content block of a multi-tool assistant
+// turn. Several blocks in a single turn surface as co-pending approvals — the
+// shape the co-pending idempotency case relies on.
+type ToolUseBlock struct {
+	ID    string
+	Name  string
+	Input map[string]any
+}
+
+// AnthropicMultiToolUseResponse builds an Anthropic API response that emits N
+// tool_use blocks in one assistant turn. The SSE writer already iterates content
+// blocks by index, so the blocks stream as N co-pending tool calls — used to
+// raise two approval gates from a single turn deterministically (e.g. to prove
+// approving one open gate leaves the other pending).
+func AnthropicMultiToolUseResponse(blocks []ToolUseBlock, inputTokens, outputTokens int) map[string]any {
+	content := make([]map[string]any, 0, len(blocks))
+	for _, b := range blocks {
+		content = append(content, map[string]any{
+			"type": "tool_use", "id": b.ID, "name": b.Name, "input": b.Input,
+		})
+	}
+	return map[string]any{
+		"id":          fmt.Sprintf("msg_mock_%d", inputTokens),
+		"type":        "message",
+		"role":        "assistant",
+		"model":       "claude-sonnet-4-6",
+		"content":     content,
+		"stop_reason": "tool_use",
+		"usage": map[string]any{
+			"input_tokens":  inputTokens,
+			"output_tokens": outputTokens,
+		},
+	}
+}
+
 // OpenAITextResponse builds a minimal OpenAI chat completion API response body.
 func OpenAITextResponse(text string, promptTokens, completionTokens int) map[string]any {
 	return map[string]any{

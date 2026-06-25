@@ -102,13 +102,10 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 
 // hitlStreamHasEvent reports whether the persisted approval-event stream contains
 // an event of the given type for the given approval request (== tool_call_id).
+// It delegates to the shared harness predicate so the live and offline suites
+// assert against a single implementation.
 func hitlStreamHasEvent(stream *agentexecv1.ApprovalEventStream, requestID string, eventType agentexecv1.ApprovalEventType) bool {
-	for _, ev := range stream.GetEvents() {
-		if ev.GetApprovalRequestId() == requestID && ev.GetEventType() == eventType {
-			return true
-		}
-	}
-	return false
+	return harness.ApprovalStreamHasEvent(stream, requestID, eventType)
 }
 
 func TestAgentExecution_HITL_Skip(t *testing.T) {

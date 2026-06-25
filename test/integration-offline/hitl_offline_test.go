@@ -15,6 +15,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// --- Offline HITL approval-flow tests (Cloud edition) ---
+//
+// These run against the MockLLMProxyServer (no provider keys) and the real Java
+// stigmer-service + TS runner. They are the deterministic, pre-manual-test gate
+// for the human-in-the-loop invariants that the live (real-LLM) suite in
+// agent_execution_08_hitl_test.go proves non-deterministically.
+//
+// What they prove — the Cloud-edition ORCHESTRATION: the Java workflow wait ->
+// approvalGateResolved signal -> activity re-invoke loop, the SubmitApproval
+// handler (single, bulk co-pending, and APPROVE_ALL lease derivation from
+// persisted state), and the append-only approval_event_stream the source-of-truth
+// flip depends on.
+//
+// What they deliberately do NOT prove — runner-internal DURABLE-RESUME branching.
+// Offline uses the ephemeral MemorySaver checkpointer (shared/checkpointer/
+// factory.ts), so a gated execution replays from scratch each invocation rather
+// than resuming via Command(resume)/seedStatusFromExecution; the mock-LLM cursor
+// stays aligned because each gated turn makes exactly one LLM call before
+// re-pausing. A consequence is that the production REJECT -> EXECUTION_FAILED path
+// is not exercised here (this is why TestOffline_HITL_Reject asserts COMPLETED,
+// not FAILED): that branch and transcript accumulation are covered by the runner
+// unit tests and the live suite. Tests that depend on the lease surviving across
+// a re-invocation lean on it being derived from server-persisted status
+// (deriveActiveLeases), not from the lost in-graph checkpoint.
+
 // hitlToolCallEntries returns mock LLM entries for a simple HITL flow:
 // Turn 1: LLM calls echo tool (triggers approval gate)
 // Turn 2: LLM produces text summary after tool result
@@ -94,6 +119,18 @@ func TestOffline_HITL_Approve(t *testing.T) {
 	assert.Equal(t, "echo", approval.GetToolName())
 	t.Logf("pending approval: tool=%s, id=%s", approval.GetToolName(), approval.GetToolCallId())
 
+	// The server persists an append-only approval-event stream alongside the
+	// authoritative message scan. While WAITING it must already carry a REQUESTED
+	// event for the gated tool call — the audit ledger the source-of-truth flip
+	// projects pending_approvals from. Asserting it here gives the deterministic
+	// Cloud-edition analogue of the live suite's stream check (no provider keys).
+	waitingStream := waiting.GetStatus().GetApprovalEventStream()
+	require.NotNil(t, waitingStream, "WAITING execution must persist an approval_event_stream")
+	require.True(t,
+		harness.ApprovalStreamHasEvent(waitingStream, approval.GetToolCallId(),
+			agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED),
+		"persisted stream must carry a REQUESTED event for the pending tool call")
+
 	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
 		exec.GetMetadata().GetId(),
 		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
@@ -102,6 +139,18 @@ func TestOffline_HITL_Approve(t *testing.T) {
 	)
 	require.NoError(t, err, "execution should complete after approval")
 	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// After the decision lands, the same stream carries the matching APPROVED
+	// event authored by SubmitApproval — the rich, audit-bearing record the flat
+	// ToolCall fields cannot hold. The stream is a server-authored status field,
+	// independent of the offline transcript-replay limitation, so this holds
+	// against the same Java service the live suite exercises.
+	finalStream := result.GetStatus().GetApprovalEventStream()
+	require.NotNil(t, finalStream, "completed execution must preserve its approval_event_stream")
+	require.True(t,
+		harness.ApprovalStreamHasEvent(finalStream, approval.GetToolCallId(),
+			agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_APPROVED),
+		"persisted stream must carry the APPROVED decision event after approval")
 
 	t.Logf("offline HITL approve test passed")
 }
@@ -336,4 +385,352 @@ func TestOffline_HITL_PendingApprovalDetails(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Logf("offline HITL details test passed")
+}
+
+// TestOffline_HITL_ApproveAll_ScopedLease proves the Phase-7 scoped lease
+// end-to-end against the Java service, deterministically: a single APPROVE_ALL at
+// a write_file gate leases the "write" category for the rest of the run, so a
+// LATER write_file (a separate assistant turn that would otherwise re-gate) is
+// auto-approved — while a tool in a DIFFERENT scope (an MCP echo) still gates.
+//
+// This is stronger than the live ApproveAll proof, which only covers same-scope
+// reuse on one MCP server: here the lease (category "write") AND the isolation
+// boundary (echo is a different scope) are both asserted in one run.
+//
+// Why separate turns rather than two writes in one turn: two co-pending writes
+// resolved by one APPROVE_ALL would pass via server-side co-pending BULK
+// resolution even if the run-lifetime lease were broken — a tautology. The lease
+// is exercised only when a later turn would re-gate and the persisted lease
+// prevents it. Offline this survives the from-scratch replay because the lease is
+// derived from server-persisted status (deriveActiveLeases), not the ephemeral
+// checkpoint; if it broke, write B would re-gate, the run would never reach
+// COMPLETED, and mockLLM.Remaining() would stay > 0.
+func TestOffline_HITL_ApproveAll_ScopedLease(t *testing.T) {
+	requireOfflinePrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	defer cancel()
+
+	fileA := uniqueWorkspacePath("approveall-a")
+	fileB := uniqueWorkspacePath("approveall-b")
+
+	entries := []harness.RecordedLLMEntry{
+		// Turn 1: native write_file A — gates (auto_approve_all=false).
+		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
+			"toolu_aa_write_a", "write_file",
+			map[string]any{"file_path": fileA, "content": "alpha\n"},
+			300, 40,
+		)),
+		// Turn 2: native write_file B — SAME "write" category; must be
+		// auto-approved by the lease established at turn 1 (must NOT gate).
+		harness.BuildLLMEntry(1, harness.AnthropicToolUseResponse(
+			"toolu_aa_write_b", "write_file",
+			map[string]any{"file_path": fileB, "content": "beta\n"},
+			320, 40,
+		)),
+		// Turn 3: MCP echo — a DIFFERENT scope; the "write" lease must NOT cover
+		// it, so it gates.
+		harness.BuildLLMEntry(2, harness.AnthropicToolUseResponse(
+			"toolu_aa_echo", "echo", map[string]any{"input": "after-lease"},
+			340, 40,
+		)),
+		// Turn 4: finish.
+		harness.BuildLLMEntry(3, harness.AnthropicTextResponse(
+			"Wrote both files and echoed.", 360, 20,
+		)),
+	}
+
+	mockLLM, mgr := startOfflineRunner(t, ctx, entries)
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+
+	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-approveall",
+		"You are a test agent. Use the filesystem tools and the echo tool as instructed.",
+		harness.WithMcpServerUsageAndApproval(
+			mcpServer.GetMetadata().GetSlug(),
+			[]*agentv1.ToolApprovalOverride{
+				{ToolName: "echo", RequiresApproval: true, Message: "Execute echo tool"},
+			},
+			"echo",
+		),
+	)
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_NATIVE,
+	)
+	sessionID := session.GetMetadata().GetId()
+
+	_, err := mgr.AddSession(ctx, sessionID)
+	require.NoError(t, err, "AddSession should succeed")
+
+	exec := harness.CreateTestAgentExecution(t, ctx, clients,
+		sessionID,
+		"Write file A, then write file B, then echo, using the tools.",
+		harness.WithAutoApproveAll(false),
+	)
+	execID := exec.GetMetadata().GetId()
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	// --- Gate 1: write_file A -> submit APPROVE_ALL (leases "write") ---
+	gate1, err := waiter.WaitForPendingApproval(ctx, execID, "write_file", 2*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, execID)
+		t.Fatalf("execution should gate on the first write_file: %v", err)
+	}
+	harness.AssertAgentPhase(t, gate1, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	harness.AssertPendingApprovals(t, gate1, 1)
+
+	writeA := gate1.GetStatus().GetPendingApprovals()[0]
+	require.Equal(t, "write_file", writeA.GetToolName())
+
+	_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+		AgentExecutionId: execID,
+		ToolCallId:       writeA.GetToolCallId(),
+		Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL,
+	})
+	require.NoError(t, err, "APPROVE_ALL submission should succeed")
+
+	// --- Gate 2 must be echo, NOT a second write_file ---
+	// write B (same "write" scope) is auto-approved by the lease and never gates;
+	// echo (a different scope) still requires approval. A broken lease would gate
+	// again on write_file here (or time out) instead.
+	gate2, err := waiter.WaitForPendingApproval(ctx, execID, "echo", 2*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, execID)
+		t.Fatalf("execution should gate on echo after the lease auto-approves write B: %v", err)
+	}
+	harness.AssertAgentPhase(t, gate2, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	harness.AssertPendingApprovals(t, gate2, 1)
+	echoPA := gate2.GetStatus().GetPendingApprovals()[0]
+	require.Equal(t, "echo", echoPA.GetToolName(),
+		"the write-category lease must not auto-approve a different-scope MCP tool")
+
+	// Approve the out-of-scope echo and let the run finish.
+	_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+		AgentExecutionId: execID,
+		ToolCallId:       echoPA.GetToolCallId(),
+		Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+	})
+	require.NoError(t, err, "approving the echo gate should succeed")
+
+	result, err := waiter.WaitForPhase(ctx, execID,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "execution should complete after the echo approval")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+	harness.AssertPendingApprovals(t, result, 0)
+	assert.Equal(t, 0, mockLLM.Remaining(),
+		"all scripted turns consumed: write B was auto-approved (not re-gated) by the lease")
+
+	t.Logf("offline HITL approve-all scoped-lease test passed")
+}
+
+// TestOffline_HITL_CancelAtGate is the deterministic Cloud-edition analogue of
+// the live cancel-at-gate proof: an execution parked at the approval gate is
+// cancelled WITHOUT a decision. The append-only stream still carries REQUESTED,
+// so a naive event projection would report a phantom pending approval on a dead
+// execution forever — this locks the phase-aware retraction seam instead. The
+// cancel path takes no further LLM call, so it is unaffected by offline replay.
+func TestOffline_HITL_CancelAtGate(t *testing.T) {
+	requireOfflinePrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	defer cancel()
+
+	_, mgr := startOfflineRunner(t, ctx, hitlToolCallEntries())
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+
+	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-cancel-gate",
+		"You MUST call the echo tool exactly once with the user's input, then stop.",
+		harness.WithMcpServerUsageAndApproval(
+			mcpServer.GetMetadata().GetSlug(),
+			[]*agentv1.ToolApprovalOverride{
+				{ToolName: "echo", RequiresApproval: true, Message: "Execute echo tool"},
+			},
+			"echo",
+		),
+	)
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_NATIVE,
+	)
+	sessionID := session.GetMetadata().GetId()
+
+	_, err := mgr.AddSession(ctx, sessionID)
+	require.NoError(t, err)
+
+	exec := harness.CreateTestAgentExecution(t, ctx, clients,
+		sessionID,
+		"Call the echo tool with input 'cancel-at-gate'. You must use the tool.",
+		harness.WithAutoApproveAll(false))
+	execID := exec.GetMetadata().GetId()
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+	waiting, err := waiter.WaitForApproval(ctx, execID, 2*time.Minute)
+	require.NoError(t, err, "execution should reach WAITING_FOR_APPROVAL")
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	harness.AssertPendingApprovals(t, waiting, 1)
+
+	approval := waiting.GetStatus().GetPendingApprovals()[0]
+	waitingStream := waiting.GetStatus().GetApprovalEventStream()
+	require.NotNil(t, waitingStream, "WAITING execution must persist an approval_event_stream")
+	require.True(t,
+		harness.ApprovalStreamHasEvent(waitingStream, approval.GetToolCallId(),
+			agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED),
+		"persisted stream must carry a REQUESTED event for the pending tool call")
+
+	// Cancel while parked at the gate — no decision is ever submitted.
+	_, err = clients.AgentExecutionCommand.Cancel(ctx, &agentexecv1.CancelAgentExecutionInput{
+		Id: execID,
+	})
+	require.NoError(t, err, "cancel should succeed")
+
+	result, err := waiter.WaitForPhase(ctx, execID,
+		agentexecv1.ExecutionPhase_EXECUTION_CANCELLED, 2*time.Minute)
+	require.NoError(t, err, "execution should reach CANCELLED, not hang at the gate")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_CANCELLED)
+
+	// Terminal execution reports zero pending approvals — the phase-aware seam,
+	// not a per-call retraction, owns this.
+	harness.AssertPendingApprovals(t, result, 0)
+
+	// Audit trail preserved: REQUESTED still stands, and cancel did NOT author a
+	// per-call RETRACTED (terminal exit != in-flight orphan).
+	finalStream := result.GetStatus().GetApprovalEventStream()
+	require.NotNil(t, finalStream, "cancelled execution must preserve its approval_event_stream")
+	require.True(t,
+		harness.ApprovalStreamHasEvent(finalStream, approval.GetToolCallId(),
+			agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REQUESTED),
+		"cancel must preserve the REQUESTED event for audit")
+	require.False(t,
+		harness.ApprovalStreamHasEvent(finalStream, approval.GetToolCallId(),
+			agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_RETRACTED),
+		"cancel-at-gate is a terminal exit; it must not author a per-call RETRACTED")
+
+	t.Logf("offline HITL cancel-at-gate test passed")
+}
+
+// TestOffline_HITL_IdempotentApproval proves that re-submitting the same decision
+// on an OPEN gate is a benign no-op. Determinism comes from two co-pending
+// write_file calls raised by a single turn: approving the first leaves the second
+// pending (the gate stays open, so there is no resume race), which is the stable
+// window in which the duplicate submit is exercised. No MCP server is needed —
+// native write_file gates automatically when auto_approve_all is false.
+func TestOffline_HITL_IdempotentApproval(t *testing.T) {
+	requireOfflineService(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	defer cancel()
+
+	fileA := uniqueWorkspacePath("idem-a")
+	fileB := uniqueWorkspacePath("idem-b")
+
+	entries := []harness.RecordedLLMEntry{
+		// Turn 1: two native write_file calls in ONE turn -> two co-pending gates.
+		harness.BuildLLMEntry(0, harness.AnthropicMultiToolUseResponse(
+			[]harness.ToolUseBlock{
+				{ID: "toolu_idem_a", Name: "write_file", Input: map[string]any{"file_path": fileA, "content": "alpha\n"}},
+				{ID: "toolu_idem_b", Name: "write_file", Input: map[string]any{"file_path": fileB, "content": "beta\n"}},
+			},
+			300, 60,
+		)),
+		// Turn 2: finish once both gates are resolved.
+		harness.BuildLLMEntry(1, harness.AnthropicTextResponse(
+			"Wrote both files.", 360, 20,
+		)),
+	}
+
+	mockLLM, mgr := startOfflineRunner(t, ctx, entries)
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-idempotent",
+		"You are a test agent. Use the filesystem tools to write files.",
+	)
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_NATIVE,
+	)
+	sessionID := session.GetMetadata().GetId()
+
+	_, err := mgr.AddSession(ctx, sessionID)
+	require.NoError(t, err, "AddSession should succeed")
+
+	exec := harness.CreateTestAgentExecution(t, ctx, clients,
+		sessionID,
+		"Write file A and file B using the filesystem tools.",
+		harness.WithAutoApproveAll(false),
+	)
+	execID := exec.GetMetadata().GetId()
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+	waiting, err := waiter.WaitForApproval(ctx, execID, 2*time.Minute)
+	require.NoError(t, err, "execution should reach WAITING_FOR_APPROVAL")
+	harness.AssertPendingApprovals(t, waiting, 2)
+
+	// Approve the first co-pending gate; the second stays pending so the gate
+	// remains open (no resume, no replay).
+	_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+		AgentExecutionId: execID,
+		ToolCallId:       "toolu_idem_a",
+		Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+	})
+	require.NoError(t, err, "first approval should succeed")
+
+	// After approving A, exactly B must remain pending (the gate stays open).
+	require.Eventually(t, func() bool {
+		snap, gErr := clients.AgentExecutionQuery.Get(ctx, &agentexecv1.AgentExecutionId{Value: execID})
+		if gErr != nil {
+			return false
+		}
+		pas := snap.GetStatus().GetPendingApprovals()
+		return len(pas) == 1 && pas[0].GetToolCallId() == "toolu_idem_b"
+	}, 90*time.Second, 500*time.Millisecond,
+		"after approving A, exactly B must remain pending")
+
+	// Re-submit the SAME decision on the still-open gate — a benign no-op. It must
+	// not error fatally and must not corrupt the open gate (asserted next).
+	_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+		AgentExecutionId: execID,
+		ToolCallId:       "toolu_idem_a",
+		Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+	})
+	if err != nil {
+		t.Logf("duplicate approval returned (expected no-op or benign error): %v", err)
+	}
+
+	// State is unchanged: B is still the only pending approval.
+	snap, err := clients.AgentExecutionQuery.Get(ctx, &agentexecv1.AgentExecutionId{Value: execID})
+	require.NoError(t, err)
+	harness.AssertPendingApprovals(t, snap, 1)
+	require.Equal(t, "toolu_idem_b",
+		snap.GetStatus().GetPendingApprovals()[0].GetToolCallId(),
+		"a duplicate decision on A must not resolve or alter the still-pending B")
+
+	// Approve B to release the gate and drive to completion.
+	_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+		AgentExecutionId: execID,
+		ToolCallId:       "toolu_idem_b",
+		Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+	})
+	require.NoError(t, err, "approving B should succeed")
+
+	result, err := waiter.WaitForTerminal(ctx, execID, 2*time.Minute)
+	require.NoError(t, err, "execution should reach terminal after both gates resolved")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+	harness.AssertPendingApprovals(t, result, 0)
+	assert.Equal(t, 0, mockLLM.Remaining(), "all scripted turns consumed")
+
+	t.Logf("offline HITL idempotent-approval test passed")
 }
