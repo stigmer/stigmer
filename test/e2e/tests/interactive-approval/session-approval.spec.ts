@@ -156,19 +156,20 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     expect(phase, "approve-all completes the run un-gated").toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 
-  // KNOWN-FAILING (test.fixme): catches a real sequential-gate regression, not a
-  // harness defect. On resume past gate A, the native deep-agent runner replaces
-  // its single turn-message (server logs show messages_count stays 1) to carry
-  // gate B's tool call. The UpdateStatus transcript front-truncation guard
-  // (controller/update_status.go nonTerminalTranscriptRegression) — which assumes
-  // tool calls are only ever appended, true for the Cursor runner — rejects that
-  // update as "would drop a previously-committed tool call". Gate B then lands as
-  // WAITING_FOR_APPROVAL with pending_approvals_count=0 and auto-resumes with no
-  // approval. This overlaps the in-progress HITL-resume-history work
-  // (backend/services/runner/.../execute-cursor + hitl-resume-history.test.ts).
-  // Flip back to `test(` once the guard tolerates the native runner's
-  // turn-replace semantics for sequential gates.
-  test.fixme("Multi-step: approve gate A, then a fresh gate B, then the run completes", async ({
+  // Sequential-gate regression backstop. Under the OSS-default memory
+  // checkpointer the workflow's post-approval re-invocation replays the graph
+  // from scratch (the checkpoint is recreated empty), so on resume past gate A
+  // the runner used to rebuild its status from an empty proto and emit a single
+  // turn-message carrying ONLY gate B — dropping gate A's committed tool-call id.
+  // The append-only-at-identity guard (controller/update_status.go
+  // nonTerminalTranscriptRegression) then rejected the update, and gate B landed
+  // as WAITING_FOR_APPROVAL with pending_approvals_count=0 and auto-resumed with
+  // no approval. The fix seeds status from the persisted transcript whenever the
+  // execution already has history (execute-deep-agent/index.ts
+  // shouldSeedFromPersistedTranscript), so gate B's update is a superset of gate
+  // A rather than a replacement. Unit-pinned by
+  // execute-deep-agent/__tests__/sequential-gate-resume.test.ts.
+  test("Multi-step: approve gate A, then a fresh gate B, then the run completes", async ({
     page,
     stigmerClient,
   }) => {
