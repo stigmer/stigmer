@@ -160,3 +160,111 @@ describe("buildThreadItems — inline vs. bottom approval partition", () => {
     expect(approvalItems(items)).toHaveLength(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Triangulation (CLIENT boundary)
+//
+// The runner boundary (hitl-resume-approve-all.test.ts) and the server boundary
+// (Go controller update_status tests) are covered elsewhere. This pins that the
+// SDK thread derivation is a faithful PASSTHROUGH of the persisted transcript:
+// every persisted thinking block and tool call must surface as a thread item,
+// across both the gated (approval pending) state and the decided/leased resume
+// state the user reported. A passing test here exonerates the client and
+// localizes the reported "vanishing thinking + first tool call" upstream (the
+// server merge); a failing test would indict the derivation instead.
+// ---------------------------------------------------------------------------
+
+function thinkingMsg(content: string): AgentMessage {
+  return create(AgentMessageSchema, {
+    type: MessageType.MESSAGE_THINKING,
+    content,
+  });
+}
+
+function aiText(content: string): AgentMessage {
+  return create(AgentMessageSchema, {
+    type: MessageType.MESSAGE_AI,
+    content,
+  });
+}
+
+function completedToolCall(id: string, name: string): ToolCall {
+  return create(ToolCallSchema, {
+    id,
+    name,
+    status: ToolCallStatus.TOOL_CALL_COMPLETED,
+  });
+}
+
+function execAtPhase(
+  phase: ExecutionPhase,
+  messages: AgentMessage[],
+  pendingApprovals: PendingApproval[] = [],
+): AgentExecution {
+  return create(AgentExecutionSchema, {
+    metadata: create(ApiResourceMetadataSchema, { id: "aex-1" }),
+    spec: create(AgentExecutionSpecSchema, { message: "Self-DM me" }),
+    status: create(AgentExecutionStatusSchema, {
+      phase,
+      messages,
+      pendingApprovals,
+    }),
+  });
+}
+
+function hasThinkingItem(items: ThreadItem[], content: string): boolean {
+  return items.some(
+    (i) =>
+      i.kind === "message" &&
+      i.message.type === MessageType.MESSAGE_THINKING &&
+      i.message.content === content,
+  );
+}
+
+function hasToolInGroup(items: ThreadItem[], toolCallId: string): boolean {
+  return items.some(
+    (i) => i.kind === "tool-group" && i.toolCalls.some((tc) => tc.id === toolCallId),
+  );
+}
+
+describe("buildThreadItems — approve-all transcript renders faithfully (client triangulation)", () => {
+  it("renders the leading thinking block and the gated tool while approval is pending", () => {
+    const exec = execAtPhase(
+      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      [
+        thinkingMsg("planning the self-DM"),
+        aiWithTools([toolCall("tc-getappstate", "getAppState")]),
+      ],
+      [approval("tc-getappstate", "getAppState")],
+    );
+
+    const items = buildThreadItems([exec], null, null, true, undefined);
+
+    expect(hasThinkingItem(items, "planning the self-DM")).toBe(true);
+    expect(hasToolInGroup(items, "tc-getappstate")).toBe(true);
+  });
+
+  it("renders thinking + first tool + appended leased tools after approve-all resume", () => {
+    const exec = execAtPhase(ExecutionPhase.EXECUTION_IN_PROGRESS, [
+      thinkingMsg("planning the self-DM"),
+      aiWithTools([completedToolCall("tc-getappstate", "getAppState")]),
+      aiWithTools([completedToolCall("tc-click", "click")]),
+      aiText("Captured the app state and clicked the element."),
+    ]);
+
+    const items = buildThreadItems([exec], null, null, true, undefined);
+
+    // The leading thinking block and the FIRST tool call survive rendering...
+    expect(hasThinkingItem(items, "planning the self-DM")).toBe(true);
+    expect(hasToolInGroup(items, "tc-getappstate")).toBe(true);
+    // ...alongside the appended leased tool and the final assistant turn.
+    expect(hasToolInGroup(items, "tc-click")).toBe(true);
+    expect(
+      items.some(
+        (i) =>
+          i.kind === "message" &&
+          i.message.content === "Captured the app state and clicked the element.",
+      ),
+    ).toBe(true);
+  });
+});

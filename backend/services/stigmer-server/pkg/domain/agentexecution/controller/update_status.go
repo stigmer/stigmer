@@ -89,6 +89,46 @@ func (s *ValidateUpdateStatusInputStep) Execute(ctx *pipeline.RequestContext[*ag
 	return nil
 }
 
+// nonTerminalTranscriptRegression reports whether replacing existing with incoming
+// would drop committed transcript history for a non-terminal execution, plus a
+// short reason for the rejection log. It enforces the append-only-at-identity
+// invariant documented at the call site: a non-terminal transcript may grow and
+// reconcile entries in place, but it may neither shrink nor drop a previously
+// committed tool-call id. Terminal executions may be rewritten freely and so are
+// never a regression here.
+func nonTerminalTranscriptRegression(
+	phase agentexecutionv1.ExecutionPhase,
+	existing, incoming []*agentexecutionv1.AgentMessage,
+) (reject bool, reason string) {
+	if isTerminalPhase(phase) {
+		return false, ""
+	}
+	if len(incoming) < len(existing) {
+		return true, "would shrink the message transcript"
+	}
+
+	incomingToolCallIDs := make(map[string]struct{})
+	for _, m := range incoming {
+		for _, tc := range m.GetToolCalls() {
+			if id := tc.GetId(); id != "" {
+				incomingToolCallIDs[id] = struct{}{}
+			}
+		}
+	}
+	for _, m := range existing {
+		for _, tc := range m.GetToolCalls() {
+			id := tc.GetId()
+			if id == "" {
+				continue
+			}
+			if _, ok := incomingToolCallIDs[id]; !ok {
+				return true, "would drop a previously-committed tool call"
+			}
+		}
+	}
+	return false, ""
+}
+
 // applyUpdateStatusMerge merges an incoming status update into execution in place,
 // following the runner-owns-the-transcript merge rules. It is the body run inside
 // the UpdateResource closure (and exercised directly by the guard tests), so
@@ -110,41 +150,51 @@ func applyUpdateStatusMerge(
 	status := execution.Status
 	requestStatus := input.Status
 
-	// Snapshot the pre-merge transcript before any replacement: the shrink guard
-	// compares against the persisted length, and PreserveApprovalFields copies the
-	// SubmitApproval-owned decision fields from these existing messages onto the
-	// incoming ones. Reassigning status.Messages below does not mutate this slice.
+	// Snapshot the pre-merge transcript before any replacement: the transcript
+	// regression guard compares against the persisted messages, and
+	// PreserveApprovalFields copies the SubmitApproval-owned decision fields from
+	// these existing messages onto the incoming ones. Reassigning status.Messages
+	// below does not mutate this slice.
 	existingMessages := status.GetMessages()
 	existingSubAgents := status.GetSubAgentExecutions()
 	existingMessageCount := len(existingMessages)
 	existingPhase := status.GetPhase()
 
-	// Merge messages (replace with latest from request).
+	// Merge messages (replace with latest from request), guarding against any
+	// update that would drop committed transcript history for a non-terminal
+	// execution. The runner owns the transcript and only ever GROWS it in flight:
+	// new turns are appended and existing entries — including their tool calls —
+	// are reconciled in place, never dropped. Two regressions are rejected so a
+	// partial or misreconstructed write can never wipe history at this single
+	// persistence chokepoint:
 	//
-	// Append-only guard: the runner owns the transcript and, during normal
-	// streaming, only ever grows it — so a shorter incoming list for a
-	// non-terminal execution signals a regressed/partial write (e.g. a
-	// durable-checkpoint resume that rebuilt status from an empty proto).
-	// Replacing wholesale in that case would wipe history — the failure this
-	// guard makes structurally impossible at the single persistence chokepoint.
+	//  1. A strictly SHORTER transcript — the classic partial write (e.g. a
+	//     durable-checkpoint resume that rebuilt status from an empty proto).
+	//  2. A transcript that DROPS a tool-call id committed earlier while appending
+	//     enough later turns to keep the count equal-or-greater. This
+	//     front-truncation is invisible to a count-only check, yet it is exactly
+	//     how an approve-all resume wiped the leading thinking block + first tool
+	//     call (the reported getAppState drop). Tool-call ids are the only stable
+	//     identity in the transcript (AgentMessage carries none), so a
+	//     previously-present id missing from the incoming update is the reliable
+	//     signal that committed history was dropped.
 	//
-	// This guard is unconditional for non-terminal executions: it carries no
-	// phase-based carve-out. The HITL approval finalize used to be an exception
-	// because the Cursor runner trimmed the model's post-denial narration,
-	// producing a *shorter* WAITING_FOR_APPROVAL transcript. The runner now
-	// REDACTS that narration in place (blanks the message content, preserving the
-	// count), so the approval finalize is append-only by construction and needs
-	// no special case. See the runner's clearProvisionalPostDenialNarration
-	// (execute-cursor/message-translator.ts). Keep this guard phase-agnostic: a
-	// shrinking WAITING_FOR_APPROVAL update is now a bug to reject, not trust.
+	// Content is deliberately NOT compared: legitimate updates both grow it
+	// (streaming) and blank it in place (the Cursor runner's post-denial narration
+	// redaction — see clearProvisionalPostDenialNarration in execute-cursor/
+	// message-translator.ts), so a content-based check would reject valid writes.
+	// Terminal executions may be rewritten freely (e.g. an administrative
+	// correction), so the guard is scoped to in-flight executions.
 	if len(requestStatus.Messages) > 0 {
-		wouldShrink := len(requestStatus.Messages) < existingMessageCount
-		if wouldShrink && !isTerminalPhase(existingPhase) {
+		if reject, reason := nonTerminalTranscriptRegression(
+			existingPhase, existingMessages, requestStatus.Messages,
+		); reject {
 			log.Warn().
 				Str("execution_id", input.ExecutionId).
 				Int("existing_messages", existingMessageCount).
 				Int("incoming_messages", len(requestStatus.Messages)).
-				Msg("Rejected status update that would shrink the message transcript for a non-terminal execution; keeping existing messages")
+				Str("reason", reason).
+				Msg("Rejected status update that would drop committed transcript history for a non-terminal execution; keeping existing messages")
 		} else {
 			status.Messages = requestStatus.Messages
 		}

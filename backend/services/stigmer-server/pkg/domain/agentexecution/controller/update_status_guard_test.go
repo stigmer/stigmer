@@ -178,6 +178,91 @@ func TestBuildNewState_AcceptsEqualLengthMessages(t *testing.T) {
 	}
 }
 
+// findToolCall scans the whole transcript (every message) for a tool call by id.
+func findToolCall(status *agentexecutionv1.AgentExecutionStatus, id string) *agentexecutionv1.ToolCall {
+	for _, m := range status.GetMessages() {
+		for _, tc := range m.GetToolCalls() {
+			if tc.GetId() == id {
+				return tc
+			}
+		}
+	}
+	return nil
+}
+
+// completedToolMsg builds an AI message carrying a single COMPLETED tool call —
+// the shape a resumed turn streams for an auto-executed (leased) tool.
+func completedToolMsg(id, name string) *agentexecutionv1.AgentMessage {
+	return &agentexecutionv1.AgentMessage{
+		Type: agentexecutionv1.MessageType_MESSAGE_AI,
+		ToolCalls: []*agentexecutionv1.ToolCall{{
+			Id:     id,
+			Name:   name,
+			Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
+		}},
+	}
+}
+
+// Front-truncation-with-append is the gap the count-only guard cannot see.
+//
+// Run 1 persisted a leading THINKING block and the gated getAppState call the
+// user then approved with APPROVE_ALL (leasing the whole MCP server). The
+// reported failure is a post-approval update whose transcript dropped BOTH the
+// leading thinking block and the first getAppState call while appending the
+// later auto-executed (leased) tools. Because the net length is equal-or-greater
+// than the existing transcript, `wouldShrink` (len(incoming) < existing) is
+// false, the wholesale replace runs, and the leading history is wiped.
+//
+// This pins the contract the guard SHOULD enforce: a non-terminal update must
+// not silently drop previously-committed leading messages or tool calls, not
+// merely refuse a strictly-shorter list. It fails today — the count-only guard
+// is blind to front-truncation as long as the list grew back.
+func TestBuildNewState_RejectsFrontTruncationWithAppend(t *testing.T) {
+	existing := &agentexecutionv1.AgentExecution{
+		Metadata: &apiresource.ApiResourceMetadata{Id: "exec-guard", Name: "exec-guard"},
+		Spec:     &agentexecutionv1.AgentExecutionSpec{},
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+			Messages: []*agentexecutionv1.AgentMessage{
+				{Type: agentexecutionv1.MessageType_MESSAGE_THINKING, Content: "planning the self-DM"},
+				{Type: agentexecutionv1.MessageType_MESSAGE_AI, ToolCalls: []*agentexecutionv1.ToolCall{{
+					Id:               "tc-getappstate",
+					Name:             "getAppState",
+					Status:           agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL,
+					RequiresApproval: true,
+					ApprovalAction:   agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL,
+					McpServerSlug:    "open-computer-use",
+				}}},
+			},
+		},
+	}
+	// Regressed resume transcript: leading thinking + getAppState gone, later
+	// leased tools appended. len(incoming)=3 >= existing=2 → guard does not fire.
+	incoming := &agentexecutionv1.AgentExecutionStatus{
+		Phase: agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+		Messages: []*agentexecutionv1.AgentMessage{
+			completedToolMsg("tc-click", "click"),
+			completedToolMsg("tc-scroll", "scroll"),
+			{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "done"},
+		},
+	}
+
+	merged := runBuildStep(t, existing, incoming)
+
+	hasThinking := false
+	for _, m := range merged.Status.Messages {
+		if m.Type == agentexecutionv1.MessageType_MESSAGE_THINKING && m.Content == "planning the self-DM" {
+			hasThinking = true
+		}
+	}
+	if !hasThinking {
+		t.Fatalf("the leading thinking block must survive a front-truncated-but-appended update; it was dropped by the count-only guard")
+	}
+	if findToolCall(merged.Status, "tc-getappstate") == nil {
+		t.Fatalf("the first tool call (getAppState) must survive a front-truncated-but-appended update; it was dropped by the count-only guard")
+	}
+}
+
 // The guard is scoped to non-terminal executions: a terminal execution may be
 // rewritten (e.g. an administrative correction) without the shrink guard.
 func TestBuildNewState_AllowsShrinkForTerminal(t *testing.T) {
