@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import {
@@ -8,8 +8,12 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { useRenderTracer } from "../internal/dev";
+import { useAutoDisclosure } from "../internal/useAutoDisclosure";
 import { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 import { SubAgentSection } from "./SubAgentSection";
+import { ApprovalCardBody } from "./ApprovalCard";
+import { useApproval } from "./ApprovalContext";
 import { FilePathLink } from "./FilePathLink";
 import { type ToolCategory } from "./tool-categories";
 import { useToolPresentation } from "./tool-presenter";
@@ -27,7 +31,8 @@ export interface ToolCallItemProps {
    */
   readonly subAgentExecution?: SubAgentExecution | null;
   /**
-   * Initial expansion state. Defaults to `false`.
+   * Forces the detail panel open on first render regardless of the
+   * auto-disclosure policy. Defaults to `false`.
    */
   readonly defaultExpanded?: boolean;
   /** Additional CSS class names for the root container. */
@@ -43,11 +48,25 @@ export interface ToolCallItemProps {
  *   with a clickable {@link FilePathLink}. No chevron, no expansion.
  *   The clickable path IS the complete information.
  * - **Expandable** (all other tools): a `<button>` row that toggles a
- *   {@link ToolCallDetail} or {@link SubAgentSection} detail panel.
+ *   detail panel — {@link ToolCallDetail}, a {@link SubAgentSection},
+ *   or, when the call is gated, an inline {@link ApprovalCardBody}.
+ *
+ * **Disclosure (the "live progress" balance).** The panel opens on its
+ * own — via {@link useAutoDisclosure} — when the call is *running*, is
+ * *awaiting approval*, or its {@link useToolPresentation} category
+ * defaults to `"preview"` (MCP / fetch / web-search / unknown, whose
+ * result IS the information, e.g. a screenshot). Tools with a meaningful
+ * one-line summary (read / edit / shell / search …) stay compact. A
+ * manual click always wins thereafter. This is what restores the sense
+ * of a virtual human working without flooding the thread with every row.
  *
  * Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
  * the primary argument as a subtitle, a category-specific icon, and
  * an inline approval decision badge when applicable.
+ *
+ * Wrapped in `React.memo` — structural sharing (DD-009/010) preserves
+ * the `ToolCall` reference when unchanged, so a settled row skips
+ * re-renders while sibling tools stream.
  *
  * @example
  * ```tsx
@@ -55,21 +74,38 @@ export interface ToolCallItemProps {
  * <ToolCallItem toolCall={tc} subAgentExecution={sub} />
  * ```
  */
-export function ToolCallItem({
+export const ToolCallItem = memo(function ToolCallItem({
   toolCall,
   subAgentExecution,
   defaultExpanded = false,
   className,
 }: ToolCallItemProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  useRenderTracer("ToolCallItem", { status: toolCall.status, id: toolCall.id });
 
   const status = mapToolCallStatus(toolCall);
   const StatusIcon = STATUS_ICON[status];
   const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
   const isSubAgent = subAgentExecution != null;
 
-  const { category, label, primaryArg, resultSummary } = useToolPresentation(toolCall);
+  const { category, label, primaryArg, resultSummary, disclosure } =
+    useToolPresentation(toolCall);
   const CategoryIcon = CATEGORY_ICON[category];
+
+  // An unresolved approval gating this exact call (parent or nested sub-agent),
+  // or null. Drives the inline approval panel and forces the row open.
+  const approval = useApproval(toolCall.id);
+
+  // Foreground the row when it carries live or actionable content: while it
+  // runs, while it awaits approval, or when its category's result is the
+  // information itself. Otherwise it settles to a compact summary. A manual
+  // toggle takes over from there (see useAutoDisclosure).
+  const autoOpen =
+    toolCall.status === ToolCallStatus.TOOL_CALL_RUNNING ||
+    approval != null ||
+    disclosure === "preview";
+  const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
+    initialOpen: defaultExpanded || autoOpen,
+  });
 
   const displayLabel = isSubAgent
     ? subAgentExecution.subject || subAgentExecution.name || label
@@ -184,7 +220,7 @@ export function ToolCallItem({
       <button
         type="button"
         aria-expanded={expanded}
-        onClick={() => setExpanded((v) => !v)}
+        onClick={handleToggle}
         className={cn(
           "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors",
           "hover:bg-muted-subtle",
@@ -220,6 +256,15 @@ export function ToolCallItem({
         <div className="px-2.5 pb-2.5 pt-1">
           {isSubAgent ? (
             <SubAgentSection subAgentExecution={subAgentExecution} collapsible={false} />
+          ) : approval ? (
+            // The row above is this approval's header, so render only the body
+            // (preview + actions) — the gate decided right where it is raised.
+            <ApprovalCardBody
+              pendingApproval={approval.pendingApproval}
+              onSubmit={approval.onSubmit}
+              isSubmitting={approval.isSubmitting}
+              className="rounded-md border border-warning/30 bg-warning/5"
+            />
           ) : (
             <ToolCallDetail toolCall={toolCall} />
           )}
@@ -227,7 +272,7 @@ export function ToolCallItem({
       )}
     </div>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Approval badge

@@ -32,9 +32,11 @@ import { isInternalTool } from "./tool-categories";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
+import { ApprovalContext, type ApprovalContextValue } from "./ApprovalContext";
 import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev";
 import { useAutoScroll } from "../internal/useAutoScroll";
 import { JumpToLatestButton } from "../internal/JumpToLatestButton";
+import { ApprovalPeekBar } from "../internal/ApprovalPeekBar";
 import { ThreadItemWrapper } from "../internal/ThreadItemWrapper";
 
 const LazyVirtualizedThread = lazy(() =>
@@ -42,6 +44,10 @@ const LazyVirtualizedThread = lazy(() =>
     default: m.VirtualizedThread,
   })),
 );
+
+/** Stable empty collections so an approval-free thread keeps referential identity. */
+const EMPTY_APPROVALS: readonly PendingApproval[] = [];
+const EMPTY_SUBMITTING_IDS: ReadonlySet<string> = new Set();
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
@@ -250,6 +256,23 @@ function hasStartedResponding(execution: AgentExecution): boolean {
 }
 
 /**
+ * Adds the tool-call ids that a sub-agent renders as nested rows (the same
+ * non-internal AI tool calls {@link SubAgentSection} surfaces) to `target`,
+ * so their approvals are treated as inline and skip the bottom backstop.
+ */
+function collectSubAgentInlineToolCallIds(
+  sub: SubAgentExecution,
+  target: Set<string>,
+): void {
+  for (const msg of sub.messages) {
+    if (msg.type !== MessageType.MESSAGE_AI) continue;
+    for (const tc of msg.toolCalls) {
+      if (tc.id && !isInternalTool(tc.name)) target.add(tc.id);
+    }
+  }
+}
+
+/**
  * Builds a flat list of renderable thread items from execution data.
  *
  * Keys use stable execution IDs (not array indices) so React can
@@ -268,6 +291,12 @@ export function buildThreadItems(
   editableActiveTurn = false,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
+  // Tool-call ids that render as an inline-approval-capable ToolCallItem (a
+  // regular parent tool, or a sub-agent's nested tool). Their approvals show
+  // inline on the row, so they are excluded from the bottom backstop below —
+  // a task-spawn call (rendered as a SubAgentSection, not a tool row) is NOT
+  // collected, so its spawn-gate approval still surfaces at the bottom.
+  const inlineToolCallIds = new Set<string>();
   const allExecutions = activeStreamExecution
     ? [...executions, activeStreamExecution]
     : executions;
@@ -376,6 +405,9 @@ export function buildThreadItems(
               subAgentExecutions: subAgents,
               key: `${execId}-m${mi}-tc`,
             });
+            for (const tc of regularTools) {
+              if (tc.id) inlineToolCallIds.add(tc.id);
+            }
           }
           for (const sa of matchedSubAgents) {
             items.push({
@@ -383,6 +415,7 @@ export function buildThreadItems(
               subAgentExecution: sa,
               key: `sa-${sa.id}`,
             });
+            collectSubAgentInlineToolCallIds(sa, inlineToolCallIds);
           }
         } else {
           items.push({
@@ -391,6 +424,9 @@ export function buildThreadItems(
             subAgentExecutions: subAgents,
             key: `${execId}-m${mi}-tc`,
           });
+          for (const tc of msg.toolCalls) {
+            if (tc.id) inlineToolCallIds.add(tc.id);
+          }
         }
       }
     }
@@ -477,9 +513,17 @@ export function buildThreadItems(
   }
 
   if (includeApprovals) {
+    // Backstop only: an approval whose tool call renders inline shows its gate
+    // on that row (see ApprovalContext / ToolCallItem). We emit a bottom card
+    // ONLY for an approval with no inline home — a true orphan, or a task-spawn
+    // approval that precedes its SubAgentExecution — so a pending gate is never
+    // invisible, and never duplicated.
     const allApprovals = lastExec?.status?.pendingApprovals ?? [];
     for (let ai = 0; ai < allApprovals.length; ai++) {
       const approval = allApprovals[ai];
+      if (approval.toolCallId && inlineToolCallIds.has(approval.toolCallId)) {
+        continue;
+      }
       items.push({
         kind: "approval-request",
         pendingApproval: approval,
@@ -579,6 +623,36 @@ export function MessageThread({
     [sandboxWorkspaceRoot],
   );
 
+  // Pending approvals live on the latest execution. We project them into a
+  // tool-call-id-keyed map so each gated tool row can render its own approval
+  // inline (see ApprovalContext); buildThreadItems still emits a bottom card
+  // for any approval with no matching inline row (orphan backstop).
+  const lastExec = activeStreamExecution ?? executions[executions.length - 1];
+  const pendingApprovals = includeApprovals
+    ? lastExec?.status?.pendingApprovals ?? EMPTY_APPROVALS
+    : EMPTY_APPROVALS;
+
+  const approvalsByToolCallId = useMemo(() => {
+    const map = new Map<string, PendingApproval>();
+    for (const approval of pendingApprovals) {
+      if (approval.toolCallId) map.set(approval.toolCallId, approval);
+    }
+    return map;
+  }, [pendingApprovals]);
+
+  const approvalCtx = useMemo<ApprovalContextValue>(
+    () => ({
+      approvalsByToolCallId,
+      onSubmit: onApprovalSubmit,
+      submittingIds: submittingApprovalIds ?? EMPTY_SUBMITTING_IDS,
+    }),
+    [approvalsByToolCallId, onApprovalSubmit, submittingApprovalIds],
+  );
+
+  // Drives the global "approval needed" peek affordance — a count, not the
+  // cards, so the bar reuses the existing scroll machine without a new observer.
+  const unresolvedApprovalCount = pendingApprovals.length;
+
   if (virtualized) {
     return (
       <div className={cn("relative min-h-0", className)}>
@@ -590,6 +664,8 @@ export function MessageThread({
             submittingApprovalIds={submittingApprovalIds}
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
+            approvalCtx={approvalCtx}
+            unresolvedApprovalCount={unresolvedApprovalCount}
             onBuildFromPlan={onBuildFromPlan}
             org={org}
             planActionsDisabled={planActionsDisabled}
@@ -613,6 +689,8 @@ export function MessageThread({
       submittingApprovalIds={submittingApprovalIds}
       filePathCtx={filePathCtx}
       sandboxCtx={sandboxCtx}
+      approvalCtx={approvalCtx}
+      unresolvedApprovalCount={unresolvedApprovalCount}
       onBuildFromPlan={onBuildFromPlan}
       org={org}
       planActionsDisabled={planActionsDisabled}
@@ -640,6 +718,8 @@ interface NonVirtualizedThreadProps {
   readonly submittingApprovalIds?: ReadonlySet<string>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
+  readonly approvalCtx: ApprovalContextValue;
+  readonly unresolvedApprovalCount: number;
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
@@ -657,6 +737,8 @@ function NonVirtualizedThread({
   submittingApprovalIds,
   filePathCtx,
   sandboxCtx,
+  approvalCtx,
+  unresolvedApprovalCount,
   onBuildFromPlan,
   org,
   planActionsDisabled,
@@ -686,6 +768,7 @@ function NonVirtualizedThread({
       >
         <SandboxContext.Provider value={sandboxCtx}>
         <FilePathContext.Provider value={filePathCtx}>
+        <ApprovalContext.Provider value={approvalCtx}>
         <DevProfiler id="MessageThread">
           <div ref={contentRef} className={cn("flex flex-col gap-4", centerContent && "mx-auto w-full max-w-3xl px-4")}>
             {items.map((item) => (
@@ -706,11 +789,22 @@ function NonVirtualizedThread({
             ))}
           </div>
         </DevProfiler>
+        </ApprovalContext.Provider>
         </FilePathContext.Provider>
         </SandboxContext.Provider>
         <div ref={sentinelRef} aria-hidden="true" />
       </div>
-      <JumpToLatestButton onClick={jumpToLatest} visible={!isFollowing} />
+      {/* The peek bar takes the jump button's slot while approvals are pending,
+          so the two never overlap — a gate is the louder of the two signals. */}
+      <JumpToLatestButton
+        onClick={jumpToLatest}
+        visible={!isFollowing && unresolvedApprovalCount === 0}
+      />
+      <ApprovalPeekBar
+        visible={!isFollowing && unresolvedApprovalCount > 0}
+        count={unresolvedApprovalCount}
+        onClick={jumpToLatest}
+      />
     </div>
   );
 }

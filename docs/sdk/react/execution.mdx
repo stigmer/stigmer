@@ -62,6 +62,34 @@ const actions = useAgentExecutionActions(executionId, {
 ```
 
 
+### useApproval
+
+Returns the inline-approval state for a tool call, or `null` when the call
+is not currently gated (no matching approval, or no submit handler wired).
+
+The returned `onSubmit` is pre-bound to `toolCallId` and stable across
+renders, so it can flow straight into a memoized approval body.
+
+**Signature**
+
+```tsx
+function useApproval(toolCallId: string): UseApprovalResult | null
+```
+
+<TypeTable
+  type={{
+    toolCallId: { type: "string", description: "", required: true },
+  }}
+/>
+
+```tsx
+const approval = useApproval(toolCall.id);
+if (approval) {
+  return <ApprovalCardBody {...approval} />;
+}
+```
+
+
 ### useArtifactContent
 
 Data hook that fetches the text content of a single execution artifact
@@ -755,6 +783,42 @@ if (hasWriteBacks) {
 
 
 ## Components
+
+### ApprovalCardBody
+
+The decision panel of an approval: the optional message and gate reason, the
+file-changes / args preview, and the action buttons. Reused in two places —
+the standalone [`ApprovalCard`](#approvalcard) (with [`ApprovalCardHeader`](#approvalcardheader) above
+it) and inline inside a gated [`ToolCallItem`](#toolcallitem)'s expanded panel, where
+the item's own row is the header. One body, identical preview in both.
+
+**Props** — `ApprovalCardBodyProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the body container." },
+    isSubmitting: { type: "boolean", description: "True while the RPC for this tool call is in flight." },
+    onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Called when the user picks Approve / Approve-all / Skip / Reject.", required: true },
+    pendingApproval: { type: "PendingApproval", description: "The pending approval to render a decision panel for.", required: true },
+  }}
+/>
+
+
+### ApprovalCardHeader
+
+The compact summary row of an approval — `[icon] Label primaryArg [via sub]
+[⏳ Xm]`. Used as the standalone [`ApprovalCard`](#approvalcard)'s header. Not rendered
+inline on a [`ToolCallItem`](#toolcallitem), whose own row already serves as the header.
+
+**Props** — `ApprovalCardHeaderProps`
+
+<TypeTable
+  type={{
+    bordered: { type: "boolean", description: "Adds a bottom divider, for use above ApprovalCardBody." },
+    pendingApproval: { type: "PendingApproval", description: "The pending approval to summarize.", required: true },
+  }}
+/>
+
 
 ### ArtifactCard
 
@@ -1460,39 +1524,6 @@ Importable on its own by platform builders composing custom tool UIs.
 ```
 
 
-### ToolCallItem
-
-Renders a single tool call as a row in the tool call group.
-
-Two rendering modes:
-
-- **Non-expandable** (completed/skipped Read): a static `<div>` row
-  with a clickable [`FilePathLink`](#filepathlink). No chevron, no expansion.
-  The clickable path IS the complete information.
-- **Expandable** (all other tools): a `<button>` row that toggles a
-  [`ToolCallDetail`](#toolcalldetail) or [`SubAgentSection`](#subagentsection) detail panel.
-
-Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
-the primary argument as a subtitle, a category-specific icon, and
-an inline approval decision badge when applicable.
-
-**Props** — `ToolCallItemProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    defaultExpanded: { type: "boolean", description: "Initial expansion state. Defaults to `false`." },
-    subAgentExecution: { type: "SubAgentExecution | null", description: "When present, this tool call is a sub-agent delegation. The detail panel renders a SubAgentSection instead of a ToolCallDetail." },
-    toolCall: { type: "ToolCall", description: "The tool call to render as a summary row.", required: true },
-  }}
-/>
-
-```tsx
-<ToolCallItem toolCall={tc} />
-<ToolCallItem toolCall={tc} subAgentExecution={sub} />
-```
-
-
 ### UsageWidget
 
 Right-sidebar widget that displays session-level cost and token
@@ -1643,6 +1674,38 @@ Props for [`ApprovalCard`](#approvalcard).
 />
 
 
+### ApprovalContext
+
+Context that supplies a run's pending approvals to the tool rows they gate.
+
+
+### ApprovalContextValue
+
+Context value that carries the run's pending approvals to the tool rows
+that own them, so an approval gate can render *inline* on the exact tool
+call it blocks (parent thread and nested sub-agents alike) instead of as a
+detached card at the bottom of the thread.
+
+Provided by [`MessageThread`](#messagethread) (or a platform builder's custom wrapper),
+beside [`FilePathContext`](#filepathcontext) / `SandboxContext`. When no provider is
+present — or the consumer did not supply an `onApprovalSubmit` handler — the
+map is empty and [`useApproval`](#useapproval) returns `null`, so the inline UI is a
+no-op (backward compatible).
+
+The map is keyed by `tool_call_id` and rebuilt only when the underlying
+`pendingApprovals` list changes (not per streaming frame), so subscribing
+tool rows re-render on approval events, not on every snapshot — preserving
+the thread's streaming re-render isolation (DD-009 / DD-010).
+
+<TypeTable
+  type={{
+    approvalsByToolCallId: { type: "ReadonlyMap<string, PendingApproval>", description: "Unresolved approvals, keyed by the `tool_call_id` they gate.", required: true },
+    onSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Submits a decision for a gated tool call. Wired to the same handler the bottom ApprovalCard backstop uses; when absent, no inline approval UI is shown." },
+    submittingIds: { type: "ReadonlySet<string>", description: "Tool-call ids whose decision RPC is in flight, for per-card spinners.", required: true },
+  }}
+/>
+
+
 ### ArtifactRenderMode
 
 Content rendering strategy for artifact file preview.
@@ -1749,6 +1812,18 @@ Resolved output of `UseCreateAgentExecutionReturn.create`.
     sessionId: { type: "string", description: "Session the execution belongs to (echoed from input).", required: true },
   }}
 />
+
+
+### defaultDisclosureForCategory
+
+Returns the default inline [`ToolDisclosure`](#tooldisclosure) for a presentation
+category. This is the headless policy behind the thread's "show MCP/unknown
+tools live, keep generic tools compact" behaviour; consumers can override
+per `ToolKind` via [`registerToolPresenter`](#registertoolpresenter).
+
+```tsx
+function defaultDisclosureForCategory(category: ToolCategory): ToolDisclosure
+```
 
 
 ### execIdFromStorageKey
@@ -2460,6 +2535,69 @@ Props for [`ToolCallGroup`](#toolcallgroup).
 />
 
 
+### ToolCallItem
+
+Renders a single tool call as a row in the tool call group.
+
+Two rendering modes:
+
+- **Non-expandable** (completed/skipped Read): a static `<div>` row
+  with a clickable [`FilePathLink`](#filepathlink). No chevron, no expansion.
+  The clickable path IS the complete information.
+- **Expandable** (all other tools): a `<button>` row that toggles a
+  detail panel — [`ToolCallDetail`](#toolcalldetail), a [`SubAgentSection`](#subagentsection),
+  or, when the call is gated, an inline [`ApprovalCardBody`](#approvalcardbody).
+
+**Disclosure (the "live progress" balance).** The panel opens on its
+own — via `useAutoDisclosure` — when the call is *running*, is
+*awaiting approval*, or its [`useToolPresentation`](#usetoolpresentation) category
+defaults to `"preview"` (MCP / fetch / web-search / unknown, whose
+result IS the information, e.g. a screenshot). Tools with a meaningful
+one-line summary (read / edit / shell / search …) stay compact. A
+manual click always wins thereafter. This is what restores the sense
+of a virtual human working without flooding the thread with every row.
+
+Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
+the primary argument as a subtitle, a category-specific icon, and
+an inline approval decision badge when applicable.
+
+Wrapped in `React.memo` — structural sharing (DD-009/010) preserves
+the `ToolCall` reference when unchanged, so a settled row skips
+re-renders while sibling tools stream.
+
+```tsx
+<ToolCallItem toolCall={tc} />
+<ToolCallItem toolCall={tc} subAgentExecution={sub} />
+```
+
+
+### ToolCallItemProps
+
+Props for [`ToolCallItem`](#toolcallitem).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    defaultExpanded: { type: "boolean", description: "Forces the detail panel open on first render regardless of the auto-disclosure policy. Defaults to `false`." },
+    subAgentExecution: { type: "SubAgentExecution | null", description: "When present, this tool call is a sub-agent delegation. The detail panel renders a SubAgentSection instead of a ToolCallDetail." },
+    toolCall: { type: "ToolCall", description: "The tool call to render as a summary row.", required: true },
+  }}
+/>
+
+
+### ToolDisclosure
+
+How much of a tool call to reveal inline by default in the thread.
+
+- `"summary"` — a compact one-line row. Used when the label + primary arg +
+  result summary already tell the story (`Read foo.ts`, `Edit bar.ts +40 -0`,
+  `Search … 2 matches`). The full detail is one click away.
+- `"preview"` — the result is rendered inline. Used when the one-liner cannot
+  convey what happened, so the content itself IS the information (an MCP
+  result such as a screenshot, a fetched page, a web-search answer, or an
+  unrecognised tool's output).
+
+
 ### toolKindToCategoryInfo
 
 Maps a `ToolKind` to its presentation metadata.
@@ -2482,6 +2620,7 @@ The fully-resolved presentation for a tool call, returned by [`useToolPresentati
 <TypeTable
   type={{
     category: { type: "ToolCategory", description: "Presentation category (1:1 with kind).", required: true },
+    disclosure: { type: "ToolDisclosure", description: "Default inline disclosure for this tool — `\"preview\"` foregrounds the result, `\"summary\"` keeps a compact row. The active/awaiting state can still force a row open; this is the *settled* default.", required: true, typeDescriptionLink: "#tooldisclosure" },
     kind: { type: "ToolKind", description: "Harness-agnostic kind (wire field, with name fallback).", required: true },
     label: { type: "string", description: "Display label, e.g. \"Edit\", \"Shell\".", required: true },
     primaryArg: { type: "string | null", description: "Primary argument (path, command, pattern...), or null.", required: true },
@@ -2493,10 +2632,11 @@ The fully-resolved presentation for a tool call, returned by [`useToolPresentati
 
 ### ToolPresenter
 
-Optional per-kind overrides for label and summary.
+Optional per-kind overrides for label, summary, and disclosure.
 
 <TypeTable
   type={{
+    disclosure: { type: "(toolCall: ToolCall, result: ToolResultView) => ToolDisclosure", description: "Overrides the default inline disclosure. Use to keep a noisy MCP tool compact (`() => \"summary\"`) or to foreground a custom tool's output (`() => \"preview\"`) without forking the components." },
     label: { type: "(toolCall: ToolCall) => string", description: "Overrides the display label (e.g. \"Shell\" -> \"Run command\")." },
     summary: { type: "(toolCall: ToolCall, result: ToolResultView) => string | null", description: "Overrides the one-line result summary suffix." },
   }}
@@ -2510,6 +2650,19 @@ Options for [`useAgentExecutionActions`](#useagentexecutionactions).
 <TypeTable
   type={{
     onSuccess: { type: "(execution: AgentExecution) => void", description: "Called after any lifecycle action (cancel, terminate, pause, resume) succeeds. Receives the updated execution returned by the server. Useful for triggering a refetch so the UI reflects the new phase." },
+  }}
+/>
+
+
+### UseApprovalResult
+
+Resolved inline-approval state for a single tool call.
+
+<TypeTable
+  type={{
+    isSubmitting: { type: "boolean", description: "True while this tool call's decision RPC is in flight.", required: true },
+    onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Submits a decision for this tool call (id already bound).", required: true },
+    pendingApproval: { type: "PendingApproval", description: "The pending approval gating this tool call.", required: true },
   }}
 />
 

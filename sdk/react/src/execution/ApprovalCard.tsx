@@ -63,6 +63,135 @@ export const ApprovalCard = memo(function ApprovalCard({
   isSubmitting = false,
   className,
 }: ApprovalCardProps) {
+  // Prefer the denormalized wire tool_kind (populated by the server-side
+  // PendingApproval projection); fall back to the name for legacy executions.
+  const categoryInfo = resolveToolCategoryFromKind(
+    pendingApproval.toolKind,
+    pendingApproval.toolName,
+    pendingApproval.mcpServerSlug,
+  );
+
+  const borderClass =
+    categoryInfo.category === "delete"
+      ? "border-destructive/30 bg-destructive-subtle"
+      : "border-warning/30 bg-warning/5";
+
+  return (
+    <div
+      role="alert"
+      aria-label={`Approval required for ${pendingApproval.toolName}`}
+      className={cn("rounded-lg border", borderClass, className)}
+    >
+      <ApprovalCardHeader pendingApproval={pendingApproval} bordered />
+      <ApprovalCardBody
+        pendingApproval={pendingApproval}
+        onSubmit={onSubmit}
+        isSubmitting={isSubmitting}
+      />
+    </div>
+  );
+});
+
+/** Props for {@link ApprovalCardHeader}. */
+export interface ApprovalCardHeaderProps {
+  /** The pending approval to summarize. */
+  readonly pendingApproval: PendingApproval;
+  /** Adds a bottom divider, for use above {@link ApprovalCardBody}. */
+  readonly bordered?: boolean;
+}
+
+/**
+ * The compact summary row of an approval — `[icon] Label primaryArg [via sub]
+ * [⏳ Xm]`. Used as the standalone {@link ApprovalCard}'s header. Not rendered
+ * inline on a {@link ToolCallItem}, whose own row already serves as the header.
+ */
+export function ApprovalCardHeader({
+  pendingApproval,
+  bordered = false,
+}: ApprovalCardHeaderProps) {
+  const categoryInfo = resolveToolCategoryFromKind(
+    pendingApproval.toolKind,
+    pendingApproval.toolName,
+    pendingApproval.mcpServerSlug,
+  );
+  const CategoryIcon = CATEGORY_ICON[categoryInfo.category];
+
+  const primaryArg = useMemo(
+    () =>
+      extractPrimaryArgFromPreview(
+        pendingApproval.toolName,
+        pendingApproval.argsPreview,
+        pendingApproval.mcpServerSlug,
+      ),
+    [
+      pendingApproval.toolName,
+      pendingApproval.argsPreview,
+      pendingApproval.mcpServerSlug,
+    ],
+  );
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 px-2.5 py-1.5 text-xs",
+        bordered && "border-b border-border-muted",
+      )}
+    >
+      <span className="shrink-0 text-warning" aria-hidden="true">
+        <CategoryIcon />
+      </span>
+
+      <span className="min-w-0 flex-1 flex items-baseline gap-1.5 overflow-hidden">
+        <span className="shrink-0 font-medium text-foreground">
+          {categoryInfo.label}
+        </span>
+        {primaryArg && (
+          <span className="min-w-0 truncate font-mono text-muted-foreground">
+            {primaryArg}
+          </span>
+        )}
+      </span>
+
+      {pendingApproval.fromSubAgent && pendingApproval.subAgentName && (
+        <span className="shrink-0 rounded bg-muted px-1 py-0.5 font-mono text-muted-foreground">
+          via {pendingApproval.subAgentSubject || pendingApproval.subAgentName}
+        </span>
+      )}
+
+      <WaitingDuration requestedAt={pendingApproval.requestedAt} />
+
+      <span className="shrink-0 text-warning" aria-hidden="true">
+        <ClockIcon />
+      </span>
+    </div>
+  );
+}
+
+/** Props for {@link ApprovalCardBody}. */
+export interface ApprovalCardBodyProps {
+  /** The pending approval to render a decision panel for. */
+  readonly pendingApproval: PendingApproval;
+  /** Called when the user picks Approve / Approve-all / Skip / Reject. */
+  readonly onSubmit: (action: ApprovalAction, comment?: string) => void;
+  /** True while the RPC for this tool call is in flight. */
+  readonly isSubmitting?: boolean;
+  /** Additional CSS class names for the body container. */
+  readonly className?: string;
+}
+
+/**
+ * The decision panel of an approval: the optional message and gate reason, the
+ * file-changes / args preview, and the action buttons. Reused in two places —
+ * the standalone {@link ApprovalCard} (with {@link ApprovalCardHeader} above
+ * it) and inline inside a gated {@link ToolCallItem}'s expanded panel, where
+ * the item's own row is the header. One body, identical preview in both.
+ */
+export function ApprovalCardBody({
+  pendingApproval,
+  onSubmit,
+  isSubmitting = false,
+  className,
+}: ApprovalCardBodyProps) {
   const [activeAction, setActiveAction] = useState<ApprovalAction | null>(null);
 
   const handleAction = useCallback(
@@ -79,28 +208,10 @@ export const ApprovalCard = memo(function ApprovalCard({
     }
   }, [isSubmitting]);
 
-  // Prefer the denormalized wire tool_kind (populated by the server-side
-  // PendingApproval projection); fall back to the name for legacy executions.
   const categoryInfo = resolveToolCategoryFromKind(
     pendingApproval.toolKind,
     pendingApproval.toolName,
     pendingApproval.mcpServerSlug,
-  );
-
-  const CategoryIcon = CATEGORY_ICON[categoryInfo.category];
-
-  const primaryArg = useMemo(
-    () =>
-      extractPrimaryArgFromPreview(
-        pendingApproval.toolName,
-        pendingApproval.argsPreview,
-        pendingApproval.mcpServerSlug,
-      ),
-    [
-      pendingApproval.toolName,
-      pendingApproval.argsPreview,
-      pendingApproval.mcpServerSlug,
-    ],
   );
 
   const parsedArgs = useMemo<Record<string, unknown> | null>(() => {
@@ -135,131 +246,84 @@ export const ApprovalCard = memo(function ApprovalCard({
     [pendingApproval.approvalPolicySource],
   );
 
-  const borderClass =
-    categoryInfo.category === "delete"
-      ? "border-destructive/30 bg-destructive-subtle"
-      : "border-warning/30 bg-warning/5";
-
   return (
-    <div
-      role="alert"
-      aria-label={`Approval required for ${pendingApproval.toolName}`}
-      className={cn("rounded-lg border", borderClass, className)}
-    >
-      {/* Compact header row — matches ToolCallItem layout */}
-      <div
-        className={cn(
-          "flex items-center gap-2 px-2.5 py-1.5 text-xs",
-          "border-b border-border-muted",
-        )}
-      >
-        <span className="shrink-0 text-warning" aria-hidden="true">
-          <CategoryIcon />
-        </span>
+    <div className={cn("px-3 py-2.5 space-y-2", className)}>
+      {pendingApproval.message && categoryInfo.category !== "shell" && (
+        <p className="text-xs text-foreground">
+          {pendingApproval.message}
+        </p>
+      )}
 
-        <span className="min-w-0 flex-1 flex items-baseline gap-1.5 overflow-hidden">
-          <span className="shrink-0 font-medium text-foreground">
-            {categoryInfo.label}
-          </span>
-          {primaryArg && (
-            <span className="min-w-0 truncate font-mono text-muted-foreground">
-              {primaryArg}
-            </span>
+      {gateReason && (
+        <p className="text-xs italic text-muted-foreground" data-cursor-target="approval-gate-reason">
+          {gateReason}
+        </p>
+      )}
+
+      {/* A file-modifying approval carries the runner's before/after capture
+          on file_changes; render the diff as the primary preview. It already
+          names the file and quantifies the change, so the ToolArgsView args
+          (path + raw content) would only duplicate it — the same composition
+          ToolCallDetail uses for its `edit` case. Non-file tools (or a file
+          tool whose capture is absent) fall back to the shared args view. */}
+      {pendingApproval.fileChanges.length > 0
+        ? pendingApproval.fileChanges.map((fileChange) => (
+            <FileChangeDiff key={fileChange.path} change={fileChange} />
+          ))
+        : parsedArgs && (
+            <ToolArgsView
+              toolName={pendingApproval.toolName}
+              args={parsedArgs}
+              mcpServerSlug={pendingApproval.mcpServerSlug}
+            />
           )}
-        </span>
 
-        {pendingApproval.fromSubAgent && pendingApproval.subAgentName && (
-          <span className="shrink-0 rounded bg-muted px-1 py-0.5 font-mono text-muted-foreground">
-            via {pendingApproval.subAgentSubject || pendingApproval.subAgentName}
-          </span>
-        )}
-
-        <WaitingDuration requestedAt={pendingApproval.requestedAt} />
-
-        <span className="shrink-0 text-warning" aria-hidden="true">
-          <ClockIcon />
-        </span>
-      </div>
-
-      {/* Body */}
-      <div className="px-3 py-2.5 space-y-2">
-        {pendingApproval.message && categoryInfo.category !== "shell" && (
-          <p className="text-xs text-foreground">
-            {pendingApproval.message}
-          </p>
-        )}
-
-        {gateReason && (
-          <p className="text-xs italic text-muted-foreground" data-cursor-target="approval-gate-reason">
-            {gateReason}
-          </p>
-        )}
-
-        {/* A file-modifying approval carries the runner's before/after capture
-            on file_changes; render the diff as the primary preview. It already
-            names the file and quantifies the change, so the ToolArgsView args
-            (path + raw content) would only duplicate it — the same composition
-            ToolCallDetail uses for its `edit` case. Non-file tools (or a file
-            tool whose capture is absent) fall back to the shared args view. */}
-        {pendingApproval.fileChanges.length > 0
-          ? pendingApproval.fileChanges.map((fileChange) => (
-              <FileChangeDiff key={fileChange.path} change={fileChange} />
-            ))
-          : parsedArgs && (
-              <ToolArgsView
-                toolName={pendingApproval.toolName}
-                args={parsedArgs}
-                mcpServerSlug={pendingApproval.mcpServerSlug}
-              />
-            )}
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 pt-1">
-          <ActionButton
-            label="Approve"
-            action={ApprovalAction.APPROVE}
-            activeAction={activeAction}
-            isSubmitting={isSubmitting}
-            onClick={handleAction}
-            variant="approve"
-            cursorTarget="approve-button"
-          />
-          {/* Subordinate escalation: approve this call and stop asking for THIS
-              CLASS of tool for the rest of the run (its MCP server, or its file
-              edit / delete / shell category) — other classes keep prompting. The
-              label names the leased class so the scope is never a surprise. Kept
-              visually quieter than the primary Approve so it never competes with
-              the per-call decision the user is making. */}
-          <ActionButton
-            label={approveAllLabel}
-            action={ApprovalAction.APPROVE_ALL}
-            activeAction={activeAction}
-            isSubmitting={isSubmitting}
-            onClick={handleAction}
-            variant="approveAll"
-            cursorTarget="approve-all-button"
-          />
-          <ActionButton
-            label="Skip"
-            action={ApprovalAction.SKIP}
-            activeAction={activeAction}
-            isSubmitting={isSubmitting}
-            onClick={handleAction}
-            variant="skip"
-          />
-          <ActionButton
-            label="Reject"
-            action={ApprovalAction.REJECT}
-            activeAction={activeAction}
-            isSubmitting={isSubmitting}
-            onClick={handleAction}
-            variant="reject"
-          />
-        </div>
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 pt-1">
+        <ActionButton
+          label="Approve"
+          action={ApprovalAction.APPROVE}
+          activeAction={activeAction}
+          isSubmitting={isSubmitting}
+          onClick={handleAction}
+          variant="approve"
+          cursorTarget="approve-button"
+        />
+        {/* Subordinate escalation: approve this call and stop asking for THIS
+            CLASS of tool for the rest of the run (its MCP server, or its file
+            edit / delete / shell category) — other classes keep prompting. The
+            label names the leased class so the scope is never a surprise. Kept
+            visually quieter than the primary Approve so it never competes with
+            the per-call decision the user is making. */}
+        <ActionButton
+          label={approveAllLabel}
+          action={ApprovalAction.APPROVE_ALL}
+          activeAction={activeAction}
+          isSubmitting={isSubmitting}
+          onClick={handleAction}
+          variant="approveAll"
+          cursorTarget="approve-all-button"
+        />
+        <ActionButton
+          label="Skip"
+          action={ApprovalAction.SKIP}
+          activeAction={activeAction}
+          isSubmitting={isSubmitting}
+          onClick={handleAction}
+          variant="skip"
+        />
+        <ActionButton
+          label="Reject"
+          action={ApprovalAction.REJECT}
+          activeAction={activeAction}
+          isSubmitting={isSubmitting}
+          onClick={handleAction}
+          variant="reject"
+        />
       </div>
     </div>
   );
-});
+}
 
 // ---------------------------------------------------------------------------
 // Internal helpers

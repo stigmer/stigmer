@@ -16,16 +16,26 @@ import { useMemo } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ToolKind, resolveToolKind, normalizeToolResult } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
-import { resolveToolCategoryFromCall, extractPrimaryArg } from "./tool-categories";
-import type { ToolCategory } from "./tool-categories";
+import {
+  resolveToolCategoryFromCall,
+  extractPrimaryArg,
+  defaultDisclosureForCategory,
+} from "./tool-categories";
+import type { ToolCategory, ToolDisclosure } from "./tool-categories";
 import { summarizeResultView } from "./ResultView";
 
-/** Optional per-kind overrides for label and summary. */
+/** Optional per-kind overrides for label, summary, and disclosure. */
 export interface ToolPresenter {
   /** Overrides the display label (e.g. "Shell" -> "Run command"). */
   readonly label?: (toolCall: ToolCall) => string;
   /** Overrides the one-line result summary suffix. */
   readonly summary?: (toolCall: ToolCall, result: ToolResultView) => string | null;
+  /**
+   * Overrides the default inline disclosure. Use to keep a noisy MCP tool
+   * compact (`() => "summary"`) or to foreground a custom tool's output
+   * (`() => "preview"`) without forking the components.
+   */
+  readonly disclosure?: (toolCall: ToolCall, result: ToolResultView) => ToolDisclosure;
 }
 
 const registry = new Map<ToolKind, ToolPresenter>();
@@ -86,6 +96,12 @@ export interface ToolPresentation {
   readonly result: ToolResultView;
   /** One-line result summary suffix for the collapsed row (e.g. "+40 -0"). */
   readonly resultSummary: string | null;
+  /**
+   * Default inline disclosure for this tool — `"preview"` foregrounds the
+   * result, `"summary"` keeps a compact row. The active/awaiting state can
+   * still force a row open; this is the *settled* default.
+   */
+  readonly disclosure: ToolDisclosure;
 }
 
 /**
@@ -105,6 +121,9 @@ export function useToolPresentation(toolCall: ToolCall): ToolPresentation {
     const label = override?.label?.(toolCall) ?? categoryInfo.label;
     const resultSummary =
       override?.summary?.(toolCall, result) ?? summarizeResultView(result);
+    const disclosure =
+      override?.disclosure?.(toolCall, result) ??
+      defaultDisclosureForCategory(categoryInfo.category);
 
     return {
       kind,
@@ -113,6 +132,7 @@ export function useToolPresentation(toolCall: ToolCall): ToolPresentation {
       primaryArg: extractPrimaryArg(toolCall),
       result,
       resultSummary,
+      disclosure,
     };
   }, [toolCall]);
 }

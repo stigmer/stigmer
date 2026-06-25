@@ -75,4 +75,48 @@ describe("useToolPresentation", () => {
     const { result } = renderHook(() => useToolPresentation(tc));
     expect(result.current.label).toBe("Shell");
   });
+
+  describe("disclosure", () => {
+    it("keeps known compact tools as summary", () => {
+      for (const name of ["Read", "StrReplace", "Shell", "Grep", "Glob"]) {
+        const tc = makeToolCall({ name, args: { path: "/x", command: "ls", pattern: "p" } });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.disclosure).toBe("summary");
+      }
+    });
+
+    it("foregrounds MCP tools as preview", () => {
+      const tc = makeToolCall({
+        name: "send_message",
+        mcpServerSlug: "acme/slack",
+        args: { channel: "general" },
+      });
+      const { result } = renderHook(() => useToolPresentation(tc));
+      expect(result.current.category).toBe("mcp");
+      expect(result.current.disclosure).toBe("preview");
+    });
+
+    it("foregrounds an unrecognized tool as preview", () => {
+      const tc = makeToolCall({ name: "frobnicate_widget", args: { x: "1" } });
+      const { result } = renderHook(() => useToolPresentation(tc));
+      expect(result.current.category).toBe("unknown");
+      expect(result.current.disclosure).toBe("preview");
+    });
+
+    it("lets a registered presenter override the disclosure", () => {
+      const dispose = registerToolPresenter(ToolKind.MCP, {
+        disclosure: () => "summary",
+      });
+      try {
+        const tc = makeToolCall({
+          name: "noisy_tool",
+          mcpServerSlug: "acme/noisy",
+        });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.disclosure).toBe("summary");
+      } finally {
+        dispose();
+      }
+    });
+  });
 });

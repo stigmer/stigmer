@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import {
@@ -9,6 +9,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev";
+import { useAutoDisclosure } from "../internal/useAutoDisclosure";
 import { ToolCallItem } from "./ToolCallItem";
 import { resolveToolCategoryFromCall, extractPrimaryArg } from "./tool-categories";
 
@@ -194,22 +195,12 @@ export const ToolCallGroup = memo(function ToolCallGroup({
   const status = deriveAggregateStatus(toolCalls);
   const isActive = status === "running" || status === "pending" || status === "waiting";
 
-  const [expanded, setExpanded] = useState(defaultExpanded || isActive);
-  const userToggledRef = useRef(false);
-
-  useEffect(() => {
-    if (userToggledRef.current) return;
-    if (isActive) {
-      setExpanded(true);
-    } else {
-      setExpanded(false);
-    }
-  }, [isActive]);
-
-  const handleToggle = () => {
-    userToggledRef.current = true;
-    setExpanded((v) => !v);
-  };
+  // Open while the turn is live; settle closed when it finishes — unless the
+  // user has taken manual control. Shared with ToolCallItem / SubAgentSection
+  // so the disclosure behaviour is one shape across the thread.
+  const [expanded, handleToggle] = useAutoDisclosure(isActive, {
+    initialOpen: defaultExpanded || isActive,
+  });
 
   const subAgentMap = useMemo(() => {
     if (!subAgentExecutions || subAgentExecutions.length === 0) return null;

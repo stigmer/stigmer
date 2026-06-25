@@ -27,6 +27,43 @@ export type ToolCategory =
   | "mcp"
   | "unknown";
 
+/**
+ * How much of a tool call to reveal inline by default in the thread.
+ *
+ * - `"summary"` — a compact one-line row. Used when the label + primary arg +
+ *   result summary already tell the story (`Read foo.ts`, `Edit bar.ts +40 -0`,
+ *   `Search … 2 matches`). The full detail is one click away.
+ * - `"preview"` — the result is rendered inline. Used when the one-liner cannot
+ *   convey what happened, so the content itself IS the information (an MCP
+ *   result such as a screenshot, a fetched page, a web-search answer, or an
+ *   unrecognised tool's output).
+ */
+export type ToolDisclosure = "summary" | "preview";
+
+/**
+ * Categories whose result is foregrounded inline by default — those for which
+ * there is no rich compact renderer, so the output carries the meaning. All
+ * other categories default to `"summary"`.
+ */
+const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
+  "mcp",
+  "web-search",
+  "fetch",
+  "unknown",
+]);
+
+/**
+ * Returns the default inline {@link ToolDisclosure} for a presentation
+ * category. This is the headless policy behind the thread's "show MCP/unknown
+ * tools live, keep generic tools compact" behaviour; consumers can override
+ * per {@link ToolKind} via {@link registerToolPresenter}.
+ */
+export function defaultDisclosureForCategory(
+  category: ToolCategory,
+): ToolDisclosure {
+  return PREVIEW_CATEGORIES.has(category) ? "preview" : "summary";
+}
+
 /** Resolved display metadata for a tool call, returned by {@link resolveToolCategory}. */
 export interface ToolCategoryInfo {
   /** Semantic category of the tool. */

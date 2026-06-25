@@ -171,8 +171,15 @@ export type { TodoListProps } from "./TodoList";
 export { useSubmitApproval } from "./useSubmitApproval";
 export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
 
-export { ApprovalCard } from "./ApprovalCard";
-export type { ApprovalCardProps } from "./ApprovalCard";
+export { ApprovalCard, ApprovalCardHeader, ApprovalCardBody } from "./ApprovalCard";
+export type {
+  ApprovalCardProps,
+  ApprovalCardHeaderProps,
+  ApprovalCardBodyProps,
+} from "./ApprovalCard";
+
+export { ApprovalContext, useApproval } from "./ApprovalContext";
+export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext";
 
 export { ArtifactCard } from "./ArtifactCard";
 export type { ArtifactCardProps } from "./ArtifactCard";
@@ -197,8 +204,9 @@ export {
   extractPrimaryArg,
   extractPrimaryArgFromPreview,
   humanizeToolName,
+  defaultDisclosureForCategory,
 } from "./tool-categories";
-export type { ToolCategory, ToolCategoryInfo } from "./tool-categories";
+export type { ToolCategory, ToolCategoryInfo, ToolDisclosure } from "./tool-categories";
 
 export { FilePathLink } from "./FilePathLink";
 export type { FilePathLinkProps } from "./FilePathLink";

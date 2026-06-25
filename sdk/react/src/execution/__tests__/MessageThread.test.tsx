@@ -145,6 +145,46 @@ function makeExecutionWithApproval(
   return exec;
 }
 
+/**
+ * An active execution whose AI turn carries a gated tool call, with a matching
+ * pending approval — the case that should render the gate INLINE on the tool
+ * row rather than as a detached bottom card.
+ */
+function makeExecutionWithInlineApproval(
+  id: string,
+  toolCallId: string,
+  toolName: string,
+): AgentExecution {
+  const exec = create(AgentExecutionSchema);
+  exec.metadata = create(ApiResourceMetadataSchema, { id });
+  exec.spec = create(AgentExecutionSpecSchema, { message: "Do something" });
+
+  const status = create(AgentExecutionStatusSchema);
+  status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+
+  const aiMsg = create(AgentMessageSchema, {
+    type: MessageType.MESSAGE_AI,
+    content: "",
+    toolCalls: [
+      create(ToolCallSchema, {
+        id: toolCallId,
+        name: toolName,
+        status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      }),
+    ],
+  });
+  status.messages = [aiMsg];
+  status.pendingApprovals = [
+    create(PendingApprovalSchema, {
+      toolCallId,
+      toolName,
+      argsPreview: '{"path":"/tmp/x"}',
+    }),
+  ];
+  exec.status = status;
+  return exec;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -241,6 +281,28 @@ describe("MessageThread", () => {
     );
     // First arg is toolCallId, second is ApprovalAction.APPROVE (enum value)
     expect(onApproval.mock.calls[0][0]).toBe("tc-approve");
+  });
+
+  it("renders a matching approval INLINE on its tool row, not as a bottom card, and routes the decision", () => {
+    const exec = makeExecutionWithInlineApproval("exec-inline", "tc-inline", "delete_file");
+    const onApproval = vi.fn();
+
+    render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={exec}
+        onApprovalSubmit={onApproval}
+      />,
+    );
+
+    // No detached bottom card (role=alert is the standalone ApprovalCard only).
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    // The gate's actions are present inline, and approving routes the decision
+    // with the gated tool's id.
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    expect(onApproval).toHaveBeenCalledOnce();
+    expect(onApproval.mock.calls[0][0]).toBe("tc-inline");
   });
 
   it("renders ExecutionPhaseBadge for non-completed terminal phase", () => {
