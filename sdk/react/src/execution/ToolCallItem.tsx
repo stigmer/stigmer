@@ -217,13 +217,28 @@ export const ToolCallItem = memo(function ToolCallItem({
       selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
       className,
     )}>
-      <button
-        type="button"
+      {/*
+        Disclosure header is a div[role=button], not a <button>: the row carries
+        a nested "Inspect tool call" <button> in its trailing content, and a
+        <button> may not contain another <button> (a hydration error). This
+        mirrors the non-expandable read row above, which is also a div for the
+        same reason. Enter/Space drive the toggle for keyboard parity.
+      */}
+      <div
+        role="button"
+        tabIndex={0}
         aria-expanded={expanded}
         onClick={handleToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
         className={cn(
-          "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors",
+          "flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors",
           "hover:bg-muted-subtle",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           expanded && "bg-muted-faint",
         )}
       >
@@ -250,7 +265,7 @@ export const ToolCallItem = memo(function ToolCallItem({
         {trailingContent}
 
         <ChevronIcon expanded={expanded} />
-      </button>
+      </div>
 
       {expanded && (
         <div className="px-2.5 pb-2.5 pt-1">
