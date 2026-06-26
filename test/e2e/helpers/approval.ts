@@ -387,15 +387,31 @@ async function pollExecution(
   const intervalMs = opts.intervalMs ?? 500;
   const deadline = Date.now() + timeoutMs;
   let last = ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  let lastGetError: unknown;
   while (Date.now() < deadline) {
-    const exec = await client.agentExecution.get(executionId);
-    last = exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-    if (predicate(last)) return last;
+    // Bound EACH get: if the backend wedges (e.g. an execution that doesn't
+    // progress to terminal after an approval), a single hung RPC must not stall
+    // the deadline check — otherwise the whole poll blocks until Playwright's
+    // test timeout and reports an opaque "Test timeout" with no phase context.
+    // Capping the call keeps the loop honoring `timeoutMs`, so a stuck backend
+    // surfaces as a fast, phase-annotated failure instead of a 90s hang.
+    try {
+      const exec = await withTimeout(client.agentExecution.get(executionId), 5_000);
+      last = exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+      lastGetError = undefined;
+      if (predicate(last)) return last;
+    } catch (err) {
+      lastGetError = err;
+    }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
+  const errSuffix =
+    lastGetError !== undefined
+      ? ` (last get() failed: ${lastGetError instanceof Error ? lastGetError.message : String(lastGetError)})`
+      : "";
   throw new Error(
     `execution ${executionId} did not reach ${label} within ${timeoutMs}ms ` +
-      `(last phase: ${ExecutionPhase[last]})`,
+      `(last phase: ${ExecutionPhase[last]})${errSuffix}`,
   );
 }
 

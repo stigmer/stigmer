@@ -3,6 +3,7 @@ import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import { diagEnabled, diagLogPath } from "./diag";
 
 export interface ServerState {
   reused: boolean;
@@ -208,6 +209,13 @@ export async function startBackendStack(opts: {
 
   const server = spawn(serverBin, [], { env: serverEnv, stdio: ["ignore", "pipe", "pipe"] });
 
+  // Opt-in: tee server logs for the post-approval resume-wedge probe (see diag.ts).
+  if (diagEnabled()) {
+    const serverLog = fs.createWriteStream(diagLogPath("server"), { flags: "w" });
+    server.stdout?.on("data", (d: Buffer) => serverLog.write(d));
+    server.stderr?.on("data", (d: Buffer) => serverLog.write(d));
+  }
+
   if (!server.pid) {
     temporal.kill();
     throw new Error(`Failed to spawn stigmer-server at ${serverBin}. Build with: make build`);
@@ -263,6 +271,13 @@ export async function startBackendStack(opts: {
 
   runner.stdout?.on("data", (data: Buffer) => runnerOutput.push(data.toString()));
   runner.stderr?.on("data", (data: Buffer) => runnerOutput.push(data.toString()));
+
+  // Opt-in: tee runner logs for the post-approval resume-wedge probe (see diag.ts).
+  if (diagEnabled()) {
+    const runnerLog = fs.createWriteStream(diagLogPath("runner"), { flags: "w" });
+    runner.stdout?.on("data", (d: Buffer) => runnerLog.write(d));
+    runner.stderr?.on("data", (d: Buffer) => runnerLog.write(d));
+  }
 
   if (!runner.pid) {
     temporal.kill();

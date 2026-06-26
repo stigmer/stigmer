@@ -24,7 +24,19 @@
 // Because the queue is a single shared FIFO, the approval specs run serially and
 // reset() between tests (see playwright.config.ts `interactive-approval`).
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { appendFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
+import { diagEnabled, diagLogPath } from "./diag";
+
+// Records every LLM call the runner makes to /tmp/stigmer-e2e-mock.log when
+// STIGMER_E2E_DIAG is set. The intermittent HITL flake is a post-approval resume
+// that doesn't reach a terminal phase; this log is the cheapest way to see, on a
+// captured failure, whether the runner ever requested the post-approval
+// terminating turn (and what was served). Off by default — pure diagnostics.
+function appendMockLog(line: string): void {
+  if (!diagEnabled()) return;
+  appendFileSync(diagLogPath("mock"), line);
+}
 
 // An Anthropic message body, in the shape the provider's `messages` endpoint
 // returns. The SSE encoder expands this into the streaming event sequence.
@@ -166,6 +178,16 @@ export class MockLlmProxy {
     // Claim the head turn synchronously so concurrent or retried calls can't race
     // for the same entry; an empty queue is a test-authoring error (500).
     const next = this.queue.shift();
+    // DIAG-HITL (temporary): record every LLM call the runner makes (esp. the
+    // post-approval resume turn) for the resume-wedge probe.
+    try {
+      const stop = next?.body.stop_reason ?? "EMPTY-500";
+      appendMockLog(
+        `${new Date().toISOString()} LLM path=${path} streaming=${streaming} served=${stop} remaining=${this.queue.length}\n`,
+      );
+    } catch {
+      /* never let diag logging break the proxy */
+    }
     if (next === undefined) {
       writeJson(res, 500, { error: "MockLlmProxy: no queued response" });
       return;
