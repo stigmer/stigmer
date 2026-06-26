@@ -440,65 +440,6 @@ function buildApproveAllLabel(
 // Internal sub-components
 // ---------------------------------------------------------------------------
 
-function ActionButton({
-  label,
-  action,
-  activeAction,
-  isSubmitting,
-  onClick,
-  variant,
-  cursorTarget,
-}: {
-  label: string;
-  action: ApprovalAction;
-  activeAction: ApprovalAction | null;
-  isSubmitting: boolean;
-  onClick: (action: ApprovalAction) => void;
-  variant: "approve" | "approveAll" | "skip" | "reject";
-  cursorTarget?: string;
-}) {
-  const isActive = activeAction === action;
-  const disabled = isSubmitting;
-
-  const variantClasses: Record<typeof variant, string> = {
-    approve: cn(
-      "bg-success text-success-foreground hover:bg-success/90",
-      "disabled:bg-success/50 disabled:text-success-foreground/70",
-    ),
-    approveAll: cn(
-      "text-success hover:bg-success/10",
-      "disabled:text-success/50",
-    ),
-    skip: cn(
-      "border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
-      "disabled:bg-muted-faint disabled:text-muted-foreground-faint",
-    ),
-    reject: cn(
-      "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-      "disabled:bg-destructive-subtle0 disabled:text-destructive-foreground/70",
-    ),
-  };
-
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={() => onClick(action)}
-      aria-label={label}
-      data-cursor-target={cursorTarget}
-      className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        "disabled:cursor-not-allowed",
-        variantClasses[variant],
-      )}
-    >
-      {isActive && isSubmitting ? <SpinnerIcon /> : null}
-      {label}
-    </button>
-  );
-}
-
 function WaitingDuration({ requestedAt }: { requestedAt: string }) {
   const startMs = useMemo(() => {
     if (!requestedAt) return null;
@@ -565,23 +506,6 @@ function ClockIcon() {
     >
       <circle cx="6" cy="6" r="4.5" />
       <path d="M6 3.5V6L7.5 7.5" />
-    </svg>
-  );
-}
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
     </svg>
   );
 }

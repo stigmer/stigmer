@@ -21,6 +21,7 @@ import {
   awaitExecutionPhase,
   toolCallRow,
   approveButton,
+  rejectButton,
   fileDiff,
   type SeededGatedExecution,
 } from "../../helpers/approval";
@@ -28,6 +29,26 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 
 const mockUrl = getMockControlUrl();
 const COLOR_SCHEMES = ["light", "dark"] as const;
+
+/**
+ * Parses a CSS `background-color` computed value into numeric channels.
+ * Returns `null` for `transparent`/unparseable; `a` defaults to 1 for `rgb(...)`.
+ */
+function parseRgb(
+  value: string,
+): { r: number; g: number; b: number; a: number } | null {
+  if (value === "transparent") return null;
+  const m = value.match(
+    /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/,
+  );
+  if (!m) return null;
+  return {
+    r: Number(m[1]),
+    g: Number(m[2]),
+    b: Number(m[3]),
+    a: m[4] === undefined ? 1 : Number(m[4]),
+  };
+}
 
 test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   test.skip(
@@ -138,6 +159,46 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     expect(border.color).not.toMatch(/,\s*0\)\s*$/); // no rgba(...,0)
     // The pending gate carries its "needs you" cue as a 2px left accent.
     expect(parseFloat(border.left)).toBeGreaterThanOrEqual(2);
+  });
+
+  // --- Quiet decision buttons: computed-style guard (not a screenshot) ------
+  // The buttons share the quiet, Cursor-grade `DecisionButton`: Approve is a
+  // filled NEUTRAL chip (a low-chroma grey, never the success green), and Reject
+  // is a ghost with NO resting fill. A screenshot's 2% threshold can miss a hue
+  // swap on a small button, so assert the real computed colors — the same
+  // "rendered, not class-string" philosophy as the border guard above.
+  test("decision buttons are quiet: Approve is a neutral chip, Reject has no resting fill", async ({
+    page,
+    stigmerClient,
+  }) => {
+    seeded = await seedGatedSession(stigmerClient, control, {
+      gateBlocks: [writeFileBlock("call_write_1", "/tmp/e2e-quiet.txt", "alpha\nbeta\n")],
+    });
+    await page.goto(`/sessions/${seeded.sessionId}`);
+
+    const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
+    await expect(gateRow).toBeVisible({ timeout: 30_000 });
+
+    // Approve: opaque fill, but neutral grey (R≈G≈B) — not the success green
+    // (whose green channel dominates).
+    const approveBg = parseRgb(
+      await approveButton(gateRow).evaluate((el) => getComputedStyle(el).backgroundColor),
+    );
+    expect(approveBg, "Approve should have a parseable background").not.toBeNull();
+    expect(approveBg!.a, "Approve is a filled chip").toBeGreaterThan(0);
+    const spread =
+      Math.max(approveBg!.r, approveBg!.g, approveBg!.b) -
+      Math.min(approveBg!.r, approveBg!.g, approveBg!.b);
+    expect(spread, "Approve fill is neutral grey, not green").toBeLessThanOrEqual(12);
+
+    // Reject: a quiet ghost — transparent at rest (no fill).
+    const rejectBg = parseRgb(
+      await rejectButton(gateRow).evaluate((el) => getComputedStyle(el).backgroundColor),
+    );
+    expect(
+      rejectBg === null || rejectBg.a === 0,
+      "Reject has no resting background fill",
+    ).toBe(true);
   });
 
   // --- Visual regression: the post-execution diff preview ------------------

@@ -37,14 +37,19 @@ describe("WorkflowTaskApprovalCard", () => {
     });
   });
 
-  describe("button variants", () => {
-    it("first outcome gets primary variant (success colors)", () => {
+  // The buttons now share the quiet, token-only DecisionButton primitive:
+  // first outcome = neutral chip (`primary`), reject/deny or the trailing of two
+  // = ghost-`danger`, middle outcomes = neutral `ghost`. No loud success/destructive
+  // fills, and no `bg-token/NN` opacity modifiers.
+  describe("button variants (quiet hierarchy)", () => {
+    it("first outcome is the neutral chip (primary), never the loud success green", () => {
       render(<WorkflowTaskApprovalCard {...defaultProps} />);
       const btn = screen.getByRole("button", { name: "Approve" });
-      expect(btn.className).toContain("bg-success");
+      expect(btn.className).toContain("bg-accent");
+      expect(btn.className).not.toContain("bg-success");
     });
 
-    it('outcome named "reject" gets destructive variant', () => {
+    it('outcome named "reject" is a quiet danger ghost (no red fill)', () => {
       const outcomes: TaskOutcome[] = [
         { name: "approve", label: "Approve" },
         { name: "reject", label: "Reject" },
@@ -52,10 +57,11 @@ describe("WorkflowTaskApprovalCard", () => {
       ];
       render(<WorkflowTaskApprovalCard {...defaultProps} outcomes={outcomes} />);
       const btn = screen.getByRole("button", { name: "Reject" });
-      expect(btn.className).toContain("bg-destructive");
+      expect(btn.className).toContain("hover:text-destructive");
+      expect(btn.className).not.toContain("bg-destructive text-destructive-foreground");
     });
 
-    it('outcome named "deny" gets destructive variant', () => {
+    it('outcome named "deny" is a quiet danger ghost (no red fill)', () => {
       const outcomes: TaskOutcome[] = [
         { name: "approve", label: "Approve" },
         { name: "deny", label: "Deny" },
@@ -63,20 +69,21 @@ describe("WorkflowTaskApprovalCard", () => {
       ];
       render(<WorkflowTaskApprovalCard {...defaultProps} outcomes={outcomes} />);
       const btn = screen.getByRole("button", { name: "Deny" });
-      expect(btn.className).toContain("bg-destructive");
+      expect(btn.className).toContain("hover:text-destructive");
+      expect(btn.className).not.toContain("bg-destructive text-destructive-foreground");
     });
 
-    it("second of two outcomes gets destructive variant (binary fallback)", () => {
+    it("second of two outcomes is the danger ghost (binary fallback)", () => {
       const outcomes: TaskOutcome[] = [
         { name: "accept", label: "Accept" },
         { name: "decline", label: "Decline" },
       ];
       render(<WorkflowTaskApprovalCard {...defaultProps} outcomes={outcomes} />);
       const btn = screen.getByRole("button", { name: "Decline" });
-      expect(btn.className).toContain("bg-destructive");
+      expect(btn.className).toContain("hover:text-destructive");
     });
 
-    it("middle outcomes in 3+ get secondary variant", () => {
+    it("middle outcomes in 3+ are neutral ghosts (no resting fill)", () => {
       const outcomes: TaskOutcome[] = [
         { name: "approve", label: "Approve" },
         { name: "defer", label: "Defer" },
@@ -84,7 +91,16 @@ describe("WorkflowTaskApprovalCard", () => {
       ];
       render(<WorkflowTaskApprovalCard {...defaultProps} outcomes={outcomes} />);
       const btn = screen.getByRole("button", { name: "Defer" });
-      expect(btn.className).toContain("bg-background");
+      expect(btn.className).toContain("text-muted-foreground");
+      expect(btn.className).not.toMatch(/(?:^|\s)bg-/);
+    });
+
+    it("the card uses neutral chrome + warning accent, never the old amber fill", () => {
+      render(<WorkflowTaskApprovalCard {...defaultProps} />);
+      const card = screen.getByRole("form");
+      expect(card.className).toContain("border-border-prominent");
+      expect(card.className).toContain("border-l-warning");
+      expect(card.className).not.toContain("bg-warning");
     });
   });
 

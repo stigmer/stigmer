@@ -149,6 +149,56 @@ describe("ApprovalCard chrome", () => {
   });
 });
 
+describe("ApprovalCard quiet decision buttons", () => {
+  // Class-contract assertions (happy-dom can't resolve `@layer`); the RENDERED
+  // quiet treatment is proven by the e2e computed-style guard in
+  // tool-card-ux.spec.ts. The shared treatment itself lives in DecisionButton.
+  function renderGate() {
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-quiet",
+      toolName: "write_file",
+      toolKind: ToolKind.FILE_EDIT,
+      argsPreview: '{"path":"src/x.ts","contents":"x"}',
+    });
+    return render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
+  }
+
+  it("Approve is the neutral chip, never the loud success green", () => {
+    renderGate();
+    const approve = screen.getByRole("button", { name: "Approve" });
+    expect(approve.className).toContain("bg-accent");
+    expect(approve.className).toContain("border");
+    expect(approve.className).not.toContain("bg-success");
+  });
+
+  it("Skip and Reject are quiet ghosts with no resting fill", () => {
+    renderGate();
+    const skip = screen.getByRole("button", { name: "Skip" });
+    const reject = screen.getByRole("button", { name: "Reject" });
+    expect(skip.className).toContain("text-muted-foreground");
+    expect(skip.className).not.toMatch(/(?:^|\s)bg-/); // hover-only wash, no rest fill
+    // Reject reveals its danger affordance on hover/focus, not as a red fill.
+    expect(reject.className).toContain("hover:text-destructive");
+    expect(reject.className).not.toMatch(/(?:^|\s)bg-/);
+    expect(reject.className).not.toContain("bg-destructive text-destructive-foreground");
+  });
+
+  it("demotes Approve-all to the far right (ml-auto) at the lowest weight", () => {
+    renderGate();
+    const approveAll = screen.getByRole("button", { name: "Approve all file edits" });
+    expect(approveAll.className).toContain("ml-auto");
+    expect(approveAll.className).toContain("text-muted-foreground");
+  });
+
+  it("uses no `bg-token/NN` opacity modifiers on any decision button", () => {
+    renderGate();
+    for (const name of ["Approve", "Skip", "Reject", "Approve all file edits"]) {
+      const btn = screen.getByRole("button", { name });
+      expect(btn.className).not.toMatch(/\/\d+(?:\s|$)/);
+    }
+  });
+});
+
 describe("ApprovalCard tool classification", () => {
   it("honors the denormalized wire tool_kind for a name not in the fallback map", () => {
     // A future/unknown tool name that the name-based resolver cannot classify —
