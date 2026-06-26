@@ -202,8 +202,8 @@ sequenceDiagram
 |----------------|--------|----------------|
 | **Stream Broker: Manages in-memory Go Channels** | ✅ | `StreamBroker` component created |
 | **Write Path: Pushes message to active Go Channels** | ✅ | `BroadcastToStreamsStep` added to UpdateStatus pipeline |
-| **Read Path: Subscribes request to internal Go Channel** | ✅ | `StreamUpdatesStep` calls `broker.Subscribe()` |
-| **Read Path: Streams events from channel down gRPC** | ✅ | `StreamUpdatesStep` reads from channel and sends to gRPC stream |
+| **Read Path: Subscribes request to internal Go Channel** | ✅ | `StreamExecutionStep` calls `broker.Subscribe()` (before reading the snapshot, so no broadcast is dropped in the gap) |
+| **Read Path: Streams events from channel down gRPC** | ✅ | `StreamExecutionStep` sends the snapshot, then reads from the channel and sends to the gRPC stream (de-duping the overlap via `sameFrame`) |
 | **Performance: Near-instant feedback** | ✅ | Eliminated 1-second polling delay |
 | **In-memory streaming** | ✅ | No Redis, uses Go channels as per ADR |
 

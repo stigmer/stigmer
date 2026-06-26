@@ -13,6 +13,7 @@ import (
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 )
 
 func isTerminalPhase(phase agentexecv1.ExecutionPhase) bool {
@@ -125,6 +126,19 @@ func TestAgentExecution_Subscribe_DeliversPhaseProgression(t *testing.T) {
 				if isTerminalPhase(prevPhase) && !isTerminalPhase(currPhase) {
 					t.Errorf("phase regression at event %d: %s → %s (terminal should not revert to non-terminal) for execution %s",
 						i, prevPhase.String(), currPhase.String(), executionID)
+				}
+			}
+
+			// De-dup invariant (subscribe replay-gap hardening): both editions
+			// register the live subscription before the snapshot read and then
+			// suppress the at-or-before-snapshot overlap frame (Go sameFrame /
+			// Java DuplicateFrameSuppressor). So the client must never receive two
+			// byte-identical consecutive frames — a cross-edition parity guard for
+			// the structural de-dup that closes the gap.
+			for i := 1; i < len(sr.snapshots); i++ {
+				if proto.Equal(sr.snapshots[i-1], sr.snapshots[i]) {
+					t.Errorf("duplicate consecutive snapshot at event %d (identical to previous) for execution %s",
+						i, executionID)
 				}
 			}
 
