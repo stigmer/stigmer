@@ -31,8 +31,8 @@
  * PID is gone, and the relocated artifacts are not in the repo.
  */
 
-import { writeFile, readFile, mkdir, chmod, rm, rmdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { writeFile, readFile, mkdir, chmod, rm, rmdir, readdir } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
 import { generateHookScript } from "./hook-script.js";
 import { buildToolApprovalRuleFile } from "./prompt-builder.js";
 import { writeApprovalStateFile, resetDenialLedger, type ApprovalStateFile } from "./approval-state.js";
@@ -41,6 +41,12 @@ const CURSOR_DIR = ".cursor";
 const HOOKS_CONFIG_FILE = "hooks.json";
 const HOOK_SCRIPT_FILE = "stigmer-approval.sh";
 const RULES_DIR = "rules";
+// Pre-#173 the gate wrote its script/state/ledger INTO the repo here, as
+// `stigmer-*` files. Newer runs relocate them to the session HITL dir, but the
+// old files (and their hooks.json entry) linger in already-touched repos — see
+// removeLegacyWorkspaceHookArtifacts / isStigmerHookEntry.
+const LEGACY_HOOKS_DIR = "hooks";
+const RUNNER_OWNED_HOOK_FILE_PREFIX = "stigmer-";
 // Unmistakably runner-owned filename so installing it never collides with a
 // user's own project rules and restoring it never touches one.
 const TOOL_APPROVAL_RULE_FILE = "stigmer-tool-approval.mdc";
@@ -105,6 +111,18 @@ export async function installHitlGate(params: {
 }): Promise<HitlGateHandle> {
   const { workspaceRoot, hitlDir, approvalState, runnerPid } = params;
 
+  // Heal any pre-#173 in-workspace gate leftovers before installing. Without
+  // this, a stale `.cursor/hooks/stigmer-approval.sh` (from a runner build that
+  // wrote the gate into the repo) keeps running alongside the current
+  // out-of-workspace gate and — reading an old, taskless approval-state with no
+  // grant for the current action — vetoes EVERY gated tool, including ones the
+  // user just approved ("blocked despite approval"). Its denials also land in a
+  // ledger this runner never reads, so the denial never surfaces as a pause and
+  // the run silently completes with the file never written. The merge below
+  // strips the stale hooks.json entry (see isStigmerHookEntry); this removes the
+  // orphaned script/state/ledger files so nothing can re-run them.
+  await removeLegacyWorkspaceHookArtifacts(workspaceRoot);
+
   const approvalScriptPath = await writeHitlArtifacts(hitlDir, approvalState, runnerPid);
   // One script, two events: preToolUse gates built-ins; beforeMCPExecution is
   // the only event Cursor enforces for MCP tools. The script branches internally
@@ -167,6 +185,51 @@ async function restoreWorkspaceFile(path: string, restoreTo: string | null): Pro
       `removeHitlGate: failed to restore ${path} (non-fatal): ` +
       `${err instanceof Error ? err.message : err}`,
     );
+  }
+}
+
+/**
+ * Delete pre-#173 in-workspace gate leftovers: the runner-owned `stigmer-*`
+ * files an older runner build wrote to `.cursor/hooks/` (the hook script, its
+ * approval-state, its denial ledger). These are the orphan that shadows the
+ * current gate (see installHitlGate). Best-effort and never throws — a cleanup
+ * failure must not fail the run.
+ *
+ * Only `stigmer-`-prefixed files are removed (the unmistakably runner-owned
+ * namespace, like the rule filename), so a user's own scripts in `.cursor/hooks`
+ * are untouched; the directory itself is removed only if it ends up empty.
+ */
+async function removeLegacyWorkspaceHookArtifacts(workspaceRoot: string): Promise<void> {
+  const hooksDir = join(workspaceRoot, CURSOR_DIR, LEGACY_HOOKS_DIR);
+  let entries: string[];
+  try {
+    entries = await readdir(hooksDir);
+  } catch {
+    return; // no legacy hooks dir — nothing to heal
+  }
+
+  let removedAny = false;
+  for (const name of entries) {
+    if (!name.startsWith(RUNNER_OWNED_HOOK_FILE_PREFIX)) continue;
+    try {
+      await rm(join(hooksDir, name), { force: true });
+      removedAny = true;
+    } catch (err) {
+      console.warn(
+        `removeLegacyWorkspaceHookArtifacts: failed to remove ${name} (non-fatal): ` +
+        `${err instanceof Error ? err.message : err}`,
+      );
+    }
+  }
+
+  if (removedAny) {
+    // rmdir only succeeds on an empty dir, so a user who keeps their own hooks
+    // here is left untouched; an empty (entirely-ours) dir is cleaned away.
+    try {
+      await rmdir(hooksDir);
+    } catch {
+      // Non-empty (user owns other hooks) or already gone — nothing to clean.
+    }
   }
 }
 
@@ -261,19 +324,28 @@ function buildHookEntry(scriptPath: string): Record<string, unknown> {
 }
 
 /**
- * Identify a hook entry the gate itself wrote (in this or a prior, crash-leftover
- * turn) so a re-install never duplicates it and a restore strips it. Matched by
- * the unmistakable runner-owned HITL script path (`~/.stigmer/sessions/.../*.sh`),
- * never by a user's own hook — covers every event and every gate script.
+ * Identify a hook entry the gate itself wrote — in this turn, a prior
+ * crash-leftover turn, or a pre-#173 runner build — so a re-install never
+ * duplicates it and a restore strips it. Matches two runner-owned shapes, never
+ * a user's own hook:
+ *
+ * 1. Current: any script under the session HITL dir
+ *    (`~/.stigmer/sessions/.../*.sh`) — location-based, so it covers every gate
+ *    script regardless of name.
+ * 2. Legacy: a `stigmer-*.sh` script (historically the in-workspace
+ *    `.cursor/hooks/stigmer-approval.sh`) — recognized by its unmistakably
+ *    runner-owned basename. Without this, the old in-workspace hook is treated
+ *    as a user hook and preserved by the merge, so it keeps running alongside
+ *    (and vetoing) the current gate. The `stigmer-` prefix is the same
+ *    runner-owned namespace convention as the rule filename.
  */
 function isStigmerHookEntry(entry: unknown): boolean {
   if (!entry || typeof entry !== "object") return false;
   const command = (entry as { command?: unknown }).command;
-  return (
-    typeof command === "string" &&
-    command.includes("/.stigmer/sessions/") &&
-    command.endsWith(".sh")
-  );
+  if (typeof command !== "string" || command.length === 0) return false;
+  if (command.includes("/.stigmer/sessions/") && command.endsWith(".sh")) return true;
+  const file = basename(command);
+  return file.startsWith(RUNNER_OWNED_HOOK_FILE_PREFIX) && file.endsWith(".sh");
 }
 
 const STANDALONE_CONFIG = (registrations: HookRegistration[]): string =>
@@ -350,11 +422,26 @@ export function buildMergedConfig(
 
   const merged = JSON.stringify({ ...root, version, hooks: mergedHooks }, null, 2);
 
-  // Restore the user's exact original bytes — unless we stripped a stale Stigmer
-  // entry, in which case restore the cleaned form so our leftover never lingers.
-  const restoreTo = strippedStale
-    ? JSON.stringify({ ...root, version, hooks: cleaned }, null, 2)
-    : originalRaw;
+  // No stale Stigmer entry → restore the user's exact original bytes.
+  if (!strippedStale) {
+    return { merged, restoreTo: originalRaw };
+  }
+
+  // We stripped a stale Stigmer entry, so never restore the original bytes (that
+  // would re-plant our leftover). If stripping leaves NO user hooks at all and
+  // the file carried nothing but `version`/`hooks`, the entire hooks.json was our
+  // own leftover (the pre-#173 design wrote the whole file) — delete it on
+  // teardown so a polluted repo is left pristine. Otherwise restore the cleaned,
+  // Stigmer-free form, preserving the user's other hooks and root fields.
+  const onlyVersionAndHooks = Object.keys(root).every(
+    (k) => k === "version" || k === "hooks",
+  );
+  const noUserHooksRemain = Object.values(cleaned).every(
+    (v) => Array.isArray(v) && v.length === 0,
+  );
+  const restoreTo = onlyVersionAndHooks && noUserHooksRemain
+    ? null
+    : JSON.stringify({ ...root, version, hooks: cleaned }, null, 2);
 
   return { merged, restoreTo };
 }

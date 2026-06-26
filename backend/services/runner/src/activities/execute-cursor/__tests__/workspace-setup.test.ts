@@ -159,6 +159,60 @@ describe("buildMergedConfig", () => {
     // ...and never "fix" the user's file: restore their exact original bytes.
     expect(restoreTo).toBe(garbage);
   });
+
+  // ── H-G regression: the pre-#173 in-workspace hook ──────────────────────────
+  // The root cause of "approved tool still blocked": an older runner build wrote
+  // the gate INTO the repo as `.cursor/hooks/stigmer-approval.sh` (a relative
+  // command). The recognizer used to match only the current `/.stigmer/sessions/`
+  // path, so the merge treated this stale entry as a USER hook and preserved it —
+  // it then ran alongside the current gate and vetoed every gated tool, even
+  // approved ones. These pin that it is now recognized, stripped, and self-healed.
+
+  it("recognizes and strips the legacy in-workspace hook; deletes the entirely-leftover file", () => {
+    // The exact shape observed in a polluted repo.
+    const original = JSON.stringify({
+      version: 1,
+      hooks: {
+        preToolUse: [
+          { command: ".cursor/hooks/stigmer-approval.sh", timeout: 10, failClosed: true },
+        ],
+      },
+    });
+    const fresh = "/home/u/.stigmer/sessions/ses-9/hitl/stigmer-approval.sh";
+    const { merged, restoreTo } = buildMergedConfig(original, pre(fresh));
+
+    // The active config carries ONLY the current runner hook — the stale legacy
+    // entry is gone, so it can never run alongside (and veto) the live gate.
+    const m = JSON.parse(merged);
+    expect(m.hooks.preToolUse.map((e: any) => e.command)).toEqual([fresh]);
+
+    // The whole hooks.json was our own leftover (only version+hooks, no user
+    // hooks remain after stripping) → teardown deletes it, leaving the repo
+    // pristine rather than a `{hooks:{preToolUse:[]}}` husk.
+    expect(restoreTo).toBeNull();
+  });
+
+  it("strips the legacy hook but preserves a genuine user hook in the same array", () => {
+    const original = JSON.stringify({
+      version: 1,
+      hooks: {
+        preToolUse: [
+          { command: "./user.sh" },
+          { command: ".cursor/hooks/stigmer-approval.sh", timeout: 10, failClosed: true },
+        ],
+      },
+    });
+    const fresh = "/home/u/.stigmer/sessions/ses-9/hitl/stigmer-approval.sh";
+    const { merged, restoreTo } = buildMergedConfig(original, pre(fresh));
+
+    // No duplicate, stale legacy entry dropped, user hook kept ahead of ours.
+    expect(JSON.parse(merged).hooks.preToolUse.map((e: any) => e.command)).toEqual([
+      "./user.sh",
+      fresh,
+    ]);
+    // A real user hook remains → restore the cleaned form, not delete.
+    expect(JSON.parse(restoreTo!).hooks.preToolUse).toEqual([{ command: "./user.sh" }]);
+  });
 });
 
 describe("installHitlGate / removeHitlGate", () => {
@@ -268,6 +322,73 @@ describe("installHitlGate / removeHitlGate", () => {
     // Teardown removes our rule and the now-empty rules dir (the repo had none).
     expect(existsSync(rulePath)).toBe(false);
     expect(existsSync(join(workspaceRoot, ".cursor", "rules"))).toBe(false);
+  });
+
+  it("heals a workspace polluted by a pre-#173 in-workspace gate (H-G end-to-end)", async () => {
+    const { workspaceRoot, hitlDir } = dirs();
+    // Reconstruct exactly what a polluted repo looks like: a hooks.json pointing
+    // at a relative in-workspace script, plus the orphaned script/state/ledger
+    // files an older runner left in `.cursor/hooks/`.
+    const cursorDir = join(workspaceRoot, ".cursor");
+    const legacyHooksDir = join(cursorDir, "hooks");
+    mkdirSync(legacyHooksDir, { recursive: true });
+    writeFileSync(
+      join(cursorDir, "hooks.json"),
+      JSON.stringify({
+        version: 1,
+        hooks: {
+          preToolUse: [
+            { command: ".cursor/hooks/stigmer-approval.sh", timeout: 10, failClosed: true },
+          ],
+        },
+      }),
+      "utf-8",
+    );
+    writeFileSync(join(legacyHooksDir, "stigmer-approval.sh"), "#!/bin/bash\nexit 0\n", "utf-8");
+    writeFileSync(join(legacyHooksDir, "stigmer-approval-state.json"), "{}", "utf-8");
+    writeFileSync(join(legacyHooksDir, "stigmer-denials.jsonl"), "", "utf-8");
+
+    const handle = await installHitlGate({
+      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+    });
+
+    // The active gate is ONLY the current runner-owned hook (absolute, in the
+    // session dir). The stale relative entry that vetoed approved tools is gone.
+    const during = JSON.parse(readFileSync(join(cursorDir, "hooks.json"), "utf-8"));
+    expect(during.hooks.preToolUse.map((e: any) => e.command)).toEqual([
+      join(hitlDir, "stigmer-approval.sh"),
+    ]);
+    // The orphaned legacy files are removed; the now-empty hooks dir is gone too.
+    expect(existsSync(join(legacyHooksDir, "stigmer-approval.sh"))).toBe(false);
+    expect(existsSync(join(legacyHooksDir, "stigmer-approval-state.json"))).toBe(false);
+    expect(existsSync(join(legacyHooksDir, "stigmer-denials.jsonl"))).toBe(false);
+    expect(existsSync(legacyHooksDir)).toBe(false);
+
+    await removeHitlGate(handle);
+    // The hooks.json was entirely our own leftover → teardown deletes it, leaving
+    // the repo pristine (no husk, no stale entry waiting to re-pollute).
+    expect(existsSync(join(cursorDir, "hooks.json"))).toBe(false);
+  });
+
+  it("removes only stigmer-* files from .cursor/hooks, preserving a user's own hook script", async () => {
+    const { workspaceRoot, hitlDir } = dirs();
+    const legacyHooksDir = join(workspaceRoot, ".cursor", "hooks");
+    mkdirSync(legacyHooksDir, { recursive: true });
+    writeFileSync(join(legacyHooksDir, "stigmer-approval.sh"), "#!/bin/bash\nexit 0\n", "utf-8");
+    writeFileSync(join(legacyHooksDir, "user-custom.sh"), "#!/bin/bash\necho hi\n", "utf-8");
+
+    const handle = await installHitlGate({
+      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+    });
+
+    // Our leftover is gone; the user's script and the dir they own remain.
+    expect(existsSync(join(legacyHooksDir, "stigmer-approval.sh"))).toBe(false);
+    expect(readFileSync(join(legacyHooksDir, "user-custom.sh"), "utf-8")).toBe(
+      "#!/bin/bash\necho hi\n",
+    );
+    expect(existsSync(legacyHooksDir)).toBe(true);
+
+    await removeHitlGate(handle);
   });
 
   it("preserves a user's own .cursor/rules and rules dir after teardown", async () => {
