@@ -87,6 +87,8 @@ describe("ToolCallGroup timeline", () => {
     expect(rows.length).toBe(2);
     for (const row of rows) {
       expect(row.className).toContain("rounded-lg");
+      // Class presence only — actual rendering is guarded by the layer-invariant
+      // + e2e computed-style tests (happy-dom does not resolve `@layer`).
       expect(row.className).toContain("border-border-prominent");
     }
   });

@@ -108,6 +108,8 @@ describe("ToolRunGroup", () => {
 
     const chip = container.querySelector('[data-cursor-target="tool-run-group"]')!;
     expect(chip.className).toContain("rounded-lg");
+    // Class presence only — actual rendering is guarded by the layer-invariant +
+    // e2e computed-style tests (happy-dom does not resolve `@layer`).
     expect(chip.className).toContain("border-border-prominent");
 
     fireEvent.click(screen.getByText("Read 2 files"));

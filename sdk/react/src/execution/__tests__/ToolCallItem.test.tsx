@@ -228,6 +228,10 @@ describe("ToolCallItem disclosure", () => {
     let row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
     expect(row.className).toContain("rounded-lg");
     // A visible line (prominent token), not the near-invisible 14% default.
+    // NOTE: this asserts only that the markup REQUESTS the border. happy-dom does
+    // not resolve `@layer`, so it cannot prove the border actually renders — that
+    // (the cascade-layer ordering) is guarded by styles-border-layer-invariant
+    // (host compile) and tool-card-ux.spec (real-browser computed style).
     expect(row.className).toContain("border-border-prominent");
 
     // Nested (e.g. inside a folded run chip): a divider row, never a card.

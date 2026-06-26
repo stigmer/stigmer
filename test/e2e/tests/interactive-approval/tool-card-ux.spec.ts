@@ -102,6 +102,44 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     await expect(gateRow.getByText("e2e-empty.txt", { exact: true })).toHaveCount(1);
   });
 
+  // --- Rendered border: computed-style guard (not a screenshot) ------------
+  // The card chrome lives on Tailwind `border-*` utilities that only render if
+  // the SDK's scoped preflight reset stays BELOW the `utilities` cascade layer
+  // when a host app recompiles the stylesheet. Three prior fixes shipped with the
+  // reset above `utilities` — every border inside `.stgm` silently zeroed — and
+  // it went unnoticed because `toHaveScreenshot({ maxDiffPixelRatio: 0.02 })`
+  // cannot see a 1px outline (well under 2% of the card's pixels) and the jsdom
+  // unit tests assert only the class *string*, never the rendered width. This
+  // reads the real computed style in Chromium, so a layer regression fails loudly.
+  test("the approval gate card renders a visible neutral border + accent", async ({
+    page,
+    stigmerClient,
+  }) => {
+    seeded = await seedGatedSession(stigmerClient, control, {
+      gateBlocks: [writeFileBlock("call_write_1", "/tmp/e2e-border.txt", "alpha\nbeta\n")],
+    });
+    await page.goto(`/sessions/${seeded.sessionId}`);
+
+    const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
+    await expect(gateRow).toBeVisible({ timeout: 30_000 });
+
+    const border = await gateRow.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        top: s.borderTopWidth,
+        left: s.borderLeftWidth,
+        color: s.borderTopColor,
+      };
+    });
+    // The neutral outline is a real ~1px line on every side...
+    expect(parseFloat(border.top)).toBeGreaterThanOrEqual(1);
+    // ...with a visible (non-transparent) color, not the zeroed fallback.
+    expect(border.color).not.toBe("transparent");
+    expect(border.color).not.toMatch(/,\s*0\)\s*$/); // no rgba(...,0)
+    // The pending gate carries its "needs you" cue as a 2px left accent.
+    expect(parseFloat(border.left)).toBeGreaterThanOrEqual(2);
+  });
+
   // --- Visual regression: the post-execution diff preview ------------------
   for (const scheme of COLOR_SCHEMES) {
     test(`completed write shows an inline additive diff (${scheme})`, async ({
@@ -121,6 +159,20 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
 
       const diff = fileDiff(page).first();
       await expect(diff).toBeVisible({ timeout: 30_000 });
+
+      // A settled (non-gate) tool card carries the same neutral border with no
+      // accent — guard its computed width so the layer fix covers plain cards too,
+      // in both color schemes (the screenshot above cannot see a 1px line).
+      const neutralBorder = await toolCallRow(page)
+        .first()
+        .evaluate((el) => {
+          const s = getComputedStyle(el);
+          return { top: s.borderTopWidth, color: s.borderTopColor };
+        });
+      expect(parseFloat(neutralBorder.top)).toBeGreaterThanOrEqual(1);
+      expect(neutralBorder.color).not.toBe("transparent");
+      expect(neutralBorder.color).not.toMatch(/,\s*0\)\s*$/);
+
       await expect(diff).toHaveScreenshot(`completed-write-diff-${scheme}.png`, {
         maxDiffPixelRatio: 0.02,
       });

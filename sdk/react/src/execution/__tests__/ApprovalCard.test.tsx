@@ -101,7 +101,9 @@ describe("ApprovalCard chrome", () => {
 
     const card = screen.getByRole("alert");
     // Visible neutral line + a restrained 2px warning left accent — never the
-    // old amber background fill.
+    // old amber background fill. (Class presence only; that the line actually
+    // RENDERS is proven by the layer-invariant + e2e computed-style guards —
+    // happy-dom cannot resolve `@layer`.)
     expect(card.className).toContain("border-border-prominent");
     expect(card.className).toContain("border-l-warning");
     expect(card.className).not.toContain("bg-warning");
