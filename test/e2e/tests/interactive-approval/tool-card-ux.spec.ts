@@ -75,6 +75,33 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     });
   }
 
+  // --- Empty-file create: honest representation, no redundant filename ------
+  test("an empty-file create gate shows 'New empty file' and names the file once", async ({
+    page,
+    stigmerClient,
+  }) => {
+    // An empty-content write is a genuinely empty new file: the native gate
+    // captures a CREATE with an empty after-side, so the card must say so rather
+    // than render a blank diff — and must not restate the filename the header
+    // already shows (the de-dup the redesign introduced).
+    seeded = await seedGatedSession(stigmerClient, control, {
+      gateBlocks: [writeFileBlock("call_empty", "/tmp/e2e-empty.txt", "")],
+    });
+    await page.goto(`/sessions/${seeded.sessionId}`);
+
+    const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
+    await expect(gateRow).toBeVisible({ timeout: 30_000 });
+
+    // The diff slot is present, but renders the honest empty-file notice — not a
+    // blank diff body.
+    await expect(fileDiff(gateRow)).toBeVisible();
+    await expect(gateRow.getByText("New empty file", { exact: true })).toBeVisible();
+
+    // The filename appears exactly once — in the header, never restated by the
+    // (now suppressed) diff body.
+    await expect(gateRow.getByText("e2e-empty.txt", { exact: true })).toHaveCount(1);
+  });
+
   // --- Visual regression: the post-execution diff preview ------------------
   for (const scheme of COLOR_SCHEMES) {
     test(`completed write shows an inline additive diff (${scheme})`, async ({

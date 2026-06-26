@@ -75,7 +75,9 @@ export function ToolCallPreview({
       data-cursor-target="tool-preview"
     >
       <div className={cn("relative overflow-hidden", PREVIEW_MAX_HEIGHT)} ref={bodyRef}>
-        <ResultView view={result} />
+        {/* The owning tool-call row already names the file (and shows +N -M for
+            edits), so the previewed diff/file body suppresses its own path. */}
+        <ResultView view={result} showFileName={false} />
         {isClamped && (
           <div
             aria-hidden="true"

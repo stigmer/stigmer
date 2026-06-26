@@ -70,6 +70,33 @@ function hunkChange(path: string): FileChange {
   });
 }
 
+/** A whole-file CREATE with no content — a genuinely empty new file. */
+function emptyCreate(path: string): FileChange {
+  return create(FileChangeSchema, {
+    path,
+    changeType: FileChangeType.CREATE,
+    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+  });
+}
+
+/** A whole-file MODIFY that resolves to no change — a contentless edit. */
+function emptyModify(path: string): FileChange {
+  return create(FileChangeSchema, {
+    path,
+    changeType: FileChangeType.MODIFY,
+    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+  });
+}
+
+/** A hunk-only CREATE whose diff never materialized (no unifiedDiff). */
+function emptyHunkCreate(path: string): FileChange {
+  return create(FileChangeSchema, {
+    path,
+    changeType: FileChangeType.CREATE,
+    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // FileChangeDiff
 // ---------------------------------------------------------------------------
@@ -120,6 +147,39 @@ describe("FileChangeDiff", () => {
     render(<FileChangeDiff change={wholeFile("src/huge.ts", "", "")} />);
     const link = screen.getByRole("link", { name: /download the full file/i });
     expect(link.getAttribute("href")).toBe("https://dl/full");
+  });
+
+  it("suppresses the filename header when showFileName is false but keeps the stats", () => {
+    setContent({ beforeText: "alpha\n", afterText: "beta\n" });
+    render(
+      <FileChangeDiff
+        change={wholeFile("src/a.ts", "alpha\n", "beta\n")}
+        showFileName={false}
+      />,
+    );
+    // Neither the base name nor the dimmed directory renders.
+    expect(screen.queryByText("a.ts")).toBeNull();
+    expect(screen.queryByText("src/")).toBeNull();
+    // The +/- stats still render.
+    expect(screen.getByText("+1")).toBeTruthy();
+    expect(screen.getByText("-1")).toBeTruthy();
+  });
+
+  it("shows 'New empty file' for an empty whole-file CREATE", () => {
+    setContent({ beforeText: "", afterText: "" });
+    render(<FileChangeDiff change={emptyCreate("src/new.md")} />);
+    expect(screen.getByText("New empty file")).toBeTruthy();
+  });
+
+  it("shows 'New empty file' for an empty hunk-only CREATE (no diff yet)", () => {
+    render(<FileChangeDiff change={emptyHunkCreate("src/e.ts")} />);
+    expect(screen.getByText("New empty file")).toBeTruthy();
+  });
+
+  it("shows a neutral 'no preview' notice for a contentless MODIFY", () => {
+    setContent({ beforeText: "", afterText: "" });
+    render(<FileChangeDiff change={emptyModify("src/x.ts")} />);
+    expect(screen.getByText("No preview available for this change")).toBeTruthy();
   });
 });
 

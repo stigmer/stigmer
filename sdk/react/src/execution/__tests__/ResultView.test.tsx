@@ -77,6 +77,38 @@ describe("ResultView", () => {
     const { container } = render(<ResultView view={{ type: "empty" }} />);
     expect(container.textContent).toBe("");
   });
+
+  it("suppresses the diff filename when showFileName is false (owning row names it)", () => {
+    const view: ToolResultView = {
+      type: "diff",
+      path: "/workspace/secret.md",
+      oldText: "a",
+      newText: "a b",
+    };
+    const { container } = render(<ResultView view={view} showFileName={false} />);
+    // The path is not restated in the body; the diff content still renders.
+    expect(container.textContent).not.toContain("secret.md");
+    expect(container.textContent).toContain("a b");
+  });
+
+  it("renders a neutral 'no preview' notice for a contentless diff", () => {
+    const view: ToolResultView = { type: "diff", path: "/workspace/x.md" };
+    const { container } = render(<ResultView view={view} showFileName={false} />);
+    expect(container.textContent).toContain("No preview available for this change");
+    expect(container.textContent).not.toContain("x.md");
+  });
+
+  it("suppresses the file path in a write fallback when showFileName is false", () => {
+    const view: ToolResultView = {
+      type: "file",
+      path: "/workspace/created.md",
+      content: "the body",
+      truncated: false,
+    };
+    const { container } = render(<ResultView view={view} showFileName={false} />);
+    expect(container.textContent).toContain("the body");
+    expect(container.textContent).not.toContain("created.md");
+  });
 });
 
 describe("ResultView — offloaded outputRef (on-demand resolution)", () => {

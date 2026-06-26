@@ -18,6 +18,7 @@ import { UnifiedDiffText } from "../version-history/UnifiedDiffText";
 import type { DiffHunk } from "../version-history/types";
 import { CollapsibleCode, CollapsiblePre, formatJson } from "./tool-rendering-primitives";
 import { FilePathLink } from "./FilePathLink";
+import { EmptyChangeNotice } from "./EmptyChangeNotice";
 import { useSandboxNormalize } from "./SandboxContext";
 import { execIdFromStorageKey } from "./useFileChangeContent";
 import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
@@ -28,6 +29,13 @@ import { useToolOutputContent } from "./useToolOutputContent";
 export interface ResultViewProps {
   /** The normalized result view to render. */
   readonly view: ToolResultView;
+  /**
+   * Whether the file/diff variants render the filename header. Defaults to
+   * `true`. Set to `false` where an ancestor already names the file (a tool-call
+   * row whose header shows the path) so the body is not captioned with a path
+   * the user just read; the `+N -M` stats still render.
+   */
+  readonly showFileName?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -40,10 +48,10 @@ export interface ResultViewProps {
  * this component renders it. Importable on its own by platform builders who
  * compose custom tool UIs.
  */
-export function ResultView({ view, className }: ResultViewProps) {
+export function ResultView({ view, showFileName = true, className }: ResultViewProps) {
   switch (view.type) {
     case "diff":
-      return <DiffResultView view={view} className={className} />;
+      return <DiffResultView view={view} showFileName={showFileName} className={className} />;
     case "terminal":
       return <TerminalResultView view={view} className={className} />;
     case "search":
@@ -51,7 +59,7 @@ export function ResultView({ view, className }: ResultViewProps) {
     case "list":
       return <ListResultView entries={view.entries} count={view.count} className={className} />;
     case "file":
-      return <FileResultView view={view} className={className} />;
+      return <FileResultView view={view} showFileName={showFileName} className={className} />;
     case "contentBlocks":
       return <ContentBlocksResultView blocks={view.blocks} className={className} />;
     case "outputRef":
@@ -125,7 +133,15 @@ function diffStats(view: DiffView): DiffStats | null {
   return null;
 }
 
-function DiffResultView({ view, className }: { view: DiffView; className?: string }) {
+function DiffResultView({
+  view,
+  showFileName = true,
+  className,
+}: {
+  view: DiffView;
+  showFileName?: boolean;
+  className?: string;
+}) {
   // The native engine returns no diff, so we compute hunks from args (old/new).
   // The Cursor envelope provides a ready unified-diff string we render directly.
   const hunks = useMemo<readonly DiffHunk[]>(() => {
@@ -143,6 +159,8 @@ function DiffResultView({ view, className }: { view: DiffView; className?: strin
     return hunks.length > 0 ? countHunks(hunks) : null;
   }, [view.linesAdded, view.linesRemoved, hunks]);
 
+  const showPath = showFileName && Boolean(view.path);
+
   // One diff family across every surface: computed hunks render through the
   // canonical, accessible DiffViewer (line numbers + --stgm-diff-* tokens); a
   // ready hunk-only patch (Cursor envelope) renders through the shared
@@ -150,23 +168,27 @@ function DiffResultView({ view, className }: { view: DiffView; className?: strin
   // DiffViewer is used without its filePath header to avoid a duplicate path.
   return (
     <div className={cn("space-y-1", className)} data-cursor-target="file-diff">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        {view.path && (
-          <FilePathLink path={view.path} dirDisplay="dim" className="text-xs" />
-        )}
-        {stats && (
-          <span className="shrink-0 tabular-nums text-xs">
-            <span className="text-diff-added-fg">+{stats.added}</span>{" "}
-            <span className="text-diff-removed-fg">-{stats.removed}</span>
-          </span>
-        )}
-      </div>
+      {(showPath || stats) && (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          {showPath && (
+            <FilePathLink path={view.path} dirDisplay="dim" className="text-xs" />
+          )}
+          {stats && (
+            <span className="shrink-0 tabular-nums text-xs">
+              <span className="text-diff-added-fg">+{stats.added}</span>{" "}
+              <span className="text-diff-removed-fg">-{stats.removed}</span>
+            </span>
+          )}
+        </div>
+      )}
 
       {hunks.length > 0 ? (
         <DiffViewer hunks={hunks} />
       ) : view.unifiedDiff ? (
         <UnifiedDiffText patch={view.unifiedDiff} />
-      ) : null}
+      ) : (
+        <EmptyChangeNotice kind="no-preview" />
+      )}
     </div>
   );
 }
@@ -281,17 +303,35 @@ function ListResultView({
 
 type FileView = Extract<ToolResultView, { type: "file" }>;
 
-function FileResultView({ view, className }: { view: FileView; className?: string }) {
+function FileResultView({
+  view,
+  showFileName = true,
+  className,
+}: {
+  view: FileView;
+  showFileName?: boolean;
+  className?: string;
+}) {
   if (!view.content) {
-    return view.path ? (
-      <div className={cn("flex items-center gap-1.5 text-xs", className)}>
-        <FilePathLink path={view.path} className="text-xs" />
-      </div>
-    ) : null;
+    // No body. When the filename is shown elsewhere (showFileName=false), an
+    // empty write fallback degrades honestly to a neutral notice rather than a
+    // bare, redundant path; otherwise the path itself is the information (a read).
+    if (showFileName && view.path) {
+      return (
+        <div className={cn("flex items-center gap-1.5 text-xs", className)}>
+          <FilePathLink path={view.path} className="text-xs" />
+        </div>
+      );
+    }
+    return showFileName ? null : (
+      <EmptyChangeNotice kind="no-preview" className={className} />
+    );
   }
   return (
     <div className={cn("space-y-1", className)}>
-      {view.path && <FilePathLink path={view.path} className="text-xs" />}
+      {showFileName && view.path && (
+        <FilePathLink path={view.path} className="text-xs" />
+      )}
       <CollapsibleCode label={view.truncated ? "Content (truncated)" : "Content"} content={view.content} />
     </div>
   );

@@ -88,6 +88,40 @@ function hunkOnlyChange(path: string): FileChange {
 // Tool classification (ToolArgsView fallback path — no file_changes)
 // ---------------------------------------------------------------------------
 
+describe("ApprovalCard chrome", () => {
+  it("renders neutral Cursor-style chrome with a restrained warning accent (no amber fill)", () => {
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-chrome",
+      toolName: "write_file",
+      toolKind: ToolKind.FILE_EDIT,
+      argsPreview: '{"path":"src/x.ts","contents":"x"}',
+    });
+
+    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
+
+    const card = screen.getByRole("alert");
+    // Visible neutral line + a restrained 2px warning left accent — never the
+    // old amber background fill.
+    expect(card.className).toContain("border-border-prominent");
+    expect(card.className).toContain("border-l-warning");
+    expect(card.className).not.toContain("bg-warning");
+  });
+
+  it("keeps a destructive red accent for a delete approval (hard safety signal)", () => {
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-chrome-del",
+      toolName: "delete_file",
+      argsPreview: '{"path":"/tmp/x"}',
+    });
+
+    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
+
+    const card = screen.getByRole("alert");
+    expect(card.className).toContain("border-l-destructive");
+    expect(card.className).not.toContain("bg-destructive-subtle");
+  });
+});
+
 describe("ApprovalCard tool classification", () => {
   it("honors the denormalized wire tool_kind for a name not in the fallback map", () => {
     // A future/unknown tool name that the name-based resolver cannot classify —
@@ -329,8 +363,9 @@ describe("ApprovalCard file-change diff", () => {
 
     render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
 
-    // Filename-first: the base name renders (header subtitle and/or diff header).
-    expect(screen.getAllByText("h.ts").length).toBeGreaterThanOrEqual(1);
+    // De-duplicated: for a single change the filename appears exactly once — in
+    // the header — never restated by the diff body.
+    expect(screen.getAllByText("h.ts")).toHaveLength(1);
     expect(screen.getByText("+beta")).toBeTruthy();
     expect(screen.getByText("-alpha")).toBeTruthy();
   });
@@ -347,8 +382,8 @@ describe("ApprovalCard file-change diff", () => {
 
     render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
 
-    // Filename-first: the base name renders in the header subtitle and/or diff header.
-    expect(screen.getAllByText("a.ts").length).toBeGreaterThanOrEqual(1);
+    // De-duplicated: the filename is in the header only; the body keeps the stats.
+    expect(screen.getAllByText("a.ts")).toHaveLength(1);
     expect(screen.getByText("+1")).toBeTruthy();
     expect(screen.getByText("-1")).toBeTruthy();
   });
@@ -367,7 +402,7 @@ describe("ApprovalCard file-change diff", () => {
 
     render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
 
-    expect(screen.getAllByText("new.ts").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("new.ts")).toHaveLength(1);
     // Two added lines, none removed.
     expect(screen.getByText("+2")).toBeTruthy();
     expect(screen.getByText("-0")).toBeTruthy();
@@ -423,7 +458,7 @@ describe("ApprovalCard file-change diff", () => {
     expect(screen.getByText("two.ts")).toBeTruthy();
   });
 
-  it("falls back to the args preview when there are no file changes", () => {
+  it("shows the proposed content (filename only in the header) when there are no file changes but args carry content", () => {
     const approval = create(PendingApprovalSchema, {
       toolCallId: "tc-fallback",
       toolName: "write_file",
@@ -434,10 +469,30 @@ describe("ApprovalCard file-change diff", () => {
 
     render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
 
-    // ToolArgsView's FileArgsView renders the path link plus a "Content"
-    // collapsible (its write/edit content). No diff body renders.
-    expect(screen.getAllByText("fallback.ts").length).toBeGreaterThanOrEqual(1);
+    // The write content still shows via the "Content" collapsible...
     expect(screen.getByText("Content")).toBeTruthy();
+    // ...but the filename is shown exactly once (the header) — the body no
+    // longer restates the path the header already shows.
+    expect(screen.getAllByText("fallback.ts")).toHaveLength(1);
     expect(screen.queryByText(/binary file changed/i)).toBeNull();
+  });
+
+  it("shows a neutral 'no preview' notice for a path-only edit gate (the resume placeholder)", () => {
+    // The irreducible case: a ledger denial whose only known arg is the path
+    // (no streamed content, no capture). The body must not restate the bare
+    // filename nor misrepresent it as an empty file.
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-no-preview",
+      toolName: "edit_file",
+      toolKind: ToolKind.FILE_EDIT,
+      argsPreview: '{"path":"notes.md"}',
+      // fileChanges intentionally empty; no content in args.
+    });
+
+    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
+
+    expect(screen.getByText("No preview available for this change")).toBeTruthy();
+    // Filename once — header only.
+    expect(screen.getAllByText("notes.md")).toHaveLength(1);
   });
 });

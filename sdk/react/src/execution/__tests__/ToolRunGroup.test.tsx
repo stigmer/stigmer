@@ -98,6 +98,29 @@ describe("ToolRunGroup", () => {
     expect(screen.getByLabelText("Approve")).toBeTruthy();
   });
 
+  it("is a bordered card whose expanded children are borderless divider rows", () => {
+    const { container } = render(
+      <ToolRunGroup
+        category="read"
+        toolCalls={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
+      />,
+    );
+
+    const chip = container.querySelector('[data-cursor-target="tool-run-group"]')!;
+    expect(chip.className).toContain("rounded-lg");
+    expect(chip.className).toContain("border-border-prominent");
+
+    fireEvent.click(screen.getByText("Read 2 files"));
+
+    // The chip is the card; its child rows are dividers, never nested cards.
+    const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
+    expect(rows.length).toBe(2);
+    for (const row of rows) {
+      expect(row.className).not.toContain("rounded-lg");
+      expect(row.className).toContain("border-b");
+    }
+  });
+
   it("honours a custom label formatter", () => {
     render(
       <ToolRunGroup

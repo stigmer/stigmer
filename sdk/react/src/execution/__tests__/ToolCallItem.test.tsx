@@ -221,6 +221,51 @@ describe("ToolCallItem disclosure", () => {
     expect(screen.getByLabelText("Approve all file deletions")).toBeTruthy();
   });
 
+  it("renders as its own bordered card by default, with a divider-row fallback when nested", () => {
+    const tc = makeToolCall({ name: "Shell", args: { command: "echo hi" }, result: "hi" });
+
+    const { container, rerender } = render(<ToolCallItem toolCall={tc} />);
+    let row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
+    expect(row.className).toContain("rounded-lg");
+    // A visible line (prominent token), not the near-invisible 14% default.
+    expect(row.className).toContain("border-border-prominent");
+
+    // Nested (e.g. inside a folded run chip): a divider row, never a card.
+    rerender(<ToolCallItem toolCall={tc} bordered={false} />);
+    row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
+    expect(row.className).not.toContain("rounded-lg");
+    expect(row.className).toContain("border-b");
+  });
+
+  it("gives a pending gate card a restrained destructive accent (no amber fill)", () => {
+    const tc = makeToolCall({
+      id: "tc-gated",
+      name: "delete_file",
+      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+    });
+    const approval: PendingApproval = create(PendingApprovalSchema, {
+      toolCallId: "tc-gated",
+      toolName: "delete_file",
+      argsPreview: '{"path":"/tmp/x"}',
+    });
+    const ctx: ApprovalContextValue = {
+      approvalsByToolCallId: new Map([["tc-gated", approval]]),
+      onSubmit: () => {},
+      submittingIds: new Set(),
+    };
+
+    const { container } = render(
+      <ApprovalContext.Provider value={ctx}>
+        <ToolCallItem toolCall={tc} />
+      </ApprovalContext.Provider>,
+    );
+
+    const row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
+    // A delete keeps the red accent; the card itself carries it (no amber bg).
+    expect(row.className).toContain("border-l-destructive");
+    expect(row.className).not.toContain("bg-warning");
+  });
+
   it("routes an inline APPROVE_ALL decision with the gated tool's id", () => {
     // The inline "Approve all ..." escalation must reach the run's submit
     // handler bound to THIS tool call. MessageThread already covers inline

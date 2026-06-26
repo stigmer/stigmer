@@ -1,7 +1,12 @@
 @source "./**/*.{ts,tsx}";
 @source "../node_modules/streamdown/dist/*.js";
 
-@layer stgm;
+/* `stgm-base` ranks BELOW `stgm` (later layer wins). The preflight-style reset
+   below lives in `stgm-base` so the Tailwind utilities imported into `stgm` win —
+   otherwise the reset's `border-width: 0` would zero every `border` utility
+   inside `.stgm` (stock Tailwind keeps its reset in the lower `base` layer for
+   exactly this reason). */
+@layer stgm-base, stgm;
 
 @import "tailwindcss/theme.css" layer(stgm);
 @import "tailwindcss/utilities.css" layer(stgm);
@@ -66,6 +71,7 @@
   --color-muted-foreground-subtle: var(--stgm-muted-foreground-subtle);
   --color-muted-foreground-faint: var(--stgm-muted-foreground-faint);
   --color-border-muted: var(--stgm-border-muted);
+  --color-border-prominent: var(--stgm-border-prominent);
   --color-backdrop: var(--stgm-backdrop);
   --color-sidebar: var(--stgm-sidebar);
   --color-sidebar-foreground: var(--stgm-sidebar-foreground);
@@ -115,15 +121,12 @@
   z-index: var(--stgm-z-popover);
 }
 
-@layer stgm {
-  .stgm {
-    --stgm-motion-duration: 150ms;
-    --stgm-motion-easing: var(--stgm-transition-timing, ease-out);
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
+/* Preflight-style reset, scoped to `.stgm`. Kept in the lower-priority
+   `stgm-base` layer so the `border`/`border-*` width utilities (in `stgm`) win;
+   placed here it only supplies the DEFAULTS (border-style: solid, width 0,
+   themed color) that a `border` utility then builds on — mirroring how stock
+   Tailwind splits preflight (`base`) from utilities. */
+@layer stgm-base {
   .stgm *,
   .stgm *::before,
   .stgm *::after {
@@ -131,6 +134,16 @@
     border-width: 0;
     border-style: solid;
     border-color: var(--stgm-border, currentColor);
+  }
+}
+
+@layer stgm {
+  .stgm {
+    --stgm-motion-duration: 150ms;
+    --stgm-motion-easing: var(--stgm-transition-timing, ease-out);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   @keyframes stgm-fade-in-up {

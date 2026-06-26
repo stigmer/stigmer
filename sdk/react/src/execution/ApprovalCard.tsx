@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
@@ -11,12 +12,14 @@ import {
 import {
   resolveToolCategoryFromKind,
   extractPrimaryArgFromPreview,
+  extractWriteContentFromPreview,
   isFileCategory,
   type ToolCategory,
 } from "./tool-categories";
 import { CATEGORY_ICON } from "./ToolCallItem";
 import { ToolArgsView } from "./ToolArgsView";
 import { FileChangeDiff } from "./FileChangesView";
+import { EmptyChangeNotice } from "./EmptyChangeNotice";
 import { FilePathLink } from "./FilePathLink";
 
 /** Props for {@link ApprovalCard}. */
@@ -76,16 +79,24 @@ export const ApprovalCard = memo(function ApprovalCard({
     pendingApproval.mcpServerSlug,
   );
 
-  const borderClass =
+  // Cursor-grade chrome: a thin neutral card (no amber "brown" fill), with the
+  // gate's "needs your decision" signal carried by one restrained cue — a 2px
+  // left accent bar — plus the warning-colored clock/elapsed in the header. A
+  // destructive (delete) gate keeps a red accent as a hard safety signal.
+  const accentClass =
     categoryInfo.category === "delete"
-      ? "border-destructive/30 bg-destructive-subtle"
-      : "border-warning/30 bg-warning/5";
+      ? "border-l-2 border-l-destructive"
+      : "border-l-2 border-l-warning";
 
   return (
     <div
       role="alert"
       aria-label={`Approval required for ${pendingApproval.toolName}`}
-      className={cn("rounded-lg border", borderClass, className)}
+      className={cn(
+        "rounded-lg border border-border-prominent",
+        accentClass,
+        className,
+      )}
     >
       <ApprovalCardHeader pendingApproval={pendingApproval} bordered />
       <ApprovalCardBody
@@ -127,11 +138,13 @@ export function ApprovalCardHeader({
         pendingApproval.toolName,
         pendingApproval.argsPreview,
         pendingApproval.mcpServerSlug,
+        pendingApproval.toolKind,
       ),
     [
       pendingApproval.toolName,
       pendingApproval.argsPreview,
       pendingApproval.mcpServerSlug,
+      pendingApproval.toolKind,
     ],
   );
 
@@ -272,35 +285,58 @@ export function ApprovalCardBody({
     categoryInfo.category !== "shell" &&
     !isFileCategory(categoryInfo.category);
 
+  const isWriteEdit =
+    categoryInfo.category === "write" || categoryInfo.category === "edit";
+
+  // The proposed write/edit content from the args preview, when the gate carries
+  // no authoritative file_changes capture. Drives the three-way fallback below.
+  const writeContent = useMemo(
+    () => extractWriteContentFromPreview(pendingApproval.argsPreview),
+    [pendingApproval.argsPreview],
+  );
+
+  // The decision-relevant preview. A file-modifying approval carries the
+  // runner's before/after capture on file_changes; render that diff as the
+  // primary preview — the card header already names the file, so the per-file
+  // header is suppressed for a single change to avoid restating the path. When
+  // no capture is present, fall back honestly: show the proposed write/edit
+  // content if the args carry it (path suppressed — the header has it); show a
+  // neutral "no preview" notice when only a path is known (the resume
+  // placeholder case); otherwise the shared args view for non-file tools.
+  const fileChanges = pendingApproval.fileChanges;
+  let preview: ReactNode = null;
+  if (fileChanges.length > 0) {
+    const single = fileChanges.length === 1;
+    preview = fileChanges.map((fileChange) => (
+      <FileChangeDiff
+        key={fileChange.path}
+        change={fileChange}
+        showFileName={!single}
+        // The gate is a decision moment, not a full editor — cap the diff so a
+        // large change cannot push the action buttons off-screen.
+        bodyClassName="max-h-80"
+      />
+    ));
+  } else if (isWriteEdit && writeContent === null) {
+    preview = <EmptyChangeNotice kind="no-preview" />;
+  } else if (parsedArgs) {
+    preview = (
+      <ToolArgsView
+        toolName={pendingApproval.toolName}
+        args={parsedArgs}
+        mcpServerSlug={pendingApproval.mcpServerSlug}
+        showFileName={!isWriteEdit}
+      />
+    );
+  }
+
   return (
     <div className={cn("px-3 py-2.5 space-y-2", className)}>
       {showMessage && (
         <p className="text-xs text-foreground">{pendingApproval.message}</p>
       )}
 
-      {/* A file-modifying approval carries the runner's before/after capture
-          on file_changes; render the diff as the primary preview. It already
-          names the file and quantifies the change, so the ToolArgsView args
-          (path + raw content) would only duplicate it — the same composition
-          ToolCallDetail uses for its `edit` case. Non-file tools (or a file
-          tool whose capture is absent) fall back to the shared args view. */}
-      {pendingApproval.fileChanges.length > 0
-        ? pendingApproval.fileChanges.map((fileChange) => (
-            <FileChangeDiff
-              key={fileChange.path}
-              change={fileChange}
-              // The gate is a decision moment, not a full editor — cap the diff
-              // so a large change cannot push the action buttons off-screen.
-              bodyClassName="max-h-80"
-            />
-          ))
-        : parsedArgs && (
-            <ToolArgsView
-              toolName={pendingApproval.toolName}
-              args={parsedArgs}
-              mcpServerSlug={pendingApproval.mcpServerSlug}
-            />
-          )}
+      {preview}
 
       {/* Action buttons */}
       <div className="flex items-center gap-2 pt-1">

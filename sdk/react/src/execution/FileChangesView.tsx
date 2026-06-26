@@ -14,6 +14,7 @@ import { DiffSummary } from "../version-history/DiffSummary";
 import { UnifiedDiffText } from "../version-history/UnifiedDiffText";
 import type { DiffHunk, FileDiffEntry } from "../version-history/types";
 import { FilePathLink } from "./FilePathLink";
+import { EmptyChangeNotice } from "./EmptyChangeNotice";
 import { useFileChangeContent } from "./useFileChangeContent";
 
 /** Props for {@link FileChangesView}. */
@@ -108,6 +109,13 @@ export interface FileChangeDiffProps {
    * leaves it unbounded.
    */
   readonly bodyClassName?: string;
+  /**
+   * Whether to render the filename header (the `FilePathLink` + any rename
+   * prefix). Defaults to `true`. Set to `false` where an ancestor already names
+   * the file — the approval gate header, or a tool-call row — so the diff is not
+   * captioned with a path the user just read; the `+N -M` stats still render.
+   */
+  readonly showFileName?: boolean;
 }
 
 /**
@@ -126,6 +134,7 @@ export function FileChangeDiff({
   change,
   className,
   bodyClassName,
+  showFileName = true,
 }: FileChangeDiffProps) {
   const { beforeText, afterText, isBinary, isLoading, error, isTruncated, downloadUrl } =
     useFileChangeContent(change);
@@ -142,25 +151,33 @@ export function FileChangeDiff({
     return countHunks(hunks);
   }, [change.captureLevel, change.linesAdded, change.linesRemoved, hunks]);
 
+  const hasStats = stats.additions > 0 || stats.deletions > 0;
+
   return (
     <div
       className={cn("flex flex-col gap-1.5", className)}
       data-cursor-target="file-diff"
     >
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        {change.changeType === FileChangeType.RENAME && change.renameFrom && (
-          <span className="min-w-0 truncate font-mono text-muted-foreground-faint">
-            {change.renameFrom} →
-          </span>
-        )}
-        <FilePathLink path={change.path} dirDisplay="dim" className="text-xs" />
-        {(stats.additions > 0 || stats.deletions > 0) && (
-          <span className="shrink-0 tabular-nums">
-            <span className="text-diff-added-fg">+{stats.additions}</span>{" "}
-            <span className="text-diff-removed-fg">-{stats.deletions}</span>
-          </span>
-        )}
-      </div>
+      {(showFileName || hasStats) && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {showFileName &&
+            change.changeType === FileChangeType.RENAME &&
+            change.renameFrom && (
+              <span className="min-w-0 truncate font-mono text-muted-foreground-faint">
+                {change.renameFrom} →
+              </span>
+            )}
+          {showFileName && (
+            <FilePathLink path={change.path} dirDisplay="dim" className="text-xs" />
+          )}
+          {hasStats && (
+            <span className="shrink-0 tabular-nums">
+              <span className="text-diff-added-fg">+{stats.additions}</span>{" "}
+              <span className="text-diff-removed-fg">-{stats.deletions}</span>
+            </span>
+          )}
+        </div>
+      )}
 
       <FileChangeBody
         change={change}
@@ -199,6 +216,12 @@ function FileChangeBody({
   downloadUrl: string | null;
   bodyClassName?: string;
 }) {
+  // A CREATE with no renderable diff is a genuinely empty new file; anything
+  // else with no content degrades to the non-committal "no preview" (we never
+  // claim emptiness we cannot prove from the capture).
+  const emptyKind =
+    change.changeType === FileChangeType.CREATE ? "empty-create" : "no-preview";
+
   if (isBinary) {
     return <Notice>Binary file changed.</Notice>;
   }
@@ -207,7 +230,7 @@ function FileChangeBody({
     return change.unifiedDiff ? (
       <UnifiedDiffText patch={change.unifiedDiff} className={bodyClassName} />
     ) : (
-      <Notice>No diff available for this change.</Notice>
+      <EmptyChangeNotice kind={emptyKind} className={bodyClassName} />
     );
   }
 
@@ -239,7 +262,7 @@ function FileChangeBody({
   }
 
   if (hunks.length === 0) {
-    return <Notice>No changes.</Notice>;
+    return <EmptyChangeNotice kind={emptyKind} className={bodyClassName} />;
   }
 
   return <DiffViewer hunks={hunks} className={bodyClassName} />;

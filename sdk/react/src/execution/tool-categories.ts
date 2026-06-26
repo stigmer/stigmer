@@ -316,11 +316,19 @@ export function extractPrimaryArg(toolCall: ToolCall): string | null {
  * Extracts the primary argument value from a JSON string
  * (typically `PendingApproval.argsPreview`). Returns `null` if
  * parsing fails or the expected field is not found.
+ *
+ * When the caller has the denormalized wire `tool_kind` (as `PendingApproval`
+ * does), pass it so resolution honors the same kind that drives the label/icon —
+ * a file tool whose NAME the classifier doesn't recognize still resolves to its
+ * `path` field. This mirrors {@link extractPrimaryArg}, which uses the wire kind
+ * via `resolveToolCategoryFromCall`. Falls back to name-based resolution when
+ * the kind is unset (legacy executions).
  */
 export function extractPrimaryArgFromPreview(
   toolName: string,
   argsPreview: string,
   mcpServerSlug?: string,
+  toolKind?: ToolKind,
 ): string | null {
   if (!argsPreview) return null;
 
@@ -328,7 +336,10 @@ export function extractPrimaryArgFromPreview(
     const parsed = JSON.parse(argsPreview);
     if (typeof parsed !== "object" || parsed === null) return null;
 
-    const info = resolveToolCategory(toolName, mcpServerSlug);
+    const info =
+      toolKind !== undefined
+        ? resolveToolCategoryFromKind(toolKind, toolName, mcpServerSlug)
+        : resolveToolCategory(toolName, mcpServerSlug);
     return extractArgValue(
       parsed as JsonObject,
       info.primaryArgField,

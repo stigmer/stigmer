@@ -74,6 +74,9 @@ export type { WriteBackCardProps } from "./WriteBackCard";
 export { FileChangesView, FileChangeDiff } from "./FileChangesView";
 export type { FileChangesViewProps, FileChangeDiffProps } from "./FileChangesView";
 
+export { EmptyChangeNotice } from "./EmptyChangeNotice";
+export type { EmptyChangeNoticeProps, EmptyChangeKind } from "./EmptyChangeNotice";
+
 export {
   isTextArtifact,
   formatArtifactSize,

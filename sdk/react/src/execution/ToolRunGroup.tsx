@@ -87,7 +87,10 @@ export const ToolRunGroup = memo(function ToolRunGroup({
       role="group"
       aria-label={label}
       data-cursor-target="tool-run-group"
-      className={cn("border-b border-border-muted last:border-b-0", className)}
+      className={cn(
+        "rounded-lg border border-border-prominent overflow-hidden",
+        className,
+      )}
     >
       <button
         type="button"
@@ -96,7 +99,8 @@ export const ToolRunGroup = memo(function ToolRunGroup({
         className={cn(
           "flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
           "hover:bg-muted-subtle",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          // ring-inset so the card's overflow-hidden does not clip the focus ring.
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
         )}
       >
         <span className="shrink-0 text-muted-foreground" aria-hidden="true">
@@ -113,8 +117,10 @@ export const ToolRunGroup = memo(function ToolRunGroup({
 
       {expanded && (
         <div className="border-t border-border-muted">
+          {/* The chip is already the card; its children render as
+              divider-separated rows (bordered={false}) to avoid a card-in-a-card. */}
           {toolCalls.map((tc) => (
-            <ToolCallItem key={tc.id || tc.name} toolCall={tc} />
+            <ToolCallItem key={tc.id || tc.name} toolCall={tc} bordered={false} />
           ))}
         </div>
       )}

@@ -122,11 +122,11 @@ export const ToolCallGroup = memo(function ToolCallGroup({
       aria-label={ariaLabel}
       data-cursor-target="tool-call-group"
       className={cn(
-        // A light neutral left rail clusters the turn's tools with its AI
-        // message — the counterpart to SubAgentSection's primary-tinted rail —
-        // without a card background, so a collapsed row's bounded preview fades
-        // cleanly into the thread surface.
-        "border-l-2 border-l-border-muted",
+        // Cursor-style: each tool call (and folded run chip) is its own
+        // self-contained card; the turn's tools stack with a small gap between
+        // them rather than sharing a left rail, so the thread reads as a column
+        // of discrete cards.
+        "flex flex-col gap-2",
         className,
       )}
     >

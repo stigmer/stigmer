@@ -67,4 +67,27 @@ describe("ToolCallGroup timeline", () => {
     expect(screen.getByText("only.ts")).toBeTruthy();
     expect(screen.queryByText(/Read \d+ files/)).toBeNull();
   });
+
+  it("stacks each tool call as its own bordered card with gaps (no left rail)", () => {
+    const { container } = render(
+      <ToolCallGroup
+        toolCalls={[
+          makeToolCall("Shell", "s1", { command: "echo hi" }, "hi"),
+          makeToolCall("StrReplace", "e1", { path: "/a.ts", old_string: "a", new_string: "b" }),
+        ]}
+      />,
+    );
+
+    const group = container.querySelector('[data-cursor-target="tool-call-group"]')!;
+    // Cards stacked with a gap — the old left rail is gone.
+    expect(group.className).toContain("gap-2");
+    expect(group.className).not.toContain("border-l-2");
+
+    const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
+    expect(rows.length).toBe(2);
+    for (const row of rows) {
+      expect(row.className).toContain("rounded-lg");
+      expect(row.className).toContain("border-border-prominent");
+    }
+  });
 });

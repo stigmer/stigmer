@@ -34,6 +34,12 @@ export interface ToolArgsViewProps {
   readonly args: Record<string, unknown> | null;
   /** MCP server slug for MCP tool classification and metadata. */
   readonly mcpServerSlug?: string;
+  /**
+   * Whether the file-tool view renders the path row. Defaults to `true`. Set to
+   * `false` where an ancestor already names the file (the approval gate header),
+   * so the write/edit content shows without restating the path.
+   */
+  readonly showFileName?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -66,6 +72,7 @@ export function ToolArgsView({
   toolName,
   args,
   mcpServerSlug,
+  showFileName = true,
   className,
 }: ToolArgsViewProps) {
   const categoryInfo = useMemo(
@@ -86,6 +93,7 @@ export function ToolArgsView({
         args={args}
         primaryArg={primaryArg}
         mcpServerSlug={mcpServerSlug}
+        showFileName={showFileName}
       />
     </div>
   );
@@ -101,12 +109,14 @@ function CategoryArgsDispatch({
   args,
   primaryArg,
   mcpServerSlug,
+  showFileName,
 }: {
   category: ToolCategory;
   toolName: string;
   args: Record<string, unknown> | null;
   primaryArg: string | null;
   mcpServerSlug?: string;
+  showFileName: boolean;
 }) {
   switch (category) {
     case "shell":
@@ -117,7 +127,12 @@ function CategoryArgsDispatch({
     case "edit":
     case "delete":
       return primaryArg ? (
-        <FileArgsView path={primaryArg} category={category} args={args} />
+        <FileArgsView
+          path={primaryArg}
+          category={category}
+          args={args}
+          showFileName={showFileName}
+        />
       ) : null;
 
     case "search":
@@ -162,10 +177,12 @@ function FileArgsView({
   path,
   category,
   args,
+  showFileName = true,
 }: {
   path: string;
   category: string;
   args: Record<string, unknown> | null;
+  showFileName?: boolean;
 }) {
   const writeContent = useMemo(() => {
     if (category !== "write" && category !== "edit") return null;
@@ -175,10 +192,12 @@ function FileArgsView({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center gap-1.5 text-xs">
-        <FilePathIcon />
-        <FilePathLink path={path} className="text-xs" />
-      </div>
+      {showFileName && (
+        <div className="flex items-center gap-1.5 text-xs">
+          <FilePathIcon />
+          <FilePathLink path={path} className="text-xs" />
+        </div>
+      )}
       {writeContent && (
         <CollapsibleCode label="Content" content={writeContent} />
       )}

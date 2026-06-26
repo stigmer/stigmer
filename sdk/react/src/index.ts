@@ -254,6 +254,7 @@ export {
   WriteBackCard,
   FileChangesView,
   FileChangeDiff,
+  EmptyChangeNotice,
   isTextArtifact,
   formatArtifactSize,
   getArtifactExtension,
@@ -328,6 +329,8 @@ export type {
   WriteBackCardProps,
   FileChangesViewProps,
   FileChangeDiffProps,
+  EmptyChangeNoticeProps,
+  EmptyChangeKind,
 } from "./execution";
 
 // Execution — proto type re-exports for artifact consumers

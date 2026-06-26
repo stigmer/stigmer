@@ -36,6 +36,14 @@ export interface ToolCallItemProps {
    * auto-disclosure policy. Defaults to `false`.
    */
   readonly defaultExpanded?: boolean;
+  /**
+   * Whether the row renders as its own self-contained card (a thin rounded
+   * border). Defaults to `true`. Set to `false` when the row is nested inside a
+   * container that already provides the border — e.g. the folded
+   * {@link ToolRunGroup} chip — where the row falls back to a divider-separated
+   * row to avoid a card-in-a-card.
+   */
+  readonly bordered?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -81,6 +89,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   toolCall,
   subAgentExecution,
   defaultExpanded = false,
+  bordered = true,
   className,
 }: ToolCallItemProps) {
   useRenderTracer("ToolCallItem", { status: toolCall.status, id: toolCall.id });
@@ -116,6 +125,29 @@ export const ToolCallItem = memo(function ToolCallItem({
   const normalize = useSandboxNormalize();
   const approvalBadge = getApprovalBadge(toolCall);
   const selection = useThreadSelection("tool-call", toolCall.id);
+
+  // Cursor-style chrome: each tool call is its own self-contained card — a thin
+  // rounded neutral border. A pending gate carries a restrained left accent on
+  // the card itself (warning, or destructive for a delete); that accent is the
+  // only "awaiting you" cue now that the amber fill is gone. Nested inside a
+  // folded run chip the card degrades to a divider-separated row (via
+  // `bordered={false}`) so we never draw a card inside a card.
+  const cardClass = bordered
+    ? cn(
+        // border-prominent (not border): a transparent card needs a line the eye
+        // actually catches — the default border token is white at 14% opacity,
+        // which vanishes on the dark thread surface.
+        "rounded-lg border border-border-prominent overflow-hidden",
+        approval != null &&
+          (category === "delete"
+            ? "border-l-2 border-l-destructive"
+            : "border-l-2 border-l-warning"),
+        selection?.isSelected && "ring-1 ring-primary/40",
+      )
+    : cn(
+        "border-b border-border-muted last:border-b-0",
+        selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
+      );
 
   // Completed/skipped Read items are non-expandable — the clickable
   // path in the row is the complete information. Failed reads remain
@@ -182,11 +214,7 @@ export const ToolCallItem = memo(function ToolCallItem({
     return (
       <div
         data-cursor-target="tool-call-row"
-        className={cn(
-          "border-b border-border-muted last:border-b-0",
-          selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
-          className,
-        )}
+        className={cn(cardClass, className)}
       >
         <div
           className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs"
@@ -234,11 +262,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   return (
     <div
       data-cursor-target="tool-call-row"
-      className={cn(
-        "border-b border-border-muted last:border-b-0",
-        selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
-        className,
-      )}
+      className={cn(cardClass, className)}
     >
       {/*
         Disclosure header is a div[role=button], not a <button>: the row carries
@@ -261,7 +285,8 @@ export const ToolCallItem = memo(function ToolCallItem({
         className={cn(
           "flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors",
           "hover:bg-muted-subtle",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          // ring-inset so the card's overflow-hidden does not clip the focus ring.
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           expanded && "bg-muted-faint",
         )}
       >
@@ -304,11 +329,13 @@ export const ToolCallItem = memo(function ToolCallItem({
           ) : approval ? (
             // The row above is this approval's header, so render only the body
             // (preview + actions) — the gate decided right where it is raised.
+            // The enclosing tool-call card already carries the border + the
+            // warning/destructive accent for a pending gate, so the body renders
+            // borderless to avoid a box-in-a-box.
             <ApprovalCardBody
               pendingApproval={approval.pendingApproval}
               onSubmit={approval.onSubmit}
               isSubmitting={approval.isSubmitting}
-              className="rounded-md border border-warning/30 bg-warning/5"
             />
           ) : (
             <ToolCallDetail toolCall={toolCall} />

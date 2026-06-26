@@ -81,11 +81,12 @@ function CategoryDetail({
       // The diff already names the file and quantifies the change, so it stands
       // alone — showing the written content as an argument would duplicate it. A
       // write whose capture is unavailable degrades to a `file` result here
-      // (ResultView shows the content), so the input is never lost.
+      // (ResultView shows the content), so the input is never lost. The owning
+      // row already names the file, so the body suppresses the path.
       return (
         <>
           <MetadataRow toolCall={toolCall} />
-          <ResultView view={result} />
+          <ResultView view={result} showFileName={false} />
         </>
       );
 
