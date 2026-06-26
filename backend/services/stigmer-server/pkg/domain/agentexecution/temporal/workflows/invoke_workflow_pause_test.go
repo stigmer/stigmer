@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
 	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"github.com/stretchr/testify/mock"
@@ -243,6 +244,127 @@ func TestHitlZeroPendingApprovalFailsFast(t *testing.T) {
 	// before giving up — well below MaxApprovalCycles (100).
 	require.Equal(t, MaxZeroPendingApprovalCycles+1, callCount,
 		"workflow must stop after a small bounded number of zero-pending cycles")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cursor-flow parity: the WAITING_FOR_APPROVAL + pending=0 watchdog is duplicated
+// in executeCursorWithHitl (the deny-and-reconcile harness), so it must be pinned
+// independently of the native deep-agent loop. The Cursor flow dispatches on
+// input.Harness == HARNESS_CURSOR and drives ReadHarnessStateId (local) +
+// ExecuteCursor instead of EnsureThread + ExecuteDeepAgent.
+// ─────────────────────────────────────────────────────────────────────────────
+
+func stubExecuteCursor(_ string, _ string) (activities.RunnerActivityResult, error) {
+	return nil, nil
+}
+func stubReadHarnessStateId(_ string) (string, error) { return "", nil }
+
+// registerCursorActivities registers the Cursor-flow activities (ExecuteCursor +
+// the ReadHarnessStateId local activity). Temporal's test env forbids any
+// RegisterActivity after the first OnActivity, so this MUST be called BEFORE
+// registerCommonMocks (which issues mocks); the ReadHarnessStateId mock is then
+// set alongside the other OnActivity calls.
+func registerCursorActivities(env *testsuite.TestWorkflowEnvironment) {
+	env.RegisterActivityWithOptions(stubExecuteCursor, activity.RegisterOptions{
+		Name: activities.ExecuteCursorActivityName,
+	})
+	env.RegisterActivityWithOptions(stubReadHarnessStateId, activity.RegisterOptions{
+		Name: activities.ReadHarnessStateIdActivityName,
+	})
+}
+
+func cursorInput(executionID string) *InvokeAgentExecutionWorkflowInput {
+	return &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+		Harness:     int32(sessionv1.Harness_HARNESS_CURSOR),
+	}
+}
+
+// TestCursorHitlApprovalLoopWithoutPause is the Cursor analog of
+// TestHitlApprovalLoopWithoutPause: one gated turn (pending=1) resolved by the
+// approval signal re-invokes ExecuteCursor and completes. The happy-path counter
+// to the fail-fast test below — a non-zero pending count must NOT trip the
+// watchdog, it must wait for the signal.
+func TestCursorHitlApprovalLoopWithoutPause(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-cursor"
+	const executionID = "exec-cursor-hitl"
+	registerCursorActivities(env)
+	registerCommonMocks(env, threadID)
+	env.OnActivity(stubReadHarnessStateId, mock.Anything).Return("harness-state-1", nil).Maybe()
+
+	// DB reports one pending approval (the gated tool), so the watchdog stays
+	// dormant and the workflow waits for the resolution signal.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{
+				PendingApprovals: []*agentexecutionv1.PendingApproval{{ToolCallId: "tc-1"}},
+			},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteCursor, mock.Anything, mock.Anything).
+		Return(func(_ string, _ string) (activities.RunnerActivityResult, error) {
+			callCount++
+			if callCount == 1 {
+				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+			}
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
+		})
+
+	env.RegisterDelayedCallback(func() {
+		env.SignalWorkflow(SignalApprovalGateResolved, nil)
+	}, 0)
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, cursorInput(executionID))
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError())
+	require.Equal(t, 2, callCount, "Cursor flow must re-invoke once after the approval signal and complete")
+}
+
+// TestCursorHitlZeroPendingApprovalFailsFast is the Cursor analog of
+// TestHitlZeroPendingApprovalFailsFast: the precise production loop from
+// aex_01kvz3pw20j6t0hw80wpevnztb. When ExecuteCursor keeps returning
+// WAITING_FOR_APPROVAL while the DB projects zero pending approvals (the
+// transcript-guard-rejected resume signature), the workflow must tolerate only a
+// small bounded number of zero-pending cycles then fail fast — NOT tight-loop the
+// full Cursor activity up to MaxApprovalCycles.
+func TestCursorHitlZeroPendingApprovalFailsFast(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-cursor-zero"
+	const executionID = "exec-cursor-zero-pending"
+	registerCursorActivities(env)
+	registerCommonMocks(env, threadID)
+	env.OnActivity(stubReadHarnessStateId, mock.Anything).Return("harness-state-1", nil).Maybe()
+
+	// DB always reports zero pending while the activity keeps returning WAITING —
+	// the stuck-loop signature the watchdog must break.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteCursor, mock.Anything, mock.Anything).
+		Return(func(_ string, _ string) (activities.RunnerActivityResult, error) {
+			callCount++
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+		})
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, cursorInput(executionID))
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.Error(t, env.GetWorkflowError(),
+		"a persistent zero-pending WAITING_FOR_APPROVAL on the Cursor flow must fail fast, not tight-loop")
+	require.Equal(t, MaxZeroPendingApprovalCycles+1, callCount,
+		"Cursor flow must stop after a small bounded number of zero-pending cycles")
 }
 
 func TestMultiplePauseResumeCycles(t *testing.T) {

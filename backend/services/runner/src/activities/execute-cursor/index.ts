@@ -27,11 +27,13 @@
  */
 
 import { heartbeat, Context, CancelledFailure } from "@temporalio/activity";
-import { create, type JsonObject } from "@bufbuild/protobuf";
+import { create, clone, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionControlSignal, ExecutionPhase, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage, Run, ConversationTurn } from "@cursor/sdk";
 
@@ -251,9 +253,23 @@ async function executeCursorInner(
     // by reinvocation time — the decision survives only on the tool call. This
     // feeds both the grant builder and the reinvocation prompt below.
     let adjudicatedApprovals: PendingApproval[] = [];
+    // Sub-agent executions carried over from the persisted transcript on a
+    // resume, handed to the MessageAccumulator so a gated tool inside a
+    // delegated sub-agent survives the round-trip (see seeding below).
+    let seededSubAgents: SubAgentExecution[] = [];
 
     if (isReinvocation) {
       const existingStatus = execution.status;
+      // Seed the in-progress status from the persisted execution BEFORE the
+      // MessageAccumulator wraps status.messages, so this resumed turn APPENDS
+      // onto prior history rather than rebuilding from empty. A Cursor resume
+      // re-issues approved tool calls with fresh ids; a from-empty rebuild would
+      // drop the previously-committed ids and the backend's append-only-at-
+      // identity guard would reject the whole update, stalling the run (the
+      // "approval propagation is broken" watchdog failure). The resumed re-runs
+      // are reconciled onto these seeded calls by canonical identity inside the
+      // accumulator. Mirrors the deep-agent seedStatusFromExecution.
+      seededSubAgents = seedCursorTranscriptFromExecution(status, execution);
       const adjudicated = reconstructAdjudicatedApprovals(existingStatus?.messages ?? []);
       if (adjudicated.decisions.size > 0) {
         approvalDecisions = adjudicated.decisions;
@@ -639,6 +655,7 @@ async function executeCursorInner(
       mergedPolicies,
       provenance: { globalBypass, leasedCategories: leases.categories },
       workspaceRoot: primaryWorkspaceDir,
+      seededSubAgents,
     });
     // Shared cadence with the native harness: discrete state changes force a
     // flush; high-frequency token deltas ride this scheduler's time cadence
@@ -1481,6 +1498,45 @@ async function executeCursorInner(
       }
     }
   }
+}
+
+/**
+ * Seed an in-progress status from the persisted execution on a durable resume
+ * (HITL approval, pause/resume, or transient recovery) so the upcoming turn
+ * APPENDS onto prior history instead of replacing it. This is the Cursor analog
+ * of the deep-agent's seedStatusFromExecution (execute-deep-agent/index.ts).
+ *
+ * Why it is required: a resumed Cursor agent re-issues the previously gated tool
+ * calls with brand-new call ids. Without seeding, the MessageAccumulator would
+ * rebuild the transcript from empty and emit a status that drops the already-
+ * committed tool-call ids. The backend's append-only-at-identity guard
+ * (AgentExecutionUpdateStatusHandler / update_status.go) rejects any non-
+ * terminal update that drops a committed tool-call id, so the resumed progress
+ * would never persist — the run stalls in WAITING_FOR_APPROVAL with no pending
+ * approvals and the workflow watchdog fails it. Seeding makes the resume status
+ * a strict superset; the re-runs are then reconciled in place onto these seeded
+ * calls by canonical identity inside the accumulator.
+ *
+ * The persisted protos are cloned so the input execution stays immutable, and
+ * the seeded messages are pushed into status.messages (which the accumulator
+ * wraps by reference) BEFORE the accumulator is constructed. Sub-agent
+ * executions are returned rather than written to status.subAgentExecutions
+ * directly, because the accumulator owns that array (it overwrites
+ * status.subAgentExecutions with its own on every flush) — handing them to the
+ * accumulator keeps the seeded sub-agent rows from being clobbered.
+ *
+ * @returns the cloned sub-agent executions to seed into the MessageAccumulator.
+ */
+function seedCursorTranscriptFromExecution(
+  status: AgentExecutionStatus,
+  execution: AgentExecution,
+): SubAgentExecution[] {
+  const persisted = execution.status;
+  if (!persisted || persisted.messages.length === 0) return [];
+  for (const message of persisted.messages) {
+    status.messages.push(clone(AgentMessageSchema, message));
+  }
+  return persisted.subAgentExecutions.map((sub) => clone(SubAgentExecutionSchema, sub));
 }
 
 // ---------------------------------------------------------------------------

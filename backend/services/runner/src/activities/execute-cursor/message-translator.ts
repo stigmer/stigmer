@@ -741,6 +741,15 @@ export interface MessageAccumulatorOptions {
    * which case raw tool-arg paths are used verbatim.
    */
   workspaceRoot?: string;
+  /**
+   * Sub-agent executions carried over from the persisted transcript on a
+   * durable resume (see seedCursorTranscriptFromExecution in index.ts). The
+   * accumulator re-registers them so a sub-agent's resumed lifecycle updates
+   * merge onto the seeded row instead of producing a duplicate, and so the row
+   * survives the round-trip rather than being dropped from the rebuilt status.
+   * Empty on a first run.
+   */
+  seededSubAgents?: SubAgentExecution[];
 }
 
 /**
@@ -813,6 +822,34 @@ export class MessageAccumulator {
     this.mergedPolicies = options?.mergedPolicies;
     this.provenance = options?.provenance;
     this.workspaceRoot = options?.workspaceRoot;
+
+    // Resume seeding. When constructed over a pre-seeded transcript (a durable
+    // resume — see seedCursorTranscriptFromExecution in index.ts), rebuild the
+    // by-id tool-call index so a cross-message completion for a seeded call
+    // resolves onto the existing proto, and re-register seeded sub-agents so
+    // their resumed lifecycle updates merge in place. A first run carries an
+    // empty transcript and no seed, so both are no-ops. Mirrors the deep-agent
+    // ExecutionState.rebuildToolCallIndex + sub-agent re-registration on resume.
+    this.rebuildToolCallIndex();
+    for (const sub of options?.seededSubAgents ?? []) {
+      this._subAgentExecutions.push(sub);
+      if (sub.id) this.subAgentMap.set(sub.id, sub);
+    }
+  }
+
+  /**
+   * Index every tool call already present in the (seeded) transcript by its
+   * call_id. Called once at construction: on a first run the transcript is empty
+   * (no-op); on a resume it lets re-emitted lifecycle events for a previously
+   * committed call_id reconcile onto the existing proto instead of duplicating.
+   */
+  private rebuildToolCallIndex(): void {
+    this.toolCallIndex.clear();
+    for (const message of this.messages) {
+      for (const tc of message.toolCalls) {
+        if (tc.id) this.toolCallIndex.set(tc.id, tc);
+      }
+    }
   }
 
   get subAgentExecutions(): SubAgentExecution[] {
@@ -907,21 +944,70 @@ export class MessageAccumulator {
     if (SUPPRESSED_TOOL_NAMES.has(event.name)) return;
 
     const existing = this.toolCallIndex.get(event.call_id);
-    if (!existing) {
-      const tc = buildToolCallProto(event, this.mergedPolicies, this.provenance);
-      // A write carries whole-file content at creation; an edit's diff arrives
-      // with its terminal result and is attached in mergeToolCallEvent.
-      const fileChanges = buildCursorFileChanges(event, this.workspaceRoot);
-      if (fileChanges.length > 0) tc.fileChanges = fileChanges;
-      this.findOrCreateLastAiMessage().toolCalls.push(tc);
-      this.toolCallIndex.set(event.call_id, tc);
-      // A new tool call is a discrete, user-visible event — force a prompt
-      // flush so the live UI surfaces it the instant it starts.
-      this._dirty = true;
+    if (existing) {
+      this.mergeToolCallEvent(existing, event);
       return;
     }
 
-    this.mergeToolCallEvent(existing, event);
+    const tc = buildToolCallProto(event, this.mergedPolicies, this.provenance);
+
+    // Resume reconciliation. A resumed Cursor agent re-runs a previously
+    // approved tool with a BRAND-NEW call_id, so it misses the by-id index
+    // above. Reconcile it onto the seeded WAITING_APPROVAL call with the same
+    // canonical identity (the (category, salient)/MCP-name space the hook and
+    // grants already use — see toolCallIdentityToken) and keep the original id.
+    // Without this the seeded approved call and the re-run would both appear (a
+    // duplicate row) and dropping the seeded id would trip the backend's
+    // append-only-at-identity guard, stalling the run. This generalizes the v2
+    // deep-agent StatusBuilder.findResumableSeededToolCall (a tool-name match)
+    // to the full Cursor identity, reusing the single existing identity
+    // definition rather than introducing a parallel one.
+    const seeded = this.findResumableSeededToolCall(tc);
+    if (seeded) {
+      // Re-key the fresh call_id onto the seeded proto so this call_id's later
+      // lifecycle events resolve here, then merge in place. mergeToolCallEvent
+      // advances WAITING_APPROVAL (non-terminal) toward the event's status.
+      this.toolCallIndex.set(event.call_id, seeded);
+      if (seeded.fileChanges.length === 0) {
+        const fileChanges = buildCursorFileChanges(event, this.workspaceRoot);
+        if (fileChanges.length > 0) seeded.fileChanges = fileChanges;
+      }
+      this.mergeToolCallEvent(seeded, event);
+      return;
+    }
+
+    // A write carries whole-file content at creation; an edit's diff arrives
+    // with its terminal result and is attached in mergeToolCallEvent.
+    const fileChanges = buildCursorFileChanges(event, this.workspaceRoot);
+    if (fileChanges.length > 0) tc.fileChanges = fileChanges;
+    this.findOrCreateLastAiMessage().toolCalls.push(tc);
+    this.toolCallIndex.set(event.call_id, tc);
+    // A new tool call is a discrete, user-visible event — force a prompt
+    // flush so the live UI surfaces it the instant it starts.
+    this._dirty = true;
+  }
+
+  /**
+   * Find a seeded, still-gated tool call this resumed event should reconcile
+   * onto: the first tool call in the index that is still WAITING_APPROVAL and
+   * shares the candidate's canonical identity token. "First" (Map iteration =
+   * transcript order) mirrors the v2 deep-agent's ordered first-unreconciled
+   * match — once reconciled a call leaves WAITING_APPROVAL, so a second co-
+   * pending call with the same identity naturally reconciles onto the next one.
+   * Tool calls created during this turn are not WAITING_APPROVAL until the
+   * post-stream denial reconciliation runs, so they can never be matched here.
+   */
+  private findResumableSeededToolCall(candidate: ToolCall): ToolCall | undefined {
+    const wanted = toolCallIdentityToken(candidate);
+    for (const tc of this.toolCallIndex.values()) {
+      if (
+        tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL &&
+        toolCallIdentityToken(tc) === wanted
+      ) {
+        return tc;
+      }
+    }
+    return undefined;
   }
 
   /**
@@ -1289,8 +1375,13 @@ export function clearProvisionalPostDenialNarration(
  * The token keys on the cross-taxonomy category + salient resource, so a stream
  * `edit` (token `base64("write\n/path")`) correlates to the hook's `Write` deny
  * for the same path, even though the two layers name the tool differently.
+ *
+ * Exported so the resume-grant round-trip can be locked against it: the grant a
+ * resume mints for an approved tool (buildApprovalGrants -> grantToken) must
+ * equal THIS denial/overlay identity, or the re-issued call is re-gated forever
+ * (the H1 dual-path drift the approval-state round-trip suite guards against).
  */
-function toolCallIdentityToken(tc: ToolCall): string {
+export function toolCallIdentityToken(tc: ToolCall): string {
   const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
   return grantToken(id.key, id.salient);
 }

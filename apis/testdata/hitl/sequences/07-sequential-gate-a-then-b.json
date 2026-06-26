@@ -1,0 +1,199 @@
+{
+  "name": "sequential-gate-a-then-b",
+  "description": "Two SEQUENTIAL gates across a resume, at the server projection layer: gate A (edit) is requested and approved, the resumed turn completes A and proposes gate B (shell) which gates for the first time, then B is approved. After approving A exactly ONE pending remains (B); A's committed request survives into the gate-B projection (the superset property the append-only-at-identity guard protects) and each gate runs its lifecycle exactly once. Uses distinct, forward-advancing tool_call_ids — the corpus boundary; the re-issued-same-id resume-grant round-trip is locked in the Cursor runner unit tests, which the corpus deliberately cannot express (see README 'Deliberately not covered').",
+  "execution_id": "exec-seq-ab",
+  "steps": [
+    {
+      "name": "seed: gate A (edit) gated",
+      "description": "First touch seeds the stream from the scan: one REQUESTED for gate A.",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc_a",
+                "name": "edit",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Write file: notes.md",
+                "args_preview": "{\"path\":\"notes.md\",\"content\":\"# Notes\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "pending_approvals": [
+          {
+            "tool_call_id": "tc_a",
+            "tool_name": "edit",
+            "message": "Write file: notes.md",
+            "args_preview": "{\"path\":\"notes.md\",\"content\":\"# Notes\"}",
+            "requested_at": "2026-03-27T10:00:00Z"
+          }
+        ],
+        "stream_events": [
+          { "approval_request_id": "tc_a", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" }
+        ]
+      }
+    },
+    {
+      "name": "approve gate A",
+      "description": "A SubmitApproval site: REQUESTED is ensured while tc_a is still gated, then the APPROVE decision is recorded. tc_a leaves the pending set.",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc_a",
+                "name": "edit",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Write file: notes.md",
+                "args_preview": "{\"path\":\"notes.md\",\"content\":\"# Notes\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              }
+            ]
+          }
+        ]
+      },
+      "decisions": [
+        {
+          "tool_call_id": "tc_a",
+          "action": "APPROVAL_ACTION_APPROVE",
+          "decided_by": "alice",
+          "comment": "looks good",
+          "decided_at": "2026-03-27T10:01:00Z"
+        }
+      ],
+      "expected": {
+        "pending_approvals": [],
+        "stream_events": [
+          { "approval_request_id": "tc_a", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "tc_a", "event_type": "APPROVAL_EVENT_TYPE_APPROVED" }
+        ]
+      }
+    },
+    {
+      "name": "resume completes A and gates B (shell)",
+      "description": "The resumed turn runs the approved tc_a to completion (still carried, never re-gated) and APPENDS a brand-new gated call tc_b. The transcript is a strict superset of the gate-A transcript — tc_a's committed request survives — and exactly one pending (tc_b) is projected.",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc_a",
+                "name": "edit",
+                "status": "TOOL_CALL_COMPLETED",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_APPROVE",
+                "approval_message": "Write file: notes.md",
+                "args_preview": "{\"path\":\"notes.md\",\"content\":\"# Notes\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z",
+                "approval_decided_at": "2026-03-27T10:01:00Z"
+              }
+            ]
+          },
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc_b",
+                "name": "shell",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Run command: make build",
+                "args_preview": "{\"command\":\"make build\"}",
+                "approval_requested_at": "2026-03-27T10:02:00Z"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "pending_approvals": [
+          {
+            "tool_call_id": "tc_b",
+            "tool_name": "shell",
+            "message": "Run command: make build",
+            "args_preview": "{\"command\":\"make build\"}",
+            "requested_at": "2026-03-27T10:02:00Z"
+          }
+        ],
+        "stream_events": [
+          { "approval_request_id": "tc_a", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "tc_a", "event_type": "APPROVAL_EVENT_TYPE_APPROVED" },
+          { "approval_request_id": "tc_b", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" }
+        ]
+      }
+    },
+    {
+      "name": "approve gate B",
+      "description": "A SubmitApproval site for tc_b (shown pre-decision gated). After APPROVE, no pending remains and the ledger carries both gates' full lifecycle exactly once each.",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc_a",
+                "name": "edit",
+                "status": "TOOL_CALL_COMPLETED",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_APPROVE",
+                "approval_message": "Write file: notes.md",
+                "args_preview": "{\"path\":\"notes.md\",\"content\":\"# Notes\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z",
+                "approval_decided_at": "2026-03-27T10:01:00Z"
+              }
+            ]
+          },
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc_b",
+                "name": "shell",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Run command: make build",
+                "args_preview": "{\"command\":\"make build\"}",
+                "approval_requested_at": "2026-03-27T10:02:00Z"
+              }
+            ]
+          }
+        ]
+      },
+      "decisions": [
+        {
+          "tool_call_id": "tc_b",
+          "action": "APPROVAL_ACTION_APPROVE",
+          "decided_by": "alice",
+          "comment": "build is fine",
+          "decided_at": "2026-03-27T10:03:00Z"
+        }
+      ],
+      "expected": {
+        "pending_approvals": [],
+        "stream_events": [
+          { "approval_request_id": "tc_a", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "tc_a", "event_type": "APPROVAL_EVENT_TYPE_APPROVED" },
+          { "approval_request_id": "tc_b", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "tc_b", "event_type": "APPROVAL_EVENT_TYPE_APPROVED" }
+        ]
+      }
+    }
+  ]
+}

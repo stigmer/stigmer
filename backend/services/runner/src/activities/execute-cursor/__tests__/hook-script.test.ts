@@ -193,6 +193,74 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(h.decide(hookShell('rm -rf "/x"')).permission).toBe("deny");
   });
 
+  // The full runner<->hook closure, per gated category and for the bytes most
+  // likely to drift: the token the RUNNER writes into approval-state.json (via
+  // buildApprovalState, exactly as index.ts does on resume) is byte-identical to
+  // the token the HOOK records when it denies the same action, and the hook's
+  // grep -qF membership check then ALLOWS the re-issued call. This is the precise
+  // production safety property — "approve once, allowed on the resumed turn" —
+  // closed end to end rather than asserted on either half alone.
+  describe("runner grant <-> hook allow closure (tricky args, every gated category)", () => {
+    const cases: Array<{
+      label: string;
+      streamName: string;
+      streamArgs: Record<string, unknown>;
+      hookInput: object;
+      otherHookInput: object;
+    }> = [
+      {
+        label: "write — path with spaces, quotes, and unicode",
+        streamName: "edit",
+        streamArgs: { path: '/work/a dir/"café" notes.md' },
+        hookInput: hookWrite('/work/a dir/"café" notes.md'),
+        otherHookInput: hookWrite("/work/other.md"),
+      },
+      {
+        label: "shell — multi-line heredoc with quotes and unicode",
+        streamName: "shell",
+        streamArgs: { command: "cat > notes.md << 'EOF'\n# Notes — \"x\" café\nEOF" },
+        hookInput: hookShell("cat > notes.md << 'EOF'\n# Notes — \"x\" café\nEOF"),
+        otherHookInput: hookShell("rm -rf build"),
+      },
+      {
+        label: "delete — path with quotes",
+        streamName: "delete",
+        streamArgs: { path: '/work/"old" file.tmp' },
+        hookInput: hookDelete('/work/"old" file.tmp'),
+        otherHookInput: hookDelete("/work/keep.tmp"),
+      },
+    ];
+
+    for (const { label, streamName, streamArgs, hookInput, otherHookInput } of cases) {
+      it(`${label}: the state-file token the runner writes is the token the hook denies and then allows`, () => {
+        // 1. The hook denies the un-granted call and records its identity token.
+        const denyHarness = setup({});
+        expect(denyHarness.decide(hookInput).permission).toBe("deny");
+        const denialLedger = denyHarness.ledger();
+        expect(denialLedger).toHaveLength(1);
+        const hookDenialToken = denialLedger[0].token;
+
+        // 2. The runner mints the grant from the STREAM-side identity (the only
+        //    side it sees) and writes it into the real state file via
+        //    buildApprovalState — the exact path index.ts takes on resume.
+        const id = toolIdentity(streamName, "", streamArgs);
+        const state = buildApprovalState(new Map(), false, new Set(), [
+          { toolName: streamName, mcpServerSlug: "", key: id.key, salient: id.salient },
+        ]);
+
+        // 3. The state file carries the byte-exact token the hook recomputed —
+        //    the grep -qF membership the bash hook performs (string equality).
+        expect(state.approvedGrantTokens).toContain(hookDenialToken);
+
+        // 4. With that state file, the hook ALLOWS the re-issued (fresh-id) call
+        //    and re-gates a DIFFERENT resource of the same category.
+        const grantHarness = setup({ grants: state.approvedGrants });
+        expect(grantHarness.decide(hookInput).permission).toBe("allow");
+        expect(grantHarness.decide(otherHookInput).permission).toBe("deny");
+      });
+    }
+  });
+
   // Issue #173: the hook ships on the workspace's shared .cursor/hooks.json, so
   // the user's own Cursor IDE (a DIFFERENT process tree) would load and run it
   // too. The scope guard must allow any invocation that does not descend from
