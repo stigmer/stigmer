@@ -18,7 +18,6 @@ import { useApproval } from "./ApprovalContext";
 import { FilePathLink } from "./FilePathLink";
 import { isFileCategory, type ToolCategory } from "./tool-categories";
 import { useToolPresentation } from "./tool-presenter";
-import { useSandboxNormalize } from "./SandboxContext";
 import { useThreadSelection } from "./useThreadSelection";
 
 /** Props for {@link ToolCallItem}. */
@@ -122,7 +121,6 @@ export const ToolCallItem = memo(function ToolCallItem({
     ? subAgentExecution.subject || subAgentExecution.name || label
     : label;
 
-  const normalize = useSandboxNormalize();
   const approvalBadge = getApprovalBadge(toolCall);
   const selection = useThreadSelection("tool-call", toolCall.id);
 
@@ -238,11 +236,11 @@ export const ToolCallItem = memo(function ToolCallItem({
     );
   }
 
-  const displaySubtitle = isSubAgent
-    ? null
-    : category === "shell" && primaryArg
-      ? normalize(primaryArg)
-      : primaryArg;
+  // Shell shows neither a command subtitle nor an exit summary in the header —
+  // both live in the terminal session body below, so the header stays minimal
+  // (icon + label + status + duration).
+  const displaySubtitle =
+    isSubAgent || category === "shell" ? null : primaryArg;
 
   // For file tools the subtitle is a path: render it filename-first through
   // FilePathLink (full path on hover) rather than the raw, often-absolute string
@@ -310,7 +308,7 @@ export const ToolCallItem = memo(function ToolCallItem({
               </span>
             )
           )}
-          {!isSubAgent && resultSummary && (
+          {!isSubAgent && category !== "shell" && resultSummary && (
             <span className="shrink-0 tabular-nums text-muted-foreground">
               {resultSummary}
             </span>

@@ -44,7 +44,7 @@
       "mcpServerSlug": "",
       "args": { "command": "ls -la" },
       "result": "total 8\ndrwxr-xr-x  2 user user 4096 .\n[Command succeeded]",
-      "expected": { "type": "terminal", "exitCode": 0 }
+      "expected": { "type": "terminal", "exitCode": 0, "command": "ls -la" }
     },
     {
       "name": "native_shell_failure",
@@ -53,7 +53,7 @@
       "mcpServerSlug": "",
       "args": { "command": "false" },
       "result": "some stderr output\n[Command failed with exit code 1]",
-      "expected": { "type": "terminal", "exitCode": 1 }
+      "expected": { "type": "terminal", "exitCode": 1, "command": "false" }
     },
     {
       "name": "cursor_shell_string",
@@ -62,7 +62,7 @@
       "mcpServerSlug": "",
       "args": { "command": "echo hi" },
       "result": "hi\n",
-      "expected": { "type": "terminal" }
+      "expected": { "type": "terminal", "command": "echo hi" }
     },
     {
       "name": "native_grep_matches",

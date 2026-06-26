@@ -49,6 +49,26 @@ describe("ResultView", () => {
     expect(container.textContent).toContain("boom");
   });
 
+  it("renders a terminal as one session: $ command then output, no badge on success", () => {
+    const view: ToolResultView = {
+      type: "terminal",
+      command: "echo hello",
+      stdout: "hello",
+      stderr: "",
+      exitCode: 0,
+    };
+    const { container } = render(<ResultView view={view} />);
+    // The command leads the session as a prompt line, with its output below.
+    expect(container.textContent).toContain("$ echo hello");
+    expect(container.textContent).toContain("hello");
+    // Success carries no exit badge — the row's status icon confirms the run.
+    expect(container.textContent).not.toContain("exit 0");
+    // One block, not a command box + a separate output box.
+    expect(
+      container.querySelectorAll('[data-cursor-target="terminal-session"]'),
+    ).toHaveLength(1);
+  });
+
   it("renders a search match list", () => {
     const view: ToolResultView = {
       type: "search",

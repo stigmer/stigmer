@@ -125,6 +125,9 @@ export type { ToolArgsViewProps } from "./ToolArgsView";
 export { ResultView, summarizeResultView } from "./ResultView";
 export type { ResultViewProps } from "./ResultView";
 
+export { TerminalSession } from "./TerminalSession";
+export type { TerminalSessionProps } from "./TerminalSession";
+
 export {
   useToolPresentation,
   registerToolPresenter,

@@ -99,9 +99,12 @@ function describeResultView(view: ToolResultView): string | null {
       return `${view.path}${stats}`;
     }
     case "terminal": {
+      // Lead with the command prompt line so the CLI reads as one terminal
+      // session, matching the web console.
+      const prompt = view.command ? `$ ${view.command}\n` : "";
       const exit =
         view.exitCode !== undefined && view.exitCode !== 0 ? `[exit ${view.exitCode}] ` : "";
-      return exit + truncate(view.stdout || view.stderr);
+      return prompt + exit + truncate(view.stdout || view.stderr);
     }
     case "search":
       return `${view.count} ${view.count === 1 ? "match" : "matches"}`;

@@ -21,6 +21,7 @@ import { ToolArgsView } from "./ToolArgsView";
 import { FileChangeDiff } from "./FileChangesView";
 import { EmptyChangeNotice } from "./EmptyChangeNotice";
 import { FilePathLink } from "./FilePathLink";
+import { DecisionButton } from "../internal/DecisionButton";
 
 /** Props for {@link ApprovalCard}. */
 export interface ApprovalCardProps {
@@ -164,6 +165,7 @@ export function ApprovalCardHeader({
           {categoryInfo.label}
         </span>
         {primaryArg &&
+          categoryInfo.category !== "shell" &&
           (isFileCategory(categoryInfo.category) ? (
             // A file tool's primary arg is a path — render it filename-first
             // with the full path on hover, matching the ToolCallItem header.
@@ -172,6 +174,8 @@ export function ApprovalCardHeader({
               className="min-w-0 text-xs text-muted-foreground"
             />
           ) : (
+            // Shell is the exception: its command is shown in the body's
+            // terminal session, so the header stays minimal (icon + label).
             <span className="min-w-0 truncate font-mono text-muted-foreground">
               {primaryArg}
             </span>
@@ -338,47 +342,46 @@ export function ApprovalCardBody({
 
       {preview}
 
-      {/* Action buttons */}
+      {/* Decision actions — quiet, Cursor-grade hierarchy: one neutral-chip
+          primary (Approve), ghost Skip, ghost-danger Reject. The broad
+          run-lifetime lease (Approve all) is demoted to the far right via
+          `ml-auto` so it never competes with — or is mis-clicked for — the
+          per-call Approve (Fitts/Hick). */}
       <div className="flex items-center gap-2 pt-1">
-        <ActionButton
+        <DecisionButton
           label="Approve"
-          action={ApprovalAction.APPROVE}
-          activeAction={activeAction}
+          variant="primary"
+          onClick={() => handleAction(ApprovalAction.APPROVE)}
+          isActive={activeAction === ApprovalAction.APPROVE}
           isSubmitting={isSubmitting}
-          onClick={handleAction}
-          variant="approve"
           cursorTarget="approve-button"
         />
-        {/* Subordinate escalation: approve this call and stop asking for THIS
+        <DecisionButton
+          label="Skip"
+          variant="ghost"
+          onClick={() => handleAction(ApprovalAction.SKIP)}
+          isActive={activeAction === ApprovalAction.SKIP}
+          isSubmitting={isSubmitting}
+        />
+        <DecisionButton
+          label="Reject"
+          variant="danger"
+          onClick={() => handleAction(ApprovalAction.REJECT)}
+          isActive={activeAction === ApprovalAction.REJECT}
+          isSubmitting={isSubmitting}
+        />
+        {/* Subordinate escalation: approve this call AND stop asking for THIS
             CLASS of tool for the rest of the run (its MCP server, or its file
             edit / delete / shell category) — other classes keep prompting. The
-            label names the leased class so the scope is never a surprise. Kept
-            visually quieter than the primary Approve so it never competes with
-            the per-call decision the user is making. */}
-        <ActionButton
+            label names the leased class so the scope is never a surprise. */}
+        <DecisionButton
           label={approveAllLabel}
-          action={ApprovalAction.APPROVE_ALL}
-          activeAction={activeAction}
+          variant="ghost"
+          onClick={() => handleAction(ApprovalAction.APPROVE_ALL)}
+          isActive={activeAction === ApprovalAction.APPROVE_ALL}
           isSubmitting={isSubmitting}
-          onClick={handleAction}
-          variant="approveAll"
+          className="ml-auto"
           cursorTarget="approve-all-button"
-        />
-        <ActionButton
-          label="Skip"
-          action={ApprovalAction.SKIP}
-          activeAction={activeAction}
-          isSubmitting={isSubmitting}
-          onClick={handleAction}
-          variant="skip"
-        />
-        <ActionButton
-          label="Reject"
-          action={ApprovalAction.REJECT}
-          activeAction={activeAction}
-          isSubmitting={isSubmitting}
-          onClick={handleAction}
-          variant="reject"
         />
       </div>
 

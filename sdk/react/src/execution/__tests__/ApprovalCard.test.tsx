@@ -122,6 +122,31 @@ describe("ApprovalCard chrome", () => {
     expect(card.className).toContain("border-l-destructive");
     expect(card.className).not.toContain("bg-destructive-subtle");
   });
+
+  it("shows a shell gate's command in the body terminal session, once, not in the header", () => {
+    // The command is decision-relevant, so it leads the body's terminal session
+    // (`$ npm test`) — but the header stays minimal and does not restate it, so
+    // the command appears exactly once on the card.
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-shell-gate",
+      toolName: "shell",
+      toolKind: ToolKind.SHELL,
+      argsPreview: '{"command":"npm test"}',
+    });
+
+    const { container } = render(
+      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+    );
+
+    const session = container.querySelector(
+      '[data-cursor-target="terminal-session"]',
+    );
+    expect(session).toBeTruthy();
+    expect(session!.textContent).toContain("$ npm test");
+
+    const occurrences = (container.textContent!.match(/npm test/g) ?? []).length;
+    expect(occurrences).toBe(1);
+  });
 });
 
 describe("ApprovalCard tool classification", () => {

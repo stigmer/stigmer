@@ -9,7 +9,7 @@ import {
 import type { ToolCategory, ToolCategoryInfo } from "./tool-categories";
 import { FilePathLink } from "./FilePathLink";
 import { McpArgsView, McpMetadataRow } from "./McpToolDetail";
-import { useSandboxNormalize } from "./SandboxContext";
+import { TerminalSession } from "./TerminalSession";
 import {
   CollapsibleCode,
   FilePathIcon,
@@ -159,18 +159,10 @@ function CategoryArgsDispatch({
 // Category-specific views
 // ---------------------------------------------------------------------------
 
+// Pre-execution (approval gate) shell view: the command only, in the same
+// terminal chrome the completed call uses — there is no output yet.
 function ShellArgsView({ command }: { command: string }) {
-  const normalize = useSandboxNormalize();
-  return (
-    <div className="rounded-md border border-border bg-[var(--stgm-terminal-bg,#1a1a2e)] p-2.5">
-      <pre className="whitespace-pre-wrap break-words font-mono text-xs text-[var(--stgm-terminal-fg,#e0e0e0)]">
-        <span className="select-none text-[var(--stgm-terminal-prompt,#6b7280)]">
-          ${" "}
-        </span>
-        {normalize(command)}
-      </pre>
-    </div>
-  );
+  return <TerminalSession command={command} />;
 }
 
 function FileArgsView({

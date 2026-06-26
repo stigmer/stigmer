@@ -49,6 +49,7 @@ describe("result-view fixtures", () => {
       type: string;
       path?: string;
       exitCode?: number;
+      command?: string;
       count?: number;
       mcpServerSlug?: string;
       linesAdded?: number;
@@ -91,6 +92,9 @@ describe("result-view fixtures", () => {
       }
       if (c.expected.exitCode !== undefined && view.type === "terminal") {
         expect(view.exitCode).toBe(c.expected.exitCode);
+      }
+      if (c.expected.command !== undefined && view.type === "terminal") {
+        expect(view.command).toBe(c.expected.command);
       }
       if (c.expected.count !== undefined && view.type === "search") {
         expect(view.count).toBe(c.expected.count);

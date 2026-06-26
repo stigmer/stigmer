@@ -100,9 +100,11 @@ describe("ToolCallItem disclosure", () => {
     expect(expanded(container)).toBe(true);
   });
 
-  it("keeps a settled shell tool's output as a bounded preview", () => {
+  it("keeps a settled shell tool's output as a bounded preview, led by the command", () => {
     // Shell is a `preview` category: its output IS the information, so a settled
-    // shell row persists a bounded preview of stdout with a "Show more" affordance.
+    // shell row persists a bounded preview with a "Show more" affordance. The
+    // preview now reads as one terminal session — the `$ command` prompt line
+    // leads, with its output below — so the command is visible even collapsed.
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
@@ -113,8 +115,50 @@ describe("ToolCallItem disclosure", () => {
       />,
     );
     expect(expanded(container)).toBe(false);
+    expect(container.textContent).toContain("$ echo hello");
     expect(screen.getByText("hello")).toBeTruthy();
     expect(screen.getByText("Show more")).toBeTruthy();
+  });
+
+  it("keeps the shell header minimal — no command subtitle, no exit summary", () => {
+    // The command and exit code live in the terminal session body, so the header
+    // is just icon + label + status + duration. A failed command (non-zero exit)
+    // must not leak an "exit N" string into the header row.
+    const { container } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          name: "Shell",
+          args: { command: "ls /secret/abs/path" },
+          result: "denied\n[Command failed with exit code 2]",
+        })}
+      />,
+    );
+    const headerRow = container.querySelector("[aria-expanded]")!;
+    // The header names the tool but neither restates the command nor the exit.
+    expect(headerRow.textContent).toContain("Shell");
+    expect(headerRow.textContent).not.toContain("/secret/abs/path");
+    expect(headerRow.textContent).not.toContain("exit 2");
+    // The exit DOES surface — in the body's terminal session.
+    expect(container.textContent).toContain("exit 2");
+  });
+
+  it("renders an expanded shell as a single terminal session (one block)", () => {
+    const { container } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          name: "Shell",
+          args: { command: "echo hi" },
+          result: "hi",
+          status: ToolCallStatus.TOOL_CALL_RUNNING,
+        })}
+      />,
+    );
+    // Running force-opens the full detail; it must be one block, not a command
+    // box plus a separate output box.
+    expect(expanded(container)).toBe(true);
+    expect(
+      container.querySelectorAll('[data-cursor-target="terminal-session"]'),
+    ).toHaveLength(1);
   });
 
   it("foregrounds a running tool regardless of category", () => {

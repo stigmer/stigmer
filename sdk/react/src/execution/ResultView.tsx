@@ -19,7 +19,7 @@ import type { DiffHunk } from "../version-history/types";
 import { CollapsibleCode, CollapsiblePre, formatJson } from "./tool-rendering-primitives";
 import { FilePathLink } from "./FilePathLink";
 import { EmptyChangeNotice } from "./EmptyChangeNotice";
-import { useSandboxNormalize } from "./SandboxContext";
+import { TerminalSession } from "./TerminalSession";
 import { execIdFromStorageKey } from "./useFileChangeContent";
 import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
 import { useArtifactDownload } from "./useArtifactDownload";
@@ -199,40 +199,18 @@ function DiffResultView({
 
 type TerminalView = Extract<ToolResultView, { type: "terminal" }>;
 
+// A shell result IS a terminal session: the command prompt line plus its
+// output, rendered as one block by the shared TerminalSession (no separate
+// "Output" caption or command box).
 function TerminalResultView({ view, className }: { view: TerminalView; className?: string }) {
-  const normalize = useSandboxNormalize();
-  const failed = view.exitCode !== undefined && view.exitCode !== 0;
-
   return (
-    <div className={cn("space-y-1", className)}>
-      <div className="flex items-center gap-2">
-        <span className="font-medium text-muted-foreground">Output</span>
-        {view.exitCode !== undefined && (
-          <span
-            className={cn(
-              "rounded px-1 py-0.5 text-[10px] font-medium leading-none tabular-nums",
-              failed ? "bg-destructive-subtle text-destructive" : "bg-success-subtle text-success",
-            )}
-          >
-            exit {view.exitCode}
-          </span>
-        )}
-      </div>
-      <div className="rounded-md border border-border bg-[var(--stgm-terminal-bg,#1a1a2e)] p-2.5">
-        {view.stdout && (
-          <CollapsiblePre
-            content={normalize(view.stdout)}
-            className="text-[var(--stgm-terminal-fg,#e0e0e0)]"
-          />
-        )}
-        {view.stderr && (
-          <CollapsiblePre
-            content={normalize(view.stderr)}
-            className="text-destructive"
-          />
-        )}
-      </div>
-    </div>
+    <TerminalSession
+      command={view.command}
+      stdout={view.stdout}
+      stderr={view.stderr}
+      exitCode={view.exitCode}
+      className={className}
+    />
   );
 }
 

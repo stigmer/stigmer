@@ -102,8 +102,28 @@ function CategoryDetail({
         </>
       );
 
+    case "shell":
+      // The result IS a terminal session (command + output in one block via
+      // ResultView's terminal view), so a separate args box would just restate
+      // the command line the session already leads with. The exception is a
+      // hard tool failure (TOOL_CALL_FAILED → error view, which has no command):
+      // show the command (args) alongside the error so it is never lost.
+      return (
+        <>
+          <MetadataRow toolCall={toolCall} />
+          {result.type === "error" ? (
+            <>
+              {args}
+              <ResultView view={result} />
+            </>
+          ) : (
+            <ResultView view={result} />
+          )}
+        </>
+      );
+
     default:
-      // shell, search, list, fetch, web-search, unknown: input + effect.
+      // search, list, fetch, web-search, unknown: input + effect.
       return (
         <>
           <MetadataRow toolCall={toolCall} />

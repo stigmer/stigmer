@@ -88,9 +88,13 @@ export type ToolResultView =
       readonly language?: string;
       readonly truncated: boolean;
     }
-  // Shell command output. exitCode is parsed from the engine marker when present.
+  // A rendered terminal session. `command` is the command that produced this
+  // output (the prompt line) — it belongs here, not as a stray arg, because a
+  // "terminal" view models the whole session (prompt + output), not output
+  // alone. exitCode is parsed from the engine marker when present.
   | {
       readonly type: "terminal";
+      readonly command?: string;
       readonly stdout: string;
       readonly stderr: string;
       readonly exitCode?: number;
@@ -264,7 +268,7 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
     case ToolKind.FILE_DELETE:
       return result ? { type: "text", text: result } : { type: "empty" };
     case ToolKind.SHELL:
-      return normalizeShell(result);
+      return normalizeShell(result, args);
     case ToolKind.SEARCH:
       return normalizeSearch(result);
     case ToolKind.LIST:
@@ -428,12 +432,18 @@ function normalizeRead(args: Args, result: string): ToolResultView {
 // test/fixtures/tool-view/result-views.json so a format change fails one test.
 const SHELL_EXIT_MARKER = /\n?\[Command (?:succeeded|failed with exit code (\d+))\]\s*$/;
 
-function normalizeShell(result: string): ToolResultView {
+function normalizeShell(result: string, args: Args): ToolResultView {
+  // The command is the session's prompt line. "command" matches the shell
+  // primaryField shared with the runner/Go classifier and both native and
+  // Cursor args, so no fallback fields are needed.
+  const command = firstString(args, ["command"]);
+
   // Cursor sub-agent steps can carry a structured {stdout,stderr,exitCode}.
   const parsed = tryParseJson(result);
   if (isRecord(parsed) && ("stdout" in parsed || "exitCode" in parsed)) {
     return {
       type: "terminal",
+      command,
       stdout: asString(parsed.stdout) ?? "",
       stderr: asString(parsed.stderr) ?? "",
       exitCode: asNumber(parsed.exitCode),
@@ -445,10 +455,10 @@ function normalizeShell(result: string): ToolResultView {
     const stdout = result.replace(SHELL_EXIT_MARKER, "");
     // Group 1 is set only on failure; a matched marker without it is success (0).
     const exitCode = marker[1] !== undefined ? Number(marker[1]) : 0;
-    return { type: "terminal", stdout, stderr: "", exitCode };
+    return { type: "terminal", command, stdout, stderr: "", exitCode };
   }
 
-  return { type: "terminal", stdout: result, stderr: "" };
+  return { type: "terminal", command, stdout: result, stderr: "" };
 }
 
 // A grep-style match line, e.g. "  12: // TODO: fix".

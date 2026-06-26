@@ -31,3 +31,18 @@ describe("ToolArgsView file tools", () => {
     expect(screen.getByText("Content")).toBeTruthy();
   });
 });
+
+// The pre-execution (approval gate) shell view shows the command in the same
+// terminal-session chrome the completed call uses — there is no output yet.
+describe("ToolArgsView shell", () => {
+  it("renders the command as a terminal session prompt line", () => {
+    const { container } = render(
+      <ToolArgsView toolName="shell" args={{ command: "ls -la" }} />,
+    );
+    const session = container.querySelector(
+      '[data-cursor-target="terminal-session"]',
+    );
+    expect(session).toBeTruthy();
+    expect(session!.textContent).toContain("$ ls -la");
+  });
+});
