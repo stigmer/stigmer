@@ -9,7 +9,6 @@ import type { SelectedThreadItem } from "../../internal/store/selection-store";
 export type SessionInspectorTabId =
   | "workspace"
   | "configure"
-  | "plan"
   | "changes"
   | "artifacts"
   | "usage"
@@ -36,29 +35,29 @@ export interface UseSessionInspectorReturn {
 }
 
 /**
- * Compute the system-suggested tab from execution phase and selection.
+ * Compute the system-suggested tab from selection.
  *
  * Priority:
  * 1. Thread item selected -> "inspect"
- * 2. No execution or terminal phase (idle / ready for follow-up) -> "workspace"
- * 3. Actively running -> "plan"
+ * 2. Otherwise -> "workspace"
+ *
+ * Live execution progress (the agent's plan and todos) now renders inline in
+ * the message thread as a {@link TodoCard}, not in a sidebar tab — so a running
+ * execution no longer steers the inspector to a dedicated facet.
  */
 function deriveAutoTab(
-  phase: ExecutionPhase | null,
   selectedItem: SelectedThreadItem | null,
 ): SessionInspectorTabId {
   if (selectedItem) return "inspect";
-  if (phase === null || isTerminalPhase(phase)) return "workspace";
-  return "plan";
+  return "workspace";
 }
 
 /**
  * Build the contextual tab list with badges.
  *
  * Tab order follows the user's mental model — context before output:
- * Workspace → Config → Plan → Usage. Changes and Artifacts appear
- * after Plan when data exists; Inspect appears last when a thread item
- * is selected.
+ * Workspace → Config → Usage. Changes and Artifacts appear after Config
+ * when data exists; Inspect appears last when a thread item is selected.
  *
  * The Changes tab surfaces for either change source: git write-backs (PRs)
  * or local-workspace file edits. Its badge prefers the write-back count
@@ -77,7 +76,6 @@ export function buildVisibleTabs(opts: {
   const tabs: TabItem[] = [
     { id: "workspace", label: "Workspace" },
     { id: "configure", label: "Config" },
-    { id: "plan", label: "Plan" },
   ];
 
   if (opts.hasWriteBacks || opts.hasFileChanges) {
@@ -126,7 +124,7 @@ export function useSessionInspector(
   const hasChanges = hasWriteBacks || hasFileChanges;
 
   const [activeTab, setActiveTab] = useState<SessionInspectorTabId>(
-    () => deriveAutoTab(phase, selectedItem),
+    () => deriveAutoTab(selectedItem),
   );
   const [prevPhase, setPrevPhase] = useState(phase);
   const [prevSelected, setPrevSelected] = useState(selectedItem);
@@ -140,7 +138,7 @@ export function useSessionInspector(
       setActiveTab("inspect");
     }
     if (!selectedItem && activeTab === "inspect") {
-      setActiveTab(deriveAutoTab(phase, null));
+      setActiveTab(deriveAutoTab(null));
       userPickedTabRef.current = false;
     }
   }
@@ -152,7 +150,7 @@ export function useSessionInspector(
     setPrevPhase(phase);
     if (wasTerminal !== isNowTerminal) {
       userPickedTabRef.current = false;
-      setActiveTab(deriveAutoTab(phase, selectedItem));
+      setActiveTab(deriveAutoTab(selectedItem));
     }
   }
 
@@ -170,7 +168,7 @@ export function useSessionInspector(
   // Ensure active tab is valid (the selected tab may have been removed)
   const effectiveTab = tabs.some((t) => t.id === activeTab)
     ? activeTab
-    : deriveAutoTab(phase, selectedItem);
+    : deriveAutoTab(selectedItem);
 
   const onTabChange = useCallback((tabId: string) => {
     userPickedTabRef.current = true;

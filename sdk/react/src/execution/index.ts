@@ -182,6 +182,9 @@ export {
 } from "./TodoList";
 export type { TodoListProps } from "./TodoList";
 
+export { TodoCard } from "./TodoCard";
+export type { TodoCardProps } from "./TodoCard";
+
 
 export { useSubmitApproval } from "./useSubmitApproval";
 export type { UseSubmitApprovalReturn } from "./useSubmitApproval";

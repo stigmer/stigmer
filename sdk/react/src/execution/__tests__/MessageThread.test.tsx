@@ -16,10 +16,12 @@ import {
   ToolCallSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import {
   ExecutionPhase,
   InteractionMode,
   MessageType,
+  TodoStatus,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { MessageThread } from "../MessageThread";
@@ -214,6 +216,35 @@ describe("MessageThread", () => {
     expect(
       screen.getByText("Stigmer is a platform for platforms."),
     ).toBeTruthy();
+  });
+
+  it("renders the agent's todos as an inline card in the thread", () => {
+    const exec = makeExecution({
+      id: "exec-todos",
+      specMessage: "Build the feature",
+      aiContent: "Here is my plan",
+    });
+    // Attach a live plan to the execution status (as the runner would).
+    exec.status!.todos = {
+      t1: create(TodoItemSchema, {
+        id: "t1",
+        content: "Scaffold the component",
+        status: TodoStatus.TODO_IN_PROGRESS,
+      }),
+      t2: create(TodoItemSchema, {
+        id: "t2",
+        content: "Wire the thread",
+        status: TodoStatus.TODO_PENDING,
+      }),
+    };
+
+    render(<MessageThread executions={[exec]} />);
+
+    const region = screen.getByRole("region", { name: "Agent to-dos" });
+    expect(region).toBeTruthy();
+    // Active plan → expanded → tasks visible inline.
+    expect(region.textContent).toContain("Scaffold the component");
+    expect(region.textContent).toContain("0/2 completed");
   });
 
   it("renders pending user message with opacity indicator", () => {

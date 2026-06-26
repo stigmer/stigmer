@@ -109,8 +109,8 @@ export interface SessionViewerProps {
  * Owns `useSessionPageFlow` internally and composes:
  * - **Conversation column** (primary): `MessageThread` + error
  *   banners + `SessionComposer`
- * - **SessionInspector** (secondary): tabbed panel with Plan,
- *   Changes, Artifacts, Usage, and Inspect facets
+ * - **SessionInspector** (secondary): tabbed panel with Workspace,
+ *   Config, Changes, Artifacts, Usage, and Inspect facets
  *
  * Connected via `ResizableSplit` with persisted width.
  *

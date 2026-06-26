@@ -43,13 +43,13 @@ function tabOpts(
 // ---------------------------------------------------------------------------
 
 describe("buildVisibleTabs", () => {
-  it("always includes Workspace, Config, Plan, and Usage", () => {
+  it("always includes Workspace, Config, and Usage (Plan is gone — todos render inline)", () => {
     const tabs = buildVisibleTabs(tabOpts());
     const ids = tabs.map((t) => t.id);
     expect(ids).toContain("workspace");
     expect(ids).toContain("configure");
-    expect(ids).toContain("plan");
     expect(ids).toContain("usage");
+    expect(ids).not.toContain("plan");
     expect(ids).not.toContain("changes");
     expect(ids).not.toContain("artifacts");
     expect(ids).not.toContain("inspect");
@@ -100,7 +100,7 @@ describe("buildVisibleTabs", () => {
     expect(inspectTab).toBeDefined();
   });
 
-  it("orders tabs as Workspace, Config, Plan, then Usage with Inspect last", () => {
+  it("orders tabs as Workspace, Config, then Usage with Inspect last", () => {
     const tabs = buildVisibleTabs(
       tabOpts({
         hasWriteBacks: true,
@@ -113,15 +113,14 @@ describe("buildVisibleTabs", () => {
     );
     const ids = tabs.map((t) => t.id);
     expect(ids.indexOf("workspace")).toBeLessThan(ids.indexOf("configure"));
-    expect(ids.indexOf("configure")).toBeLessThan(ids.indexOf("plan"));
-    expect(ids.indexOf("plan")).toBeLessThan(ids.indexOf("usage"));
+    expect(ids.indexOf("configure")).toBeLessThan(ids.indexOf("usage"));
     expect(ids.indexOf("usage")).toBeLessThan(ids.indexOf("inspect"));
   });
 
   it("base tabs are present even when no optional tabs exist", () => {
     const tabs = buildVisibleTabs(tabOpts());
     const ids = tabs.map((t) => t.id);
-    expect(ids).toEqual(["workspace", "configure", "plan", "usage"]);
+    expect(ids).toEqual(["workspace", "configure", "usage"]);
   });
 });
 
@@ -144,13 +143,13 @@ describe("useSessionInspector", () => {
     expect(result.current.activeTab).toBe("workspace");
   });
 
-  it("defaults to plan while execution is running", () => {
+  it("defaults to workspace while execution is running (todos render inline, not in a tab)", () => {
     const { result } = renderHook(() =>
       useSessionInspector(
         defaultOpts({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS }),
       ),
     );
-    expect(result.current.activeTab).toBe("plan");
+    expect(result.current.activeTab).toBe("workspace");
   });
 
   it("auto-switches to inspect when a thread item is selected", () => {
@@ -181,7 +180,7 @@ describe("useSessionInspector", () => {
     expect(result.current.activeTab).toBe("workspace");
   });
 
-  it("reverts to plan when selection is cleared while execution is running", () => {
+  it("reverts to workspace when selection is cleared while execution is running", () => {
     const { result, rerender } = renderHook(
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       {
@@ -199,7 +198,7 @@ describe("useSessionInspector", () => {
         selectedItem: null,
       }),
     );
-    expect(result.current.activeTab).toBe("plan");
+    expect(result.current.activeTab).toBe("workspace");
   });
 
   it("keeps user-picked tab sticky", () => {
@@ -265,7 +264,7 @@ describe("useSessionInspector", () => {
     expect(result.current.activeTab).toBe("workspace");
   });
 
-  it("switches to workspace when execution transitions to terminal phase", () => {
+  it("stays on workspace across the running → terminal transition", () => {
     const { result, rerender } = renderHook(
       (props: UseSessionInspectorOptions) => useSessionInspector(props),
       {
@@ -274,7 +273,7 @@ describe("useSessionInspector", () => {
         }),
       },
     );
-    expect(result.current.activeTab).toBe("plan");
+    expect(result.current.activeTab).toBe("workspace");
 
     rerender(
       defaultOpts({ phase: ExecutionPhase.EXECUTION_COMPLETED }),

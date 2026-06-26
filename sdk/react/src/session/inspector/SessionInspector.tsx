@@ -11,7 +11,6 @@ import { useSessionWriteBacks } from "../useSessionWriteBacks";
 import { useSessionFileChanges } from "../useSessionFileChanges";
 import { useSessionUsage } from "../useSessionUsage";
 import { useSessionInspector } from "./useSessionInspector";
-import { PlanTab } from "./PlanTab";
 import { ChangesTab } from "./ChangesTab";
 import { ArtifactsTab } from "./ArtifactsTab";
 import { UsageTab } from "./UsageTab";
@@ -25,8 +24,7 @@ import type { ApplyResourceResult } from "../../library/useApplyResource";
 export interface SessionInspectorProps {
   /**
    * The most relevant execution — the active streaming execution,
-   * or the last completed one. Drives the run-status header and
-   * the Plan facet.
+   * or the last completed one. Drives the run-status header (phase badge).
    */
   readonly displayExecution: AgentExecution | null;
   /**
@@ -66,8 +64,9 @@ export interface SessionInspectorProps {
  * Tabbed right-side inspector panel for agent sessions.
  *
  * Displays an always-visible run-status header (phase badge) above
- * contextual tabs: Plan, Changes, Artifacts, Usage, and Inspect
- * (when a thread item is selected).
+ * contextual tabs: Workspace, Config, Changes, Artifacts, Usage, and
+ * Inspect (when a thread item is selected). The agent's plan/todos render
+ * inline in the message thread (see {@link TodoCard}), not as a tab here.
  *
  * Mirrors the `ExecutionInspector` architecture from the workflow
  * view — same `Tabs` primitive, same tab-FSM behavior hook, same
@@ -113,8 +112,14 @@ export const SessionInspector = memo(function SessionInspector({
 
   return (
     <div className={cn("flex h-full flex-col", className)}>
-      {/* Always-visible run-status header */}
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+      {/* Always-visible run-status header. Labeled as a region so the phase
+          badge is reachable as "Execution progress" by assistive tech and
+          E2E selectors, independent of which tab is active. */}
+      <div
+        role="region"
+        aria-label="Execution progress"
+        className="flex items-center gap-2 border-b border-border px-3 py-2.5"
+      >
         {phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED ? (
           <ExecutionPhaseBadge phase={phase} />
         ) : (
@@ -136,9 +141,6 @@ export const SessionInspector = memo(function SessionInspector({
           )}
           {activeTab === "configure" && sessionConfig && (
             <SetupTab {...sessionConfig} />
-          )}
-          {activeTab === "plan" && (
-            <PlanTab execution={displayExecution} />
           )}
           {activeTab === "changes" && (
             <ChangesTab executions={allExecutions} />

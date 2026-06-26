@@ -8,6 +8,7 @@ import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexec
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import {
   ApprovalAction,
   ExecutionPhase,
@@ -26,6 +27,7 @@ import { ApprovalCard } from "./ApprovalCard";
 import { SummarizationCard } from "./SummarizationCard";
 import { PlanCompletionCard } from "./PlanCompletionCard";
 import { PlanArtifactCard } from "./PlanArtifactCard";
+import { TodoCard } from "./TodoCard";
 import { findPlanArtifact } from "../library/detect-plan-artifact";
 import type { SummarizationEventView } from "./useContextWindow";
 import { isInternalTool } from "./tool-categories";
@@ -225,6 +227,12 @@ export type ThreadItem =
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
   | {
+      readonly kind: "todos";
+      readonly key: string;
+      readonly executionId: string;
+      readonly todos: { readonly [id: string]: TodoItem };
+    }
+  | {
       readonly kind: "plan-completion";
       readonly key: string;
       readonly executionId: string;
@@ -350,6 +358,25 @@ export function buildThreadItems(
     const messages = exec.status?.messages ?? [];
     const subAgents = exec.status?.subAgentExecutions ?? [];
 
+    // The agent's plan renders as one inline card per turn, anchored to the
+    // first of: the opening AI/thinking message, the first unit of work
+    // (tool-group / sub-agent), or — as a backstop — the turn's tail. We carry
+    // the live `status.todos` reference (structural sharing keeps it stable),
+    // so the card updates in place and a settled card skips re-renders.
+    const execTodos = exec.status?.todos;
+    const hasTodos = execTodos != null && Object.keys(execTodos).length > 0;
+    let todosEmitted = false;
+    function emitTodos(): void {
+      if (todosEmitted || !hasTodos) return;
+      todosEmitted = true;
+      items.push({
+        kind: "todos",
+        executionId: execId,
+        todos: execTodos!,
+        key: `${execId}-todos`,
+      });
+    }
+
     const specMessage = exec.spec?.message;
     if (specMessage && specMessage !== "execute") {
       const syntheticHumanMsg = create(AgentMessageSchema);
@@ -392,12 +419,23 @@ export function buildThreadItems(
           message: msg,
           key: `${execId}-m${mi}`,
         });
+        // Anchor (1): the plan sits right under the agent's opening narration.
+        if (
+          msg.type === MessageType.MESSAGE_AI ||
+          msg.type === MessageType.MESSAGE_THINKING
+        ) {
+          emitTodos();
+        }
       }
 
       if (
         msg.type === MessageType.MESSAGE_AI &&
         msg.toolCalls.length > 0
       ) {
+        // Anchor (2): if work begins before any rendered narration, the plan
+        // still leads it.
+        emitTodos();
+
         const needsSplit = msg.toolCalls.some(
           (tc) => tc.name === "task" || isInternalTool(tc.name),
         );
@@ -445,6 +483,10 @@ export function buildThreadItems(
         }
       }
     }
+
+    // Anchor (3): a plan that produced no rendered narration or work item still
+    // surfaces — never silently dropped.
+    emitTodos();
   }
 
   // Flush any remaining summarization events that occurred after all messages
@@ -940,6 +982,8 @@ export function ThreadItemRenderer({
       );
     case "context-compacted":
       return <SummarizationCard event={item.event} />;
+    case "todos":
+      return <TodoCard todos={item.todos} className="mx-4" />;
     case "plan-completion":
       // When the plan was published as an artifact, show the richer reviewable
       // card (preview / copy / download / implement). Otherwise fall back to the

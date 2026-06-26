@@ -8,9 +8,6 @@ export type {
   UseSessionInspectorReturn,
 } from "./useSessionInspector";
 
-export { PlanTab } from "./PlanTab";
-export type { PlanTabProps } from "./PlanTab";
-
 export { ChangesTab } from "./ChangesTab";
 export type { ChangesTabProps } from "./ChangesTab";
 
