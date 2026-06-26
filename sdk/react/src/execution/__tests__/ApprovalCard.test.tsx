@@ -157,6 +157,73 @@ describe("ApprovalCard why-gated provenance", () => {
 
     expect(queryByText(/required by/)).toBeNull();
   });
+
+  it("smart-suppresses the everyday default gate reason (built-in tool policy)", () => {
+    // The boring default explains nothing the user does not already infer from
+    // the tool — it is noise, so the card hides it.
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-why-default",
+      toolName: "delete_file",
+      argsPreview: '{"path":"/tmp/x"}',
+      approvalPolicySource: ApprovalPolicySource.BUILTIN_CATEGORY,
+    });
+
+    const { queryByText } = render(
+      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+    );
+
+    expect(queryByText(/required by/)).toBeNull();
+  });
+
+  it("surfaces an informative gate reason (destructive tighten)", () => {
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-why-destructive",
+      toolName: "delete_file",
+      argsPreview: '{"path":"/tmp/x"}',
+      approvalPolicySource: ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN,
+    });
+
+    const { getByText } = render(
+      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+    );
+
+    expect(getByText("required: marked destructive by the server")).toBeTruthy();
+  });
+});
+
+describe("ApprovalCard message redundancy", () => {
+  it("suppresses a file tool's message that only restates the header", () => {
+    // "Write file: <path>" duplicates the header + diff — the card drops it.
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-msg-file",
+      toolName: "write_file",
+      toolKind: ToolKind.FILE_EDIT,
+      message: "Write file: src/x.ts",
+      argsPreview: '{"path":"src/x.ts","contents":"x"}',
+    });
+
+    const { queryByText } = render(
+      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+    );
+
+    expect(queryByText("Write file: src/x.ts")).toBeNull();
+  });
+
+  it("keeps a non-file tool's informative message (e.g. an MCP prompt)", () => {
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-msg-mcp",
+      toolName: "create_issue",
+      mcpServerSlug: "github",
+      message: "Create an issue in acme/repo titled 'Bug'",
+      argsPreview: "{}",
+    });
+
+    const { getByText } = render(
+      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+    );
+
+    expect(getByText("Create an issue in acme/repo titled 'Bug'")).toBeTruthy();
+  });
 });
 
 describe("ApprovalCard approve-all action", () => {
@@ -262,7 +329,8 @@ describe("ApprovalCard file-change diff", () => {
 
     render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
 
-    expect(screen.getByText("src/h.ts")).toBeTruthy();
+    // Filename-first: the base name renders (header subtitle and/or diff header).
+    expect(screen.getAllByText("h.ts").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("+beta")).toBeTruthy();
     expect(screen.getByText("-alpha")).toBeTruthy();
   });
@@ -279,8 +347,8 @@ describe("ApprovalCard file-change diff", () => {
 
     render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
 
-    // The path renders in both the header subtitle and the diff header.
-    expect(screen.getAllByText("src/a.ts").length).toBeGreaterThanOrEqual(1);
+    // Filename-first: the base name renders in the header subtitle and/or diff header.
+    expect(screen.getAllByText("a.ts").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("+1")).toBeTruthy();
     expect(screen.getByText("-1")).toBeTruthy();
   });
@@ -299,7 +367,7 @@ describe("ApprovalCard file-change diff", () => {
 
     render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
 
-    expect(screen.getAllByText("src/new.ts").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("new.ts").length).toBeGreaterThanOrEqual(1);
     // Two added lines, none removed.
     expect(screen.getByText("+2")).toBeTruthy();
     expect(screen.getByText("-0")).toBeTruthy();
@@ -350,8 +418,9 @@ describe("ApprovalCard file-change diff", () => {
 
     render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
 
-    expect(screen.getByText("src/one.ts")).toBeTruthy();
-    expect(screen.getByText("src/two.ts")).toBeTruthy();
+    // One FileChangeDiff per file, each header filename-first.
+    expect(screen.getByText("one.ts")).toBeTruthy();
+    expect(screen.getByText("two.ts")).toBeTruthy();
   });
 
   it("falls back to the args preview when there are no file changes", () => {
@@ -367,7 +436,7 @@ describe("ApprovalCard file-change diff", () => {
 
     // ToolArgsView's FileArgsView renders the path link plus a "Content"
     // collapsible (its write/edit content). No diff body renders.
-    expect(screen.getAllByText("src/fallback.ts").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("fallback.ts").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Content")).toBeTruthy();
     expect(screen.queryByText(/binary file changed/i)).toBeNull();
   });

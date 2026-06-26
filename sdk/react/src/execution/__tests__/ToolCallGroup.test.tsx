@@ -33,7 +33,9 @@ describe("ToolCallGroup timeline", () => {
 
     // Both rows persist after the turn settles — nothing hidden behind a pill.
     expect(screen.getByText("echo hi")).toBeTruthy();
-    expect(screen.getByText("/a.ts")).toBeTruthy();
+    // The edit row shows its file (filename-first) in the row header and its
+    // bounded diff preview below.
+    expect(screen.getAllByText("a.ts").length).toBeGreaterThanOrEqual(1);
     // There is no aggregate "Ran N tools" trigger any more.
     expect(screen.queryByText(/Ran \d+ tool/)).toBeNull();
   });
@@ -62,7 +64,7 @@ describe("ToolCallGroup timeline", () => {
       <ToolCallGroup toolCalls={[makeToolCall("Read", "r1", { path: "/only.ts" })]} />,
     );
 
-    expect(screen.getByText("/only.ts")).toBeTruthy();
+    expect(screen.getByText("only.ts")).toBeTruthy();
     expect(screen.queryByText(/Read \d+ files/)).toBeNull();
   });
 });

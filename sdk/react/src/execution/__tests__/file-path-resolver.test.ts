@@ -11,6 +11,7 @@ import {
   classifyPath,
   resolveGitBrowseUrl,
   resolvePathAction,
+  splitDisplayPath,
 } from "../file-path-resolver";
 
 // ---------------------------------------------------------------------------
@@ -79,6 +80,49 @@ describe("classifyPath", () => {
       kind: "workspace",
       remainder: "src/main.go",
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// splitDisplayPath
+// ---------------------------------------------------------------------------
+
+describe("splitDisplayPath", () => {
+  it("splits a nested path into dir (with trailing slash) and base", () => {
+    expect(splitDisplayPath("src/app/main.ts")).toEqual({
+      dir: "src/app/",
+      base: "main.ts",
+    });
+  });
+
+  it("keeps an absolute path's leading prefix in the dir", () => {
+    expect(splitDisplayPath("/Users/me/scm/notes.md")).toEqual({
+      dir: "/Users/me/scm/",
+      base: "notes.md",
+    });
+  });
+
+  it("treats a path with no slash as all base", () => {
+    expect(splitDisplayPath("notes.md")).toEqual({ dir: "", base: "notes.md" });
+  });
+
+  it("tolerates a trailing slash (directory), keeping the last segment as base", () => {
+    expect(splitDisplayPath("src/app/")).toEqual({ dir: "src/", base: "app" });
+  });
+
+  it("handles platform-mount paths", () => {
+    expect(splitDisplayPath(".stigmer/skills/foo.md")).toEqual({
+      dir: ".stigmer/skills/",
+      base: "foo.md",
+    });
+  });
+
+  it("returns empty parts for an empty path", () => {
+    expect(splitDisplayPath("")).toEqual({ dir: "", base: "" });
+  });
+
+  it("collapses a slash-only path to empty parts", () => {
+    expect(splitDisplayPath("/")).toEqual({ dir: "", base: "" });
   });
 });
 

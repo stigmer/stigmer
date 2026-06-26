@@ -509,3 +509,11 @@ export function toolRunGroup(scope: Page | Locator): Locator {
 export function toolPreviewExpand(scope: Page | Locator): Locator {
   return scope.locator('[data-cursor-target="tool-preview-expand"]');
 }
+
+/**
+ * A rendered file diff — the post-execution edit/write preview/detail, or the
+ * before/after diff inside an approval gate. Filename-first header + hunks.
+ */
+export function fileDiff(scope: Page | Locator): Locator {
+  return scope.locator('[data-cursor-target="file-diff"]');
+}

@@ -4,15 +4,20 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { describeApprovalPolicySource } from "./approval-provenance";
+import {
+  describeApprovalPolicySource,
+  isInformativePolicySource,
+} from "./approval-provenance";
 import {
   resolveToolCategoryFromKind,
   extractPrimaryArgFromPreview,
+  isFileCategory,
   type ToolCategory,
 } from "./tool-categories";
 import { CATEGORY_ICON } from "./ToolCallItem";
 import { ToolArgsView } from "./ToolArgsView";
 import { FileChangeDiff } from "./FileChangesView";
+import { FilePathLink } from "./FilePathLink";
 
 /** Props for {@link ApprovalCard}. */
 export interface ApprovalCardProps {
@@ -141,15 +146,23 @@ export function ApprovalCardHeader({
         <CategoryIcon />
       </span>
 
-      <span className="min-w-0 flex-1 flex items-baseline gap-1.5 overflow-hidden">
+      <span className="min-w-0 flex-1 flex items-center gap-1.5 overflow-hidden">
         <span className="shrink-0 font-medium text-foreground">
           {categoryInfo.label}
         </span>
-        {primaryArg && (
-          <span className="min-w-0 truncate font-mono text-muted-foreground">
-            {primaryArg}
-          </span>
-        )}
+        {primaryArg &&
+          (isFileCategory(categoryInfo.category) ? (
+            // A file tool's primary arg is a path — render it filename-first
+            // with the full path on hover, matching the ToolCallItem header.
+            <FilePathLink
+              path={primaryArg}
+              className="min-w-0 text-xs text-muted-foreground"
+            />
+          ) : (
+            <span className="min-w-0 truncate font-mono text-muted-foreground">
+              {primaryArg}
+            </span>
+          ))}
       </span>
 
       {pendingApproval.fromSubAgent && pendingApproval.subAgentName && (
@@ -238,26 +251,31 @@ export function ApprovalCardBody({
   );
 
   // Why-gated: the authorization provenance the server projected onto the
-  // PendingApproval (approval_policy_source). Explains which policy layer is
-  // holding this call for approval ("required by agent override") so the user
-  // understands the gate without guessing. Empty for legacy executions.
+  // PendingApproval (approval_policy_source). Smart-suppressed — the everyday
+  // "this category needs approval" default is noise next to the action it gates,
+  // so only a genuinely informative provenance (an explicit override, a
+  // server-marked destructive tighten) earns a line; the full phrase is on hover.
   const gateReason = useMemo(
     () => describeApprovalPolicySource(pendingApproval.approvalPolicySource),
     [pendingApproval.approvalPolicySource],
   );
+  const showGateReason =
+    gateReason != null &&
+    isInformativePolicySource(pendingApproval.approvalPolicySource);
+
+  // The runner's message for a file tool ("Write file: <path>") only restates
+  // the header + diff, so it is suppressed; a message is shown only when it adds
+  // information (e.g. an MCP tool's human-authored prompt). Shell shows its
+  // command in the args view, never a message.
+  const showMessage =
+    Boolean(pendingApproval.message) &&
+    categoryInfo.category !== "shell" &&
+    !isFileCategory(categoryInfo.category);
 
   return (
     <div className={cn("px-3 py-2.5 space-y-2", className)}>
-      {pendingApproval.message && categoryInfo.category !== "shell" && (
-        <p className="text-xs text-foreground">
-          {pendingApproval.message}
-        </p>
-      )}
-
-      {gateReason && (
-        <p className="text-xs italic text-muted-foreground" data-cursor-target="approval-gate-reason">
-          {gateReason}
-        </p>
+      {showMessage && (
+        <p className="text-xs text-foreground">{pendingApproval.message}</p>
       )}
 
       {/* A file-modifying approval carries the runner's before/after capture
@@ -268,7 +286,13 @@ export function ApprovalCardBody({
           tool whose capture is absent) fall back to the shared args view. */}
       {pendingApproval.fileChanges.length > 0
         ? pendingApproval.fileChanges.map((fileChange) => (
-            <FileChangeDiff key={fileChange.path} change={fileChange} />
+            <FileChangeDiff
+              key={fileChange.path}
+              change={fileChange}
+              // The gate is a decision moment, not a full editor — cap the diff
+              // so a large change cannot push the action buttons off-screen.
+              bodyClassName="max-h-80"
+            />
           ))
         : parsedArgs && (
             <ToolArgsView
@@ -321,6 +345,19 @@ export function ApprovalCardBody({
           variant="reject"
         />
       </div>
+
+      {/* De-emphasized provenance, trailing the decision it explains. Only the
+          informative reasons reach here (see showGateReason); the full phrase is
+          on hover. */}
+      {showGateReason && (
+        <p
+          className="text-[11px] italic text-muted-foreground"
+          title={gateReason ?? undefined}
+          data-cursor-target="approval-gate-reason"
+        >
+          {gateReason}
+        </p>
+      )}
     </div>
   );
 }

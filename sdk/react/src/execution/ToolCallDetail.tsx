@@ -77,8 +77,11 @@ function CategoryDetail({
       return <McpToolDetail toolCall={toolCall} />;
 
     case "edit":
+    case "write":
       // The diff already names the file and quantifies the change, so it stands
-      // alone — showing the new content as an argument would duplicate it.
+      // alone — showing the written content as an argument would duplicate it. A
+      // write whose capture is unavailable degrades to a `file` result here
+      // (ResultView shows the content), so the input is never lost.
       return (
         <>
           <MetadataRow toolCall={toolCall} />
@@ -87,9 +90,8 @@ function CategoryDetail({
       );
 
     case "read":
-    case "write":
     case "delete":
-      // The input is the point (path, or path + written content). Only surface a
+      // The input is the point (path, or path for a delete). Only surface a
       // result body when it carries new information — i.e. an error.
       return (
         <>

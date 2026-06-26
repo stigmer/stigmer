@@ -197,6 +197,7 @@ export {
 export {
   ApprovalPolicySource,
   describeApprovalPolicySource,
+  isInformativePolicySource,
 } from "./execution/approval-provenance";
 export { SkillClient, type SkillInput } from "./gen/skill";
 export {

@@ -11,6 +11,7 @@ import { computeDiff } from "../version-history/computeDiff";
 import { DiffViewer } from "../version-history/DiffViewer";
 import { DiffFileList } from "../version-history/DiffFileList";
 import { DiffSummary } from "../version-history/DiffSummary";
+import { UnifiedDiffText } from "../version-history/UnifiedDiffText";
 import type { DiffHunk, FileDiffEntry } from "../version-history/types";
 import { FilePathLink } from "./FilePathLink";
 import { useFileChangeContent } from "./useFileChangeContent";
@@ -100,6 +101,13 @@ export interface FileChangeDiffProps {
   readonly change: FileChange;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
+  /**
+   * Optional class applied to the scrolling diff body (the `DiffViewer` table or
+   * unified-diff `<pre>`). Used to cap height where vertical space is scarce —
+   * e.g. `max-h-80` at the approval gate — while the dedicated Changes view
+   * leaves it unbounded.
+   */
+  readonly bodyClassName?: string;
 }
 
 /**
@@ -114,7 +122,11 @@ export interface FileChangeDiffProps {
  *
  * Importable on its own by platform builders composing custom change UIs.
  */
-export function FileChangeDiff({ change, className }: FileChangeDiffProps) {
+export function FileChangeDiff({
+  change,
+  className,
+  bodyClassName,
+}: FileChangeDiffProps) {
   const { beforeText, afterText, isBinary, isLoading, error, isTruncated, downloadUrl } =
     useFileChangeContent(change);
 
@@ -131,14 +143,17 @@ export function FileChangeDiff({ change, className }: FileChangeDiffProps) {
   }, [change.captureLevel, change.linesAdded, change.linesRemoved, hunks]);
 
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <div
+      className={cn("flex flex-col gap-1.5", className)}
+      data-cursor-target="file-diff"
+    >
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         {change.changeType === FileChangeType.RENAME && change.renameFrom && (
           <span className="min-w-0 truncate font-mono text-muted-foreground-faint">
             {change.renameFrom} →
           </span>
         )}
-        <FilePathLink path={change.path} className="text-xs" />
+        <FilePathLink path={change.path} dirDisplay="dim" className="text-xs" />
         {(stats.additions > 0 || stats.deletions > 0) && (
           <span className="shrink-0 tabular-nums">
             <span className="text-diff-added-fg">+{stats.additions}</span>{" "}
@@ -155,6 +170,7 @@ export function FileChangeDiff({ change, className }: FileChangeDiffProps) {
         error={error}
         isTruncated={isTruncated}
         downloadUrl={downloadUrl}
+        bodyClassName={bodyClassName}
       />
     </div>
   );
@@ -172,6 +188,7 @@ function FileChangeBody({
   error,
   isTruncated,
   downloadUrl,
+  bodyClassName,
 }: {
   change: FileChange;
   hunks: readonly DiffHunk[];
@@ -180,6 +197,7 @@ function FileChangeBody({
   error: Error | null;
   isTruncated: boolean;
   downloadUrl: string | null;
+  bodyClassName?: string;
 }) {
   if (isBinary) {
     return <Notice>Binary file changed.</Notice>;
@@ -187,7 +205,7 @@ function FileChangeBody({
 
   if (change.captureLevel === FileChangeCaptureLevel.HUNK_ONLY) {
     return change.unifiedDiff ? (
-      <UnifiedDiffText patch={change.unifiedDiff} />
+      <UnifiedDiffText patch={change.unifiedDiff} className={bodyClassName} />
     ) : (
       <Notice>No diff available for this change.</Notice>
     );
@@ -224,7 +242,7 @@ function FileChangeBody({
     return <Notice>No changes.</Notice>;
   }
 
-  return <DiffViewer hunks={hunks} />;
+  return <DiffViewer hunks={hunks} className={bodyClassName} />;
 }
 
 function Notice({
@@ -244,28 +262,6 @@ function Notice({
     >
       {children}
     </div>
-  );
-}
-
-// Renders a raw unified-diff patch string (Cursor's hunk-only capture) with
-// +/- coloring. Mirrors the renderer in ResultView so the two surfaces match.
-function UnifiedDiffText({ patch }: { patch: string }) {
-  const lines = patch.split("\n");
-  return (
-    <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted-subtle p-2 font-mono text-xs">
-      {lines.map((line, i) => (
-        <div
-          key={i}
-          className={cn(
-            line.startsWith("+") && !line.startsWith("+++") && "text-diff-added-fg",
-            line.startsWith("-") && !line.startsWith("---") && "text-diff-removed-fg",
-            line.startsWith("@@") && "text-diff-hunk-header-fg",
-          )}
-        >
-          {line || " "}
-        </div>
-      ))}
-    </pre>
   );
 }
 

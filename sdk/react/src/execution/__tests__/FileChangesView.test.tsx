@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   FileChangeSchema,
@@ -78,7 +78,9 @@ describe("FileChangeDiff", () => {
   it("renders a whole-file diff from resolved before/after text", () => {
     setContent({ beforeText: "alpha\n", afterText: "beta\n" });
     render(<FileChangeDiff change={wholeFile("src/a.ts", "alpha\n", "beta\n")} />);
-    expect(screen.getByText("src/a.ts")).toBeTruthy();
+    // Filename-first: the base name is its own node; the dimmed dir is separate.
+    expect(screen.getByText("a.ts")).toBeTruthy();
+    expect(screen.getByText("src/")).toBeTruthy();
     // computeDiff over the resolved text drives the +/- header stats.
     expect(screen.getByText("+1")).toBeTruthy();
     expect(screen.getByText("-1")).toBeTruthy();
@@ -134,7 +136,8 @@ describe("FileChangesView", () => {
   it("renders a summary and the sole file's diff for a single change", () => {
     setContent({ beforeText: "a\n", afterText: "b\n" });
     render(<FileChangesView changes={[wholeFile("src/only.ts", "a\n", "b\n")]} />);
-    expect(screen.getByText("src/only.ts")).toBeTruthy();
+    // Single change: no file list, just the diff header (filename-first).
+    expect(screen.getByText("only.ts")).toBeTruthy();
   });
 
   it("renders a file list when multiple files changed", () => {
@@ -163,22 +166,26 @@ describe("FileChangesView", () => {
       />,
     );
 
-    const oneButton = screen.getByRole("button", { name: /src\/one\.ts/ });
-    const twoButton = screen.getByRole("button", { name: /src\/two\.ts/ });
+    // The file selector (DiffFileList) keeps full paths; scope the button
+    // queries to its nav so they don't collide with the diff header's
+    // filename-first FilePathLink (a button whose aria-label includes the path).
+    const list = within(
+      screen.getByRole("navigation", { name: "Changed files" }),
+    );
+    const oneButton = list.getByRole("button", { name: /src\/one\.ts/ });
+    const twoButton = list.getByRole("button", { name: /src\/two\.ts/ });
 
     // The first file is selected by default: aria-current marks the list entry,
-    // and its path also renders in the diff header (list + header = 2).
+    // and the diff header shows that file's name (filename-first).
     expect(oneButton.getAttribute("aria-current")).toBe("true");
     expect(twoButton.getAttribute("aria-current")).toBeNull();
-    expect(screen.getAllByText("src/one.ts")).toHaveLength(2);
-    expect(screen.getAllByText("src/two.ts")).toHaveLength(1);
+    expect(screen.getByText("one.ts")).toBeTruthy();
 
     fireEvent.click(twoButton);
 
     // Selection moves to the second file; the header now shows it instead.
     expect(twoButton.getAttribute("aria-current")).toBe("true");
     expect(oneButton.getAttribute("aria-current")).toBeNull();
-    expect(screen.getAllByText("src/two.ts")).toHaveLength(2);
-    expect(screen.getAllByText("src/one.ts")).toHaveLength(1);
+    expect(screen.getByText("two.ts")).toBeTruthy();
   });
 });

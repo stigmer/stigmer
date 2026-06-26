@@ -26,6 +26,7 @@ import {
   awaitExecutionPhase,
   toolCallRow,
   toolRunGroup,
+  fileDiff,
   type SeededGatedExecution,
 } from "../../helpers/approval";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -99,5 +100,31 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     // Both completed rows persist; neither is folded into a run chip.
     await expect(toolCallRow(page)).toHaveCount(2, { timeout: 30_000 });
     await expect(toolRunGroup(page)).toHaveCount(0);
+  });
+
+  test("a completed write shows its content inline as an additive diff", async ({
+    page,
+    stigmerClient,
+  }) => {
+    // The write is a `preview` category: its content surfaces as a bounded
+    // additive diff right in the timeline (filename-first), not hidden behind a
+    // click. This is the post-execution half of the gate's before/after diff.
+    seeded = await seedToolRunSession(stigmerClient, control, {
+      toolTurns: [[writeFileBlock("call_diff", "/tmp/e2e-additive.txt", "line one\nline two\n")]],
+    });
+    await awaitExecutionPhase(
+      stigmerClient,
+      seeded.executionId,
+      ExecutionPhase.EXECUTION_COMPLETED,
+    );
+
+    await page.goto(`/sessions/${seeded.sessionId}`);
+
+    const row = toolCallRow(page).first();
+    await expect(row).toBeVisible({ timeout: 30_000 });
+    // The diff renders inline (no expansion needed) and shows the written lines.
+    await expect(fileDiff(page).first()).toBeVisible();
+    await expect(page.getByText("line one")).toBeVisible();
+    await expect(page.getByText("line two")).toBeVisible();
   });
 });

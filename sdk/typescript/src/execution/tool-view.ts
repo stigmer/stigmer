@@ -258,7 +258,7 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
     case ToolKind.FILE_EDIT:
       return normalizeEdit(toolCall.fileChanges, args, result);
     case ToolKind.FILE_WRITE:
-      return normalizeWrite(args);
+      return normalizeWrite(toolCall.fileChanges, args);
     case ToolKind.FILE_READ:
       return normalizeRead(args, result);
     case ToolKind.FILE_DELETE:
@@ -364,10 +364,52 @@ function inlineFileBody(side: FileContent | undefined): string | undefined {
   return side.body.case === "inline" ? side.body.value : undefined;
 }
 
-function normalizeWrite(args: Args): ToolResultView {
+function normalizeWrite(
+  fileChanges: readonly FileChange[],
+  args: Args,
+): ToolResultView {
+  // Prefer the runner's authoritative WHOLE_FILE capture so a write reads as an
+  // additive diff (the new file's content) — consistent with the approval gate
+  // and with edits. Falls back to inline content for legacy executions, or when
+  // the captured body was offloaded/binary (the args still carry it inline).
+  const captured =
+    fileChanges[0] && normalizeWriteFromFileChange(fileChanges[0], args);
+  if (captured) {
+    return captured;
+  }
+
   const path = firstString(args, PATH_FIELDS) ?? "";
   const content = firstString(args, WRITE_CONTENT_FIELDS) ?? "";
   return { type: "file", path, content, language: languageFromPath(path), truncated: false };
+}
+
+// Projects a write's WHOLE_FILE capture into an additive diff. Returns undefined
+// when the after body is unavailable (offloaded/binary) or the capture is not
+// whole-file, so the caller falls back to the inline args content (which the
+// post-execution diff renderer cannot lazily fetch the way the gate can).
+function normalizeWriteFromFileChange(
+  change: FileChange,
+  args: Args,
+): ToolResultView | undefined {
+  if (change.captureLevel !== FileChangeCaptureLevel.WHOLE_FILE) {
+    return undefined;
+  }
+  const after = inlineFileBody(change.after);
+  if (after === undefined) {
+    return undefined;
+  }
+  const path =
+    change.path || change.absolutePath || firstString(args, PATH_FIELDS) || "";
+  // A write is create-only, so an absent before is an empty file — the diff is
+  // all-additions. A present inline before (an overwrite) is honored.
+  const before = inlineFileBody(change.before) ?? "";
+  return {
+    type: "diff",
+    path,
+    oldText: before,
+    newText: after,
+    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+  };
 }
 
 function normalizeRead(args: Args, result: string): ToolResultView {

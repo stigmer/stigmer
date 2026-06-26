@@ -46,8 +46,24 @@ function expanded(container: HTMLElement): boolean {
 
 describe("ToolCallItem disclosure", () => {
   it("keeps a settled summary tool collapsed", () => {
-    // Edit is a genuine `summary` category — its one-line row (file + ± stats)
-    // tells the story, so it neither force-opens nor shows a bounded preview.
+    // Delete is a genuine `summary` category — its one-line row (the file) tells
+    // the story, so it neither force-opens nor shows a bounded preview.
+    const { container } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          name: "delete_file",
+          args: { path: "/x.ts" },
+        })}
+      />,
+    );
+    expect(expanded(container)).toBe(false);
+    expect(screen.queryByText("Show more")).toBeNull();
+  });
+
+  it("shows a settled edit as a bounded diff preview", () => {
+    // Edit is a `preview` category: a +N -M summary says how much changed, not
+    // what — so the diff renders inline (bounded), with "Show more" to the full
+    // detail, without force-opening the row.
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
@@ -58,7 +74,7 @@ describe("ToolCallItem disclosure", () => {
       />,
     );
     expect(expanded(container)).toBe(false);
-    expect(screen.queryByText("Show more")).toBeNull();
+    expect(screen.getByText("Show more")).toBeTruthy();
   });
 
   it("shows a settled preview (MCP) tool as a bounded preview, not force-open", () => {
@@ -119,12 +135,13 @@ describe("ToolCallItem disclosure", () => {
     // ToolCall on re-render: a running `summary` tool foregrounds while live,
     // then collapses to its compact summary the moment it completes (the user
     // never touched it). Proves the React.memo + useAutoDisclosure composition.
+    // Delete is a summary category (unlike edit, which now previews its diff).
     const { container, rerender } = render(
       <ToolCallItem
         toolCall={makeToolCall({
-          id: "tc-edit",
-          name: "StrReplace",
-          args: { path: "/x.ts", old_string: "a", new_string: "b" },
+          id: "tc-del",
+          name: "delete_file",
+          args: { path: "/x.ts" },
           status: ToolCallStatus.TOOL_CALL_RUNNING,
         })}
       />,
@@ -134,10 +151,9 @@ describe("ToolCallItem disclosure", () => {
     rerender(
       <ToolCallItem
         toolCall={makeToolCall({
-          id: "tc-edit",
-          name: "StrReplace",
-          args: { path: "/x.ts", old_string: "a", new_string: "b" },
-          result: '{"status":"success","value":{"linesAdded":1,"linesRemoved":1}}',
+          id: "tc-del",
+          name: "delete_file",
+          args: { path: "/x.ts" },
           status: ToolCallStatus.TOOL_CALL_COMPLETED,
         })}
       />,

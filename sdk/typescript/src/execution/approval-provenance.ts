@@ -42,3 +42,39 @@ export function describeApprovalPolicySource(
       return null;
   }
 }
+
+/**
+ * Returns whether a policy source carries information worth surfacing inline at
+ * the approval gate, versus the everyday default ("this tool category just
+ * requires approval") that is noise next to the action it is already gating.
+ *
+ * The default gating reasons — {@link ApprovalPolicySource.CLASSIFIER_DEFAULT}
+ * and {@link ApprovalPolicySource.BUILTIN_CATEGORY} — explain nothing the user
+ * does not already infer from the tool itself, so they are suppressed from the
+ * card (the full phrase stays available on hover where a surface chooses to show
+ * a chip). The remaining sources each change the user's understanding of *why*
+ * this particular call is held — an explicit override, a server tightening a
+ * destructive tool, or (post-execution) a bypass/lease that cleared it — and so
+ * are worth showing. {@link ApprovalPolicySource.UNSPECIFIED} is never
+ * informative (legacy / ungated).
+ *
+ * This is the headless policy behind the gate's "smart-suppress" provenance
+ * chip; rendering lives in the consuming surface.
+ */
+export function isInformativePolicySource(
+  source: ApprovalPolicySource,
+): boolean {
+  switch (source) {
+    case ApprovalPolicySource.PINNED_OVERRIDE:
+    case ApprovalPolicySource.AGENT_OVERRIDE:
+    case ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN:
+    case ApprovalPolicySource.AUTO_APPROVE_ALL:
+    case ApprovalPolicySource.APPROVAL_LEASE:
+      return true;
+    case ApprovalPolicySource.CLASSIFIER_DEFAULT:
+    case ApprovalPolicySource.BUILTIN_CATEGORY:
+    case ApprovalPolicySource.UNSPECIFIED:
+    default:
+      return false;
+  }
+}

@@ -48,11 +48,20 @@ export type ToolDisclosure = "summary" | "preview";
 
 /**
  * Categories whose result is foregrounded as a persistent bounded preview by
- * default — those for which there is no rich compact one-liner, so the output
- * carries the meaning. All other categories default to `"summary"`.
+ * default — those for which the compact one-liner cannot convey what happened,
+ * so the output itself carries the meaning. All other categories default to
+ * `"summary"`.
+ *
+ * File edits and writes are previewed: a `+N -M` summary says how much changed
+ * but not *what* — and the change is the decision-relevant content. Surfacing a
+ * bounded diff inline (Cursor-style) is the point of a code agent. The preview
+ * is height-clamped and one click reaches the full diff, so density stays under
+ * control even in turns with many edits.
  */
 const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
   "shell",
+  "edit",
+  "write",
   "mcp",
   "web-search",
   "fetch",
@@ -91,6 +100,21 @@ export function defaultDisclosureForCategory(
  */
 export function isRunGroupableCategory(category: ToolCategory): boolean {
   return RUN_GROUPABLE_CATEGORIES.has(category);
+}
+
+/**
+ * Returns whether a category's primary argument is a file path — the file
+ * tools (read / write / edit / delete). These render their path filename-first
+ * via {@link FilePathLink} (full path on hover) in headers and previews, rather
+ * than as a raw, often-absolute string.
+ */
+export function isFileCategory(category: ToolCategory): boolean {
+  return (
+    category === "read" ||
+    category === "write" ||
+    category === "edit" ||
+    category === "delete"
+  );
 }
 
 /** Resolved display metadata for a tool call, returned by {@link resolveToolCategory}. */

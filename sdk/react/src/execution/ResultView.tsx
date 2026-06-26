@@ -13,6 +13,8 @@ import type {
 } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { computeDiff } from "../version-history/computeDiff";
+import { DiffViewer } from "../version-history/DiffViewer";
+import { UnifiedDiffText } from "../version-history/UnifiedDiffText";
 import type { DiffHunk } from "../version-history/types";
 import { CollapsibleCode, CollapsiblePre, formatJson } from "./tool-rendering-primitives";
 import { FilePathLink } from "./FilePathLink";
@@ -141,79 +143,31 @@ function DiffResultView({ view, className }: { view: DiffView; className?: strin
     return hunks.length > 0 ? countHunks(hunks) : null;
   }, [view.linesAdded, view.linesRemoved, hunks]);
 
+  // One diff family across every surface: computed hunks render through the
+  // canonical, accessible DiffViewer (line numbers + --stgm-diff-* tokens); a
+  // ready hunk-only patch (Cursor envelope) renders through the shared
+  // UnifiedDiffText. The header (path + ± stats) is this view's own, so the
+  // DiffViewer is used without its filePath header to avoid a duplicate path.
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className={cn("space-y-1", className)} data-cursor-target="file-diff">
       <div className="flex items-center gap-2 text-muted-foreground">
-        {view.path && <FilePathLink path={view.path} className="text-xs" />}
+        {view.path && (
+          <FilePathLink path={view.path} dirDisplay="dim" className="text-xs" />
+        )}
         {stats && (
           <span className="shrink-0 tabular-nums text-xs">
-            <span className="text-success">+{stats.added}</span>{" "}
-            <span className="text-destructive">-{stats.removed}</span>
+            <span className="text-diff-added-fg">+{stats.added}</span>{" "}
+            <span className="text-diff-removed-fg">-{stats.removed}</span>
           </span>
         )}
       </div>
 
       {hunks.length > 0 ? (
-        <DiffHunks hunks={hunks} />
+        <DiffViewer hunks={hunks} />
       ) : view.unifiedDiff ? (
         <UnifiedDiffText patch={view.unifiedDiff} />
       ) : null}
     </div>
-  );
-}
-
-function DiffHunks({ hunks }: { hunks: readonly DiffHunk[] }) {
-  return (
-    <div className="overflow-auto rounded-md border border-border bg-muted-subtle font-mono text-xs">
-      {hunks.map((hunk, hi) => (
-        <div key={hi} className="border-b border-border-muted last:border-b-0">
-          {hunk.lines.map((line, li) => (
-            <div
-              key={li}
-              className={cn(
-                "whitespace-pre-wrap break-words px-2 py-0.5",
-                line.type === "added" && "bg-success-subtle text-success",
-                line.type === "removed" && "bg-destructive-subtle text-destructive",
-                line.type === "context" && "text-muted-foreground",
-              )}
-            >
-              {/* Screen readers get the change type as words; sighted users get
-                  the +/- sign and color. Never color-only. */}
-              {line.type !== "context" && (
-                <span className="sr-only">
-                  {line.type === "added" ? "Added: " : "Removed: "}
-                </span>
-              )}
-              <span className="select-none" aria-hidden="true">
-                {line.type === "added" ? "+" : line.type === "removed" ? "-" : " "}
-              </span>
-              {line.content}
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Renders a raw unified-diff patch string (Cursor envelope) with +/- coloring.
-function UnifiedDiffText({ patch }: { patch: string }) {
-  const lines = patch.split("\n");
-  return (
-    <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted-subtle p-2 font-mono text-xs">
-      {lines.map((line, i) => (
-        <div
-          key={i}
-          className={cn(
-            line.startsWith("+") && !line.startsWith("+++") && "text-success",
-            line.startsWith("-") && !line.startsWith("---") && "text-destructive",
-            line.startsWith("@@") && "text-primary",
-          )}
-        >
-          {line || " "}
-        </div>
-      ))}
-    </pre>
   );
 }
 

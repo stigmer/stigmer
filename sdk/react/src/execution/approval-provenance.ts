@@ -2,4 +2,7 @@
 // React surface (ApprovalCard "why-gated" line, ToolCallDetail) shares one
 // source of truth with @stigmer/ink and the Go CLI. See the sdk module for the
 // mapping rationale.
-export { describeApprovalPolicySource } from "@stigmer/sdk";
+export {
+  describeApprovalPolicySource,
+  isInformativePolicySource,
+} from "@stigmer/sdk";

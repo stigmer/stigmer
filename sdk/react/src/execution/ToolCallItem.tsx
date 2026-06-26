@@ -16,7 +16,7 @@ import { SubAgentSection } from "./SubAgentSection";
 import { ApprovalCardBody } from "./ApprovalCard";
 import { useApproval } from "./ApprovalContext";
 import { FilePathLink } from "./FilePathLink";
-import { type ToolCategory } from "./tool-categories";
+import { isFileCategory, type ToolCategory } from "./tool-categories";
 import { useToolPresentation } from "./tool-presenter";
 import { useSandboxNormalize } from "./SandboxContext";
 import { useThreadSelection } from "./useThreadSelection";
@@ -216,6 +216,12 @@ export const ToolCallItem = memo(function ToolCallItem({
       ? normalize(primaryArg)
       : primaryArg;
 
+  // For file tools the subtitle is a path: render it filename-first through
+  // FilePathLink (full path on hover) rather than the raw, often-absolute string
+  // that buried the file name behind a long prefix.
+  const subtitleIsFilePath =
+    !isSubAgent && primaryArg != null && isFileCategory(category);
+
   // A settled `preview`-category row keeps a bounded result preview beneath it
   // (Tier 2) instead of vanishing — but only when there is something to show
   // and only while collapsed (the expanded branch already renders full detail).
@@ -267,10 +273,17 @@ export const ToolCallItem = memo(function ToolCallItem({
           <span className="shrink-0 font-medium text-foreground">
             {displayLabel}
           </span>
-          {displaySubtitle && (
-            <span className="min-w-0 truncate text-muted-foreground font-mono">
-              {displaySubtitle}
-            </span>
+          {subtitleIsFilePath && primaryArg ? (
+            <FilePathLink
+              path={primaryArg}
+              className="min-w-0 text-xs text-muted-foreground"
+            />
+          ) : (
+            displaySubtitle && (
+              <span className="min-w-0 truncate text-muted-foreground font-mono">
+                {displaySubtitle}
+              </span>
+            )
           )}
           {!isSubAgent && resultSummary && (
             <span className="shrink-0 tabular-nums text-muted-foreground">

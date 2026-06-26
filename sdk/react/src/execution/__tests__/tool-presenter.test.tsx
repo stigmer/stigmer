@@ -78,12 +78,23 @@ describe("useToolPresentation", () => {
 
   describe("disclosure", () => {
     it("keeps known compact tools as summary", () => {
-      // Shell is intentionally excluded — it is a `preview` category (its output
-      // is the information), asserted separately below.
-      for (const name of ["Read", "StrReplace", "Grep", "Glob"]) {
+      // Shell/edit/write are intentionally excluded — they are `preview`
+      // categories (output / diff is the information), asserted separately below.
+      for (const name of ["Read", "Grep", "Glob"]) {
         const tc = makeToolCall({ name, args: { path: "/x", command: "ls", pattern: "p" } });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.disclosure).toBe("summary");
+      }
+    });
+
+    it("previews file edits and writes (the diff is the information)", () => {
+      for (const name of ["StrReplace", "Write"]) {
+        const tc = makeToolCall({
+          name,
+          args: { path: "/x.ts", contents: "x", old_string: "a", new_string: "b" },
+        });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.disclosure).toBe("preview");
       }
     });
 

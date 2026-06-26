@@ -59,8 +59,9 @@ describe("ToolRunGroup", () => {
     );
 
     fireEvent.click(screen.getByText("Read 2 files"));
-    expect(screen.getByText("/a.ts")).toBeTruthy();
-    expect(screen.getByText("/b.ts")).toBeTruthy();
+    // Read rows render filename-first (the leading "/" is a dimmed-or-hidden dir).
+    expect(screen.getByText("a.ts")).toBeTruthy();
+    expect(screen.getByText("b.ts")).toBeTruthy();
   });
 
   it("settles closed when the run has completed", () => {
