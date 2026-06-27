@@ -41,8 +41,11 @@ export const hasBash: boolean = (() => {
 export interface CursorHookHarness {
   /** Run the hook against a single hook-input payload and report its decision. */
   decide(input: object): { permission: string; raw: string };
-  /** The denial ledger entries the hook has appended this turn. */
-  ledger(): Array<{ toolName: string; token: string }>;
+  /**
+   * The denial ledger entries the hook has appended this turn. `input` is the
+   * base64(JSON(tool_input)) the hook captures (decode + JSON.parse to inspect).
+   */
+  ledger(): Array<{ toolName: string; token: string; input?: string }>;
   /** Truncate the denial ledger (a fresh turn). */
   resetLedger(): void;
 }
@@ -129,7 +132,8 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
 // tool_input). These omit hook_event_name on purpose: a payload with no event
 // must still take the built-in arm (the script only diverts to the MCP arm on an
 // explicit beforeMCPExecution).
-export const hookWrite = (filePath: string) => ({ tool_name: "Write", tool_input: { file_path: filePath, content: "x" } });
+export const hookWrite = (filePath: string, content = "x") => ({ tool_name: "Write", tool_input: { file_path: filePath, content } });
+export const hookEdit = (filePath: string, oldString = "a", newString = "b") => ({ tool_name: "StrReplace", tool_input: { file_path: filePath, old_string: oldString, new_string: newString } });
 export const hookShell = (command: string) => ({ tool_name: "Shell", tool_input: { command, cwd: "/x", timeout: 30000 } });
 export const hookDelete = (filePath: string) => ({ tool_name: "Delete", tool_input: { file_path: filePath } });
 export const hookRead = (filePath: string) => ({ tool_name: "Read", tool_input: { file_path: filePath } });

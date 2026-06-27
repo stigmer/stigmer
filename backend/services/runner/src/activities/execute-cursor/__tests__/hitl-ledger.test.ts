@@ -123,6 +123,28 @@ describe("denial ledger reset/read", () => {
       { toolName: "Shell", token: shellToken },
     ]);
   });
+
+  it("decodes the base64 tool_input the hook captures, tolerating absence and garbage", async () => {
+    const ws = makeWorkspace();
+    await resetDenialLedger(ws);
+    const token = grantToken("write", "notes.md");
+    const input = { path: "notes.md", contents: "# Notes\n" };
+    const inputB64 = Buffer.from(JSON.stringify(input), "utf-8").toString("base64");
+    await writeFile(
+      denialLedgerPath(ws),
+      // 1) full capture, 2) no input field (grep fallback), 3) garbage input.
+      `{"toolName":"Write","token":"${token}","input":"${inputB64}"}\n` +
+        `{"toolName":"Write","token":"${grantToken("write", "b.txt")}"}\n` +
+        `{"toolName":"Write","token":"${grantToken("write", "c.txt")}","input":"!!!not-base64!!!"}\n`,
+      "utf-8",
+    );
+
+    const entries = await readDenialLedger(ws);
+    expect(entries).toHaveLength(3);
+    expect(entries[0].input).toEqual(input);
+    expect(entries[1].input).toBeUndefined();
+    expect(entries[2].input).toBeUndefined();
+  });
 });
 
 describe("reconcileDeniedToolCalls", () => {
@@ -323,7 +345,11 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
     expect(tc.fileChanges[0]).toBe(existing);
   });
 
-  it("adds no diff for a denied write (whole-file is captured on the stream path, not here)", () => {
+  it("attaches a WHOLE_FILE CREATE to a denied write whose stream change never landed", () => {
+    // The bug this fix closes: the gated write's content is on its args but the
+    // stream never attached a file change (it was gated before completion). The
+    // unified deny-path builder now synthesizes the CREATE from the args so the
+    // gate shows the proposed content instead of "No preview available".
     const tc = toolCall({
       id: "c1",
       name: "write",
@@ -341,7 +367,13 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
     );
 
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-    expect(tc.fileChanges).toHaveLength(0);
+    expect(tc.fileChanges).toHaveLength(1);
+    const fc = tc.fileChanges[0];
+    expect(fc.changeType).toBe(FileChangeType.CREATE);
+    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+    expect(fc.after?.body.case === "inline" ? fc.after.body.value : undefined).toBe(
+      "export const x = 1;\n",
+    );
   });
 
   it("adds no diff for a non-file denial (shell)", () => {
@@ -417,6 +449,212 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
 
     expect(grants).toHaveLength(1);
     expect(grantToken(grants[0].key, grants[0].salient)).toBe(writeToken);
+  });
+});
+
+// The hook captures the COMPLETE proposed args (tool_input) at gate time — the
+// authoritative source the stream may not have carried before the first-denial
+// cancel. These pin that the runner overlays that input onto the gated call so
+// the approval card shows the change before approval, for every tool kind, with
+// a compact-but-valid args_preview that preserves the resume-grant salient.
+describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => {
+  function parsePreview(tc: ToolCall): Record<string, unknown> {
+    return JSON.parse(tc.argsPreview) as Record<string, unknown>;
+  }
+
+  it("builds a WHOLE_FILE CREATE for a denied write from the captured input", () => {
+    // Stream-overlaid call carries only a path; the hook input carries the body.
+    const tc = toolCall({
+      id: "c1",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      argsPreview: JSON.stringify({ path: "src/new.ts" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "Write",
+        token: grantToken("write", "src/new.ts"),
+        input: { file_path: "src/new.ts", content: "export const x = 1;\n" },
+      }],
+      undefined,
+      "/root",
+    );
+
+    expect(tc.fileChanges).toHaveLength(1);
+    const fc = tc.fileChanges[0];
+    expect(fc.changeType).toBe(FileChangeType.CREATE);
+    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+    expect(fc.after?.body.case === "inline" ? fc.after.body.value : undefined).toBe(
+      "export const x = 1;\n",
+    );
+    // args_preview reflects the authoritative input and stays parseable.
+    expect(parsePreview(tc).file_path).toBe("src/new.ts");
+  });
+
+  it("synthesizes an edit HUNK from the captured old/new strings", () => {
+    const tc = toolCall({
+      id: "c1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      argsPreview: JSON.stringify({ path: "src/app.ts" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "StrReplace",
+        token: grantToken("write", "src/app.ts"),
+        input: { file_path: "src/app.ts", old_string: "alpha", new_string: "beta" },
+      }],
+      undefined,
+      "/root",
+    );
+
+    expect(tc.fileChanges).toHaveLength(1);
+    const fc = tc.fileChanges[0];
+    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
+    expect(fc.unifiedDiff).toContain("-alpha");
+    expect(fc.unifiedDiff).toContain("+beta");
+  });
+
+  it("resolves a notebook edit's path from target_notebook", () => {
+    const tc = toolCall({
+      id: "c1",
+      name: "EditNotebook",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      argsPreview: JSON.stringify({ target_notebook: "nb.ipynb" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "EditNotebook",
+        token: grantToken("write", "nb.ipynb"),
+        input: { target_notebook: "nb.ipynb", old_string: "x = 1", new_string: "x = 2" },
+      }],
+      undefined,
+      "/root",
+    );
+
+    expect(tc.fileChanges).toHaveLength(1);
+    expect(tc.fileChanges[0].path).toBe("nb.ipynb");
+    expect(tc.fileChanges[0].captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
+  });
+
+  it("carries shell args (no file change) so the gate shows the command", () => {
+    const tc = toolCall({
+      id: "c1",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      argsPreview: JSON.stringify({ command: "rm -rf build" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "Shell",
+        token: grantToken("shell", "rm -rf build"),
+        input: { command: "rm -rf build", cwd: "/root" },
+      }],
+      undefined,
+      "/root",
+    );
+
+    expect(tc.fileChanges).toHaveLength(0);
+    expect(parsePreview(tc).command).toBe("rm -rf build");
+    expect(parsePreview(tc).cwd).toBe("/root");
+  });
+
+  it("upgrades a synthesized placeholder from path-only to the full captured args", () => {
+    // No streamed call matches (rare); the placeholder must still carry the real
+    // proposed change from the captured input, not a bare {path}.
+    const messages = [aiMessageWith([])];
+
+    const reconciled = reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "Write",
+        token: grantToken("write", "ghost.md"),
+        input: { file_path: "ghost.md", content: "# Ghost\n" },
+      }],
+      undefined,
+      "/root",
+    );
+
+    expect(reconciled).toHaveLength(1);
+    const tc = reconciled[0];
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(tc.fileChanges).toHaveLength(1);
+    expect(tc.fileChanges[0].changeType).toBe(FileChangeType.CREATE);
+    expect(parsePreview(tc).content).toBe("# Ghost\n");
+  });
+
+  it("keeps a large write's args_preview small, valid, and salient-preserving", () => {
+    const content = "x".repeat(50_000);
+    const tc = toolCall({
+      id: "c1",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      argsPreview: JSON.stringify({ path: "big.ts" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "Write",
+        token: grantToken("write", "big.ts"),
+        input: { file_path: "big.ts", content },
+      }],
+      undefined,
+      "/root",
+    );
+
+    // The preview is bounded and parseable (resume reads it), with the full
+    // content living on file_changes instead.
+    expect(tc.argsPreview.length).toBeLessThan(1_000);
+    const preview = parsePreview(tc);
+    expect(preview.file_path).toBe("big.ts");
+    expect(tc.fileChanges[0].after?.body.case === "inline"
+      ? (tc.fileChanges[0].after.body.value as string).length
+      : 0).toBe(content.length);
+  });
+
+  it("never clobbers a real streamed diff already on the call", () => {
+    const existing = create(FileChangeSchema, {
+      path: "src/app.ts",
+      changeType: FileChangeType.MODIFY,
+      captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+      unifiedDiff: "@@ real @@",
+    });
+    const tc = toolCall({
+      id: "c1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      argsPreview: JSON.stringify({ path: "src/app.ts" }),
+      fileChanges: [existing],
+    });
+    const messages = [aiMessageWith([tc])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "StrReplace",
+        token: grantToken("write", "src/app.ts"),
+        input: { file_path: "src/app.ts", old_string: "a", new_string: "b" },
+      }],
+      undefined,
+      "/root",
+    );
+
+    expect(tc.fileChanges).toHaveLength(1);
+    expect(tc.fileChanges[0]).toBe(existing);
   });
 });
 

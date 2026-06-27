@@ -191,28 +191,7 @@ export function stampApprovalProvenance(
 
 // ── Approval Args Sanitization ─────────────────────────────────────
 
-const SENSITIVE_ARG_KEYS = new Set([
-  "password", "token", "secret", "api_key", "apikey",
-  "credentials", "auth", "authorization",
-]);
-
-const MAX_ARGS_PREVIEW_LENGTH = 500;
-
-export function sanitizeArgsPreview(args: Record<string, unknown>): string {
-  const sanitized: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(args)) {
-    if (SENSITIVE_ARG_KEYS.has(key.toLowerCase())) {
-      sanitized[key] = "[REDACTED]";
-    } else {
-      sanitized[key] = value;
-    }
-  }
-  try {
-    const json = JSON.stringify(sanitized);
-    return json.length > MAX_ARGS_PREVIEW_LENGTH
-      ? json.slice(0, MAX_ARGS_PREVIEW_LENGTH) + "…"
-      : json;
-  } catch {
-    return "";
-  }
-}
+// Relocated to src/shared/args-preview.ts so both harnesses share one home for
+// arg sanitization. Re-exported here so the native importers (status-builder,
+// v3-status-builder, approval-file-change) keep their existing import path.
+export { sanitizeArgsPreview } from "../../shared/args-preview.js";

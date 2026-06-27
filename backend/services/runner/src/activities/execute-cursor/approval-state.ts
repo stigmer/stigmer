@@ -331,10 +331,21 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  * the same space as grantToken() (base64 of `toolName \n salientArg`), used to
  * correlate the denial back to the streamed tool call. `toolName` is carried raw
  * for human-readable debugging of the ledger file.
+ *
+ * `input` is the authoritative pre-execution tool arguments the hook captured
+ * from the Cursor `tool_input` payload (decoded from the ledger's base64 form).
+ * It is the cursor analog of the native harness reading the AI-message tool-call
+ * args out of graph state at the LangGraph interrupt — the one place the COMPLETE
+ * proposed change is in hand before the tool runs. The runner overlays it onto
+ * the gated tool call so the approval card can show the proposed content/diff
+ * before the user approves. Absent when the hook ran its grep fallback (the Node
+ * binary was unavailable), in which case the gate degrades to stream-recovered
+ * args exactly as before.
  */
 export interface DeniedLedgerEntry {
   toolName: string;
   token: string;
+  input?: Record<string, unknown>;
 }
 
 /**
@@ -382,11 +393,12 @@ export async function readDenialLedger(
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      const obj = JSON.parse(trimmed) as Partial<DeniedLedgerEntry>;
+      const obj = JSON.parse(trimmed) as { toolName?: unknown; token?: unknown; input?: unknown };
       if (typeof obj.token === "string" && obj.token) {
         entries.push({
           toolName: typeof obj.toolName === "string" ? obj.toolName : "",
           token: obj.token,
+          input: decodeLedgerInput(obj.input),
         });
       }
     } catch {
@@ -394,6 +406,25 @@ export async function readDenialLedger(
     }
   }
   return entries;
+}
+
+/**
+ * Decode the hook's base64(JSON(tool_input)) into the authoritative args object,
+ * or undefined when absent/garbage. Tolerant by construction: a bad capture must
+ * never drop the denial it rides on — the gate still surfaces, just without the
+ * richer preview.
+ */
+function decodeLedgerInput(raw: unknown): Record<string, unknown> | undefined {
+  if (typeof raw !== "string" || raw.length === 0) return undefined;
+  try {
+    const json = Buffer.from(raw, "base64").toString("utf-8");
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**

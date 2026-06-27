@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,6 +84,13 @@ func TestCursorHarness_HITL_WriteGate_Approve(t *testing.T) {
 	// and it must be the REAL streamed tool call, not a synthesized placeholder.
 	assertToolCallWaitingApproval(t, waiting, approval.GetToolCallId())
 
+	// The point of this fix: the user must SEE the proposed change BEFORE
+	// approving. The gate carries the authoritative content the hook captured —
+	// a WHOLE_FILE CREATE diff plus a parseable args preview — not "No preview
+	// available".
+	assertApprovalShowsProposedChange(t, approval)
+	assertApprovalHasWholeFileCreate(t, approval, "hello-hitl")
+
 	// Approve and let the reinvocation grant carry the re-attempted edit through.
 	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
 		exec.GetMetadata().GetId(),
@@ -100,6 +108,94 @@ func TestCursorHarness_HITL_WriteGate_Approve(t *testing.T) {
 	// proving the exact-resource grant let the re-attempt (fresh tool-call id)
 	// through.
 	assertCompletedWrite(t, result)
+}
+
+// TestCursorHarness_HITL_EditGate_ShowsDiff_Approve proves the approval preview
+// works for an in-place EDIT, not just a new-file write. It runs two turns on one
+// session: turn 1 creates a file (gated → approved), turn 2 edits it. The edit is
+// gated before its hunk ever streams, so this exercises the runner's deny-time
+// synthesis of the diff from the hook-captured old/new strings — the user must
+// SEE the proposed change before approving, never "No preview available".
+//
+// The hard assertion is that the gate carries a proposed change (file_changes +
+// args_preview); when the agent chose an in-place edit (HUNK_ONLY) the unified
+// diff is additionally validated. Requires CURSOR_API_KEY.
+func TestCursorHarness_HITL_EditGate_ShowsDiff_Approve(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 8*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-hitl-edit-approve",
+		"You are a helpful coding assistant.",
+	)
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	// Turn 1 — create the file, approve the gated write so it lands on disk.
+	createExec, createWaiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Create a file called editme.txt containing exactly the text: alpha",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, createWaiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, createWaiting.GetStatus().GetPendingApprovals())
+	createResult, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		createExec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		3*time.Minute,
+	)
+	require.NoError(t, err, "turn 1 (create) should complete after approval")
+	harness.AssertAgentPhase(t, createResult, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// Turn 2 — edit the now-existing file in place; the mutation must gate again.
+	editExec, editWaiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"In editme.txt, change the word alpha to beta. Make a minimal in-place edit.",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, editWaiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, editWaiting.GetStatus().GetPendingApprovals(),
+		"the in-place edit must pause at the approval gate")
+
+	approval := editWaiting.GetStatus().GetPendingApprovals()[0]
+	assertToolCallWaitingApproval(t, editWaiting, approval.GetToolCallId())
+
+	// The core guarantee: the user sees the proposed change before approving.
+	assertApprovalShowsProposedChange(t, approval)
+	// When the agent made an in-place edit, the gate shows a real hunk diff.
+	if approval.GetFileChanges()[0].GetCaptureLevel() ==
+		agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY {
+		assertApprovalHasHunkDiff(t, approval)
+		t.Logf("edit gate presented a HUNK diff: %q", approval.GetFileChanges()[0].GetUnifiedDiff())
+	} else {
+		t.Logf("agent rewrote the file (whole-file change) rather than an in-place edit; "+
+			"proposed change still shown at the gate (capture_level=%s)",
+			approval.GetFileChanges()[0].GetCaptureLevel())
+	}
+
+	// Approve and confirm the edit completes via the reinvocation grant.
+	editResult, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		editExec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		3*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, editExec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "turn 2 (edit) should complete after approval")
+	harness.AssertAgentPhase(t, editResult, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 }
 
 // TestCursorHarness_HITL_AdversarialShellWorkaround_StillGated proves the agent
@@ -617,6 +713,49 @@ func assertToolCallWaitingApproval(t *testing.T, exec *agentexecv1.AgentExecutio
 		}
 	}
 	t.Errorf("tool call %s not found in waiting execution messages", toolCallID)
+}
+
+// assertApprovalShowsProposedChange is the core regression guard for the HITL
+// approval-preview fix: a gated file mutation must let the user SEE the proposed
+// change BEFORE approving. The backend projects both fields verbatim from the
+// gated tool call, so a present, valid args_preview AND non-empty file_changes
+// prove the runner captured the authoritative tool_input at gate time. Empty
+// file_changes here is exactly the "No preview available for this change" bug.
+func assertApprovalShowsProposedChange(t *testing.T, approval *agentexecv1.PendingApproval) {
+	t.Helper()
+	require.NotEmpty(t, approval.GetArgsPreview(),
+		"gated approval must carry an args preview so the user sees the tool input before approving")
+	var parsed map[string]any
+	require.NoErrorf(t, json.Unmarshal([]byte(approval.GetArgsPreview()), &parsed),
+		"args_preview must be valid JSON (the resumed turn re-parses it), got %q", approval.GetArgsPreview())
+	require.NotEmpty(t, approval.GetFileChanges(),
+		"gated file approval must carry file_changes (the proposed diff) BEFORE approval — "+
+			"empty file_changes is the 'No preview available' regression this fix closes")
+}
+
+// assertApprovalHasWholeFileCreate asserts the first file change presented at the
+// gate is a whole-file CREATE whose proposed content contains wantContentSubstr.
+func assertApprovalHasWholeFileCreate(t *testing.T, approval *agentexecv1.PendingApproval, wantContentSubstr string) {
+	t.Helper()
+	fc := approval.GetFileChanges()[0]
+	assert.Equal(t, agentexecv1.FileChangeType_FILE_CHANGE_TYPE_CREATE, fc.GetChangeType(),
+		"a new-file write gate should present a CREATE change")
+	assert.Equal(t, agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE, fc.GetCaptureLevel(),
+		"a write gate should present the whole proposed file")
+	assert.Contains(t, fc.GetAfter().GetInline(), wantContentSubstr,
+		"the proposed content shown at the gate should contain the requested text")
+}
+
+// assertApprovalHasHunkDiff asserts the first file change presented at the gate
+// is a HUNK_ONLY modify with a non-empty unified diff — the edit preview a user
+// reviews before approving an in-place change.
+func assertApprovalHasHunkDiff(t *testing.T, approval *agentexecv1.PendingApproval) {
+	t.Helper()
+	fc := approval.GetFileChanges()[0]
+	assert.Equal(t, agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY, fc.GetCaptureLevel(),
+		"an edit gate should present a hunk diff")
+	assert.NotEmpty(t, fc.GetUnifiedDiff(),
+		"an edit gate's hunk must carry a non-empty unified diff so the user sees what changes")
 }
 
 // isGatedMutatingTool reports whether a tool name is a gated mutating tool in

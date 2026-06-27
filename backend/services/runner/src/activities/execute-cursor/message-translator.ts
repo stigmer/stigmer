@@ -31,6 +31,7 @@
  */
 
 import { create } from "@bufbuild/protobuf";
+import type { JsonObject } from "@bufbuild/protobuf";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage, ToolCall, FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
@@ -38,7 +39,7 @@ import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { MessageType, ToolCallStatus, SubAgentStatus, ToolKind, FileChangeType, FileChangeCaptureLevel } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
-import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage } from "./approval-policy.js";
+import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage, SALIENT_ARG_FIELDS } from "./approval-policy.js";
 import {
   POLICY_ENGINE_VERSION,
   resolveApprovalProvenance,
@@ -49,6 +50,7 @@ import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { buildFileChange, resolveWorkspacePath } from "../../shared/file-change.js";
 import { synthesizeHunkDiff } from "../../shared/hunk-diff.js";
+import { buildElidedArgsPreview } from "../../shared/args-preview.js";
 
 export { utcTimestamp };
 
@@ -277,9 +279,17 @@ export interface ApprovalProvenanceContext {
 /** Shared empty set so a reconstruction without leases allocates nothing. */
 const NO_LEASED_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
 
-/** Tool-arg keys Cursor uses for a file path / write content (mirrors the SDK). */
-const FILE_PATH_FIELDS = ["path", "file_path", "file", "filename"] as const;
+// Tool-arg keys Cursor uses for a file path / write content / edit replacement.
+// These mirror the SDK's canonical sets (sdk/typescript/src/execution/tool-view.ts
+// PATH_FIELDS / WRITE_CONTENT_FIELDS / OLD_TEXT_FIELDS / NEW_TEXT_FIELDS) and
+// deliberately span BOTH taxonomies (the SDK stream names a path `path`; the
+// preToolUse hook input names it `file_path`; a notebook edit uses
+// `target_notebook`). Keeping them in lockstep with the SDK means the same field
+// is recognized whether args arrive from the stream event or the hook capture.
+const FILE_PATH_FIELDS = ["path", "file_path", "file", "filename", "target_notebook"] as const;
 const FILE_WRITE_CONTENT_FIELDS = ["contents", "content", "file_content"] as const;
+const FILE_EDIT_OLD_FIELDS = ["old_string", "old_text", "oldText"] as const;
+const FILE_EDIT_NEW_FIELDS = ["new_string", "new_text", "newText", "replacement"] as const;
 
 function firstStringField(
   obj: Record<string, unknown> | undefined,
@@ -289,6 +299,24 @@ function firstStringField(
   for (const key of keys) {
     const value = obj[key];
     if (typeof value === "string" && value.length > 0) return value;
+  }
+  return undefined;
+}
+
+/**
+ * Like {@link firstStringField} but accepts an empty string as a real value.
+ * Used for an edit's old/new replacement strings, where `""` is meaningful (an
+ * insertion has an empty `old_string`; a deletion has an empty `new_string`) —
+ * matching the native gate capture (execute-deep-agent/approval-file-change.ts).
+ */
+function firstStringFieldAllowEmpty(
+  obj: Record<string, unknown> | undefined,
+  keys: readonly string[],
+): string | undefined {
+  if (!obj) return undefined;
+  for (const key of keys) {
+    const value = obj[key];
+    if (typeof value === "string") return value;
   }
   return undefined;
 }
@@ -315,14 +343,78 @@ function editEnvelopeValue(result: unknown): Record<string, unknown> | undefined
 }
 
 /**
- * Build the `FileChange`s for a Cursor file-edit/file-write tool call.
+ * Build the proposed `FileChange` for a file-write/file-edit tool call from its
+ * ARGUMENTS alone — the single, arg-based gate builder shared by the streaming
+ * write path and the deny (approval-gate) path.
  *
- * The Cursor SDK does not expose whole-file before/after; for an edit it
- * provides a precomputed hunk (`diffString` + line counts), so the change is
- * HUNK_ONLY and only materializes once the terminal result arrives. A write
- * carries the new whole-file content in its args, so it is a WHOLE_FILE CREATE
- * available immediately. Whole-file `before` for Cursor is a separate, filed
- * follow-up (a pre-read at approval time).
+ * A write carries the whole new file in its args, so it is a WHOLE_FILE CREATE
+ * available immediately. An edit carries `old_string`/`new_string`, so it is a
+ * HUNK_ONLY change synthesized via the shared {@link synthesizeHunkDiff} — the
+ * same `-old/+new` preview the native gate renders
+ * (`execute-deep-agent/approval-file-change.ts`). The Cursor SDK does not expose
+ * a whole-file `before`; that pre-read stays a separately filed follow-up, so an
+ * edit renders honestly as HUNK_ONLY.
+ *
+ * Returns undefined for non-file tools, a missing path, or an edit missing its
+ * replacement strings, so callers attach conditionally. Args may use either
+ * taxonomy's field names (stream `path`/`contents`, hook `file_path`/`content`,
+ * notebook `target_notebook`) — see the `FILE_*_FIELDS` constants.
+ */
+function buildGatedFileChange(
+  toolName: string,
+  args: Record<string, unknown>,
+  workspaceRoot?: string,
+): FileChange | undefined {
+  const kind = classifyTool(toolName);
+  if (kind !== ToolKind.FILE_WRITE && kind !== ToolKind.FILE_EDIT) return undefined;
+
+  const rawPath = firstStringField(args, FILE_PATH_FIELDS);
+  if (!rawPath) return undefined;
+
+  const { path, absolutePath } = workspaceRoot
+    ? resolveWorkspacePath(rawPath, workspaceRoot, /* virtualRoot */ false)
+    : { path: rawPath, absolutePath: rawPath };
+
+  if (kind === ToolKind.FILE_WRITE) {
+    // Require a content field to be present (an empty string is a real empty
+    // file and is preserved). Returning undefined when content is absent keeps a
+    // path-only fallback from inventing a misleading empty-file diff.
+    const content = firstStringFieldAllowEmpty(args, FILE_WRITE_CONTENT_FIELDS);
+    if (content === undefined) return undefined;
+    return buildFileChange({
+      path,
+      absolutePath,
+      changeType: FileChangeType.CREATE,
+      captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+      after: content,
+    });
+  }
+
+  // Edit family: synthesize the hunk from the proposed replacement strings.
+  const oldString = firstStringFieldAllowEmpty(args, FILE_EDIT_OLD_FIELDS);
+  const newString = firstStringFieldAllowEmpty(args, FILE_EDIT_NEW_FIELDS);
+  if (oldString === undefined || newString === undefined) return undefined;
+
+  const { unifiedDiff, linesAdded, linesRemoved } = synthesizeHunkDiff(oldString, newString);
+  return buildFileChange({
+    path,
+    absolutePath,
+    changeType: FileChangeType.MODIFY,
+    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+    unifiedDiff,
+    linesAdded,
+    linesRemoved,
+  });
+}
+
+/**
+ * Build the `FileChange`s for a STREAMING Cursor file-edit/file-write tool call.
+ *
+ * A write delegates to {@link buildGatedFileChange} (WHOLE_FILE CREATE from
+ * args). An edit prefers the SDK's authoritative precomputed hunk (`diffString`
+ * + line counts), which only materializes with the terminal result — so during
+ * streaming (no diff yet) it returns nothing and the gate path synthesizes the
+ * hunk from args instead.
  *
  * Returns an empty array for non-file tools and for an edit whose diff is not
  * yet available, so callers can attach unconditionally.
@@ -339,25 +431,14 @@ export function buildCursorFileChanges(
     typeof event.args === "object" && event.args !== null
       ? (event.args as Record<string, unknown>)
       : undefined;
-  const rawPath = firstStringField(args, FILE_PATH_FIELDS);
-  if (!rawPath) return [];
-
-  const { path, absolutePath } = workspaceRoot
-    ? resolveWorkspacePath(rawPath, workspaceRoot, /* virtualRoot */ false)
-    : { path: rawPath, absolutePath: rawPath };
+  if (!args) return [];
 
   if (kind === ToolKind.FILE_WRITE) {
-    return [
-      buildFileChange({
-        path,
-        absolutePath,
-        changeType: FileChangeType.CREATE,
-        captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-        after: firstStringField(args, FILE_WRITE_CONTENT_FIELDS) ?? "",
-      }),
-    ];
+    const fileChange = buildGatedFileChange(event.name, args, workspaceRoot);
+    return fileChange ? [fileChange] : [];
   }
 
+  // Edit: prefer the SDK's authoritative diff from the terminal result.
   const value = editEnvelopeValue(event.result);
   const unifiedDiff = typeof value?.diffString === "string" ? value.diffString : undefined;
   const linesAdded = typeof value?.linesAdded === "number" ? value.linesAdded : undefined;
@@ -366,6 +447,12 @@ export function buildCursorFileChanges(
   if (unifiedDiff === undefined && linesAdded === undefined && linesRemoved === undefined) {
     return [];
   }
+
+  const rawPath = firstStringField(args, FILE_PATH_FIELDS);
+  if (!rawPath) return [];
+  const { path, absolutePath } = workspaceRoot
+    ? resolveWorkspacePath(rawPath, workspaceRoot, /* virtualRoot */ false)
+    : { path: rawPath, absolutePath: rawPath };
 
   return [
     buildFileChange({
@@ -378,55 +465,6 @@ export function buildCursorFileChanges(
       linesRemoved,
     }),
   ];
-}
-
-/**
- * Build the approval-gate `FileChange` for a DENIED edit-family tool call.
- *
- * A denied tool never executes, so its real diff — the SDK's `diffString`, which
- * arrives only with the terminal result — never materializes, and
- * {@link buildCursorFileChanges} leaves the gated call's `fileChanges` empty.
- * This fills that one gap: from the proposed `old_string`/`new_string` already
- * carried on the gated tool call we synthesize a HUNK_ONLY change via the shared
- * {@link synthesizeHunkDiff} — the same `-old/+new` preview the native gate
- * renders (see `execute-deep-agent/approval-file-change.ts`) — so the approval
- * card shows a real diff instead of a bare args preview.
- *
- * Scope is deliberately edit-only. A denied write already carries its
- * WHOLE_FILE CREATE from the stream path (set at creation from args, surviving
- * `markWaitingApproval`), and Cursor's whole-file `before` for edits stays a
- * separately filed follow-up — the gate renders honestly per `capture_level`.
- * Returns undefined for non-edit tools or when the path / replacement strings
- * are absent, so callers attach conditionally.
- */
-function buildDeniedEditFileChange(
-  toolName: string,
-  args: Record<string, unknown>,
-  workspaceRoot?: string,
-): FileChange | undefined {
-  if (classifyTool(toolName) !== ToolKind.FILE_EDIT) return undefined;
-
-  const rawPath = firstStringField(args, FILE_PATH_FIELDS);
-  if (!rawPath) return undefined;
-
-  const oldString = args.old_string;
-  const newString = args.new_string;
-  if (typeof oldString !== "string" || typeof newString !== "string") return undefined;
-
-  const { path, absolutePath } = workspaceRoot
-    ? resolveWorkspacePath(rawPath, workspaceRoot, /* virtualRoot */ false)
-    : { path: rawPath, absolutePath: rawPath };
-
-  const { unifiedDiff, linesAdded, linesRemoved } = synthesizeHunkDiff(oldString, newString);
-  return buildFileChange({
-    path,
-    absolutePath,
-    changeType: FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-    unifiedDiff,
-    linesAdded,
-    linesRemoved,
-  });
 }
 
 function translateTask(event: Extract<SDKMessage, { type: "task" }>): AgentMessage {
@@ -1231,11 +1269,12 @@ export class MessageAccumulator {
  * finalize that drops a previously-committed tool-call id, so reconciliation may
  * only reconcile entries in place, never remove them.
  *
- * For an overlaid edit-family call, {@link buildDeniedEditFileChange} attaches a
- * synthesized HUNK_ONLY diff (the call was gated before its real hunk arrived),
- * using `workspaceRoot` to resolve the display path exactly as the stream path
- * does. The synthesized placeholders carry no proposed content, so they get no
- * diff.
+ * Every matched/synthesized call is enriched with the hook-captured authoritative
+ * input (`ledger.input`) via {@link applyGateInput}: the full proposed args, a
+ * compact `args_preview`, and the proposed `file_changes` (a write's WHOLE_FILE
+ * CREATE or an edit's synthesized HUNK) — so the approval card shows the change
+ * before approval, for every tool. A real streamed diff is never clobbered, and
+ * a missing capture (the hook's grep fallback) degrades to the prior behavior.
  *
  * Returns the tool calls now marked WAITING_APPROVAL (overlaid + synthesized).
  */
@@ -1250,6 +1289,13 @@ export function reconcileDeniedToolCalls(
   // One approval per denied identity (token); AND one overlay per streamed proto
   // (object identity) so the normalized fallback never double-assigns a call.
   const deniedTokens = new Set(ledger.map((e) => e.token));
+  // The authoritative pre-execution args the hook captured, keyed by identity
+  // token. A resource re-attempted within the turn shares a token; last write
+  // wins (the attempts carry the same proposed change).
+  const inputByToken = new Map<string, Record<string, unknown>>();
+  for (const e of ledger) {
+    if (e.input) inputByToken.set(e.token, e.input);
+  }
   const matchedTokens = new Set<string>();
   const matchedCalls = new Set<ToolCall>();
   const result: ToolCall[] = [];
@@ -1261,7 +1307,7 @@ export function reconcileDeniedToolCalls(
     for (const tc of msg.toolCalls) {
       const token = toolCallIdentityToken(tc);
       if (!deniedTokens.has(token) || matchedTokens.has(token)) continue;
-      overlayDeniedStreamCall(tc, mergedPolicies, workspaceRoot);
+      overlayDeniedStreamCall(tc, inputByToken.get(token), mergedPolicies, workspaceRoot);
       matchedTokens.add(token);
       matchedCalls.add(tc);
       result.push(tc);
@@ -1284,7 +1330,7 @@ export function reconcileDeniedToolCalls(
         messages, matchedCalls, wanted, workspaceRoot,
       );
       if (!tc) continue;
-      overlayDeniedStreamCall(tc, mergedPolicies, workspaceRoot);
+      overlayDeniedStreamCall(tc, entry.input, mergedPolicies, workspaceRoot);
       matchedTokens.add(entry.token);
       matchedCalls.add(tc);
       result.push(tc);
@@ -1304,6 +1350,9 @@ export function reconcileDeniedToolCalls(
     const displayName = entry.toolName || decoded?.key || "tool";
     const salient = decoded?.salient ?? "";
     const tc = synthesizeWaitingApprovalToolCall(displayName, salient, entry.token, mergedPolicies);
+    // The hook-captured input upgrades the placeholder from a bare {path} to the
+    // full proposed args + diff, so even a synthesized gate shows the change.
+    applyGateInput(tc, entry.input, workspaceRoot);
     appendToolCallToLastAiMessage(messages, tc);
     matchedTokens.add(entry.token);
     result.push(tc);
@@ -1318,19 +1367,46 @@ export function reconcileDeniedToolCalls(
  * append-only-at-identity transcript guard accepts the finalize (an in-place
  * status change is a reconcile, not a drop). The single overlay routine for both
  * the exact and the normalized correlation passes, so the gate diff can never
- * diverge between them: a denied edit's hunk never arrived (it was gated before
- * it ran), so synthesize it from the proposed strings; a denied write already
- * carries its WHOLE_FILE CREATE from the stream path, so only fill an empty
- * fileChanges — never clobber it.
+ * diverge between them. The hook-captured `input` (when present) is the
+ * authoritative, complete proposed args — the stream may have carried only
+ * partial args before the first-denial cancel — so it supplies the args preview
+ * and the proposed file change (see {@link applyGateInput}).
  */
 function overlayDeniedStreamCall(
   tc: ToolCall,
+  input: Record<string, unknown> | undefined,
   mergedPolicies: Map<string, MergedToolPolicy> | undefined,
   workspaceRoot: string | undefined,
 ): void {
   markWaitingApproval(tc, mergedPolicies);
+  applyGateInput(tc, input, workspaceRoot);
+}
+
+/**
+ * Overlay the hook-captured authoritative tool input onto a gated tool call so
+ * the approval card can show the proposed change before the user approves.
+ *
+ * When `input` is present it becomes the single source for the preview: the full
+ * structured `args`, a compact-but-always-valid `args_preview` (the field a
+ * resumed turn parses to rebuild the grant salient — so salient fields are never
+ * elided, and the heavy content stays only on `file_changes`/`args`), and the
+ * proposed `file_changes` (write CREATE / edit HUNK) when the call carries none.
+ *
+ * It never clobbers a real streamed diff (`file_changes` already set), and it
+ * degrades gracefully: with no `input` (the hook's grep fallback) it still tries
+ * to synthesize a diff from the call's existing args, matching prior behavior.
+ */
+function applyGateInput(
+  tc: ToolCall,
+  input: Record<string, unknown> | undefined,
+  workspaceRoot: string | undefined,
+): void {
+  if (input) {
+    tc.args = input as JsonObject;
+    tc.argsPreview = buildElidedArgsPreview(input, SALIENT_ARG_FIELDS);
+  }
   if (tc.fileChanges.length === 0) {
-    const fileChange = buildDeniedEditFileChange(tc.name, toolCallArgs(tc), workspaceRoot);
+    const fileChange = buildGatedFileChange(tc.name, input ?? toolCallArgs(tc), workspaceRoot);
     if (fileChange) tc.fileChanges = [fileChange];
   }
 }

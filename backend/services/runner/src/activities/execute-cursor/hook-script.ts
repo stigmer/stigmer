@@ -116,9 +116,11 @@ function buildCategoryCaseArms(): string {
  * Build the inline Node.js identity extractor embedded in the hook script.
  *
  * Parses the hook's stdin JSON properly (the bash fallback's grep truncates
- * string values at the first escaped quote) and emits five lines: tool_name,
- * canonical category, identity token, MCP name-token, and hook_event_name (the
- * event discriminator: `preToolUse` for built-ins, `beforeMCPExecution` for MCP).
+ * string values at the first escaped quote) and emits six lines: tool_name,
+ * canonical category, identity token, MCP name-token, hook_event_name (the
+ * event discriminator: `preToolUse` for built-ins, `beforeMCPExecution` for
+ * MCP), and base64(JSON(tool_input)) — the authoritative pre-execution args the
+ * runner overlays onto the gated tool call for the approval preview.
  * The token encodings must stay byte-identical to grantToken() in
  * approval-state.ts.
  *
@@ -138,12 +140,21 @@ function buildNodeIdentityScript(): string {
     `const t=JSON.parse(require("fs").readFileSync(0,"utf8"));`,
     `const name=typeof t.tool_name==="string"?t.tool_name:"";`,
     `const cat=(${categories})[name]||"";`,
-    `const a=(t.tool_input&&typeof t.tool_input==="object")?t.tool_input:{};`,
+    // tool_input is an object for built-ins (preToolUse) but a JSON STRING for
+    // MCP tools (beforeMCPExecution). Parse the string form so the captured
+    // input is the same object shape on both paths.
+    `let a={};`,
+    `if(t.tool_input&&typeof t.tool_input==="object"){a=t.tool_input;}`,
+    `else if(typeof t.tool_input==="string"){try{const p=JSON.parse(t.tool_input);if(p&&typeof p==="object")a=p;}catch(e){}}`,
     `let s="";`,
     `for(const f of ${fields}){const v=a[f];if(typeof v==="string"&&v){s=v;break;}}`,
     `const b=(x)=>Buffer.from(x,"utf8").toString("base64");`,
     `const ev=typeof t.hook_event_name==="string"?t.hook_event_name:"";`,
-    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n")+"\\n"+ev);`,
+    // Line 6 is base64(JSON(tool_input)): the AUTHORITATIVE pre-execution args
+    // the runner overlays onto the gated tool call so the approval card can show
+    // the proposed change before the user approves. Base64 keeps the bash side
+    // free of quoting/escaping concerns even for large multi-line file content.
+    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a)));`,
   ].join("");
 }
 
@@ -250,6 +261,10 @@ if [ -n "$IDENTITY" ]; then
   TOKEN=$(printf '%s\\n' "$IDENTITY" | sed -n 3p)
   MCP_TOKEN=$(printf '%s\\n' "$IDENTITY" | sed -n 4p)
   HOOK_EVENT=$(printf '%s\\n' "$IDENTITY" | sed -n 5p)
+  # base64(JSON(tool_input)) — the authoritative args the runner overlays onto
+  # the gated tool call. A single unwrapped base64 line (Node does not wrap), so
+  # sed reads it whole even for large file content.
+  INPUT_B64=$(printf '%s\\n' "$IDENTITY" | sed -n 6p)
 else
   # Fallback when the Node binary cannot run: grep/cut extraction. Best-effort
   # only — '"field":"[^"]*"' truncates at the first JSON-escaped quote, so the
@@ -271,6 +286,9 @@ ${categoryCaseArms}
   esac
   TOKEN=$(printf '%s\\n%s' "$CATEGORY" "$SALIENT" | base64 | tr -d '\\n')
   MCP_TOKEN=$(printf '%s\\n' "$TOOL_NAME" | base64 | tr -d '\\n')
+  # The grep fallback cannot reliably capture full multi-line tool_input, so the
+  # gated call degrades to today's stream-recovered args (no authoritative input).
+  INPUT_B64=""
 fi
 
 # --- Failsafe: missing state file → deny (fail-closed) ---
@@ -289,9 +307,13 @@ fi
 
 # Append a denial record to the ledger. Best-effort: a ledger write failure must
 # never abort the decision (the deny still goes out on stdout). toolName is raw
-# for human-readable debugging; token drives correlation in the runner.
+# for human-readable debugging; token drives correlation in the runner; input is
+# base64(JSON(tool_input)) — the authoritative pre-execution args the runner
+# overlays for the approval preview (empty on the grep fallback path). Written
+# with printf (a builtin, so no ARG_MAX limit) because the input can be a large
+# multi-MB file body.
 record_denial() {
-  echo '{"toolName":"'"$TOOL_NAME"'","token":"'"$1"'"}' >> "$LEDGER_FILE" 2>/dev/null || true
+  printf '{"toolName":"%s","token":"%s","input":"%s"}\\n' "$TOOL_NAME" "$1" "$INPUT_B64" >> "$LEDGER_FILE" 2>/dev/null || true
 }
 
 # --- 2. MCP tools (beforeMCPExecution event) ---

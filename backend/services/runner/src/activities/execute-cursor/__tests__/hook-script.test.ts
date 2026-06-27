@@ -23,11 +23,18 @@ import {
   setupCursorHookHarness as setup,
   hasBash,
   hookWrite,
+  hookEdit,
   hookShell,
   hookDelete,
   hookRead,
   hookMcp,
 } from "../__test-utils__/cursor-hook-harness.js";
+
+/** Decode the base64(JSON(tool_input)) the hook records on a denial. */
+function decodeInput(b64: string | undefined): Record<string, unknown> {
+  if (!b64) throw new Error("ledger entry carried no input");
+  return JSON.parse(Buffer.from(b64, "base64").toString("utf-8")) as Record<string, unknown>;
+}
 
 const d = hasBash ? describe : describe.skip;
 
@@ -158,6 +165,49 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       });
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
       expect(h.ledger()).toEqual([]);
+    });
+  });
+
+  // The hook captures the COMPLETE tool_input on every denial (base64(JSON)),
+  // so the runner can overlay the proposed change onto the gated tool call for
+  // the approval preview — the cursor analog of the native harness reading args
+  // from graph state at the interrupt. These pin the capture across taxonomies
+  // (built-in object tool_input vs. MCP JSON-string tool_input).
+  describe("captures tool_input on the denial ledger", () => {
+    it("records the full built-in write input (object tool_input)", () => {
+      const h = setup({});
+      expect(h.decide(hookWrite("/x/a.txt", "export const x = 1;\n")).permission).toBe("deny");
+      const ledger = h.ledger();
+      expect(ledger).toHaveLength(1);
+      expect(decodeInput(ledger[0].input)).toEqual({
+        file_path: "/x/a.txt",
+        content: "export const x = 1;\n",
+      });
+    });
+
+    it("records an edit's old/new replacement strings", () => {
+      const h = setup({});
+      expect(h.decide(hookEdit("/x/a.txt", "alpha", "beta")).permission).toBe("deny");
+      expect(decodeInput(h.ledger()[0].input)).toEqual({
+        file_path: "/x/a.txt",
+        old_string: "alpha",
+        new_string: "beta",
+      });
+    });
+
+    it("parses and records the MCP JSON-STRING tool_input", () => {
+      // Cursor delivers MCP tool_input as a JSON string, not an object — the
+      // extractor must parse it so the captured input is the same object shape.
+      const h = setup({ mcpPolicies: { click: { requiresApproval: true } } });
+      expect(h.decide(hookMcp("click", { app: "Slack", element_index: "59" })).permission).toBe("deny");
+      expect(decodeInput(h.ledger()[0].input)).toEqual({ app: "Slack", element_index: "59" });
+    });
+
+    it("captures large multi-line content intact (printf, not echo/argv)", () => {
+      const content = "line\n".repeat(20_000); // ~100 KB, exercises the printf write
+      const h = setup({});
+      expect(h.decide(hookWrite("/x/big.ts", content)).permission).toBe("deny");
+      expect(decodeInput(h.ledger()[0].input).content).toBe(content);
     });
   });
 
