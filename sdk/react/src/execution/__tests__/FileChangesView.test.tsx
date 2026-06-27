@@ -113,10 +113,19 @@ describe("FileChangeDiff", () => {
     expect(screen.getByText("-1")).toBeTruthy();
   });
 
-  it("renders a hunk-only unified diff with authoritative counts", () => {
-    render(<FileChangeDiff change={hunkChange("src/h.ts")} />);
-    expect(screen.getByText("+beta")).toBeTruthy();
-    expect(screen.getByText("-alpha")).toBeTruthy();
+  it("renders a hunk-only unified diff through the DiffViewer table (no raw preamble)", () => {
+    const { container } = render(<FileChangeDiff change={hunkChange("src/h.ts")} />);
+    // The hunk-only patch is parsed into the accessible table, not dumped raw:
+    // the +/- prefixes live in a gutter cell, so the content cells hold the
+    // bare line text.
+    expect(container.querySelector("table")).not.toBeNull();
+    expect(screen.getByText("beta")).toBeTruthy();
+    expect(screen.getByText("alpha")).toBeTruthy();
+    // No raw unified-diff preamble or marker leaks into the content.
+    expect(container.textContent).not.toContain("@@");
+    // The authoritative counts still render in the header stats.
+    expect(screen.getByText("+1")).toBeTruthy();
+    expect(screen.getByText("-1")).toBeTruthy();
   });
 
   it("shows a binary notice when a side is binary", () => {
@@ -163,6 +172,21 @@ describe("FileChangeDiff", () => {
     // The +/- stats still render.
     expect(screen.getByText("+1")).toBeTruthy();
     expect(screen.getByText("-1")).toBeTruthy();
+  });
+
+  it("suppresses the +/- stats when showStats is false (owning row shows them)", () => {
+    setContent({ beforeText: "alpha\n", afterText: "beta\n" });
+    render(
+      <FileChangeDiff
+        change={wholeFile("src/a.ts", "alpha\n", "beta\n")}
+        showFileName={false}
+        showStats={false}
+      />,
+    );
+    // Neither the name nor the duplicate counts render; the diff body remains.
+    expect(screen.queryByText("a.ts")).toBeNull();
+    expect(screen.queryByText("+1")).toBeNull();
+    expect(screen.queryByText("-1")).toBeNull();
   });
 
   it("shows 'New empty file' for an empty whole-file CREATE", () => {

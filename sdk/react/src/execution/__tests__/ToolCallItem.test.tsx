@@ -349,4 +349,28 @@ describe("ToolCallItem disclosure", () => {
       undefined,
     );
   });
+
+  it("shows the +N -M summary once when an edit is expanded (header only, not the body)", () => {
+    // The row header carries the result summary even when collapsed, so the
+    // expanded diff body must NOT repeat it. With added != removed the header's
+    // combined "+3 -0" node and a body "+3" stat span are distinguishable.
+    const { container } = render(
+      <ToolCallItem
+        defaultExpanded
+        toolCall={makeToolCall({
+          name: "StrReplace",
+          args: { path: "/x.ts" },
+          result:
+            '{"status":"success","value":{"linesAdded":3,"linesRemoved":0,"diffString":"@@ -0,0 +1,3 @@\\n+a\\n+b\\n+c"}}',
+        })}
+      />,
+    );
+    expect(expanded(container)).toBe(true);
+    // The header summary is present...
+    expect(screen.getByText("+3 -0")).toBeTruthy();
+    // ...and the body does not render a separate "+3" stat span (suppressed).
+    expect(screen.queryAllByText("+3")).toHaveLength(0);
+    // The diff itself still renders (as the accessible table).
+    expect(container.querySelector("table")).not.toBeNull();
+  });
 });

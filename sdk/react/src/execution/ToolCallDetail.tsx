@@ -9,7 +9,10 @@ import { ResultView } from "./ResultView";
 import { useToolPresentation } from "./tool-presenter";
 import type { ToolCategory } from "./tool-categories";
 import { CollapsiblePre } from "./tool-rendering-primitives";
-import { describeApprovalPolicySource } from "./approval-provenance";
+import {
+  describeApprovalPolicySource,
+  isInformativePolicySource,
+} from "./approval-provenance";
 
 /** Props for {@link ToolCallDetail}. */
 export interface ToolCallDetailProps {
@@ -53,9 +56,12 @@ export function ToolCallDetail({ toolCall, className }: ToolCallDetailProps) {
 // ---------------------------------------------------------------------------
 // Category composition
 //
-// Each category composes from three parts: MetadataRow (duration, slug),
-// ToolArgsView (the input), and ResultView (the effect). The combination is
-// chosen to be informative without duplication.
+// Invariant: the owning row header owns the METADATA (icon, label, file name,
+// ± stats, MCP slug, status, duration); the detail body owns the CONTENT — the
+// ToolArgsView input and the ResultView effect — plus, at most, a
+// ProvenanceNote when the authorization provenance is genuinely informative.
+// The body never restates header metadata. Each category picks the input/effect
+// combination that is informative without duplication.
 // ---------------------------------------------------------------------------
 
 function CategoryDetail({
@@ -85,8 +91,8 @@ function CategoryDetail({
       // row already names the file, so the body suppresses the path.
       return (
         <>
-          <MetadataRow toolCall={toolCall} />
-          <ResultView view={result} showFileName={false} />
+          <ProvenanceNote toolCall={toolCall} />
+          <ResultView view={result} showFileName={false} showStats={false} />
         </>
       );
 
@@ -96,7 +102,7 @@ function CategoryDetail({
       // result body when it carries new information — i.e. an error.
       return (
         <>
-          <MetadataRow toolCall={toolCall} />
+          <ProvenanceNote toolCall={toolCall} />
           {args}
           {result.type === "error" && <ResultView view={result} />}
         </>
@@ -110,7 +116,7 @@ function CategoryDetail({
       // show the command (args) alongside the error so it is never lost.
       return (
         <>
-          <MetadataRow toolCall={toolCall} />
+          <ProvenanceNote toolCall={toolCall} />
           {result.type === "error" ? (
             <>
               {args}
@@ -126,7 +132,7 @@ function CategoryDetail({
       // search, list, fetch, web-search, unknown: input + effect.
       return (
         <>
-          <MetadataRow toolCall={toolCall} />
+          <ProvenanceNote toolCall={toolCall} />
           {args}
           <ResultView view={result} />
         </>
@@ -164,26 +170,26 @@ function ThinkToolDetail({ toolCall }: { toolCall: ToolCall }) {
 // Shared sub-components
 // ---------------------------------------------------------------------------
 
-function MetadataRow({ toolCall }: { toolCall: ToolCall }) {
-  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
-  // Authorization provenance the runner stamped onto the tool call
-  // (approval_policy_source). Explains how this side effect was authorized —
-  // gated and approved, or cleared by a lease / run-wide bypass. Empty for
-  // legacy executions and ungated read-only tools.
+// The detail body's only metadata. Duration and the MCP slug live in the owning
+// row header (ToolCallItem / ApprovalCardHeader), so the body never restates
+// them; it surfaces the authorization provenance the runner stamped onto the
+// call (approval_policy_source) ONLY when it is genuinely informative — an
+// explicit override, a server-marked destructive tighten, or a post-hoc
+// lease/bypass that cleared it. The everyday "this category just needs approval"
+// default and legacy UNSPECIFIED are noise, so they render nothing, mirroring
+// the approval gate's smart-suppress (isInformativePolicySource).
+function ProvenanceNote({ toolCall }: { toolCall: ToolCall }) {
+  if (!isInformativePolicySource(toolCall.approvalPolicySource)) return null;
   const provenance = describeApprovalPolicySource(toolCall.approvalPolicySource);
-  const hasMetadata = toolCall.mcpServerSlug || duration || provenance;
-  if (!hasMetadata) return null;
+  if (!provenance) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
-      {toolCall.mcpServerSlug && (
-        <span className="rounded bg-muted px-1.5 py-0.5 font-mono">
-          {toolCall.mcpServerSlug}
-        </span>
-      )}
-      {duration && <span>{duration}</span>}
-      {provenance && <span className="italic">{provenance}</span>}
-    </div>
+    <p
+      className="text-[11px] italic text-muted-foreground"
+      title={provenance}
+    >
+      {provenance}
+    </p>
   );
 }
 

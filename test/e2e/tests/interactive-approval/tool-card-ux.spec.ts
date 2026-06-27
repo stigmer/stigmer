@@ -221,6 +221,13 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
       const diff = fileDiff(page).first();
       await expect(diff).toBeVisible({ timeout: 30_000 });
 
+      // De-duplicated: the settled card shows the "+3 -0" summary once — in the
+      // row header — and the bounded diff preview below it no longer repeats the
+      // counts (the body suppresses its own stats via showStats={false}).
+      const settledRow = toolCallRow(page).first();
+      await expect(settledRow.getByText("+3 -0")).toHaveCount(1);
+      await expect(diff.getByText("+3", { exact: true })).toHaveCount(0);
+
       // A settled (non-gate) tool card carries the same neutral border with no
       // accent — guard its computed width so the layer fix covers plain cards too,
       // in both color schemes (the screenshot above cannot see a 1px line).

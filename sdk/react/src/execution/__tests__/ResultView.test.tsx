@@ -37,6 +37,39 @@ describe("ResultView", () => {
     expect(container.textContent).toContain("hello world");
   });
 
+  it("renders a Cursor unifiedDiff through the DiffViewer table, not a raw patch dump", () => {
+    const view: ToolResultView = {
+      type: "diff",
+      path: "/workspace/notes.md",
+      unifiedDiff: "--- /dev/null\n+++ b/notes.md\n@@ -0,0 +1,2 @@\n+# Title\n+body\n",
+      linesAdded: 2,
+      linesRemoved: 0,
+    };
+    const { container } = render(<ResultView view={view} />);
+    // The accessible table renders the content...
+    expect(container.querySelector("table")).not.toBeNull();
+    expect(container.textContent).toContain("# Title");
+    // ...and the raw patch preamble never reaches the screen.
+    expect(container.textContent).not.toContain("/dev/null");
+    expect(container.textContent).not.toContain("@@");
+  });
+
+  it("suppresses the +N -M stats when showStats is false (owning row shows them)", () => {
+    const view: ToolResultView = {
+      type: "diff",
+      path: "/workspace/x.md",
+      oldText: "a",
+      newText: "a b",
+    };
+    const { container } = render(
+      <ResultView view={view} showFileName={false} showStats={false} />,
+    );
+    // The diff content still renders, but the duplicate counts do not.
+    expect(container.textContent).toContain("a b");
+    expect(container.textContent).not.toContain("+1");
+    expect(container.textContent).not.toContain("-0");
+  });
+
   it("renders a terminal with a non-zero exit badge", () => {
     const view: ToolResultView = {
       type: "terminal",

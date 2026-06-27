@@ -438,13 +438,19 @@ describe("ApprovalCard file-change diff", () => {
       fileChanges: [hunkOnlyChange("src/h.ts")],
     });
 
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
+    const { container } = render(
+      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+    );
 
     // De-duplicated: for a single change the filename appears exactly once — in
     // the header — never restated by the diff body.
     expect(screen.getAllByText("h.ts")).toHaveLength(1);
-    expect(screen.getByText("+beta")).toBeTruthy();
-    expect(screen.getByText("-alpha")).toBeTruthy();
+    // The hunk-only patch renders through the accessible DiffViewer table (the
+    // +/- prefixes live in a gutter cell), not a raw unified-diff dump.
+    expect(container.querySelector("table")).not.toBeNull();
+    expect(screen.getByText("beta")).toBeTruthy();
+    expect(screen.getByText("alpha")).toBeTruthy();
+    expect(container.textContent).not.toContain("@@");
   });
 
   it("renders a whole-file before/after diff with +/- stats", () => {

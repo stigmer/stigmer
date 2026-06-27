@@ -1,12 +1,15 @@
 import { structuredPatch } from "diff";
-import type { DiffHunk, DiffLine } from "./types";
+import { mapPatchHunks } from "./diff-hunks";
+import type { DiffHunk } from "./types";
 
 /**
  * Compute a unified diff between two text strings.
  *
  * Returns an array of {@link DiffHunk} objects, each containing the
  * changed and context lines with line numbers. Uses the `diff` library's
- * Myers algorithm internally.
+ * Myers algorithm internally, then maps the structured hunks through the
+ * shared {@link mapPatchHunks} (the same mapper `parseUnifiedDiff` uses), so a
+ * computed diff and a parsed unified diff render line-for-line identically.
  *
  * Pure function — no side effects, safe to call outside React.
  *
@@ -23,39 +26,5 @@ export function computeDiff(
     context: contextLines,
   });
 
-  return patch.hunks.map((hunk) => {
-    const lines: DiffLine[] = [];
-    let oldLine = hunk.oldStart;
-    let newLine = hunk.newStart;
-
-    for (const raw of hunk.lines) {
-      const prefix = raw[0];
-      const content = raw.slice(1);
-
-      if (prefix === "+") {
-        lines.push({ type: "added", content, newLineNumber: newLine });
-        newLine++;
-      } else if (prefix === "-") {
-        lines.push({ type: "removed", content, oldLineNumber: oldLine });
-        oldLine++;
-      } else {
-        lines.push({
-          type: "context",
-          content,
-          oldLineNumber: oldLine,
-          newLineNumber: newLine,
-        });
-        oldLine++;
-        newLine++;
-      }
-    }
-
-    return {
-      oldStart: hunk.oldStart,
-      oldLines: hunk.oldLines,
-      newStart: hunk.newStart,
-      newLines: hunk.newLines,
-      lines,
-    };
-  });
+  return mapPatchHunks(patch.hunks);
 }

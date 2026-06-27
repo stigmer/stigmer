@@ -63,8 +63,7 @@ export function DiffViewer({ hunks, filePath, className }: DiffViewerProps) {
       <table className="w-full border-collapse" role="table">
         <thead className="sr-only">
           <tr>
-            <th scope="col">Old line</th>
-            <th scope="col">New line</th>
+            <th scope="col">Line</th>
             <th scope="col">Change</th>
             <th scope="col">Content</th>
           </tr>
@@ -97,7 +96,7 @@ function HunkRows({
       {!isFirst && (
         <tr>
           <td
-            colSpan={4}
+            colSpan={3}
             className="select-none bg-diff-hunk-header-bg px-3 py-1 text-[11px] text-diff-hunk-header-fg"
             aria-label={`Hunk: ${header}`}
           >
@@ -144,13 +143,17 @@ function DiffLineRow({ line }: { readonly line: DiffLine }) {
         ? `Removed line ${line.oldLineNumber}: ${line.content}`
         : undefined;
 
+  // A single line-number gutter — the Cursor/VS Code inline-diff convention,
+  // more compact than GitHub's old+new pair. Each line shows the number from the
+  // side it belongs to: the new-file number for added/context lines, the
+  // old-file number for a removed line (which has no new-side number). The
+  // marker (+/-) and row color carry the change type.
+  const lineNumber = line.newLineNumber ?? line.oldLineNumber;
+
   return (
     <tr className={rowClass} aria-label={ariaLabel}>
       <td className={LINE_NUM_CLASSES}>
-        {line.oldLineNumber ?? ""}
-      </td>
-      <td className={LINE_NUM_CLASSES}>
-        {line.newLineNumber ?? ""}
+        {lineNumber ?? ""}
       </td>
       <td className={cn(MARKER_CLASSES, markerColor)} aria-hidden="true">
         {marker}

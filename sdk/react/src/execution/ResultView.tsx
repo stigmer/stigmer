@@ -14,7 +14,7 @@ import type {
 import { cn } from "@stigmer/theme";
 import { computeDiff } from "../version-history/computeDiff";
 import { DiffViewer } from "../version-history/DiffViewer";
-import { UnifiedDiffText } from "../version-history/UnifiedDiffText";
+import { UnifiedDiffView } from "../version-history/UnifiedDiffView";
 import type { DiffHunk } from "../version-history/types";
 import { CollapsibleCode, CollapsiblePre, formatJson } from "./tool-rendering-primitives";
 import { FilePathLink } from "./FilePathLink";
@@ -36,6 +36,14 @@ export interface ResultViewProps {
    * the user just read; the `+N -M` stats still render.
    */
   readonly showFileName?: boolean;
+  /**
+   * Whether the diff view renders the `+N -M` summary. Defaults to `true`. Set
+   * to `false` where an ancestor row already shows the result summary (a
+   * tool-call row that renders `summarizeResultView`) so the body does not
+   * repeat the counts the user just read. Orthogonal to {@link showFileName}:
+   * the approval gate suppresses the name but keeps the stats.
+   */
+  readonly showStats?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -48,10 +56,10 @@ export interface ResultViewProps {
  * this component renders it. Importable on its own by platform builders who
  * compose custom tool UIs.
  */
-export function ResultView({ view, showFileName = true, className }: ResultViewProps) {
+export function ResultView({ view, showFileName = true, showStats = true, className }: ResultViewProps) {
   switch (view.type) {
     case "diff":
-      return <DiffResultView view={view} showFileName={showFileName} className={className} />;
+      return <DiffResultView view={view} showFileName={showFileName} showStats={showStats} className={className} />;
     case "terminal":
       return <TerminalResultView view={view} className={className} />;
     case "search":
@@ -136,10 +144,12 @@ function diffStats(view: DiffView): DiffStats | null {
 function DiffResultView({
   view,
   showFileName = true,
+  showStats = true,
   className,
 }: {
   view: DiffView;
   showFileName?: boolean;
+  showStats?: boolean;
   className?: string;
 }) {
   // The native engine returns no diff, so we compute hunks from args (old/new).
@@ -160,20 +170,22 @@ function DiffResultView({
   }, [view.linesAdded, view.linesRemoved, hunks]);
 
   const showPath = showFileName && Boolean(view.path);
+  const showStatsRow = showStats && stats != null;
 
   // One diff family across every surface: computed hunks render through the
   // canonical, accessible DiffViewer (line numbers + --stgm-diff-* tokens); a
-  // ready hunk-only patch (Cursor envelope) renders through the shared
-  // UnifiedDiffText. The header (path + ± stats) is this view's own, so the
-  // DiffViewer is used without its filePath header to avoid a duplicate path.
+  // ready hunk-only patch (Cursor envelope) is parsed into the same DiffViewer
+  // table by UnifiedDiffView (raw fallback only if unparseable). The header
+  // (path + ± stats) is this view's own, so the DiffViewer is used without its
+  // filePath header to avoid a duplicate path.
   return (
     <div className={cn("space-y-1", className)} data-cursor-target="file-diff">
-      {(showPath || stats) && (
+      {(showPath || showStatsRow) && (
         <div className="flex items-center gap-2 text-muted-foreground">
           {showPath && (
             <FilePathLink path={view.path} dirDisplay="dim" className="text-xs" />
           )}
-          {stats && (
+          {showStatsRow && stats && (
             <span className="shrink-0 tabular-nums text-xs">
               <span className="text-diff-added-fg">+{stats.added}</span>{" "}
               <span className="text-diff-removed-fg">-{stats.removed}</span>
@@ -185,7 +197,7 @@ function DiffResultView({
       {hunks.length > 0 ? (
         <DiffViewer hunks={hunks} />
       ) : view.unifiedDiff ? (
-        <UnifiedDiffText patch={view.unifiedDiff} />
+        <UnifiedDiffView patch={view.unifiedDiff} />
       ) : (
         <EmptyChangeNotice kind="no-preview" />
       )}

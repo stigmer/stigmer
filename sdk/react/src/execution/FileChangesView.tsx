@@ -11,7 +11,7 @@ import { computeDiff } from "../version-history/computeDiff";
 import { DiffViewer } from "../version-history/DiffViewer";
 import { DiffFileList } from "../version-history/DiffFileList";
 import { DiffSummary } from "../version-history/DiffSummary";
-import { UnifiedDiffText } from "../version-history/UnifiedDiffText";
+import { UnifiedDiffView } from "../version-history/UnifiedDiffView";
 import type { DiffHunk, FileDiffEntry } from "../version-history/types";
 import { FilePathLink } from "./FilePathLink";
 import { EmptyChangeNotice } from "./EmptyChangeNotice";
@@ -116,6 +116,13 @@ export interface FileChangeDiffProps {
    * captioned with a path the user just read; the `+N -M` stats still render.
    */
   readonly showFileName?: boolean;
+  /**
+   * Whether to render the `+N -M` summary. Defaults to `true`. Set to `false`
+   * where an ancestor row already shows the result summary (a tool-call row) so
+   * the body does not repeat the counts. Orthogonal to {@link showFileName}: the
+   * approval gate suppresses the name but keeps the stats.
+   */
+  readonly showStats?: boolean;
 }
 
 /**
@@ -135,6 +142,7 @@ export function FileChangeDiff({
   className,
   bodyClassName,
   showFileName = true,
+  showStats = true,
 }: FileChangeDiffProps) {
   const { beforeText, afterText, isBinary, isLoading, error, isTruncated, downloadUrl } =
     useFileChangeContent(change);
@@ -151,14 +159,14 @@ export function FileChangeDiff({
     return countHunks(hunks);
   }, [change.captureLevel, change.linesAdded, change.linesRemoved, hunks]);
 
-  const hasStats = stats.additions > 0 || stats.deletions > 0;
+  const showStatsRow = showStats && (stats.additions > 0 || stats.deletions > 0);
 
   return (
     <div
       className={cn("flex flex-col gap-1.5", className)}
       data-cursor-target="file-diff"
     >
-      {(showFileName || hasStats) && (
+      {(showFileName || showStatsRow) && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {showFileName &&
             change.changeType === FileChangeType.RENAME &&
@@ -170,7 +178,7 @@ export function FileChangeDiff({
           {showFileName && (
             <FilePathLink path={change.path} dirDisplay="dim" className="text-xs" />
           )}
-          {hasStats && (
+          {showStatsRow && (
             <span className="shrink-0 tabular-nums">
               <span className="text-diff-added-fg">+{stats.additions}</span>{" "}
               <span className="text-diff-removed-fg">-{stats.deletions}</span>
@@ -228,7 +236,7 @@ function FileChangeBody({
 
   if (change.captureLevel === FileChangeCaptureLevel.HUNK_ONLY) {
     return change.unifiedDiff ? (
-      <UnifiedDiffText patch={change.unifiedDiff} className={bodyClassName} />
+      <UnifiedDiffView patch={change.unifiedDiff} className={bodyClassName} />
     ) : (
       <EmptyChangeNotice kind={emptyKind} className={bodyClassName} />
     );
