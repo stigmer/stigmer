@@ -187,7 +187,9 @@ Compute a unified diff between two text strings.
 
 Returns an array of [`DiffHunk`](#diffhunk) objects, each containing the
 changed and context lines with line numbers. Uses the `diff` library's
-Myers algorithm internally.
+Myers algorithm internally, then maps the structured hunks through the
+shared `mapPatchHunks` (the same mapper `parseUnifiedDiff` uses), so a
+computed diff and a parsed unified diff render line-for-line identically.
 
 Pure function — no side effects, safe to call outside React.
 

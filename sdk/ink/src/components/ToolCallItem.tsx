@@ -106,8 +106,13 @@ function describeResultView(view: ToolResultView): string | null {
         view.exitCode !== undefined && view.exitCode !== 0 ? `[exit ${view.exitCode}] ` : "";
       return prompt + exit + truncate(view.stdout || view.stderr);
     }
-    case "search":
-      return `${view.count} ${view.count === 1 ? "match" : "matches"}`;
+    case "search": {
+      const noun =
+        view.kind === "files"
+          ? view.count === 1 ? "file" : "files"
+          : view.count === 1 ? "match" : "matches";
+      return `${view.count} ${noun}${view.truncated ? " (truncated)" : ""}`;
+    }
     case "list":
       return `${view.count} ${view.count === 1 ? "item" : "items"}`;
     case "file":

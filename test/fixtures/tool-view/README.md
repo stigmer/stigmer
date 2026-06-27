@@ -49,6 +49,12 @@ each surface's own unit tests, not here, except when the count is present in the
 source data (e.g. the Cursor edit envelope's `linesAdded`/`linesRemoved`), in
 which case `expected.linesAdded`/`linesRemoved` are included and asserted.
 
+The `search` view also carries `kind` (`"files"` for a glob/file-name search,
+`"content"` for a grep-style search) and `truncated` (the engine capped the
+results). These are presentation hints rather than cross-language scalar facts,
+so they are asserted in each surface's own unit tests (e.g.
+`tool-view.search.test.ts`), not in this shared fixture.
+
 ## Consumers
 
 - TS: `sdk/typescript/src/execution/__tests__/tool-view.fixtures.test.ts`

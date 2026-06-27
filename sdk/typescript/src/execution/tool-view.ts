@@ -99,7 +99,21 @@ export type ToolResultView =
       readonly stderr: string;
       readonly exitCode?: number;
     }
-  | { readonly type: "search"; readonly matches: readonly ToolSearchMatch[]; readonly count: number }
+  // A search result. `kind` distinguishes the two shapes a search engine
+  // returns: `"files"` is a file-name search (glob/file_search) whose matches are
+  // paths to render as a file list; `"content"` is a grep-style search whose
+  // matches carry line text (and a `file`/`line` when the engine provides them)
+  // to render grouped by file. `count` is the authoritative total when the
+  // engine reports it (it can exceed `matches.length` when `truncated`).
+  // `kind`/`truncated` are optional so legacy/plain-text results (which only know
+  // a flat match list) stay valid without them.
+  | {
+      readonly type: "search";
+      readonly matches: readonly ToolSearchMatch[];
+      readonly count: number;
+      readonly kind?: "files" | "content";
+      readonly truncated?: boolean;
+    }
   | { readonly type: "list"; readonly entries: readonly string[]; readonly count: number }
   | {
       readonly type: "contentBlocks";
@@ -469,19 +483,177 @@ function normalizeShell(result: string, args: Args): ToolResultView {
 // A grep-style match line, e.g. "  12: // TODO: fix".
 const GREP_MATCH_LINE = /^\s*\d+[:\t]/;
 
+// The Cursor SDK returns search results as a stringified JSON envelope, not the
+// plain text the native harness emits. Two shapes are observed, both fixture-
+// backed in test/fixtures/tool-view/result-views.json:
+//   - file-name search (Glob/file_search): the {status,value} envelope with
+//     value.files (paths), value.totalFiles, and the truncation flags.
+//   - grep / codebase search: {workspaceResults: {<path>: {type, output}}},
+//     where each workspace's output carries files and/or line-bearing matches.
+// Anything we don't recognise degrades to the json view (readable) rather than
+// being wrapped as a single fake match by the plain-text path below.
 function normalizeSearch(result: string): ToolResultView {
+  const parsed = tryParseJson(result);
+  if (parsed !== undefined) {
+    const fromEnvelope = searchFromEnvelope(parsed);
+    if (fromEnvelope) {
+      return fromEnvelope;
+    }
+    // Recognised JSON shape but nothing searchable in it (or an unknown shape):
+    // a clean json/object view beats wrapping the raw string as one "match".
+    if (isRecord(parsed) || Array.isArray(parsed)) {
+      return { type: "json", value: parsed };
+    }
+  }
+
+  return searchFromPlainText(result);
+}
+
+// Projects a parsed Cursor search envelope into a search view, or null when the
+// parsed JSON is not one of the recognised search shapes.
+//
+// Both shapes are wrapped in the Cursor {status,value} envelope (shared with
+// edit/shell), so the payload lives under `value`: file-name search puts `files`
+// there, grep/codebase search puts `workspaceResults` there. We read the inner
+// value when present and fall back to the parsed object itself, so a future
+// un-enveloped shape still resolves rather than dropping to the json fallback.
+function searchFromEnvelope(parsed: unknown): ToolResultView | null {
+  const inner = cursorEnvelopeValue(parsed) ?? (isRecord(parsed) ? parsed : undefined);
+  if (!inner) return null;
+
+  const truncated =
+    Boolean(inner.clientTruncated) || Boolean(inner.ripgrepTruncated);
+
+  // file-name search (Glob/file_search): inner.files is an array of path strings.
+  if (Array.isArray(inner.files)) {
+    const matches = pathsToFileMatches(inner.files);
+    const count = asNumber(inner.totalFiles) ?? matches.length;
+    // Safety net: the engine reports results but we extracted none — the shape
+    // drifted (e.g. files are objects, not strings). Surface the raw JSON rather
+    // than a misleading "No files found" that hides real data. (Truncation always
+    // returns a non-empty page, so this never fires on a legitimately capped result.)
+    if (count > 0 && matches.length === 0) return null;
+    return { type: "search", matches, count, kind: "files", truncated };
+  }
+
+  // grep / codebase search: inner.workspaceResults maps a workspace path to its
+  // { type, output }. Flatten every workspace's output into one match list so a
+  // multi-root search reads as a single result. Truncation can be reported at the
+  // envelope level (passed in) or per-workspace (read inside).
+  if (isRecord(inner.workspaceResults)) {
+    return searchFromWorkspaceResults(inner.workspaceResults, truncated);
+  }
+
+  return null;
+}
+
+// Flattens the per-workspace results of a grep/codebase search. Each workspace's
+// `output` carries `files` (path matches) and/or `matches` (line-bearing content
+// matches); both are collected, and `truncated` is OR-ed across workspaces.
+//
+// Returns null when the engine reports results (count > 0) but none could be
+// extracted — a shape drift — so the caller degrades to the raw JSON view rather
+// than silently rendering "No files found" over data that is actually there.
+function searchFromWorkspaceResults(
+  workspaceResults: Record<string, unknown>,
+  envelopeTruncated: boolean,
+): ToolResultView | null {
+  const fileMatches: ToolSearchMatch[] = [];
+  const contentMatches: ToolSearchMatch[] = [];
+  let reportedCount = 0;
+  let hasReportedCount = false;
+  let truncated = envelopeTruncated;
+
+  for (const ws of Object.values(workspaceResults)) {
+    const output = isRecord(ws) ? ws.output : undefined;
+    if (!isRecord(output)) continue;
+
+    if (Array.isArray(output.files)) {
+      fileMatches.push(...pathsToFileMatches(output.files));
+    }
+    if (Array.isArray(output.matches)) {
+      contentMatches.push(...toContentMatches(output.matches));
+    }
+
+    const count = asNumber(output.count);
+    if (count !== undefined) {
+      reportedCount += count;
+      hasReportedCount = true;
+    }
+    if (Boolean(output.clientTruncated) || Boolean(output.ripgrepTruncated)) {
+      truncated = true;
+    }
+  }
+
+  // Content matches are the richer signal, so when present they drive the view;
+  // otherwise the result is a file-name list.
+  const isContent = contentMatches.length > 0;
+  const matches = isContent ? contentMatches : fileMatches;
+
+  // Safety net: results were reported but none extracted — the per-workspace
+  // output shape drifted. Bail to the raw JSON view (see the caller) instead of
+  // hiding the data behind a "No matches".
+  if (hasReportedCount && reportedCount > 0 && matches.length === 0) {
+    return null;
+  }
+
+  return {
+    type: "search",
+    matches,
+    count: hasReportedCount ? reportedCount : matches.length,
+    kind: isContent ? "content" : "files",
+    truncated,
+  };
+}
+
+// Maps an engine-provided array of file paths into file-name matches. Both
+// `file` and `text` are set to the path so a kind-unaware consumer (e.g. the Ink
+// summary) still shows something useful. Non-string entries are skipped.
+function pathsToFileMatches(files: readonly unknown[]): ToolSearchMatch[] {
+  const matches: ToolSearchMatch[] = [];
+  for (const f of files) {
+    if (typeof f === "string" && f.length > 0) {
+      matches.push({ file: f, text: f });
+    }
+  }
+  return matches;
+}
+
+// Maps an engine-provided array of grep matches into content matches. Each entry
+// is read defensively (the exact shape is engine-fragile): a `file`/`path` and a
+// 1-based `line` are carried when present, and the line text is taken from the
+// first available text field, falling back to the stringified entry.
+function toContentMatches(rawMatches: readonly unknown[]): ToolSearchMatch[] {
+  const matches: ToolSearchMatch[] = [];
+  for (const m of rawMatches) {
+    if (typeof m === "string") {
+      if (m.length > 0) matches.push({ text: m });
+      continue;
+    }
+    if (!isRecord(m)) continue;
+    const file = asString(m.file) ?? asString(m.path);
+    const line = asNumber(m.line) ?? asNumber(m.lineNumber);
+    const text = asString(m.text) ?? asString(m.line_text) ?? asString(m.content) ?? "";
+    matches.push({ file, line, text });
+  }
+  return matches;
+}
+
+// The plain-text path for the native harness: grep emits "  12: match" lines;
+// glob/semantic search emit one path per line.
+function searchFromPlainText(result: string): ToolResultView {
   const lines = nonEmptyLines(result);
   const matchLines = lines.filter((l) => GREP_MATCH_LINE.test(l));
 
   if (matchLines.length > 0) {
     const matches = matchLines.map((l) => ({ text: l.trim() }));
-    return { type: "search", matches, count: matches.length };
+    return { type: "search", matches, count: matches.length, kind: "content" };
   }
 
   // Path/name results (glob, semantic search): each meaningful line is a match.
   const entries = lines.filter((l) => !/^no (files|matches|results)/i.test(l));
-  const matches = entries.map((text) => ({ text }));
-  return { type: "search", matches, count: matches.length };
+  const matches = entries.map((text) => ({ file: text, text }));
+  return { type: "search", matches, count: matches.length, kind: "files" };
 }
 
 function normalizeList(result: string): ToolResultView {

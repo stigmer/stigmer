@@ -18,6 +18,15 @@ import {
 export interface ToolCallDetailProps {
   /** The tool call to render in detail. */
   readonly toolCall: ToolCall;
+  /**
+   * Whether the owning row's header truncated the primary argument (the search
+   * query / list path). A header-owned layout fact: when `true`, the search/list
+   * body restates the full, wrapping value so a long query is reachable without
+   * relying on the hover tooltip; when `false` (the default) the header already
+   * shows the value in full, so the body does not repeat it. Only the
+   * search/list branch consumes it.
+   */
+  readonly primaryArgTruncated?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -43,12 +52,22 @@ export interface ToolCallDetailProps {
  * <ToolCallDetail toolCall={toolCall} />
  * ```
  */
-export function ToolCallDetail({ toolCall, className }: ToolCallDetailProps) {
-  const { category, result } = useToolPresentation(toolCall);
+export function ToolCallDetail({
+  toolCall,
+  primaryArgTruncated = false,
+  className,
+}: ToolCallDetailProps) {
+  const { category, result, primaryArg } = useToolPresentation(toolCall);
 
   return (
     <div className={cn("space-y-2 text-xs", className)}>
-      <CategoryDetail toolCall={toolCall} category={category} result={result} />
+      <CategoryDetail
+        toolCall={toolCall}
+        category={category}
+        result={result}
+        primaryArg={primaryArg}
+        primaryArgTruncated={primaryArgTruncated}
+      />
     </div>
   );
 }
@@ -68,10 +87,14 @@ function CategoryDetail({
   toolCall,
   category,
   result,
+  primaryArg,
+  primaryArgTruncated,
 }: {
   toolCall: ToolCall;
   category: ToolCategory;
   result: ToolResultView;
+  primaryArg: string | null;
+  primaryArgTruncated: boolean;
 }) {
   const args = <ArgsSection toolCall={toolCall} />;
 
@@ -81,6 +104,27 @@ function CategoryDetail({
 
     case "mcp":
       return <McpToolDetail toolCall={toolCall} />;
+
+    case "search":
+    case "list":
+      // The query/path is the input; the matches are the effect. The owning row
+      // header already shows the query (truncated, with a hover tooltip), so the
+      // body does NOT restate it as a redundant "Pattern:" row — it shows the
+      // full, wrapping value only when the header truncated it (a long query),
+      // then the result. This is the search/list analog of the edit branch's
+      // "the diff already names the file" de-duplication.
+      return (
+        <>
+          <ProvenanceNote toolCall={toolCall} />
+          {primaryArgTruncated && primaryArg && (
+            <SearchQueryBlock category={category} value={primaryArg} />
+          )}
+          {/* The owning row header shows the count (summarizeResultView), so the
+              body suppresses it (showStats={false}) and shows only the matches
+              plus, when capped, a truncation note. */}
+          <ResultView view={result} showStats={false} />
+        </>
+      );
 
     case "edit":
     case "write":
@@ -129,7 +173,7 @@ function CategoryDetail({
       );
 
     default:
-      // search, list, fetch, web-search, unknown: input + effect.
+      // fetch, web-search, unknown: input + effect.
       return (
         <>
           <ProvenanceNote toolCall={toolCall} />
@@ -138,6 +182,27 @@ function CategoryDetail({
         </>
       );
   }
+}
+
+// The full, wrapping query (search) or path (list), shown in the body only when
+// the owning row's header truncated it — so a long value is reachable without
+// hovering, without restating a short value the header already shows in full.
+function SearchQueryBlock({
+  category,
+  value,
+}: {
+  category: ToolCategory;
+  value: string;
+}) {
+  const label = category === "list" ? "Path" : "Query";
+  return (
+    <div className="space-y-1">
+      <span className="font-medium text-muted-foreground">{label}</span>
+      <code className="block whitespace-pre-wrap break-words rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+        {value}
+      </code>
+    </div>
+  );
 }
 
 function ArgsSection({ toolCall }: { toolCall: ToolCall }) {

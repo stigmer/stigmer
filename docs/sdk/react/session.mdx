@@ -1024,8 +1024,8 @@ Full-featured agent session viewer — the graph-less analog of
 Owns `useSessionPageFlow` internally and composes:
 - **Conversation column** (primary): `MessageThread` + error
   banners + `SessionComposer`
-- **SessionInspector** (secondary): tabbed panel with Plan,
-  Changes, Artifacts, Usage, and Inspect facets
+- **SessionInspector** (secondary): tabbed panel with Workspace,
+  Config, Changes, Artifacts, Usage, and Inspect facets
 
 Connected via `ResizableSplit` with persisted width.
 
@@ -1112,9 +1112,8 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
 Build the contextual tab list with badges.
 
 Tab order follows the user's mental model — context before output:
-Workspace → Config → Plan → Usage. Changes and Artifacts appear
-after Plan when data exists; Inspect appears last when a thread item
-is selected.
+Workspace → Config → Usage. Changes and Artifacts appear after Config
+when data exists; Inspect appears last when a thread item is selected.
 
 The Changes tab surfaces for either change source: git write-backs (PRs)
 or local-workspace file edits. Its badge prefers the write-back count
@@ -1412,8 +1411,9 @@ A time-based group of sessions produced by [`groupSessionsByTime`](#groupsession
 Tabbed right-side inspector panel for agent sessions.
 
 Displays an always-visible run-status header (phase badge) above
-contextual tabs: Plan, Changes, Artifacts, Usage, and Inspect
-(when a thread item is selected).
+contextual tabs: Workspace, Config, Changes, Artifacts, Usage, and
+Inspect (when a thread item is selected). The agent's plan/todos render
+inline in the message thread (see [`TodoCard`](/docs/sdk/react/execution#todocard)), not as a tab here.
 
 Mirrors the `ExecutionInspector` architecture from the workflow
 view — same `Tabs` primitive, same tab-FSM behavior hook, same
@@ -1434,7 +1434,7 @@ Props for [`SessionInspector`](#sessioninspector).
   type={{
     allExecutions: { type: "readonly AgentExecution[]", description: "All executions in the session (completed + active stream). Drives aggregation hooks for Changes, Artifacts, and Usage.", required: true },
     className: { type: "string", description: "Additional CSS classes." },
-    displayExecution: { type: "AgentExecution | null", description: "The most relevant execution — the active streaming execution, or the last completed one. Drives the run-status header and the Plan facet.", required: true },
+    displayExecution: { type: "AgentExecution | null", description: "The most relevant execution — the active streaming execution, or the last completed one. Drives the run-status header (phase badge).", required: true },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied from the Artifacts tab." },
     onImplementPlan: { type: "() => void", description: "Implement a plan from the Artifacts tab. When provided, plan artifacts (`plan.md`) surface an Implement action in their preview." },
     org: { type: "string", description: "Organization slug for artifact Apply CTA.", required: true },

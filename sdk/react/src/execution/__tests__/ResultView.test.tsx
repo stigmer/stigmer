@@ -112,6 +112,95 @@ describe("ResultView", () => {
     expect(container.textContent).toContain("2 matches");
   });
 
+  it("renders a file-name search as a clickable file list with a 'files' count", () => {
+    const view: ToolResultView = {
+      type: "search",
+      kind: "files",
+      matches: [{ file: "src/a.ts", text: "src/a.ts" }],
+      count: 1,
+    };
+    const { container } = render(<ResultView view={view} />);
+    expect(container.textContent).toContain("1 file");
+    // The path renders filename-first through FilePathLink (an interactive control).
+    expect(container.textContent).toContain("a.ts");
+    expect(container.querySelector("button, a")).not.toBeNull();
+  });
+
+  it("renders content matches grouped under their file with line numbers", () => {
+    const view: ToolResultView = {
+      type: "search",
+      kind: "content",
+      matches: [
+        { file: "a.ts", line: 12, text: "// TODO: fix" },
+        { file: "a.ts", line: 30, text: "// TODO: later" },
+      ],
+      count: 2,
+    };
+    const { container } = render(<ResultView view={view} />);
+    expect(container.textContent).toContain("2 matches");
+    expect(container.textContent).toContain("12:");
+    expect(container.textContent).toContain("// TODO: fix");
+  });
+
+  it("names the subtype in the empty state (files vs matches), query-free", () => {
+    const files = render(
+      <ResultView view={{ type: "search", kind: "files", matches: [], count: 0 }} />,
+    );
+    expect(files.container.textContent).toContain("No files found");
+
+    const content = render(
+      <ResultView view={{ type: "search", kind: "content", matches: [], count: 0 }} />,
+    );
+    expect(content.container.textContent).toContain("No matches");
+  });
+
+  it("shows a 'showing first N' note when the engine truncated the results", () => {
+    const view: ToolResultView = {
+      type: "search",
+      kind: "files",
+      matches: [
+        { file: "a.ts", text: "a.ts" },
+        { file: "b.ts", text: "b.ts" },
+      ],
+      count: 200,
+      truncated: true,
+    };
+    const { container } = render(<ResultView view={view} />);
+    expect(container.textContent).toContain("200 files");
+    expect(container.textContent).toContain("showing first 2");
+  });
+
+  it("suppresses the search count when showStats is false (owning row shows it)", () => {
+    const view: ToolResultView = {
+      type: "search",
+      kind: "files",
+      matches: [{ file: "Dockerfile", text: "Dockerfile" }],
+      count: 1,
+    };
+    const { container } = render(<ResultView view={view} showStats={false} />);
+    // The file still renders, but the redundant "1 file" count does not.
+    expect(container.textContent).toContain("Dockerfile");
+    expect(container.textContent).not.toContain("1 file");
+  });
+
+  it("keeps the truncation note even when the count is suppressed", () => {
+    const view: ToolResultView = {
+      type: "search",
+      kind: "files",
+      matches: [
+        { file: "a.ts", text: "a.ts" },
+        { file: "b.ts", text: "b.ts" },
+      ],
+      count: 200,
+      truncated: true,
+    };
+    const { container } = render(<ResultView view={view} showStats={false} />);
+    // The count header is gone, but the "showing first N of M" note remains —
+    // it is information the row header does not carry.
+    expect(container.textContent).not.toContain("200 files");
+    expect(container.textContent).toContain("Showing first 2 of 200");
+  });
+
   it("renders unknown JSON results as a labeled code block, not a raw dump", () => {
     const view: ToolResultView = { type: "json", value: { a: 1 } };
     const { container } = render(<ResultView view={view} />);
@@ -241,6 +330,15 @@ describe("summarizeResultView", () => {
   it("summarizes search and list counts", () => {
     expect(summarizeResultView({ type: "search", matches: [], count: 3 })).toBe("3 matches");
     expect(summarizeResultView({ type: "list", entries: [], count: 1 })).toBe("1 item");
+  });
+
+  it("uses the file noun for a file-name search summary", () => {
+    expect(
+      summarizeResultView({ type: "search", kind: "files", matches: [], count: 3 }),
+    ).toBe("3 files");
+    expect(
+      summarizeResultView({ type: "search", kind: "files", matches: [], count: 1 }),
+    ).toBe("1 file");
   });
 
   it("returns null when there is nothing to summarize", () => {

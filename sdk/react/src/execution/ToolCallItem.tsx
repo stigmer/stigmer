@@ -10,6 +10,7 @@ import {
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure";
+import { useIsTextTruncated } from "../internal/useIsTextTruncated";
 import { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 import { ToolCallPreview } from "./ToolCallPreview";
 import { SubAgentSection } from "./SubAgentSection";
@@ -123,6 +124,15 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   const approvalBadge = getApprovalBadge(toolCall);
   const selection = useThreadSelection("tool-call", toolCall.id);
+
+  // Search/list show their query/path as the header subtitle (truncated). Track
+  // whether it actually clips so the expanded detail can restate the full,
+  // wrapping value only when needed — avoiding a redundant repeat of a short
+  // value the header already shows in full. Gated to these two categories so
+  // only the rows that consume the signal pay for the measurement.
+  const measuresSubtitle = category === "search" || category === "list";
+  const { ref: subtitleRef, isTruncated: primaryArgTruncated } =
+    useIsTextTruncated<HTMLSpanElement>(measuresSubtitle);
 
   // Cursor-style chrome: each tool call is its own self-contained card — a thin
   // rounded neutral border. A pending gate carries a restrained left accent on
@@ -303,7 +313,11 @@ export const ToolCallItem = memo(function ToolCallItem({
             />
           ) : (
             displaySubtitle && (
-              <span className="min-w-0 truncate text-muted-foreground font-mono">
+              <span
+                ref={measuresSubtitle ? subtitleRef : undefined}
+                title={displaySubtitle}
+                className="min-w-0 truncate text-muted-foreground font-mono"
+              >
                 {displaySubtitle}
               </span>
             )
@@ -336,7 +350,10 @@ export const ToolCallItem = memo(function ToolCallItem({
               isSubmitting={approval.isSubmitting}
             />
           ) : (
-            <ToolCallDetail toolCall={toolCall} />
+            <ToolCallDetail
+              toolCall={toolCall}
+              primaryArgTruncated={primaryArgTruncated}
+            />
           )}
         </div>
       )}

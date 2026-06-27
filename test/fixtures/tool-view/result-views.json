@@ -83,6 +83,33 @@
       "expected": { "type": "search", "count": 2 }
     },
     {
+      "name": "cursor_file_search_empty",
+      "harness": "cursor",
+      "toolName": "Glob",
+      "mcpServerSlug": "",
+      "args": { "pattern": "**/*.nope" },
+      "result": "{\"status\":\"success\",\"value\":{\"files\":[],\"totalFiles\":0,\"clientTruncated\":false,\"ripgrepTruncated\":false}}",
+      "expected": { "type": "search", "count": 0 }
+    },
+    {
+      "name": "cursor_file_search_one",
+      "harness": "cursor",
+      "toolName": "Glob",
+      "mcpServerSlug": "",
+      "args": { "pattern": "Dockerfile" },
+      "result": "{\"status\":\"success\",\"value\":{\"files\":[\"Dockerfile\"],\"totalFiles\":1,\"clientTruncated\":false,\"ripgrepTruncated\":false}}",
+      "expected": { "type": "search", "count": 1 }
+    },
+    {
+      "name": "cursor_grep_workspace_results_empty",
+      "harness": "cursor",
+      "toolName": "Grep",
+      "mcpServerSlug": "",
+      "args": { "pattern": "pipeline" },
+      "result": "{\"status\":\"success\",\"value\":{\"workspaceResults\":{\"/work/demo\":{\"type\":\"files\",\"output\":{\"files\":[],\"count\":0}}}}}",
+      "expected": { "type": "search", "count": 0 }
+    },
+    {
       "name": "native_ls_entries",
       "harness": "native",
       "toolName": "ls",

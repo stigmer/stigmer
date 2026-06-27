@@ -96,6 +96,83 @@ describe("ToolCallDetail — metadata invariant (header owns it, body shows cont
   });
 });
 
+describe("ToolCallDetail — search body de-duplicates the query", () => {
+  it("does not restate the query (no 'Pattern:' row) when the header shows it in full", () => {
+    const { container } = render(
+      <ToolCallDetail
+        toolCall={makeToolCall({
+          name: "Grep",
+          toolKind: ToolKind.SEARCH,
+          args: { pattern: "pipeline" },
+          result:
+            '{"workspaceResults":{"/work/demo":{"type":"files","output":{"files":[],"count":0}}}}',
+        })}
+        // Header did not truncate the short query.
+        primaryArgTruncated={false}
+      />,
+    );
+    // The legacy duplicate label is gone, and the short query is not repeated.
+    expect(container.textContent).not.toContain("Pattern:");
+    expect(container.textContent).not.toContain("pipeline");
+    // The result still renders its (empty) state honestly.
+    expect(container.textContent).toContain("No files found");
+  });
+
+  it("unwraps the real {status,value:{workspaceResults}} grep result instead of dumping JSON", () => {
+    const { container } = render(
+      <ToolCallDetail
+        toolCall={makeToolCall({
+          name: "Grep",
+          toolKind: ToolKind.SEARCH,
+          args: { pattern: "pipeline" },
+          result:
+            '{"status":"success","value":{"workspaceResults":{"/work/demo":{"type":"files","output":{"files":[],"count":0}}}}}',
+        })}
+      />,
+    );
+    // The body renders the empty state, never the raw envelope keys.
+    expect(container.textContent).toContain("No files found");
+    expect(container.textContent).not.toContain("workspaceResults");
+    expect(container.textContent).not.toContain("status");
+  });
+
+  it("does not restate the result count in the body (the row header shows it)", () => {
+    const { container } = render(
+      <ToolCallDetail
+        toolCall={makeToolCall({
+          name: "Glob",
+          toolKind: ToolKind.SEARCH,
+          args: { pattern: "Dockerfile" },
+          result:
+            '{"status":"success","value":{"files":["Dockerfile"],"totalFiles":1,"clientTruncated":false,"ripgrepTruncated":false}}',
+        })}
+      />,
+    );
+    // The matched file renders, but the redundant "1 file" count does not.
+    expect(container.textContent).toContain("Dockerfile");
+    expect(container.textContent).not.toContain("1 file");
+  });
+
+  it("restates the full query (labeled 'Query') only when the header truncated it", () => {
+    const longQuery =
+      "a-very-long-search-query-that-would-not-fit-in-the-header-subtitle";
+    const { container } = render(
+      <ToolCallDetail
+        toolCall={makeToolCall({
+          name: "Grep",
+          toolKind: ToolKind.SEARCH,
+          args: { pattern: longQuery },
+          result:
+            '{"workspaceResults":{"/work/demo":{"type":"files","output":{"files":[],"count":0}}}}',
+        })}
+        primaryArgTruncated
+      />,
+    );
+    expect(container.textContent).toContain("Query");
+    expect(container.textContent).toContain(longQuery);
+  });
+});
+
 describe("ToolCallDetail — edit body has no duplicate stats", () => {
   it("renders the edit diff as a table without restating the +N -M counts", () => {
     const { container } = render(

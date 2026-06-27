@@ -6,6 +6,7 @@
 // fallbacks, so unknown tools are still readable.
 
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import type {
   ToolResultView,
   ToolSearchMatch,
@@ -37,11 +38,14 @@ export interface ResultViewProps {
    */
   readonly showFileName?: boolean;
   /**
-   * Whether the diff view renders the `+N -M` summary. Defaults to `true`. Set
-   * to `false` where an ancestor row already shows the result summary (a
-   * tool-call row that renders `summarizeResultView`) so the body does not
-   * repeat the counts the user just read. Orthogonal to {@link showFileName}:
-   * the approval gate suppresses the name but keeps the stats.
+   * Whether the result body renders its headline summary stat — the diff's
+   * `+N -M`, or a search/list's `N files` / `N matches` / `N items` count.
+   * Defaults to `true`. Set to `false` where an ancestor row already shows the
+   * summary (a tool-call row that renders `summarizeResultView`) so the body does
+   * not repeat the count the user just read. A search/list still surfaces a
+   * truncation note when suppressed, since that is information the row header does
+   * not carry. Orthogonal to {@link showFileName}: the approval gate suppresses
+   * the name but keeps the stats.
    */
   readonly showStats?: boolean;
   /** Additional CSS class names for the root container. */
@@ -63,9 +67,9 @@ export function ResultView({ view, showFileName = true, showStats = true, classN
     case "terminal":
       return <TerminalResultView view={view} className={className} />;
     case "search":
-      return <SearchResultView matches={view.matches} count={view.count} className={className} />;
+      return <SearchResultView view={view} showCount={showStats} className={className} />;
     case "list":
-      return <ListResultView entries={view.entries} count={view.count} className={className} />;
+      return <ListResultView entries={view.entries} count={view.count} showCount={showStats} className={className} />;
     case "file":
       return <FileResultView view={view} showFileName={showFileName} className={className} />;
     case "contentBlocks":
@@ -97,7 +101,7 @@ export function summarizeResultView(view: ToolResultView): string | null {
     case "terminal":
       return view.exitCode !== undefined && view.exitCode !== 0 ? `exit ${view.exitCode}` : null;
     case "search":
-      return `${view.count} ${view.count === 1 ? "match" : "matches"}`;
+      return searchCountLabel(view.count, view.kind);
     case "list":
       return `${view.count} ${view.count === 1 ? "item" : "items"}`;
     default:
@@ -230,42 +234,158 @@ function TerminalResultView({ view, className }: { view: TerminalView; className
 // Search / List
 // ---------------------------------------------------------------------------
 
+type SearchView = Extract<ToolResultView, { type: "search" }>;
+
+/** "N files" / "N matches" — the noun follows the search subtype. */
+function searchCountLabel(count: number, kind: SearchView["kind"]): string {
+  if (kind === "files") {
+    return `${count} ${count === 1 ? "file" : "files"}`;
+  }
+  return `${count} ${count === 1 ? "match" : "matches"}`;
+}
+
+/**
+ * Renders a search result with a subtype-aware treatment.
+ *
+ * - **File-name search** (`kind: "files"` — glob / file_search): the matches are
+ *   paths, rendered as a clickable {@link FilePathLink} list (filename-first,
+ *   full path on hover, opens on GitHub or copies locally).
+ * - **Content search** (`kind: "content"` — grep): the matches are lines,
+ *   grouped under their file with `line: text` rows; matches with no file
+ *   association (the native grep shape) render as a flat monospace list.
+ *
+ * The count header uses the engine's authoritative `count` (which can exceed the
+ * returned matches when `truncated`), and a "showing first N" note makes a
+ * capped result honest instead of silently partial. Empty results name the
+ * subtype ("No files found" vs "No matches") — the query lives in the owning row
+ * header, so it is not restated here.
+ */
 function SearchResultView({
-  matches,
-  count,
+  view,
+  showCount = true,
   className,
 }: {
-  matches: readonly ToolSearchMatch[];
-  count: number;
+  view: SearchView;
+  showCount?: boolean;
   className?: string;
 }) {
-  if (count === 0) {
-    return <p className={cn("text-xs text-muted-foreground", className)}>No matches</p>;
+  const { matches, count, kind, truncated } = view;
+
+  if (count === 0 && matches.length === 0) {
+    return (
+      <p className={cn("text-xs text-muted-foreground", className)}>
+        {kind === "files" ? "No files found" : "No matches"}
+      </p>
+    );
   }
+
+  // The owning row header already shows the count (summarizeResultView), so when
+  // suppressed the body shows only the truncation note — the one fact the header
+  // does not carry. When standalone (showCount), it leads with the full count.
+  const header = showCount
+    ? `${searchCountLabel(count, kind)}${truncated ? ` \u00b7 showing first ${matches.length}` : ""}`
+    : truncated
+      ? `Showing first ${matches.length} of ${count}`
+      : null;
+
   return (
     <div className={cn("space-y-1", className)}>
-      <span className="font-medium text-muted-foreground">
-        {count} {count === 1 ? "match" : "matches"}
-      </span>
-      <div className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle font-mono text-xs">
-        {matches.map((m, i) => (
-          <div key={i} className="whitespace-pre-wrap break-words border-b border-border-muted px-2 py-0.5 text-foreground last:border-b-0">
-            {m.file && <span className="text-primary">{m.file}{m.line !== undefined ? `:${m.line}` : ""} </span>}
-            <span className={m.file ? "text-muted-foreground" : "text-foreground"}>{m.text}</span>
-          </div>
-        ))}
-      </div>
+      {header && <span className="font-medium text-muted-foreground">{header}</span>}
+      {kind === "files" ? (
+        <SearchFileList matches={matches} />
+      ) : (
+        <SearchContentMatches matches={matches} />
+      )}
     </div>
   );
+}
+
+/** Bounded, scrollable shell shared by both search result treatments. */
+function SearchResultBox({ children }: { children: ReactNode }) {
+  return (
+    <div className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle text-xs">
+      {children}
+    </div>
+  );
+}
+
+/** A clickable list of file-name search hits. */
+function SearchFileList({ matches }: { matches: readonly ToolSearchMatch[] }) {
+  return (
+    <SearchResultBox>
+      {matches.map((m, i) => (
+        <div
+          key={i}
+          className="border-b border-border-muted px-2 py-0.5 last:border-b-0"
+        >
+          <FilePathLink path={m.file ?? m.text} dirDisplay="dim" className="text-xs" />
+        </div>
+      ))}
+    </SearchResultBox>
+  );
+}
+
+/** Content (grep) matches, grouped under their file when one is provided. */
+function SearchContentMatches({ matches }: { matches: readonly ToolSearchMatch[] }) {
+  const groups = useMemo(() => groupMatchesByFile(matches), [matches]);
+  return (
+    <SearchResultBox>
+      {groups.map((group, gi) => (
+        <div key={gi} className="border-b border-border-muted last:border-b-0">
+          {group.file && (
+            <div className="bg-muted-faint px-2 py-0.5">
+              <FilePathLink path={group.file} dirDisplay="dim" className="text-xs" />
+            </div>
+          )}
+          {group.matches.map((m, i) => (
+            <div
+              key={i}
+              className="whitespace-pre-wrap break-words px-2 py-0.5 font-mono text-foreground"
+            >
+              {m.line !== undefined && (
+                <span className="select-none text-muted-foreground-subtle">{m.line}: </span>
+              )}
+              {m.text}
+            </div>
+          ))}
+        </div>
+      ))}
+    </SearchResultBox>
+  );
+}
+
+interface MatchGroup {
+  readonly file?: string;
+  readonly matches: ToolSearchMatch[];
+}
+
+/**
+ * Groups consecutive matches that share a file into one group, preserving order.
+ * Matches with no file association fall into their own file-less group so the
+ * native grep shape (line text only) still renders as a flat list.
+ */
+function groupMatchesByFile(matches: readonly ToolSearchMatch[]): MatchGroup[] {
+  const groups: MatchGroup[] = [];
+  for (const m of matches) {
+    const last = groups[groups.length - 1];
+    if (last && last.file === m.file) {
+      last.matches.push(m);
+    } else {
+      groups.push({ file: m.file, matches: [m] });
+    }
+  }
+  return groups;
 }
 
 function ListResultView({
   entries,
   count,
+  showCount = true,
   className,
 }: {
   entries: readonly string[];
   count: number;
+  showCount?: boolean;
   className?: string;
 }) {
   if (count === 0) {
@@ -273,9 +393,11 @@ function ListResultView({
   }
   return (
     <div className={cn("space-y-1", className)}>
-      <span className="font-medium text-muted-foreground">
-        {count} {count === 1 ? "item" : "items"}
-      </span>
+      {showCount && (
+        <span className="font-medium text-muted-foreground">
+          {count} {count === 1 ? "item" : "items"}
+        </span>
+      )}
       <div className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle font-mono text-xs">
         {entries.map((e, i) => (
           <div key={i} className="truncate px-2 py-0.5 text-foreground">
