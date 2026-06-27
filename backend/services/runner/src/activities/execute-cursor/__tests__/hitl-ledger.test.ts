@@ -52,7 +52,7 @@ import {
   buildApprovalGrants,
   grantToken,
 } from "../approval-state.js";
-import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration } from "../message-translator.js";
+import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, collapseRedundantToolCallTwins } from "../message-translator.js";
 import { buildFileChange } from "../../../shared/file-change.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
@@ -741,6 +741,199 @@ describe("reconcileDeniedToolCalls — duplicate denial-twin collapse", () => {
     // Untouched — it carries its own file_changes, so it is not a bare twin.
     expect(withChange.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(withChange.fileChanges).toHaveLength(1);
+  });
+});
+
+// The terminal/resume path has no denial ledger (the tool is already granted), so
+// reconcileDeniedToolCalls never runs. The shared routine runs directly at the
+// terminal finalize and must collapse the duplicate-edit shapes observed in
+// production data while preserving genuine distinct work and every non-file tool.
+describe("collapseRedundantToolCallTwins — terminal-path twin collapse", () => {
+  function editWithChange(id: string, path: string): ToolCall {
+    return toolCall({
+      id,
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { path },
+      argsPreview: JSON.stringify({ path }),
+      result: "success",
+      fileChanges: [
+        buildFileChange({
+          path,
+          absolutePath: `/root/${path}`,
+          changeType: FileChangeType.MODIFY,
+          captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+          unifiedDiff: "@@ real @@",
+        }),
+      ],
+    });
+  }
+
+  function bareEdit(id: string, path: string, overrides: Partial<ToolCall> = {}): ToolCall {
+    return toolCall({
+      id,
+      name: "edit",
+      args: { path },
+      argsPreview: JSON.stringify({ path }),
+      ...overrides,
+    });
+  }
+
+  it("collapses a stuck RUNNING twin beside the approved COMPLETED edit (the screenshot)", () => {
+    const approved = editWithChange("tool-approved", "notes.md");
+    const zombie = bareEdit("tool-zombie", "notes.md", {
+      status: ToolCallStatus.TOOL_CALL_RUNNING,
+    });
+    const messages = [aiMessageWith([approved, zombie])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(1);
+    expect(approved.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(approved.fileChanges).toHaveLength(1);
+    expect(zombie.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(zombie.requiresApproval).toBe(false);
+    expect(zombie.argsPreview).toBe("");
+    expect(zombie.fileChanges).toHaveLength(0);
+    // Both committed ids are preserved (append-only by construction).
+    expect(messages[0].toolCalls.map((t) => t.id)).toEqual(["tool-approved", "tool-zombie"]);
+  });
+
+  it("collapses a denied-as-success COMPLETED twin whose result is a degenerate empty string", () => {
+    const approved = editWithChange("tool-approved", "notes.md");
+    // The green-check variant seen in production: COMPLETED, no file_changes, and
+    // a result that is the literal 2-char string `""` — truthy, so a result-based
+    // discriminator would wrongly keep it. A file edit's change is its diff.
+    const twin = bareEdit("tool-twin", "notes.md", {
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      result: '""',
+    });
+    const messages = [aiMessageWith([approved, twin])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(1);
+    expect(twin.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(approved.fileChanges).toHaveLength(1);
+  });
+
+  it("keeps exactly one representative when every attempt produced no change", () => {
+    // Two COMPLETED edits to one path, neither carrying a diff (both the empty-
+    // result green-check). No diff-carrier and no gate — keep one card, hide the
+    // rest, so the resource never renders as a duplicate.
+    const first = bareEdit("tool-a", "notes.md", {
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      result: '""',
+    });
+    const second = bareEdit("tool-b", "notes.md", {
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      result: '""',
+    });
+    const messages = [aiMessageWith([first, second])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(1);
+    const visible = messages[0].toolCalls.filter(
+      (t) => t.status !== ToolCallStatus.TOOL_CALL_SKIPPED,
+    );
+    expect(visible).toHaveLength(1);
+  });
+
+  it("prefers a settled attempt over a stuck RUNNING zombie as the survivor", () => {
+    const zombie = bareEdit("tool-running", "notes.md", {
+      status: ToolCallStatus.TOOL_CALL_RUNNING,
+    });
+    const done = bareEdit("tool-done", "notes.md", {
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      result: '""',
+    });
+    const messages = [aiMessageWith([zombie, done])];
+
+    collapseRedundantToolCallTwins(messages);
+
+    expect(done.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(zombie.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  });
+
+  it("keeps BOTH genuine distinct edits to the same file (each carries its own diff)", () => {
+    const editA = editWithChange("edit-a", "notes.md");
+    const editB = editWithChange("edit-b", "notes.md");
+    const messages = [aiMessageWith([editA, editB])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(0);
+    expect(editA.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(editB.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  });
+
+  it("hides a RUNNING twin beside a WAITING_APPROVAL gate, leaving the gate intact", () => {
+    const gate = bareEdit("gate", "notes.md", {
+      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      requiresApproval: true,
+    });
+    const zombie = bareEdit("zombie", "notes.md", {
+      status: ToolCallStatus.TOOL_CALL_RUNNING,
+    });
+    const messages = [aiMessageWith([gate, zombie])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(1);
+    expect(gate.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(zombie.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  });
+
+  it("keeps BOTH identical shell runs that each produced output (output is their change)", () => {
+    const runA = toolCall({
+      id: "sh-a",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { command: "ls" },
+      argsPreview: JSON.stringify({ command: "ls" }),
+      result: "file.txt",
+    });
+    const runB = toolCall({
+      id: "sh-b",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { command: "ls" },
+      argsPreview: JSON.stringify({ command: "ls" }),
+      result: "file.txt",
+    });
+    const messages = [aiMessageWith([runA, runB])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(0);
+    expect(runA.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(runB.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  });
+
+  it("leaves an ungated read-only duplicate untouched (out of scope)", () => {
+    const readA = toolCall({
+      id: "r-a",
+      name: "read",
+      status: ToolCallStatus.TOOL_CALL_RUNNING,
+      args: { path: "notes.md" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+    });
+    const readB = toolCall({
+      id: "r-b",
+      name: "read",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { path: "notes.md" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+      result: "contents",
+    });
+    const messages = [aiMessageWith([readA, readB])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(0);
+    expect(readA.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    expect(readB.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 });
 

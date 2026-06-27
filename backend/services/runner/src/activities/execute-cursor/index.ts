@@ -43,7 +43,7 @@ import { resolveAgent } from "./session-lifecycle.js";
 import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
-import { MessageAccumulator, reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, cancelInProgressSubAgentProtos } from "./message-translator.js";
+import { MessageAccumulator, reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { startStallWatchdog, StallTimeoutError, formatStallFailure, type StallWatchdog } from "../../shared/stall-watchdog.js";
 import { createArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
@@ -1329,6 +1329,22 @@ async function executeCursorInner(
           );
         }
       }
+    }
+
+    // Collapse any redundant same-identity tool-call twin born this turn before
+    // the terminal persist. On a resume turn the gated tool is already granted, so
+    // there is no denial ledger and reconcileDeniedToolCalls never runs — the
+    // extra attempt the model emits beside the approved action (a stuck RUNNING
+    // zombie, a denied-reported-as-success COMPLETED, or an all-no-change double)
+    // would otherwise persist as a second "No preview available" card. The shared
+    // routine keeps the diff/output carrier and blanks the rest to hidden SKIPPED
+    // rows in place, preserving each committed id so the finalize stays append-only.
+    const collapsedTwins = collapseRedundantToolCallTwins(status.messages);
+    if (collapsedTwins > 0) {
+      console.log(
+        `ExecuteCursor collapsed ${collapsedTwins} redundant tool-call twin(s) at ` +
+          `terminal finalize (kept in place as hidden SKIPPED rows): execution=${executionId}`,
+      );
     }
 
     // NOW persist — subscriber sees COMPLETED + structured_output atomically

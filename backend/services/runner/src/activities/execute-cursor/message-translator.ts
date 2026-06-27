@@ -47,7 +47,7 @@ import {
 } from "../../shared/approval-policy.js";
 import { grantToken, toolIdentity, type DeniedLedgerEntry } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
-import { classifyTool, type ToolApprovalCategory } from "../../shared/tool-kind.js";
+import { classifyTool, toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { buildFileChange, resolveWorkspacePath } from "../../shared/file-change.js";
 import { buildGateFileChange } from "../../shared/gate-file-change.js";
 import { extractFilePath, extractWriteContent } from "../../shared/file-tools.js";
@@ -1272,20 +1272,21 @@ export async function reconcileDeniedToolCalls(
     }
   }
 
-  // 2b. Collapse same-turn duplicate denials. When the model emitted the SAME
+  // 2b. Collapse same-turn duplicate edits. When the model emitted the SAME
   //     resource twice in one turn (two call ids, one identity token), only the
   //     FIRST same-token stream call was overlaid into the gate above; any OTHER
-  //     same-token call stayed a committed FAILED row that would render as a
-  //     second, content-less card beside the gate (the reported "No preview
-  //     available" duplicate). We cannot drop it — the backend's
-  //     append-only-at-identity guard rejects a finalize that removes a
-  //     previously-committed tool-call id — so we collapse it IN PLACE to a
-  //     content-less SKIPPED row the SDK hides (isCollapsedToolCall). The id is
-  //     preserved, so the finalize stays append-only by construction.
-  const collapsed = collapseSupersededDenialTwins(messages, matchedTokens, matchedCalls);
+  //     same-token call stays a committed row (RUNNING zombie, or a
+  //     denied-reported-as-success COMPLETED) that would render as a second,
+  //     content-less card beside the gate (the reported "No preview available"
+  //     duplicate). The overlaid gate is now WAITING_APPROVAL, so the shared
+  //     routine recognizes it as the keeper and blanks the twins IN PLACE to
+  //     hidden SKIPPED rows — we cannot drop them, since the backend's
+  //     append-only-at-identity guard rejects removing a previously-committed
+  //     tool-call id, but the id is preserved so the finalize stays append-only.
+  const collapsed = collapseRedundantToolCallTwins(messages);
   if (collapsed > 0) {
     console.log(
-      `ExecuteCursor reconcile collapsed ${collapsed} duplicate denial twin(s) ` +
+      `ExecuteCursor reconcile collapsed ${collapsed} redundant tool-call twin(s) ` +
         `superseded by the approval gate (kept in place as hidden SKIPPED rows)`,
     );
   }
@@ -1336,46 +1337,118 @@ async function overlayDeniedStreamCall(
 }
 
 /**
- * Collapse the redundant same-turn denial twins of an overlaid gate.
- *
- * A twin is a streamed tool call that (a) was NOT the one overlaid into the gate,
- * (b) shares a gate's identity token (same resource, same turn), (c) is terminal
- * — FAILED (the deny surfaced as a tool failure) or COMPLETED (the green-check
- * variant where Cursor reported a denied call as success) — and (d) carries no
- * `file_changes` of its own. That is exactly the second, content-less card the
- * model produces when it emits one resource twice and both attempts are gated; it
- * proposes nothing the gate does not already show.
- *
- * The discriminator is tight on purpose: a tool that genuinely ran carries its
- * proposed change on `file_changes` (an empty write is still a WHOLE_FILE CREATE
- * with an empty body), so requiring empty `file_changes` AND a shared gate token
- * means only a denial artifact is ever collapsed — never real work, the exact
- * risk the prior change cited when it scoped this out.
- *
- * The backend's append-only-at-identity guard forbids DROPPING a committed
- * tool-call id, so we collapse the twin IN PLACE (see {@link collapseDenialTwin})
- * rather than remove it: a content-less SKIPPED row the SDK hides
- * (`isCollapsedToolCall`). "Skipped" is the honest terminal state — the twin did
- * not execute; the gate's single approved attempt will. Returns the number
- * collapsed, for observability.
+ * Recognizes a tool call already blanked to a hidden collapsed row, so a second
+ * pass never re-collapses it (and never miscounts). Mirrors the SDK's
+ * `isCollapsedToolCall` shape without importing across the runner/SDK seam.
  */
-function collapseSupersededDenialTwins(
-  messages: AgentMessage[],
-  matchedTokens: ReadonlySet<string>,
-  gateCalls: ReadonlySet<ToolCall>,
-): number {
-  let collapsed = 0;
+function isAlreadyCollapsed(tc: ToolCall): boolean {
+  return (
+    tc.status === ToolCallStatus.TOOL_CALL_SKIPPED &&
+    !tc.requiresApproval &&
+    tc.fileChanges.length === 0 &&
+    !tc.result &&
+    !tc.error &&
+    !tc.argsPreview
+  );
+}
+
+/**
+ * Whether a tool call carries a change/output of its own — the signal that it is
+ * authoritative for its resource rather than a redundant denial/cancel twin.
+ *
+ * The notion of "change" is category-aware on purpose: a file mutation's change
+ * is its proposed diff (`file_changes`) and NEVER its `result` envelope, so a
+ * denied-reported-as-success edit with a degenerate empty result (`"\"\""`) is
+ * correctly read as no-change. Every other gated tool (shell, MCP) has no
+ * `file_changes`; its "change" is its execution output, so a genuine run carries
+ * a non-empty `result` while a denied/cancelled attempt that never executed does
+ * not. This keeps two distinct shell runs (each with output) both visible while
+ * still collapsing a same-command denial twin.
+ */
+function carriesOwnChange(tc: ToolCall): boolean {
+  const category = toolApprovalCategory(tc.name);
+  if (category === "write" || category === "delete") {
+    return tc.fileChanges.length > 0;
+  }
+  return !!tc.result;
+}
+
+/**
+ * Collapse redundant same-identity tool-call twins to a single visible row.
+ *
+ * The model frequently emits the SAME gated action twice in one turn (two
+ * tool-call ids, one identity). When the first attempt is gated and the run is
+ * cancelled mid-flight, the extra attempt never receives a terminal event and
+ * persists as a stuck `RUNNING` row ("No preview available"); other variants are
+ * a denied-reported-as-success `COMPLETED` with an empty result, two no-change
+ * `COMPLETED` attempts where neither carries a change, or — on the denial path —
+ * a `FAILED` twin beside the overlaid gate. All render as a duplicate card beside
+ * the real action (or the approval gate). This is the recurring duplicate-card
+ * defect, most visible for file edits but shared by every gated tool family.
+ *
+ * The routine is harness-agnostic and a pure function of `messages`:
+ *
+ * 1. Scope to GATED identities — file mutations (`write`/`delete`) and shell key
+ *    on their cross-taxonomy category; MCP tools are recognized by their server
+ *    slug. A same-turn duplicate of a gated tool is a denial/cancel artifact, not
+ *    meaningful repetition. The category is name-derived (via {@link toolIdentity}
+ *    -> approvalCategory), so a twin cancelled before classification (empty
+ *    `toolKind`) is still scoped via its name (`edit` -> `write`). Ungated
+ *    read-only tools are left untouched.
+ * 2. Group those calls by `toolCallIdentityToken` — the SAME `toolIdentity` used
+ *    for denial correlation and resume grants, so scope and grouping cannot drift.
+ * 3. In each group, the keepers carry the authoritative state for the resource: a
+ *    change/output of their own (see {@link carriesOwnChange}) or the pending
+ *    approval gate (`WAITING_APPROVAL`). Two genuine distinct edits each carry
+ *    their own `file_changes`, so both are kept and both render. If NO member
+ *    qualifies (every attempt produced no change), keep exactly ONE representative
+ *    — preferring a terminal attempt over a stuck `RUNNING` zombie — so the
+ *    resource still shows a single card. Every non-keeper is blanked in place to a
+ *    hidden `SKIPPED` row (see {@link collapseDenialTwin}).
+ *
+ * It is deliberately subtractive — it only ever HIDES a row, never invents a
+ * terminal state. The committed `id` is preserved on every collapse, so the
+ * finalize stays append-only by construction and the backend's
+ * append-only-at-identity guard accepts it. Returns the number collapsed, for
+ * observability.
+ */
+export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number {
+  const groups = new Map<string, ToolCall[]>();
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
-      if (gateCalls.has(tc)) continue; // the overlaid gate itself
-      if (
-        tc.status !== ToolCallStatus.TOOL_CALL_FAILED &&
-        tc.status !== ToolCallStatus.TOOL_CALL_COMPLETED
-      ) {
-        continue;
-      }
-      if (tc.fileChanges.length > 0) continue; // distinct proposed work — keep
-      if (!matchedTokens.has(toolCallIdentityToken(tc))) continue;
+      const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
+      const gated = tc.mcpServerSlug
+        ? true
+        : id.key === "write" || id.key === "delete" || id.key === "shell";
+      if (!gated) continue;
+      const token = grantToken(id.key, id.salient);
+      const bucket = groups.get(token);
+      if (bucket) bucket.push(tc);
+      else groups.set(token, [tc]);
+    }
+  }
+
+  let collapsed = 0;
+  for (const group of groups.values()) {
+    if (group.length < 2) continue; // a lone call is never a twin
+
+    const keepers = new Set<ToolCall>(
+      group.filter(
+        (tc) =>
+          carriesOwnChange(tc) ||
+          tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      ),
+    );
+    // All attempts produced no change (e.g. denied-reported-as-success): keep one
+    // representative, preferring a settled outcome over a stuck RUNNING zombie.
+    if (keepers.size === 0) {
+      const terminal = [...group].reverse().find((tc) => isTerminalToolStatus(tc.status));
+      keepers.add(terminal ?? group[0]);
+    }
+
+    for (const tc of group) {
+      if (keepers.has(tc)) continue;
+      if (isAlreadyCollapsed(tc)) continue;
       collapseDenialTwin(tc);
       collapsed++;
     }
