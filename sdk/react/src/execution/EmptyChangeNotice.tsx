@@ -5,16 +5,21 @@ import { cn } from "@stigmer/theme";
 /**
  * Which empty file-change state to describe.
  *
- * - `"empty-create"` — a new file with no content. Truthful only where the
- *   change type is authoritative (the approval gate's proto `FileChange`).
- * - `"no-preview"` — the change carries no renderable diff/content (e.g. a
- *   resume placeholder gate that knows only the path). Never claims emptiness it
- *   cannot prove.
+ * - `"empty-create"` — a new file proven to have no content (the approval gate's
+ *   proto `FileChange` carries `changeType === CREATE` with an empty body).
+ * - `"create"` — a new file IS being written, but its proposed content could not
+ *   be captured for preview (the rare content-less FILE_WRITE gate, e.g. a
+ *   no-stream denial synthesis). Distinguished from `empty-create` because the
+ *   file is not proven empty — only proven to be a write/create.
+ * - `"no-preview"` — the change carries no renderable diff/content AND cannot be
+ *   proven to be a create (e.g. a path-only resume placeholder for an edit).
+ *   Never claims emptiness or creation it cannot prove.
  */
-export type EmptyChangeKind = "empty-create" | "no-preview";
+export type EmptyChangeKind = "empty-create" | "create" | "no-preview";
 
 const MESSAGE: Record<EmptyChangeKind, string> = {
   "empty-create": "New empty file",
+  create: "New file — preview unavailable",
   "no-preview": "No preview available for this change",
 };
 

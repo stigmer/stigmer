@@ -1210,10 +1210,26 @@ export class MessageAccumulator {
  * approved once should produce one approval regardless of how many times the
  * agent re-attempted it within the turn.
  *
- * If a ledger denial has no matching streamed tool call (rare — Cursor normally
- * emits a tool_call event for every attempt), a placeholder WAITING_APPROVAL
- * tool call is synthesized so the gate still surfaces and never renders as a
- * silent success.
+ * Correlation runs in two passes. The first matches the streamed token to a
+ * ledger token byte-for-byte (the common case). The hook, however, records its
+ * token from the RAW path Cursor hands it — a bash script cannot normalize a
+ * path against the workspace root — so an ABSOLUTE hook `file_path` against a
+ * RELATIVE stream `path` (or vice versa) yields two different raw tokens for one
+ * edit and the exact pass misses. The runner CAN normalize, so a second pass
+ * matches any still-unmatched FILE denial to a streamed call by (category,
+ * workspace-normalized path) and overlays the REAL streamed call — reusing its
+ * captured `file_changes`, never appending a content-less placeholder beside it.
+ * This is the difference between one honest gate (with its diff) and two cards,
+ * one of which reads "No preview available". It reuses the single tool-identity
+ * definition + `resolveWorkspacePath`; it introduces no parallel identity.
+ *
+ * Only after BOTH passes miss is a placeholder WAITING_APPROVAL tool call
+ * synthesized (rare — Cursor normally emits a tool_call event for every
+ * attempt), so the gate still surfaces and never renders as a silent success.
+ * Critically, every match overlays a call IN PLACE (the committed id is
+ * preserved): the backend's append-only-at-identity transcript guard rejects a
+ * finalize that drops a previously-committed tool-call id, so reconciliation may
+ * only reconcile entries in place, never remove them.
  *
  * For an overlaid edit-family call, {@link buildDeniedEditFileChange} attaches a
  * synthesized HUNK_ONLY diff (the call was gated before its real hunk arrived),
@@ -1231,37 +1247,57 @@ export function reconcileDeniedToolCalls(
 ): ToolCall[] {
   if (ledger.length === 0) return [];
 
-  // One approval per denied identity; a resource re-attempted within the turn
-  // is gated under the same token and collapses to a single approval.
+  // One approval per denied identity (token); AND one overlay per streamed proto
+  // (object identity) so the normalized fallback never double-assigns a call.
   const deniedTokens = new Set(ledger.map((e) => e.token));
-  const matched = new Set<string>();
+  const matchedTokens = new Set<string>();
+  const matchedCalls = new Set<ToolCall>();
   const result: ToolCall[] = [];
 
-  // 1. Overlay WAITING_APPROVAL onto the streamed tool calls that were denied.
+  // 1. Exact overlay: the streamed token equals a ledger denial token byte-for-
+  //    byte (the path form agreed on both sides). A resource re-attempted within
+  //    the turn shares one token and collapses to a single approval.
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
       const token = toolCallIdentityToken(tc);
-      if (!deniedTokens.has(token) || matched.has(token)) continue;
-      markWaitingApproval(tc, mergedPolicies);
-      // Give the approval card a real diff. A denied edit's hunk never arrived
-      // (it was gated before it ran), so synthesize it from the proposed
-      // strings; a denied write already carries its WHOLE_FILE CREATE from the
-      // stream path, so only fill an empty fileChanges — never clobber it.
-      if (tc.fileChanges.length === 0) {
-        const fileChange = buildDeniedEditFileChange(tc.name, toolCallArgs(tc), workspaceRoot);
-        if (fileChange) tc.fileChanges = [fileChange];
-      }
-      matched.add(token);
+      if (!deniedTokens.has(token) || matchedTokens.has(token)) continue;
+      overlayDeniedStreamCall(tc, mergedPolicies, workspaceRoot);
+      matchedTokens.add(token);
+      matchedCalls.add(tc);
       result.push(tc);
     }
   }
 
-  // 2. Synthesize a tool call for any denial that never produced a stream event.
-  // Rare with correct correlation (Cursor emits a tool_call for every attempt),
-  // so this is a defensive net that still surfaces the gate rather than letting
-  // a denied tool render as a silent success.
+  // 2. Normalized-path fallback (the abs-vs-rel drift fix): for each still-
+  //    unmatched FILE denial, match a streamed call by (category, workspace-
+  //    normalized path) and overlay the REAL call — never a content-less
+  //    placeholder beside it. Requires the workspace root to normalize; shell/MCP
+  //    denials (no path) and resumes without a root fall through to synthesis.
+  if (workspaceRoot) {
+    for (const entry of ledger) {
+      if (matchedTokens.has(entry.token)) continue;
+      const decoded = decodeIdentityToken(entry.token);
+      if (!decoded) continue;
+      const wanted = normalizedFileSalient(decoded.key, decoded.salient, workspaceRoot);
+      if (!wanted) continue; // non-file category — exact correlation only
+      const tc = findUnmatchedStreamCallByNormalizedSalient(
+        messages, matchedCalls, wanted, workspaceRoot,
+      );
+      if (!tc) continue;
+      overlayDeniedStreamCall(tc, mergedPolicies, workspaceRoot);
+      matchedTokens.add(entry.token);
+      matchedCalls.add(tc);
+      result.push(tc);
+    }
+  }
+
+  // 3. Synthesize a tool call for any denial that matched NO streamed call in
+  //    either pass (rare — Cursor emits a tool_call event for every attempt), so
+  //    the gate still surfaces rather than rendering as a silent success. After
+  //    the normalized fallback this should be ~0; the caller logs a divergence
+  //    when it is not (a synthesized id is prefixed `approval:`).
   for (const entry of ledger) {
-    if (matched.has(entry.token)) continue;
+    if (matchedTokens.has(entry.token)) continue;
     const decoded = decodeIdentityToken(entry.token);
     // Display the hook's raw tool name; carry the decoded salient so the grant
     // rebuilt from this tool call on reinvocation keys on the same resource.
@@ -1269,11 +1305,75 @@ export function reconcileDeniedToolCalls(
     const salient = decoded?.salient ?? "";
     const tc = synthesizeWaitingApprovalToolCall(displayName, salient, entry.token, mergedPolicies);
     appendToolCallToLastAiMessage(messages, tc);
-    matched.add(entry.token);
+    matchedTokens.add(entry.token);
     result.push(tc);
   }
 
   return result;
+}
+
+/**
+ * Overlay WAITING_APPROVAL onto a streamed tool call the hook denied. Mutates
+ * `tc` in place — the call keeps its committed id, so the backend's
+ * append-only-at-identity transcript guard accepts the finalize (an in-place
+ * status change is a reconcile, not a drop). The single overlay routine for both
+ * the exact and the normalized correlation passes, so the gate diff can never
+ * diverge between them: a denied edit's hunk never arrived (it was gated before
+ * it ran), so synthesize it from the proposed strings; a denied write already
+ * carries its WHOLE_FILE CREATE from the stream path, so only fill an empty
+ * fileChanges — never clobber it.
+ */
+function overlayDeniedStreamCall(
+  tc: ToolCall,
+  mergedPolicies: Map<string, MergedToolPolicy> | undefined,
+  workspaceRoot: string | undefined,
+): void {
+  markWaitingApproval(tc, mergedPolicies);
+  if (tc.fileChanges.length === 0) {
+    const fileChange = buildDeniedEditFileChange(tc.name, toolCallArgs(tc), workspaceRoot);
+    if (fileChange) tc.fileChanges = [fileChange];
+  }
+}
+
+/**
+ * The workspace-normalized identity of a FILE approval category's salient, or
+ * undefined for a non-file category (shell, whose salient is a command, not a
+ * path) or an empty salient. Both the hook-decoded denial salient and a streamed
+ * call's salient pass through this, so an absolute-vs-relative path difference
+ * collapses to one comparable key (`category + "\n" + relPath`). Restricting to
+ * write/delete keeps a shell command from being mangled by path normalization.
+ */
+function normalizedFileSalient(
+  category: string,
+  salient: string,
+  workspaceRoot: string,
+): string | undefined {
+  if ((category !== "write" && category !== "delete") || !salient) return undefined;
+  const { path } = resolveWorkspacePath(salient, workspaceRoot, /* virtualRoot */ false);
+  return `${category}\n${path}`;
+}
+
+/**
+ * Find the first not-yet-overlaid streamed tool call whose workspace-normalized
+ * (category, path) equals `wanted`. Skips calls already claimed by an earlier
+ * denial so several concurrent file denials each overlay a distinct stream call.
+ */
+function findUnmatchedStreamCallByNormalizedSalient(
+  messages: AgentMessage[],
+  matchedCalls: ReadonlySet<ToolCall>,
+  wanted: string,
+  workspaceRoot: string,
+): ToolCall | undefined {
+  for (const msg of messages) {
+    for (const tc of msg.toolCalls) {
+      if (matchedCalls.has(tc)) continue;
+      const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
+      if (normalizedFileSalient(id.key, id.salient, workspaceRoot) === wanted) {
+        return tc;
+      }
+    }
+  }
+  return undefined;
 }
 
 /**

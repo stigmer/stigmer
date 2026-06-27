@@ -350,6 +350,48 @@ func TestProjectToolCallCopiesFileChanges(t *testing.T) {
 	}
 }
 
+// TestProjectToolCallSingleGatePerCreateCarriesContent verifies the projection
+// shape the Cursor runner persists after its denial-correlation fix: ONE
+// WAITING_APPROVAL create carrying its WHOLE_FILE CREATE content. A settled
+// (FAILED) tool call for the same file — a leftover the append-only-at-identity
+// transcript guard forbids removing — must NOT project a second approval (it is
+// not WAITING_APPROVAL), and the create's content must reach the gate so the UI
+// renders the new-file diff rather than "No preview available". Mirrors the Java
+// PendingApprovalComputerTest case of the same name.
+func TestProjectToolCallSingleGatePerCreateCarriesContent(t *testing.T) {
+	gated := makeToolCall("tc-create", "write_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+	gated.FileChanges = []*agentexecutionv1.FileChange{
+		{
+			Path:         "notes.md",
+			ChangeType:   agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_CREATE,
+			CaptureLevel: agentexecutionv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE,
+			After:        &agentexecutionv1.FileContent{Body: &agentexecutionv1.FileContent_Inline{Inline: "# Notes\n"}},
+		},
+	}
+	settledDuplicate := makeToolCall("tc-create-dup", "write_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_FAILED, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+
+	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(gated, settledDuplicate)}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1 (only the WAITING_APPROVAL create projects)", len(got))
+	}
+	if got[0].GetToolCallId() != "tc-create" {
+		t.Errorf("ToolCallId = %q, want %q", got[0].GetToolCallId(), "tc-create")
+	}
+	changes := got[0].GetFileChanges()
+	if len(changes) != 1 {
+		t.Fatalf("got %d file changes, want 1", len(changes))
+	}
+	if changes[0].GetChangeType() != agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_CREATE {
+		t.Errorf("FileChange.ChangeType = %v, want FILE_CHANGE_TYPE_CREATE", changes[0].GetChangeType())
+	}
+	if changes[0].GetAfter().GetInline() != "# Notes\n" {
+		t.Errorf("FileChange.After = %q, want %q", changes[0].GetAfter().GetInline(), "# Notes\n")
+	}
+	if changes[0].GetBefore() != nil {
+		t.Errorf("FileChange.Before = %v, want nil for a create", changes[0].GetBefore())
+	}
+}
+
 // TestProjectToolCallNoFileChangesStaysEmpty verifies a non-file tool projects an
 // empty file_changes list (the gate falls back to the args preview).
 func TestProjectToolCallNoFileChangesStaysEmpty(t *testing.T) {

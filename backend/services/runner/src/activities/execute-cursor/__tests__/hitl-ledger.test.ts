@@ -50,6 +50,7 @@ import {
   grantToken,
 } from "../approval-state.js";
 import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration } from "../message-translator.js";
+import { buildFileChange } from "../../../shared/file-change.js";
 import { generateHookScript } from "../hook-script.js";
 import type { MergedToolPolicy } from "../approval-policy.js";
 
@@ -416,6 +417,135 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
 
     expect(grants).toHaveLength(1);
     expect(grantToken(grants[0].key, grants[0].salient)).toBe(writeToken);
+  });
+});
+
+// The hook computes its denial identity token from the RAW path Cursor hands it
+// (it is a bash script and cannot normalize against the workspace root), while
+// the stream event may carry the same file under a different path FORM (the
+// classic case: an ABSOLUTE file_path in the hook input vs. a RELATIVE path in
+// the stream). Their raw tokens then differ, exact correlation misses, and the
+// reconcile would synthesize a content-less WAITING_APPROVAL placeholder BESIDE
+// the real streamed call — two cards for one edit, the gate showing "No preview
+// available" because the synthesized placeholder carries no file_changes. These
+// pin the runner-side normalized-path fallback that overlays the REAL streamed
+// call instead (guard-safe: it reuses the already-committed id, never drops one,
+// and the captured new-file content survives onto the gate).
+describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)", () => {
+  it("overlays the real streamed CREATE when the hook salient is absolute but the stream path is relative", () => {
+    // A denied write streamed (and was committed) as TOOL_CALL_FAILED carrying
+    // its WHOLE_FILE CREATE content; the hook recorded the denial under the
+    // absolute path, so the raw tokens do not match.
+    const streamed = toolCall({
+      id: "stream-create",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", contents: "# Notes\n" },
+      fileChanges: [
+        buildFileChange({
+          path: "notes.md",
+          absolutePath: "/root/notes.md",
+          changeType: FileChangeType.CREATE,
+          captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+          after: "# Notes\n",
+        }),
+      ],
+    });
+    const messages = [aiMessageWith([streamed])];
+
+    const reconciled = reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: grantToken("write", "/root/notes.md") }],
+      undefined,
+      "/root",
+    );
+
+    // No synthesized placeholder was appended; the only tool call is the real
+    // streamed one (its committed id preserved → backend append-only guard-safe).
+    const ids = messages.flatMap((m) => m.toolCalls.map((t) => t.id));
+    expect(ids).toEqual(["stream-create"]);
+    expect(ids.some((id) => id.startsWith("approval:"))).toBe(false);
+
+    // The streamed call was overlaid in place...
+    expect(streamed.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(streamed.requiresApproval).toBe(true);
+    // ...and its captured new-file content survived, so the gate shows a real
+    // diff rather than "No preview available".
+    expect(streamed.fileChanges).toHaveLength(1);
+    expect(streamed.fileChanges[0].changeType).toBe(FileChangeType.CREATE);
+    const after = streamed.fileChanges[0].after;
+    expect(after?.body.case).toBe("inline");
+    expect(after?.body.case === "inline" ? after.body.value : undefined).toBe("# Notes\n");
+
+    // Exactly one gated tool call results.
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0].id).toBe("stream-create");
+  });
+
+  it("overlays a denied EDIT under abs/rel drift and synthesizes its hunk via the shared overlay path", () => {
+    const streamed = toolCall({
+      id: "stream-edit",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "src/app.ts", old_string: "alpha", new_string: "beta" },
+    });
+    const messages = [aiMessageWith([streamed])];
+
+    reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: grantToken("write", "/root/src/app.ts") }],
+      undefined,
+      "/root",
+    );
+
+    const ids = messages.flatMap((m) => m.toolCalls.map((t) => t.id));
+    expect(ids).toEqual(["stream-edit"]);
+    expect(streamed.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    // The gate diff is synthesized from the proposed strings through the same
+    // overlay path the exact-token branch uses.
+    expect(streamed.fileChanges).toHaveLength(1);
+    expect(streamed.fileChanges[0].captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
+  });
+
+  it("still synthesizes a placeholder when NO streamed call matches even after normalization", () => {
+    // The genuine no-stream-event denial (rare) must still surface a gate.
+    const messages = [aiMessageWith([])];
+
+    const reconciled = reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: grantToken("write", "/root/ghost.md") }],
+      undefined,
+      "/root",
+    );
+
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0].status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(reconciled[0].id.startsWith("approval:")).toBe(true);
+  });
+
+  it("does not overlay a DIFFERENT file that happens to be denied (no false normalized match)", () => {
+    // A streamed create for one file must not absorb a denial for another file
+    // just because the fallback ran — normalization is per-path.
+    const streamed = toolCall({
+      id: "stream-other",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "other.md", contents: "x" },
+    });
+    const messages = [aiMessageWith([streamed])];
+
+    const reconciled = reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: grantToken("write", "/root/notes.md") }],
+      undefined,
+      "/root",
+    );
+
+    // The unrelated streamed call is untouched; the denial is satisfied by a
+    // synthesized placeholder for the actually-denied file.
+    expect(streamed.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0].id).toBe("approval:" + grantToken("write", "/root/notes.md"));
   });
 });
 

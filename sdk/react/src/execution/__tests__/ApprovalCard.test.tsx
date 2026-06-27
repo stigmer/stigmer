@@ -572,4 +572,26 @@ describe("ApprovalCard file-change diff", () => {
     // Filename once — header only.
     expect(screen.getAllByText("notes.md")).toHaveLength(1);
   });
+
+  it("shows a 'new file' notice (not 'no preview') for a content-less FILE_WRITE create gate", () => {
+    // The rare residual after the runner's correlation fix: a whole-file write
+    // gate that carries only its path (no captured content/diff — a no-stream
+    // synthesis). FILE_WRITE is modeled as a create throughout the runner, so the
+    // authoritative toolKind lets the gate say plainly that a new file is being
+    // written rather than the misleading non-committal "No preview available".
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-new-file",
+      toolName: "write_file",
+      toolKind: ToolKind.FILE_WRITE,
+      argsPreview: '{"path":"notes.md"}',
+      // fileChanges intentionally empty; no content in args.
+    });
+
+    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
+
+    expect(screen.getByText("New file — preview unavailable")).toBeTruthy();
+    expect(screen.queryByText("No preview available for this change")).toBeNull();
+    // Filename once — header only.
+    expect(screen.getAllByText("notes.md")).toHaveLength(1);
+  });
 });

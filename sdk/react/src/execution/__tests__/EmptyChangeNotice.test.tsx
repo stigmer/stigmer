@@ -16,4 +16,9 @@ describe("EmptyChangeNotice", () => {
     render(<EmptyChangeNotice kind="no-preview" />);
     expect(screen.getByText("No preview available for this change")).toBeTruthy();
   });
+
+  it("renders a 'new file' message for a create whose content could not be captured", () => {
+    render(<EmptyChangeNotice kind="create" />);
+    expect(screen.getByText("New file — preview unavailable")).toBeTruthy();
+  });
 });

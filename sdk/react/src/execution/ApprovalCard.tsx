@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import {
   describeApprovalPolicySource,
@@ -322,7 +322,14 @@ export function ApprovalCardBody({
       />
     ));
   } else if (isWriteEdit && writeContent === null) {
-    preview = <EmptyChangeNotice kind="no-preview" />;
+    // No capture and no proposed content. A whole-file write is modeled as a
+    // create throughout the runner (FILE_WRITE -> CREATE), so the authoritative
+    // toolKind lets the gate say plainly that a new file is being written rather
+    // than the misleading non-committal "no preview". An edit (modify) cannot be
+    // proven a create, so it keeps the non-committal notice.
+    const kind =
+      pendingApproval.toolKind === ToolKind.FILE_WRITE ? "create" : "no-preview";
+    preview = <EmptyChangeNotice kind={kind} />;
   } else if (parsedArgs) {
     preview = (
       <ToolArgsView

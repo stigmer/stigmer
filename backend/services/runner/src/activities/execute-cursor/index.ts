@@ -945,6 +945,22 @@ async function executeCursorInner(
       mergedPolicies,
       primaryWorkspaceDir,
     );
+    // Observability: a synthesized placeholder (id `approval:*`) means a denial
+    // correlated to NO streamed tool call in either the exact or the normalized
+    // pass. After the normalized-path fallback this should be ~0; a non-zero rate
+    // is the early-warning signal of a NEW identity drift (the gate would then
+    // show "No preview available" with no diff). Logged, not thrown — the
+    // synthesized gate still safely surfaces the approval.
+    const synthesizedGateCount = deniedToolCalls.filter((tc) =>
+      tc.id.startsWith("approval:"),
+    ).length;
+    if (synthesizedGateCount > 0) {
+      console.warn(
+        `ExecuteCursor reconcile synthesized ${synthesizedGateCount} placeholder gate(s) ` +
+          `with no correlated stream call (execution=${executionId}); ` +
+          `possible hook/stream identity drift — gate(s) will lack a diff`,
+      );
+    }
     if (deniedToolCalls.length > 0) {
       // Deterministic clean-pause: a turn that pauses for approval must read as
       // the same shape the native harness produces — pre-tool text + the gated
