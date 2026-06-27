@@ -198,6 +198,102 @@ func TestCursorHarness_HITL_EditGate_ShowsDiff_Approve(t *testing.T) {
 	harness.AssertAgentPhase(t, editResult, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 }
 
+// TestCursorHarness_HITL_EditGate_WholeFileRewrite_ShowsDiff is the regression
+// proof for the reported bug: when the agent rewrites an EXISTING file's whole
+// contents (the Cursor SDK streams it as `edit` but the captured tool_input is a
+// whole-file `contents` shape, not `old_string`/`new_string`), the gate must
+// still show a real before/after diff — never the raw "Content [N chars]" args
+// box that the screenshot exhibited.
+//
+// Before the fix, the runner's gate builder bailed on a FILE_EDIT-classified
+// tool whose input had no old/new strings, leaving file_changes empty so the SDK
+// fell back to the args view. After the fix, the gate reads the existing file
+// from the workspace and presents a WHOLE_FILE before/after MODIFY (or a HUNK if
+// the agent chose a minimal edit). Either way the user SEES the change.
+//
+// It also logs ground truth (tool name, capture level, before/after presence)
+// and asserts there is no settled duplicate card beside the gate. Requires
+// CURSOR_API_KEY.
+func TestCursorHarness_HITL_EditGate_WholeFileRewrite_ShowsDiff(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 8*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-hitl-rewrite-diff",
+		"You are a helpful coding assistant.",
+	)
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	// Turn 1 — create a multi-line file and approve it onto disk, so turn 2 edits
+	// an EXISTING file (the precondition for a real before/after diff).
+	createExec, createWaiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Create a file called rewrite-me.txt with exactly these three lines:\n"+
+			"one\ntwo\nthree",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, createWaiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, createWaiting.GetStatus().GetPendingApprovals())
+	createResult, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		createExec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		3*time.Minute,
+	)
+	require.NoError(t, err, "turn 1 (create) should complete after approval")
+	harness.AssertAgentPhase(t, createResult, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// Turn 2 — rewrite the WHOLE file. Asking for a full replacement biases the
+	// agent toward a whole-file write/apply (the `contents` shape) rather than a
+	// minimal str-replace, which is exactly the path that previously produced an
+	// empty gate.
+	editExec, editWaiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Replace the ENTIRE contents of rewrite-me.txt with exactly these five "+
+			"lines (rewrite the whole file, do not make a minimal edit):\n"+
+			"alpha\nbeta\ngamma\ndelta\nepsilon",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, editWaiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, editWaiting.GetStatus().GetPendingApprovals(),
+		"the whole-file rewrite must pause at the approval gate")
+
+	approval := editWaiting.GetStatus().GetPendingApprovals()[0]
+	assertToolCallWaitingApproval(t, editWaiting, approval.GetToolCallId())
+
+	// Ground truth for the record, then the core regression lock: the gate shows
+	// a proposed change (non-empty file_changes + valid args_preview) — NOT the
+	// "Content [N chars]" args fallback that empty file_changes produces.
+	logGateGroundTruth(t, approval)
+	assertApprovalShowsProposedChange(t, approval)
+
+	// No settled duplicate card may sit beside the gate for the same resource.
+	assertNoSettledDuplicateForResource(t, editWaiting, approval)
+
+	editResult, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		editExec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		3*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, editExec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "turn 2 (whole-file rewrite) should complete after approval")
+	harness.AssertAgentPhase(t, editResult, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+}
+
 // TestCursorHarness_HITL_AdversarialShellWorkaround_StillGated proves the agent
 // cannot bypass the gate by "working around" a blocked file edit with the shell.
 // The Cursor shell tool is `execute` (hook `Shell`) and is gated too, so an
@@ -744,6 +840,70 @@ func assertApprovalHasWholeFileCreate(t *testing.T, approval *agentexecv1.Pendin
 		"a write gate should present the whole proposed file")
 	assert.Contains(t, fc.GetAfter().GetInline(), wantContentSubstr,
 		"the proposed content shown at the gate should contain the requested text")
+}
+
+// logGateGroundTruth records the empirical shape of a gated approval — the tool
+// name, args preview, and each file change's capture level / change type /
+// before-after presence — so a live run characterizes exactly what Cursor
+// emitted (Phase 1). Pure diagnostics: it never asserts.
+func logGateGroundTruth(t *testing.T, approval *agentexecv1.PendingApproval) {
+	t.Helper()
+	t.Logf("GATE GROUND TRUTH: tool=%q mcp=%q args_preview=%q file_changes=%d",
+		approval.GetToolName(), approval.GetMcpServerSlug(),
+		approval.GetArgsPreview(), len(approval.GetFileChanges()))
+	for i, fc := range approval.GetFileChanges() {
+		t.Logf("  file_change[%d]: path=%q change_type=%s capture_level=%s "+
+			"has_before=%t has_after=%t unified_diff_len=%d",
+			i, fc.GetPath(), fc.GetChangeType(), fc.GetCaptureLevel(),
+			fc.GetBefore() != nil, fc.GetAfter() != nil, len(fc.GetUnifiedDiff()))
+	}
+}
+
+// assertNoSettledDuplicateForResource is the duplicate-card regression lock. The
+// gate's tool call is WAITING_APPROVAL; a same-resource denial twin that the
+// runner did NOT fold would appear as a SEPARATE settled tool call (FAILED, or a
+// stray COMPLETED) carrying the same file path — the second "No preview
+// available" card in the report. After the fold, the twin is collapsed in place
+// (SKIPPED + blanked), so no settled, content-bearing duplicate for the gated
+// path remains.
+//
+// Best-effort by design (per the plan): the live duplicate depends on Cursor
+// emitting two call-ids and is non-deterministic, so this only fires when a twin
+// is actually present. The authoritative lock lives in the deterministic runner
+// unit + projector tests.
+func assertNoSettledDuplicateForResource(
+	t *testing.T,
+	exec *agentexecv1.AgentExecution,
+	approval *agentexecv1.PendingApproval,
+) {
+	t.Helper()
+	gatePath := ""
+	if len(approval.GetFileChanges()) > 0 {
+		gatePath = approval.GetFileChanges()[0].GetPath()
+	}
+	if gatePath == "" {
+		return // no resolvable resource path to correlate against
+	}
+	for _, tc := range collectToolCalls(exec.GetStatus().GetMessages()) {
+		if tc.GetId() == approval.GetToolCallId() {
+			continue // the gate itself
+		}
+		if !isGatedMutatingTool(tc.GetName()) {
+			continue
+		}
+		status := tc.GetStatus()
+		isSettledVisible := status == agentexecv1.ToolCallStatus_TOOL_CALL_FAILED ||
+			status == agentexecv1.ToolCallStatus_TOOL_CALL_COMPLETED
+		if !isSettledVisible {
+			continue
+		}
+		for _, fc := range tc.GetFileChanges() {
+			assert.NotEqualf(t, gatePath, fc.GetPath(),
+				"a settled duplicate tool call %s (%s) for the gated resource %q "+
+					"renders a second card beside the approval gate — it must be "+
+					"collapsed in place", tc.GetId(), status, gatePath)
+		}
+	}
 }
 
 // assertApprovalHasHunkDiff asserts the first file change presented at the gate

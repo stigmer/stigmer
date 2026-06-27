@@ -11,6 +11,9 @@
  * - token-correlated overlay of WAITING_APPROVAL onto streamed tool calls,
  *   INCLUDING the regression where a denied tool was reported as "completed"
  *   (the green-checkmark bug) — it must become WAITING_APPROVAL, not success
+ * - the gate's before-reading diff capture: a whole-file rewrite renders a true
+ *   before/after, an edit renders a HUNK — via the shared gate-file-change builder
+ * - in-place collapse of a same-turn duplicate denial twin (one card, not two)
  * - synthesis of a tool call when a denial produced no stream event
  * - reconstruction of adjudicated approvals from tool calls on reinvocation
  *   (pending_approvals is empty by then because the backend cleared it)
@@ -51,6 +54,8 @@ import {
 } from "../approval-state.js";
 import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration } from "../message-translator.js";
 import { buildFileChange } from "../../../shared/file-change.js";
+import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
+import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 import { generateHookScript } from "../hook-script.js";
 import type { MergedToolPolicy } from "../approval-policy.js";
 
@@ -66,6 +71,30 @@ function makeWorkspace(): string {
   const dir = mkdtempSync(join(tmpdir(), "hitl-ledger-"));
   tempDirs.push(dir);
   return dir;
+}
+
+// The gate now reads each denied file's pre-edit `before` from a WorkspaceBackend
+// (the tool was denied, so disk still holds the old content). These fakes back
+// the two reads the gate uses (exists/readFile) from an in-memory map so the
+// before/after capture is deterministic with no real IO. Rooted at "/root" so the
+// existing absolute-path assertions hold.
+const ROOT = "/root";
+
+/** A backend whose files are absent — a whole-file write gate is a CREATE. */
+function rootBackend(): WorkspaceBackend {
+  return mockWorkspaceBackend({ rootDir: ROOT });
+}
+
+/** A backend seeded with files, so an overwrite gate reads a real `before`. */
+function fileBackend(files: Record<string, string>): WorkspaceBackend {
+  return mockWorkspaceBackend({
+    rootDir: ROOT,
+    exists: async (p: string) => p in files,
+    readFile: async (p: string) => {
+      if (!(p in files)) throw new Error(`ENOENT: ${p}`);
+      return files[p];
+    },
+  });
 }
 
 // Stream tool calls use the lowercase SDK taxonomy (edit/shell/delete); the
@@ -148,7 +177,7 @@ describe("denial ledger reset/read", () => {
 });
 
 describe("reconcileDeniedToolCalls", () => {
-  it("overlays WAITING_APPROVAL onto the REAL denied tool reported as completed (the green-check bug)", () => {
+  it("overlays WAITING_APPROVAL onto the REAL denied tool reported as completed (the green-check bug)", async () => {
     // Stream reports the file mutation as `edit` (RUNNING/COMPLETED); the hook
     // denied it as `Write`. The category+salient token bridges the two so the
     // overlay lands on this exact streamed tool call — no synthesized placeholder.
@@ -163,7 +192,7 @@ describe("reconcileDeniedToolCalls", () => {
     });
     const messages = [aiMessageWith([tc])];
 
-    const reconciled = reconcileDeniedToolCalls(messages, [
+    const reconciled = await reconcileDeniedToolCalls(messages, [
       { toolName: "Write", token: grantToken("write", "gated.txt") },
     ]);
 
@@ -183,7 +212,7 @@ describe("reconcileDeniedToolCalls", () => {
     expect(tc.error).toBe("");
   });
 
-  it("resolves the MCP policy message for a denied MCP tool", () => {
+  it("resolves the MCP policy message for a denied MCP tool", async () => {
     const tc = toolCall({
       id: "c1",
       name: "apply_x",
@@ -202,7 +231,7 @@ describe("reconcileDeniedToolCalls", () => {
     ]);
 
     // MCP tools are keyed name-only (their name is consistent across layers).
-    reconcileDeniedToolCalls(messages, [
+    await reconcileDeniedToolCalls(messages, [
       { toolName: "apply_x", token: grantToken("apply_x", "") },
     ], policies);
 
@@ -210,7 +239,7 @@ describe("reconcileDeniedToolCalls", () => {
     expect(tc.approvalMessage).toBe("Apply infrastructure change");
   });
 
-  it("leaves non-denied tool calls untouched while overlaying the denied one", () => {
+  it("leaves non-denied tool calls untouched while overlaying the denied one", async () => {
     const denied = toolCall({
       id: "c1",
       name: "edit",
@@ -225,7 +254,7 @@ describe("reconcileDeniedToolCalls", () => {
     });
     const messages = [aiMessageWith([denied, allowed])];
 
-    const reconciled = reconcileDeniedToolCalls(messages, [
+    const reconciled = await reconcileDeniedToolCalls(messages, [
       { toolName: "Write", token: grantToken("write", "gated.txt") },
     ]);
 
@@ -237,25 +266,38 @@ describe("reconcileDeniedToolCalls", () => {
     expect(messages[0].toolCalls).toHaveLength(2);
   });
 
-  it("collapses repeated denials of the same resource to a single approval", () => {
+  it("collapses repeated same-resource denials to one gate and one hidden twin", async () => {
+    // Two completed-but-denied edits of the same file (the green-check duplicate).
+    // The first becomes the single gate; the second is a content-less twin that
+    // must be collapsed IN PLACE to a hidden SKIPPED row, not left as a second
+    // settled card. Neither carries file_changes, so the collapse is safe.
     const first = toolCall({ id: "c1", name: "edit", args: { path: "gated.txt" } });
     const second = toolCall({ id: "c2", name: "edit", args: { path: "gated.txt" } });
     const messages = [aiMessageWith([first, second])];
 
-    const reconciled = reconcileDeniedToolCalls(messages, [
+    const reconciled = await reconcileDeniedToolCalls(messages, [
       { toolName: "Write", token: grantToken("write", "gated.txt") },
     ]);
 
     // One approval anchor (so the backend gate resolves cleanly on one decision).
     expect(reconciled).toHaveLength(1);
     expect(first.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-    expect(second.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    // The twin is collapsed in place: SKIPPED, content-less, no approval — the SDK
+    // hides it (isCollapsedToolCall), so one resource renders one card. Its id is
+    // preserved, so the backend append-only guard accepts the finalize.
+    expect(second.id).toBe("c2");
+    expect(second.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(second.requiresApproval).toBe(false);
+    expect(second.fileChanges).toHaveLength(0);
+    expect(second.argsPreview).toBe("");
+    expect(second.error).toBe("");
+    expect(second.result).toBe("");
   });
 
-  it("synthesizes a WAITING_APPROVAL tool call when a denial produced no stream event", () => {
+  it("synthesizes a WAITING_APPROVAL tool call when a denial produced no stream event", async () => {
     const messages = [aiMessageWith([])];
 
-    const reconciled = reconcileDeniedToolCalls(messages, [
+    const reconciled = await reconcileDeniedToolCalls(messages, [
       { toolName: "Shell", token: grantToken("shell", "rm -rf build") },
     ]);
 
@@ -271,10 +313,10 @@ describe("reconcileDeniedToolCalls", () => {
     expect(synthesized.argsPreview).toContain("rm -rf build");
   });
 
-  it("is a no-op when the ledger is empty", () => {
+  it("is a no-op when the ledger is empty", async () => {
     const tc = toolCall({ id: "c1", status: ToolCallStatus.TOOL_CALL_COMPLETED });
     const messages = [aiMessageWith([tc])];
-    expect(reconcileDeniedToolCalls(messages, [])).toEqual([]);
+    expect(await reconcileDeniedToolCalls(messages, [])).toEqual([]);
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 });
@@ -297,15 +339,15 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
     });
   }
 
-  it("attaches a synthesized HUNK_ONLY MODIFY to a denied edit whose hunk never arrived", () => {
+  it("attaches a synthesized HUNK_ONLY MODIFY to a denied edit whose hunk never arrived", async () => {
     const tc = deniedEdit();
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Write", token: writeToken }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(tc.fileChanges).toHaveLength(1);
@@ -318,13 +360,12 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
     expect(fc.linesAdded).toBe(2);
     expect(fc.unifiedDiff).toContain("-beta");
     expect(fc.unifiedDiff).toContain("+gamma");
-    // A HUNK_ONLY change carries no whole-file bodies (the whole-file before is
-    // the separately filed Cursor follow-up).
+    // A HUNK_ONLY change carries no whole-file bodies.
     expect(fc.before).toBeUndefined();
     expect(fc.after).toBeUndefined();
   });
 
-  it("never clobbers a fileChange already present on the denied call", () => {
+  it("never clobbers a fileChange already present on the denied call", async () => {
     const existing = create(FileChangeSchema, {
       path: "src/app.ts",
       changeType: FileChangeType.CREATE,
@@ -334,22 +375,22 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
     tc.fileChanges = [existing];
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Write", token: writeToken }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(tc.fileChanges).toHaveLength(1);
     expect(tc.fileChanges[0]).toBe(existing);
   });
 
-  it("attaches a WHOLE_FILE CREATE to a denied write whose stream change never landed", () => {
+  it("attaches a WHOLE_FILE CREATE to a denied write whose stream change never landed", async () => {
     // The bug this fix closes: the gated write's content is on its args but the
     // stream never attached a file change (it was gated before completion). The
-    // unified deny-path builder now synthesizes the CREATE from the args so the
-    // gate shows the proposed content instead of "No preview available".
+    // shared gate builder synthesizes the CREATE from the args (file absent on the
+    // backend) so the gate shows the proposed content instead of "No preview".
     const tc = toolCall({
       id: "c1",
       name: "write",
@@ -359,11 +400,11 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
     });
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Write", token: grantToken("write", "src/new.ts") }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
@@ -376,7 +417,7 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
     );
   });
 
-  it("adds no diff for a non-file denial (shell)", () => {
+  it("adds no diff for a non-file denial (shell)", async () => {
     const tc = toolCall({
       id: "c1",
       name: "shell",
@@ -386,17 +427,17 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
     });
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Shell", token: grantToken("shell", "rm -rf build") }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(tc.fileChanges).toHaveLength(0);
   });
 
-  it("adds no diff for an edit denial missing new_string", () => {
+  it("adds no diff for an edit denial missing new_string", async () => {
     const tc = toolCall({
       id: "c1",
       name: "edit",
@@ -406,38 +447,38 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
     });
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Write", token: writeToken }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(tc.fileChanges).toHaveLength(0);
   });
 
-  it("adds no diff to a synthesized placeholder (no proposed content)", () => {
+  it("adds no diff to a synthesized placeholder (no proposed content)", async () => {
     const messages = [aiMessageWith([])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Write", token: writeToken }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(messages[0].toolCalls[0].fileChanges).toHaveLength(0);
   });
 
-  it("leaves the denial identity token byte-identical, so the reinvocation grant still matches", () => {
+  it("leaves the denial identity token byte-identical, so the reinvocation grant still matches", async () => {
     const tc = deniedEdit();
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Write", token: writeToken }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     // Capturing the diff must not touch name/args, the inputs to tool identity.
@@ -452,6 +493,257 @@ describe("reconcileDeniedToolCalls — approval-gate diff (Phase D)", () => {
   });
 });
 
+// The reported bug: an in-place WHOLE-FILE REWRITE arrives under the `edit` name
+// (classified FILE_EDIT) but carries whole `contents`, NOT old/new strings. The
+// old kind-driven builder bailed (empty gate → "Content [N chars]" args box). The
+// shape-driven shared builder now reads the existing file and renders a true
+// before/after. These pin that path end to end through reconcile.
+describe("reconcileDeniedToolCalls — whole-file rewrite gate (before/after)", () => {
+  it("renders a WHOLE_FILE before/after MODIFY for an edit-classified rewrite over an existing file", async () => {
+    // tool name `edit` (FILE_EDIT), but the captured input is a whole-file body.
+    const tc = toolCall({
+      id: "c1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    await reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "Write",
+        token: grantToken("write", "notes.md"),
+        input: { file_path: "notes.md", contents: "alpha\nbeta\ngamma\n" },
+      }],
+      undefined,
+      fileBackend({ "notes.md": "one\ntwo\nthree\n" }),
+    );
+
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(tc.fileChanges).toHaveLength(1);
+    const fc = tc.fileChanges[0];
+    // The fix: a real before/after, NOT an empty gate.
+    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+    expect(fc.changeType).toBe(FileChangeType.MODIFY);
+    expect(fc.before?.body.case === "inline" ? fc.before.body.value : undefined).toBe(
+      "one\ntwo\nthree\n",
+    );
+    expect(fc.after?.body.case === "inline" ? fc.after.body.value : undefined).toBe(
+      "alpha\nbeta\ngamma\n",
+    );
+  });
+
+  it("renders a WHOLE_FILE CREATE for an edit-classified rewrite of a new file (no before)", async () => {
+    const tc = toolCall({
+      id: "c1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      argsPreview: JSON.stringify({ path: "fresh.md" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    await reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "Write",
+        token: grantToken("write", "fresh.md"),
+        input: { file_path: "fresh.md", contents: "new\n" },
+      }],
+      undefined,
+      fileBackend({}), // file absent → CREATE
+    );
+
+    expect(tc.fileChanges).toHaveLength(1);
+    const fc = tc.fileChanges[0];
+    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+    expect(fc.changeType).toBe(FileChangeType.CREATE);
+    expect(fc.before).toBeUndefined();
+    expect(fc.after?.body.case === "inline" ? fc.after.body.value : undefined).toBe("new\n");
+  });
+
+  it("reads `before` for a whole-file write over an existing file (MODIFY, not CREATE)", async () => {
+    const tc = toolCall({
+      id: "c1",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      argsPreview: JSON.stringify({ path: "cfg.json" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    await reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "Write",
+        token: grantToken("write", "cfg.json"),
+        input: { file_path: "cfg.json", content: "{\"v\":2}\n" },
+      }],
+      undefined,
+      fileBackend({ "cfg.json": "{\"v\":1}\n" }),
+    );
+
+    const fc = tc.fileChanges[0];
+    expect(fc.changeType).toBe(FileChangeType.MODIFY);
+    expect(fc.before?.body.case === "inline" ? fc.before.body.value : undefined).toBe("{\"v\":1}\n");
+    expect(fc.after?.body.case === "inline" ? fc.after.body.value : undefined).toBe("{\"v\":2}\n");
+  });
+});
+
+// One resource emitted twice in a turn produced two cards: the gate plus a
+// settled "No preview available" twin. The runner collapses that twin in place
+// (it cannot drop the committed id) to a hidden SKIPPED row. These pin the
+// collapse and its safety guard (a twin carrying its own change is never hidden).
+describe("reconcileDeniedToolCalls — duplicate denial-twin collapse", () => {
+  it("collapses a same-resource FAILED twin beside the overlaid gate", async () => {
+    const gate = toolCall({
+      id: "stream-1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "a", new_string: "b" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+    });
+    const twin = toolCall({
+      id: "stream-2",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "blocked by a hook",
+      args: { path: "notes.md", old_string: "a", new_string: "b" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+    });
+    const messages = [aiMessageWith([gate, twin])];
+
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: grantToken("write", "notes.md") }],
+      undefined,
+      rootBackend(),
+    );
+
+    // Exactly one gate; both committed ids are preserved (append-only).
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0].id).toBe("stream-1");
+    expect(messages[0].toolCalls.map((t) => t.id)).toEqual(["stream-1", "stream-2"]);
+
+    expect(gate.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    // The twin is collapsed to a hidden SKIPPED row.
+    expect(twin.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(twin.requiresApproval).toBe(false);
+    expect(twin.error).toBe("");
+    expect(twin.argsPreview).toBe("");
+    expect(twin.fileChanges).toHaveLength(0);
+  });
+
+  it("collapses a same-command SHELL twin too (the collapse is tool-agnostic, not edit-only)", async () => {
+    // The duplicate is keyed on the identity token, so it folds for any gated
+    // tool family — shell here, exercising the same collapse a delete or MCP twin
+    // would receive. Both attempts at the same command were denied.
+    const gate = toolCall({
+      id: "sh-1",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { command: "rm -rf build" },
+      argsPreview: JSON.stringify({ command: "rm -rf build" }),
+    });
+    const twin = toolCall({
+      id: "sh-2",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "blocked by a hook",
+      args: { command: "rm -rf build" },
+      argsPreview: JSON.stringify({ command: "rm -rf build" }),
+    });
+    const messages = [aiMessageWith([gate, twin])];
+
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Shell", token: grantToken("shell", "rm -rf build") }],
+      undefined,
+      rootBackend(),
+    );
+
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0].id).toBe("sh-1");
+    expect(gate.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(twin.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(twin.requiresApproval).toBe(false);
+    expect(twin.argsPreview).toBe("");
+  });
+
+  it("does NOT collapse two DISTINCT same-family gates (different resources keep both cards)", async () => {
+    // Two edits to DIFFERENT files are two real gates, not a duplicate — each
+    // must survive as its own WAITING_APPROVAL card.
+    const gateA = toolCall({
+      id: "edit-a",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "a.md", old_string: "1", new_string: "2" },
+      argsPreview: JSON.stringify({ path: "a.md" }),
+    });
+    const gateB = toolCall({
+      id: "edit-b",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "b.md", old_string: "3", new_string: "4" },
+      argsPreview: JSON.stringify({ path: "b.md" }),
+    });
+    const messages = [aiMessageWith([gateA, gateB])];
+
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [
+        { toolName: "Write", token: grantToken("write", "a.md") },
+        { toolName: "Write", token: grantToken("write", "b.md") },
+      ],
+      undefined,
+      rootBackend(),
+    );
+
+    // Two gates, none collapsed — distinct resources are distinct work.
+    expect(reconciled).toHaveLength(2);
+    expect(gateA.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(gateB.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+  });
+
+  it("does NOT collapse a twin that carries its own proposed change", async () => {
+    // A second call to the same path that DID capture a distinct change must be
+    // preserved — collapsing it would hide real proposed work.
+    const gate = toolCall({
+      id: "stream-1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "a", new_string: "b" },
+    });
+    const withChange = toolCall({
+      id: "stream-2",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "c", new_string: "d" },
+      fileChanges: [
+        buildFileChange({
+          path: "notes.md",
+          absolutePath: "/root/notes.md",
+          changeType: FileChangeType.MODIFY,
+          captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+          unifiedDiff: "@@ real @@",
+        }),
+      ],
+    });
+    const messages = [aiMessageWith([gate, withChange])];
+
+    await reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: grantToken("write", "notes.md") }],
+      undefined,
+      rootBackend(),
+    );
+
+    expect(gate.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    // Untouched — it carries its own file_changes, so it is not a bare twin.
+    expect(withChange.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(withChange.fileChanges).toHaveLength(1);
+  });
+});
+
 // The hook captures the COMPLETE proposed args (tool_input) at gate time — the
 // authoritative source the stream may not have carried before the first-denial
 // cancel. These pin that the runner overlays that input onto the gated call so
@@ -462,7 +754,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     return JSON.parse(tc.argsPreview) as Record<string, unknown>;
   }
 
-  it("builds a WHOLE_FILE CREATE for a denied write from the captured input", () => {
+  it("builds a WHOLE_FILE CREATE for a denied write from the captured input", async () => {
     // Stream-overlaid call carries only a path; the hook input carries the body.
     const tc = toolCall({
       id: "c1",
@@ -472,7 +764,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{
         toolName: "Write",
@@ -480,7 +772,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
         input: { file_path: "src/new.ts", content: "export const x = 1;\n" },
       }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(tc.fileChanges).toHaveLength(1);
@@ -494,7 +786,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     expect(parsePreview(tc).file_path).toBe("src/new.ts");
   });
 
-  it("synthesizes an edit HUNK from the captured old/new strings", () => {
+  it("synthesizes an edit HUNK from the captured old/new strings", async () => {
     const tc = toolCall({
       id: "c1",
       name: "edit",
@@ -503,7 +795,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{
         toolName: "StrReplace",
@@ -511,7 +803,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
         input: { file_path: "src/app.ts", old_string: "alpha", new_string: "beta" },
       }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(tc.fileChanges).toHaveLength(1);
@@ -521,7 +813,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     expect(fc.unifiedDiff).toContain("+beta");
   });
 
-  it("resolves a notebook edit's path from target_notebook", () => {
+  it("resolves a notebook edit's path from target_notebook", async () => {
     const tc = toolCall({
       id: "c1",
       name: "EditNotebook",
@@ -530,7 +822,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{
         toolName: "EditNotebook",
@@ -538,7 +830,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
         input: { target_notebook: "nb.ipynb", old_string: "x = 1", new_string: "x = 2" },
       }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(tc.fileChanges).toHaveLength(1);
@@ -546,7 +838,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     expect(tc.fileChanges[0].captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
   });
 
-  it("carries shell args (no file change) so the gate shows the command", () => {
+  it("carries shell args (no file change) so the gate shows the command", async () => {
     const tc = toolCall({
       id: "c1",
       name: "shell",
@@ -555,7 +847,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{
         toolName: "Shell",
@@ -563,7 +855,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
         input: { command: "rm -rf build", cwd: "/root" },
       }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(tc.fileChanges).toHaveLength(0);
@@ -571,12 +863,12 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     expect(parsePreview(tc).cwd).toBe("/root");
   });
 
-  it("upgrades a synthesized placeholder from path-only to the full captured args", () => {
+  it("upgrades a synthesized placeholder from path-only to the full captured args", async () => {
     // No streamed call matches (rare); the placeholder must still carry the real
     // proposed change from the captured input, not a bare {path}.
     const messages = [aiMessageWith([])];
 
-    const reconciled = reconcileDeniedToolCalls(
+    const reconciled = await reconcileDeniedToolCalls(
       messages,
       [{
         toolName: "Write",
@@ -584,7 +876,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
         input: { file_path: "ghost.md", content: "# Ghost\n" },
       }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(reconciled).toHaveLength(1);
@@ -595,7 +887,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     expect(parsePreview(tc).content).toBe("# Ghost\n");
   });
 
-  it("keeps a large write's args_preview small, valid, and salient-preserving", () => {
+  it("keeps a large write's args_preview small, valid, and salient-preserving", async () => {
     const content = "x".repeat(50_000);
     const tc = toolCall({
       id: "c1",
@@ -605,7 +897,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{
         toolName: "Write",
@@ -613,7 +905,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
         input: { file_path: "big.ts", content },
       }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     // The preview is bounded and parseable (resume reads it), with the full
@@ -626,7 +918,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
       : 0).toBe(content.length);
   });
 
-  it("never clobbers a real streamed diff already on the call", () => {
+  it("never clobbers a real streamed diff already on the call", async () => {
     const existing = create(FileChangeSchema, {
       path: "src/app.ts",
       changeType: FileChangeType.MODIFY,
@@ -642,7 +934,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     });
     const messages = [aiMessageWith([tc])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{
         toolName: "StrReplace",
@@ -650,7 +942,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
         input: { file_path: "src/app.ts", old_string: "a", new_string: "b" },
       }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(tc.fileChanges).toHaveLength(1);
@@ -670,7 +962,7 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
 // call instead (guard-safe: it reuses the already-committed id, never drops one,
 // and the captured new-file content survives onto the gate).
 describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)", () => {
-  it("overlays the real streamed CREATE when the hook salient is absolute but the stream path is relative", () => {
+  it("overlays the real streamed CREATE when the hook salient is absolute but the stream path is relative", async () => {
     // A denied write streamed (and was committed) as TOOL_CALL_FAILED carrying
     // its WHOLE_FILE CREATE content; the hook recorded the denial under the
     // absolute path, so the raw tokens do not match.
@@ -691,11 +983,11 @@ describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)"
     });
     const messages = [aiMessageWith([streamed])];
 
-    const reconciled = reconcileDeniedToolCalls(
+    const reconciled = await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Write", token: grantToken("write", "/root/notes.md") }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     // No synthesized placeholder was appended; the only tool call is the real
@@ -720,7 +1012,7 @@ describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)"
     expect(reconciled[0].id).toBe("stream-create");
   });
 
-  it("overlays a denied EDIT under abs/rel drift and synthesizes its hunk via the shared overlay path", () => {
+  it("overlays a denied EDIT under abs/rel drift and synthesizes its hunk via the shared overlay path", async () => {
     const streamed = toolCall({
       id: "stream-edit",
       name: "edit",
@@ -729,11 +1021,11 @@ describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)"
     });
     const messages = [aiMessageWith([streamed])];
 
-    reconcileDeniedToolCalls(
+    await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Write", token: grantToken("write", "/root/src/app.ts") }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     const ids = messages.flatMap((m) => m.toolCalls.map((t) => t.id));
@@ -745,15 +1037,15 @@ describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)"
     expect(streamed.fileChanges[0].captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
   });
 
-  it("still synthesizes a placeholder when NO streamed call matches even after normalization", () => {
+  it("still synthesizes a placeholder when NO streamed call matches even after normalization", async () => {
     // The genuine no-stream-event denial (rare) must still surface a gate.
     const messages = [aiMessageWith([])];
 
-    const reconciled = reconcileDeniedToolCalls(
+    const reconciled = await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Write", token: grantToken("write", "/root/ghost.md") }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     expect(reconciled).toHaveLength(1);
@@ -761,7 +1053,7 @@ describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)"
     expect(reconciled[0].id.startsWith("approval:")).toBe(true);
   });
 
-  it("does not overlay a DIFFERENT file that happens to be denied (no false normalized match)", () => {
+  it("does not overlay a DIFFERENT file that happens to be denied (no false normalized match)", async () => {
     // A streamed create for one file must not absorb a denial for another file
     // just because the fallback ran — normalization is per-path.
     const streamed = toolCall({
@@ -772,11 +1064,11 @@ describe("reconcileDeniedToolCalls — normalized-path fallback (abs/rel drift)"
     });
     const messages = [aiMessageWith([streamed])];
 
-    const reconciled = reconcileDeniedToolCalls(
+    const reconciled = await reconcileDeniedToolCalls(
       messages,
       [{ toolName: "Write", token: grantToken("write", "/root/notes.md") }],
       undefined,
-      "/root",
+      rootBackend(),
     );
 
     // The unrelated streamed call is untouched; the denial is satisfied by a
@@ -981,7 +1273,7 @@ describe("first-denial stop contract", () => {
     expect(messages.some((m) => m.content.includes("try the shell"))).toBe(false);
 
     // Phase 12 reconcile + redact on the stopped transcript yields the clean shape.
-    const denied = reconcileDeniedToolCalls(messages, await readDenialLedger(ws));
+    const denied = await reconcileDeniedToolCalls(messages, await readDenialLedger(ws));
     expect(denied).toHaveLength(1);
     expect(edit.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     const redacted = clearProvisionalPostDenialNarration(messages, denied);

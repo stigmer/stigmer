@@ -96,11 +96,11 @@ function mcpEvent(
  *   buildToolCallProto (stream) -> deny overlay (reconcileDeniedToolCalls) ->
  *   persist APPROVE -> reconstructAdjudicatedApprovals -> buildApprovalGrants.
  */
-function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): {
+async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Promise<{
   denialToken: string;
   grantToken: string;
   resumeStateToken: string | undefined;
-} {
+}> {
   const tc = buildToolCallProto(event);
 
   // The gated turn: the hook denies the call, recording its identity token. The
@@ -114,7 +114,7 @@ function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): {
     toolCalls: [tc],
   });
   const ledger: DeniedLedgerEntry[] = [{ toolName: tc.name, token: denialToken }];
-  const denied = reconcileDeniedToolCalls([msg], ledger);
+  const denied = await reconcileDeniedToolCalls([msg], ledger);
   expect(denied, "the overlay must match the denial token and surface the gate").toHaveLength(1);
 
   // The user approves; the backend persists the decision on the tool call.
@@ -203,8 +203,8 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
   ];
 
   for (const { label, event, expectedKey, expectedSalient } of cases) {
-    it(`${label}: resume grant token == denial/overlay token`, () => {
-      const { denialToken, grantToken: gt, resumeStateToken } = roundTrip(event);
+    it(`${label}: resume grant token == denial/overlay token`, async () => {
+      const { denialToken, grantToken: gt, resumeStateToken } = await roundTrip(event);
 
       // The decisive equality: what the hook denied is exactly what the resume
       // re-grants, so the re-issued call is ALLOWED, not re-gated.

@@ -471,6 +471,33 @@ describe("ApprovalCard file-change diff", () => {
     expect(screen.getByText("-1")).toBeTruthy();
   });
 
+  it("leads with the diff (never the raw Content args box) when file_changes is populated, even if args carry content", () => {
+    // The reported bug: an edit-classified whole-file rewrite whose args carry the
+    // proposed `contents`. Once the runner populates file_changes, the gate must
+    // lead with the before/after diff — NOT fall back to the "Content [N chars]"
+    // args view that an EMPTY file_changes produced.
+    setContent({ beforeText: "one\ntwo\n", afterText: "alpha\nbeta\n" });
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-diff-wins",
+      toolName: "edit",
+      toolKind: ToolKind.FILE_EDIT,
+      argsPreview: '{"path":"notes.md","contents":"alpha\\nbeta\\n"}',
+      fileChanges: [wholeFileChange("notes.md", "one\ntwo\n", "alpha\nbeta\n")],
+    });
+
+    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
+
+    // The diff renders (stats present)...
+    expect(screen.getByText("+2")).toBeTruthy();
+    expect(screen.getByText("-2")).toBeTruthy();
+    // ...and the raw args "Content" collapsible (a <span> label over a <pre>)
+    // never appears beside it. The DiffViewer table legitimately has a "Content"
+    // column header (<th>), so the guard is that NO non-table "Content" label
+    // exists — i.e. the args fallback branch was not taken.
+    const contentLabels = screen.queryAllByText("Content");
+    expect(contentLabels.every((el) => el.tagName === "TH")).toBe(true);
+  });
+
   it("renders an all-additions diff for a CREATE (no before side)", () => {
     setContent({ beforeText: "", afterText: "hello\nworld\n" });
     const approval = create(PendingApprovalSchema, {

@@ -133,7 +133,7 @@ function guardRejectionReason(existing: AgentMessage[], incoming: AgentMessage[]
 }
 
 describe("Cursor sequential gates A->B across resume", () => {
-  it("preserves gate A (completed) and surfaces gate B exactly once — a superset the guard accepts", () => {
+  it("preserves gate A (completed) and surfaces gate B exactly once — a superset the guard accepts", async () => {
     const committed = approvedGateA();
     const seeded = committed.map((m) => clone(AgentMessageSchema, m));
 
@@ -146,7 +146,7 @@ describe("Cursor sequential gates A->B across resume", () => {
     const ledger: DeniedLedgerEntry[] = [
       { toolName: "shell", token: toolCallIdentityToken(bCall) },
     ];
-    reconcileDeniedToolCalls(seeded, ledger);
+    await reconcileDeniedToolCalls(seeded, ledger);
 
     const tools = allToolCalls(seeded);
     const byId = new Map(tools.map((tc) => [tc.id, tc]));

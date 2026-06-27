@@ -6,36 +6,22 @@
  * change at the moment the graph pauses for approval — before the tool runs — so
  * the gate can render a real diff instead of a bare args preview.
  *
- * Two facts shape the design (DD-002):
- *  - At the interrupt the tool has not executed, so the streamed input cache is
- *    empty and the interrupt value carries only four fields. The authoritative
- *    arguments are the AI-message tool call already sitting in graph state — the
- *    single source of truth we correlate against by `tool_call_id`.
- *  - The graph is genuinely paused, so reading the file now observes the true
- *    pre-edit content, race-free (unlike a stream-driven read).
+ * This module owns only the native-specific seam: correlating a gated
+ * `tool_call_id` to its arguments from graph state (the authoritative
+ * single source of truth at the interrupt, since the streamed input cache is
+ * empty and the interrupt value carries only four fields). The actual capture —
+ * shape detection, the workspace before-read, and the CREATE/MODIFY/HUNK
+ * decision — lives in the harness-agnostic {@link buildGateFileChange}, shared
+ * with the Cursor gate so the two harnesses cannot drift. The graph is genuinely
+ * paused at the interrupt, so the shared before-read observes the true pre-edit
+ * content race-free.
  *
- * Capture is split by tool family. Write-family tools (`write`/`create`) carry
- * the whole file in their args, so we capture a WHOLE_FILE before/after. Edit-
- * family tools (`edit`/`str_replace_editor`) carry only an `old_string` /
- * `new_string` fragment, so we capture a HUNK_ONLY synthesized diff rather than
- * reconstruct the whole file — that reconstruction would make the runner a
- * second source of truth for the edit result. The whole-file ground truth still
- * lands post-execution via {@link FileChangeCoordinator}.
- *
- * @since First-Class Diff Review (#186), approval-gate phase
+ * @since First-Class Diff Review (#186), approval-gate phase;
+ *        cross-harness gate unification (HITL diff)
  */
 
-import {
-  FileChangeCaptureLevel,
-  FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { buildFileChange, resolveWorkspacePath } from "../../shared/file-change.js";
-import {
-  extractFilePath,
-  extractWriteContent,
-  isFileModifyingTool,
-} from "../../shared/file-tools.js";
+import { buildGateFileChange } from "../../shared/gate-file-change.js";
 import { synthesizeHunkDiff } from "../../shared/hunk-diff.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import { sanitizeArgsPreview } from "./status-builder-shared.js";
@@ -92,59 +78,21 @@ export function findAiMessageToolCallArgs(
 }
 
 /**
- * Build the proposed `FileChange` for a gated file-modifying tool call, or
- * `undefined` when the tool does not modify files or carries no usable path.
+ * Build the proposed `FileChange` for a gated native (deepagents) tool call.
  *
- * Write-family: read `before` (CREATE when absent, MODIFY otherwise) and capture
- * WHOLE_FILE with `after` from the args. Edit-family: capture HUNK_ONLY from the
- * synthesized old/new diff (no IO). Oversized before/after bodies are offloaded
- * later at the persist chokepoint, exactly as for the post-exec capture.
+ * Thin wrapper over the shared {@link buildGateFileChange} that pins the native
+ * path convention (`virtualRoot: true` — a leading "/" denotes the workspace
+ * root). All capture logic — shape detection, the workspace before-read, and the
+ * CREATE/MODIFY/HUNK decision — lives in the one shared builder both harnesses
+ * use, so the two can never drift. Output is unchanged from the prior native-only
+ * implementation (the field set is a superset; native args are a subset).
  */
-export async function buildApprovalFileChange(
+export function buildApprovalFileChange(
   toolName: string,
   args: Record<string, unknown>,
   workspaceBackend: WorkspaceBackend,
 ): Promise<FileChange | undefined> {
-  if (!isFileModifyingTool(toolName)) return undefined;
-
-  const rawPath = extractFilePath(args);
-  if (!rawPath) return undefined;
-
-  const { path, absolutePath } = resolveWorkspacePath(
-    rawPath,
-    workspaceBackend.rootDir,
-    /* virtualRoot */ true,
-  );
-
-  const content = extractWriteContent(args);
-  if (content !== null) {
-    // Read via the workspace-relative path so platform-dir / virtual-root
-    // routing applies, matching how the backend resolves the eventual write.
-    const before = await safeReadBefore(workspaceBackend, path);
-    return buildFileChange({
-      path,
-      absolutePath,
-      changeType: before === undefined ? FileChangeType.CREATE : FileChangeType.MODIFY,
-      captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-      before,
-      after: content,
-    });
-  }
-
-  const oldString = typeof args.old_string === "string" ? args.old_string : undefined;
-  const newString = typeof args.new_string === "string" ? args.new_string : undefined;
-  if (oldString === undefined || newString === undefined) return undefined;
-
-  const { unifiedDiff, linesAdded, linesRemoved } = synthesizeHunkDiff(oldString, newString);
-  return buildFileChange({
-    path,
-    absolutePath,
-    changeType: FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-    unifiedDiff,
-    linesAdded,
-    linesRemoved,
-  });
+  return buildGateFileChange(toolName, args, workspaceBackend, { virtualRoot: true });
 }
 
 /**
@@ -166,17 +114,4 @@ export async function captureApprovalArtifacts(opts: {
   const argsPreview = sanitizeArgsPreview(args) || undefined;
   const fileChange = await buildApprovalFileChange(opts.toolName, args, opts.workspaceBackend);
   return { argsPreview, fileChange };
-}
-
-/** Read a file's content, or `undefined` when it is absent or unreadable. */
-async function safeReadBefore(
-  backend: WorkspaceBackend,
-  path: string,
-): Promise<string | undefined> {
-  try {
-    if (!(await backend.exists(path))) return undefined;
-    return await backend.readFile(path);
-  } catch {
-    return undefined;
-  }
 }

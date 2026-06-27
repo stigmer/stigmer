@@ -1,4 +1,5 @@
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { ToolKind, resolveToolKind, resolveToolKindByName } from "@stigmer/sdk";
 
@@ -160,6 +161,32 @@ const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
  */
 export function isInternalTool(toolName: string): boolean {
   return resolveToolKindByName(toolName) === ToolKind.TODO;
+}
+
+/**
+ * Returns true for a tool call the runner collapsed in place — a superseded
+ * same-turn duplicate of an approval gate.
+ *
+ * When the agent emits one resource twice in a turn and both attempts are denied,
+ * the runner overlays the FIRST as the WAITING_APPROVAL gate and blanks the
+ * redundant twin to a content-less SKIPPED row (it cannot drop it — the backend's
+ * append-only-at-identity guard forbids removing a committed tool-call id). This
+ * predicate recognizes that blanked twin so the thread renders one card, not two.
+ *
+ * The signature is precise: a SKIPPED row with no approval flag, no result, no
+ * error, no proposed `file_changes`, and no args preview. A genuinely
+ * user-skipped tool always retains the preview/args the user reviewed before
+ * skipping, so it is never blank and is never hidden by this.
+ */
+export function isCollapsedToolCall(toolCall: ToolCall): boolean {
+  return (
+    toolCall.status === ToolCallStatus.TOOL_CALL_SKIPPED &&
+    !toolCall.requiresApproval &&
+    toolCall.fileChanges.length === 0 &&
+    !toolCall.result &&
+    !toolCall.error &&
+    !toolCall.argsPreview
+  );
 }
 
 /** Maps a {@link ToolKind} to its presentation metadata. */

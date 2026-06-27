@@ -229,7 +229,7 @@ describe("Cursor HITL resume — append-only transcript", () => {
     );
   });
 
-  it("FIX (seeding + identity reconciliation): the resume is a strict superset the guard accepts", () => {
+  it("FIX (seeding + identity reconciliation): the resume is a strict superset the guard accepts", async () => {
     const committed = persistedRunOneMessages();
 
     // Post-fix behavior: index.ts seeds status.messages from the persisted
@@ -241,7 +241,7 @@ describe("Cursor HITL resume — append-only transcript", () => {
 
     // Post-stream denial overlay (the activity's Phase 12): only `click` is in
     // the ledger, so only it flips to WAITING_APPROVAL.
-    const denied = reconcileDeniedToolCalls(seeded, clickDenialLedger());
+    const denied = await reconcileDeniedToolCalls(seeded, clickDenialLedger());
     const redacted = clearProvisionalPostDenialNarration(seeded, denied);
 
     const tools = allToolCalls(seeded);
@@ -397,7 +397,7 @@ describe("Cursor HITL resume — two approvals then clean completion (no loop)",
     ];
   }
 
-  it("re-runs both approved tools in place and completes with ZERO tools waiting", () => {
+  it("re-runs both approved tools in place and completes with ZERO tools waiting", async () => {
     const committed = committedBuiltInApprovals();
     const seeded = committed.map((m) => clone(AgentMessageSchema, m));
 
@@ -406,7 +406,7 @@ describe("Cursor HITL resume — two approvals then clean completion (no loop)",
     acc.finalize();
 
     // The hook allowed both (no denials this turn), so the overlay adds nothing.
-    const denied = reconcileDeniedToolCalls(seeded, []);
+    const denied = await reconcileDeniedToolCalls(seeded, []);
     expect(denied).toHaveLength(0);
 
     const tools = allToolCalls(seeded);

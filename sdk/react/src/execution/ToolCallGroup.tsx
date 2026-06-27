@@ -8,6 +8,7 @@ import { useRenderTracer } from "../internal/dev";
 import { ToolCallItem } from "./ToolCallItem";
 import { ToolRunGroup } from "./ToolRunGroup";
 import { segmentToolCalls } from "./segment-tool-calls";
+import { isCollapsedToolCall } from "./tool-categories";
 
 /** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {
@@ -101,7 +102,19 @@ export const ToolCallGroup = memo(function ToolCallGroup({
 }: ToolCallGroupProps) {
   useRenderTracer("ToolCallGroup", { toolCallCount: toolCalls.length });
 
-  const segments = useMemo(() => segmentToolCalls(toolCalls), [toolCalls]);
+  // Drop runner-collapsed duplicates (a superseded same-turn denial twin of an
+  // approval gate) so one gated resource renders one card, not two. The blanked
+  // twin is kept in the persisted transcript (the backend's append-only guard
+  // forbids dropping it); it is simply not drawn.
+  const visibleToolCalls = useMemo(
+    () => toolCalls.filter((tc) => !isCollapsedToolCall(tc)),
+    [toolCalls],
+  );
+
+  const segments = useMemo(
+    () => segmentToolCalls(visibleToolCalls),
+    [visibleToolCalls],
+  );
 
   const subAgentMap = useMemo(() => {
     if (!subAgentExecutions || subAgentExecutions.length === 0) return null;
@@ -112,9 +125,9 @@ export const ToolCallGroup = memo(function ToolCallGroup({
     return map;
   }, [subAgentExecutions]);
 
-  if (toolCalls.length === 0) return null;
+  if (visibleToolCalls.length === 0) return null;
 
-  const ariaLabel = `${toolCalls.length} tool ${toolCalls.length === 1 ? "call" : "calls"}`;
+  const ariaLabel = `${visibleToolCalls.length} tool ${visibleToolCalls.length === 1 ? "call" : "calls"}`;
 
   return (
     <div

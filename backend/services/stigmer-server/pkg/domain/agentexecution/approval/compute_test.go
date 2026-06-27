@@ -392,6 +392,50 @@ func TestProjectToolCallSingleGatePerCreateCarriesContent(t *testing.T) {
 	}
 }
 
+// TestProjectToolCallCollapsedTwinProjectsSingleGateWithBeforeAfter locks the
+// projection shape the Cursor runner persists after its duplicate-collapse fix:
+// one WAITING_APPROVAL edit carrying a WHOLE_FILE before/after MODIFY (the
+// reported whole-file-rewrite case), beside a same-resource twin the runner
+// collapsed IN PLACE to a content-less SKIPPED row (it cannot drop the committed
+// id). The SKIPPED twin must NOT project a second approval, and the gate's real
+// before/after must reach the card. Mirrors the Java PendingApprovalComputerTest
+// case of the same name.
+func TestProjectToolCallCollapsedTwinProjectsSingleGateWithBeforeAfter(t *testing.T) {
+	gated := makeToolCall("tc-edit", "edit", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+	gated.FileChanges = []*agentexecutionv1.FileChange{
+		{
+			Path:         "notes.md",
+			ChangeType:   agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_MODIFY,
+			CaptureLevel: agentexecutionv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE,
+			Before:       &agentexecutionv1.FileContent{Body: &agentexecutionv1.FileContent_Inline{Inline: "one\ntwo\n"}},
+			After:        &agentexecutionv1.FileContent{Body: &agentexecutionv1.FileContent_Inline{Inline: "alpha\nbeta\n"}},
+		},
+	}
+	// The collapsed twin: SKIPPED, no longer requires approval.
+	collapsedTwin := makeToolCall("tc-edit-dup", "edit", agentexecutionv1.ToolCallStatus_TOOL_CALL_SKIPPED, false, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+
+	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(gated, collapsedTwin)}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1 (only the WAITING_APPROVAL edit projects; the SKIPPED twin must not)", len(got))
+	}
+	if got[0].GetToolCallId() != "tc-edit" {
+		t.Errorf("ToolCallId = %q, want %q", got[0].GetToolCallId(), "tc-edit")
+	}
+	changes := got[0].GetFileChanges()
+	if len(changes) != 1 {
+		t.Fatalf("got %d file changes, want 1", len(changes))
+	}
+	if changes[0].GetChangeType() != agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_MODIFY {
+		t.Errorf("FileChange.ChangeType = %v, want FILE_CHANGE_TYPE_MODIFY", changes[0].GetChangeType())
+	}
+	if changes[0].GetBefore().GetInline() != "one\ntwo\n" {
+		t.Errorf("FileChange.Before = %q, want %q", changes[0].GetBefore().GetInline(), "one\ntwo\n")
+	}
+	if changes[0].GetAfter().GetInline() != "alpha\nbeta\n" {
+		t.Errorf("FileChange.After = %q, want %q", changes[0].GetAfter().GetInline(), "alpha\nbeta\n")
+	}
+}
+
 // TestProjectToolCallNoFileChangesStaysEmpty verifies a non-file tool projects an
 // empty file_changes list (the gate falls back to the args preview).
 func TestProjectToolCallNoFileChangesStaysEmpty(t *testing.T) {

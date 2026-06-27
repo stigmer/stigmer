@@ -49,8 +49,10 @@ import { grantToken, toolIdentity, type DeniedLedgerEntry } from "./approval-sta
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { buildFileChange, resolveWorkspacePath } from "../../shared/file-change.js";
-import { synthesizeHunkDiff } from "../../shared/hunk-diff.js";
+import { buildGateFileChange } from "../../shared/gate-file-change.js";
+import { extractFilePath, extractWriteContent } from "../../shared/file-tools.js";
 import { buildElidedArgsPreview } from "../../shared/args-preview.js";
+import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 
 export { utcTimestamp };
 
@@ -279,48 +281,6 @@ export interface ApprovalProvenanceContext {
 /** Shared empty set so a reconstruction without leases allocates nothing. */
 const NO_LEASED_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
 
-// Tool-arg keys Cursor uses for a file path / write content / edit replacement.
-// These mirror the SDK's canonical sets (sdk/typescript/src/execution/tool-view.ts
-// PATH_FIELDS / WRITE_CONTENT_FIELDS / OLD_TEXT_FIELDS / NEW_TEXT_FIELDS) and
-// deliberately span BOTH taxonomies (the SDK stream names a path `path`; the
-// preToolUse hook input names it `file_path`; a notebook edit uses
-// `target_notebook`). Keeping them in lockstep with the SDK means the same field
-// is recognized whether args arrive from the stream event or the hook capture.
-const FILE_PATH_FIELDS = ["path", "file_path", "file", "filename", "target_notebook"] as const;
-const FILE_WRITE_CONTENT_FIELDS = ["contents", "content", "file_content"] as const;
-const FILE_EDIT_OLD_FIELDS = ["old_string", "old_text", "oldText"] as const;
-const FILE_EDIT_NEW_FIELDS = ["new_string", "new_text", "newText", "replacement"] as const;
-
-function firstStringField(
-  obj: Record<string, unknown> | undefined,
-  keys: readonly string[],
-): string | undefined {
-  if (!obj) return undefined;
-  for (const key of keys) {
-    const value = obj[key];
-    if (typeof value === "string" && value.length > 0) return value;
-  }
-  return undefined;
-}
-
-/**
- * Like {@link firstStringField} but accepts an empty string as a real value.
- * Used for an edit's old/new replacement strings, where `""` is meaningful (an
- * insertion has an empty `old_string`; a deletion has an empty `new_string`) —
- * matching the native gate capture (execute-deep-agent/approval-file-change.ts).
- */
-function firstStringFieldAllowEmpty(
-  obj: Record<string, unknown> | undefined,
-  keys: readonly string[],
-): string | undefined {
-  if (!obj) return undefined;
-  for (const key of keys) {
-    const value = obj[key];
-    if (typeof value === "string") return value;
-  }
-  return undefined;
-}
-
 /**
  * Extract the `value` object from a Cursor edit-result envelope
  * (`{ status, value: { diffString, linesAdded, linesRemoved } }`). Accepts the
@@ -343,78 +303,48 @@ function editEnvelopeValue(result: unknown): Record<string, unknown> | undefined
 }
 
 /**
- * Build the proposed `FileChange` for a file-write/file-edit tool call from its
- * ARGUMENTS alone — the single, arg-based gate builder shared by the streaming
- * write path and the deny (approval-gate) path.
+ * Build the WHOLE_FILE CREATE for a STREAMING Cursor write tool call from its
+ * args alone — no IO. This is the streaming (NOT gate) path: the tool is running
+ * or has completed, so a disk read would observe the post-edit content; the args
+ * carry the authoritative new body, presented as a CREATE (the established
+ * streaming behavior). The gate path uses {@link buildGateFileChange}, which
+ * reads `before` for a true before/after — see applyGateInput.
  *
- * A write carries the whole new file in its args, so it is a WHOLE_FILE CREATE
- * available immediately. An edit carries `old_string`/`new_string`, so it is a
- * HUNK_ONLY change synthesized via the shared {@link synthesizeHunkDiff} — the
- * same `-old/+new` preview the native gate renders
- * (`execute-deep-agent/approval-file-change.ts`). The Cursor SDK does not expose
- * a whole-file `before`; that pre-read stays a separately filed follow-up, so an
- * edit renders honestly as HUNK_ONLY.
- *
- * Returns undefined for non-file tools, a missing path, or an edit missing its
- * replacement strings, so callers attach conditionally. Args may use either
- * taxonomy's field names (stream `path`/`contents`, hook `file_path`/`content`,
- * notebook `target_notebook`) — see the `FILE_*_FIELDS` constants.
+ * Field extraction goes through the shared {@link extractFilePath} /
+ * {@link extractWriteContent} so the stream and gate paths recognize the same
+ * fields. Returns undefined for a missing path or absent content (an empty
+ * string is a real empty file and is preserved).
  */
-function buildGatedFileChange(
-  toolName: string,
+function buildStreamWriteChange(
   args: Record<string, unknown>,
   workspaceRoot?: string,
 ): FileChange | undefined {
-  const kind = classifyTool(toolName);
-  if (kind !== ToolKind.FILE_WRITE && kind !== ToolKind.FILE_EDIT) return undefined;
-
-  const rawPath = firstStringField(args, FILE_PATH_FIELDS);
+  const rawPath = extractFilePath(args);
   if (!rawPath) return undefined;
+  const content = extractWriteContent(args);
+  if (content === null) return undefined;
 
   const { path, absolutePath } = workspaceRoot
     ? resolveWorkspacePath(rawPath, workspaceRoot, /* virtualRoot */ false)
     : { path: rawPath, absolutePath: rawPath };
 
-  if (kind === ToolKind.FILE_WRITE) {
-    // Require a content field to be present (an empty string is a real empty
-    // file and is preserved). Returning undefined when content is absent keeps a
-    // path-only fallback from inventing a misleading empty-file diff.
-    const content = firstStringFieldAllowEmpty(args, FILE_WRITE_CONTENT_FIELDS);
-    if (content === undefined) return undefined;
-    return buildFileChange({
-      path,
-      absolutePath,
-      changeType: FileChangeType.CREATE,
-      captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-      after: content,
-    });
-  }
-
-  // Edit family: synthesize the hunk from the proposed replacement strings.
-  const oldString = firstStringFieldAllowEmpty(args, FILE_EDIT_OLD_FIELDS);
-  const newString = firstStringFieldAllowEmpty(args, FILE_EDIT_NEW_FIELDS);
-  if (oldString === undefined || newString === undefined) return undefined;
-
-  const { unifiedDiff, linesAdded, linesRemoved } = synthesizeHunkDiff(oldString, newString);
   return buildFileChange({
     path,
     absolutePath,
-    changeType: FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-    unifiedDiff,
-    linesAdded,
-    linesRemoved,
+    changeType: FileChangeType.CREATE,
+    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+    after: content,
   });
 }
 
 /**
  * Build the `FileChange`s for a STREAMING Cursor file-edit/file-write tool call.
  *
- * A write delegates to {@link buildGatedFileChange} (WHOLE_FILE CREATE from
- * args). An edit prefers the SDK's authoritative precomputed hunk (`diffString`
- * + line counts), which only materializes with the terminal result — so during
- * streaming (no diff yet) it returns nothing and the gate path synthesizes the
- * hunk from args instead.
+ * A write delegates to {@link buildStreamWriteChange} (WHOLE_FILE CREATE from
+ * args, no IO). An edit prefers the SDK's authoritative precomputed hunk
+ * (`diffString` + line counts), which only materializes with the terminal
+ * result — so during streaming (no diff yet) it returns nothing, and a denied
+ * edit's preview is synthesized at the gate from the hook-captured args instead.
  *
  * Returns an empty array for non-file tools and for an edit whose diff is not
  * yet available, so callers can attach unconditionally.
@@ -434,7 +364,7 @@ export function buildCursorFileChanges(
   if (!args) return [];
 
   if (kind === ToolKind.FILE_WRITE) {
-    const fileChange = buildGatedFileChange(event.name, args, workspaceRoot);
+    const fileChange = buildStreamWriteChange(args, workspaceRoot);
     return fileChange ? [fileChange] : [];
   }
 
@@ -448,7 +378,7 @@ export function buildCursorFileChanges(
     return [];
   }
 
-  const rawPath = firstStringField(args, FILE_PATH_FIELDS);
+  const rawPath = extractFilePath(args);
   if (!rawPath) return [];
   const { path, absolutePath } = workspaceRoot
     ? resolveWorkspacePath(rawPath, workspaceRoot, /* virtualRoot */ false)
@@ -1278,13 +1208,18 @@ export class MessageAccumulator {
  *
  * Returns the tool calls now marked WAITING_APPROVAL (overlaid + synthesized).
  */
-export function reconcileDeniedToolCalls(
+export async function reconcileDeniedToolCalls(
   messages: AgentMessage[],
   ledger: DeniedLedgerEntry[],
   mergedPolicies?: Map<string, MergedToolPolicy>,
-  workspaceRoot?: string,
-): ToolCall[] {
+  workspaceBackend?: WorkspaceBackend,
+): Promise<ToolCall[]> {
   if (ledger.length === 0) return [];
+
+  // The workspace the gated files live in. Its rootDir normalizes paths for the
+  // abs-vs-rel fallback; the backend itself reads each file's pre-edit `before`
+  // at the gate (the tool was DENIED, so disk still holds the true old content).
+  const workspaceRoot = workspaceBackend?.rootDir;
 
   // One approval per denied identity (token); AND one overlay per streamed proto
   // (object identity) so the normalized fallback never double-assigns a call.
@@ -1307,7 +1242,7 @@ export function reconcileDeniedToolCalls(
     for (const tc of msg.toolCalls) {
       const token = toolCallIdentityToken(tc);
       if (!deniedTokens.has(token) || matchedTokens.has(token)) continue;
-      overlayDeniedStreamCall(tc, inputByToken.get(token), mergedPolicies, workspaceRoot);
+      await overlayDeniedStreamCall(tc, inputByToken.get(token), mergedPolicies, workspaceBackend);
       matchedTokens.add(token);
       matchedCalls.add(tc);
       result.push(tc);
@@ -1330,11 +1265,29 @@ export function reconcileDeniedToolCalls(
         messages, matchedCalls, wanted, workspaceRoot,
       );
       if (!tc) continue;
-      overlayDeniedStreamCall(tc, entry.input, mergedPolicies, workspaceRoot);
+      await overlayDeniedStreamCall(tc, entry.input, mergedPolicies, workspaceBackend);
       matchedTokens.add(entry.token);
       matchedCalls.add(tc);
       result.push(tc);
     }
+  }
+
+  // 2b. Collapse same-turn duplicate denials. When the model emitted the SAME
+  //     resource twice in one turn (two call ids, one identity token), only the
+  //     FIRST same-token stream call was overlaid into the gate above; any OTHER
+  //     same-token call stayed a committed FAILED row that would render as a
+  //     second, content-less card beside the gate (the reported "No preview
+  //     available" duplicate). We cannot drop it — the backend's
+  //     append-only-at-identity guard rejects a finalize that removes a
+  //     previously-committed tool-call id — so we collapse it IN PLACE to a
+  //     content-less SKIPPED row the SDK hides (isCollapsedToolCall). The id is
+  //     preserved, so the finalize stays append-only by construction.
+  const collapsed = collapseSupersededDenialTwins(messages, matchedTokens, matchedCalls);
+  if (collapsed > 0) {
+    console.log(
+      `ExecuteCursor reconcile collapsed ${collapsed} duplicate denial twin(s) ` +
+        `superseded by the approval gate (kept in place as hidden SKIPPED rows)`,
+    );
   }
 
   // 3. Synthesize a tool call for any denial that matched NO streamed call in
@@ -1352,7 +1305,7 @@ export function reconcileDeniedToolCalls(
     const tc = synthesizeWaitingApprovalToolCall(displayName, salient, entry.token, mergedPolicies);
     // The hook-captured input upgrades the placeholder from a bare {path} to the
     // full proposed args + diff, so even a synthesized gate shows the change.
-    applyGateInput(tc, entry.input, workspaceRoot);
+    await applyGateInput(tc, entry.input, workspaceBackend);
     appendToolCallToLastAiMessage(messages, tc);
     matchedTokens.add(entry.token);
     result.push(tc);
@@ -1372,14 +1325,82 @@ export function reconcileDeniedToolCalls(
  * partial args before the first-denial cancel — so it supplies the args preview
  * and the proposed file change (see {@link applyGateInput}).
  */
-function overlayDeniedStreamCall(
+async function overlayDeniedStreamCall(
   tc: ToolCall,
   input: Record<string, unknown> | undefined,
   mergedPolicies: Map<string, MergedToolPolicy> | undefined,
-  workspaceRoot: string | undefined,
-): void {
+  workspaceBackend: WorkspaceBackend | undefined,
+): Promise<void> {
   markWaitingApproval(tc, mergedPolicies);
-  applyGateInput(tc, input, workspaceRoot);
+  await applyGateInput(tc, input, workspaceBackend);
+}
+
+/**
+ * Collapse the redundant same-turn denial twins of an overlaid gate.
+ *
+ * A twin is a streamed tool call that (a) was NOT the one overlaid into the gate,
+ * (b) shares a gate's identity token (same resource, same turn), (c) is terminal
+ * — FAILED (the deny surfaced as a tool failure) or COMPLETED (the green-check
+ * variant where Cursor reported a denied call as success) — and (d) carries no
+ * `file_changes` of its own. That is exactly the second, content-less card the
+ * model produces when it emits one resource twice and both attempts are gated; it
+ * proposes nothing the gate does not already show.
+ *
+ * The discriminator is tight on purpose: a tool that genuinely ran carries its
+ * proposed change on `file_changes` (an empty write is still a WHOLE_FILE CREATE
+ * with an empty body), so requiring empty `file_changes` AND a shared gate token
+ * means only a denial artifact is ever collapsed — never real work, the exact
+ * risk the prior change cited when it scoped this out.
+ *
+ * The backend's append-only-at-identity guard forbids DROPPING a committed
+ * tool-call id, so we collapse the twin IN PLACE (see {@link collapseDenialTwin})
+ * rather than remove it: a content-less SKIPPED row the SDK hides
+ * (`isCollapsedToolCall`). "Skipped" is the honest terminal state — the twin did
+ * not execute; the gate's single approved attempt will. Returns the number
+ * collapsed, for observability.
+ */
+function collapseSupersededDenialTwins(
+  messages: AgentMessage[],
+  matchedTokens: ReadonlySet<string>,
+  gateCalls: ReadonlySet<ToolCall>,
+): number {
+  let collapsed = 0;
+  for (const msg of messages) {
+    for (const tc of msg.toolCalls) {
+      if (gateCalls.has(tc)) continue; // the overlaid gate itself
+      if (
+        tc.status !== ToolCallStatus.TOOL_CALL_FAILED &&
+        tc.status !== ToolCallStatus.TOOL_CALL_COMPLETED
+      ) {
+        continue;
+      }
+      if (tc.fileChanges.length > 0) continue; // distinct proposed work — keep
+      if (!matchedTokens.has(toolCallIdentityToken(tc))) continue;
+      collapseDenialTwin(tc);
+      collapsed++;
+    }
+  }
+  return collapsed;
+}
+
+/**
+ * Blank a superseded denial twin in place to a hidden SKIPPED row. Keeps the
+ * committed `id` (append-only), `name`, and `toolKind`; clears every renderable
+ * surface and the approval flags so the SDK's `isCollapsedToolCall` predicate
+ * recognizes it and renders nothing. The structured `args` are left as the honest
+ * stored record of the redundant attempt (never rendered, since the row is
+ * hidden; the gate carries the authoritative proposed change).
+ */
+function collapseDenialTwin(tc: ToolCall): void {
+  tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
+  tc.requiresApproval = false;
+  tc.approvalRequestedAt = "";
+  tc.approvalMessage = "";
+  tc.error = "";
+  tc.result = "";
+  tc.argsPreview = "";
+  tc.fileChanges = [];
+  if (!tc.completedAt) tc.completedAt = utcTimestamp();
 }
 
 /**
@@ -1390,23 +1411,32 @@ function overlayDeniedStreamCall(
  * structured `args`, a compact-but-always-valid `args_preview` (the field a
  * resumed turn parses to rebuild the grant salient — so salient fields are never
  * elided, and the heavy content stays only on `file_changes`/`args`), and the
- * proposed `file_changes` (write CREATE / edit HUNK) when the call carries none.
+ * proposed `file_changes` when the call carries none — via the shared
+ * {@link buildGateFileChange}, which reads the file's pre-edit `before` from the
+ * workspace so a whole-file rewrite renders a true before/after diff (the same
+ * builder, and the same WHOLE_FILE/HUNK rules, the native gate uses).
  *
  * It never clobbers a real streamed diff (`file_changes` already set), and it
- * degrades gracefully: with no `input` (the hook's grep fallback) it still tries
- * to synthesize a diff from the call's existing args, matching prior behavior.
+ * degrades gracefully: with no `input` (the hook's grep fallback) it falls back
+ * to the call's existing args, and with no workspace backend it still produces a
+ * (before-less) change, matching prior behavior.
  */
-function applyGateInput(
+async function applyGateInput(
   tc: ToolCall,
   input: Record<string, unknown> | undefined,
-  workspaceRoot: string | undefined,
-): void {
+  workspaceBackend: WorkspaceBackend | undefined,
+): Promise<void> {
   if (input) {
     tc.args = input as JsonObject;
     tc.argsPreview = buildElidedArgsPreview(input, SALIENT_ARG_FIELDS);
   }
   if (tc.fileChanges.length === 0) {
-    const fileChange = buildGatedFileChange(tc.name, input ?? toolCallArgs(tc), workspaceRoot);
+    const fileChange = await buildGateFileChange(
+      tc.name,
+      input ?? toolCallArgs(tc),
+      workspaceBackend,
+      { virtualRoot: false },
+    );
     if (fileChange) tc.fileChanges = [fileChange];
   }
 }

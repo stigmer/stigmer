@@ -65,6 +65,7 @@ import { resolveAttachments } from "./attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
+import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
@@ -939,11 +940,17 @@ async function executeCursorInner(
     // deliberately do NOT set status.pendingApprovals here: any value would be
     // discarded by the backend's recompute on the next updateStatus.
     const deniedLedger = await readDenialLedger(hitlDir ?? "");
-    const deniedToolCalls = reconcileDeniedToolCalls(
+    // The gate reads each denied file's pre-edit `before` from the workspace the
+    // runner is co-located with (local FS for OSS; the sandbox in cloud), so a
+    // whole-file rewrite gate renders a true before/after diff. The tool was
+    // DENIED, so disk still holds the old content. User files are never platform
+    // paths, so no platformDir routing is needed here.
+    const gateWorkspaceBackend = new LocalWorkspaceBackend(primaryWorkspaceDir);
+    const deniedToolCalls = await reconcileDeniedToolCalls(
       status.messages,
       deniedLedger,
       mergedPolicies,
-      primaryWorkspaceDir,
+      gateWorkspaceBackend,
     );
     // Observability: a synthesized placeholder (id `approval:*`) means a denial
     // correlated to NO streamed tool call in either the exact or the normalized

@@ -30,7 +30,7 @@ import { PlanArtifactCard } from "./PlanArtifactCard";
 import { TodoCard } from "./TodoCard";
 import { findPlanArtifact } from "../library/detect-plan-artifact";
 import type { SummarizationEventView } from "./useContextWindow";
-import { isInternalTool } from "./tool-categories";
+import { isInternalTool, isCollapsedToolCall } from "./tool-categories";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
@@ -428,22 +428,34 @@ export function buildThreadItems(
         }
       }
 
+      // Runner-collapsed duplicates (a superseded same-turn denial twin of an
+      // approval gate) are not rendered — they are kept in the transcript only to
+      // satisfy the backend's append-only guard. Filtering them here keeps a
+      // message whose tool calls are ALL collapsed from emitting an empty group.
+      // Preserve the original array reference when nothing is collapsed (the
+      // common case) so structural sharing / memoization (T04) is not defeated by
+      // a fresh array on every build.
+      const renderableToolCalls =
+        msg.type === MessageType.MESSAGE_AI && msg.toolCalls.some(isCollapsedToolCall)
+          ? msg.toolCalls.filter((tc) => !isCollapsedToolCall(tc))
+          : msg.toolCalls;
+
       if (
         msg.type === MessageType.MESSAGE_AI &&
-        msg.toolCalls.length > 0
+        renderableToolCalls.length > 0
       ) {
         // Anchor (2): if work begins before any rendered narration, the plan
         // still leads it.
         emitTodos();
 
-        const needsSplit = msg.toolCalls.some(
+        const needsSplit = renderableToolCalls.some(
           (tc) => tc.name === "task" || isInternalTool(tc.name),
         );
 
         if (needsSplit) {
           const regularTools: ToolCall[] = [];
           const matchedSubAgents: SubAgentExecution[] = [];
-          for (const tc of msg.toolCalls) {
+          for (const tc of renderableToolCalls) {
             if (tc.name === "task") {
               const matched = subAgents.find((sa) => sa.id === tc.id);
               if (matched) matchedSubAgents.push(matched);
@@ -473,11 +485,11 @@ export function buildThreadItems(
         } else {
           items.push({
             kind: "tool-group",
-            toolCalls: msg.toolCalls,
+            toolCalls: renderableToolCalls,
             subAgentExecutions: subAgents,
             key: `${execId}-m${mi}-tc`,
           });
-          for (const tc of msg.toolCalls) {
+          for (const tc of renderableToolCalls) {
             if (tc.id) inlineToolCallIds.add(tc.id);
           }
         }

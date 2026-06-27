@@ -68,6 +68,43 @@ describe("ToolCallGroup timeline", () => {
     expect(screen.queryByText(/Read \d+ files/)).toBeNull();
   });
 
+  it("hides a runner-collapsed duplicate twin (blanked SKIPPED) so one resource renders one card", () => {
+    // The runner overlays the first same-resource denial as the gate and collapses
+    // the redundant twin in place to a content-less SKIPPED row (it cannot drop the
+    // committed id). That blanked twin must not render a second card.
+    const gate = makeToolCall("edit", "stream-1", { path: "/notes.md", old_string: "a", new_string: "b" });
+    gate.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
+    gate.requiresApproval = true;
+
+    const collapsedTwin = create(ToolCallSchema, {
+      id: "stream-2",
+      name: "edit",
+      // Blanked exactly as collapseDenialTwin leaves it: SKIPPED, no approval, no
+      // result/error/argsPreview/file_changes.
+      status: ToolCallStatus.TOOL_CALL_SKIPPED,
+      requiresApproval: false,
+    });
+
+    const { container } = render(<ToolCallGroup toolCalls={[gate, collapsedTwin]} />);
+
+    // Exactly one row — the gate; the collapsed twin is not drawn.
+    const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
+    expect(rows.length).toBe(1);
+    expect(container.querySelector('[data-cursor-target="tool-call-group"]')).toBeTruthy();
+  });
+
+  it("renders nothing when every tool call in the group is a collapsed twin", () => {
+    const collapsedTwin = create(ToolCallSchema, {
+      id: "stream-2",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_SKIPPED,
+      requiresApproval: false,
+    });
+
+    const { container } = render(<ToolCallGroup toolCalls={[collapsedTwin]} />);
+    expect(container.querySelector('[data-cursor-target="tool-call-group"]')).toBeNull();
+  });
+
   it("stacks each tool call as its own bordered card with gaps (no left rail)", () => {
     const { container } = render(
       <ToolCallGroup
