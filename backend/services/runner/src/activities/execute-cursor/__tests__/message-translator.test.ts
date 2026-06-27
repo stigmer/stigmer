@@ -108,6 +108,40 @@ describe("MessageAccumulator tool call status transitions", () => {
     expect(tc.completedAt).toBeTruthy();
   });
 
+  it("persists the Cursor shell {status,value} envelope verbatim on ToolCall.result", () => {
+    // The Cursor SDK's built-in Shell tool returns a structured envelope object;
+    // the runner stores it as a JSON string (toResultString → JSON.stringify),
+    // and the SDK view layer (normalizeShell) unwraps it for display. This locks
+    // the persisted shape so the cross-language fixture (result-views.json's
+    // cursor_shell_envelope) is grounded in what the runner actually writes,
+    // not a guess — the two halves of the bug fix stay in sync.
+    const messages: AgentMessage[] = [];
+    const acc = new MessageAccumulator(messages);
+
+    const envelope = {
+      status: "success",
+      value: {
+        exitCode: 0,
+        signal: "",
+        stdout: "total 8\n",
+        stderr: "",
+        executionTime: 1176,
+      },
+    };
+
+    acc.processEvent(assistantEvent("r1", "Running ls."));
+    acc.processEvent(toolCallEvent("tc-shell", "Shell", "running"));
+    acc.processEvent(
+      toolCallEvent("tc-shell", "Shell", "completed", "run-1", { result: envelope }),
+    );
+
+    const tc = findToolCallById(messages, "tc-shell")!;
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(tc.result).toBe(JSON.stringify(envelope));
+    // Round-trips to the original structure (the SDK normalizer reads .value).
+    expect(JSON.parse(tc.result)).toEqual(envelope);
+  });
+
   it("cross-message completion: tool call completes after new AI message is created", () => {
     const messages: AgentMessage[] = [];
     const acc = new MessageAccumulator(messages);

@@ -65,6 +65,15 @@
       "expected": { "type": "terminal", "command": "echo hi" }
     },
     {
+      "name": "cursor_shell_envelope",
+      "harness": "cursor",
+      "toolName": "Shell",
+      "mcpServerSlug": "",
+      "args": { "command": "ls -la" },
+      "result": "{\"status\":\"success\",\"value\":{\"exitCode\":0,\"signal\":\"\",\"stdout\":\"total 8\\n\",\"stderr\":\"\",\"executionTime\":1176}}",
+      "expected": { "type": "terminal", "exitCode": 0, "command": "ls -la" }
+    },
+    {
       "name": "native_grep_matches",
       "harness": "native",
       "toolName": "grep",

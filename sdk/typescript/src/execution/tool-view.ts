@@ -304,8 +304,7 @@ function normalizeEdit(
   const oldText = firstString(args, OLD_TEXT_FIELDS);
   const newText = firstString(args, NEW_TEXT_FIELDS);
 
-  const envelope = tryParseJson(result);
-  const value = isRecord(envelope) && isRecord(envelope.value) ? envelope.value : undefined;
+  const value = cursorEnvelopeValue(tryParseJson(result));
   const linesAdded = value ? asNumber(value.linesAdded) : undefined;
   const linesRemoved = value ? asNumber(value.linesRemoved) : undefined;
   const unifiedDiff = value ? asString(value.diffString) : undefined;
@@ -438,15 +437,21 @@ function normalizeShell(result: string, args: Args): ToolResultView {
   // Cursor args, so no fallback fields are needed.
   const command = firstString(args, ["command"]);
 
-  // Cursor sub-agent steps can carry a structured {stdout,stderr,exitCode}.
+  // Two shapes carry structured shell output: native sub-agent steps emit the
+  // {stdout,stderr,exitCode} record directly; the Cursor SDK nests it under a
+  // {status, value} envelope (the same envelope the edit tool uses). Read
+  // whichever is present so the real output surfaces instead of the raw JSON
+  // string. A failed shell never reaches here — normalizeToolResult routes
+  // TOOL_CALL_FAILED to the error view first — so only success is handled.
   const parsed = tryParseJson(result);
-  if (isRecord(parsed) && ("stdout" in parsed || "exitCode" in parsed)) {
+  const shell = hasShellFields(parsed) ? parsed : cursorEnvelopeValue(parsed);
+  if (hasShellFields(shell)) {
     return {
       type: "terminal",
       command,
-      stdout: asString(parsed.stdout) ?? "",
-      stderr: asString(parsed.stderr) ?? "",
-      exitCode: asNumber(parsed.exitCode),
+      stdout: asString(shell.stdout) ?? "",
+      stderr: asString(shell.stderr) ?? "",
+      exitCode: asNumber(shell.exitCode),
     };
   }
 
@@ -553,6 +558,20 @@ function extractContentBlocks(parsed: unknown): ToolContentBlock[] | null {
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+// The Cursor SDK wraps tool payloads in a {status, value} envelope. Returns the
+// inner `value` record when present, so edit and shell read the envelope through
+// one definition instead of each re-deriving its shape.
+function cursorEnvelopeValue(parsed: unknown): Record<string, unknown> | undefined {
+  return isRecord(parsed) && isRecord(parsed.value) ? parsed.value : undefined;
+}
+
+// True when a record carries structured shell output (stdout/exitCode). Used to
+// pick between the un-enveloped native shape and the Cursor envelope's inner
+// value in normalizeShell.
+function hasShellFields(v: unknown): v is Record<string, unknown> {
+  return isRecord(v) && ("stdout" in v || "exitCode" in v);
 }
 
 function asString(v: unknown): string | undefined {
