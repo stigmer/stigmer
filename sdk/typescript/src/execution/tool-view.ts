@@ -26,6 +26,7 @@
 import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { FileChangeCaptureLevel } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ToolCall, FileChange, FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
 export { ToolKind, FileChangeCaptureLevel };
@@ -350,7 +351,15 @@ function normalizeEditFromFileChange(change: FileChange, args: Args): ToolResult
       return {
         type: "diff",
         path,
-        oldText: inlineFileBody(change.before),
+        // A whole-file CREATE has no before-side: an absent before is the empty
+        // file (""), so a new file renders as an all-additions diff — matching the
+        // approval gate (useFileChangeContent.sideText) and normalizeWrite's
+        // create-only default. An absent/unavailable before on a MODIFY (offloaded
+        // or binary) stays undefined so the renderer fetches it or degrades
+        // honestly, never fabricating a misleading all-additions diff.
+        oldText:
+          inlineFileBody(change.before)
+          ?? (change.changeType === FileChangeType.CREATE ? "" : undefined),
         newText: inlineFileBody(change.after),
         captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
       };

@@ -230,6 +230,58 @@ describe("normalizeEdit — whole-file with unavailable sides", () => {
   });
 });
 
+describe("normalizeEdit — whole-file CREATE (new file)", () => {
+  // The screenshot regression: a gated whole-file CREATE-via-edit carries an
+  // absent before (a new file) and the new content as `after`. The settled card
+  // must render an all-additions diff, NOT "No preview available" — so the absent
+  // before resolves to "" (matching the approval gate's useFileChangeContent),
+  // which only happens because the change type is CREATE.
+  it("treats an absent before on a CREATE as the empty file (all-additions diff)", () => {
+    const CONTENT = "# Notes\n\n- first\n- second\n";
+    const view = normalizeToolResult(
+      editToolCall({
+        fileChanges: [
+          create(FileChangeSchema, {
+            path: "notes.md",
+            changeType: FileChangeType.CREATE,
+            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+            // before omitted -> absent (a new file has no prior content)
+            after: inlineSide(CONTENT),
+          }),
+        ],
+      }),
+    );
+    expect(view.type).toBe("diff");
+    if (view.type !== "diff") return;
+    expect(view.oldText).toBe("");
+    expect(view.newText).toBe(CONTENT);
+    expect(view.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+  });
+
+  // CREATE-specificity guard: the "" default is gated on CREATE, never a blanket
+  // `?? ""`. An absent before on a MODIFY is genuinely unknown (a capture miss),
+  // so it must stay undefined rather than fabricate an all-additions diff that
+  // would imply the file was previously empty.
+  it("leaves an absent before on a MODIFY undefined (no fabricated empty diff)", () => {
+    const view = normalizeToolResult(
+      editToolCall({
+        fileChanges: [
+          create(FileChangeSchema, {
+            path: "existing.md",
+            changeType: FileChangeType.MODIFY,
+            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+            // before omitted on a MODIFY -> unknown, not empty
+            after: inlineSide("new content\n"),
+          }),
+        ],
+      }),
+    );
+    if (view.type !== "diff") return;
+    expect(view.oldText).toBeUndefined();
+    expect(view.newText).toBe("new content\n");
+  });
+});
+
 describe("normalizeEdit — path resolution", () => {
   it("prefers the change's repo-relative path, then absolute, then args", () => {
     const relative = normalizeToolResult(

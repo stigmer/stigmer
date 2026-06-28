@@ -1,6 +1,19 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { create } from "@bufbuild/protobuf";
+import {
+  ToolCallSchema,
+  FileChangeSchema,
+  FileContentSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import {
+  ToolCallStatus,
+  ToolKind,
+  FileChangeType,
+  FileChangeCaptureLevel,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { normalizeToolResult } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
@@ -238,6 +251,38 @@ describe("ResultView", () => {
     const { container } = render(<ResultView view={view} showFileName={false} />);
     expect(container.textContent).toContain("No preview available for this change");
     expect(container.textContent).not.toContain("x.md");
+  });
+
+  // End-to-end regression lock for the approval-gate screenshot: a gated
+  // whole-file CREATE-via-edit, once approved/settled, carries an absent before
+  // and the new content as `after`. Run the real ToolCall through the full
+  // normalizeToolResult -> ResultView pipeline (the same path the settled card
+  // uses) and prove it renders the new file as an all-additions diff — never the
+  // "No preview available" notice the bug produced. A regression in either the
+  // normalize seam or the diff renderer fails this.
+  it("renders an approved whole-file CREATE-via-edit as a diff, not 'No preview available'", () => {
+    const CONTENT = "# Notes\n\n- first bullet\n- second bullet\n";
+    const toolCall = create(ToolCallSchema, {
+      id: "tool_create_via_edit",
+      name: "edit",
+      toolKind: ToolKind.FILE_EDIT,
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      fileChanges: [
+        create(FileChangeSchema, {
+          path: "notes.md",
+          changeType: FileChangeType.CREATE,
+          captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+          // before omitted -> absent (a brand-new file)
+          after: create(FileContentSchema, {
+            body: { case: "inline", value: CONTENT },
+          }),
+        }),
+      ],
+    });
+
+    const { container } = render(<ResultView view={normalizeToolResult(toolCall)} />);
+    expect(container.textContent).toContain("first bullet");
+    expect(container.textContent).not.toContain("No preview available");
   });
 
   it("suppresses the file path in a write fallback when showFileName is false", () => {
