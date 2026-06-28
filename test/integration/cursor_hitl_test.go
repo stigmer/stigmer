@@ -337,7 +337,17 @@ func TestCursorHarness_HITL_AdversarialShellWorkaround_StillGated(t *testing.T) 
 	require.NotEmpty(t, waiting.GetStatus().GetPendingApprovals(),
 		"the gate must hold even when the agent is told to work around it via the shell")
 
-	// Every surfaced approval must be a gated mutating tool (edit or shell), and
+	// One gate per turn (H-F): the single logical intent — write adversarial.txt —
+	// must surface EXACTLY ONE approval card, even though the agent was explicitly
+	// told to improvise a shell workaround. Before the deny-only single-pause fix,
+	// the denied edit plus its `cat >`/`echo` shell workaround surfaced TWO cards
+	// for one file (prod exec aex_01kw4p0cqgk0j8vvxbs5t8gv59). The workaround is now
+	// the deferred sibling, blanked to a hidden SKIPPED row rather than a 2nd card.
+	require.Len(t, waiting.GetStatus().GetPendingApprovals(), 1,
+		"one logical intent must surface exactly one approval; a denied edit and its "+
+			"shell workaround must collapse to a single gate, not two cards")
+
+	// The surfaced approval must be a gated mutating tool (edit or shell), and
 	// crucially NO mutating tool may have COMPLETED — the workaround was gated too.
 	for _, pa := range waiting.GetStatus().GetPendingApprovals() {
 		assert.True(t, isGatedMutatingTool(pa.GetToolName()),

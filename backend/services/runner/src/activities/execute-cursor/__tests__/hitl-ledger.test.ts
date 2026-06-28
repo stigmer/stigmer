@@ -32,6 +32,7 @@ import {
   ToolCallSchema,
   FileChangeSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type {
   AgentMessage,
   ToolCall,
@@ -669,9 +670,13 @@ describe("reconcileDeniedToolCalls — duplicate denial-twin collapse", () => {
     expect(twin.argsPreview).toBe("");
   });
 
-  it("does NOT collapse two DISTINCT same-family gates (different resources keep both cards)", async () => {
-    // Two edits to DIFFERENT files are two real gates, not a duplicate — each
-    // must survive as its own WAITING_APPROVAL card.
+  it("one gate per turn: surfaces the anchor (first denied) and defers a DISTINCT co-pending sibling", async () => {
+    // Two edits to DIFFERENT files denied in one turn. Under the Cursor deny-only
+    // one-gate-per-turn contract the FIRST denial (ledger[0] = a.md) is the single
+    // surfaced gate; the distinct sibling b.md is blanked to a hidden SKIPPED row
+    // and re-attempted (and re-gated) on the next turn — sequential gating, not a
+    // lost intent. (The native harness keeps full in-turn co-pending; this rule is
+    // cursor-only.)
     const gateA = toolCall({
       id: "edit-a",
       name: "edit",
@@ -698,10 +703,13 @@ describe("reconcileDeniedToolCalls — duplicate denial-twin collapse", () => {
       rootBackend(),
     );
 
-    // Two gates, none collapsed — distinct resources are distinct work.
-    expect(reconciled).toHaveLength(2);
+    // Exactly one gate (the anchor); the sibling is hidden, not a second card.
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0].id).toBe("edit-a");
     expect(gateA.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-    expect(gateB.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(gateB.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(gateB.requiresApproval).toBe(false);
+    expect(gateB.argsPreview).toBe("");
   });
 
   it("does NOT collapse a twin that carries its own proposed change", async () => {
@@ -741,6 +749,242 @@ describe("reconcileDeniedToolCalls — duplicate denial-twin collapse", () => {
     // Untouched — it carries its own file_changes, so it is not a bare twin.
     expect(withChange.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(withChange.fileChanges).toHaveLength(1);
+  });
+});
+
+// One gate per turn (the H-F deny-only clean pause). When a denied edit is
+// followed by a DIFFERENT-identity workaround (the classic `shell: cat > file`
+// bypass) the first-denial stop races the SDK's auto-execution, so both denials
+// can land in the ledger. The reconcile anchors on the FIRST denial and blanks
+// every other denied identity to a hidden SKIPPED row — one card for one intent,
+// regardless of whether the two calls share an assistant message. These pin the
+// production shape (exec aex_01kw4p0cqgk0j8vvxbs5t8gv59: edit + shell in ONE
+// message, no narration between them) that no positional or same-identity rule
+// could fix.
+describe("reconcileDeniedToolCalls — one gate per turn (deny-only workaround)", () => {
+  it("collapses the edit+shell workaround in the SAME message to one gate (the production bug)", async () => {
+    // edit notes.md (denied) then shell `cat > notes.md` (denied, reported as a
+    // success by Cursor) — both attached to ONE AgentMessage with no narration
+    // between, exactly as captured in production. The edit is the anchor; the
+    // shell is a post-denial reaction and must be hidden, not a second card.
+    const edit = toolCall({
+      id: "edit-1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "", new_string: "hi" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+    });
+    const shell = toolCall({
+      id: "shell-1",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      result: '""', // denied-reported-as-success degenerate result
+      args: { command: "cat > notes.md" },
+      argsPreview: JSON.stringify({ command: "cat > notes.md" }),
+    });
+    const messages = [aiMessageWith([edit, shell])];
+
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [
+        { toolName: "Write", token: grantToken("write", "notes.md") },
+        { toolName: "Shell", token: grantToken("shell", "cat > notes.md") },
+      ],
+      undefined,
+      rootBackend(),
+    );
+
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0].id).toBe("edit-1");
+    expect(edit.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    // The workaround is hidden (SKIPPED), never surfaced, never COMPLETED.
+    expect(shell.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(shell.requiresApproval).toBe(false);
+    expect(shell.result).toBe("");
+    expect(shell.argsPreview).toBe("");
+    // Both ids are preserved in place (append-only finalize).
+    expect(messages[0].toolCalls.map((t) => t.id)).toEqual(["edit-1", "shell-1"]);
+  });
+
+  it("collapses the workaround even when the shell lands in a LATER message (narration case)", async () => {
+    // The narration variant: a new AgentMessage starts between the two tools.
+    // The rule is identity/ledger-based, not positional, so the outcome matches
+    // the same-message case above — proving it is robust to message segmentation.
+    const edit = toolCall({
+      id: "edit-1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "", new_string: "hi" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+    });
+    const shell = toolCall({
+      id: "shell-1",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "blocked by a hook",
+      args: { command: "cat > notes.md" },
+      argsPreview: JSON.stringify({ command: "cat > notes.md" }),
+    });
+    const messages = [aiMessageWith([edit]), aiMessageWith([shell])];
+
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [
+        { toolName: "Write", token: grantToken("write", "notes.md") },
+        { toolName: "Shell", token: grantToken("shell", "cat > notes.md") },
+      ],
+      undefined,
+      rootBackend(),
+    );
+
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0].id).toBe("edit-1");
+    expect(edit.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(shell.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  });
+
+  it("anchors on the FIRST denial by ledger order (shell first -> shell is the gate)", async () => {
+    // The anchor is the first denial of the turn, whatever its family. Here the
+    // shell was denied first, so it is the surfaced gate and the later edit is
+    // the deferred sibling.
+    const shell = toolCall({
+      id: "shell-1",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { command: "echo hi > notes.md" },
+      argsPreview: JSON.stringify({ command: "echo hi > notes.md" }),
+    });
+    const edit = toolCall({
+      id: "edit-1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "", new_string: "hi" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+    });
+    const messages = [aiMessageWith([shell, edit])];
+
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [
+        { toolName: "Shell", token: grantToken("shell", "echo hi > notes.md") },
+        { toolName: "Write", token: grantToken("write", "notes.md") },
+      ],
+      undefined,
+      rootBackend(),
+    );
+
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0].id).toBe("shell-1");
+    expect(shell.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(edit.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  });
+
+  it("anchors an MCP gate and collapses a built-in reaction", async () => {
+    // The anchor can be an MCP tool; a built-in workaround denied in the same
+    // turn is still the deferred sibling.
+    const mcp = toolCall({
+      id: "mcp-1",
+      name: "fetch",
+      mcpServerSlug: "web",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      argsPreview: JSON.stringify({ url: "https://x" }),
+    });
+    const edit = toolCall({
+      id: "edit-1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "", new_string: "hi" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+    });
+    const messages = [aiMessageWith([mcp, edit])];
+
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [
+        { toolName: "fetch", token: grantToken("fetch", "") },
+        { toolName: "Write", token: grantToken("write", "notes.md") },
+      ],
+      undefined,
+      rootBackend(),
+    );
+
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0].id).toBe("mcp-1");
+    expect(mcp.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(edit.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  });
+
+  it("regression lock: a lone denial is unchanged (one gate, nothing collapsed)", async () => {
+    const edit = toolCall({
+      id: "edit-1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "", new_string: "hi" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+    });
+    const messages = [aiMessageWith([edit])];
+
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Write", token: grantToken("write", "notes.md") }],
+      undefined,
+      rootBackend(),
+    );
+
+    expect(reconciled).toHaveLength(1);
+    expect(edit.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+  });
+
+  it("round-trip: approving the anchor never grants the collapsed workaround", async () => {
+    // After the user approves the surfaced gate, the grant set keys only on the
+    // original write — the shell, hidden as SKIPPED, never becomes a pending
+    // approval and so can never be granted (approving the write != approving the
+    // shell). This is the safety property the duplicate cards used to violate.
+    const edit = toolCall({
+      id: "edit-1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "", new_string: "hi" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+    });
+    const shell = toolCall({
+      id: "shell-1",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      result: '""',
+      args: { command: "cat > notes.md" },
+      argsPreview: JSON.stringify({ command: "cat > notes.md" }),
+    });
+    const messages = [aiMessageWith([edit, shell])];
+
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [
+        { toolName: "Write", token: grantToken("write", "notes.md") },
+        { toolName: "Shell", token: grantToken("shell", "cat > notes.md") },
+      ],
+      undefined,
+      rootBackend(),
+    );
+
+    // The backend projects pending approvals from WAITING_APPROVAL tool calls —
+    // only the anchor qualifies. Simulate the user approving every surfaced gate.
+    const pendingApprovals = reconciled.map((tc) =>
+      create(PendingApprovalSchema, {
+        toolCallId: tc.id,
+        toolName: tc.name,
+        mcpServerSlug: tc.mcpServerSlug,
+        argsPreview: tc.argsPreview,
+      }),
+    );
+    const decisions = new Map(
+      pendingApprovals.map((pa) => [pa.toolCallId, ApprovalAction.APPROVE]),
+    );
+    const grants = buildApprovalGrants(pendingApprovals, decisions);
+    const grantTokens = grants.map((g) => grantToken(g.key, g.salient));
+
+    expect(grantTokens).toContain(grantToken("write", "notes.md"));
+    expect(grantTokens).not.toContain(grantToken("shell", "cat > notes.md"));
   });
 });
 

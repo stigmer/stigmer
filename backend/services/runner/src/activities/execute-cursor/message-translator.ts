@@ -1178,6 +1178,32 @@ export class MessageAccumulator {
  * approved once should produce one approval regardless of how many times the
  * agent re-attempted it within the turn.
  *
+ * ONE GATE PER TURN (deny-only clean pause). The Cursor harness can only gate by
+ * the hook returning `deny`, which Cursor surfaces to the model as a tool
+ * *failure* — so a blocked model frequently improvises a workaround (the
+ * canonical case: a denied `edit notes.md` followed ~2.5s later by a
+ * `shell: cat > notes.md`, in the SAME assistant message with no narration
+ * between them — observed in production, exec aex_01kw4p0cqgk0j8vvxbs5t8gv59).
+ * The first-denial stop (index.ts) tries to cancel the turn at that first
+ * denial, but `run.cancel()` is async and races the SDK's auto-execution, so the
+ * workaround can still stream and land a SECOND denial in the ledger. Two
+ * denials of distinct identity would otherwise surface two approval cards for
+ * one logical intent. Their identities differ (`write\nnotes.md` vs
+ * `shell\ncat > notes.md`), so no same-identity twin collapse can join them, and
+ * they share one message, so no positional rule can separate them; the only
+ * honest signal that the second is a reaction is CAUSALITY — it was emitted
+ * after the model saw the first denial. We therefore ANCHOR on the FIRST ledger
+ * denial of the turn (the ledger is reset per turn and appended in denial order,
+ * so ledger[0] is the original intent) and surface ONLY that identity. Every
+ * other denied identity in the turn — a post-denial workaround, or a genuine
+ * co-pending sibling the deny-only harness defers — is blanked in place to a
+ * hidden SKIPPED row ({@link collapseNonAnchorDenials}). A deferred sibling is
+ * not lost: on resume it re-attempts and gates again next turn (sequential
+ * gating). The native (LangGraph) harness pauses BEFORE the model can react, so
+ * it keeps full in-turn co-pending and is untouched by this rule. This is the
+ * near-term, invariant-preserving stepping stone to the Tool Execution Gateway,
+ * where an un-leased workaround is refused by construction.
+ *
  * Correlation runs in two passes. The first matches the streamed token to a
  * ledger token byte-for-byte (the common case). The hook, however, records its
  * token from the RAW path Cursor hands it — a bash script cannot normalize a
@@ -1206,7 +1232,8 @@ export class MessageAccumulator {
  * before approval, for every tool. A real streamed diff is never clobbered, and
  * a missing capture (the hook's grep fallback) degrades to the prior behavior.
  *
- * Returns the tool calls now marked WAITING_APPROVAL (overlaid + synthesized).
+ * Returns the tool calls now marked WAITING_APPROVAL — the single anchor gate
+ * for the turn (overlaid or, rarely, synthesized).
  */
 export async function reconcileDeniedToolCalls(
   messages: AgentMessage[],
@@ -1221,55 +1248,81 @@ export async function reconcileDeniedToolCalls(
   // at the gate (the tool was DENIED, so disk still holds the true old content).
   const workspaceRoot = workspaceBackend?.rootDir;
 
-  // One approval per denied identity (token); AND one overlay per streamed proto
-  // (object identity) so the normalized fallback never double-assigns a call.
+  // One gate per turn: anchor on the FIRST ledger denial. The ledger is reset
+  // per turn and appended in denial order, so ledger[0] is the model's original
+  // intent; any later denial of a DIFFERENT identity is a post-denial workaround
+  // or a deferred co-pending sibling (see the doc comment). We surface ONLY the
+  // anchor identity below and blank every other denied identity to a hidden
+  // SKIPPED row. `deniedTokens` still carries every denied identity — it is the
+  // scope for that collapse, never an additional gate.
+  const anchorToken = ledger[0].token;
   const deniedTokens = new Set(ledger.map((e) => e.token));
-  // The authoritative pre-execution args the hook captured, keyed by identity
-  // token. A resource re-attempted within the turn shares a token; last write
-  // wins (the attempts carry the same proposed change).
-  const inputByToken = new Map<string, Record<string, unknown>>();
+  // The authoritative pre-execution args the hook captured for the anchor. A
+  // resource re-attempted within the turn shares a token; last write wins (the
+  // attempts carry the same proposed change).
+  let anchorInput: Record<string, unknown> | undefined;
   for (const e of ledger) {
-    if (e.input) inputByToken.set(e.token, e.input);
+    if (e.token === anchorToken && e.input) anchorInput = e.input;
   }
-  const matchedTokens = new Set<string>();
   const matchedCalls = new Set<ToolCall>();
   const result: ToolCall[] = [];
+  let anchorMatched = false;
 
-  // 1. Exact overlay: the streamed token equals a ledger denial token byte-for-
-  //    byte (the path form agreed on both sides). A resource re-attempted within
-  //    the turn shares one token and collapses to a single approval.
+  // 1. Exact overlay: a streamed call whose token equals the anchor denial token
+  //    byte-for-byte (the path form agreed on both sides). The anchor resource
+  //    re-attempted within the turn shares one token and collapses to a single
+  //    approval (the first match is the keeper; same-identity twins are blanked
+  //    by collapseRedundantToolCallTwins below).
   for (const msg of messages) {
+    if (anchorMatched) break;
     for (const tc of msg.toolCalls) {
-      const token = toolCallIdentityToken(tc);
-      if (!deniedTokens.has(token) || matchedTokens.has(token)) continue;
-      await overlayDeniedStreamCall(tc, inputByToken.get(token), mergedPolicies, workspaceBackend);
-      matchedTokens.add(token);
+      if (toolCallIdentityToken(tc) !== anchorToken) continue;
+      await overlayDeniedStreamCall(tc, anchorInput, mergedPolicies, workspaceBackend);
       matchedCalls.add(tc);
       result.push(tc);
+      anchorMatched = true;
+      break;
     }
   }
 
-  // 2. Normalized-path fallback (the abs-vs-rel drift fix): for each still-
-  //    unmatched FILE denial, match a streamed call by (category, workspace-
-  //    normalized path) and overlay the REAL call — never a content-less
-  //    placeholder beside it. Requires the workspace root to normalize; shell/MCP
-  //    denials (no path) and resumes without a root fall through to synthesis.
-  if (workspaceRoot) {
-    for (const entry of ledger) {
-      if (matchedTokens.has(entry.token)) continue;
-      const decoded = decodeIdentityToken(entry.token);
-      if (!decoded) continue;
-      const wanted = normalizedFileSalient(decoded.key, decoded.salient, workspaceRoot);
-      if (!wanted) continue; // non-file category — exact correlation only
+  // 2. Normalized-path fallback (the abs-vs-rel drift fix): if the anchor is a
+  //    FILE denial the exact pass missed, match a streamed call by (category,
+  //    workspace-normalized path) and overlay the REAL call — never a content-
+  //    less placeholder beside it. Requires the workspace root to normalize;
+  //    shell/MCP denials (no path) and resumes without a root fall through to
+  //    synthesis.
+  if (!anchorMatched && workspaceRoot) {
+    const decoded = decodeIdentityToken(anchorToken);
+    const wanted = decoded
+      ? normalizedFileSalient(decoded.key, decoded.salient, workspaceRoot)
+      : undefined;
+    if (wanted) {
       const tc = findUnmatchedStreamCallByNormalizedSalient(
         messages, matchedCalls, wanted, workspaceRoot,
       );
-      if (!tc) continue;
-      await overlayDeniedStreamCall(tc, entry.input, mergedPolicies, workspaceBackend);
-      matchedTokens.add(entry.token);
-      matchedCalls.add(tc);
-      result.push(tc);
+      if (tc) {
+        await overlayDeniedStreamCall(tc, anchorInput, mergedPolicies, workspaceBackend);
+        matchedCalls.add(tc);
+        result.push(tc);
+        anchorMatched = true;
+      }
     }
+  }
+
+  // 2a. One gate per turn: blank every denied identity OTHER than the anchor to a
+  //     hidden SKIPPED row (the workaround shell, or a deferred co-pending
+  //     sibling). Runs BEFORE the WAITING_FOR_APPROVAL persist so a reaction is
+  //     never persisted as WAITING_APPROVAL — the backend authors an approval
+  //     REQUESTED event only from a WAITING_APPROVAL tool call, so collapsing
+  //     here keeps the append-only approval-event stream free of an orphan
+  //     REQUESTED that would need retraction.
+  const nonAnchorCollapsed = collapseNonAnchorDenials(messages, deniedTokens, anchorToken);
+  if (nonAnchorCollapsed > 0) {
+    console.log(
+      `ExecuteCursor reconcile collapsed ${nonAnchorCollapsed} non-anchor denied ` +
+        `tool call(s) to hidden SKIPPED (one gate per turn; anchor is the first ` +
+        `denial of the turn)`,
+    );
   }
 
   // 2b. Collapse same-turn duplicate edits. When the model emitted the SAME
@@ -1291,24 +1344,25 @@ export async function reconcileDeniedToolCalls(
     );
   }
 
-  // 3. Synthesize a tool call for any denial that matched NO streamed call in
-  //    either pass (rare — Cursor emits a tool_call event for every attempt), so
-  //    the gate still surfaces rather than rendering as a silent success. After
-  //    the normalized fallback this should be ~0; the caller logs a divergence
-  //    when it is not (a synthesized id is prefixed `approval:`).
-  for (const entry of ledger) {
-    if (matchedTokens.has(entry.token)) continue;
-    const decoded = decodeIdentityToken(entry.token);
+  // 3. Synthesize the anchor gate if it matched NO streamed call in either pass
+  //    (rare — Cursor emits a tool_call event for every attempt), so the gate
+  //    still surfaces rather than rendering as a silent success. After the
+  //    normalized fallback this should be ~0; the caller logs a divergence when
+  //    it is not (a synthesized id is prefixed `approval:`). Only the anchor is
+  //    ever synthesized: non-anchor denials are deliberately collapsed, never
+  //    surfaced (one gate per turn).
+  if (!anchorMatched) {
+    const anchorEntry = ledger.find((e) => e.token === anchorToken) ?? ledger[0];
+    const decoded = decodeIdentityToken(anchorToken);
     // Display the hook's raw tool name; carry the decoded salient so the grant
     // rebuilt from this tool call on reinvocation keys on the same resource.
-    const displayName = entry.toolName || decoded?.key || "tool";
+    const displayName = anchorEntry.toolName || decoded?.key || "tool";
     const salient = decoded?.salient ?? "";
-    const tc = synthesizeWaitingApprovalToolCall(displayName, salient, entry.token, mergedPolicies);
+    const tc = synthesizeWaitingApprovalToolCall(displayName, salient, anchorToken, mergedPolicies);
     // The hook-captured input upgrades the placeholder from a bare {path} to the
     // full proposed args + diff, so even a synthesized gate shows the change.
-    await applyGateInput(tc, entry.input, workspaceBackend);
+    await applyGateInput(tc, anchorInput ?? anchorEntry.input, workspaceBackend);
     appendToolCallToLastAiMessage(messages, tc);
-    matchedTokens.add(entry.token);
     result.push(tc);
   }
 
@@ -1448,6 +1502,45 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
 
     for (const tc of group) {
       if (keepers.has(tc)) continue;
+      if (isAlreadyCollapsed(tc)) continue;
+      collapseDenialTwin(tc);
+      collapsed++;
+    }
+  }
+  return collapsed;
+}
+
+/**
+ * One gate per turn: blank every DENIED tool call whose identity differs from
+ * the anchor (the first denial of the turn) to a hidden SKIPPED row.
+ *
+ * This is the cross-identity complement of {@link collapseRedundantToolCallTwins}
+ * (which only joins SAME-identity duplicates). The canonical target is the
+ * deny-only workaround — a denied `edit notes.md` followed by a `shell:
+ * cat > notes.md` whose identity (`shell\n…`) differs from the edit's
+ * (`write\nnotes.md`), so no twin collapse can join them and (since they share
+ * one assistant message) no positional rule can separate them. The honest signal
+ * that the shell is redundant is that it is a DIFFERENT denied identity in the
+ * same turn as the anchor; under the one-gate-per-turn contract every such
+ * identity is either a post-denial reaction or a co-pending sibling the harness
+ * defers to the next turn, so it is hidden, not surfaced.
+ *
+ * Scoped strictly to identities present in `deniedTokens`: a non-denied tool
+ * (an earlier read/glob, or an already-granted call that ran) is never touched.
+ * Subtractive and id-preserving (via {@link collapseDenialTwin}), so the finalize
+ * stays append-only. Returns the number collapsed, for observability.
+ */
+function collapseNonAnchorDenials(
+  messages: AgentMessage[],
+  deniedTokens: ReadonlySet<string>,
+  anchorToken: string,
+): number {
+  let collapsed = 0;
+  for (const msg of messages) {
+    for (const tc of msg.toolCalls) {
+      const token = toolCallIdentityToken(tc);
+      if (token === anchorToken) continue;
+      if (!deniedTokens.has(token)) continue;
       if (isAlreadyCollapsed(tc)) continue;
       collapseDenialTwin(tc);
       collapsed++;
