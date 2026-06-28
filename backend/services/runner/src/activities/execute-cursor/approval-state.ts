@@ -61,7 +61,7 @@
  * token next turn.
  */
 
-import { writeFile, readFile, mkdir } from "node:fs/promises";
+import { writeFile, readFile, mkdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -424,6 +424,75 @@ function decodeLedgerInput(raw: unknown): Record<string, unknown> | undefined {
       : undefined;
   } catch {
     return undefined;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Active-turn pointer (runner → stable hook): the per-turn indirection that makes
+// a single, process-cached hook script resolve the CURRENT execution's artifacts
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ACTIVE_POINTER_FILE = "active.json";
+
+/**
+ * The current turn's artifact paths, written by the runner into the WORKSPACE's
+ * gate directory and read by the stable hook script on every invocation.
+ *
+ * Why this exists: the Cursor SDK caches `.cursor/hooks.json` (the hook script
+ * PATH) for the runner process, so the script must be STABLE across executions
+ * (a per-session script gets cached at the first execution and reused for all
+ * later ones — recording their denials to the FIRST session's ledger, leaving the
+ * current runner's ledger empty so it completes instead of pausing). The stable
+ * script bakes in NO per-session paths; it reads this pointer instead, which the
+ * runner repoints every turn to the current execution's state file, denial
+ * ledger, and runner PID.
+ */
+export interface ActiveTurnPointer {
+  /** Absolute path of THIS turn's approval-state file (hook input). */
+  stateFile: string;
+  /** Absolute path of THIS turn's denial ledger (hook output the runner reads). */
+  ledgerFile: string;
+  /** PID of the runner that owns THIS turn (the hook's scope-guard anchor). */
+  runnerPid: number;
+}
+
+/** Absolute path of the active-turn pointer inside a workspace's gate directory. */
+export function activePointerPath(gateDir: string): string {
+  return join(gateDir, ACTIVE_POINTER_FILE);
+}
+
+/**
+ * Atomically point the workspace's stable hook at the current turn's artifacts.
+ *
+ * Written compactly (the hook's grep fallback parses `"key":"value"` with no
+ * spaces) and atomically (write a temp sibling, then rename) so a hook firing
+ * concurrently with the write never reads a half-written pointer. Returns the
+ * pointer path.
+ */
+export async function writeActiveTurnPointer(
+  gateDir: string,
+  pointer: ActiveTurnPointer,
+): Promise<string> {
+  await mkdir(gateDir, { recursive: true });
+  const filePath = activePointerPath(gateDir);
+  const tmpPath = `${filePath}.${process.pid}.tmp`;
+  await writeFile(tmpPath, JSON.stringify(pointer), "utf-8");
+  await rename(tmpPath, filePath);
+  return filePath;
+}
+
+/**
+ * Remove the active-turn pointer on teardown so the gate is INERT between turns:
+ * a hook that fires when no turn is active (a leftover cached hooks.json, the
+ * user's own IDE) reads no pointer and allows immediately. Best-effort — a
+ * teardown failure must never fail the execution, and a stale pointer is itself
+ * inert once its runnerPid is gone (the scope guard fails closed to allow).
+ */
+export async function removeActiveTurnPointer(gateDir: string): Promise<void> {
+  try {
+    await rm(activePointerPath(gateDir), { force: true });
+  } catch {
+    // Already gone or unwritable — nothing to clean.
   }
 }
 

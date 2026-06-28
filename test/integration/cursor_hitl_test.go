@@ -356,6 +356,81 @@ func TestCursorHarness_HITL_AdversarialShellWorkaround_StillGated(t *testing.T) 
 	assertNoMutatingToolCompleted(t, waiting)
 }
 
+// TestCursorHarness_HITL_SequentialExecutions_BothGated is the regression lock
+// for the process-cached-hook root cause: the Cursor SDK loads a workspace's
+// .cursor/hooks.json (the hook script PATH) ONCE per runner process and caches
+// it, ignoring later per-execution rewrites. When the hook script baked a
+// PER-SESSION denial-ledger path, the FIRST gated execution in a runner process
+// worked, but EVERY later one recorded its denials to the FIRST session's ledger
+// while its own runner read an empty ledger — so it silently COMPLETED instead of
+// pausing (no approval button, leaked "requires approval" narration). That is the
+// exact "first one works, the rest don't" signature the user reported.
+//
+// This runs TWO sequential gated executions in the one shared suite runner, with
+// the first left PAUSED (unresolved) while the second runs — the contamination
+// condition. Both must reach WAITING_FOR_APPROVAL with a real pending approval.
+// Pre-fix the second completed; post-fix (a stable hook script that resolves the
+// current turn's ledger from an atomically-updated pointer) both gate. Requires
+// CURSOR_API_KEY.
+func TestCursorHarness_HITL_SequentialExecutions_BothGated(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 8*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-hitl-sequential",
+		"You are a helpful coding assistant.",
+	)
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	// First gated execution — leave it PAUSED (do NOT approve), so its turn is the
+	// "first hook loaded into the runner process" that previously poisoned the
+	// shared workspace's cached hook for everyone after it.
+	session1 := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+	_, waiting1 := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session1.GetMetadata().GetId(),
+		"Create a file called seq-one.txt containing exactly the text: one.",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, waiting1, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, waiting1.GetStatus().GetPendingApprovals(),
+		"first execution must gate (this one always worked, even before the fix)")
+
+	// Second gated execution in the SAME runner process while the first is still
+	// paused. This is the one that silently completed before the fix.
+	session2 := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+	_, waiting2 := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session2.GetMetadata().GetId(),
+		"Create a file called seq-two.txt containing exactly the text: two.",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, waiting2, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, waiting2.GetStatus().GetPendingApprovals(),
+		"second sequential execution must ALSO gate — a process-cached hook must "+
+			"resolve THIS turn's denial ledger (via the active-turn pointer), not the "+
+			"first session's; otherwise it records denials to the first ledger and "+
+			"silently completes")
+	approval2 := waiting2.GetStatus().GetPendingApprovals()[0]
+	assert.True(t, isGatedMutatingTool(approval2.GetToolName()),
+		"second execution's pending approval should be a gated mutating tool, got %q",
+		approval2.GetToolName())
+	assertToolCallWaitingApproval(t, waiting2, approval2.GetToolCallId())
+	assertNoMutatingToolCompleted(t, waiting2)
+}
+
 // TestCursorHarness_HITL_ResumedTurn_StillGated reproduces the production
 // regression where the approval gate silently vanished on every turn after the
 // first (aex_01ktr5na07f5xtmn0dz3mfjtdp): Agent.resume() does not persist

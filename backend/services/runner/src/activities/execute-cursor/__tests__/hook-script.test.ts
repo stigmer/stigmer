@@ -362,11 +362,18 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     mkdirSync(dir, { recursive: true });
     const statePath = join(dir, "state.json");
     const ledgerPath = join(dir, "denials.jsonl");
+    const pointerPath = join(dir, "active.json");
     const scriptPath = join(dir, "hook.sh");
-    // Break the baked Node path to force the grep/cut fallback.
-    const script = generateHookScript(statePath, ledgerPath, process.pid)
+    // Break the baked Node path to force the grep/cut fallback for BOTH the
+    // active-turn pointer parse and the tool identity extraction.
+    const script = generateHookScript(pointerPath)
       .replace(`NODE_BIN="${process.execPath}"`, 'NODE_BIN="/nonexistent/node"');
     writeFileSync(scriptPath, script, "utf-8");
+    writeFileSync(
+      pointerPath,
+      JSON.stringify({ stateFile: statePath, ledgerFile: ledgerPath, runnerPid: process.pid }),
+      "utf-8",
+    );
     writeFileSync(statePath, JSON.stringify(buildApprovalState(new Map(), false, new Set())), "utf-8");
 
     const raw = execFileSync("bash", [scriptPath], {

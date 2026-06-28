@@ -35,7 +35,15 @@ import { writeFile, readFile, mkdir, chmod, rm, rmdir, readdir } from "node:fs/p
 import { basename, dirname, join } from "node:path";
 import { generateHookScript } from "./hook-script.js";
 import { buildToolApprovalRuleFile } from "./prompt-builder.js";
-import { writeApprovalStateFile, resetDenialLedger, type ApprovalStateFile } from "./approval-state.js";
+import {
+  writeApprovalStateFile,
+  resetDenialLedger,
+  activePointerPath,
+  writeActiveTurnPointer,
+  removeActiveTurnPointer,
+  type ApprovalStateFile,
+} from "./approval-state.js";
+import { ensureHitlGateDir } from "../../shared/workspace/platform-dir.js";
 
 const CURSOR_DIR = ".cursor";
 const HOOKS_CONFIG_FILE = "hooks.json";
@@ -88,6 +96,12 @@ export interface HitlGateHandle {
    * the normal case since the filename is runner-owned).
    */
   rule: WorkspaceFileSnapshot;
+  /**
+   * Workspace-scoped gate directory holding the stable hook script and the
+   * active-turn pointer. Teardown drops the pointer (see removeHitlGate) so the
+   * gate is inert between turns.
+   */
+  gateDir: string;
 }
 
 /** Absolute path + restore target for a single workspace file the gate manages. */
@@ -123,7 +137,12 @@ export async function installHitlGate(params: {
   // orphaned script/state/ledger files so nothing can re-run them.
   await removeLegacyWorkspaceHookArtifacts(workspaceRoot);
 
-  const approvalScriptPath = await writeHitlArtifacts(hitlDir, approvalState, runnerPid);
+  const { scriptPath: approvalScriptPath, gateDir } = await writeHitlArtifacts(
+    workspaceRoot,
+    hitlDir,
+    approvalState,
+    runnerPid,
+  );
   // One script, two events: preToolUse gates built-ins; beforeMCPExecution is
   // the only event Cursor enforces for MCP tools. The script branches internally
   // on hook_event_name so MCP is gated in exactly one place.
@@ -140,7 +159,7 @@ export async function installHitlGate(params: {
   // from misreading the gate as a broken environment.
   const rule = await installWorkspaceRule(workspaceRoot);
 
-  return { ...hookHandle, rule };
+  return { ...hookHandle, rule, gateDir };
 }
 
 /**
@@ -151,6 +170,12 @@ export async function installHitlGate(params: {
  */
 export async function removeHitlGate(handle: HitlGateHandle): Promise<void> {
   await restoreWorkspaceFile(handle.hooksJsonPath, handle.restoreTo);
+  // Drop the active-turn pointer so the gate is INERT between turns: a hook that
+  // fires while no turn is active (a cached hooks.json, the user's own IDE on the
+  // same repo) reads no pointer and allows immediately. The stable hook script
+  // itself is intentionally left in place — it is harmless without a pointer and
+  // is reused (and refreshed) by the next turn.
+  await removeActiveTurnPointer(handle.gateDir);
   if (handle.rule) {
     await restoreWorkspaceFile(handle.rule.path, handle.rule.restoreTo);
     // When we deleted our own rule file (restoreTo === null) and the `.cursor/
@@ -234,33 +259,52 @@ async function removeLegacyWorkspaceHookArtifacts(workspaceRoot: string): Promis
 }
 
 /**
- * Write the runner-owned gate artifacts (approval-state file, fresh denial
- * ledger, hook script) into the session HITL directory and return the absolute
- * hook-script path. The script is regenerated every turn so the current runner
- * PID and the current state-file/ledger paths are always baked in.
+ * Write this turn's gate artifacts and return the STABLE hook-script path plus
+ * the workspace gate directory.
+ *
+ * Two surfaces, deliberately split by scope:
+ *
+ * - Per-SESSION (in {@link hitlDir}): the approval-state file (hook input) and a
+ *   freshly-reset denial ledger (hook output the runner reads). Reset every turn
+ *   so the runner only ever reads denials from the current run, even across HITL
+ *   reinvocations and Temporal activity retries.
+ *
+ * - Per-WORKSPACE (in the gate dir): the STABLE hook script and the active-turn
+ *   pointer. The script path is stable across executions because the Cursor SDK
+ *   caches `.cursor/hooks.json` (the script path) for the runner process — a
+ *   per-session script would be cached at the first execution and reused for all
+ *   later ones, sending their denials to the first session's ledger (the
+ *   empty-ledger → COMPLETED regression). The script bakes NO per-session paths;
+ *   it reads the pointer, which we repoint (atomically) every turn to THIS turn's
+ *   state file, ledger, and runner PID. See generateHookScript / writeActiveTurnPointer.
  */
 async function writeHitlArtifacts(
+  workspaceRoot: string,
   hitlDir: string,
   approvalState: ApprovalStateFile,
   runnerPid: number,
-): Promise<string> {
+): Promise<{ scriptPath: string; gateDir: string }> {
   await mkdir(hitlDir, { recursive: true });
 
   const stateFilePath = await writeApprovalStateFile(hitlDir, approvalState);
-  // Reset the denial ledger for this turn so the runner only reads denials
-  // produced by the current run, even across HITL reinvocations on the durable
-  // HITL directory and Temporal activity retries.
   const ledgerFilePath = await resetDenialLedger(hitlDir);
 
-  const approvalScriptPath = join(hitlDir, HOOK_SCRIPT_FILE);
-  await writeFile(
-    approvalScriptPath,
-    generateHookScript(stateFilePath, ledgerFilePath, runnerPid),
-    "utf-8",
-  );
-  await chmod(approvalScriptPath, 0o755);
+  const gateDir = await ensureHitlGateDir(workspaceRoot);
+  const pointerPath = activePointerPath(gateDir);
+  const scriptPath = join(gateDir, HOOK_SCRIPT_FILE);
+  await writeFile(scriptPath, generateHookScript(pointerPath), "utf-8");
+  await chmod(scriptPath, 0o755);
 
-  return approvalScriptPath;
+  // Point the stable hook at THIS turn's per-session artifacts (atomic, last
+  // write wins) — the single indirection that makes a process-cached hook resolve
+  // the current execution instead of the first one's.
+  await writeActiveTurnPointer(gateDir, {
+    stateFile: stateFilePath,
+    ledgerFile: ledgerFilePath,
+    runnerPid,
+  });
+
+  return { scriptPath, gateDir };
 }
 
 /**
@@ -271,7 +315,7 @@ async function writeHitlArtifacts(
 async function installWorkspaceHook(
   workspaceRoot: string,
   registrations: HookRegistration[],
-): Promise<Omit<HitlGateHandle, "rule">> {
+): Promise<Omit<HitlGateHandle, "rule" | "gateDir">> {
   const cursorDir = join(workspaceRoot, CURSOR_DIR);
   const hooksJsonPath = join(cursorDir, HOOKS_CONFIG_FILE);
 
@@ -329,9 +373,9 @@ function buildHookEntry(scriptPath: string): Record<string, unknown> {
  * duplicates it and a restore strips it. Matches two runner-owned shapes, never
  * a user's own hook:
  *
- * 1. Current: any script under the session HITL dir
- *    (`~/.stigmer/sessions/.../*.sh`) — location-based, so it covers every gate
- *    script regardless of name.
+ * 1. Current: any script under the runner-owned `~/.stigmer/` tree (the session
+ *    HITL dir or the workspace gate dir, `~/.stigmer/.../*.sh`) — location-based,
+ *    so it covers every gate script regardless of name.
  * 2. Legacy: a `stigmer-*.sh` script (historically the in-workspace
  *    `.cursor/hooks/stigmer-approval.sh`) — recognized by its unmistakably
  *    runner-owned basename. Without this, the old in-workspace hook is treated
@@ -343,7 +387,7 @@ function isStigmerHookEntry(entry: unknown): boolean {
   if (!entry || typeof entry !== "object") return false;
   const command = (entry as { command?: unknown }).command;
   if (typeof command !== "string" || command.length === 0) return false;
-  if (command.includes("/.stigmer/sessions/") && command.endsWith(".sh")) return true;
+  if (command.includes("/.stigmer/") && command.endsWith(".sh")) return true;
   const file = basename(command);
   return file.startsWith(RUNNER_OWNED_HOOK_FILE_PREFIX) && file.endsWith(".sh");
 }

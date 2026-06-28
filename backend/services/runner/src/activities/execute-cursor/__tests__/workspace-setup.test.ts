@@ -27,6 +27,7 @@ import {
   buildMergedConfig,
 } from "../workspace-setup.js";
 import { buildApprovalState } from "../approval-state.js";
+import { getHitlGateDir } from "../../../shared/workspace/platform-dir.js";
 
 const tempDirs: string[] = [];
 afterEach(() => {
@@ -218,37 +219,58 @@ describe("buildMergedConfig", () => {
 describe("installHitlGate / removeHitlGate", () => {
   const approvalState = buildApprovalState(new Map(), false, new Set());
 
+  // Sandbox HOME so the workspace-scoped gate dir (`~/.stigmer/hitl-gate/<hash>`)
+  // lands under the per-test temp root, asserted and cleaned with everything else.
+  const realHome = process.env.HOME;
+  afterEach(() => {
+    if (realHome === undefined) delete process.env.HOME;
+    else process.env.HOME = realHome;
+  });
+
   function dirs() {
     const root = freshRoot();
+    process.env.HOME = root;
     const workspaceRoot = join(root, "repo");
     const hitlDir = join(root, ".stigmer", "sessions", "ses-1", "hitl");
     mkdirSync(workspaceRoot, { recursive: true });
-    return { workspaceRoot, hitlDir };
+    // The stable hook script + active-turn pointer live in the workspace-scoped
+    // gate dir (outside the repo), not the per-session HITL dir.
+    const gateDir = getHitlGateDir(workspaceRoot);
+    return { workspaceRoot, hitlDir, gateDir };
   }
 
   it("writes artifacts OUTSIDE the workspace and a hooks.json with an absolute command", async () => {
-    const { workspaceRoot, hitlDir } = dirs();
+    const { workspaceRoot, hitlDir, gateDir } = dirs();
     await installHitlGate({ workspaceRoot, hitlDir, approvalState, runnerPid: process.pid });
 
-    // Gate artifacts live in the HITL dir, never in the repo.
-    expect(existsSync(join(hitlDir, "stigmer-approval.sh"))).toBe(true);
+    // Per-session hook input/output live in the HITL dir; the STABLE hook script
+    // and the active-turn pointer live in the workspace gate dir. Neither is in
+    // the repo.
     expect(existsSync(join(hitlDir, "approval-state.json"))).toBe(true);
     expect(existsSync(join(hitlDir, "denials.jsonl"))).toBe(true);
+    expect(existsSync(join(gateDir, "stigmer-approval.sh"))).toBe(true);
+    expect(existsSync(join(gateDir, "active.json"))).toBe(true);
     // The script is executable.
-    expect(statSync(join(hitlDir, "stigmer-approval.sh")).mode & 0o111).toBeTruthy();
+    expect(statSync(join(gateDir, "stigmer-approval.sh")).mode & 0o111).toBeTruthy();
 
-    // The only in-repo file is hooks.json, pointing at the script by ABSOLUTE
-    // path (the relative path was the multi-root exit-127 bug).
+    // The pointer names THIS turn's per-session artifacts + runner PID.
+    const pointer = JSON.parse(readFileSync(join(gateDir, "active.json"), "utf-8"));
+    expect(pointer.stateFile).toBe(join(hitlDir, "approval-state.json"));
+    expect(pointer.ledgerFile).toBe(join(hitlDir, "denials.jsonl"));
+    expect(pointer.runnerPid).toBe(process.pid);
+
+    // The only in-repo file is hooks.json, pointing at the STABLE script by
+    // ABSOLUTE path (the relative path was the multi-root exit-127 bug).
     const hooksJson = JSON.parse(
       readFileSync(join(workspaceRoot, ".cursor", "hooks.json"), "utf-8"),
     );
     const command = hooksJson.hooks.preToolUse[0].command;
-    expect(command).toBe(join(hitlDir, "stigmer-approval.sh"));
+    expect(command).toBe(join(gateDir, "stigmer-approval.sh"));
     expect(command.startsWith("/")).toBe(true);
     // The SAME script gates MCP via beforeMCPExecution (preToolUse does not
     // enforce MCP); the script branches internally on hook_event_name.
     expect(hooksJson.hooks.beforeMCPExecution[0].command).toBe(
-      join(hitlDir, "stigmer-approval.sh"),
+      join(gateDir, "stigmer-approval.sh"),
     );
     // The workspace holds no relocated artifacts.
     expect(existsSync(join(workspaceRoot, ".cursor", "hooks"))).toBe(false);
@@ -325,7 +347,7 @@ describe("installHitlGate / removeHitlGate", () => {
   });
 
   it("heals a workspace polluted by a pre-#173 in-workspace gate (H-G end-to-end)", async () => {
-    const { workspaceRoot, hitlDir } = dirs();
+    const { workspaceRoot, hitlDir, gateDir } = dirs();
     // Reconstruct exactly what a polluted repo looks like: a hooks.json pointing
     // at a relative in-workspace script, plus the orphaned script/state/ledger
     // files an older runner left in `.cursor/hooks/`.
@@ -356,7 +378,7 @@ describe("installHitlGate / removeHitlGate", () => {
     // session dir). The stale relative entry that vetoed approved tools is gone.
     const during = JSON.parse(readFileSync(join(cursorDir, "hooks.json"), "utf-8"));
     expect(during.hooks.preToolUse.map((e: any) => e.command)).toEqual([
-      join(hitlDir, "stigmer-approval.sh"),
+      join(gateDir, "stigmer-approval.sh"),
     ]);
     // The orphaned legacy files are removed; the now-empty hooks dir is gone too.
     expect(existsSync(join(legacyHooksDir, "stigmer-approval.sh"))).toBe(false);

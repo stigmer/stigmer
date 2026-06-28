@@ -1736,14 +1736,14 @@ describe("first-denial stop contract", () => {
 });
 
 describe("generateHookScript ledger wiring", () => {
-  it("wires the ledger path and records denials in both deny branches", () => {
-    const script = generateHookScript(
-      "/hitl/approval-state.json",
-      "/hitl/denials.jsonl",
-      process.pid,
-    );
+  it("bakes the active-turn pointer, derives the ledger from it, and records denials in both deny branches", () => {
+    const script = generateHookScript("/gate/active.json");
 
-    expect(script).toContain('LEDGER_FILE="/hitl/denials.jsonl"');
+    // Stable script: it bakes the pointer path (not per-turn state/ledger), and
+    // derives LEDGER_FILE from the pointer it reads each invocation.
+    expect(script).toContain('ACTIVE_FILE="/gate/active.json"');
+    expect(script).not.toContain('LEDGER_FILE="/');
+    expect(script).toContain('>> "$LEDGER_FILE"');
     expect(script).toContain("record_denial()");
     // One definition + a call in the gated-built-in branch + a call in the MCP
     // branch = 3 occurrences.

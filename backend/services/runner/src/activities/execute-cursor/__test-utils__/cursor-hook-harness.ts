@@ -80,8 +80,20 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
   mkdirSync(dir, { recursive: true });
   const statePath = join(dir, "state.json");
   const ledgerPath = join(dir, "denials.jsonl");
+  const pointerPath = join(dir, "active.json");
   const scriptPath = join(dir, "hook.sh");
-  writeFileSync(scriptPath, generateHookScript(statePath, ledgerPath, opts.runnerPid ?? process.pid), "utf-8");
+  // The hook script is STABLE (no baked per-turn paths); it resolves the current
+  // turn's state/ledger/runner from the active-turn pointer it re-reads each call.
+  writeFileSync(scriptPath, generateHookScript(pointerPath), "utf-8");
+  writeFileSync(
+    pointerPath,
+    JSON.stringify({
+      stateFile: statePath,
+      ledgerFile: ledgerPath,
+      runnerPid: opts.runnerPid ?? process.pid,
+    }),
+    "utf-8",
+  );
 
   if (!opts.noStateFile) {
     const policies = new Map<string, MergedToolPolicy>(

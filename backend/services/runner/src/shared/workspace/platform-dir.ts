@@ -18,11 +18,50 @@
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
+import { createHash } from "node:crypto";
+
+/** The runner-owned `~/.stigmer` root (overridable via HOME for tests/sandboxes). */
+function getStigmerHome(): string {
+  return process.env.HOME || process.env.USERPROFILE || homedir();
+}
 
 /** Root of a session's runner-owned directory tree (outside the workspace). */
 function getSessionDir(sessionId: string): string {
-  const home = process.env.HOME || process.env.USERPROFILE || homedir();
-  return join(home, ".stigmer", "sessions", sessionId);
+  return join(getStigmerHome(), ".stigmer", "sessions", sessionId);
+}
+
+/**
+ * Compute the WORKSPACE-scoped HITL gate directory — the home for the STABLE
+ * hook script and the per-turn "active turn" pointer.
+ *
+ * Why workspace-scoped, not session-scoped: the Cursor SDK loads the workspace's
+ * `.cursor/hooks.json` (the hook script PATH) ONCE per runner process and caches
+ * it; later per-execution rewrites are ignored. A per-session hook script (with
+ * per-session baked state/ledger paths) therefore gets cached at the FIRST
+ * execution and reused for every later one — so later executions' denials are
+ * recorded to the FIRST session's ledger and the current runner reads its own
+ * empty ledger, silently completing instead of pausing for approval.
+ *
+ * The fix is a single STABLE script per workspace (so the SDK's cached path is
+ * always correct) that resolves the CURRENT turn's state/ledger/runner from an
+ * atomically-updated pointer the script re-reads on every invocation. This dir
+ * holds both. It is keyed by a hash of the absolute workspace path so distinct
+ * workspaces never collide, and lives under `~/.stigmer` (never the repo, per
+ * issue #173). Pure function — performs no I/O.
+ */
+export function getHitlGateDir(workspaceRoot: string): string {
+  const key = createHash("sha256").update(workspaceRoot).digest("hex").slice(0, 16);
+  return join(getStigmerHome(), ".stigmer", "hitl-gate", key);
+}
+
+/**
+ * Ensure the workspace-scoped HITL gate directory exists and return its path.
+ * Idempotent — safe across executions, HITL reinvocations, and activity retries.
+ */
+export async function ensureHitlGateDir(workspaceRoot: string): Promise<string> {
+  const dir = getHitlGateDir(workspaceRoot);
+  await mkdir(dir, { recursive: true });
+  return dir;
 }
 
 /**
