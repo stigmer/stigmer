@@ -377,6 +377,45 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
+  // Capture mode (git workspaces): file mutations flow during the turn (the
+  // runner captures the whole change set with git and gates it per-file at the
+  // turn boundary), while shell/MCP and gitignored writes stay on the deny-gate.
+  describe("capture mode (git workspaces)", () => {
+    it("allows write/edit/delete to flow and records no denial", () => {
+      const h = setup({ captureMode: true });
+      expect(h.decide(hookWrite("normal.txt")).permission).toBe("allow");
+      expect(h.decide(hookEdit("normal.txt")).permission).toBe("allow");
+      expect(h.decide(hookDelete("normal.txt")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("still gates shell (it is not git-reversible)", () => {
+      const h = setup({ captureMode: true });
+      expect(h.decide(hookShell("rm -rf build")).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.toolName)).toContain("Shell");
+    });
+
+    it("still gates require-approval MCP tools", () => {
+      const h = setup({ captureMode: true, mcpPolicies: { click: { requiresApproval: true } } });
+      expect(h.decide(hookMcp("click")).permission).toBe("deny");
+    });
+
+    it("keeps gating a write to a GITIGNORED path (the snapshot cannot revert it)", () => {
+      // .env-style ignored paths are invisible to the git snapshot, so capture
+      // mode must still gate them for explicit approval.
+      const h = setup({ captureMode: true, gitignored: ["secret.txt"] });
+      expect(h.decide(hookWrite("secret.txt")).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.toolName)).toContain("Write");
+      // A non-ignored sibling still flows.
+      expect(h.decide(hookWrite("normal.txt")).permission).toBe("allow");
+    });
+
+    it("keeps gating a DELETE of a gitignored path", () => {
+      const h = setup({ captureMode: true, gitignored: ["secret.txt"] });
+      expect(h.decide(hookDelete("secret.txt")).permission).toBe("deny");
+    });
+  });
+
   it("still denies gated tools via the bash fallback when the Node binary is unavailable", () => {
     const ws = mkdtempSync(join(tmpdir(), "hook-script-fallback-"));
     onTestFinished(() => rmSync(ws, { recursive: true, force: true }));

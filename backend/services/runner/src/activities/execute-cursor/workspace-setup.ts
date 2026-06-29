@@ -292,7 +292,10 @@ async function writeHitlArtifacts(
   const gateDir = await ensureHitlGateDir(workspaceRoot);
   const pointerPath = activePointerPath(gateDir);
   const scriptPath = join(gateDir, HOOK_SCRIPT_FILE);
-  await writeFile(scriptPath, generateHookScript(pointerPath), "utf-8");
+  // Bake the workspace root so capture mode's `git check-ignore` runs against the
+  // right repo regardless of the hook's cwd. The root is stable per workspace
+  // (the gate dir is keyed by it), so the script stays stable across executions.
+  await writeFile(scriptPath, generateHookScript(pointerPath, workspaceRoot), "utf-8");
   await chmod(scriptPath, 0o755);
 
   // Point the stable hook at THIS turn's per-session artifacts (atomic, last

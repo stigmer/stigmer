@@ -207,8 +207,11 @@ function buildNodeIdentityScript(): string {
     // the proposed change before the user approves. Base64 keeps the bash side
     // free of quoting/escaping concerns even for large multi-line file content.
     // Line 7 is the CONTENT token (empty when no digest) — the exact-identity
-    // grant the runner authorizes for a file edit.
-    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a))+"\\n"+(dig?b(cat+"\\n"+s+"\\n"+dig):""));`,
+    // grant the runner authorizes for a file edit. Line 8 is base64(salient) —
+    // the raw resource value (file path / command) capture mode needs to run
+    // `git check-ignore` on a file path; base64 keeps newlines/quotes out of the
+    // line-oriented bash parse.
+    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a))+"\\n"+(dig?b(cat+"\\n"+s+"\\n"+dig):"")+"\\n"+b(s));`,
   ].join("");
 }
 
@@ -253,7 +256,7 @@ function buildNodeIdentityScript(): string {
  * once the turn ends (pointer removed) or the runner exits (PID dead), no
  * invocation gates, so the gate is inert.
  */
-export function generateHookScript(activePointerPath: string): string {
+export function generateHookScript(activePointerPath: string, workspaceRoot = ""): string {
   const salientFields = SALIENT_ARG_FIELDS.join(" ");
   const categoryCaseArms = buildCategoryCaseArms();
   const nodeIdentityScript = buildNodeIdentityScript();
@@ -275,6 +278,9 @@ INPUT=$(cat)
 
 NODE_BIN="${nodeBin}"
 ACTIVE_FILE="${activePointerPath}"
+# Baked workspace root for capture-mode's gitignore check (empty in unit tests
+# that don't exercise capture mode; the check then falls back to the path's dir).
+GIT_ROOT="${workspaceRoot}"
 
 # --- Resolve the CURRENT turn from the runner-written pointer ----------------
 # The Cursor SDK caches .cursor/hooks.json (the hook script PATH) for the runner
@@ -345,6 +351,22 @@ if ! __stigmer_is_own_agent; then
   exit 0
 fi
 
+# --- Capture-mode helper: is a path gitignored? -----------------------------
+# In capture mode the runner snapshots/reverts the working tree with git, but a
+# gitignored path (e.g. .env, build output) is invisible to that snapshot — so it
+# can be neither captured for review nor reverted. Such writes/deletes therefore
+# stay on the deny-gate. Returns 0 (true) when the path is ignored. A non-git
+# context or a missing path returns non-zero (treated as not-ignored -> allow).
+__stigmer_is_gitignored() {
+  _p="$1"
+  [ -z "$_p" ] && return 1
+  if [ -n "$GIT_ROOT" ]; then
+    git -C "$GIT_ROOT" check-ignore -q -- "$_p" 2>/dev/null
+  else
+    git -C "$(dirname "$_p")" check-ignore -q -- "$_p" 2>/dev/null
+  fi
+}
+
 # --- Canonical identity: tool_name / category / identity token / MCP token ---
 # Computed by the same Node.js binary that runs the cursor-runner (absolute path
 # baked at generation time) so JSON string values — file paths and especially
@@ -367,6 +389,9 @@ if [ -n "$IDENTITY" ]; then
   # Content token (base64 of category\\nsalient\\ndigest), empty for a non-edit
   # tool. The exact-identity grant the runner authorizes for a file edit.
   CONTENT_TOKEN=$(printf '%s\\n' "$IDENTITY" | sed -n 7p)
+  # Raw salient (base64) — the file path / command. Capture mode decodes it to
+  # run git check-ignore on a file path.
+  SALIENT=$(printf '%s\\n' "$IDENTITY" | sed -n 8p | base64 -d 2>/dev/null || true)
 else
   # Fallback when the Node binary cannot run: grep/cut extraction. Best-effort
   # only — '"field":"[^"]*"' truncates at the first JSON-escaped quote, so the
@@ -402,6 +427,14 @@ if [ ! -f "$STATE_FILE" ]; then
 fi
 
 STATE=$(cat "$STATE_FILE")
+
+# Capture mode (git workspaces): file mutations flow during the turn and are
+# captured/gated per-file by the runner at the turn boundary (see
+# shadow-capture.ts). Read once; consulted only in the gated-built-in arm below.
+CAPTURE_MODE=false
+if echo "$STATE" | grep -q '"captureMode":true'; then
+  CAPTURE_MODE=true
+fi
 
 # --- 1. Auto-approve all ---
 if echo "$STATE" | grep -q '"autoApproveAll":true'; then
@@ -452,6 +485,17 @@ fi
 
 # --- 3. Gated built-in tools (preToolUse event, category non-empty) ---
 if [ -n "$CATEGORY" ]; then
+  # Capture mode: a file mutation (write/edit/delete) flows freely — the runner
+  # captures the whole change set with git at the turn boundary and gates it
+  # per-file for review. The ONE exception is a gitignored path, which the git
+  # snapshot cannot capture or revert, so it stays on the deny-gate below. shell
+  # (category "shell") never takes this branch and stays gated as always.
+  if [ "$CAPTURE_MODE" = "true" ] && { [ "$CATEGORY" = "write" ] || [ "$CATEGORY" = "delete" ]; }; then
+    if ! __stigmer_is_gitignored "$SALIENT"; then
+      echo '{"permission":"allow"}'
+      exit 0
+    fi
+  fi
   # Reinvocation grant: allow when the CONTENT-exact token (a file edit approved
   # earlier with this exact content) OR the COARSE token (a shell/delete, or the
   # content-less degrade) is in approvedGrantTokens. A sibling edit to the same

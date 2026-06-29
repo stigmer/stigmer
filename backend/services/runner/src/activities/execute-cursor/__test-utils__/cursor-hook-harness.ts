@@ -66,6 +66,17 @@ export interface CursorHookHarnessOptions {
    * non-ancestor PID to exercise the foreign-client path (issue #173).
    */
   runnerPid?: number;
+  /**
+   * Capture mode (git workspaces): the hook ALLOWS write/edit/delete to flow,
+   * gating only gitignored paths, shell, and MCP. When set, the harness baked
+   * workspace root is the throwaway workspace so `git check-ignore` resolves.
+   */
+  captureMode?: boolean;
+  /**
+   * Initialize the throwaway workspace as a git repo with these gitignore
+   * patterns, so capture mode's `git check-ignore` has a real repo to consult.
+   */
+  gitignored?: string[];
 }
 
 /**
@@ -76,6 +87,14 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
   const ws = mkdtempSync(join(tmpdir(), "hook-script-"));
   onTestFinished(() => rmSync(ws, { recursive: true, force: true }));
 
+  // Capture-mode tests need a real git repo so `git check-ignore` resolves.
+  if (opts.captureMode || opts.gitignored) {
+    execSync("git init -q", { cwd: ws });
+    if (opts.gitignored && opts.gitignored.length > 0) {
+      writeFileSync(join(ws, ".gitignore"), opts.gitignored.join("\n") + "\n", "utf-8");
+    }
+  }
+
   const dir = join(ws, ".cursor", "hooks");
   mkdirSync(dir, { recursive: true });
   const statePath = join(dir, "state.json");
@@ -84,7 +103,8 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
   const scriptPath = join(dir, "hook.sh");
   // The hook script is STABLE (no baked per-turn paths); it resolves the current
   // turn's state/ledger/runner from the active-turn pointer it re-reads each call.
-  writeFileSync(scriptPath, generateHookScript(pointerPath), "utf-8");
+  // The workspace root is baked so capture mode's gitignore check finds the repo.
+  writeFileSync(scriptPath, generateHookScript(pointerPath, ws), "utf-8");
   writeFileSync(
     pointerPath,
     JSON.stringify({
@@ -113,6 +133,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       opts.autoApproveAll ?? false,
       new Set(opts.leasedCategories ?? []),
       opts.grants,
+      opts.captureMode ?? false,
     );
     writeFileSync(statePath, JSON.stringify(state), "utf-8");
   }

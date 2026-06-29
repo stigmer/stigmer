@@ -158,6 +158,17 @@ export interface ApprovalStateFile {
   mcpToolPolicies: Record<string, McpToolPolicyEntry>;
   approvedGrants: ApprovalGrant[];
   approvedGrantTokens: string[];
+  /**
+   * Capture mode (git workspaces): when true, the hook ALLOWS file mutations
+   * (write/edit/delete) to flow during the turn, because the runner captures the
+   * whole change set with git at the turn boundary and gates it per-file for
+   * review (see shadow-capture.ts). The ONLY exception is a write/delete whose
+   * path is gitignored — the git snapshot cannot capture or revert it, so the
+   * hook keeps gating those (it runs `git check-ignore`). shell and MCP stay
+   * gated as always. False (the default) keeps the classic deny-gate behavior
+   * for every file mutation (non-git workspaces / the fallback path).
+   */
+  captureMode: boolean;
 }
 
 /**
@@ -320,6 +331,7 @@ export function buildApprovalState(
   globalBypass: boolean,
   leasedCategories: ReadonlySet<ApprovalCategory>,
   grants?: ApprovalGrant[],
+  captureMode = false,
 ): ApprovalStateFile {
   const approvedGrants = grants ?? [];
 
@@ -340,6 +352,7 @@ export function buildApprovalState(
     // digest from tool_input, else coarse). A content-identified grant authorizes
     // only its exact content; a content-less grant authorizes the coarse token.
     approvedGrantTokens: approvedGrants.map((g) => primaryToken(g.key, g.salient, g.contentDigest)),
+    captureMode,
   };
 }
 

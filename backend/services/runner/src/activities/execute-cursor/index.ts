@@ -68,6 +68,12 @@ import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
 import { applyApprovedWholeFileWrites } from "./exact-apply.js";
+import { isGitWorkTree } from "./shadow-capture.js";
+import {
+  snapshotCaptureBaseline,
+  captureTurnForApproval,
+  applyCaptureDecisions,
+} from "./capture-flow.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
@@ -222,6 +228,20 @@ async function executeCursorInner(
     );
     heartbeat();
 
+    // Capture mode (git workspaces): when the primary workspace is a real git
+    // work tree, file edits flow during the turn and are captured per-file with
+    // git at the turn boundary for review (see capture-flow.ts / shadow-capture.ts);
+    // otherwise the classic deny-gate fires before each edit (the unchanged
+    // fallback). Detected once from the provisioned primary root.
+    const primaryWorkspaceDir = blueprint.workspaceDirs[0];
+    const captureMode = primaryWorkspaceDir
+      ? await isGitWorkTree(primaryWorkspaceDir)
+      : false;
+    // Pre-turn baseline tree, pinned before the agent runs (capture mode only)
+    // so the turn-end capture diffs against it and the tree restores exactly.
+    let baselineTree: string | undefined;
+    heartbeat();
+
     // Set OTel baggage so downstream calls carry execution context.
     try {
       const { setBaggage, BAGGAGE_EXECUTION_ID, BAGGAGE_SESSION_ID, BAGGAGE_ORG_ID } = await import("../../otel.js");
@@ -283,8 +303,64 @@ async function executeCursorInner(
         adjudicatedApprovals = adjudicated.pendingApprovals;
         adjudicatedContentDigests = adjudicated.contentDigests;
 
-        const hasReject = [...approvalDecisions.values()].some(
-          (a) => a === ApprovalAction.REJECT,
+        // Capture-mode resume: apply the approved files from the pinned capture
+        // ref (as uncommitted working-tree changes), flip each per-file card in
+        // place, and drop the refs. If the turn's ONLY approvals were file cards,
+        // the agent already finished its full turn during capture, so there is
+        // nothing to re-run — short-circuit to COMPLETED (Cursor-like: approving
+        // applies; it does not re-prompt the agent). We re-invoke the agent only
+        // when an approved irreversible action (shell/MCP that stopped the turn
+        // early) must still run and continue.
+        if (captureMode && primaryWorkspaceDir) {
+          const capResult = await applyCaptureDecisions({
+            gitRoot: primaryWorkspaceDir,
+            executionId,
+            messages: status.messages,
+          });
+          if (capResult.isCaptureTurn) {
+            const decisionEntries = [...adjudicated.decisions.entries()];
+            const isCaptureCard = (id: string) => id.startsWith("capture:");
+            const nonCaptureReject = decisionEntries.some(
+              ([id, a]) => a === ApprovalAction.REJECT && !isCaptureCard(id),
+            );
+            const approvedIrreversible = decisionEntries.some(
+              ([id, a]) =>
+                (a === ApprovalAction.APPROVE || a === ApprovalAction.APPROVE_ALL) &&
+                !isCaptureCard(id),
+            );
+            if (!nonCaptureReject && !approvedIrreversible) {
+              // Pure file review. Apply is done; the execution is complete. A
+              // reject is a DISCARD, not a failure (Cursor-like) — note which
+              // files were discarded so the next turn's agent re-syncs (its SDK
+              // context believed the edits stuck).
+              status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+              status.completedAt = utcTimestamp();
+              if (capResult.hadReject) {
+                status.messages.push(create(AgentMessageSchema, {
+                  type: MessageType.MESSAGE_SYSTEM,
+                  content:
+                    "Some proposed file changes were discarded by the user and were not applied: " +
+                    capResult.rejectedPaths.join(", ") + ".",
+                  timestamp: utcTimestamp(),
+                }));
+              }
+              await persist(status);
+              console.log(
+                `ExecuteCursor capture resume short-circuit: execution=${executionId}, ` +
+                `applied=${capResult.approvedPaths.length}, discarded=${capResult.rejectedPaths.length}`,
+              );
+              return slimStatus(status);
+            }
+            // else: fall through to run the approved shell/MCP and continue; the
+            // agent may produce further edits, captured in the next cycle.
+          }
+        }
+
+        // A reject of an irreversible action (shell/MCP) keeps the fail
+        // semantics; capture-card rejects are handled above (discard), so they
+        // are excluded here.
+        const hasReject = [...approvalDecisions.entries()].some(
+          ([id, a]) => a === ApprovalAction.REJECT && !id.startsWith("capture:"),
         );
         if (hasReject) {
           status.phase = ExecutionPhase.EXECUTION_FAILED;
@@ -349,7 +425,7 @@ async function executeCursorInner(
 
     // Phase 5: Resolve skills (merged from agent + session)
     await reportSetupProgress(client, executionId, "Resolving skills");
-    const primaryWorkspaceDir = blueprint.workspaceDirs[0];
+    // (primaryWorkspaceDir / captureMode were resolved right after provisioning.)
     const skillMetadata = await resolveSkills(client, blueprint.mergedSkillRefs, {
       sessionId,
       primaryWorkspaceDir,
@@ -375,7 +451,11 @@ async function executeCursorInner(
     // the grant + reinvocation path. Every uncertain case degrades to that path,
     // so this can never corrupt a file (see exact-apply.ts).
     let appliedToolCallIds: ReadonlySet<string> = new Set();
-    if (isReinvocation && approvalDecisions) {
+    // Exact-apply is the deny-gate path's "what you approve is what gets applied"
+    // mechanism (the model regenerates content on reinvocation). Capture mode
+    // does not reinvoke the model for file edits — it applies the exact captured
+    // bytes itself in applyCaptureDecisions — so exact-apply is scoped OUT of it.
+    if (!captureMode && isReinvocation && approvalDecisions) {
       appliedToolCallIds = await applyApprovedWholeFileWrites({
         messages: status.messages,
         workspaceBackend: new LocalWorkspaceBackend(primaryWorkspaceDir),
@@ -406,6 +486,15 @@ async function executeCursorInner(
     // the resumed agent's re-attempt (which carries a fresh tool-call id) is
     // allowed through. Exact-applied writes are EXCLUDED from the grants: with no
     // grant, a further write to that file is re-gated (the user sees every change).
+    // Capture mode: pin the pre-turn baseline tree before the agent runs (and
+    // before the gate is installed, though the gate files are excluded from the
+    // capture anyway). The turn-end capture diffs the post-turn tree against this
+    // and restores it exactly. Covers a fresh turn and the approved-irreversible
+    // resume fall-through (the agent will run and may make further edits).
+    if (captureMode && primaryWorkspaceDir) {
+      baselineTree = await snapshotCaptureBaseline(primaryWorkspaceDir, executionId);
+    }
+
     hitlDir = await ensureHitlDir(sessionId);
     const grantApprovals = adjudicatedApprovals.filter(
       (pa) => !appliedToolCallIds.has(pa.toolCallId),
@@ -425,6 +514,7 @@ async function executeCursorInner(
       globalBypass,
       leases.categories,
       approvalGrants,
+      captureMode,
     );
     const hitlGate = await installHitlGate({
       workspaceRoot: primaryWorkspaceDir,
@@ -727,7 +817,12 @@ async function executeCursorInner(
         );
       }
 
-      // First-denial stop (HITL clean pause). The preToolUse hook appends to the
+      // First-denial stop (HITL clean pause). In CAPTURE mode this fires only for
+      // an IRREVERSIBLE tool the hook still gates (shell, MCP, or a gitignored
+      // write/delete) — file edits flow freely and are captured at the turn
+      // boundary, so they never enter the ledger. In the deny-gate FALLBACK
+      // (non-git workspace) it fires for every gated file edit too. Either way:
+      // the preToolUse hook appends to the
       // denial ledger the instant it gates a tool — before Cursor surfaces the
       // failure to the model. Polling the ledger on tool_call events (never the
       // high-frequency token deltas, so the cost stays bounded) lets us end the
@@ -978,6 +1073,31 @@ async function executeCursorInner(
     // deliberately do NOT set status.pendingApprovals here: any value would be
     // discarded by the backend's recompute on the next updateStatus.
     const deniedLedger = await readDenialLedger(hitlDir ?? "");
+
+    // Capture mode: revert the file edits that flowed this turn and turn the net
+    // change set into one WAITING_APPROVAL card per file (the runner-owned gate
+    // files are excluded from the capture). Runs BEFORE the denial reconcile so a
+    // denied (gitignored) write stays on the deny-gate path while every flowed
+    // edit becomes a capture card. Nothing lands until the user approves.
+    let capturedChangeCount = 0;
+    if (captureMode && baselineTree && primaryWorkspaceDir) {
+      const deniedTokens = new Set(deniedLedger.map((e) => e.token));
+      const captured = await captureTurnForApproval({
+        gitRoot: primaryWorkspaceDir,
+        executionId,
+        baselineTree,
+        messages: status.messages,
+        deniedTokens,
+      });
+      capturedChangeCount = captured.length;
+      if (capturedChangeCount > 0) {
+        console.log(
+          `ExecuteCursor capture: ${capturedChangeCount} file card(s) for review, ` +
+          `working tree restored to baseline (execution=${executionId})`,
+        );
+      }
+    }
+
     // The gate reads each denied file's pre-edit `before` from the workspace the
     // runner is co-located with (local FS for OSS; the sandbox in cloud), so a
     // whole-file rewrite gate renders a true before/after diff. The tool was
@@ -1006,23 +1126,28 @@ async function executeCursorInner(
           `possible hook/stream identity drift — gate(s) will lack a diff`,
       );
     }
-    if (deniedToolCalls.length > 0) {
-      // Deterministic clean-pause: a turn that pauses for approval must read as
-      // the same shape the native harness produces — pre-tool text + the gated
-      // tool calls — never the model's provisional reaction to Cursor's deny
-      // (e.g. "blocked by a hook; enable it in your Cursor settings"). We blank
-      // that reaction in place (keeping the message count, so the finalize stays
-      // append-only) rather than removing it. See
-      // clearProvisionalPostDenialNarration for the full rationale.
-      const redactedNarration = clearProvisionalPostDenialNarration(status.messages, deniedToolCalls);
-      if (redactedNarration.length > 0) {
-        console.log(
-          `ExecuteCursor redacted ${redactedNarration.length} provisional post-denial narration message(s) before pausing for approval`,
-        );
+    if (deniedToolCalls.length > 0 || capturedChangeCount > 0) {
+      if (deniedToolCalls.length > 0) {
+        // Deterministic clean-pause: a turn that pauses for approval must read as
+        // the same shape the native harness produces — pre-tool text + the gated
+        // tool calls — never the model's provisional reaction to Cursor's deny
+        // (e.g. "blocked by a hook; enable it in your Cursor settings"). We blank
+        // that reaction in place (keeping the message count, so the finalize stays
+        // append-only) rather than removing it. See
+        // clearProvisionalPostDenialNarration for the full rationale.
+        const redactedNarration = clearProvisionalPostDenialNarration(status.messages, deniedToolCalls);
+        if (redactedNarration.length > 0) {
+          console.log(
+            `ExecuteCursor redacted ${redactedNarration.length} provisional post-denial narration message(s) before pausing for approval`,
+          );
+        }
       }
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
       await persist(status);
-      console.log(`ExecuteCursor returning WAITING_FOR_APPROVAL: ${deniedToolCalls.length} tools pending`);
+      console.log(
+        `ExecuteCursor returning WAITING_FOR_APPROVAL: ${deniedToolCalls.length} gated tool(s), ` +
+        `${capturedChangeCount} file card(s) pending`,
+      );
       return slimStatus(status);
     }
 

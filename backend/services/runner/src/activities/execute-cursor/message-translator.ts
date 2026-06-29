@@ -1724,6 +1724,18 @@ function collapseNonAnchorDenials(
  * hidden; the gate carries the authoritative proposed change).
  */
 function collapseDenialTwin(tc: ToolCall): void {
+  hideToolCallRow(tc);
+}
+
+/**
+ * Blank a tool call in place to a hidden SKIPPED row: keep the committed `id`
+ * (append-only), `name`, and `toolKind`; clear every renderable surface and the
+ * approval flags so the SDK's `isCollapsedToolCall` predicate recognizes it and
+ * renders nothing. Shared by the denial-twin collapse and the capture flow (which
+ * hides the streamed file-edit rows once their net change is shown on a per-file
+ * approval card), so the "hidden row" shape has exactly one definition.
+ */
+export function hideToolCallRow(tc: ToolCall): void {
   tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
   tc.requiresApproval = false;
   tc.approvalRequestedAt = "";
