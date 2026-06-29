@@ -255,6 +255,11 @@ async function executeCursorInner(
     // by reinvocation time — the decision survives only on the tool call. This
     // feeds both the grant builder and the reinvocation prompt below.
     let adjudicatedApprovals: PendingApproval[] = [];
+    // tool-call id -> content digest of the approved edit, threaded into the
+    // grant builder so an approved edit is authorized by its exact content (a
+    // sibling edit to the same file re-gates). Sourced from the persisted
+    // approval_content_digest field (see reconstructAdjudicatedApprovals).
+    let adjudicatedContentDigests: Map<string, string> = new Map();
     // Sub-agent executions carried over from the persisted transcript on a
     // resume, handed to the MessageAccumulator so a gated tool inside a
     // delegated sub-agent survives the round-trip (see seeding below).
@@ -276,6 +281,7 @@ async function executeCursorInner(
       if (adjudicated.decisions.size > 0) {
         approvalDecisions = adjudicated.decisions;
         adjudicatedApprovals = adjudicated.pendingApprovals;
+        adjudicatedContentDigests = adjudicated.contentDigests;
 
         const hasReject = [...approvalDecisions.values()].some(
           (a) => a === ApprovalAction.REJECT,
@@ -405,7 +411,7 @@ async function executeCursorInner(
       (pa) => !appliedToolCallIds.has(pa.toolCallId),
     );
     const approvalGrants = approvalDecisions
-      ? buildApprovalGrants(grantApprovals, approvalDecisions)
+      ? buildApprovalGrants(grantApprovals, approvalDecisions, adjudicatedContentDigests)
       : undefined;
     if (approvalGrants && approvalGrants.length > 0 && !globalBypass) {
       emitCursorGrantReceipts(

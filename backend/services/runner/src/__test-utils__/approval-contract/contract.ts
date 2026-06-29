@@ -37,6 +37,9 @@ import type { GatewayDecision, GatewaySubstrate, ProposedAction } from "./types.
 /** Representative actions shared by the per-substrate and cross-substrate suites. */
 const WRITE_A: ProposedAction = { kind: "write", resource: "/work/alpha.txt" };
 const WRITE_B: ProposedAction = { kind: "write", resource: "/work/beta.txt" };
+// Same file as WRITE_A, DIFFERENT content — the sibling-isolation probe (a
+// second distinct edit to an already-approved file must re-gate).
+const WRITE_A_V2: ProposedAction = { kind: "write", resource: "/work/alpha.txt", content: "a different body" };
 const SHELL: ProposedAction = { kind: "shell", resource: "rm -rf build" };
 const DELETE: ProposedAction = { kind: "delete", resource: "/work/gamma.txt" };
 const READ: ProposedAction = { kind: "read", resource: "/work/alpha.txt" };
@@ -135,6 +138,21 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
       it("never lets one tool's approval authorize another tool (invariant 9)", async () => {
         const crossTool = await afterGrant(WRITE_A, SHELL);
         expect(crossTool.executed, `${substrate.name}: approving a write must never authorize a shell`).toBe(false);
+      });
+    }
+
+    // Invariant 12: content-exact isolation — approving ONE edit to a file never
+    // authorizes a DIFFERENT edit to the SAME file (the deny-only "sibling hole").
+    // Only meaningful where the grant binds content; gated, never forked.
+    if (substrate.capabilities.enforcesExactContent && substrate.authorizeAfterGrant) {
+      const afterGrant = substrate.authorizeAfterGrant.bind(substrate);
+
+      it("honors a grant only for the exact approved content (invariant 12: sibling isolation)", async () => {
+        const sameContent = await afterGrant(WRITE_A, WRITE_A);
+        expect(sameContent.executed, `${substrate.name}: re-issuing the exact approved edit must be allowed`).toBe(true);
+
+        const otherContent = await afterGrant(WRITE_A, WRITE_A_V2);
+        expect(otherContent.executed, `${substrate.name}: a DIFFERENT edit to the same file must re-gate`).toBe(false);
       });
     }
 

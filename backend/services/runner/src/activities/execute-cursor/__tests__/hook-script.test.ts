@@ -18,7 +18,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { generateHookScript } from "../hook-script.js";
-import { buildApprovalState, grantToken, toolIdentity } from "../approval-state.js";
+import { buildApprovalState, grantToken, primaryToken, toolIdentity } from "../approval-state.js";
+import { contentDigest } from "../../../shared/file-tools.js";
 import {
   setupCursorHookHarness as setup,
   hasBash,
@@ -39,20 +40,22 @@ function decodeInput(b64: string | undefined): Record<string, unknown> {
 const d = hasBash ? describe : describe.skip;
 
 d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
-  it("denies gated built-ins (Write/Shell/Delete) and records a category+salient token", () => {
+  it("denies gated built-ins and records the PRIMARY token (content-exact for a write, coarse for shell/delete)", () => {
     const h = setup({});
 
-    for (const [input, category, salient] of [
-      [hookWrite("/x/a.txt"), "write", "/x/a.txt"],
-      [hookShell("rm -rf build"), "shell", "rm -rf build"],
-      [hookDelete("/x/b.txt"), "delete", "/x/b.txt"],
+    for (const [input, category, salient, args] of [
+      // hookWrite defaults content "x"; the hook records the content-exact token.
+      [hookWrite("/x/a.txt"), "write", "/x/a.txt", { content: "x" }],
+      [hookShell("rm -rf build"), "shell", "rm -rf build", {}],
+      [hookDelete("/x/b.txt"), "delete", "/x/b.txt", {}],
     ] as const) {
       h.resetLedger();
       expect(h.decide(input).permission).toBe("deny");
       const ledger = h.ledger();
       expect(ledger).toHaveLength(1);
-      // Byte-identical to the runner's grantToken(category, salient).
-      expect(ledger[0].token).toBe(grantToken(category, salient));
+      // Byte-identical to the runner's primaryToken: content-exact when the hook
+      // can compute an edit digest (the write), else the coarse grantToken.
+      expect(ledger[0].token).toBe(primaryToken(category, salient, contentDigest(args)));
     }
   });
 
@@ -122,7 +125,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     it("allows a require-approval MCP tool once it has been granted (reinvocation)", () => {
       const h = setup({
         mcpPolicies: { click: { requiresApproval: true } },
-        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "" }],
+        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "", contentDigest: "" }],
       });
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
       expect(h.ledger()).toEqual([]);
@@ -236,7 +239,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
   it("allows the exact granted shell command even when it contains quotes", () => {
     const command = 'printf \'%s\' \'hello-resume\' > "/x/resumed-gate.txt"';
     const id = toolIdentity("shell", "", { command });
-    const h = setup({ grants: [{ toolName: "shell", mcpServerSlug: "", key: id.key, salient: id.salient }] });
+    const h = setup({ grants: [{ toolName: "shell", mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: "" }] });
 
     expect(h.decide(hookShell(command)).permission).toBe("allow");
     // A different command is NOT covered by the grant -> still gated.
@@ -261,7 +264,9 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       {
         label: "write — path with spaces, quotes, and unicode",
         streamName: "edit",
-        streamArgs: { path: '/work/a dir/"café" notes.md' },
+        // Content matches hookWrite's default ("x") so the runner-side grant
+        // digest equals the hook-side content digest (content-exact closure).
+        streamArgs: { path: '/work/a dir/"café" notes.md', content: "x" },
         hookInput: hookWrite('/work/a dir/"café" notes.md'),
         otherHookInput: hookWrite("/work/other.md"),
       },
@@ -295,7 +300,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
         //    buildApprovalState — the exact path index.ts takes on resume.
         const id = toolIdentity(streamName, "", streamArgs);
         const state = buildApprovalState(new Map(), false, new Set(), [
-          { toolName: streamName, mcpServerSlug: "", key: id.key, salient: id.salient },
+          { toolName: streamName, mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: contentDigest(streamArgs) },
         ]);
 
         // 3. The state file carries the byte-exact token the hook recomputed —
@@ -309,6 +314,23 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
         expect(grantHarness.decide(otherHookInput).permission).toBe("deny");
       });
     }
+  });
+
+  it("sibling isolation: approving one edit does NOT allow a DIFFERENT edit to the same file", () => {
+    // The exact reported bug, closed end-to-end through the real hook: approving
+    // the rename must re-gate the later `## TODO` edit to the SAME file.
+    const path = "/work/notes.md";
+    const renameArgs = { path, content: "Planton" };
+    const id = toolIdentity("edit", "", renameArgs);
+    const state = buildApprovalState(new Map(), false, new Set(), [
+      { toolName: "edit", mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: contentDigest(renameArgs) },
+    ]);
+    const h = setup({ grants: state.approvedGrants });
+
+    // The approved edit, re-issued with the SAME content, is allowed.
+    expect(h.decide(hookWrite(path, "Planton")).permission).toBe("allow");
+    // A DIFFERENT edit to the SAME file is re-gated — the sibling hole is closed.
+    expect(h.decide(hookWrite(path, "## TODO")).permission).toBe("deny");
   });
 
   // Issue #173: the hook ships on the workspace's shared .cursor/hooks.json, so

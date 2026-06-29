@@ -327,6 +327,91 @@ func TestCursorHarness_HITL_WholeFileMultiChange_FullDiffShownAndApplied(t *test
 		"the rename must replace 'Planton Cloud' with no stale text left behind")
 }
 
+// TestCursorHarness_HITL_HunkSiblingReGates_BothLand is the end-to-end proof of
+// the content-exact identity fix (the reported bug): when a turn makes TWO
+// DISTINCT in-place edits to ONE file, approving the FIRST must NOT silently let
+// the SECOND through. Before the fix the second hunk rode the first edit's coarse
+// (category, path) grant and executed UNGATED — the user approved the rename and
+// the "## TODO" addition landed without ever being shown. After the fix the
+// grant binds the approved content, so the distinct sibling RE-GATES; the user
+// approves it too, and BOTH changes land with the execution COMPLETED (no loop).
+//
+// The deterministic proof that the sibling re-gates lives in the runner unit,
+// real-bash-hook ("sibling isolation"), and cross-substrate contract (invariant
+// 12) suites; this asserts the user-observable end state through a live agent.
+// Requires CURSOR_API_KEY.
+func TestCursorHarness_HITL_HunkSiblingReGates_BothLand(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 8*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	// Pre-seed an EXISTING file so both edits are in-place hunks against real
+	// "before" content — the exact shape of the reported regression.
+	wsDir := harness.UnifiedRunnerWorkspaceDir()
+	require.NoError(t, os.MkdirAll(wsDir, 0o755))
+	fileName := "sibling-notes.md"
+	absPath := filepath.Join(wsDir, fileName)
+	require.NoError(t, os.WriteFile(absPath,
+		[]byte("# Project Notes\n- Built on Planton Cloud\n"), 0o644))
+	t.Cleanup(func() { _ = os.Remove(absPath) })
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-hitl-sibling-regate",
+		"You are a helpful coding assistant.",
+	)
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"In "+fileName+", make TWO separate minimal in-place edits (do NOT rewrite "+
+			"the whole file): (1) change 'Planton Cloud' to 'Planton', and (2) append "+
+			"a new line at the end exactly: '## TODO'. Make BOTH edits.",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, waiting.GetStatus().GetPendingApprovals(),
+		"the first in-place edit must pause at the approval gate")
+	approval := waiting.GetStatus().GetPendingApprovals()[0]
+	assertToolCallWaitingApproval(t, waiting, approval.GetToolCallId())
+	logGateGroundTruth(t, approval)
+
+	// Approve through every gate. The content-exact grant means a DISTINCT second
+	// edit to the same file re-gates rather than slipping through, so the resolver
+	// satisfies each gate in turn — and the run must TERMINATE (no loop).
+	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		exec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		5*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "execution should complete after approving the sequential gates (no loop)")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// Both changes landed: the sibling re-gated and was applied, never dropped and
+	// never auto-applied ungated.
+	data, err := os.ReadFile(absPath)
+	require.NoError(t, err, "the edited file must exist after completion")
+	content := string(data)
+	assert.Contains(t, content, "## TODO",
+		"the second edit (## TODO) must be applied")
+	assert.Contains(t, content, "Planton",
+		"the rename must be applied")
+	assert.NotContains(t, content, "Planton Cloud",
+		"the rename must replace 'Planton Cloud' with no stale text left behind")
+}
+
 // TestCursorHarness_HITL_TwoDistinctFiles_SecondReGatesAndLands proves the
 // one-gate-per-turn contract does not LOSE a genuinely distinct second change: a
 // turn that writes two different files surfaces exactly one gate; the deferred

@@ -151,6 +151,10 @@ export function createDeepAgentSubstrate(): GatewaySubstrate {
     capabilities: {
       observesExecution: true,
       enforcesExactResource: false,
+      // The deep-agent gate re-checks every distinct call and relies on
+      // checkpoint replay for sameness; content isolation is not a property of
+      // the gate itself, so the content-exact invariant does not apply here.
+      enforcesExactContent: false,
       appliesRunLifetimeLease: true,
       surfacesGatePolicySource: true,
     },

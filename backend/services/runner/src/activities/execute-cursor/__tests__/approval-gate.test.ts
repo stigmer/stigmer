@@ -163,7 +163,17 @@ describe("buildApprovalGrants", () => {
       [pending({ toolCallId: "c1", toolName: "edit", argsPreview: JSON.stringify({ path: "/x/gated.txt" }) })],
       new Map([["c1", ApprovalAction.APPROVE]]),
     );
-    expect(grants).toEqual([{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt" }]);
+    expect(grants).toEqual([{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: "" }]);
+  });
+
+  it("binds an approved edit's grant to its content digest (sibling-isolation)", () => {
+    const digest = "abc123";
+    const grants = buildApprovalGrants(
+      [pending({ toolCallId: "c1", toolName: "edit", argsPreview: JSON.stringify({ path: "/x/gated.txt" }) })],
+      new Map([["c1", ApprovalAction.APPROVE]]),
+      new Map([["c1", digest]]),
+    );
+    expect(grants).toEqual([{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: digest }]);
   });
 
   it("creates a name-only grant for an approved MCP tool", () => {
@@ -171,7 +181,7 @@ describe("buildApprovalGrants", () => {
       [pending({ toolCallId: "c1", toolName: "apply_x", mcpServerSlug: "planton", argsPreview: JSON.stringify({ path: "ignored" }) })],
       new Map([["c1", ApprovalAction.APPROVE]]),
     );
-    expect(grants).toEqual([{ toolName: "apply_x", mcpServerSlug: "planton", key: "apply_x", salient: "" }]);
+    expect(grants).toEqual([{ toolName: "apply_x", mcpServerSlug: "planton", key: "apply_x", salient: "", contentDigest: "" }]);
   });
 
   it("ignores skipped and rejected approvals", () => {
@@ -195,15 +205,27 @@ describe("buildApprovalState", () => {
   ]);
 
   it("carries MCP policies and exact-resource grant tokens (gated set is baked into the hook, not the state)", () => {
-    const grants = [{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt" }];
+    const grants = [{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: "" }];
     const state = buildApprovalState(mcpPolicies, false, new Set(), grants);
 
     expect(state.autoApproveAll).toBe(false);
     expect(state.leasedCategories).toEqual([]);
     expect(state.mcpToolPolicies.apply_x).toEqual({ requiresApproval: true, message: "Apply X" });
+    // No digest -> the primary token degrades to the coarse grant token.
     expect(state.approvedGrantTokens).toEqual([grantToken("write", "/x/gated.txt")]);
     // builtInGatedList is no longer part of the state file (baked into the hook).
     expect((state as unknown as Record<string, unknown>).builtInGatedList).toBeUndefined();
+  });
+
+  it("emits the CONTENT token when a grant carries a content digest", () => {
+    const grants = [{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: "deadbeef" }];
+    const state = buildApprovalState(mcpPolicies, false, new Set(), grants);
+    // A content-identified grant authorizes base64(key\nsalient\ndigest), so a
+    // DIFFERENT edit to the same path (different digest) does not match.
+    expect(state.approvedGrantTokens).toEqual([
+      Buffer.from("write\n/x/gated.txt\ndeadbeef", "utf-8").toString("base64"),
+    ]);
+    expect(state.approvedGrantTokens[0]).not.toBe(grantToken("write", "/x/gated.txt"));
   });
 
   it("writes leasedCategories for run-lifetime scoped leases", () => {

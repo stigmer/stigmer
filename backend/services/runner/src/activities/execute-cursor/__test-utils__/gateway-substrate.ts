@@ -25,6 +25,7 @@ import {
   hookMcp,
 } from "./cursor-hook-harness.js";
 import { toolIdentity, type ApprovalGrant } from "../approval-state.js";
+import { contentDigest } from "../../../shared/file-tools.js";
 import type { ApprovalCategory } from "../approval-policy.js";
 import type {
   GatewayDecision,
@@ -37,7 +38,7 @@ import type {
 function hookInputFor(action: ProposedAction): object {
   switch (action.kind) {
     case "write":
-      return hookWrite(action.resource);
+      return hookWrite(action.resource, action.content ?? "x");
     case "shell":
       return hookShell(action.resource);
     case "delete":
@@ -68,9 +69,25 @@ function grantFor(action: ProposedAction): ApprovalGrant {
     throw new Error(`grantFor: ${action.kind} actions are not granted in the contract`);
   }
   const streamName = STREAM_NAME[action.kind];
-  const args = action.kind === "shell" ? { command: action.resource } : { path: action.resource };
+  // Mirror hookInputFor: a write carries whole-file content (so its digest is
+  // content-exact and matches the hook's), a delete carries only a path (no
+  // content), and a shell carries its command (the salient is already exact).
+  const args: Record<string, unknown> =
+    action.kind === "shell"
+      ? { command: action.resource }
+      : action.kind === "delete"
+        ? { path: action.resource }
+        : { path: action.resource, content: action.content ?? "x" };
   const identity = toolIdentity(streamName, "", args);
-  return { toolName: streamName, mcpServerSlug: "", key: identity.key, salient: identity.salient };
+  return {
+    toolName: streamName,
+    mcpServerSlug: "",
+    key: identity.key,
+    salient: identity.salient,
+    // Content-exact for a write (the sibling-isolation probe), coarse otherwise —
+    // matching how the runner grants from the authoritative captured args.
+    contentDigest: contentDigest(args),
+  };
 }
 
 async function decide(grants: ApprovalGrant[], action: ProposedAction): Promise<GatewayOutcome> {
@@ -98,6 +115,9 @@ export function createCursorSubstrate(): GatewaySubstrate {
     capabilities: {
       observesExecution: false,
       enforcesExactResource: true,
+      // The grant binds (category, path, contentDigest), so a DIFFERENT edit to
+      // the same file re-gates — the sibling-hole fix.
+      enforcesExactContent: true,
       appliesRunLifetimeLease: true,
       // The Cursor hook's deny decision does not carry approval_policy_source;
       // provenance is projected at message-reconstruction time (message-translator)

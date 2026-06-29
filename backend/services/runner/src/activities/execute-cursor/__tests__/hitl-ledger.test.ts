@@ -53,7 +53,7 @@ import {
   buildApprovalGrants,
   grantToken,
 } from "../approval-state.js";
-import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, collapseRedundantToolCallTwins } from "../message-translator.js";
+import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, collapseRedundantToolCallTwins, toolCallIdentityToken } from "../message-translator.js";
 import { buildFileChange } from "../../../shared/file-change.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
@@ -875,8 +875,9 @@ describe("reconcileDeniedToolCalls — duplicate denial-twin collapse", () => {
     const reconciled = await reconcileDeniedToolCalls(
       messages,
       [
-        { toolName: "Write", token: grantToken("write", "a.md") },
-        { toolName: "Write", token: grantToken("write", "b.md") },
+        // The hook records the content-exact token for an edit (its primary token).
+        { toolName: "Write", token: toolCallIdentityToken(gateA) },
+        { toolName: "Write", token: toolCallIdentityToken(gateB) },
       ],
       undefined,
       rootBackend(),
@@ -1045,8 +1046,8 @@ describe("reconcileDeniedToolCalls — one gate per turn (deny-only workaround)"
     const reconciled = await reconcileDeniedToolCalls(
       messages,
       [
-        { toolName: "Shell", token: grantToken("shell", "echo hi > notes.md") },
-        { toolName: "Write", token: grantToken("write", "notes.md") },
+        { toolName: "Shell", token: toolCallIdentityToken(shell) },
+        { toolName: "Write", token: toolCallIdentityToken(edit) },
       ],
       undefined,
       rootBackend(),
@@ -1080,8 +1081,8 @@ describe("reconcileDeniedToolCalls — one gate per turn (deny-only workaround)"
     const reconciled = await reconcileDeniedToolCalls(
       messages,
       [
-        { toolName: "fetch", token: grantToken("fetch", "") },
-        { toolName: "Write", token: grantToken("write", "notes.md") },
+        { toolName: "fetch", token: toolCallIdentityToken(mcp) },
+        { toolName: "Write", token: toolCallIdentityToken(edit) },
       ],
       undefined,
       rootBackend(),

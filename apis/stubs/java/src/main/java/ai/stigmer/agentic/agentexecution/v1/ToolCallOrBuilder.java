@@ -733,4 +733,64 @@ public interface ToolCallOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPolicyEngineVersionBytes();
+
+  /**
+   * <pre>
+   * Stable digest of the authoritative edit content (the hook-captured tool
+   * input) for a gated file-mutating tool call, set by the runner's approval
+   * gate. It is the content discriminator the deny-only Cursor harness needs:
+   * approving one edit must not let a DIFFERENT edit to the same file ride the
+   * approval through, so the grant binds to (category, path, content) rather than
+   * (category, path) alone. A resumed re-attempt that differs from the approved
+   * content re-gates (the "what you approve is what gets applied" contract).
+   *
+   * Carried so it survives at resume immune to the size-limit elision that can
+   * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+   * would be unrecoverable in that case. Empty for tools whose other identity is
+   * already content-exact (shell command, delete path), for read-only tools, and
+   * for executions that predate this field (the runner then degrades to the
+   * coarse (category, path) identity).
+   *
+   * &#64;internal
+   * Runner-written and carried through update_status exactly like tool_kind /
+   * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+   * needed. See the runner's contentDigest() (shared/file-tools.ts).
+   *
+   * Field 25: appended after policy_engine_version (24), the prior maximum.
+   * </pre>
+   *
+   * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+   * @return The approvalContentDigest.
+   */
+  java.lang.String getApprovalContentDigest();
+  /**
+   * <pre>
+   * Stable digest of the authoritative edit content (the hook-captured tool
+   * input) for a gated file-mutating tool call, set by the runner's approval
+   * gate. It is the content discriminator the deny-only Cursor harness needs:
+   * approving one edit must not let a DIFFERENT edit to the same file ride the
+   * approval through, so the grant binds to (category, path, content) rather than
+   * (category, path) alone. A resumed re-attempt that differs from the approved
+   * content re-gates (the "what you approve is what gets applied" contract).
+   *
+   * Carried so it survives at resume immune to the size-limit elision that can
+   * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+   * would be unrecoverable in that case. Empty for tools whose other identity is
+   * already content-exact (shell command, delete path), for read-only tools, and
+   * for executions that predate this field (the runner then degrades to the
+   * coarse (category, path) identity).
+   *
+   * &#64;internal
+   * Runner-written and carried through update_status exactly like tool_kind /
+   * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+   * needed. See the runner's contentDigest() (shared/file-tools.ts).
+   *
+   * Field 25: appended after policy_engine_version (24), the prior maximum.
+   * </pre>
+   *
+   * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+   * @return The bytes for approvalContentDigest.
+   */
+  com.google.protobuf.ByteString
+      getApprovalContentDigestBytes();
 }

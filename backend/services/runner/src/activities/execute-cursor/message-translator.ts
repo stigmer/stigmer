@@ -45,12 +45,12 @@ import {
   resolveApprovalProvenance,
   toProtoPolicySource,
 } from "../../shared/approval-policy.js";
-import { grantToken, toolIdentity, type DeniedLedgerEntry } from "./approval-state.js";
+import { grantToken, primaryToken, toolIdentity, type DeniedLedgerEntry } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { classifyTool, toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { buildFileChange, resolveWorkspacePath } from "../../shared/file-change.js";
 import { buildGateFileChange } from "../../shared/gate-file-change.js";
-import { extractFilePath, extractWriteContent } from "../../shared/file-tools.js";
+import { contentDigest, extractFilePath, extractWriteContent } from "../../shared/file-tools.js";
 import { buildElidedArgsPreview } from "../../shared/args-preview.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 
@@ -1491,7 +1491,9 @@ export async function reconcileDeniedToolCalls(
     // rebuilt from this tool call on reinvocation keys on the same resource.
     const displayName = anchorEntry.toolName || decoded?.key || "tool";
     const salient = decoded?.salient ?? "";
-    const tc = synthesizeWaitingApprovalToolCall(displayName, salient, anchorToken, mergedPolicies);
+    const tc = synthesizeWaitingApprovalToolCall(
+      displayName, salient, decoded?.digest ?? "", anchorToken, mergedPolicies,
+    );
     // The hook-captured input upgrades the placeholder from a bare {path} to the
     // full proposed args + diff, so even a synthesized gate shows the change.
     await applyGateInput(tc, anchorInput ?? anchorEntry.input, workspaceBackend);
@@ -1772,6 +1774,12 @@ async function applyGateInput(
   if (input) {
     tc.args = input as JsonObject;
     tc.argsPreview = buildElidedArgsPreview(input, SALIENT_ARG_FIELDS);
+    // Stamp the content digest from the AUTHORITATIVE captured input, so the
+    // approved edit's exact content survives to resume on a small, never-elided
+    // field — the grant then binds to (category, path, content) and a sibling
+    // edit to the same file re-gates. Empty for a non-content tool. This is the
+    // one place the digest is authored; everything downstream reads the field.
+    tc.approvalContentDigest = contentDigest(input);
     // Whole-file input is authoritative and complete → it supersedes any streamed
     // snapshot (which can lag the final args). Override only when the builder
     // yields a change, so a defensive miss never wipes a real diff.
@@ -1935,28 +1943,48 @@ export function clearProvisionalPostDenialNarration(
 
 /**
  * Compute a streamed tool call's identity token in the same canonical space the
- * preToolUse hook records denials in (see {@link toolIdentity} and grantToken).
- * The token keys on the cross-taxonomy category + salient resource, so a stream
- * `edit` (token `base64("write\n/path")`) correlates to the hook's `Write` deny
- * for the same path, even though the two layers name the tool differently.
+ * preToolUse hook records denials in (see {@link toolIdentity} / primaryToken).
+ * The token keys on the cross-taxonomy category + salient resource PLUS, for a
+ * file edit/write, the {@link contentDigest} of the edit content — so a stream
+ * `edit` correlates to the hook's `Write` deny for the same path AND content,
+ * and an approval of one edit does not match a DIFFERENT edit to the same file.
+ *
+ * The digest is read from the persisted `approval_content_digest` field when
+ * present (a seeded gate carries it, stable even if `args` was elided), and is
+ * recomputed from the call's args otherwise (a freshly-streamed call). For a
+ * shell/delete/MCP call (no content) it falls back to the coarse token, exactly
+ * as before — so those identities are unchanged.
  *
  * Exported so the resume-grant round-trip can be locked against it: the grant a
- * resume mints for an approved tool (buildApprovalGrants -> grantToken) must
+ * resume mints for an approved tool (buildApprovalGrants -> primaryToken) must
  * equal THIS denial/overlay identity, or the re-issued call is re-gated forever
- * (the H1 dual-path drift the approval-state round-trip suite guards against).
+ * (the dual-path drift the approval-state round-trip suite guards against).
  */
 export function toolCallIdentityToken(tc: ToolCall): string {
   const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
-  return grantToken(id.key, id.salient);
+  const digest = tc.approvalContentDigest || contentDigest(toolCallArgs(tc));
+  return primaryToken(id.key, id.salient, digest);
 }
 
-/** Decode a grantToken back into its (key, salient) for the synthesis fallback. */
-function decodeIdentityToken(token: string): { key: string; salient: string } | undefined {
+/**
+ * Decode a primary token back into its (key, salient, digest) for the synthesis
+ * fallback. The token is `base64(key \n salient)` (coarse) or
+ * `base64(key \n salient \n digest)` (content-exact); the digest is the optional
+ * third segment. salient never contains a newline (a path or shell command), so
+ * splitting on the first two newlines is unambiguous.
+ */
+function decodeIdentityToken(
+  token: string,
+): { key: string; salient: string; digest: string } | undefined {
   try {
     const decoded = Buffer.from(token, "base64").toString("utf-8");
-    const nl = decoded.indexOf("\n");
-    if (nl < 0) return undefined;
-    return { key: decoded.slice(0, nl), salient: decoded.slice(nl + 1) };
+    const first = decoded.indexOf("\n");
+    if (first < 0) return undefined;
+    const key = decoded.slice(0, first);
+    const rest = decoded.slice(first + 1);
+    const second = rest.indexOf("\n");
+    if (second < 0) return { key, salient: rest, digest: "" };
+    return { key, salient: rest.slice(0, second), digest: rest.slice(second + 1) };
   } catch {
     return undefined;
   }
@@ -2002,6 +2030,7 @@ function markWaitingApproval(
 function synthesizeWaitingApprovalToolCall(
   displayName: string,
   salient: string,
+  digest: string,
   token: string,
   mergedPolicies?: Map<string, MergedToolPolicy>,
 ): ToolCall {
@@ -2013,6 +2042,10 @@ function synthesizeWaitingApprovalToolCall(
     startedAt: utcTimestamp(),
     approvalRequestedAt: utcTimestamp(),
     toolKind: classifyTool(displayName),
+    // Carry the decoded digest so this placeholder's identity (and the grant
+    // rebuilt from it on resume) equals the anchor's content token. applyGateInput
+    // overwrites it from the authoritative input when one was captured.
+    approvalContentDigest: digest,
   });
   // Carry the salient resource so reconstructAdjudicatedApprovals -> the grant
   // builder keys on the same resource the hook will see on the re-attempt.

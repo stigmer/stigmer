@@ -38,6 +38,13 @@ export interface ProposedAction {
    * This is the "salient" value the exact-resource lease binds to.
    */
   readonly resource: string;
+  /**
+   * The edit content for a `write` action — the body whose digest the
+   * content-exact grant binds to. Two `write`s to the same `resource` with
+   * DIFFERENT `content` are distinct identities (the sibling-isolation probe);
+   * omitted, a substrate uses a fixed placeholder. Ignored for non-write kinds.
+   */
+  readonly content?: string;
   /** MCP server slug — required for `kind: "mcp"`, ignored otherwise. */
   readonly mcpServerSlug?: string;
   /** MCP tool name — required for `kind: "mcp"`, ignored otherwise. */
@@ -106,6 +113,14 @@ export interface SubstrateCapabilities {
    * not a property of that gate (`false`).
    */
   readonly enforcesExactResource: boolean;
+  /**
+   * True when an approval is bound to the exact CONTENT of the action, not just
+   * its resource — so approving one edit to a file never authorizes a DIFFERENT
+   * edit to the SAME file. The Cursor grant binds (category, path, contentDigest)
+   * (`true`); the deep-agent gate relies on checkpoint replay for sameness, so
+   * content isolation is not a property of that gate (`false`).
+   */
+  readonly enforcesExactContent: boolean;
   /**
    * True when the substrate honors a run-lifetime CLASS lease: an APPROVE_ALL on
    * one action auto-approves later actions of the SAME class (built-in category)

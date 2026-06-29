@@ -48,8 +48,9 @@ import {
 import {
   buildApprovalGrants,
   buildApprovalState,
-  grantToken,
+  primaryToken,
   reconstructAdjudicatedApprovals,
+  type ApprovalGrant,
   type DeniedLedgerEntry,
 } from "../approval-state.js";
 
@@ -98,15 +99,18 @@ function mcpEvent(
  */
 async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Promise<{
   denialToken: string;
-  grantToken: string;
+  grantPrimaryToken: string;
   resumeStateToken: string | undefined;
+  grant: ApprovalGrant;
 }> {
   const tc = buildToolCallProto(event);
 
   // The gated turn: the hook denies the call, recording its identity token. The
   // runner's overlay (reconcileDeniedToolCalls) flips the same call to
   // WAITING_APPROVAL by matching that token — so the denial token IS the
-  // canonical identity the resume grant must reproduce.
+  // canonical identity the resume grant must reproduce. For a file edit this is
+  // the CONTENT-exact token (category, salient, digest); for shell/delete/MCP it
+  // is the coarse token.
   const denialToken = toolCallIdentityToken(tc);
   const msg = create(AgentMessageSchema, {
     type: MessageType.MESSAGE_AI,
@@ -122,18 +126,20 @@ async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Pro
 
   // The resume: reconstruct the adjudicated approvals from the persisted
   // transcript (pending_approvals is already cleared by this point) and mint the
-  // grants the next turn's hook reads.
+  // grants the next turn's hook reads. The content digest threads through so the
+  // grant reproduces the content-exact denial identity.
   const messages: AgentMessage[] = [msg];
-  const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(messages);
-  const grants = buildApprovalGrants(pendingApprovals, decisions);
+  const { pendingApprovals, decisions, contentDigests } = reconstructAdjudicatedApprovals(messages);
+  const grants = buildApprovalGrants(pendingApprovals, decisions, contentDigests);
   expect(grants, "an approved tool must yield exactly one grant").toHaveLength(1);
 
   const state = buildApprovalState(new Map(), false, new Set(), grants);
 
   return {
     denialToken,
-    grantToken: grantToken(grants[0].key, grants[0].salient),
+    grantPrimaryToken: primaryToken(grants[0].key, grants[0].salient, grants[0].contentDigest),
     resumeStateToken: state.approvedGrantTokens[0],
+    grant: grants[0],
   };
 }
 
@@ -204,15 +210,16 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
 
   for (const { label, event, expectedKey, expectedSalient } of cases) {
     it(`${label}: resume grant token == denial/overlay token`, async () => {
-      const { denialToken, grantToken: gt, resumeStateToken } = await roundTrip(event);
+      const { denialToken, grantPrimaryToken, resumeStateToken, grant } = await roundTrip(event);
 
       // The decisive equality: what the hook denied is exactly what the resume
       // re-grants, so the re-issued call is ALLOWED, not re-gated.
-      expect(gt, `${label}: grant must reproduce the denial identity`).toBe(denialToken);
+      expect(grantPrimaryToken, `${label}: grant must reproduce the denial identity`).toBe(denialToken);
 
       // The grant carries the expected canonical identity (guards against a
       // silently-empty salient sneaking past the equality on a shared bug).
-      expect(gt).toBe(grantToken(expectedKey, expectedSalient));
+      expect(grant.key).toBe(expectedKey);
+      expect(grant.salient).toBe(expectedSalient);
 
       // The state file the hook actually reads carries that same token verbatim.
       expect(resumeStateToken, `${label}: state file must carry the matching grant token`).toBe(
@@ -220,6 +227,34 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
       );
     });
   }
+
+  it("sibling isolation: two DIFFERENT edits to the SAME file get distinct identities", () => {
+    // The exact bug this change fixes: approving the rename must NOT authorize
+    // the TODO edit. They share a path (same coarse token) but differ in content,
+    // so the content-exact identity distinguishes them.
+    const rename = buildToolCallProto(
+      builtInEvent("c1", "edit", { path: "/work/notes.md", old_string: "Planton Cloud", new_string: "Planton" }),
+    );
+    const todo = buildToolCallProto(
+      builtInEvent("c2", "edit", { path: "/work/notes.md", old_string: "", new_string: "## TODO\n" }),
+    );
+    const renameToken = toolCallIdentityToken(rename);
+    const todoToken = toolCallIdentityToken(todo);
+
+    // Distinct identities -> a grant for the rename never matches the TODO.
+    expect(renameToken).not.toBe(todoToken);
+    // Both are content tokens (3-part), not the bare coarse token they'd collapse
+    // to under the old (category, salient) scheme.
+    expect(renameToken).not.toBe(
+      Buffer.from("write\n/work/notes.md", "utf-8").toString("base64"),
+    );
+    // Re-issuing the SAME rename content reproduces its identity (identical
+    // re-attempt is allowed; a drifted one re-gates).
+    const renameAgain = buildToolCallProto(
+      builtInEvent("c3", "edit", { path: "/work/notes.md", old_string: "Planton Cloud", new_string: "Planton" }),
+    );
+    expect(toolCallIdentityToken(renameAgain)).toBe(renameToken);
+  });
 
   /** A decided-but-not-yet-resumed gated call, exactly as the backend persists it. */
   function decidedToolCall(
@@ -250,6 +285,6 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
     const msg = decidedToolCall(builtInEvent("c1", "shell", { command: "make build" }), ApprovalAction.APPROVE_ALL);
     const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals([msg]);
     const grants = buildApprovalGrants(pendingApprovals, decisions);
-    expect(grants).toEqual([{ toolName: "shell", mcpServerSlug: "", key: "shell", salient: "make build" }]);
+    expect(grants).toEqual([{ toolName: "shell", mcpServerSlug: "", key: "shell", salient: "make build", contentDigest: "" }]);
   });
 });

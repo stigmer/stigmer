@@ -4228,6 +4228,16 @@
           },
           "description": "Identifier of the policy-engine logic that produced approval_policy_source,\n bumped when the merge/classification semantics change so decisions made by\n different engine versions stay distinguishable in audits.\n\n @internal\n Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).\n\n Field 24: appended after approval_policy_source (23), the prior maximum.",
           "required": false
+        },
+        {
+          "name": "ApprovalContentDigest",
+          "jsonName": "approvalContentDigest",
+          "protoField": "approval_content_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stable digest of the authoritative edit content (the hook-captured tool\n input) for a gated file-mutating tool call, set by the runner's approval\n gate. It is the content discriminator the deny-only Cursor harness needs:\n approving one edit must not let a DIFFERENT edit to the same file ride the\n approval through, so the grant binds to (category, path, content) rather than\n (category, path) alone. A resumed re-attempt that differs from the approved\n content re-gates (the \"what you approve is what gets applied\" contract).\n\n Carried so it survives at resume immune to the size-limit elision that can\n drop `args`/`file_changes` for large edits — a recompute-from-args identity\n would be unrecoverable in that case. Empty for tools whose other identity is\n already content-exact (shell command, delete path), for read-only tools, and\n for executions that predate this field (the runner then degrades to the\n coarse (category, path) identity).\n\n @internal\n Runner-written and carried through update_status exactly like tool_kind /\n approval_policy_source — not owned by SubmitApproval, so no preserve logic is\n needed. See the runner's contentDigest() (shared/file-tools.ts).\n\n Field 25: appended after policy_engine_version (24), the prior maximum.",
+          "required": false
         }
       ]
     },

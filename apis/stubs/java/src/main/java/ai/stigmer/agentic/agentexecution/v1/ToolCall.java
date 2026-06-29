@@ -51,6 +51,7 @@ private static final long serialVersionUID = 0L;
     fileChanges_ = java.util.Collections.emptyList();
     approvalPolicySource_ = 0;
     policyEngineVersion_ = "";
+    approvalContentDigest_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1231,6 +1232,93 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int APPROVAL_CONTENT_DIGEST_FIELD_NUMBER = 25;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object approvalContentDigest_ = "";
+  /**
+   * <pre>
+   * Stable digest of the authoritative edit content (the hook-captured tool
+   * input) for a gated file-mutating tool call, set by the runner's approval
+   * gate. It is the content discriminator the deny-only Cursor harness needs:
+   * approving one edit must not let a DIFFERENT edit to the same file ride the
+   * approval through, so the grant binds to (category, path, content) rather than
+   * (category, path) alone. A resumed re-attempt that differs from the approved
+   * content re-gates (the "what you approve is what gets applied" contract).
+   *
+   * Carried so it survives at resume immune to the size-limit elision that can
+   * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+   * would be unrecoverable in that case. Empty for tools whose other identity is
+   * already content-exact (shell command, delete path), for read-only tools, and
+   * for executions that predate this field (the runner then degrades to the
+   * coarse (category, path) identity).
+   *
+   * &#64;internal
+   * Runner-written and carried through update_status exactly like tool_kind /
+   * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+   * needed. See the runner's contentDigest() (shared/file-tools.ts).
+   *
+   * Field 25: appended after policy_engine_version (24), the prior maximum.
+   * </pre>
+   *
+   * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+   * @return The approvalContentDigest.
+   */
+  @java.lang.Override
+  public java.lang.String getApprovalContentDigest() {
+    java.lang.Object ref = approvalContentDigest_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      approvalContentDigest_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Stable digest of the authoritative edit content (the hook-captured tool
+   * input) for a gated file-mutating tool call, set by the runner's approval
+   * gate. It is the content discriminator the deny-only Cursor harness needs:
+   * approving one edit must not let a DIFFERENT edit to the same file ride the
+   * approval through, so the grant binds to (category, path, content) rather than
+   * (category, path) alone. A resumed re-attempt that differs from the approved
+   * content re-gates (the "what you approve is what gets applied" contract).
+   *
+   * Carried so it survives at resume immune to the size-limit elision that can
+   * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+   * would be unrecoverable in that case. Empty for tools whose other identity is
+   * already content-exact (shell command, delete path), for read-only tools, and
+   * for executions that predate this field (the runner then degrades to the
+   * coarse (category, path) identity).
+   *
+   * &#64;internal
+   * Runner-written and carried through update_status exactly like tool_kind /
+   * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+   * needed. See the runner's contentDigest() (shared/file-tools.ts).
+   *
+   * Field 25: appended after policy_engine_version (24), the prior maximum.
+   * </pre>
+   *
+   * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+   * @return The bytes for approvalContentDigest.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getApprovalContentDigestBytes() {
+    java.lang.Object ref = approvalContentDigest_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      approvalContentDigest_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1313,6 +1401,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policyEngineVersion_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 24, policyEngineVersion_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(approvalContentDigest_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 25, approvalContentDigest_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1407,6 +1498,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policyEngineVersion_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(24, policyEngineVersion_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(approvalContentDigest_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(25, approvalContentDigest_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1469,6 +1563,8 @@ private static final long serialVersionUID = 0L;
     if (approvalPolicySource_ != other.approvalPolicySource_) return false;
     if (!getPolicyEngineVersion()
         .equals(other.getPolicyEngineVersion())) return false;
+    if (!getApprovalContentDigest()
+        .equals(other.getApprovalContentDigest())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1534,6 +1630,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + approvalPolicySource_;
     hash = (37 * hash) + POLICY_ENGINE_VERSION_FIELD_NUMBER;
     hash = (53 * hash) + getPolicyEngineVersion().hashCode();
+    hash = (37 * hash) + APPROVAL_CONTENT_DIGEST_FIELD_NUMBER;
+    hash = (53 * hash) + getApprovalContentDigest().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1714,6 +1812,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = (bitField0_ & ~0x00100000);
       approvalPolicySource_ = 0;
       policyEngineVersion_ = "";
+      approvalContentDigest_ = "";
       return this;
     }
 
@@ -1832,6 +1931,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00400000) != 0)) {
         result.policyEngineVersion_ = policyEngineVersion_;
+      }
+      if (((from_bitField0_ & 0x00800000) != 0)) {
+        result.approvalContentDigest_ = approvalContentDigest_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1964,6 +2066,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getPolicyEngineVersion().isEmpty()) {
         policyEngineVersion_ = other.policyEngineVersion_;
         bitField0_ |= 0x00400000;
+        onChanged();
+      }
+      if (!other.getApprovalContentDigest().isEmpty()) {
+        approvalContentDigest_ = other.approvalContentDigest_;
+        bitField0_ |= 0x00800000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -2119,6 +2226,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00400000;
               break;
             } // case 194
+            case 202: {
+              approvalContentDigest_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00800000;
+              break;
+            } // case 202
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -5116,6 +5228,198 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       policyEngineVersion_ = value;
       bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object approvalContentDigest_ = "";
+    /**
+     * <pre>
+     * Stable digest of the authoritative edit content (the hook-captured tool
+     * input) for a gated file-mutating tool call, set by the runner's approval
+     * gate. It is the content discriminator the deny-only Cursor harness needs:
+     * approving one edit must not let a DIFFERENT edit to the same file ride the
+     * approval through, so the grant binds to (category, path, content) rather than
+     * (category, path) alone. A resumed re-attempt that differs from the approved
+     * content re-gates (the "what you approve is what gets applied" contract).
+     *
+     * Carried so it survives at resume immune to the size-limit elision that can
+     * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+     * would be unrecoverable in that case. Empty for tools whose other identity is
+     * already content-exact (shell command, delete path), for read-only tools, and
+     * for executions that predate this field (the runner then degrades to the
+     * coarse (category, path) identity).
+     *
+     * &#64;internal
+     * Runner-written and carried through update_status exactly like tool_kind /
+     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+     * needed. See the runner's contentDigest() (shared/file-tools.ts).
+     *
+     * Field 25: appended after policy_engine_version (24), the prior maximum.
+     * </pre>
+     *
+     * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+     * @return The approvalContentDigest.
+     */
+    public java.lang.String getApprovalContentDigest() {
+      java.lang.Object ref = approvalContentDigest_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        approvalContentDigest_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Stable digest of the authoritative edit content (the hook-captured tool
+     * input) for a gated file-mutating tool call, set by the runner's approval
+     * gate. It is the content discriminator the deny-only Cursor harness needs:
+     * approving one edit must not let a DIFFERENT edit to the same file ride the
+     * approval through, so the grant binds to (category, path, content) rather than
+     * (category, path) alone. A resumed re-attempt that differs from the approved
+     * content re-gates (the "what you approve is what gets applied" contract).
+     *
+     * Carried so it survives at resume immune to the size-limit elision that can
+     * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+     * would be unrecoverable in that case. Empty for tools whose other identity is
+     * already content-exact (shell command, delete path), for read-only tools, and
+     * for executions that predate this field (the runner then degrades to the
+     * coarse (category, path) identity).
+     *
+     * &#64;internal
+     * Runner-written and carried through update_status exactly like tool_kind /
+     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+     * needed. See the runner's contentDigest() (shared/file-tools.ts).
+     *
+     * Field 25: appended after policy_engine_version (24), the prior maximum.
+     * </pre>
+     *
+     * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+     * @return The bytes for approvalContentDigest.
+     */
+    public com.google.protobuf.ByteString
+        getApprovalContentDigestBytes() {
+      java.lang.Object ref = approvalContentDigest_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        approvalContentDigest_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Stable digest of the authoritative edit content (the hook-captured tool
+     * input) for a gated file-mutating tool call, set by the runner's approval
+     * gate. It is the content discriminator the deny-only Cursor harness needs:
+     * approving one edit must not let a DIFFERENT edit to the same file ride the
+     * approval through, so the grant binds to (category, path, content) rather than
+     * (category, path) alone. A resumed re-attempt that differs from the approved
+     * content re-gates (the "what you approve is what gets applied" contract).
+     *
+     * Carried so it survives at resume immune to the size-limit elision that can
+     * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+     * would be unrecoverable in that case. Empty for tools whose other identity is
+     * already content-exact (shell command, delete path), for read-only tools, and
+     * for executions that predate this field (the runner then degrades to the
+     * coarse (category, path) identity).
+     *
+     * &#64;internal
+     * Runner-written and carried through update_status exactly like tool_kind /
+     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+     * needed. See the runner's contentDigest() (shared/file-tools.ts).
+     *
+     * Field 25: appended after policy_engine_version (24), the prior maximum.
+     * </pre>
+     *
+     * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+     * @param value The approvalContentDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalContentDigest(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      approvalContentDigest_ = value;
+      bitField0_ |= 0x00800000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Stable digest of the authoritative edit content (the hook-captured tool
+     * input) for a gated file-mutating tool call, set by the runner's approval
+     * gate. It is the content discriminator the deny-only Cursor harness needs:
+     * approving one edit must not let a DIFFERENT edit to the same file ride the
+     * approval through, so the grant binds to (category, path, content) rather than
+     * (category, path) alone. A resumed re-attempt that differs from the approved
+     * content re-gates (the "what you approve is what gets applied" contract).
+     *
+     * Carried so it survives at resume immune to the size-limit elision that can
+     * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+     * would be unrecoverable in that case. Empty for tools whose other identity is
+     * already content-exact (shell command, delete path), for read-only tools, and
+     * for executions that predate this field (the runner then degrades to the
+     * coarse (category, path) identity).
+     *
+     * &#64;internal
+     * Runner-written and carried through update_status exactly like tool_kind /
+     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+     * needed. See the runner's contentDigest() (shared/file-tools.ts).
+     *
+     * Field 25: appended after policy_engine_version (24), the prior maximum.
+     * </pre>
+     *
+     * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApprovalContentDigest() {
+      approvalContentDigest_ = getDefaultInstance().getApprovalContentDigest();
+      bitField0_ = (bitField0_ & ~0x00800000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Stable digest of the authoritative edit content (the hook-captured tool
+     * input) for a gated file-mutating tool call, set by the runner's approval
+     * gate. It is the content discriminator the deny-only Cursor harness needs:
+     * approving one edit must not let a DIFFERENT edit to the same file ride the
+     * approval through, so the grant binds to (category, path, content) rather than
+     * (category, path) alone. A resumed re-attempt that differs from the approved
+     * content re-gates (the "what you approve is what gets applied" contract).
+     *
+     * Carried so it survives at resume immune to the size-limit elision that can
+     * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+     * would be unrecoverable in that case. Empty for tools whose other identity is
+     * already content-exact (shell command, delete path), for read-only tools, and
+     * for executions that predate this field (the runner then degrades to the
+     * coarse (category, path) identity).
+     *
+     * &#64;internal
+     * Runner-written and carried through update_status exactly like tool_kind /
+     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+     * needed. See the runner's contentDigest() (shared/file-tools.ts).
+     *
+     * Field 25: appended after policy_engine_version (24), the prior maximum.
+     * </pre>
+     *
+     * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+     * @param value The bytes for approvalContentDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalContentDigestBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      approvalContentDigest_ = value;
+      bitField0_ |= 0x00800000;
       onChanged();
       return this;
     }

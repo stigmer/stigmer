@@ -54,6 +54,19 @@
  * recorded here correlates to the streamed tool call, and an approval grant
  * matches the agent's re-attempt on reinvocation.
  *
+ * Content-exact identity (the sibling-hole fix): for a file edit the coarse
+ * (category, salient) is not enough — approving one edit to a file must not let
+ * a DIFFERENT edit to the SAME file ride through. So the hook ALSO computes a
+ * CONTENT token `base64(category \n salient \n contentDigest)`, where
+ * contentDigest is a sha256 over the edit content (mirror of file-tools.ts
+ * contentDigest; see buildContentDigestScript). It allows a built-in when EITHER
+ * the content token (a file edit approved with this exact content) OR the coarse
+ * token (shell/delete, or a content-less degrade) is granted, and records the
+ * content token as the denial identity. The runner grants the content token when
+ * it has the approved content (the persisted approval_content_digest), so a
+ * sibling edit re-gates; it degrades to the coarse grant only when the content is
+ * unrecoverable.
+ *
  * Policy evaluation order (first match wins). The model is "gate the dangerous
  * set, allow the rest" — matching the native harness and avoiding denial of
  * auto-approved MCP tools (which are absent from mcpToolPolicies):
@@ -74,6 +87,11 @@
  */
 
 import { SALIENT_ARG_FIELDS, getBuiltInGatedCategories } from "./approval-policy.js";
+import {
+  EDIT_OLD_FIELDS,
+  EDIT_NEW_FIELDS,
+  WRITE_CONTENT_FIELDS,
+} from "../../shared/file-tools.js";
 
 // Shown to the model when the gate denies a tool call. It must NOT teach the
 // model to ask for permission in prose or to "stop and wait" — that framing
@@ -113,21 +131,52 @@ function buildCategoryCaseArms(): string {
 }
 
 /**
+ * Build the inline content-digest extractor — a BYTE-IDENTICAL MIRROR of
+ * {@link file://../../shared/file-tools.ts} `contentDigest()`.
+ *
+ * Computes the same `sha256(JSON.stringify(["w", content]))` /
+ * `sha256(JSON.stringify(["e", old, new]))` from the parsed tool_input `a`,
+ * using the SAME union field lists injected from file-tools.ts (so the
+ * file_path/path & content/contents cross-layer name divergence is normalized
+ * identically) and the SAME Node binary as the runner — so the hook-side and
+ * runner-side digests agree. Any change to the format here or in
+ * file-tools.ts MUST be mirrored in the other. Empty (`dig===""`) for a tool
+ * with no edit content (shell/delete/read/MCP).
+ *
+ * Authored as part of a single-quoted bash string, so the JS must not contain
+ * single quotes (JSON.stringify emits double quotes).
+ */
+function buildContentDigestScript(): string {
+  const wc = JSON.stringify(WRITE_CONTENT_FIELDS);
+  const eo = JSON.stringify(EDIT_OLD_FIELDS);
+  const en = JSON.stringify(EDIT_NEW_FIELDS);
+  return [
+    `const pick=(fl)=>{for(const f of fl){const v=a[f];if(typeof v==="string")return v;}return null;};`,
+    `const sha=(x)=>require("crypto").createHash("sha256").update(x,"utf8").digest("hex");`,
+    `let dig="";`,
+    `const _wc=pick(${wc});`,
+    `if(_wc!==null){dig=sha(JSON.stringify(["w",_wc]));}`,
+    `else{const _o=pick(${eo}),_n=pick(${en});if(_o!==null||_n!==null){dig=sha(JSON.stringify(["e",_o===null?"":_o,_n===null?"":_n]));}}`,
+  ].join("");
+}
+
+/**
  * Build the inline Node.js identity extractor embedded in the hook script.
  *
  * Parses the hook's stdin JSON properly (the bash fallback's grep truncates
- * string values at the first escaped quote) and emits six lines: tool_name,
- * canonical category, identity token, MCP name-token, hook_event_name (the
- * event discriminator: `preToolUse` for built-ins, `beforeMCPExecution` for
- * MCP), and base64(JSON(tool_input)) — the authoritative pre-execution args the
- * runner overlays onto the gated tool call for the approval preview.
- * The token encodings must stay byte-identical to grantToken() in
- * approval-state.ts.
+ * string values at the first escaped quote) and emits SEVEN lines: tool_name,
+ * canonical category, coarse identity token, MCP name-token, hook_event_name
+ * (the event discriminator: `preToolUse` for built-ins, `beforeMCPExecution`
+ * for MCP), base64(JSON(tool_input)) — the authoritative pre-execution args the
+ * runner overlays onto the gated tool call for the approval preview — and the
+ * CONTENT token (base64(category \n salient \n contentDigest), empty when the
+ * tool has no edit content). The token encodings must stay byte-identical to
+ * grantToken()/contentToken() in approval-state.ts.
  *
  * Authored as a single-quoted bash string, so the JS must not contain single
- * quotes. The category map and salient field list are baked from
- * approval-policy.ts — the same source the runner uses — so the two sides can
- * never disagree.
+ * quotes. The category map, salient field list, and edit/content field lists are
+ * baked from approval-policy.ts / file-tools.ts — the same source the runner
+ * uses — so the two sides can never disagree.
  */
 function buildNodeIdentityScript(): string {
   const categoryMap: Record<string, string> = {};
@@ -149,12 +198,17 @@ function buildNodeIdentityScript(): string {
     `let s="";`,
     `for(const f of ${fields}){const v=a[f];if(typeof v==="string"&&v){s=v;break;}}`,
     `const b=(x)=>Buffer.from(x,"utf8").toString("base64");`,
+    // Content digest of the edit (mirror of file-tools.ts contentDigest); `dig`
+    // is "" for a non-edit tool, in which case the content token (line 7) is "".
+    buildContentDigestScript(),
     `const ev=typeof t.hook_event_name==="string"?t.hook_event_name:"";`,
     // Line 6 is base64(JSON(tool_input)): the AUTHORITATIVE pre-execution args
     // the runner overlays onto the gated tool call so the approval card can show
     // the proposed change before the user approves. Base64 keeps the bash side
     // free of quoting/escaping concerns even for large multi-line file content.
-    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a)));`,
+    // Line 7 is the CONTENT token (empty when no digest) — the exact-identity
+    // grant the runner authorizes for a file edit.
+    `process.stdout.write(name+"\\n"+cat+"\\n"+b(cat+"\\n"+s)+"\\n"+b(name+"\\n")+"\\n"+ev+"\\n"+b(JSON.stringify(a))+"\\n"+(dig?b(cat+"\\n"+s+"\\n"+dig):""));`,
   ].join("");
 }
 
@@ -310,6 +364,9 @@ if [ -n "$IDENTITY" ]; then
   # the gated tool call. A single unwrapped base64 line (Node does not wrap), so
   # sed reads it whole even for large file content.
   INPUT_B64=$(printf '%s\\n' "$IDENTITY" | sed -n 6p)
+  # Content token (base64 of category\\nsalient\\ndigest), empty for a non-edit
+  # tool. The exact-identity grant the runner authorizes for a file edit.
+  CONTENT_TOKEN=$(printf '%s\\n' "$IDENTITY" | sed -n 7p)
 else
   # Fallback when the Node binary cannot run: grep/cut extraction. Best-effort
   # only — '"field":"[^"]*"' truncates at the first JSON-escaped quote, so the
@@ -332,8 +389,10 @@ ${categoryCaseArms}
   TOKEN=$(printf '%s\\n%s' "$CATEGORY" "$SALIENT" | base64 | tr -d '\\n')
   MCP_TOKEN=$(printf '%s\\n' "$TOOL_NAME" | base64 | tr -d '\\n')
   # The grep fallback cannot reliably capture full multi-line tool_input, so the
-  # gated call degrades to today's stream-recovered args (no authoritative input).
+  # gated call degrades to today's stream-recovered args (no authoritative input)
+  # and cannot compute a content digest — the coarse token is the only identity.
   INPUT_B64=""
+  CONTENT_TOKEN=""
 fi
 
 # --- Failsafe: missing state file → deny (fail-closed) ---
@@ -393,8 +452,11 @@ fi
 
 # --- 3. Gated built-in tools (preToolUse event, category non-empty) ---
 if [ -n "$CATEGORY" ]; then
-  # Reinvocation grant: this exact resource was approved earlier → allow.
-  if echo "$STATE" | grep -qF "\\"$TOKEN\\""; then
+  # Reinvocation grant: allow when the CONTENT-exact token (a file edit approved
+  # earlier with this exact content) OR the COARSE token (a shell/delete, or the
+  # content-less degrade) is in approvedGrantTokens. A sibling edit to the same
+  # file has a different content token and no coarse grant, so it re-gates.
+  if { [ -n "$CONTENT_TOKEN" ] && echo "$STATE" | grep -qF "\\"$CONTENT_TOKEN\\""; } || echo "$STATE" | grep -qF "\\"$TOKEN\\""; then
     echo '{"permission":"allow"}'
     exit 0
   fi
@@ -407,7 +469,13 @@ if [ -n "$CATEGORY" ]; then
     echo '{"permission":"allow"}'
     exit 0
   fi
-  record_denial "$TOKEN"
+  # Record the PRIMARY token (content-exact when available, else coarse) so the
+  # runner's denial correlation keys on the SAME identity it grants on approval.
+  if [ -n "$CONTENT_TOKEN" ]; then
+    record_denial "$CONTENT_TOKEN"
+  else
+    record_denial "$TOKEN"
+  fi
   echo '{"permission":"deny","agent_message":"${APPROVAL_REQUIRED_AGENT_MESSAGE}","user_message":"Tool requires approval: '"$TOOL_NAME"'"}'
   exit 0
 fi

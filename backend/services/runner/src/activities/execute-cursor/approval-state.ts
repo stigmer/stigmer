@@ -13,9 +13,14 @@
  *   "mcpToolPolicies": {
  *     "apply_cloud_resource": { "requiresApproval": true, "message": "..." }
  *   },
- *   "approvedGrants": [{ "toolName": "edit", "mcpServerSlug": "", "key": "write", "salient": "a.txt" }],
- *   "approvedGrantTokens": ["d3JpdGUKYS50eHQ="]
+ *   "approvedGrants": [{ "toolName": "edit", "mcpServerSlug": "", "key": "write", "salient": "a.txt", "contentDigest": "<sha256>" }],
+ *   "approvedGrantTokens": ["<base64(key\nsalient[\ncontentDigest])>"]
  * }
+ *
+ * A grant token is the action's PRIMARY token: base64(key \n salient \n digest)
+ * for a content-identified file edit (so a DIFFERENT edit to the same file does
+ * not match), or base64(key \n salient) for shell/delete/MCP and the rare
+ * content-less fallback. See {@link primaryToken}.
  *
  * The hook gates the dangerous built-in set and the MCP tools that require
  * approval (mcpToolPolicies, which by construction holds only require-approval
@@ -70,6 +75,7 @@ import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { MergedToolPolicy, ApprovalCategory } from "./approval-policy.js";
 import { extractArgKey, approvalCategory, POLICY_ENGINE_VERSION } from "./approval-policy.js";
+import { contentDigest } from "../../shared/file-tools.js";
 import {
   fingerprintCoarseIdentity,
   type FingerprintKey,
@@ -129,6 +135,14 @@ export interface ApprovalGrant {
   mcpServerSlug: string;
   key: string;
   salient: string;
+  /**
+   * Content digest of the approved edit (see {@link contentDigest}), or "" when
+   * the action is not content-identified (shell/delete/MCP, or a content-less
+   * fallback). When present, the grant authorizes the {@link contentToken} so a
+   * DIFFERENT edit to the same path does NOT match; when "", it authorizes the
+   * coarse {@link grantToken} (the documented degrade).
+   */
+  contentDigest: string;
 }
 
 export interface ApprovalStateFile {
@@ -154,6 +168,31 @@ export interface ApprovalStateFile {
  */
 export function grantToken(key: string, salient: string): string {
   return Buffer.from(`${key}\n${salient}`, "utf-8").toString("base64");
+}
+
+/**
+ * The content-exact wire token: `base64(key \n salient \n contentDigest)`. This
+ * is the exact-identity grant the hook matches for a file-mutating tool, so an
+ * approval of one edit does NOT authorize a DIFFERENT edit to the same file (a
+ * different digest yields a different token). The hook recomputes the identical
+ * token from `tool_input` (it appends the same `\n<digest>` only when the digest
+ * is non-empty — see hook-script.ts), so this encoding must stay byte-identical
+ * to the hook's, exactly as {@link grantToken} already is.
+ */
+export function contentToken(key: string, salient: string, contentDigest: string): string {
+  return Buffer.from(`${key}\n${salient}\n${contentDigest}`, "utf-8").toString("base64");
+}
+
+/**
+ * The single token a tool call authorizes (as a grant) and is recorded under (as
+ * a denial): the {@link contentToken} when a content digest is present (file
+ * edits/writes), else the coarse {@link grantToken} (shell, delete, MCP, or a
+ * content-less grep-fallback). One definition, used by the runner for both grant
+ * building and denial correlation and mirrored by the hook, so the deny-time and
+ * reinvoke-time identities can never drift.
+ */
+export function primaryToken(key: string, salient: string, contentDigest: string): string {
+  return contentDigest ? contentToken(key, salient, contentDigest) : grantToken(key, salient);
 }
 
 /**
@@ -221,6 +260,7 @@ export function emitCursorGrantReceipts(
 export function buildApprovalGrants(
   pendingApprovals: PendingApproval[],
   decisions: Map<string, ApprovalAction>,
+  contentDigests?: Map<string, string>,
 ): ApprovalGrant[] {
   const grants: ApprovalGrant[] = [];
   for (const pa of pendingApprovals) {
@@ -238,6 +278,13 @@ export function buildApprovalGrants(
       mcpServerSlug: pa.mcpServerSlug,
       key: id.key,
       salient: id.salient,
+      // The content digest comes from the gate's authoritative captured input
+      // (carried on the tool call, see reconstructAdjudicatedApprovals) — NOT
+      // from argsPreview, which elides heavy edit content. Empty when the gate
+      // had no content (shell/delete/MCP) or it was unrecoverable, in which case
+      // the grant degrades to the coarse token (a same-file sibling can ride it,
+      // the documented bounded residual).
+      contentDigest: contentDigests?.get(pa.toolCallId) ?? "",
     });
   }
   return grants;
@@ -289,7 +336,10 @@ export function buildApprovalState(
     leasedCategories: [...leasedCategories],
     mcpToolPolicies,
     approvedGrants,
-    approvedGrantTokens: approvedGrants.map((g) => grantToken(g.key, g.salient)),
+    // The hook matches a tool call's PRIMARY token (content when it can compute a
+    // digest from tool_input, else coarse). A content-identified grant authorizes
+    // only its exact content; a content-less grant authorizes the coarse token.
+    approvedGrantTokens: approvedGrants.map((g) => primaryToken(g.key, g.salient, g.contentDigest)),
   };
 }
 
@@ -514,6 +564,15 @@ export async function removeActiveTurnPointer(gateDir: string): Promise<void> {
 export interface AdjudicatedApprovals {
   pendingApprovals: PendingApproval[];
   decisions: Map<string, ApprovalAction>;
+  /**
+   * tool-call id -> content digest of the approved edit, for the content-exact
+   * grant. Sourced from the persisted `approval_content_digest` field (stable,
+   * immune to the size-limit elision that can drop `args`), falling back to a
+   * recompute from `args` only when the field is absent (an execution that
+   * predates the field). Empty for a non-content tool — the grant then degrades
+   * to the coarse token.
+   */
+  contentDigests: Map<string, string>;
 }
 
 export function reconstructAdjudicatedApprovals(
@@ -521,6 +580,7 @@ export function reconstructAdjudicatedApprovals(
 ): AdjudicatedApprovals {
   const pendingApprovals: PendingApproval[] = [];
   const decisions = new Map<string, ApprovalAction>();
+  const contentDigests = new Map<string, string>();
 
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
@@ -528,6 +588,14 @@ export function reconstructAdjudicatedApprovals(
       if (tc.approvalAction === ApprovalAction.UNSPECIFIED) continue;
 
       decisions.set(tc.id, tc.approvalAction);
+      // Prefer the persisted digest (set at the gate from the authoritative
+      // captured input, and never elided); recompute from args only for an
+      // execution that predates the field.
+      contentDigests.set(
+        tc.id,
+        tc.approvalContentDigest ||
+          (tc.args ? contentDigest(tc.args as Record<string, unknown>) : ""),
+      );
       pendingApprovals.push(
         create(PendingApprovalSchema, {
           toolCallId: tc.id,
@@ -541,5 +609,5 @@ export function reconstructAdjudicatedApprovals(
     }
   }
 
-  return { pendingApprovals, decisions };
+  return { pendingApprovals, decisions, contentDigests };
 }

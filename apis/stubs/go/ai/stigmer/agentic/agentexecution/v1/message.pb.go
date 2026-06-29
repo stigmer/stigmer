@@ -280,8 +280,30 @@ type ToolCall struct {
 	//
 	// Field 24: appended after approval_policy_source (23), the prior maximum.
 	PolicyEngineVersion string `protobuf:"bytes,24,opt,name=policy_engine_version,json=policyEngineVersion,proto3" json:"policy_engine_version,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Stable digest of the authoritative edit content (the hook-captured tool
+	// input) for a gated file-mutating tool call, set by the runner's approval
+	// gate. It is the content discriminator the deny-only Cursor harness needs:
+	// approving one edit must not let a DIFFERENT edit to the same file ride the
+	// approval through, so the grant binds to (category, path, content) rather than
+	// (category, path) alone. A resumed re-attempt that differs from the approved
+	// content re-gates (the "what you approve is what gets applied" contract).
+	//
+	// Carried so it survives at resume immune to the size-limit elision that can
+	// drop `args`/`file_changes` for large edits — a recompute-from-args identity
+	// would be unrecoverable in that case. Empty for tools whose other identity is
+	// already content-exact (shell command, delete path), for read-only tools, and
+	// for executions that predate this field (the runner then degrades to the
+	// coarse (category, path) identity).
+	//
+	// @internal
+	// Runner-written and carried through update_status exactly like tool_kind /
+	// approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+	// needed. See the runner's contentDigest() (shared/file-tools.ts).
+	//
+	// Field 25: appended after policy_engine_version (24), the prior maximum.
+	ApprovalContentDigest string `protobuf:"bytes,25,opt,name=approval_content_digest,json=approvalContentDigest,proto3" json:"approval_content_digest,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ToolCall) Reset() {
@@ -471,6 +493,13 @@ func (x *ToolCall) GetApprovalPolicySource() ApprovalPolicySource {
 func (x *ToolCall) GetPolicyEngineVersion() string {
 	if x != nil {
 		return x.PolicyEngineVersion
+	}
+	return ""
+}
+
+func (x *ToolCall) GetApprovalContentDigest() string {
+	if x != nil {
+		return x.ApprovalContentDigest
 	}
 	return ""
 }
@@ -849,7 +878,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"tool_calls\x18\x04 \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x123\n" +
 	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
-	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\xd7\t\n" +
+	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\x8f\n" +
+	"\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -877,7 +907,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"output_ref\x18\x15 \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefR\toutputRef\x12S\n" +
 	"\ffile_changes\x18\x16 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\x12p\n" +
 	"\x16approval_policy_source\x18\x17 \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\x122\n" +
-	"\x15policy_engine_version\x18\x18 \x01(\tR\x13policyEngineVersion\"\xdb\x01\n" +
+	"\x15policy_engine_version\x18\x18 \x01(\tR\x13policyEngineVersion\x126\n" +
+	"\x17approval_content_digest\x18\x19 \x01(\tR\x15approvalContentDigest\"\xdb\x01\n" +
 	"\x11ToolCallOutputRef\x12\x1f\n" +
 	"\vstorage_key\x18\x01 \x01(\tR\n" +
 	"storageKey\x12\x1d\n" +
