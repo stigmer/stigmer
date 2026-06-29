@@ -331,9 +331,15 @@ async function executeCursorInner(
             );
             if (!nonCaptureReject && !approvedIrreversible) {
               // Pure file review. Reconcile is done; the execution is complete.
-              // A reject is a DISCARD, not a failure (Cursor-like) — note which
-              // files were discarded (reverted to baseline) so the next turn's
-              // agent re-syncs (its SDK context believed those edits stuck).
+              // A reject is a DISCARD, not a failure (Cursor-like) — surface a
+              // SYSTEM note to the USER listing the files that were discarded
+              // (reverted to baseline). This note is for the human; it does NOT
+              // re-sync the Cursor SDK agent (its native context still believes
+              // those edits stuck). We deliberately do not inject a cross-turn
+              // re-sync prompt: the agent self-corrects by re-reading, and any
+              // edit it makes from that stale belief is itself re-surfaced as a
+              // capture card next turn (the structural safety net). See
+              // design-decisions/capture-reject-next-turn-resync-not-built.md.
               status.phase = ExecutionPhase.EXECUTION_COMPLETED;
               status.completedAt = utcTimestamp();
               if (capResult.hadReject) {

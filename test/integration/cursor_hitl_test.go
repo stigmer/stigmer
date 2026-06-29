@@ -1812,16 +1812,23 @@ func TestCursorHarness_Capture_Rename_DeletePlusCreate_TwoCards(t *testing.T) {
 		"the renamed file must preserve its original content")
 }
 
-// TestCursorHarness_Capture_RejectThenFollowUp_AgentResyncs is the EVIDENCE case
-// for the deferred next-turn re-sync residual: after a turn's edits are REJECTED
-// (discarded, working tree at baseline), the Cursor SDK's native context still
-// believes those edits stuck. On the next turn the agent may either re-read the
-// file (self-correcting) or build on the phantom (reverted) content. This test
-// captures that behavior as ground truth so the residual can be closed (agent
-// self-corrects) or justified (it builds on phantom state) with live data rather
-// than speculation. It asserts only the robust contract (the follow-up turn
-// completes and applies its own change); the phantom-vs-fresh signal is LOGGED.
-// Requires CURSOR_API_KEY.
+// TestCursorHarness_Capture_RejectThenFollowUp_AgentResyncs is the standing
+// CORROBORATING evidence for the next-turn re-sync residual, now CLOSED as a
+// deliberate non-decision (no cross-turn re-sync note — see stigmer-cloud
+// design-decisions/capture-reject-next-turn-resync-not-built.md). After a turn's
+// edits are REJECTED (discarded, working tree at baseline), the Cursor SDK's
+// native context still believes those edits stuck; on the next turn the agent
+// may re-read the file (self-correcting) or build on the phantom content.
+//
+// This is corroborating evidence, NOT the safety guarantee: it requires
+// CURSOR_API_KEY and so skips on every ordinary PR. The per-PR guarantee lives
+// in the deterministic capture unit tests (capture-flow.test.ts /
+// shadow-capture.test.ts), which prove every change becomes a reviewable card
+// and a reject reverts byte-for-byte — so any edit built on phantom state is
+// itself re-gated before it can land. This test therefore asserts only the
+// robust contract (the follow-up turn completes and applies its own change) and
+// LOGS the phantom-vs-fresh signal; it deliberately does not assert on it (LLM
+// non-determinism). Requires CURSOR_API_KEY.
 func TestCursorHarness_Capture_RejectThenFollowUp_AgentResyncs(t *testing.T) {
 	requireCursorCallProviderPrereqs(t)
 
@@ -1889,18 +1896,21 @@ func TestCursorHarness_Capture_RejectThenFollowUp_AgentResyncs(t *testing.T) {
 	assert.Contains(t, final, "gamma", "the follow-up turn's own change must land")
 
 	// EVIDENCE (logged, not asserted): did the agent build on the discarded
-	// 'beta' (phantom state -> the residual is real) or on 'alpha' (it
-	// self-corrected by reading the file -> the residual can be closed)?
+	// 'beta' (phantom state) or on 'alpha' (it self-corrected by reading the
+	// file)? Follow-up 3 is CLOSED regardless — either way the agent's edit is
+	// re-gated as a capture card before it can land. This signal is monitored
+	// only as the revisit-trigger: repeated phantom-state builds would reopen
+	// the decision (see capture-reject-next-turn-resync-not-built.md).
 	builtOnPhantom := strings.Contains(final, "beta")
 	preservedReal := strings.Contains(final, "alpha")
 	t.Logf("FOLLOW-UP-3 EVIDENCE (reject-then-followup): final notes.md=%q; "+
 		"built_on_discarded_beta=%v, preserved_real_alpha=%v", final, builtOnPhantom, preservedReal)
 	if builtOnPhantom {
-		t.Logf("FOLLOW-UP-3 SIGNAL: the agent built on the DISCARDED content — the next-turn " +
-			"re-sync note would prevent this; the deferred residual is justified.")
+		t.Logf("FOLLOW-UP-3 SIGNAL: the agent built on the DISCARDED content — still safely " +
+			"re-gated this turn, but if this recurs it is the revisit-trigger for a re-sync note.")
 	} else if preservedReal {
 		t.Logf("FOLLOW-UP-3 SIGNAL: the agent re-read the real file and self-corrected — the " +
-			"deferred residual can likely be closed without cross-execution plumbing.")
+			"closed decision (no cross-execution plumbing) holds.")
 	}
 }
 
