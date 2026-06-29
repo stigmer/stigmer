@@ -316,9 +316,11 @@ export function ApprovalCardBody({
         key={fileChange.path}
         change={fileChange}
         showFileName={!single}
-        // The gate is a decision moment, not a full editor — cap the diff so a
-        // large change cannot push the action buttons off-screen.
-        bodyClassName="max-h-80"
+        // The gate is a decision moment, not a full editor — bound the diff to
+        // the shared preview budget (same as the settled card) so a large change
+        // cannot push the action buttons off-screen, with an in-place "Show more"
+        // to review the whole change before deciding.
+        bounded
       />
     ));
   } else if (isWriteEdit && writeContent === null) {

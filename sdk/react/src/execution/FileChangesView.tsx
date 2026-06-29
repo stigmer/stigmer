@@ -7,6 +7,7 @@ import {
   FileChangeType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { BoundedContent } from "../internal/BoundedContent";
 import { computeDiff } from "../version-history/computeDiff";
 import { DiffViewer } from "../version-history/DiffViewer";
 import { DiffFileList } from "../version-history/DiffFileList";
@@ -104,11 +105,20 @@ export interface FileChangeDiffProps {
   readonly className?: string;
   /**
    * Optional class applied to the scrolling diff body (the `DiffViewer` table or
-   * unified-diff `<pre>`). Used to cap height where vertical space is scarce —
-   * e.g. `max-h-80` at the approval gate — while the dedicated Changes view
-   * leaves it unbounded.
+   * unified-diff `<pre>`). A raw height cap with no reveal control; prefer
+   * {@link bounded} for the consistent clamp-and-reveal used across tool cards.
    */
   readonly bodyClassName?: string;
+  /**
+   * When `true`, the diff body is wrapped in the shared {@link BoundedContent}
+   * primitive: clamped to the standard preview height with a bottom fade and an
+   * in-place "Show more" / "Show less", identical to the settled tool-call
+   * preview and the expanded edit detail. Defaults to `false` so the dedicated
+   * Changes view ({@link FileChangesView}) renders the full diff; the approval
+   * gate opts in so a large change cannot push the decision buttons off-screen
+   * while still letting the reviewer expand the whole diff in place.
+   */
+  readonly bounded?: boolean;
   /**
    * Whether to render the filename header (the `FilePathLink` + any rename
    * prefix). Defaults to `true`. Set to `false` where an ancestor already names
@@ -141,6 +151,7 @@ export function FileChangeDiff({
   change,
   className,
   bodyClassName,
+  bounded = false,
   showFileName = true,
   showStats = true,
 }: FileChangeDiffProps) {
@@ -196,6 +207,7 @@ export function FileChangeDiff({
         isTruncated={isTruncated}
         downloadUrl={downloadUrl}
         bodyClassName={bodyClassName}
+        bounded={bounded}
       />
     </div>
   );
@@ -214,6 +226,7 @@ function FileChangeBody({
   isTruncated,
   downloadUrl,
   bodyClassName,
+  bounded,
 }: {
   change: FileChange;
   hunks: readonly DiffHunk[];
@@ -223,6 +236,7 @@ function FileChangeBody({
   isTruncated: boolean;
   downloadUrl: string | null;
   bodyClassName?: string;
+  bounded: boolean;
 }) {
   // A CREATE with no renderable diff is a genuinely empty new file; anything
   // else with no content degrades to the non-committal "no preview" (we never
@@ -230,13 +244,23 @@ function FileChangeBody({
   const emptyKind =
     change.changeType === FileChangeType.CREATE ? "empty-create" : "no-preview";
 
+  // When bounded, the actual diff renderers (and only those — short notices need
+  // no clamp) are wrapped in the shared BoundedContent budget, so the gate's
+  // diff matches the timeline preview and never crowds out the decision buttons.
+  const bound = (node: React.ReactNode) =>
+    bounded ? (
+      <BoundedContent cursorTarget="file-diff-expand">{node}</BoundedContent>
+    ) : (
+      node
+    );
+
   if (isBinary) {
     return <Notice>Binary file changed.</Notice>;
   }
 
   if (change.captureLevel === FileChangeCaptureLevel.HUNK_ONLY) {
     return change.unifiedDiff ? (
-      <UnifiedDiffView patch={change.unifiedDiff} className={bodyClassName} />
+      bound(<UnifiedDiffView patch={change.unifiedDiff} className={bodyClassName} />)
     ) : (
       <EmptyChangeNotice kind={emptyKind} className={bodyClassName} />
     );
@@ -273,7 +297,7 @@ function FileChangeBody({
     return <EmptyChangeNotice kind={emptyKind} className={bodyClassName} />;
   }
 
-  return <DiffViewer hunks={hunks} className={bodyClassName} />;
+  return bound(<DiffViewer hunks={hunks} className={bodyClassName} />);
 }
 
 function Notice({

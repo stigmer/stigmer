@@ -3,6 +3,7 @@
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { ToolResultView } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
+import { BoundedContent } from "../internal/BoundedContent";
 import { McpToolDetail } from "./McpToolDetail";
 import { ToolArgsView } from "./ToolArgsView";
 import { ResultView } from "./ResultView";
@@ -133,10 +134,17 @@ function CategoryDetail({
       // write whose capture is unavailable degrades to a `file` result here
       // (ResultView shows the content), so the input is never lost. The owning
       // row already names the file, so the body suppresses the path.
+      //
+      // The diff is bounded by the shared BoundedContent budget (same as the
+      // settled preview and the approval gate) so an expanded — or still
+      // streaming — large edit shows a consistent, scannable window with an
+      // in-place "Show more", never the whole file.
       return (
         <>
           <ProvenanceNote toolCall={toolCall} />
-          <ResultView view={result} showFileName={false} showStats={false} />
+          <BoundedContent cursorTarget="tool-detail-expand">
+            <ResultView view={result} showFileName={false} showStats={false} />
+          </BoundedContent>
         </>
       );
 

@@ -27,6 +27,8 @@ import {
   toolCallRow,
   toolRunGroup,
   fileDiff,
+  toolPreview,
+  toolPreviewExpand,
   type SeededGatedExecution,
 } from "../../helpers/approval";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -126,5 +128,42 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     await expect(fileDiff(page).first()).toBeVisible();
     await expect(page.getByText("line one")).toBeVisible();
     await expect(page.getByText("line two")).toBeVisible();
+  });
+
+  test("a large completed write is bounded to the shared budget with a 'Show more'", async ({
+    page,
+    stigmerClient,
+  }) => {
+    // The settled-card counterpart to the gate's bounded diff: a large write must
+    // not render the whole file inline. It clamps to the same shared budget
+    // (max-h-48) as the gate, with the row's "Show more" promoting to the full
+    // detail. The clamp is layout-driven, so it is only provable in a real
+    // browser — here.
+    const big = Array.from({ length: 30 }, (_, i) => `row ${i + 1}`).join("\n") + "\n";
+    seeded = await seedToolRunSession(stigmerClient, control, {
+      toolTurns: [[writeFileBlock("call_big_settled", "/tmp/e2e-big-settled.txt", big)]],
+    });
+    await awaitExecutionPhase(
+      stigmerClient,
+      seeded.executionId,
+      ExecutionPhase.EXECUTION_COMPLETED,
+    );
+
+    await page.goto(`/sessions/${seeded.sessionId}`);
+
+    const row = toolCallRow(page).first();
+    await expect(row).toBeVisible({ timeout: 30_000 });
+
+    // The bounded preview offers "Show more" (promotes to the full detail).
+    await expect(toolPreviewExpand(row)).toBeVisible();
+
+    // Collapsed: the preview body is clipped to the budget — the same clamp the
+    // gate uses, so the two surfaces are visually consistent by construction.
+    const clamp = toolPreview(row).locator(".overflow-hidden").first();
+    const collapsed = await clamp.evaluate((el) => el.clientHeight);
+    const full = await clamp.evaluate((el) => el.scrollHeight);
+    expect(collapsed).toBeGreaterThan(0);
+    expect(collapsed).toBeLessThan(full); // actually clipped, not the whole file
+    expect(collapsed).toBeLessThanOrEqual(220); // ~max-h-48 (192px) + table chrome
   });
 });

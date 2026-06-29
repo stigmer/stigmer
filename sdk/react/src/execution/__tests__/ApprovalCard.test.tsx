@@ -471,6 +471,33 @@ describe("ApprovalCard file-change diff", () => {
     expect(screen.getByText("-1")).toBeTruthy();
   });
 
+  it("bounds the gate diff to the shared preview budget so the decision buttons stay reachable", () => {
+    setContent({ beforeText: "alpha\n", afterText: "beta\n" });
+    const approval = create(PendingApprovalSchema, {
+      toolCallId: "tc-bounded",
+      toolName: "write_file",
+      toolKind: ToolKind.FILE_EDIT,
+      argsPreview: '{"path":"src/big.ts"}',
+      fileChanges: [wholeFileChange("src/big.ts", "alpha\n", "beta\n")],
+    });
+
+    const { container } = render(
+      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+    );
+
+    // The diff body sits inside the shared BoundedContent clamp (overflow-hidden
+    // + the standard max-height budget) — the same primitive the settled card and
+    // the expanded edit detail use — so a large change can never push the actions
+    // off-screen. The rendered clamp/reveal is exercised in the e2e layer.
+    const diff = container.querySelector('[data-cursor-target="file-diff"]');
+    expect(diff).not.toBeNull();
+    expect(diff!.querySelector(".overflow-hidden.max-h-48")).not.toBeNull();
+    // The diff still renders inside that clamp...
+    expect(diff!.querySelector("table")).not.toBeNull();
+    // ...and the decision actions remain present alongside it.
+    expect(screen.getByLabelText("Approve")).toBeTruthy();
+  });
+
   it("leads with the diff (never the raw Content args box) when file_changes is populated, even if args carry content", () => {
     // The reported bug: an edit-classified whole-file rewrite whose args carry the
     // proposed `contents`. Once the runner populates file_changes, the gate must

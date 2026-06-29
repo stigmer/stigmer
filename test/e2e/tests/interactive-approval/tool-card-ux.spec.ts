@@ -23,6 +23,7 @@ import {
   approveButton,
   rejectButton,
   fileDiff,
+  fileDiffExpand,
   type SeededGatedExecution,
 } from "../../helpers/approval";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -199,6 +200,47 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
       rejectBg === null || rejectBg.a === 0,
       "Reject has no resting background fill",
     ).toBe(true);
+  });
+
+  // --- Bounded preview: a large gate diff clamps and reveals in place -------
+  // The motivating bug: a gated edit rendered the WHOLE file, pushing the
+  // decision buttons off-screen. The fix bounds the diff to one shared height
+  // budget (max-h-48) with an in-place "Show more". happy-dom cannot compute
+  // layout, so this clamp is only provable in a real browser — here.
+  test("a large gate diff is bounded to the shared budget and reveals in place", async ({
+    page,
+    stigmerClient,
+  }) => {
+    const big = Array.from({ length: 30 }, (_, i) => `gate line ${i + 1}`).join("\n") + "\n";
+    seeded = await seedGatedSession(stigmerClient, control, {
+      gateBlocks: [writeFileBlock("call_big_gate", "/tmp/e2e-big-gate.txt", big)],
+    });
+    await page.goto(`/sessions/${seeded.sessionId}`);
+
+    const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
+    await expect(gateRow).toBeVisible({ timeout: 30_000 });
+
+    const diff = fileDiff(gateRow);
+    await expect(diff).toBeVisible();
+
+    // Collapsed: the diff body is clipped to the budget — clientHeight is capped
+    // well below the full 30-line content (scrollHeight), proving the clamp.
+    const clamp = diff.locator(".overflow-hidden").first();
+    const collapsed = await clamp.evaluate((el) => el.clientHeight);
+    const full = await clamp.evaluate((el) => el.scrollHeight);
+    expect(collapsed).toBeGreaterThan(0);
+    expect(collapsed).toBeLessThan(full); // actually clipped
+    expect(collapsed).toBeLessThanOrEqual(220); // ~max-h-48 (192px) + table chrome
+
+    // The decision action is reachable WHILE the diff is bounded (the bug).
+    await expect(approveButton(gateRow)).toBeVisible();
+
+    // "Show more" reveals the rest in place (the clamp grows toward full height).
+    const expand = fileDiffExpand(gateRow);
+    await expect(expand).toBeVisible();
+    await expand.click();
+    const expanded = await clamp.evaluate((el) => el.clientHeight);
+    expect(expanded).toBeGreaterThan(collapsed);
   });
 
   // --- Visual regression: the post-execution diff preview ------------------

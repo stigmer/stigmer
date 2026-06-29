@@ -505,9 +505,19 @@ export function toolRunGroup(scope: Page | Locator): Locator {
   return scope.locator('[data-cursor-target="tool-run-group"]');
 }
 
+/** The settled row's bounded preview wrapper (holds the clamp + "Show more"). */
+export function toolPreview(scope: Page | Locator): Locator {
+  return scope.locator('[data-cursor-target="tool-preview"]');
+}
+
 /** The "Show more" affordance on a settled row's bounded preview. */
 export function toolPreviewExpand(scope: Page | Locator): Locator {
   return scope.locator('[data-cursor-target="tool-preview-expand"]');
+}
+
+/** The in-place "Show more"/"Show less" reveal on a bounded diff body (gate, edit detail). */
+export function fileDiffExpand(scope: Page | Locator): Locator {
+  return scope.locator('[data-cursor-target="file-diff-expand"]');
 }
 
 /**

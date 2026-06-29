@@ -1,8 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
 import type { ToolResultView } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
+import { BoundedContent } from "../internal/BoundedContent";
 import { ResultView } from "./ResultView";
 
 /** Props for {@link ToolCallPreview}. */
@@ -20,13 +20,6 @@ export interface ToolCallPreviewProps {
 }
 
 /**
- * Maximum height of a settled preview before it clamps. Tall enough to show a
- * screenshot or a handful of output lines at a glance, short enough that a turn
- * of several previewed rows still scans as a timeline rather than a wall.
- */
-const PREVIEW_MAX_HEIGHT = "max-h-48";
-
-/**
  * Tier 2 of the tool-call disclosure model: a **bounded, persistent** preview
  * of a settled tool result that stays visible in the timeline instead of
  * collapsing away.
@@ -40,8 +33,12 @@ const PREVIEW_MAX_HEIGHT = "max-h-48";
  * deferred to the full detail (Tier 3), reached via "Show more" — which simply
  * drives the row's own toggle, keeping one disclosure control per row.
  *
- * The body is height-clamped with a bottom fade (only when it actually
- * overflows), mirroring the gradient affordance used elsewhere in the console.
+ * The body is bounded (and faded when it overflows) by the shared {@link
+ * BoundedContent} primitive, used here in *delegated* mode: "Show more" promotes
+ * to the full detail rather than expanding in place, because for these
+ * categories the detail adds genuinely more (the args the preview omits). The
+ * same primitive bounds the expanded edit detail and the approval gate, so all
+ * three share one height budget and one fade.
  *
  * @example
  * ```tsx
@@ -53,18 +50,6 @@ export function ToolCallPreview({
   onShowMore,
   className,
 }: ToolCallPreviewProps) {
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const [isClamped, setIsClamped] = useState(false);
-
-  // Show the fade only when the result actually exceeds the clamp. Settled
-  // previews have stable content, so a post-render measure is sufficient (and
-  // degrades to "no fade" under jsdom, where layout is not computed).
-  useLayoutEffect(() => {
-    const el = bodyRef.current;
-    if (!el) return;
-    setIsClamped(el.scrollHeight > el.clientHeight + 1);
-  });
-
   // Nothing to preview (e.g. a shell command that produced no output) — the
   // compact row already tells the whole story.
   if (result.type === "empty") return null;
@@ -74,26 +59,12 @@ export function ToolCallPreview({
       className={cn("px-2.5 pb-2 pt-1", className)}
       data-cursor-target="tool-preview"
     >
-      <div className={cn("relative overflow-hidden", PREVIEW_MAX_HEIGHT)} ref={bodyRef}>
+      <BoundedContent onExpand={onShowMore} cursorTarget="tool-preview-expand">
         {/* The owning tool-call row already names the file and shows +N -M for
             edits, so the previewed diff/file body suppresses both its path and
             its stats — leaving just the content. */}
         <ResultView view={result} showFileName={false} showStats={false} />
-        {isClamped && (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-background to-transparent"
-          />
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={onShowMore}
-        data-cursor-target="tool-preview-expand"
-        className="mt-1 text-xs font-medium text-primary transition-colors hover:text-primary-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-      >
-        Show more
-      </button>
+      </BoundedContent>
     </div>
   );
 }

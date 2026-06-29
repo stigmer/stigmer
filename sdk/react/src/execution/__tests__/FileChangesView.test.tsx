@@ -102,6 +102,27 @@ function emptyHunkCreate(path: string): FileChange {
 // ---------------------------------------------------------------------------
 
 describe("FileChangeDiff", () => {
+  it("renders the diff full (unbounded) by default — the dedicated Changes view", () => {
+    setContent({ beforeText: "alpha\n", afterText: "beta\n" });
+    const { container } = render(
+      <FileChangeDiff change={wholeFile("src/full.ts", "alpha\n", "beta\n")} />,
+    );
+    // No shared preview clamp: the Changes review surface shows the whole diff.
+    expect(container.querySelector(".overflow-hidden.max-h-48")).toBeNull();
+    expect(container.querySelector("table")).not.toBeNull();
+  });
+
+  it("bounds the diff to the shared preview budget when `bounded` is set (the approval gate)", () => {
+    setContent({ beforeText: "alpha\n", afterText: "beta\n" });
+    const { container } = render(
+      <FileChangeDiff change={wholeFile("src/bound.ts", "alpha\n", "beta\n")} bounded />,
+    );
+    // Opt-in clamp wraps the diff body via the shared BoundedContent primitive.
+    const clamp = container.querySelector(".overflow-hidden.max-h-48");
+    expect(clamp).not.toBeNull();
+    expect(clamp!.querySelector("table")).not.toBeNull();
+  });
+
   it("renders a whole-file diff from resolved before/after text", () => {
     setContent({ beforeText: "alpha\n", afterText: "beta\n" });
     render(<FileChangeDiff change={wholeFile("src/a.ts", "alpha\n", "beta\n")} />);
