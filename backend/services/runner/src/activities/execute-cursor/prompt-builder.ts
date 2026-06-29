@@ -117,17 +117,30 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
  * tool-call ids, which mean nothing to the model. A resumed agent re-issues the
  * approved tool with a fresh id; the approval gate (see approval-state.ts grants)
  * is what actually lets the re-attempt through.
+ *
+ * `appliedToolCallIds` are approved whole-file writes the RUNNER has already
+ * applied to the workspace itself (exact-apply — the "what you approve is what
+ * gets applied" guarantee). Those are described as ALREADY DONE so the model
+ * does not redo them; only the remaining approved actions (hunk edits, shell,
+ * MCP) are the ones it must still carry out. No grant is issued for an applied
+ * write, so if the model edits that file again it is correctly re-gated.
  */
 export function buildReinvocationPrompt(
   pendingApprovals: PendingApproval[],
   approvalDecisions: Map<string, ApprovalAction>,
+  appliedToolCallIds: ReadonlySet<string> = new Set(),
 ): string {
   const approved: string[] = [];
+  const alreadyApplied: string[] = [];
   const skipped: string[] = [];
 
   for (const pa of pendingApprovals) {
     const action = approvalDecisions.get(pa.toolCallId);
-    if (action === ApprovalAction.APPROVE) {
+    const isApproved =
+      action === ApprovalAction.APPROVE || action === ApprovalAction.APPROVE_ALL;
+    if (isApproved && appliedToolCallIds.has(pa.toolCallId)) {
+      alreadyApplied.push(describeApproval(pa));
+    } else if (isApproved) {
       approved.push(describeApproval(pa));
     } else if (action === ApprovalAction.SKIP) {
       skipped.push(describeApproval(pa));
@@ -135,6 +148,15 @@ export function buildReinvocationPrompt(
   }
 
   const parts: string[] = [];
+  if (alreadyApplied.length) {
+    parts.push(
+      "The user reviewed and APPROVED the following change(s), and the platform " +
+        "has ALREADY applied them to the workspace exactly as shown. Do NOT redo " +
+        "or rewrite them — treat them as done and continue with the rest of the " +
+        "task:\n" +
+        alreadyApplied.map((a) => `- ${a}`).join("\n"),
+    );
+  }
   if (approved.length) {
     parts.push(
       "The user reviewed the following action(s) you proposed and APPROVED them. " +

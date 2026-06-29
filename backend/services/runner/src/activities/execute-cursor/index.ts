@@ -67,6 +67,7 @@ import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
+import { applyApprovedWholeFileWrites } from "./exact-apply.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
@@ -358,6 +359,32 @@ async function executeCursorInner(
     );
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
 
+    // Phase 5b3: Exact-apply approved whole-file writes (HITL "what you approve
+    // is what gets applied"). The Cursor deny-only harness reinvokes the model,
+    // which regenerates content, so a resource grant alone cannot guarantee the
+    // bytes that land match the bytes the user approved. The runner therefore
+    // writes the EXACT approved whole-file content itself, marks those tool calls
+    // COMPLETED, and (below) issues NO grant for them — so any FURTHER change the
+    // model makes to those files is re-gated. Hunk edits / shell / MCP stay on
+    // the grant + reinvocation path. Every uncertain case degrades to that path,
+    // so this can never corrupt a file (see exact-apply.ts).
+    let appliedToolCallIds: ReadonlySet<string> = new Set();
+    if (isReinvocation && approvalDecisions) {
+      appliedToolCallIds = await applyApprovedWholeFileWrites({
+        messages: status.messages,
+        workspaceBackend: new LocalWorkspaceBackend(primaryWorkspaceDir),
+        artifactStorage,
+        workspaceDirs: blueprint.workspaceDirs,
+        executionId,
+      });
+      if (appliedToolCallIds.size > 0) {
+        // Persist the applied writes (tool calls now COMPLETED with the approved
+        // diff) before reinvocation, so the applied state is durable even if the
+        // continuation fails, and the UI reflects it immediately.
+        await persist(status);
+      }
+    }
+
     // Phase 5c: Install the HITL approval gate BEFORE resolving the agent.
     //
     // The gate's runtime artifacts (hook script, approval-state file, denial
@@ -371,10 +398,14 @@ async function executeCursorInner(
     //
     // On reinvocation, turn the user's approvals into tool-identity grants so
     // the resumed agent's re-attempt (which carries a fresh tool-call id) is
-    // allowed through.
+    // allowed through. Exact-applied writes are EXCLUDED from the grants: with no
+    // grant, a further write to that file is re-gated (the user sees every change).
     hitlDir = await ensureHitlDir(sessionId);
+    const grantApprovals = adjudicatedApprovals.filter(
+      (pa) => !appliedToolCallIds.has(pa.toolCallId),
+    );
     const approvalGrants = approvalDecisions
-      ? buildApprovalGrants(adjudicatedApprovals, approvalDecisions)
+      ? buildApprovalGrants(grantApprovals, approvalDecisions)
       : undefined;
     if (approvalGrants && approvalGrants.length > 0 && !globalBypass) {
       emitCursorGrantReceipts(
@@ -523,6 +554,7 @@ async function executeCursorInner(
       workspaceFileRefs: spec.workspaceFileRefs ?? [],
       attachmentPaths,
       pendingApprovals: adjudicatedApprovals,
+      appliedToolCallIds,
       interactionMode,
     });
 
@@ -1640,6 +1672,12 @@ export interface BuildPromptInput {
   workspaceFileRefs: string[];
   attachmentPaths: string[];
   pendingApprovals: import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb").PendingApproval[];
+  /**
+   * Approved whole-file writes the runner already applied itself (exact-apply).
+   * The reinvocation prompt marks these as done so the model does not redo them;
+   * the remaining approved actions are the ones it must still carry out.
+   */
+  appliedToolCallIds?: ReadonlySet<string>;
   interactionMode?: InteractionMode;
 }
 
@@ -1676,9 +1714,14 @@ export function buildPrompt(input: BuildPromptInput): string {
   const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
 
   // HITL reinvocation: the agent is resumed, so its native context carries the
-  // prior conversation; the reinvocation prompt conveys the approval decisions.
+  // prior conversation; the reinvocation prompt conveys the approval decisions
+  // (and which approved writes the runner already exact-applied).
   if (isHitlReinvocation) {
-    return buildReinvocationPrompt(input.pendingApprovals, approvalDecisions);
+    return buildReinvocationPrompt(
+      input.pendingApprovals,
+      approvalDecisions,
+      input.appliedToolCallIds,
+    );
   }
 
   // A successfully resumed agent carries its own conversation context via the

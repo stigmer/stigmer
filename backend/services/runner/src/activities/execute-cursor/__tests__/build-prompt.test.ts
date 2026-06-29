@@ -206,4 +206,47 @@ describe("buildReinvocationPrompt", () => {
     expect(prompt).toContain("SKIPPED");
     expect(prompt).toContain("Continue the rest of the task");
   });
+
+  it("describes a runner-applied approval as ALREADY applied, not as one to carry out", () => {
+    // tc-1 was exact-applied by the runner (a whole-file write); tc-2 (a shell
+    // command) was approved but stays on the model's carry-out path.
+    const decisions = new Map<string, ApprovalAction>([
+      ["tc-1", ApprovalAction.APPROVE],
+      ["tc-2", ApprovalAction.APPROVE],
+    ]);
+    const prompt = buildReinvocationPrompt(
+      [pending("tc-1", "Write file: a.txt"), pending("tc-2", "Run command: ls")],
+      decisions,
+      new Set(["tc-1"]),
+    );
+
+    // The applied write is announced as done — and explicitly NOT redo-able.
+    expect(prompt).toContain("ALREADY applied");
+    expect(prompt).toMatch(/do NOT redo/i);
+    // Both actions still appear by their human description.
+    expect(prompt).toContain("Write file: a.txt");
+    expect(prompt).toContain("Run command: ls");
+    // The applied write must NOT be in the "Carry them out now" block; only the
+    // shell command is. Assert by position: the already-applied block precedes
+    // the carry-out block, and the write is in the former.
+    const carryIdx = prompt.indexOf("Carry them out now");
+    const appliedIdx = prompt.indexOf("ALREADY applied");
+    expect(appliedIdx).toBeGreaterThanOrEqual(0);
+    expect(carryIdx).toBeGreaterThan(appliedIdx);
+    expect(prompt.slice(carryIdx)).toContain("Run command: ls");
+    expect(prompt.slice(carryIdx)).not.toContain("Write file: a.txt");
+  });
+
+  it("treats APPROVE_ALL like APPROVE for an already-applied write", () => {
+    const decisions = new Map<string, ApprovalAction>([
+      ["tc-1", ApprovalAction.APPROVE_ALL],
+    ]);
+    const prompt = buildReinvocationPrompt(
+      [pending("tc-1", "Write file: a.txt")],
+      decisions,
+      new Set(["tc-1"]),
+    );
+    expect(prompt).toContain("ALREADY applied");
+    expect(prompt).not.toContain("Carry them out now");
+  });
 });

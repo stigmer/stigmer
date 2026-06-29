@@ -110,6 +110,118 @@ func TestCursorHarness_HITL_WriteGate_Approve(t *testing.T) {
 	assertCompletedWrite(t, result)
 }
 
+// TestCursorHarness_HITL_ExactApply_ApprovedBytesLandVerbatim is the end-to-end
+// proof of the "what you approve is what gets applied" guarantee for the Cursor
+// deny-only harness.
+//
+// The harness cannot pause mid-tool: it denies, grants the resource, and
+// reinvokes the model — which REGENERATES content, so a grant alone cannot
+// promise the bytes that land match the bytes shown (observed in production: a
+// gate previewing one change, an applied file carrying more). The fix makes the
+// runner apply the EXACT approved whole-file content itself and issue NO resource
+// grant. This test asserts both halves of that contract:
+//
+//  1. APPLIED == APPROVED — the SAME gated tool call is COMPLETED in place, and
+//     its recorded `after` content is byte-identical to what the user approved
+//     (the runner wrote exactly those bytes; the model did not get to regenerate
+//     them on reinvocation).
+//  2. NO BLANKET GRANT — a DISTINCT subsequent change to the SAME file RE-GATES,
+//     because exact-apply deliberately issues no resource grant, so the user sees
+//     and approves every change.
+//
+// Requires CURSOR_API_KEY.
+func TestCursorHarness_HITL_ExactApply_ApprovedBytesLandVerbatim(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 8*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-hitl-exact-apply",
+		"You are a helpful coding assistant.",
+	)
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	// Turn 1 — gate a whole-file create and capture exactly what the user sees.
+	exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Create a file called exact-apply.txt containing exactly the text: alpha-exact",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, waiting.GetStatus().GetPendingApprovals())
+
+	approval := waiting.GetStatus().GetPendingApprovals()[0]
+	assertToolCallWaitingApproval(t, waiting, approval.GetToolCallId())
+	require.NotEmpty(t, approval.GetFileChanges(),
+		"the whole-file create must show its proposed content at the gate")
+	gateAfter := approval.GetFileChanges()[0].GetAfter().GetInline()
+	require.NotEmpty(t, gateAfter,
+		"a whole-file gate must carry inline `after` content (the bytes the user approves)")
+	gateToolCallID := approval.GetToolCallId()
+
+	// Approve.
+	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		exec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		3*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "execution should complete after the write is approved")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// Contract 1 — APPLIED == APPROVED. The runner exact-applied the write: the
+	// SAME gated tool call is COMPLETED in place (not a fresh model re-attempt),
+	// and its `after` content is byte-identical to what was approved.
+	appliedCall := findToolCallByID(result, gateToolCallID)
+	require.NotNilf(t, appliedCall,
+		"the gated tool call %s must persist (exact-apply completes it in place)", gateToolCallID)
+	assert.Equal(t, agentexecv1.ToolCallStatus_TOOL_CALL_COMPLETED, appliedCall.GetStatus(),
+		"exact-apply must complete the gated tool call in place")
+	require.NotEmpty(t, appliedCall.GetFileChanges(),
+		"the completed tool call must retain the approved change as its record")
+	assert.Equal(t, gateAfter, appliedCall.GetFileChanges()[0].GetAfter().GetInline(),
+		"the applied bytes must equal the approved bytes verbatim — the model must not "+
+			"have regenerated different content on reinvocation")
+
+	// Contract 2 — NO BLANKET GRANT. A DISTINCT change to the SAME file must
+	// re-gate, proving exact-apply left no resource grant that would silently
+	// auto-apply a regenerated (and unreviewed) write.
+	_, waiting2 := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Now replace the contents of exact-apply.txt with exactly: beta-exact",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, waiting2, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, waiting2.GetStatus().GetPendingApprovals(),
+		"a distinct change to the same file must RE-GATE — exact-apply must not leave a "+
+			"blanket resource grant that bypasses review of the new content")
+}
+
+// findToolCallByID returns the first tool call with the given id across all
+// messages, or nil. Used to assert exact-apply completed the gate's own tool
+// call in place (same id), not a fresh model re-attempt.
+func findToolCallByID(exec *agentexecv1.AgentExecution, id string) *agentexecv1.ToolCall {
+	for _, tc := range collectToolCalls(exec.GetStatus().GetMessages()) {
+		if tc.GetId() == id {
+			return tc
+		}
+	}
+	return nil
+}
+
 // TestCursorHarness_HITL_EditGate_ShowsDiff_Approve proves the approval preview
 // works for an in-place EDIT, not just a new-file write. It runs two turns on one
 // session: turn 1 creates a file (gated → approved), turn 2 edits it. The edit is
