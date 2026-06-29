@@ -301,6 +301,106 @@ func (w *AgentExecutionWaiter) ResolveApprovalsUntilPhase(
 	)
 }
 
+// ResolveApprovalsByPathUntilPhase steps an execution through one or more
+// approval rounds, deciding each pending approval by its file path, until the
+// execution reaches target or times out. It is the per-card counterpart of
+// ResolveApprovalsUntilPhase (which applies one action to every card): use it
+// when a turn surfaces several file cards and the test approves some while
+// rejecting others.
+//
+// Ordering is load-bearing. SubmitApproval signals the workflow to resume the
+// instant a REJECT lands — even with sibling cards still undecided (see
+// submit_approval.go signalWorkflowStep: a reject resolves the gate immediately,
+// whereas an approve only resolves it once pending_approvals empties). So within
+// each WAITING_FOR_APPROVAL round this submits every non-reject decision BEFORE
+// any reject; a reject submitted first would resume the turn while an
+// intended-approve sibling is still UNSPECIFIED and would be discarded.
+//
+// decideByPath receives the repo-relative path of each pending approval (its
+// first file change — capture cards carry exactly one) and returns the action to
+// submit. An approval with no file change is treated as APPROVE so the gate can
+// still resolve. Decided cards drop out of pending_approvals, so re-polling never
+// re-submits a decision.
+func (w *AgentExecutionWaiter) ResolveApprovalsByPathUntilPhase(
+	ctx context.Context,
+	clients *Clients,
+	executionID string,
+	decideByPath func(path string) agentexecv1.ApprovalAction,
+	target agentexecv1.ExecutionPhase,
+	timeout time.Duration,
+) (*agentexecv1.AgentExecution, error) {
+	deadline := time.Now().Add(timeout)
+	interval := 500 * time.Millisecond
+
+	for time.Now().Before(deadline) {
+		exec, err := w.client.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
+		if err != nil {
+			return nil, fmt.Errorf("get execution %s: %w", executionID, err)
+		}
+
+		phase := exec.GetStatus().GetPhase()
+		if phase == target {
+			return exec, nil
+		}
+
+		if phase == agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+			type pendingDecision struct {
+				toolCallID string
+				action     agentexecv1.ApprovalAction
+			}
+			var approves, rejects []pendingDecision
+			for _, approval := range exec.GetStatus().GetPendingApprovals() {
+				action := decideByPath(approvalFilePath(approval))
+				d := pendingDecision{toolCallID: approval.GetToolCallId(), action: action}
+				if action == agentexecv1.ApprovalAction_APPROVAL_ACTION_REJECT ||
+					action == agentexecv1.ApprovalAction_APPROVAL_ACTION_SKIP {
+					rejects = append(rejects, d)
+				} else {
+					approves = append(approves, d)
+				}
+			}
+			// Approves first, then rejects (see the ordering rationale above).
+			for _, d := range append(approves, rejects...) {
+				_, err := clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+					AgentExecutionId: executionID,
+					ToolCallId:       d.toolCallID,
+					Action:           d.action,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("submit approval for %s: %w", d.toolCallID, err)
+				}
+			}
+		}
+
+		if isAgentTerminalPhase(phase) && phase != target {
+			return exec, fmt.Errorf(
+				"agent execution reached terminal phase %s instead of expected %s",
+				phase.String(), target.String(),
+			)
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
+	}
+
+	return nil, fmt.Errorf(
+		"timed out waiting for agent execution %s to reach phase %s after %v",
+		executionID, target.String(), timeout,
+	)
+}
+
+// approvalFilePath returns the repo-relative path of a pending approval's first
+// file change (capture cards carry exactly one), or "" when none is present.
+func approvalFilePath(approval *agentexecv1.PendingApproval) string {
+	if fcs := approval.GetFileChanges(); len(fcs) > 0 {
+		return fcs[0].GetPath()
+	}
+	return ""
+}
+
 // WaitForApprovalWithRetry creates an execution, waits for approval, and
 // retries once with a fresh execution if the LLM skips the tool call
 // (execution reaches COMPLETED instead of WAITING_FOR_APPROVAL). This
