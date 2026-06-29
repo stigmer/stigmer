@@ -82,8 +82,10 @@ go_test(
         "lifecycle_cancel_cascade_test.go",
         "lifecycle_concurrency_test.go",
         "submit_approval_contract_test.go",
+        "subscribe_test.go",
         "update_status_concurrency_test.go",
         "update_status_guard_test.go",
+        "update_status_transcript_test.go",
         "usage_aggregation_test.go",
     ],
     embed = [":controller"],
@@ -97,6 +99,7 @@ go_test(
         "//backend/libs/go/store/sqlite",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/approval",
         "@com_github_stretchr_testify//assert",
+        "@org_golang_google_grpc//metadata",
         "@org_golang_google_protobuf//proto",
     ],
 )

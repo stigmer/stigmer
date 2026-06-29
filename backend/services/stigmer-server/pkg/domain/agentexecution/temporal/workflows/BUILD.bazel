@@ -30,6 +30,7 @@ go_test(
     embed = [":workflows"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities",
         "@com_github_stretchr_testify//assert",
