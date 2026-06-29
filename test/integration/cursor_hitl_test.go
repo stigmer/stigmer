@@ -222,6 +222,182 @@ func findToolCallByID(exec *agentexecv1.AgentExecution, id string) *agentexecv1.
 	return nil
 }
 
+// TestCursorHarness_HITL_WholeFileMultiChange_FullDiffShownAndApplied is the
+// end-to-end proof of FULL-CHANGE FIDELITY: when a single turn requests several
+// changes to one file, the approval card must show the COMPLETE intended change
+// and approving must apply exactly that — never a partial that silently drops the
+// rest.
+//
+// The reported regression: an agent asked to (a) rename "Planton Cloud" ->
+// "Planton" AND (b) add a "## TODO" section expressed both as one whole-file
+// write, but the gate captured only a partial streamed snapshot (the rename),
+// exact-apply wrote that partial verbatim, and the TODO section vanished — the
+// agent then looped re-attempting it. The fix sources the gate's whole-file diff
+// from the authoritative hook-captured input, so shown == approved == applied ==
+// the complete content.
+//
+// The hard, mechanism-agnostic assertion is that BOTH changes land on disk after
+// approval and the execution COMPLETES (no loop). When the agent expresses both
+// changes as one whole-file write, we additionally assert the single gate card
+// already shows the complete content. Requires CURSOR_API_KEY.
+func TestCursorHarness_HITL_WholeFileMultiChange_FullDiffShownAndApplied(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 8*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	// Pre-seed the file's "before" content so the requested edits rewrite an
+	// EXISTING file — the shape that exposed the bug (a streamed snapshot diverging
+	// from the complete intended content).
+	wsDir := harness.UnifiedRunnerWorkspaceDir()
+	require.NoError(t, os.MkdirAll(wsDir, 0o755))
+	fileName := "multichange-notes.md"
+	absPath := filepath.Join(wsDir, fileName)
+	require.NoError(t, os.WriteFile(absPath,
+		[]byte("# Project Notes\n- Built on Planton Cloud\n"), 0o644))
+	t.Cleanup(func() { _ = os.Remove(absPath) })
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-hitl-multichange",
+		"You are a helpful coding assistant.",
+	)
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"In the file "+fileName+", change 'Planton Cloud' to 'Planton', and add a "+
+			"'## TODO' section at the end with exactly two bullets: '- write tests' and "+
+			"'- ship it'. Make BOTH changes.",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotEmpty(t, waiting.GetStatus().GetPendingApprovals(),
+		"the multi-change edit must pause at the approval gate")
+
+	approval := waiting.GetStatus().GetPendingApprovals()[0]
+	logGateGroundTruth(t, approval)
+
+	// When the agent expressed both changes as ONE whole-file write, the gate must
+	// already show the COMPLETE content — the precise shape the fix corrects. (If
+	// the agent chose sequential hunk edits instead, the disk assertion below is
+	// the mechanism-agnostic guarantee.)
+	if len(approval.GetFileChanges()) == 1 &&
+		approval.GetFileChanges()[0].GetCaptureLevel() ==
+			agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE {
+		after := approval.GetFileChanges()[0].GetAfter().GetInline()
+		assert.Contains(t, after, "## TODO",
+			"a whole-file gate must show the COMPLETE intended content (the new TODO "+
+				"section), not a partial snapshot that drops it")
+		assert.Contains(t, after, "Planton",
+			"the whole-file gate must also show the rename")
+	}
+
+	// Approve through every gate (a sequential-hunk path re-gates the second change).
+	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		exec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		4*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "execution should complete after approving the change(s)")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// The user contract, mechanism-agnostic: BOTH requested changes are on disk.
+	// Before the fix the TODO section was silently dropped and the agent looped.
+	data, err := os.ReadFile(absPath)
+	require.NoError(t, err, "the edited file must exist after completion")
+	content := string(data)
+	assert.Contains(t, content, "## TODO",
+		"the TODO section (the second change) must be applied — the silently-dropped "+
+			"change this fix closes")
+	assert.Contains(t, content, "Planton",
+		"the rename must be applied")
+	assert.NotContains(t, content, "Planton Cloud",
+		"the rename must replace 'Planton Cloud' with no stale text left behind")
+}
+
+// TestCursorHarness_HITL_TwoDistinctFiles_SecondReGatesAndLands proves the
+// one-gate-per-turn contract does not LOSE a genuinely distinct second change: a
+// turn that writes two different files surfaces exactly one gate; the deferred
+// sibling must re-gate on a later turn and still land. This is the "case B"
+// guarantee that sequential gating is lossless (distinct from the same-file
+// full-change fidelity above). Requires CURSOR_API_KEY.
+func TestCursorHarness_HITL_TwoDistinctFiles_SecondReGatesAndLands(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 8*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	wsDir := harness.UnifiedRunnerWorkspaceDir()
+	require.NoError(t, os.MkdirAll(wsDir, 0o755))
+	fileA := "caseb-alpha.txt"
+	fileB := "caseb-beta.txt"
+	absA := filepath.Join(wsDir, fileA)
+	absB := filepath.Join(wsDir, fileB)
+	_ = os.Remove(absA)
+	_ = os.Remove(absB)
+	t.Cleanup(func() { _ = os.Remove(absA); _ = os.Remove(absB) })
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-hitl-two-files",
+		"You are a helpful coding assistant.",
+	)
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Create two files in the workspace: "+fileA+" containing exactly 'alpha', and "+
+			fileB+" containing exactly 'beta'.",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	// One gate per turn: exactly one pending approval is surfaced even though two
+	// distinct writes were attempted; the sibling is deferred (hidden SKIPPED).
+	require.Len(t, waiting.GetStatus().GetPendingApprovals(), 1,
+		"one gate per turn: only the first file's write is surfaced; the second is deferred")
+
+	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		exec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		4*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "execution should complete after approving both sequential gates")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// Both files landed: the deferred second change re-gated and was applied — the
+	// one-gate-per-turn collapse defers, it never drops.
+	dataA, errA := os.ReadFile(absA)
+	require.NoErrorf(t, errA, "%s must exist after completion", fileA)
+	assert.Contains(t, string(dataA), "alpha")
+	dataB, errB := os.ReadFile(absB)
+	require.NoErrorf(t, errB,
+		"%s must exist after completion — the deferred second change must re-gate and land", fileB)
+	assert.Contains(t, string(dataB), "beta")
+}
+
 // TestCursorHarness_HITL_EditGate_ShowsDiff_Approve proves the approval preview
 // works for an in-place EDIT, not just a new-file write. It runs two turns on one
 // session: turn 1 creates a file (gated → approved), turn 2 edits it. The edit is

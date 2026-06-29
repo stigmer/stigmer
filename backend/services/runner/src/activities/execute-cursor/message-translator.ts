@@ -1487,14 +1487,23 @@ function carriesOwnChange(tc: ToolCall): boolean {
  *    read-only tools are left untouched.
  * 2. Group those calls by `toolCallIdentityToken` — the SAME `toolIdentity` used
  *    for denial correlation and resume grants, so scope and grouping cannot drift.
- * 3. In each group, the keepers carry the authoritative state for the resource: a
- *    change/output of their own (see {@link carriesOwnChange}) or the pending
- *    approval gate (`WAITING_APPROVAL`). Two genuine distinct edits each carry
- *    their own `file_changes`, so both are kept and both render. If NO member
- *    qualifies (every attempt produced no change), keep exactly ONE representative
- *    — preferring a terminal attempt over a stuck `RUNNING` zombie — so the
- *    resource still shows a single card. Every non-keeper is blanked in place to a
- *    hidden `SKIPPED` row (see {@link collapseDenialTwin}).
+ * 3. In each group the keepers depend on the gate's capture level:
+ *      - WITH a WHOLE_FILE gate (`WAITING_APPROVAL` carrying a WHOLE_FILE change):
+ *        the gate is the SOLE keeper. After {@link applyGateInput} it holds the
+ *        COMPLETE proposed content, and a whole-file write is cumulative (the last
+ *        write subsumes the earlier ones), so every same-identity sibling — a
+ *        denied/zombie row or a stale snapshot from a second rewrite — is
+ *        redundant and would render a second, contradictory card.
+ *      - OTHERWISE (a HUNK gate, or no gate): the keepers carry the authoritative
+ *        state — a change/output of their own (see {@link carriesOwnChange}) or
+ *        the gate itself. Two DISTINCT hunk edits to one file are independent
+ *        regions (neither supersedes the other), and two genuine distinct EXECUTED
+ *        edits each carry their own `file_changes`, so both are kept and both
+ *        render. If NO member qualifies (every attempt produced no change), keep
+ *        exactly ONE representative — preferring a terminal attempt over a stuck
+ *        `RUNNING` zombie — so the resource still shows a single card.
+ *    Every non-keeper is blanked in place to a hidden `SKIPPED` row (see
+ *    {@link collapseDenialTwin}).
  *
  * It is deliberately subtractive — it only ever HIDES a row, never invents a
  * terminal state. The committed `id` is preserved on every collapse, so the
@@ -1522,18 +1531,40 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
   for (const group of groups.values()) {
     if (group.length < 2) continue; // a lone call is never a twin
 
-    const keepers = new Set<ToolCall>(
-      group.filter(
-        (tc) =>
-          carriesOwnChange(tc) ||
-          tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-      ),
+    // A pending approval gate that carries a WHOLE_FILE change is the single
+    // authoritative representation of its resource for the turn: that gate already
+    // holds the COMPLETE proposed content (via applyGateInput's authoritative-input
+    // override), and a whole-file write is cumulative — the last write subsumes the
+    // earlier ones — so every same-identity sibling is a stale snapshot and the
+    // gate is the SOLE keeper. This is deliberately NOT applied to a HUNK gate:
+    // two DISTINCT hunk edits to one file are independent regions, neither
+    // superseding the other, so a sibling carrying its own change is kept.
+    const wholeFileGate = group.find(
+      (tc) =>
+        tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL &&
+        tc.fileChanges.some((fc) => fc.captureLevel === FileChangeCaptureLevel.WHOLE_FILE),
     );
-    // All attempts produced no change (e.g. denied-reported-as-success): keep one
-    // representative, preferring a settled outcome over a stuck RUNNING zombie.
-    if (keepers.size === 0) {
-      const terminal = [...group].reverse().find((tc) => isTerminalToolStatus(tc.status));
-      keepers.add(terminal ?? group[0]);
+    let keepers: Set<ToolCall>;
+    if (wholeFileGate) {
+      // Keep every WAITING gate (one-gate-per-turn yields exactly one; the superset
+      // is the safe choice), collapse all other same-identity siblings.
+      keepers = new Set<ToolCall>(
+        group.filter((tc) => tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL),
+      );
+    } else {
+      keepers = new Set<ToolCall>(
+        group.filter(
+          (tc) =>
+            carriesOwnChange(tc) ||
+            tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+        ),
+      );
+      // All attempts produced no change (e.g. denied-reported-as-success): keep one
+      // representative, preferring a settled outcome over a stuck RUNNING zombie.
+      if (keepers.size === 0) {
+        const terminal = [...group].reverse().find((tc) => isTerminalToolStatus(tc.status));
+        keepers.add(terminal ?? group[0]);
+      }
     }
 
     for (const tc of group) {
@@ -1613,15 +1644,28 @@ function collapseDenialTwin(tc: ToolCall): void {
  * structured `args`, a compact-but-always-valid `args_preview` (the field a
  * resumed turn parses to rebuild the grant salient — so salient fields are never
  * elided, and the heavy content stays only on `file_changes`/`args`), and the
- * proposed `file_changes` when the call carries none — via the shared
- * {@link buildGateFileChange}, which reads the file's pre-edit `before` from the
- * workspace so a whole-file rewrite renders a true before/after diff (the same
- * builder, and the same WHOLE_FILE/HUNK rules, the native gate uses).
+ * proposed `file_changes` — via the shared {@link buildGateFileChange}, which
+ * reads the file's pre-edit `before` from the workspace so a whole-file rewrite
+ * renders a true before/after diff (the same builder, and the same
+ * WHOLE_FILE/HUNK rules, the native gate uses).
  *
- * It never clobbers a real streamed diff (`file_changes` already set), and it
- * degrades gracefully: with no `input` (the hook's grep fallback) it falls back
- * to the call's existing args, and with no workspace backend it still produces a
- * (before-less) change, matching prior behavior.
+ * Full-change fidelity for whole-file writes. For a whole-file write the
+ * authoritative hook input is the COMPLETE intended content, so it SUPERSEDES any
+ * streamed `file_changes` snapshot. This matters because the streaming capture
+ * sets a write's `file_changes` from its FIRST event and never refreshes them for
+ * later WHOLE_FILE captures ({@link MessageTranslator.attachExecutedFileChanges}),
+ * so a body still streaming — or a file rewritten twice in one turn — would
+ * otherwise leave a partial `after` on the gate. The runner then exact-applies
+ * that `after` verbatim (see exact-apply.ts), silently dropping the rest of the
+ * change the user requested. Sourcing the gate from the input keeps
+ * shown == approved == applied == the complete content.
+ *
+ * Scope and graceful degradation. The override is whole-file-only and only when
+ * the builder yields a change (it never wipes `file_changes` to empty). An edit
+ * fragment (`old_string`/`new_string`) keeps the SDK's authoritative hunk via the
+ * fallback below; with no `input` (the hook's grep fallback) it falls back to the
+ * call's existing args and never clobbers a streamed diff; with no workspace
+ * backend it still produces a (before-less) change, matching prior behavior.
  */
 async function applyGateInput(
   tc: ToolCall,
@@ -1631,7 +1675,22 @@ async function applyGateInput(
   if (input) {
     tc.args = input as JsonObject;
     tc.argsPreview = buildElidedArgsPreview(input, SALIENT_ARG_FIELDS);
+    // Whole-file input is authoritative and complete → it supersedes any streamed
+    // snapshot (which can lag the final args). Override only when the builder
+    // yields a change, so a defensive miss never wipes a real diff.
+    if (extractWriteContent(input) !== null) {
+      const gateChange = await buildGateFileChange(tc.name, input, workspaceBackend, {
+        virtualRoot: false,
+      });
+      if (gateChange) {
+        tc.fileChanges = [gateChange];
+        return;
+      }
+    }
   }
+  // Fallback: no authoritative whole-file input to supersede with (a hunk edit,
+  // or the grep-fallback denial with no captured input). Synthesize the proposal
+  // only when the call carries no streamed change, so a real streamed diff is kept.
   if (tc.fileChanges.length === 0) {
     const fileChange = await buildGateFileChange(
       tc.name,

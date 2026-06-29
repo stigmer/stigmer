@@ -158,6 +158,34 @@ describe("applyApprovedWholeFileWrites", () => {
     expect(tc.fileChanges).toHaveLength(1);
   });
 
+  it("applies the COMPLETE multi-change `after` verbatim (full-change fidelity regression)", async () => {
+    // The reported bug: a single turn requested two changes (a rename AND a new
+    // `## TODO` section). The gate's `after` is now the COMPLETE content (sourced
+    // from the authoritative hook input via applyGateInput), so exact-apply must
+    // land BOTH changes — never a partial that drops the TODO. This locks the
+    // contract that what exact-apply writes equals the gate's `after`, whatever it
+    // contains.
+    const complete = "# Notes\n- Planton\n\n## TODO\n- first\n- second\n";
+    const tc = approvedEdit({
+      fileChanges: [wholeFileChange(complete, { before: "# Notes\n- Planton Cloud\n" })],
+    });
+    const { backend, writes } = recordingBackend();
+
+    const applied = await applyApprovedWholeFileWrites({
+      ...baseOpts,
+      messages: messagesOf(tc),
+      workspaceBackend: backend,
+      artifactStorage: undefined,
+    });
+
+    expect(applied).toEqual(new Set(["tc-1"]));
+    expect(writes).toEqual([{ path: `${ROOT}/notes.md`, content: complete }]);
+    // Both the rename and the TODO section are present in the landed bytes.
+    expect(writes[0].content).toContain("- Planton\n");
+    expect(writes[0].content).toContain("## TODO");
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  });
+
   it("resolves an offloaded `after` ref via getDownloadUrl + fetch, then applies it", async () => {
     const fullBody = "FULL OFFLOADED CONTENT\n".repeat(10_000);
     const store = fakeArtifactStorage("https://artifacts.example/big.md");

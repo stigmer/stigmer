@@ -590,6 +590,185 @@ describe("reconcileDeniedToolCalls — whole-file rewrite gate (before/after)", 
   });
 });
 
+// Full-change fidelity: the gate's whole-file diff is authored from the
+// AUTHORITATIVE hook-captured input, not from a streamed snapshot that can lag
+// the final tool args. The streaming capture sets a whole-file write's
+// file_changes from the FIRST stream event and never supersedes it for later
+// WHOLE_FILE captures (attachExecutedFileChanges), so a partial/early `after`
+// would otherwise persist — and exact-apply would then write that partial,
+// silently dropping the rest of the change the user actually requested. The hook
+// captures the complete tool_input at deny time (the tool has NOT run), so it is
+// the single source of truth. These pin that the gate (and therefore the applied
+// bytes) equal the complete intended content.
+describe("reconcileDeniedToolCalls — authoritative input supersedes a partial stream snapshot", () => {
+  it("rebuilds a whole-file gate from the complete ledger input over a partial streamed `after`", async () => {
+    // The streamed snapshot lagged the final args: it has only the first change.
+    const partial = "# Notes\n- Planton\n";
+    const complete = "# Notes\n- Planton\n\n## TODO\n- first\n- second\n";
+    const tc = toolCall({
+      id: "c1",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", content: partial },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+      fileChanges: [
+        buildFileChange({
+          path: "notes.md",
+          absolutePath: "/root/notes.md",
+          changeType: FileChangeType.CREATE,
+          captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+          after: partial,
+        }),
+      ],
+    });
+    const messages = [aiMessageWith([tc])];
+
+    await reconcileDeniedToolCalls(
+      messages,
+      [
+        {
+          toolName: "Write",
+          token: grantToken("write", "notes.md"),
+          input: { file_path: "notes.md", content: complete },
+        },
+      ],
+      undefined,
+      fileBackend({ "notes.md": "# Notes\n- Planton Cloud\n" }),
+    );
+
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(tc.fileChanges).toHaveLength(1);
+    const fc = tc.fileChanges[0];
+    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+    expect(fc.changeType).toBe(FileChangeType.MODIFY);
+    expect(fc.absolutePath).toBe("/root/notes.md");
+    // The gate shows the pre-edit content as `before` (read from disk; the tool
+    // was denied so disk still holds it).
+    expect(fc.before?.body.case === "inline" ? fc.before.body.value : undefined).toBe(
+      "# Notes\n- Planton Cloud\n",
+    );
+    // The crux: the gate's `after` is the COMPLETE intended content, not the
+    // partial streamed snapshot — so exact-apply writes the complete change.
+    expect(fc.after?.body.case === "inline" ? fc.after.body.value : undefined).toBe(complete);
+  });
+
+  it("supersedes a stale snapshot even when the overlaid stream call was an `edit` (cross-tool-kind)", async () => {
+    // The first denied attempt streamed an `edit` (HUNK) row, but the authoritative
+    // last-write-wins input is a whole-file write — the final intent for the path
+    // wins, rendered as WHOLE_FILE so exact-apply applies the whole file.
+    const complete = "alpha\nbeta\ngamma\n";
+    const tc = toolCall({
+      id: "c1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "alpha", new_string: "alpha2" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+      fileChanges: [
+        buildFileChange({
+          path: "notes.md",
+          absolutePath: "/root/notes.md",
+          changeType: FileChangeType.MODIFY,
+          captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+          unifiedDiff: "@@ stale @@",
+        }),
+      ],
+    });
+    const messages = [aiMessageWith([tc])];
+
+    await reconcileDeniedToolCalls(
+      messages,
+      [
+        {
+          toolName: "Write",
+          token: grantToken("write", "notes.md"),
+          input: { file_path: "notes.md", content: complete },
+        },
+      ],
+      undefined,
+      fileBackend({ "notes.md": "alpha\n" }),
+    );
+
+    expect(tc.fileChanges).toHaveLength(1);
+    const fc = tc.fileChanges[0];
+    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+    expect(fc.after?.body.case === "inline" ? fc.after.body.value : undefined).toBe(complete);
+  });
+
+  it("treats an empty-file whole-file input as a real (empty) change, not a miss", async () => {
+    const tc = toolCall({
+      id: "c1",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "empty.txt", content: "stale\n" },
+      argsPreview: JSON.stringify({ path: "empty.txt" }),
+      fileChanges: [
+        buildFileChange({
+          path: "empty.txt",
+          absolutePath: "/root/empty.txt",
+          changeType: FileChangeType.CREATE,
+          captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+          after: "stale\n",
+        }),
+      ],
+    });
+    const messages = [aiMessageWith([tc])];
+
+    await reconcileDeniedToolCalls(
+      messages,
+      [
+        {
+          toolName: "Write",
+          token: grantToken("write", "empty.txt"),
+          input: { file_path: "empty.txt", content: "" },
+        },
+      ],
+      undefined,
+      fileBackend({ "empty.txt": "old\n" }),
+    );
+
+    const fc = tc.fileChanges[0];
+    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+    expect(fc.after?.body.case === "inline" ? fc.after.body.value : undefined).toBe("");
+  });
+
+  it("does NOT supersede when the authoritative input is a HUNK edit (keeps the streamed diff)", async () => {
+    // A hunk input carries no whole-file body, so there is nothing authoritative to
+    // rebuild from — the SDK's streamed diff remains the source for the gate.
+    const existing = buildFileChange({
+      path: "notes.md",
+      absolutePath: "/root/notes.md",
+      changeType: FileChangeType.MODIFY,
+      captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+      unifiedDiff: "@@ streamed @@",
+    });
+    const tc = toolCall({
+      id: "c1",
+      name: "edit",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", old_string: "a", new_string: "b" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+      fileChanges: [existing],
+    });
+    const messages = [aiMessageWith([tc])];
+
+    await reconcileDeniedToolCalls(
+      messages,
+      [
+        {
+          toolName: "Write",
+          token: grantToken("write", "notes.md"),
+          input: { file_path: "notes.md", old_string: "a", new_string: "b" },
+        },
+      ],
+      undefined,
+      fileBackend({ "notes.md": "a\n" }),
+    );
+
+    expect(tc.fileChanges).toHaveLength(1);
+    expect(tc.fileChanges[0]).toBe(existing);
+  });
+});
+
 // One resource emitted twice in a turn produced two cards: the gate plus a
 // settled "No preview available" twin. The runner collapses that twin in place
 // (it cannot drop the committed id) to a hidden SKIPPED row. These pin the
@@ -1127,6 +1306,54 @@ describe("collapseRedundantToolCallTwins — terminal-path twin collapse", () =>
     expect(collapsed).toBe(1);
     expect(gate.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(zombie.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  });
+
+  it("makes a WHOLE_FILE gate the SOLE keeper: collapses a stale whole-file sibling that carries its own change", () => {
+    // The two-whole-file-writes-in-one-turn variant: the gate (call A) carries the
+    // COMPLETE proposed content as a WHOLE_FILE change (via applyGateInput); the
+    // sibling (call B) is the second whole-file write the stream captured with a
+    // now-stale `after`. A whole-file write is cumulative, so B is redundant.
+    // Without the whole-file-gate-sole-keeper rule B survives via carriesOwnChange
+    // and renders a duplicate, contradictory card. It must collapse — one gate.
+    const gate = bareEdit("gate", "notes.md", {
+      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      requiresApproval: true,
+      fileChanges: [
+        buildFileChange({
+          path: "notes.md",
+          absolutePath: "/root/notes.md",
+          changeType: FileChangeType.MODIFY,
+          captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+          after: "complete\ncontent\n",
+        }),
+      ],
+    });
+    const staleSibling = toolCall({
+      id: "stale-sibling",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { path: "notes.md", content: "stale\n" },
+      argsPreview: JSON.stringify({ path: "notes.md" }),
+      fileChanges: [
+        buildFileChange({
+          path: "notes.md",
+          absolutePath: "/root/notes.md",
+          changeType: FileChangeType.CREATE,
+          captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+          after: "stale\n",
+        }),
+      ],
+    });
+    const messages = [aiMessageWith([gate, staleSibling])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(1);
+    expect(gate.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(staleSibling.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(staleSibling.fileChanges).toHaveLength(0);
+    // Both committed ids are preserved (append-only by construction).
+    expect(messages[0].toolCalls.map((t) => t.id)).toEqual(["gate", "stale-sibling"]);
   });
 
   it("keeps BOTH identical shell runs that each produced output (output is their change)", () => {
