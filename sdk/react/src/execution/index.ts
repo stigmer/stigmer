@@ -107,9 +107,6 @@ export type { ToolSegment } from "./segment-tool-calls";
 export { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 export type { ToolCallDetailProps } from "./ToolCallDetail";
 
-export { ToolCallPreview } from "./ToolCallPreview";
-export type { ToolCallPreviewProps } from "./ToolCallPreview";
-
 export { describeApprovalPolicySource } from "./approval-provenance";
 
 export { McpToolDetail, McpArgsView, McpMetadataRow, parseMcpResult } from "./McpToolDetail";

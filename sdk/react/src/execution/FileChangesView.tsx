@@ -112,8 +112,8 @@ export interface FileChangeDiffProps {
   /**
    * When `true`, the diff body is wrapped in the shared {@link BoundedContent}
    * primitive: clamped to the standard preview height with a bottom fade and an
-   * in-place "Show more" / "Show less", identical to the settled tool-call
-   * preview and the expanded edit detail. Defaults to `false` so the dedicated
+   * in-place "Show more" / "Show less", identical to the always-visible
+   * edit/write diff body in the timeline. Defaults to `false` so the dedicated
    * Changes view ({@link FileChangesView}) renders the full diff; the approval
    * gate opts in so a large change cannot push the decision buttons off-screen
    * while still letting the reviewer expand the whole diff in place.
@@ -246,7 +246,7 @@ function FileChangeBody({
 
   // When bounded, the actual diff renderers (and only those — short notices need
   // no clamp) are wrapped in the shared BoundedContent budget, so the gate's
-  // diff matches the timeline preview and never crowds out the decision buttons.
+  // diff matches the timeline edit/write diff and never crowds out the buttons.
   const bound = (node: React.ReactNode) =>
     bounded ? (
       <BoundedContent cursorTarget="file-diff-expand">{node}</BoundedContent>

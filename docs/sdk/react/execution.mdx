@@ -1149,7 +1149,8 @@ Importable on its own by platform builders composing custom change UIs.
 
 <TypeTable
   type={{
-    bodyClassName: { type: "string", description: "Optional class applied to the scrolling diff body (the `DiffViewer` table or unified-diff `<pre>`). Used to cap height where vertical space is scarce — e.g. `max-h-80` at the approval gate — while the dedicated Changes view leaves it unbounded." },
+    bodyClassName: { type: "string", description: "Optional class applied to the scrolling diff body (the `DiffViewer` table or unified-diff `<pre>`). A raw height cap with no reveal control; prefer bounded for the consistent clamp-and-reveal used across tool cards." },
+    bounded: { type: "boolean", description: "When `true`, the diff body is wrapped in the shared BoundedContent primitive: clamped to the standard preview height with a bottom fade and an in-place \"Show more\" / \"Show less\", identical to the always-visible edit/write diff body in the timeline. Defaults to `false` so the dedicated Changes view (FileChangesView) renders the full diff; the approval gate opts in so a large change cannot push the decision buttons off-screen while still letting the reviewer expand the whole diff in place." },
     change: { type: "FileChange", description: "The single file change to render.", required: true },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     showFileName: { type: "boolean", description: "Whether to render the filename header (the `FilePathLink` + any rename prefix). Defaults to `true`. Set to `false` where an ancestor already names the file — the approval gate header, or a tool-call row — so the diff is not captioned with a path the user just read; the `+N -M` stats still render." },
@@ -2630,7 +2631,8 @@ like a virtual human at work.
 
 The turn is segmented by `segmentToolCalls`:
 - high-signal calls (edits, shell, MCP, sub-agents, …) render as persistent
-  [`ToolCallItem`](#toolcallitem) rows, each with its own Tier 2 preview / Tier 3 detail;
+  [`ToolCallItem`](#toolcallitem) rows; a content-bearing call shows its body inline
+  (no card chevron), bounded by a single in-place reveal;
 - runs of consecutive low-signal same-category calls (read / list / search)
   fold into one collapsible `ToolRunGroup` chip — the *only* collapse,
   because that is the only genuine noise.
@@ -2669,25 +2671,28 @@ Props for [`ToolCallGroup`](#toolcallgroup).
 
 Renders a single tool call as a row in the tool call group.
 
-Two rendering modes:
+Three rendering modes, set by one rule — **does the body carry content the
+one-line row cannot?**
 
-- **Non-expandable** (completed/skipped Read): a static `<div>` row
-  with a clickable [`FilePathLink`](#filepathlink). No chevron, no expansion.
-  The clickable path IS the complete information.
-- **Expandable** (all other tools): a `<button>` row that toggles a
-  detail panel — [`ToolCallDetail`](#toolcalldetail), a [`SubAgentSection`](#subagentsection),
-  or, when the call is gated, an inline [`ApprovalCardBody`](#approvalcardbody).
+- **Non-expandable** (completed/skipped Read): a static `<div>` row with a
+  clickable [`FilePathLink`](#filepathlink). The path IS the complete information.
+- **Preview** (content-bearing: shell / edit / write / fetch / web-search /
+  unknown / mcp): a plain (non-button) header above an **always-visible**
+  [`ToolCallDetail`](#toolcalldetail) body — Cursor-style "previews aren't collapsible".
+  There is no header chevron; each content block self-bounds with its own
+  single in-place reveal (`RevealToggle`), so a long diff or output
+  never floods the thread. The body is suppressed only for an `empty` result
+  (e.g. a no-output shell), which stays a clean one-line row.
+- **Summary / sub-agent** (read / list / search / delete / think, and
+  sub-agent delegations): a chevron-gated `div[role=button]` header that
+  discloses a body hidden by default — [`ToolCallDetail`](#toolcalldetail), a
+  [`SubAgentSection`](#subagentsection), or, when gated, an inline [`ApprovalCardBody`](#approvalcardbody).
+  `useAutoDisclosure` force-opens it while *running* or *awaiting
+  approval*, then settles it closed; a manual click always wins thereafter.
 
-**Disclosure (the three-tier "live progress" model).** The full detail
-panel opens on its own — via `useAutoDisclosure` — while the call is
-*running* or is *awaiting approval*, then settles closed. A settled row is
-never hidden: when its [`useToolPresentation`](#usetoolpresentation) category is `"preview"`
-(shell / MCP / fetch / web-search / unknown, whose result IS the
-information), it keeps a **bounded `ToolCallPreview`** beneath the row
-(Tier 2); "Show more" promotes to the full detail (Tier 3). Tools with a
-meaningful one-line summary (read / edit / search …) stay compact (Tier 1).
-A manual click always wins thereafter. This is what reads as a virtual human
-working — every step stays visible — without flooding the thread.
+The two disclosure axes — the card-level chevron and a block's
+content-overflow reveal — never govern the same body, which is what removes
+the old "expand, then Show more" double control.
 
 Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
 the primary argument as a subtitle, a category-specific icon, and
@@ -2725,11 +2730,11 @@ How much of a settled tool call to reveal inline by default in the thread.
 - `"summary"` — a compact one-line row. Used when the label + primary arg +
   result summary already tell the story (`Read foo.ts`, `Edit bar.ts +40 -0`,
   `Search … 2 matches`). The full detail is one click away.
-- `"preview"` — the row keeps a **bounded, persistent preview** of its result
-  beneath it after settling, because the one-liner cannot convey what
-  happened so the content itself IS the information (a shell command's output,
-  an MCP result such as a screenshot, a fetched page, a web-search answer, or
-  an unrecognised tool's output). "Show more" expands to the full detail.
+- `"preview"` — the row renders its result body **always** (no card chevron),
+  because the one-liner cannot convey what happened so the content itself IS
+  the information (a shell command's output, an MCP result such as a
+  screenshot, a fetched page, a web-search answer, or an unrecognised tool's
+  output). The body's own in-place reveal expands it beyond the height budget.
 
 This is the *disclosure* axis (how much of a result to show); it is
 orthogonal to `isRunGroupableCategory` (whether consecutive same-kind

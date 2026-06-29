@@ -36,75 +36,100 @@ function makeToolCall(opts: {
   });
 }
 
-/** The row's disclosure toggle is the only element carrying aria-expanded. */
-function expanded(container: HTMLElement): boolean {
-  return (
-    container.querySelector("[aria-expanded]")?.getAttribute("aria-expanded") ===
-    "true"
+// The card-level disclosure (header chevron) lives ONLY on summary / sub-agent
+// rows: a `div[role="button"]` header inside the row. Preview (content-bearing)
+// rows have no such control — their body is always visible — so these helpers
+// target that header specifically rather than "any [aria-expanded]" (a block's
+// own RevealToggle also carries aria-expanded, on a native <button>, which has
+// no role attribute and so is excluded here).
+function rowHeaderToggle(container: HTMLElement): Element | null {
+  return container.querySelector(
+    '[data-cursor-target="tool-call-row"] [role="button"]',
   );
+}
+function hasHeaderChevron(container: HTMLElement): boolean {
+  return rowHeaderToggle(container) != null;
+}
+function isExpanded(container: HTMLElement): boolean {
+  return rowHeaderToggle(container)?.getAttribute("aria-expanded") === "true";
+}
+function previewBody(container: HTMLElement): Element | null {
+  return container.querySelector('[data-cursor-target="tool-preview"]');
 }
 
 describe("ToolCallItem disclosure", () => {
-  it("keeps a settled summary tool collapsed", () => {
-    // Delete is a genuine `summary` category — its one-line row (the file) tells
-    // the story, so it neither force-opens nor shows a bounded preview.
+  // --- Summary categories keep the chevron ----------------------------------
+
+  it("keeps a settled summary tool collapsed behind a chevron", () => {
+    // Delete is a `summary` category — its one-line row (the file) tells the
+    // story, so its body stays hidden behind the header chevron.
     const { container } = render(
       <ToolCallItem
+        toolCall={makeToolCall({ name: "delete_file", args: { path: "/x.ts" } })}
+      />,
+    );
+    expect(hasHeaderChevron(container)).toBe(true);
+    expect(isExpanded(container)).toBe(false);
+    expect(previewBody(container)).toBeNull();
+  });
+
+  it("settles a summary tool closed once it finishes running", () => {
+    // A running summary tool foregrounds while live, then collapses to its
+    // compact summary the moment it completes (the user never touched it). The
+    // chevron is present throughout. Proves the React.memo + useAutoDisclosure
+    // composition recomputes autoOpen from the new ToolCall on re-render.
+    const { container, rerender } = render(
+      <ToolCallItem
         toolCall={makeToolCall({
+          id: "tc-del",
           name: "delete_file",
           args: { path: "/x.ts" },
+          status: ToolCallStatus.TOOL_CALL_RUNNING,
         })}
       />,
     );
-    expect(expanded(container)).toBe(false);
-    expect(screen.queryByText("Show more")).toBeNull();
+    expect(isExpanded(container)).toBe(true);
+
+    rerender(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          id: "tc-del",
+          name: "delete_file",
+          args: { path: "/x.ts" },
+          status: ToolCallStatus.TOOL_CALL_COMPLETED,
+        })}
+      />,
+    );
+    expect(hasHeaderChevron(container)).toBe(true);
+    expect(isExpanded(container)).toBe(false);
   });
 
-  it("shows a settled edit as a bounded diff preview", () => {
-    // Edit is a `preview` category: a +N -M summary says how much changed, not
-    // what — so the diff renders inline (bounded), with "Show more" to the full
-    // detail, without force-opening the row.
+  // --- Preview categories: no chevron, always-visible body ------------------
+
+  it("renders a settled edit as an always-visible diff with no header chevron", () => {
+    // Edit is a `preview` category: the diff IS the information, so it renders
+    // inline with no competing card chevron. The diff "Show more" is layout-
+    // gated (jsdom computes no layout), so it is asserted in e2e, not here.
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
           name: "StrReplace",
-          args: { path: "/x.ts", old_string: "a", new_string: "b" },
-          result: '{"status":"success","value":{"linesAdded":1,"linesRemoved":1}}',
+          args: { path: "/x.ts" },
+          result:
+            '{"status":"success","value":{"linesAdded":1,"linesRemoved":1,"diffString":"@@ -1 +1 @@\\n-a\\n+b"}}',
         })}
       />,
     );
-    expect(expanded(container)).toBe(false);
-    expect(screen.getByText("Show more")).toBeTruthy();
+    expect(hasHeaderChevron(container)).toBe(false);
+    expect(previewBody(container)).not.toBeNull();
+    // The diff renders as the accessible table.
+    expect(container.querySelector("table")).not.toBeNull();
   });
 
-  it("shows a settled preview (MCP) tool as a bounded preview, not force-open", () => {
-    // New model: a settled `preview` row is NOT force-expanded. It keeps a
-    // bounded ToolCallPreview (aria-expanded stays false) with "Show more" to
-    // reach the full detail — so the result stays visible without burying the
-    // thread in expanded panels.
-    const { container } = render(
-      <ToolCallItem
-        toolCall={makeToolCall({
-          name: "send_message",
-          mcpServerSlug: "acme/slack",
-          result: '{"ok":true}',
-        })}
-      />,
-    );
-    expect(expanded(container)).toBe(false);
-    const showMore = screen.getByText("Show more");
-    expect(showMore).toBeTruthy();
-
-    // "Show more" promotes the row to full detail via its own toggle.
-    fireEvent.click(showMore);
-    expect(expanded(container)).toBe(true);
-  });
-
-  it("keeps a settled shell tool's output as a bounded preview, led by the command", () => {
-    // Shell is a `preview` category: its output IS the information, so a settled
-    // shell row persists a bounded preview with a "Show more" affordance. The
-    // preview now reads as one terminal session — the `$ command` prompt line
-    // leads, with its output below — so the command is visible even collapsed.
+  it("renders a settled shell as an always-visible terminal session, no chevron", () => {
+    // Shell is a `preview` category: its output IS the information. The body
+    // reads as one terminal session — the `$ command` prompt line leads, with
+    // its output below — visible without any disclosure click.
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
@@ -114,16 +139,33 @@ describe("ToolCallItem disclosure", () => {
         })}
       />,
     );
-    expect(expanded(container)).toBe(false);
+    expect(hasHeaderChevron(container)).toBe(false);
+    expect(previewBody(container)).not.toBeNull();
     expect(container.textContent).toContain("$ echo hello");
     expect(screen.getByText("hello")).toBeTruthy();
-    expect(screen.getByText("Show more")).toBeTruthy();
+    expect(
+      container.querySelectorAll('[data-cursor-target="terminal-session"]'),
+    ).toHaveLength(1);
+  });
+
+  it("renders a settled MCP tool's result inline with no chevron", () => {
+    const { container } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          name: "send_message",
+          mcpServerSlug: "acme/slack",
+          result: '{"ok":true}',
+        })}
+      />,
+    );
+    expect(hasHeaderChevron(container)).toBe(false);
+    expect(previewBody(container)).not.toBeNull();
   });
 
   it("keeps the shell header minimal — no command subtitle, no exit summary", () => {
-    // The command and exit code live in the terminal session body, so the header
-    // is just icon + label + status + duration. A failed command (non-zero exit)
-    // must not leak an "exit N" string into the header row.
+    // The command and exit code live in the terminal session body, so the plain
+    // header is just icon + label + status + duration. A failed command must not
+    // leak its command or "exit N" into the header row.
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
@@ -133,16 +175,16 @@ describe("ToolCallItem disclosure", () => {
         })}
       />,
     );
-    const headerRow = container.querySelector("[aria-expanded]")!;
-    // The header names the tool but neither restates the command nor the exit.
-    expect(headerRow.textContent).toContain("Shell");
-    expect(headerRow.textContent).not.toContain("/secret/abs/path");
-    expect(headerRow.textContent).not.toContain("exit 2");
+    const row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
+    const header = row.firstElementChild!;
+    expect(header.textContent).toContain("Shell");
+    expect(header.textContent).not.toContain("/secret/abs/path");
+    expect(header.textContent).not.toContain("exit 2");
     // The exit DOES surface — in the body's terminal session.
     expect(container.textContent).toContain("exit 2");
   });
 
-  it("renders an expanded shell as a single terminal session (one block)", () => {
+  it("renders a running shell as a single terminal session block, no chevron", () => {
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
@@ -153,90 +195,47 @@ describe("ToolCallItem disclosure", () => {
         })}
       />,
     );
-    // Running force-opens the full detail; it must be one block, not a command
-    // box plus a separate output box.
-    expect(expanded(container)).toBe(true);
+    expect(hasHeaderChevron(container)).toBe(false);
     expect(
       container.querySelectorAll('[data-cursor-target="terminal-session"]'),
     ).toHaveLength(1);
   });
 
-  it("foregrounds a running tool regardless of category", () => {
+  it("suppresses the body for a content-bearing tool that produced nothing", () => {
+    // The regression guard: a preview-category tool whose result normalizes to
+    // `empty` (no output) must stay a clean one-line row, never an empty padded
+    // box. (Shell never hits this — it always carries its command line.)
+    const { container } = render(
+      <ToolCallItem toolCall={makeToolCall({ name: "some_unknown_tool", result: "" })} />,
+    );
+    expect(hasHeaderChevron(container)).toBe(false);
+    expect(previewBody(container)).toBeNull();
+  });
+
+  it("shows the +N -M summary once for an edit — header only, not the diff body", () => {
+    // The row header carries the result summary; the always-visible diff body
+    // must NOT repeat it. With added != removed the header's combined "+3 -0"
+    // node and a body "+3" stat span would be distinguishable — and the body has
+    // none (suppressed via showStats={false}).
     const { container } = render(
       <ToolCallItem
         toolCall={makeToolCall({
-          name: "Shell",
-          args: { command: "sleep 5" },
-          status: ToolCallStatus.TOOL_CALL_RUNNING,
-        })}
-      />,
-    );
-    expect(expanded(container)).toBe(true);
-  });
-
-  it("settles a summary tool closed once it finishes running", () => {
-    // The row, not just the hook, must recompute `autoOpen` from the new
-    // ToolCall on re-render: a running `summary` tool foregrounds while live,
-    // then collapses to its compact summary the moment it completes (the user
-    // never touched it). Proves the React.memo + useAutoDisclosure composition.
-    // Delete is a summary category (unlike edit, which now previews its diff).
-    const { container, rerender } = render(
-      <ToolCallItem
-        toolCall={makeToolCall({
-          id: "tc-del",
-          name: "delete_file",
+          name: "StrReplace",
           args: { path: "/x.ts" },
-          status: ToolCallStatus.TOOL_CALL_RUNNING,
+          result:
+            '{"status":"success","value":{"linesAdded":3,"linesRemoved":0,"diffString":"@@ -0,0 +1,3 @@\\n+a\\n+b\\n+c"}}',
         })}
       />,
     );
-    expect(expanded(container)).toBe(true);
-
-    rerender(
-      <ToolCallItem
-        toolCall={makeToolCall({
-          id: "tc-del",
-          name: "delete_file",
-          args: { path: "/x.ts" },
-          status: ToolCallStatus.TOOL_CALL_COMPLETED,
-        })}
-      />,
-    );
-    expect(expanded(container)).toBe(false);
-    expect(screen.queryByText("Show more")).toBeNull();
+    expect(hasHeaderChevron(container)).toBe(false);
+    expect(screen.getByText("+3 -0")).toBeTruthy();
+    expect(screen.queryAllByText("+3")).toHaveLength(0);
+    expect(container.querySelector("table")).not.toBeNull();
   });
 
-  it("settles a running shell tool to a bounded preview", () => {
-    // A running shell force-opens full detail; on completion it settles to the
-    // persistent bounded preview (not force-open, but not hidden either).
-    const { container, rerender } = render(
-      <ToolCallItem
-        toolCall={makeToolCall({
-          id: "tc-shell",
-          name: "Shell",
-          args: { command: "echo hello" },
-          status: ToolCallStatus.TOOL_CALL_RUNNING,
-        })}
-      />,
-    );
-    expect(expanded(container)).toBe(true);
+  // --- Approvals -------------------------------------------------------------
 
-    rerender(
-      <ToolCallItem
-        toolCall={makeToolCall({
-          id: "tc-shell",
-          name: "Shell",
-          args: { command: "echo hello" },
-          result: "hello",
-          status: ToolCallStatus.TOOL_CALL_COMPLETED,
-        })}
-      />,
-    );
-    expect(expanded(container)).toBe(false);
-    expect(screen.getByText("Show more")).toBeTruthy();
-  });
-
-  it("foregrounds a gated tool and renders its approval actions inline", () => {
+  it("foregrounds a gated summary tool behind its chevron with inline actions", () => {
     const tc = makeToolCall({
       id: "tc-gated",
       name: "delete_file",
@@ -259,30 +258,41 @@ describe("ToolCallItem disclosure", () => {
       </ApprovalContext.Provider>,
     );
 
-    expect(expanded(container)).toBe(true);
-    // The inline body's actions are present right on the gated row.
+    expect(hasHeaderChevron(container)).toBe(true);
+    expect(isExpanded(container)).toBe(true);
     expect(screen.getByLabelText("Approve")).toBeTruthy();
     expect(screen.getByLabelText("Approve all file deletions")).toBeTruthy();
   });
 
-  it("renders as its own bordered card by default, with a divider-row fallback when nested", () => {
-    const tc = makeToolCall({ name: "Shell", args: { command: "echo hi" }, result: "hi" });
+  it("renders a gated preview tool's actions inline with no chevron", () => {
+    // A gated shell (a preview category) shows its decision actions in the
+    // always-visible body — no header chevron, since there is nothing to reveal.
+    const tc = makeToolCall({
+      id: "tc-shell-gated",
+      name: "Shell",
+      args: { command: "rm -rf /tmp/x" },
+      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+    });
+    const approval: PendingApproval = create(PendingApprovalSchema, {
+      toolCallId: "tc-shell-gated",
+      toolName: "Shell",
+      argsPreview: '{"command":"rm -rf /tmp/x"}',
+    });
+    const ctx: ApprovalContextValue = {
+      approvalsByToolCallId: new Map([["tc-shell-gated", approval]]),
+      onSubmit: () => {},
+      submittingIds: new Set(),
+    };
 
-    const { container, rerender } = render(<ToolCallItem toolCall={tc} />);
-    let row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
-    expect(row.className).toContain("rounded-lg");
-    // A visible line (prominent token), not the near-invisible 14% default.
-    // NOTE: this asserts only that the markup REQUESTS the border. happy-dom does
-    // not resolve `@layer`, so it cannot prove the border actually renders — that
-    // (the cascade-layer ordering) is guarded by styles-border-layer-invariant
-    // (host compile) and tool-card-ux.spec (real-browser computed style).
-    expect(row.className).toContain("border-border-prominent");
+    const { container } = render(
+      <ApprovalContext.Provider value={ctx}>
+        <ToolCallItem toolCall={tc} />
+      </ApprovalContext.Provider>,
+    );
 
-    // Nested (e.g. inside a folded run chip): a divider row, never a card.
-    rerender(<ToolCallItem toolCall={tc} bordered={false} />);
-    row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
-    expect(row.className).not.toContain("rounded-lg");
-    expect(row.className).toContain("border-b");
+    expect(hasHeaderChevron(container)).toBe(false);
+    expect(previewBody(container)).not.toBeNull();
+    expect(screen.getByLabelText("Approve")).toBeTruthy();
   });
 
   it("gives a pending gate card a restrained destructive accent (no amber fill)", () => {
@@ -309,15 +319,11 @@ describe("ToolCallItem disclosure", () => {
     );
 
     const row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
-    // A delete keeps the red accent; the card itself carries it (no amber bg).
     expect(row.className).toContain("border-l-destructive");
     expect(row.className).not.toContain("bg-warning");
   });
 
   it("routes an inline APPROVE_ALL decision with the gated tool's id", () => {
-    // The inline "Approve all ..." escalation must reach the run's submit
-    // handler bound to THIS tool call. MessageThread already covers inline
-    // APPROVE routing; APPROVE_ALL (the lease escalation) is the untested arm.
     const tc = makeToolCall({
       id: "tc-gated",
       name: "delete_file",
@@ -350,27 +356,19 @@ describe("ToolCallItem disclosure", () => {
     );
   });
 
-  it("shows the +N -M summary once when an edit is expanded (header only, not the body)", () => {
-    // The row header carries the result summary even when collapsed, so the
-    // expanded diff body must NOT repeat it. With added != removed the header's
-    // combined "+3 -0" node and a body "+3" stat span are distinguishable.
-    const { container } = render(
-      <ToolCallItem
-        defaultExpanded
-        toolCall={makeToolCall({
-          name: "StrReplace",
-          args: { path: "/x.ts" },
-          result:
-            '{"status":"success","value":{"linesAdded":3,"linesRemoved":0,"diffString":"@@ -0,0 +1,3 @@\\n+a\\n+b\\n+c"}}',
-        })}
-      />,
-    );
-    expect(expanded(container)).toBe(true);
-    // The header summary is present...
-    expect(screen.getByText("+3 -0")).toBeTruthy();
-    // ...and the body does not render a separate "+3" stat span (suppressed).
-    expect(screen.queryAllByText("+3")).toHaveLength(0);
-    // The diff itself still renders (as the accessible table).
-    expect(container.querySelector("table")).not.toBeNull();
+  // --- Card chrome -----------------------------------------------------------
+
+  it("renders as its own bordered card by default, with a divider-row fallback when nested", () => {
+    const tc = makeToolCall({ name: "Shell", args: { command: "echo hi" }, result: "hi" });
+
+    const { container, rerender } = render(<ToolCallItem toolCall={tc} />);
+    let row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
+    expect(row.className).toContain("rounded-lg");
+    expect(row.className).toContain("border-border-prominent");
+
+    rerender(<ToolCallItem toolCall={tc} bordered={false} />);
+    row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
+    expect(row.className).not.toContain("rounded-lg");
+    expect(row.className).toContain("border-b");
   });
 });

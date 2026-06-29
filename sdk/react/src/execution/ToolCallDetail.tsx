@@ -135,10 +135,12 @@ function CategoryDetail({
       // (ResultView shows the content), so the input is never lost. The owning
       // row already names the file, so the body suppresses the path.
       //
-      // The diff is bounded by the shared BoundedContent budget (same as the
-      // settled preview and the approval gate) so an expanded — or still
-      // streaming — large edit shows a consistent, scannable window with an
-      // in-place "Show more", never the whole file.
+      // The diff is the one tool body with no internal truncation of its own, so
+      // it is bounded by the shared BoundedContent budget (the same clamp the
+      // approval gate diff uses) — a large or still-streaming edit shows a
+      // consistent, scannable window with one in-place reveal, never the whole
+      // file. Every other category's body self-truncates (terminal / text via
+      // CollapsiblePre), so only edit/write wrap here — never double-bound.
       return (
         <>
           <ProvenanceNote toolCall={toolCall} />

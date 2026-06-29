@@ -74,7 +74,8 @@ export function toolCallGroupPropsEqual(
  *
  * The turn is segmented by {@link segmentToolCalls}:
  * - high-signal calls (edits, shell, MCP, sub-agents, …) render as persistent
- *   {@link ToolCallItem} rows, each with its own Tier 2 preview / Tier 3 detail;
+ *   {@link ToolCallItem} rows; a content-bearing call shows its body inline
+ *   (no card chevron), bounded by a single in-place reveal;
  * - runs of consecutive low-signal same-category calls (read / list / search)
  *   fold into one collapsible {@link ToolRunGroup} chip — the *only* collapse,
  *   because that is the only genuine noise.

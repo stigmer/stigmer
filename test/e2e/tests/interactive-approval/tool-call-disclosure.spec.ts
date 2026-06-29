@@ -130,15 +130,16 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     await expect(page.getByText("line two")).toBeVisible();
   });
 
-  test("a large completed write is bounded to the shared budget with a 'Show more'", async ({
+  test("a large completed write is bounded to the shared budget and reveals in place", async ({
     page,
     stigmerClient,
   }) => {
     // The settled-card counterpart to the gate's bounded diff: a large write must
-    // not render the whole file inline. It clamps to the same shared budget
-    // (max-h-48) as the gate, with the row's "Show more" promoting to the full
-    // detail. The clamp is layout-driven, so it is only provable in a real
-    // browser — here.
+    // not render the whole file inline. The diff is always visible (no header
+    // chevron) but clamped to the same shared budget (max-h-48) as the gate, with
+    // a single in-place "Show more" that grows the clamp toward full height — it
+    // does NOT promote to a separate detail panel. The clamp is layout-driven, so
+    // it is only provable in a real browser — here.
     const big = Array.from({ length: 30 }, (_, i) => `row ${i + 1}`).join("\n") + "\n";
     seeded = await seedToolRunSession(stigmerClient, control, {
       toolTurns: [[writeFileBlock("call_big_settled", "/tmp/e2e-big-settled.txt", big)]],
@@ -154,16 +155,25 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     const row = toolCallRow(page).first();
     await expect(row).toBeVisible({ timeout: 30_000 });
 
-    // The bounded preview offers "Show more" (promotes to the full detail).
-    await expect(toolPreviewExpand(row)).toBeVisible();
+    // A settled preview card has NO competing header chevron — the diff body is
+    // always visible, so the row carries no aria-expanded disclosure toggle.
+    await expect(row.locator('[role="button"][aria-expanded]')).toHaveCount(0);
 
-    // Collapsed: the preview body is clipped to the budget — the same clamp the
-    // gate uses, so the two surfaces are visually consistent by construction.
+    // Collapsed: the diff body is clipped to the budget — the same clamp the gate
+    // uses, so the two surfaces are visually consistent by construction.
     const clamp = toolPreview(row).locator(".overflow-hidden").first();
     const collapsed = await clamp.evaluate((el) => el.clientHeight);
     const full = await clamp.evaluate((el) => el.scrollHeight);
     expect(collapsed).toBeGreaterThan(0);
     expect(collapsed).toBeLessThan(full); // actually clipped, not the whole file
     expect(collapsed).toBeLessThanOrEqual(220); // ~max-h-48 (192px) + table chrome
+
+    // "Show more" reveals the rest IN PLACE — the clamp grows past its collapsed
+    // height, rather than swapping in a separate detail panel.
+    const expand = toolPreviewExpand(row);
+    await expect(expand).toBeVisible();
+    await expand.click();
+    const expanded = await clamp.evaluate((el) => el.clientHeight);
+    expect(expanded).toBeGreaterThan(collapsed);
   });
 });

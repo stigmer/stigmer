@@ -3,7 +3,7 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 
 // happy-dom does not compute layout, so the real overflow measurement always
 // reports false there (scrollHeight === clientHeight === 0). We mock the hook so
-// the overflow-driven branches (fade + in-place control) are deterministically
+// the overflow-driven branches (fade + reveal control) are deterministically
 // testable here; the *rendered* clamp/fade is exercised against a real browser
 // in test/e2e/tests/interactive-approval/tool-card-ux.spec.ts.
 let mockOverflowing = false;
@@ -42,8 +42,6 @@ describe("BoundedContent", () => {
     expect(clampEl(container)).not.toBeNull();
   });
 
-  // --- In-place mode (default) ------------------------------------------------
-
   it("shows no reveal control when the content fits the budget", () => {
     mockOverflowing = false;
     render(
@@ -62,45 +60,22 @@ describe("BoundedContent", () => {
       </BoundedContent>,
     );
 
-    // Collapsed: clamped, with a "Show more" that owns the disclosure (aria-expanded).
-    const control = screen.getByRole("button", { name: "Show more" });
+    // Collapsed: clamped, with a "Show more" reveal that owns the disclosure.
+    const control = screen.getByRole("button", { name: /Show more/ });
     expect(control.getAttribute("aria-expanded")).toBe("false");
     expect(clampEl(container)).not.toBeNull();
 
     // Expanding removes the clamp (natural height) and flips the control.
     fireEvent.click(control);
-    expect(screen.getByRole("button", { name: "Show less" }).getAttribute("aria-expanded")).toBe(
-      "true",
-    );
+    expect(
+      screen.getByRole("button", { name: /Show less/ }).getAttribute("aria-expanded"),
+    ).toBe("true");
     expect(clampEl(container)).toBeNull();
 
     // Collapsing restores the clamp.
-    fireEvent.click(screen.getByRole("button", { name: "Show less" }));
-    expect(screen.getByRole("button", { name: "Show more" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Show less/ }));
+    expect(screen.getByRole("button", { name: /Show more/ })).toBeTruthy();
     expect(clampEl(container)).not.toBeNull();
-  });
-
-  // --- Delegated mode (onExpand) ---------------------------------------------
-
-  it("delegated: always shows 'Show more', routes clicks to onExpand, and never expands in place", () => {
-    mockOverflowing = false; // even when nothing overflows, the fuller view is reachable
-    const onExpand = vi.fn();
-    const { container } = render(
-      <BoundedContent onExpand={onExpand}>
-        <p>preview</p>
-      </BoundedContent>,
-    );
-
-    const control = screen.getByRole("button", { name: "Show more" });
-    // No aria-expanded — the owning row's chevron carries the disclosure state.
-    expect(control.getAttribute("aria-expanded")).toBeNull();
-
-    fireEvent.click(control);
-    expect(onExpand).toHaveBeenCalledTimes(1);
-    // It promoted, not expanded: the body stays clamped and the label is unchanged.
-    expect(clampEl(container)).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Show more" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Show less" })).toBeNull();
   });
 
   it("forwards the e2e cursor-target hook onto the control", () => {

@@ -34,11 +34,11 @@ export type ToolCategory =
  * - `"summary"` — a compact one-line row. Used when the label + primary arg +
  *   result summary already tell the story (`Read foo.ts`, `Edit bar.ts +40 -0`,
  *   `Search … 2 matches`). The full detail is one click away.
- * - `"preview"` — the row keeps a **bounded, persistent preview** of its result
- *   beneath it after settling, because the one-liner cannot convey what
- *   happened so the content itself IS the information (a shell command's output,
- *   an MCP result such as a screenshot, a fetched page, a web-search answer, or
- *   an unrecognised tool's output). "Show more" expands to the full detail.
+ * - `"preview"` — the row renders its result body **always** (no card chevron),
+ *   because the one-liner cannot convey what happened so the content itself IS
+ *   the information (a shell command's output, an MCP result such as a
+ *   screenshot, a fetched page, a web-search answer, or an unrecognised tool's
+ *   output). The body's own in-place reveal expands it beyond the height budget.
  *
  * This is the *disclosure* axis (how much of a result to show); it is
  * orthogonal to {@link isRunGroupableCategory} (whether consecutive same-kind
@@ -55,9 +55,9 @@ export type ToolDisclosure = "summary" | "preview";
  *
  * File edits and writes are previewed: a `+N -M` summary says how much changed
  * but not *what* — and the change is the decision-relevant content. Surfacing a
- * bounded diff inline (Cursor-style) is the point of a code agent. The preview
- * is height-clamped and one click reaches the full diff, so density stays under
- * control even in turns with many edits.
+ * bounded diff inline (Cursor-style) is the point of a code agent. The body is
+ * height-clamped with a single in-place reveal for the rest, so density stays
+ * under control even in turns with many edits.
  */
 const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
   "shell",

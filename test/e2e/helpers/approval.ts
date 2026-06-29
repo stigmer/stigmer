@@ -505,14 +505,18 @@ export function toolRunGroup(scope: Page | Locator): Locator {
   return scope.locator('[data-cursor-target="tool-run-group"]');
 }
 
-/** The settled row's bounded preview wrapper (holds the clamp + "Show more"). */
+/** A preview category's always-visible body (holds the diff/terminal + reveal). */
 export function toolPreview(scope: Page | Locator): Locator {
   return scope.locator('[data-cursor-target="tool-preview"]');
 }
 
-/** The "Show more" affordance on a settled row's bounded preview. */
+/**
+ * The in-place "Show more"/"Show less" reveal on a settled edit/write card's
+ * bounded diff body. (The diff is the one block that uses the pixel clamp; it
+ * carries the `tool-detail-expand` hook from ToolCallDetail's edit/write branch.)
+ */
 export function toolPreviewExpand(scope: Page | Locator): Locator {
-  return scope.locator('[data-cursor-target="tool-preview-expand"]');
+  return scope.locator('[data-cursor-target="tool-detail-expand"]');
 }
 
 /** The in-place "Show more"/"Show less" reveal on a bounded diff body (gate, edit detail). */
