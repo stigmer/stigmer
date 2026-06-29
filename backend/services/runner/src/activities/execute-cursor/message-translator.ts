@@ -599,10 +599,12 @@ function blockText(b: Record<string, unknown>): string | undefined {
  *
  *   { status: "success", value: { conversationSteps: ConversationStep[] } }
  *
- * where ConversationStep is a discriminated union:
- *   - { type: "thinkingMessage", message: { text, thinkingDurationMs? } }
- *   - { type: "assistantMessage", message: { text } }
- *   - { type: "toolCall", message: { type, args, result?, ... } }
+ * where each ConversationStep is a protobuf-oneof object keyed DIRECTLY by its
+ * kind (there is NO `{ type, message }` envelope — verified against production
+ * sub-agent blobs; see the `buildSubAgentToolCall` note):
+ *   - { thinkingMessage: { text, thinkingDurationMs? } }
+ *   - { assistantMessage: { text } }
+ *   - { toolCall: { toolCallId, <kind>ToolCall: { args, result } } }
  *
  * This function defensively parses whatever steps are present and
  * appends corresponding AgentMessage protos to the output array.
@@ -647,49 +649,144 @@ export function extractConversationSteps(
           timestamp: utcTimestamp(),
         }));
       }
-    } else if (type === "toolCall") {
-      const msg = s.message as Record<string, unknown> | undefined;
-      if (msg) {
-        const toolName = typeof msg.type === "string" ? msg.type : "unknown";
-        const toolArgs = msg.args != null ? JSON.stringify(msg.args) : "";
-        let toolResult = "";
-        if (msg.result != null) {
-          const resultObj = msg.result as Record<string, unknown>;
-          if (resultObj.status === "success" && resultObj.value != null) {
-            // Normalize a sub-agent screenshot the same way as a top-level tool
-            // result; fall back to the existing value serialization otherwise.
-            toolResult = canonicalizeImageResult(resultObj.value)
-              ?? (typeof resultObj.value === "string"
-                ? resultObj.value
-                : JSON.stringify(resultObj.value));
-          } else if (resultObj.status === "error") {
-            toolResult = typeof resultObj.error === "string"
-              ? resultObj.error
-              : JSON.stringify(resultObj);
-          } else {
-            toolResult = JSON.stringify(msg.result);
-          }
-        }
-
-        const aiMsg = create(AgentMessageSchema, {
+    } else if (s.toolCall != null) {
+      const tc = buildSubAgentToolCall(s.toolCall, out.length);
+      if (tc) {
+        out.push(create(AgentMessageSchema, {
           type: MessageType.MESSAGE_AI,
           content: "",
           timestamp: utcTimestamp(),
-          toolCalls: [create(ToolCallSchema, {
-            id: `sub-${toolName}-${out.length}`,
-            name: toolName,
-            status: ToolCallStatus.TOOL_CALL_COMPLETED,
-            argsPreview: toolArgs,
-            result: toolResult,
-            startedAt: utcTimestamp(),
-            completedAt: utcTimestamp(),
-            toolKind: classifyTool(toolName),
-          })],
-        });
-        out.push(aiMsg);
+          toolCalls: [tc],
+        }));
       }
     }
   }
+}
+
+/**
+ * The failure branches of a sub-agent tool call's `result` oneof. A completion
+ * is `{ success: ... }`; every other branch is a non-completion the UI must show
+ * as failed — an errored read/glob/grep (`error`), or a shell the approval gate
+ * stopped (`permissionDenied` / `rejected`).
+ */
+const SUBAGENT_TOOL_RESULT_FAILURE_KEYS = new Set([
+  "error",
+  "permissionDenied",
+  "rejected",
+]);
+
+/**
+ * Build a ToolCall proto from one sub-agent `toolCall` conversation step.
+ *
+ * The Cursor SDK serializes a sub-agent's tool call as protobuf-oneof JSON:
+ *
+ *   { toolCallId, <kind>ToolCall: { args, result } }
+ *
+ * The tool family is the lone `<kind>ToolCall` sibling of `toolCallId` (e.g.
+ * `readToolCall`, `globToolCall`, `grepToolCall`, `shellToolCall`); the bare
+ * tool name (`read`) is the suffix-stripped key, which feeds the shared
+ * {@link classifyTool} exactly like a top-level call. `result` is itself a oneof
+ * `{ success | error | permissionDenied | rejected }` (see
+ * {@link interpretSubAgentToolResult}).
+ *
+ * This is deliberately key-driven rather than an enumerated switch, so a new
+ * tool family the SDK adds surfaces automatically instead of being dropped.
+ * Returns undefined when no `<kind>ToolCall` key is present (a malformed or
+ * forward-incompatible step), so the caller skips it rather than emitting a
+ * blank, nameless tool call.
+ *
+ * History: an earlier revision parsed a `{ type: "toolCall", message: { type,
+ * args, result: { status, value } } }` envelope. That shape never appears in the
+ * real task-result blob (confirmed against production sub-agent outputs and the
+ * WA03 capture), so every sub-agent tool call was silently discarded and the UI
+ * showed a sub-agent that "did nothing".
+ */
+function buildSubAgentToolCall(
+  toolCall: unknown,
+  seq: number,
+): ToolCall | undefined {
+  if (toolCall == null || typeof toolCall !== "object") return undefined;
+  const obj = toolCall as Record<string, unknown>;
+
+  const kindKey = Object.keys(obj).find(
+    (k) => k !== "toolCallId" && k.endsWith("ToolCall"),
+  );
+  if (!kindKey) return undefined;
+
+  const name = kindKey.slice(0, -"ToolCall".length);
+  const inner =
+    obj[kindKey] != null && typeof obj[kindKey] === "object"
+      ? (obj[kindKey] as Record<string, unknown>)
+      : {};
+  // Prefer the SDK's real call id so the row is stable across resumes and never
+  // collides with a sibling; fall back to a per-step synthetic id only when the
+  // SDK omits one.
+  const id =
+    typeof obj.toolCallId === "string" && obj.toolCallId
+      ? obj.toolCallId
+      : `sub-${name}-${seq}`;
+
+  const { status, result, error } = interpretSubAgentToolResult(inner.result);
+
+  const tc = create(ToolCallSchema, {
+    id,
+    name,
+    status,
+    result,
+    error,
+    startedAt: utcTimestamp(),
+    completedAt: utcTimestamp(),
+    toolKind: classifyTool(name),
+  });
+
+  if (inner.args != null && typeof inner.args === "object") {
+    tc.args = inner.args as JsonObject;
+    tc.argsPreview = JSON.stringify(inner.args);
+  }
+  return tc;
+}
+
+/**
+ * Map a sub-agent tool call's `result` oneof to a (status, result, error)
+ * triple. `success` → COMPLETED with the serialized payload (a screenshot is
+ * canonicalized the same way as a top-level result); any failure branch (see
+ * {@link SUBAGENT_TOOL_RESULT_FAILURE_KEYS}) → FAILED with the serialized
+ * detail. An absent result is a COMPLETED call with no output — the SDK omits
+ * `result` for a call that reports nothing.
+ */
+function interpretSubAgentToolResult(result: unknown): {
+  status: ToolCallStatus;
+  result: string;
+  error: string;
+} {
+  if (result == null || typeof result !== "object") {
+    return { status: ToolCallStatus.TOOL_CALL_COMPLETED, result: "", error: "" };
+  }
+  const r = result as Record<string, unknown>;
+
+  if ("success" in r) {
+    const val = r.success;
+    const str =
+      canonicalizeImageResult(val) ??
+      (typeof val === "string" ? val : JSON.stringify(val));
+    return { status: ToolCallStatus.TOOL_CALL_COMPLETED, result: str, error: "" };
+  }
+
+  const failKey = Object.keys(r).find((k) =>
+    SUBAGENT_TOOL_RESULT_FAILURE_KEYS.has(k),
+  );
+  if (failKey) {
+    const val = r[failKey];
+    const detail = typeof val === "string" ? val : JSON.stringify(val);
+    return { status: ToolCallStatus.TOOL_CALL_FAILED, result: "", error: detail };
+  }
+
+  // Unknown oneof branch — surface it as a completed result rather than drop it.
+  return {
+    status: ToolCallStatus.TOOL_CALL_COMPLETED,
+    result: JSON.stringify(r),
+    error: "",
+  };
 }
 
 /**

@@ -19,6 +19,7 @@ import {
   MessageType,
   ToolCallStatus,
   SubAgentStatus,
+  ToolKind,
   FileChangeType,
   FileChangeCaptureLevel,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -458,12 +459,18 @@ describe("MessageAccumulator tool call status transitions", () => {
     expect(sub.messages[1].content).toBe("Here is a summary of AI.");
   });
 
-  it("sub-agent extracts toolCall steps from conversationSteps", () => {
+  // Real Cursor task-result shape (verified against production agent_execution
+  // blobs): each step is a protobuf-oneof keyed DIRECTLY by kind, and a tool
+  // call is { toolCall: { toolCallId, <kind>ToolCall: { args, result } } } whose
+  // result is a oneof { success | error | permissionDenied | rejected }. This is
+  // the shape that exposed the dropped-tool-calls bug: the prior parser only
+  // matched a { type:"toolCall", message } envelope that never occurs.
+  it("sub-agent extracts real direct-keyed toolCall steps from conversationSteps", () => {
     const messages: AgentMessage[] = [];
     const acc = new MessageAccumulator(messages);
 
     const runningEvent = toolCallEvent("tc-sub7", "task", "running", "r1", {
-      args: { description: "Use tools", prompt: "Run ls" },
+      args: { description: "Explore the repo", prompt: "Find the README" },
     });
     acc.processEvent(runningEvent);
     acc.trackSubAgentExecution(runningEvent);
@@ -473,16 +480,36 @@ describe("MessageAccumulator tool call status transitions", () => {
         status: "success",
         value: {
           conversationSteps: [
+            { thinkingMessage: { text: "Let me look for the README." } },
             {
-              type: "toolCall",
-              message: {
-                type: "shell",
-                args: { command: "ls -la" },
-                result: { status: "success", value: { stdout: "file.txt", stderr: "", exitCode: 0 } },
+              toolCall: {
+                toolCallId: "glob-1",
+                globToolCall: {
+                  args: { targetDirectory: "/repo", globPattern: "**/*.md" },
+                  result: { success: { path: "/repo", files: ["README.md"] } },
+                },
               },
             },
-            { type: "assistantMessage", message: { text: "I found file.txt." } },
+            {
+              toolCall: {
+                toolCallId: "read-1",
+                readToolCall: {
+                  args: { path: "/repo/README.md" },
+                  result: {
+                    success: {
+                      content: "# Hello",
+                      path: "/repo/README.md",
+                      totalLines: 1,
+                      fileSize: 7,
+                    },
+                  },
+                },
+              },
+            },
+            { assistantMessage: { text: "I found and read the README." } },
           ],
+          agentId: "sub-agent-xyz",
+          durationMs: 4200,
           isBackground: false,
           backgroundReason: "unspecified",
         },
@@ -492,16 +519,31 @@ describe("MessageAccumulator tool call status transitions", () => {
     acc.trackSubAgentExecution(completedEvent);
 
     const sub = acc.subAgentExecutions[0];
-    expect(sub.messages).toHaveLength(2);
+    // thinking + glob tool call + read tool call + assistant text
+    expect(sub.messages).toHaveLength(4);
 
-    const toolMsg = sub.messages[0];
-    expect(toolMsg.type).toBe(MessageType.MESSAGE_AI);
-    expect(toolMsg.toolCalls).toHaveLength(1);
-    expect(toolMsg.toolCalls[0].name).toBe("shell");
-    expect(toolMsg.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(sub.messages[0].type).toBe(MessageType.MESSAGE_THINKING);
+    expect(sub.messages[0].content).toBe("Let me look for the README.");
 
-    expect(sub.messages[1].type).toBe(MessageType.MESSAGE_AI);
-    expect(sub.messages[1].content).toBe("I found file.txt.");
+    const globMsg = sub.messages[1];
+    expect(globMsg.type).toBe(MessageType.MESSAGE_AI);
+    expect(globMsg.toolCalls).toHaveLength(1);
+    expect(globMsg.toolCalls[0].id).toBe("glob-1");
+    expect(globMsg.toolCalls[0].name).toBe("glob");
+    expect(globMsg.toolCalls[0].toolKind).toBe(ToolKind.SEARCH);
+    expect(globMsg.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+
+    const readMsg = sub.messages[2];
+    expect(readMsg.type).toBe(MessageType.MESSAGE_AI);
+    expect(readMsg.toolCalls).toHaveLength(1);
+    expect(readMsg.toolCalls[0].id).toBe("read-1");
+    expect(readMsg.toolCalls[0].name).toBe("read");
+    expect(readMsg.toolCalls[0].toolKind).toBe(ToolKind.FILE_READ);
+    expect(readMsg.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(readMsg.toolCalls[0].result).toContain("# Hello");
+
+    expect(sub.messages[3].type).toBe(MessageType.MESSAGE_AI);
+    expect(sub.messages[3].content).toBe("I found and read the README.");
   });
 
   it("sub-agent gracefully handles missing conversationSteps", () => {
@@ -603,18 +645,19 @@ describe("MessageAccumulator tool call status transitions", () => {
       expect(out[0].content).toBe("Real content.");
     });
 
-    it("extracts tool error results correctly", () => {
+    it("maps a tool result error oneof to a FAILED tool call", () => {
       const out: AgentMessage[] = [];
       extractConversationSteps({
         status: "success",
         value: {
           conversationSteps: [
             {
-              type: "toolCall",
-              message: {
-                type: "shell",
-                args: { command: "bad-cmd" },
-                result: { status: "error", error: "command not found" },
+              toolCall: {
+                toolCallId: "read-err",
+                readToolCall: {
+                  args: { path: "/nope.txt" },
+                  result: { error: { errorMessage: "file not found" } },
+                },
               },
             },
           ],
@@ -622,7 +665,70 @@ describe("MessageAccumulator tool call status transitions", () => {
       }, out);
 
       expect(out).toHaveLength(1);
-      expect(out[0].toolCalls[0].result).toBe("command not found");
+      const tc = out[0].toolCalls[0];
+      expect(tc.name).toBe("read");
+      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+      expect(tc.error).toContain("file not found");
+      expect(tc.result).toBe("");
+    });
+
+    it("maps a gate-denied shell (permissionDenied / rejected) to a FAILED tool call", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps({
+        status: "success",
+        value: {
+          conversationSteps: [
+            {
+              toolCall: {
+                toolCallId: "shell-denied",
+                shellToolCall: {
+                  args: {},
+                  result: {
+                    permissionDenied: {
+                      command: "rm -rf /",
+                      error: "blocked by approval gate",
+                      isReadonly: false,
+                    },
+                  },
+                },
+              },
+            },
+            {
+              toolCall: {
+                toolCallId: "shell-rejected",
+                shellToolCall: {
+                  args: {},
+                  result: { rejected: { command: "curl evil.sh", reason: "user rejected" } },
+                },
+              },
+            },
+          ],
+        },
+      }, out);
+
+      expect(out).toHaveLength(2);
+      expect(out[0].toolCalls[0].name).toBe("shell");
+      expect(out[0].toolCalls[0].toolKind).toBe(ToolKind.SHELL);
+      expect(out[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+      expect(out[0].toolCalls[0].error).toContain("blocked by approval gate");
+      expect(out[1].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+      expect(out[1].toolCalls[0].error).toContain("user rejected");
+    });
+
+    it("skips a malformed toolCall step with no <kind>ToolCall key", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps({
+        status: "success",
+        value: {
+          conversationSteps: [
+            { toolCall: { toolCallId: "orphan" } },
+            { assistantMessage: { text: "still works" } },
+          ],
+        },
+      }, out);
+
+      expect(out).toHaveLength(1);
+      expect(out[0].content).toBe("still works");
     });
   });
 

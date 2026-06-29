@@ -237,13 +237,18 @@ describe("sub-agent image normalization (extractConversationSteps)", () => {
       result: {
         status: "success",
         value: {
+          // Real Cursor task-result shape: a conversation step is keyed directly
+          // by kind, and a tool call is { toolCall: { toolCallId, <kind>ToolCall:
+          // { args, result } } } whose result is a oneof { success | error | ... }.
+          // The screenshot rides the `success` branch as the tool's result value.
           conversationSteps: [
             {
-              type: "toolCall",
-              message: {
-                type: "get_app_state",
-                args: {},
-                result: cursorImageEnvelope("App=SubAgent"),
+              toolCall: {
+                toolCallId: "sub-img-1",
+                mcpToolCall: {
+                  args: {},
+                  result: { success: cursorImageEnvelope("App=SubAgent").value },
+                },
               },
             },
           ],

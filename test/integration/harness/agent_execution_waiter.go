@@ -552,6 +552,57 @@ func HasSubAgentDelegation(exec *agentexecv1.AgentExecution) bool {
 	return len(exec.GetStatus().GetSubAgentExecutions()) > 0
 }
 
+// CountSubAgentToolCalls returns the number of tool calls a sub-agent surfaced
+// in its own internal messages, excluding internal TODO-management tools (which
+// the UI renders through a dedicated surface, not the thread). This is the
+// signal that a delegated sub-agent's work — its file reads, searches, edits,
+// and tool runs — is actually visible to the user, rather than the sub-agent
+// appearing on the card to have done nothing. The native harness populates this
+// live via SubAgentTracker; the Cursor harness must match it by parsing the
+// sub-agent's conversationSteps in the task result.
+func CountSubAgentToolCalls(sa *agentexecv1.SubAgentExecution) int {
+	count := 0
+	for _, msg := range sa.GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			if tc.GetToolKind() == agentexecv1.ToolKind_TOOL_KIND_TODO {
+				continue
+			}
+			count++
+		}
+	}
+	return count
+}
+
+// SubAgentToolCallNames returns the names of every tool call across a
+// sub-agent's internal messages, for diagnostics on an assertion failure.
+func SubAgentToolCallNames(sa *agentexecv1.SubAgentExecution) []string {
+	var names []string
+	for _, msg := range sa.GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			names = append(names, tc.GetName())
+		}
+	}
+	return names
+}
+
+// AssertSubAgentHasToolCall asserts that a delegated sub-agent surfaced at least
+// one (non-TODO) internal tool call on SubAgentExecution.messages[].tool_calls.
+// This is the cross-harness visibility contract: the native harness satisfies it
+// via SubAgentTracker, and the Cursor harness must match so the UI shows the
+// sub-agent's actual work instead of an empty card. Use only on a scenario that
+// deterministically forces the sub-agent to use a tool (e.g. the MCP-access
+// test, where the sub-agent is instructed to call the echo tool).
+func AssertSubAgentHasToolCall(t *testing.T, sa *agentexecv1.SubAgentExecution) {
+	t.Helper()
+	count := CountSubAgentToolCalls(sa)
+	assert.Greaterf(t, count, 0,
+		"sub-agent %q (%s) surfaced no internal tool calls across its %d message(s); "+
+			"a delegated sub-agent that used tools must record them on "+
+			"SubAgentExecution.messages[].tool_calls so the UI shows its work "+
+			"(tool names seen: %v)",
+		sa.GetName(), sa.GetId(), len(sa.GetMessages()), SubAgentToolCallNames(sa))
+}
+
 // AssertSubAgentExecution validates the full SubAgentExecution proto field
 // contract. Asserts structural fields that the runner must populate for every
 // sub-agent invocation: id, name, subject, timestamps, and status-dependent
