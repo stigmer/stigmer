@@ -936,23 +936,60 @@ export class MessageAccumulator {
       // lifecycle events resolve here, then merge in place. mergeToolCallEvent
       // advances WAITING_APPROVAL (non-terminal) toward the event's status.
       this.toolCallIndex.set(event.call_id, seeded);
-      if (seeded.fileChanges.length === 0) {
-        const fileChanges = buildCursorFileChanges(event, this.workspaceRoot);
-        if (fileChanges.length > 0) seeded.fileChanges = fileChanges;
-      }
+      this.attachExecutedFileChanges(seeded, event);
       this.mergeToolCallEvent(seeded, event);
       return;
     }
 
     // A write carries whole-file content at creation; an edit's diff arrives
-    // with its terminal result and is attached in mergeToolCallEvent.
-    const fileChanges = buildCursorFileChanges(event, this.workspaceRoot);
-    if (fileChanges.length > 0) tc.fileChanges = fileChanges;
+    // with its terminal result (merged later). Both flow through the single
+    // capture-attach path (see attachExecutedFileChanges).
+    this.attachExecutedFileChanges(tc, event);
     this.findOrCreateLastAiMessage().toolCalls.push(tc);
     this.toolCallIndex.set(event.call_id, tc);
     // A new tool call is a discrete, user-visible event — force a prompt
     // flush so the live UI surfaces it the instant it starts.
     this._dirty = true;
+  }
+
+  /**
+   * Attach the SDK-sourced (executed) file change(s) for a tool_call event,
+   * letting an authoritative capture SUPERSEDE a gate proposal — the same
+   * invariant the native harness enforces via attachFileChangesToStatus
+   * (executed capture overwrites the interrupt-time proposal), adapted to
+   * Cursor's per-tool capture shape:
+   *
+   *  - HUNK_ONLY incoming = the SDK's authoritative, self-contained edit diff.
+   *    It supersedes ANY prior capture, because the only thing it can replace is
+   *    a gate PROPOSAL (an edit's diff is never set at creation) and it carries
+   *    the complete truth. This is the missing-diff fix: a stale WHOLE_FILE
+   *    proposal (built at the gate from the hook-captured input) no longer
+   *    shadows the executed diff after approval + resume.
+   *  - WHOLE_FILE incoming = a stream write CREATE (after-only). It attaches
+   *    only when nothing is captured yet, so it never DOWNGRADES a gated write's
+   *    proposal (which carries a true before/after the stream cannot reconstruct
+   *    post-execution) nor an already-captured change.
+   *  - An event with no authoritative capture (a result-less "running" re-emit)
+   *    yields [] and never wipes a captured change.
+   *
+   * Known, deliberate limitation: a gated WHOLE_FILE *write* whose content
+   * DIVERGES on resume keeps showing the proposal's before/after rather than the
+   * executed content. We prefer the richer (if rarely stale) before/after diff
+   * over a content-only CREATE; the fully-correct path is a before-preserving
+   * merge (carry the proposal's irrecoverable `before` onto the executed
+   * `after`), deferred — it is not reachable from the edit defect this fixes and
+   * would expand the change into the write path.
+   */
+  private attachExecutedFileChanges(
+    tc: ToolCall,
+    event: Extract<SDKMessage, { type: "tool_call" }>,
+  ): void {
+    const incoming = buildCursorFileChanges(event, this.workspaceRoot);
+    if (incoming.length === 0) return;
+    const supersedes =
+      tc.fileChanges.length === 0 ||
+      incoming[0].captureLevel === FileChangeCaptureLevel.HUNK_ONLY;
+    if (supersedes) tc.fileChanges = incoming;
   }
 
   /**
@@ -1020,12 +1057,11 @@ export class MessageAccumulator {
       existing.result = incomingResult;
     }
 
-    // A file edit's diff only arrives with the terminal result; attach it once,
-    // without clobbering a change already set at creation (e.g. a write).
-    if (existing.fileChanges.length === 0) {
-      const fileChanges = buildCursorFileChanges(event, this.workspaceRoot);
-      if (fileChanges.length > 0) existing.fileChanges = fileChanges;
-    }
+    // A file edit's authoritative diff arrives with the terminal result; attach
+    // it, letting it SUPERSEDE a gate proposal set before the tool ran (the
+    // missing-diff fix) without downgrading a write's richer capture — the rule
+    // lives in the single capture-attach path.
+    this.attachExecutedFileChanges(existing, event);
 
     if (status === ToolCallStatus.TOOL_CALL_FAILED) {
       if (!existing.error) {

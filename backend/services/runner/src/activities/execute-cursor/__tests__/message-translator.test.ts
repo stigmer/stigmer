@@ -9,8 +9,12 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { buildFileChange } from "../../../shared/file-change.js";
 import {
   MessageType,
   ToolCallStatus,
@@ -980,6 +984,140 @@ describe("MessageAccumulator tool call status transitions", () => {
       const fc = findToolCallById(messages, "tc-w")!.fileChanges[0];
       expect(fc.path).toBe("src/new.ts");
       expect(fc.absolutePath).toBe("src/new.ts");
+    });
+
+    it("a resumed edit's authoritative HUNK diff supersedes the gate WHOLE_FILE proposal", () => {
+      // The prod shape from aex_01kw6tt8d7gz3ph6vww2fq9vt5: a gated edit's
+      // pre-approval proposal captured only the bullet fix (WHOLE_FILE
+      // before/after, no TODO). On approval + resume the edit runs and the SDK
+      // reports the real diff (the bullet fix AND the appended ## TODO). The
+      // executed HUNK diff must SUPERSEDE the stale proposal, not be shadowed by
+      // it (the missing-diff defect).
+      const seeded = create(ToolCallSchema, {
+        id: "seed-edit",
+        name: "edit",
+        status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+        requiresApproval: true,
+        args: { file_path: "notes.md" },
+        argsPreview: JSON.stringify({ file_path: "notes.md", content: "[945 chars]" }),
+        fileChanges: [
+          buildFileChange({
+            path: "notes.md",
+            absolutePath: "/root/notes.md",
+            changeType: FileChangeType.MODIFY,
+            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+            before: "# Project Notes\n\n- hello-world service\n",
+            after: "# Project Notes\n\n- hello world service\n",
+          }),
+        ],
+      });
+      const messages: AgentMessage[] = [
+        create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_AI,
+          toolCalls: [seeded],
+        }),
+      ];
+      // Constructed over a seeded transcript: rebuildToolCallIndex re-indexes the
+      // WAITING_APPROVAL call so the resumed event reconciles onto it.
+      const acc = new MessageAccumulator(messages, { workspaceRoot: "/root" });
+
+      const diffString =
+        "@@ -1,3 +1,3 @@\n # Project Notes\n \n-- hello-world service\n" +
+        "+- hello world service\n@@ -3,1 +3,6 @@\n+\n+## TODO\n+\n+- a\n+- b\n";
+      acc.processEvent(
+        toolCallEvent("resumed-edit", "edit", "completed", "r2", {
+          args: { file_path: "notes.md" },
+          result: {
+            status: "completed",
+            value: { diffString, linesAdded: 6, linesRemoved: 1 },
+          },
+        }),
+      );
+
+      // The resumed call reconciled onto the seeded proto (committed id preserved).
+      const tc = findToolCallById(messages, "seed-edit");
+      expect(tc).toBeDefined();
+      expect(tc!.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+      expect(tc!.fileChanges).toHaveLength(1);
+      const fc = tc!.fileChanges[0];
+      expect(fc.captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
+      expect(fc.linesAdded).toBe(6);
+      expect(fc.linesRemoved).toBe(1);
+      expect(fc.unifiedDiff).toContain("## TODO");
+      // The stale WHOLE_FILE proposal no longer shadows the executed diff.
+      expect(fc.before).toBeUndefined();
+      expect(fc.after).toBeUndefined();
+    });
+
+    it("a gated write's WHOLE_FILE before/after proposal is not downgraded by a stream CREATE", () => {
+      // A gated write's gate proposal reads the pre-edit `before` from disk for a
+      // true before/after; the executed stream capture is a content-only CREATE
+      // (no before). The poorer CREATE must NOT overwrite the richer proposal.
+      const seeded = create(ToolCallSchema, {
+        id: "seed-write",
+        name: "write",
+        status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+        requiresApproval: true,
+        args: { file_path: "cfg.json" },
+        fileChanges: [
+          buildFileChange({
+            path: "cfg.json",
+            absolutePath: "/root/cfg.json",
+            changeType: FileChangeType.MODIFY,
+            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+            before: '{\n  "a": 1\n}\n',
+            after: '{\n  "a": 2\n}\n',
+          }),
+        ],
+      });
+      const messages: AgentMessage[] = [
+        create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_AI,
+          toolCalls: [seeded],
+        }),
+      ];
+      const acc = new MessageAccumulator(messages, { workspaceRoot: "/root" });
+
+      acc.processEvent(
+        toolCallEvent("resumed-write", "write", "completed", "r2", {
+          args: { file_path: "cfg.json", contents: '{\n  "a": 2\n}\n' },
+          result: "ok",
+        }),
+      );
+
+      const tc = findToolCallById(messages, "seed-write");
+      expect(tc!.fileChanges).toHaveLength(1);
+      const fc = tc!.fileChanges[0];
+      // Still the richer WHOLE_FILE before/after — not a content-only CREATE.
+      expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+      expect(fc.changeType).toBe(FileChangeType.MODIFY);
+      expect(fc.before?.body.case).toBe("inline");
+    });
+
+    it("a result-less running re-emit does not wipe a captured diff", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages, { workspaceRoot: "/root" });
+      acc.processEvent(assistantEvent("r1", "Editing."));
+      acc.processEvent(
+        toolCallEvent("tc-reemit", "StrReplace", "completed", "r1", {
+          args: { path: "src/app.ts", old_string: "a", new_string: "b" },
+          result: {
+            status: "completed",
+            value: { diffString: "@@ -1 +1 @@\n-a\n+b\n", linesAdded: 1, linesRemoved: 1 },
+          },
+        }),
+      );
+      expect(findToolCallById(messages, "tc-reemit")?.fileChanges).toHaveLength(1);
+
+      // A late, result-less "running" re-emit must not wipe the captured diff.
+      acc.processEvent(
+        toolCallEvent("tc-reemit", "StrReplace", "running", "r1", {
+          args: { path: "src/app.ts", old_string: "a", new_string: "b" },
+        }),
+      );
+      const fc = findToolCallById(messages, "tc-reemit")?.fileChanges[0];
+      expect(fc?.captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
+      expect(fc?.unifiedDiff).toContain("+b");
     });
   });
 });
