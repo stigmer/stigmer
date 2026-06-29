@@ -1427,15 +1427,18 @@ func assertNoMutatingToolCompleted(t *testing.T, exec *agentexecv1.AgentExecutio
 // workspace, where the harness denies each file edit, surfaces one card, and
 // re-invokes the model. The tests below exercise CAPTURE MODE, the primary path
 // for a git workspace: the agent edits files freely during the turn, then at the
-// turn boundary git captures the net change set per file, restores the working
-// tree to its pre-turn state, and surfaces one Accept/Reject card per changed
-// file (carrying the authoritative git-derived WHOLE_FILE diff). Approved files
-// are re-materialized as uncommitted working-tree changes; rejected/undecided
-// files stay at baseline. A pure file-review turn short-circuits to COMPLETED on
-// approval without re-invoking the agent (Cursor-like); a reject is a DISCARD
-// that also COMPLETES (never FAILED). See the runner's shadow-capture.ts /
-// capture-flow.ts and the deterministic unit suites for the authoritative locks;
-// these prove the user-observable end state through a live agent.
+// turn boundary git captures the net change set per file and LEAVES the working
+// tree in its applied ("after") state (Cursor parity — the user reviews the real
+// on-disk change), surfacing one Accept/Reject card per changed file (carrying
+// the authoritative git-derived WHOLE_FILE diff). On resume the tree is
+// reconciled to the per-file decisions from the pinned refs: approved files are
+// kept (uncommitted), rejected/undecided files snap back to baseline. Nothing is
+// committed and the next turn is blocked until approval. A pure file-review turn
+// short-circuits to COMPLETED on approval without re-invoking the agent
+// (Cursor-like); a reject is a DISCARD that also COMPLETES (never FAILED). See
+// the runner's shadow-capture.ts / capture-flow.ts and the deterministic unit
+// suites for the authoritative locks; these prove the user-observable end state
+// through a live agent.
 //
 // Capture mode is selected when the session's primary workspace is a real git
 // work tree (execute-cursor/index.ts: captureMode = isGitWorkTree(...)). Each
@@ -1558,7 +1561,7 @@ func TestCursorHarness_Capture_Reject_TreeByteIdentical(t *testing.T) {
 	)
 	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
 	require.NotEmpty(t, waiting.GetStatus().GetPendingApprovals(),
-		"the edit must surface a capture card before anything lands")
+		"the edit must surface a capture card for review (nothing is committed until approval)")
 
 	// Reject — capture-mode reject is a DISCARD that COMPLETES (not FAILED).
 	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
@@ -1646,11 +1649,11 @@ func TestCursorHarness_Capture_PartialDecision_OnlyApprovedLands(t *testing.T) {
 	require.NoError(t, err, "a partial decision should complete (approved applied, rejected discarded)")
 	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 
-	// Only the approved file changed; the rejected file is byte-identical to baseline.
+	// Only the approved file is kept; the rejected file is snapped back to baseline.
 	assert.Equal(t, "alpha-after", strings.TrimSpace(harness.ReadWorkspaceFile(t, gitDir, "alpha.txt")),
 		"the approved file must carry its new content")
 	assert.Equal(t, betaSeed, harness.ReadWorkspaceFile(t, gitDir, "beta.txt"),
-		"the rejected file must remain byte-identical to its pre-turn content")
+		"the rejected file must be byte-identical to its pre-turn content (the reject snapped it back)")
 
 	if alphaCard := findCaptureToolCall(result, "alpha.txt"); assert.NotNil(t, alphaCard) {
 		assert.Equal(t, agentexecv1.ToolCallStatus_TOOL_CALL_COMPLETED, alphaCard.GetStatus(),

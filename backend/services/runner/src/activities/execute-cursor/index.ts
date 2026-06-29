@@ -303,14 +303,15 @@ async function executeCursorInner(
         adjudicatedApprovals = adjudicated.pendingApprovals;
         adjudicatedContentDigests = adjudicated.contentDigests;
 
-        // Capture-mode resume: apply the approved files from the pinned capture
-        // ref (as uncommitted working-tree changes), flip each per-file card in
-        // place, and drop the refs. If the turn's ONLY approvals were file cards,
-        // the agent already finished its full turn during capture, so there is
-        // nothing to re-run — short-circuit to COMPLETED (Cursor-like: approving
-        // applies; it does not re-prompt the agent). We re-invoke the agent only
-        // when an approved irreversible action (shell/MCP that stopped the turn
-        // early) must still run and continue.
+        // Capture-mode resume: reconcile the working tree to the per-file
+        // decisions from the pinned refs (approved kept at their "after" bytes,
+        // rejected/undecided snapped back to baseline — all uncommitted), flip
+        // each per-file card in place, and drop the refs. If the turn's ONLY
+        // approvals were file cards, the agent already finished its full turn
+        // during capture, so there is nothing to re-run — short-circuit to
+        // COMPLETED (Cursor-like: keeping the change does not re-prompt the
+        // agent). We re-invoke the agent only when an approved irreversible
+        // action (shell/MCP that stopped the turn early) must still run.
         if (captureMode && primaryWorkspaceDir) {
           const capResult = await applyCaptureDecisions({
             gitRoot: primaryWorkspaceDir,
@@ -329,10 +330,10 @@ async function executeCursorInner(
                 !isCaptureCard(id),
             );
             if (!nonCaptureReject && !approvedIrreversible) {
-              // Pure file review. Apply is done; the execution is complete. A
-              // reject is a DISCARD, not a failure (Cursor-like) — note which
-              // files were discarded so the next turn's agent re-syncs (its SDK
-              // context believed the edits stuck).
+              // Pure file review. Reconcile is done; the execution is complete.
+              // A reject is a DISCARD, not a failure (Cursor-like) — note which
+              // files were discarded (reverted to baseline) so the next turn's
+              // agent re-syncs (its SDK context believed those edits stuck).
               status.phase = ExecutionPhase.EXECUTION_COMPLETED;
               status.completedAt = utcTimestamp();
               if (capResult.hadReject) {
@@ -489,8 +490,9 @@ async function executeCursorInner(
     // Capture mode: pin the pre-turn baseline tree before the agent runs (and
     // before the gate is installed, though the gate files are excluded from the
     // capture anyway). The turn-end capture diffs the post-turn tree against this
-    // and restores it exactly. Covers a fresh turn and the approved-irreversible
-    // resume fall-through (the agent will run and may make further edits).
+    // to build the per-file cards; the baseline ref is also what a reject reverts
+    // to on resume. Covers a fresh turn and the approved-irreversible resume
+    // fall-through (the agent will run and may make further edits).
     if (captureMode && primaryWorkspaceDir) {
       baselineTree = await snapshotCaptureBaseline(primaryWorkspaceDir, executionId);
     }
@@ -1074,11 +1076,13 @@ async function executeCursorInner(
     // discarded by the backend's recompute on the next updateStatus.
     const deniedLedger = await readDenialLedger(hitlDir ?? "");
 
-    // Capture mode: revert the file edits that flowed this turn and turn the net
-    // change set into one WAITING_APPROVAL card per file (the runner-owned gate
-    // files are excluded from the capture). Runs BEFORE the denial reconcile so a
-    // denied (gitignored) write stays on the deny-gate path while every flowed
-    // edit becomes a capture card. Nothing lands until the user approves.
+    // Capture mode: turn the net change set into one WAITING_APPROVAL card per
+    // file (the runner-owned gate files are excluded from the capture). The
+    // agent's edits are LEFT applied on the working tree (Cursor parity — the
+    // user reviews the real change; nothing is committed and the next turn is
+    // blocked until approval, and a reject snaps each file back on resume). Runs
+    // BEFORE the denial reconcile so a denied (gitignored) write stays on the
+    // deny-gate path while every flowed edit becomes a capture card.
     let capturedChangeCount = 0;
     if (captureMode && baselineTree && primaryWorkspaceDir) {
       const deniedTokens = new Set(deniedLedger.map((e) => e.token));
@@ -1093,7 +1097,7 @@ async function executeCursorInner(
       if (capturedChangeCount > 0) {
         console.log(
           `ExecuteCursor capture: ${capturedChangeCount} file card(s) for review, ` +
-          `working tree restored to baseline (execution=${executionId})`,
+          `working tree left applied for review (execution=${executionId})`,
         );
       }
     }

@@ -1,11 +1,14 @@
 /**
- * Unit tests for the git snapshot/restore capture substrate.
+ * Unit tests for the git snapshot/restore capture substrate (the PRIMITIVES:
+ * snapshot / capture / restore / apply / recompute / drop).
  *
  * These run against a REAL temporary git repo (the behavior is entirely git
- * plumbing, so a real repo is the only faithful test), exercising the full
- * snapshot -> edit -> capture -> restore -> apply lifecycle plus the hard
- * invariants (the `.stigmer` SDK state and gitignored paths survive; runner-owned
- * gate files never pollute the diff; nothing lands until apply).
+ * plumbing, so a real repo is the only faithful test). They exercise each
+ * primitive directly — restoreToBaseline and applyApprovedPaths are the
+ * reconcile pair the resume path composes (see capture-flow.ts: capture mode
+ * leaves the tree applied during review and reconciles to the refs on resume) —
+ * plus the hard invariants (the `.stigmer` SDK state and gitignored paths
+ * survive; runner-owned gate files never pollute the diff).
  */
 
 import { execFile } from "node:child_process";
@@ -20,6 +23,7 @@ import {
   captureChangeSet,
   dropCaptureRefs,
   isGitWorkTree,
+  recomputeChangeSet,
   restoreToBaseline,
   snapshotBaseline,
   type CapturedFileChange,
@@ -190,6 +194,30 @@ describe("hard invariants", () => {
 
     await restoreToBaseline(repo, baseline, changes);
     expect(await exists(".env")).toBe(true); // not clobbered by restore
+  });
+});
+
+describe("recomputeChangeSet (resume source of truth)", () => {
+  it("returns baselineTree, afterTree, and changes from the pinned refs", async () => {
+    const baseline = await snapshotBaseline(repo, EXEC_ID);
+    await write("notes.md", "planton notes\n");
+    await write("src/new.ts", "export const y = 2;\n");
+    const captured = await captureChangeSet(repo, EXEC_ID, baseline);
+
+    // On resume the refs (not the live tree) are the source of truth: recompute
+    // re-derives the exact baseline/after trees and the per-file change set.
+    const recomputed = await recomputeChangeSet(repo, EXEC_ID);
+    expect(recomputed).toBeDefined();
+    expect(recomputed!.baselineTree).toBe(baseline);
+    expect(recomputed!.afterTree).toBe(captured.afterTree);
+    expect(recomputed!.changes.map((c) => c.path).sort()).toEqual([
+      "notes.md",
+      "src/new.ts",
+    ]);
+  });
+
+  it("returns undefined when the execution never captured (no refs)", async () => {
+    expect(await recomputeChangeSet(repo, "never-captured")).toBeUndefined();
   });
 });
 

@@ -352,11 +352,12 @@ if ! __stigmer_is_own_agent; then
 fi
 
 # --- Capture-mode helper: is a path gitignored? -----------------------------
-# In capture mode the runner snapshots/reverts the working tree with git, but a
-# gitignored path (e.g. .env, build output) is invisible to that snapshot — so it
-# can be neither captured for review nor reverted. Such writes/deletes therefore
-# stay on the deny-gate. Returns 0 (true) when the path is ignored. A non-git
-# context or a missing path returns non-zero (treated as not-ignored -> allow).
+# In capture mode the runner snapshots the working tree with git and reconciles
+# it to the user's per-file decisions on resume, but a gitignored path (e.g.
+# .env, build output) is invisible to that snapshot — so it can be neither
+# captured for review nor reverted on reject. Such writes/deletes therefore stay
+# on the deny-gate. Returns 0 (true) when the path is ignored. A non-git context
+# or a missing path returns non-zero (treated as not-ignored -> allow).
 __stigmer_is_gitignored() {
   _p="$1"
   [ -z "$_p" ] && return 1

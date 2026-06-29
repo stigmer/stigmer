@@ -1,8 +1,8 @@
 /**
  * Tests for capture-mode turn orchestration: the turn-end transform (streamed
- * edits -> per-file cards, tree reverted) and the resume transform (approved
- * files applied, cards flipped). Runs against a REAL temp git repo with
- * in-memory transcript messages.
+ * edits -> per-file cards, tree LEFT applied for Cursor-parity review) and the
+ * resume transform (reconcile to refs — approved kept, rejected reverted — cards
+ * flipped). Runs against a REAL temp git repo with in-memory transcript messages.
  */
 
 import { execFile } from "node:child_process";
@@ -87,7 +87,7 @@ afterEach(async () => {
 });
 
 describe("captureTurnForApproval", () => {
-  it("reverts the tree, hides streamed edits, and appends one card per changed file", async () => {
+  it("keeps the agent's edits applied, hides streamed edits, and appends one card per changed file", async () => {
     const baseline = await snapshotCaptureBaseline(repo, EXEC_ID);
 
     // The agent's edits flowed to disk during the turn.
@@ -108,9 +108,11 @@ describe("captureTurnForApproval", () => {
 
     expect(changes).toHaveLength(2);
 
-    // Nothing landed: the tree is byte-identical to pre-turn.
-    expect(await read("notes.md")).toBe("platon notes\n");
-    expect(await exists("src/new.ts")).toBe(false);
+    // Cursor parity: the agent's edits stay applied on disk for review (the
+    // change is real; approval is keep/discard, not apply-after-the-fact).
+    expect(await read("notes.md")).toBe("planton notes\n\n## TODO\n- ship\n");
+    expect(await exists("src/new.ts")).toBe(true);
+    expect(await read("src/new.ts")).toBe("export const y = 2;\n");
 
     // The streamed edit rows are hidden (collapsed SKIPPED, no fileChanges).
     const streamed = messages
@@ -135,7 +137,7 @@ describe("captureTurnForApproval", () => {
     );
   });
 
-  it("creates no card and reverts cleanly when the turn changed nothing", async () => {
+  it("creates no card when the turn changed nothing", async () => {
     const baseline = await snapshotCaptureBaseline(repo, EXEC_ID);
     const messages: AgentMessage[] = [];
     const changes = await captureTurnForApproval({
@@ -166,6 +168,11 @@ describe("applyCaptureDecisions (resume)", () => {
       messages,
       deniedTokens: new Set(),
     });
+
+    // Cursor parity: BOTH edits remain applied on disk during review (pre-
+    // decision) — the reject is what reverts later, not the turn-end capture.
+    expect(await read("notes.md")).toBe("planton notes\n");
+    expect(await read("src/main.ts")).toBe("export const x = 99;\n");
 
     // The backend records the user's decisions on the cards.
     const cards = captureCards(messages);
@@ -200,6 +207,38 @@ describe("applyCaptureDecisions (resume)", () => {
 
     // Refs released.
     expect((await git(["for-each-ref", "refs/stigmer/"])).trim()).toBe("");
+  });
+
+  it("reconstructs an approved file from the ref even if the tree was reset (retry-safe)", async () => {
+    const baseline = await snapshotCaptureBaseline(repo, EXEC_ID);
+    await write("notes.md", "planton notes\n");
+    const messages: AgentMessage[] = [
+      streamedEdit("tc-1", "notes.md", "planton notes\n"),
+    ];
+    await captureTurnForApproval({
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      baselineTree: baseline,
+      messages,
+      deniedTokens: new Set(),
+    });
+    captureCards(messages).find((c) => c.id === "capture:notes.md")!.approvalAction =
+      ApprovalAction.APPROVE;
+
+    // Simulate a tree reset before resume (Temporal retry / sandbox recycle):
+    // the approved bytes are gone from disk, but the pinned refs survive.
+    await write("notes.md", "platon notes\n");
+
+    const result = await applyCaptureDecisions({
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      messages,
+    });
+
+    expect(result.approvedPaths).toEqual(["notes.md"]);
+    // Reconcile-from-refs re-asserts the approved "after" bytes regardless of
+    // the tree's current contents.
+    expect(await read("notes.md")).toBe("planton notes\n");
   });
 
   it("returns isCaptureTurn=false when there is no capture ref (non-capture resume)", async () => {

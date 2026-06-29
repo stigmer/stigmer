@@ -3,17 +3,20 @@
  *
  * This is the glue between the git snapshot/restore substrate (shadow-capture.ts)
  * and the agent execution transcript: it turns "the agent edited files freely
- * this turn" into "one Accept/Reject card per changed file, nothing landed yet",
- * and on resume applies exactly the approved files.
+ * this turn" into "one Accept/Reject card per changed file, reviewed against the
+ * real on-disk change", and on resume reconciles the tree to the user's
+ * decisions.
  *
  * It owns the two turn-boundary transforms and nothing else:
- *  - {@link captureTurnForApproval} (turn end): capture the change set, restore
- *    the working tree to its pre-turn state (nothing lands), hide the streamed
- *    file-edit rows, and append ONE WAITING_APPROVAL card per changed file
- *    carrying the authoritative git-derived diff.
+ *  - {@link captureTurnForApproval} (turn end): capture the change set, LEAVE the
+ *    working tree in its applied state (Cursor parity — nothing is committed and
+ *    the next turn is blocked until approval), hide the streamed file-edit rows,
+ *    and append ONE WAITING_APPROVAL card per changed file carrying the
+ *    authoritative git-derived diff.
  *  - {@link applyCaptureDecisions} (resume): recompute the change set from the
- *    pinned refs, apply only the approved files as uncommitted working-tree
- *    changes, flip each card COMPLETED/SKIPPED in place, and drop the refs.
+ *    pinned refs and reconcile the tree to the decisions — keep approved files
+ *    (re-asserted from the "after" ref), snap rejected/undecided files back to
+ *    baseline — then flip each card COMPLETED/SKIPPED in place and drop the refs.
  *
  * The synthetic card ids are `capture:<repo-relative-path>` so the resume side
  * can recover each file's decision without depending on any other identity. New
@@ -66,9 +69,12 @@ export async function snapshotCaptureBaseline(
 }
 
 /**
- * Turn-end capture: build the change set, restore the working tree to baseline
- * (so NOTHING the turn produced has landed), hide the streamed file-edit rows
- * that flowed, and append one WAITING_APPROVAL card per changed file.
+ * Turn-end capture: build the change set, LEAVE the working tree in its applied
+ * ("after") state (Cursor parity — the user reviews the real change; nothing is
+ * committed and the next turn is blocked until they decide), hide the streamed
+ * file-edit rows that flowed, and append one WAITING_APPROVAL card per changed
+ * file. The pinned baseline/after refs are the authoritative source for the
+ * resume-time reconcile ({@link applyCaptureDecisions}).
  *
  * `deniedTokens` are the identities the hook gated this turn (shell/MCP, or a
  * gitignored write/delete). A streamed file-edit row whose identity is in that
@@ -87,9 +93,11 @@ export async function captureTurnForApproval(opts: {
   const { gitRoot, executionId, baselineTree, messages, deniedTokens } = opts;
 
   const { changes } = await captureChangeSet(gitRoot, executionId, baselineTree);
-  // Revert the working tree so the user reviews against a clean baseline and
-  // nothing lands until they approve.
-  await restoreToBaseline(gitRoot, baselineTree, changes);
+  // Cursor parity: the agent's edits are LEFT applied on the working tree so the
+  // user reviews the real, on-disk change (the workspace browser shows it and
+  // the agent's "I edited X" narration stays true). Nothing is committed and the
+  // next turn is blocked until approval; a reject snaps each file back exactly on
+  // resume (applyCaptureDecisions -> restoreToBaseline). We do NOT revert here.
 
   // Hide the streamed file-edit rows that flowed this turn — their net change is
   // now shown on a per-file card. Leaves denied (gitignored/shell) rows alone.
@@ -122,11 +130,14 @@ export interface CaptureResumeResult {
 }
 
 /**
- * Resume: apply the approved files from the captured "after" tree as uncommitted
- * working-tree changes, flip each capture card COMPLETED (approved) or SKIPPED
- * (rejected/undecided) in place, and release the refs. The working tree is
- * assumed to be at baseline (the prior turn restored it), so applying replays
- * only the approved files; rejected files simply stay at baseline.
+ * Resume: reconcile the working tree to the per-file decisions, sourced entirely
+ * from the pinned baseline/after refs — approved files are ensured at their
+ * "after" bytes (uncommitted; normally already on disk from the review window,
+ * re-asserted idempotently), rejected/undecided files are snapped back to their
+ * exact baseline bytes. Then flip each capture card COMPLETED (approved) or
+ * SKIPPED (rejected/undecided) in place and release the refs. Because both sides
+ * are ref-sourced, the result is correct regardless of the tree's current
+ * contents (idempotent under a Temporal retry or a tree reset).
  *
  * Mutates `messages` in place.
  */
@@ -153,6 +164,7 @@ export async function applyCaptureDecisions(opts: {
   }
 
   const approved: CapturedFileChange[] = [];
+  const rejected: CapturedFileChange[] = [];
   const approvedPaths: string[] = [];
   const rejectedPaths: string[] = [];
   let hadReject = false;
@@ -165,11 +177,17 @@ export async function applyCaptureDecisions(opts: {
       approvedPaths.push(change.path);
     } else {
       if (action === ApprovalAction.REJECT) hadReject = true;
+      rejected.push(change);
       rejectedPaths.push(change.path);
     }
   }
 
+  // Reconcile the working tree to the decisions from the authoritative refs:
+  // approved files keep (re-assert) their "after" bytes; rejected/undecided
+  // files snap back to baseline. Both sides are ref-sourced, so this converges
+  // to the correct end state no matter what the tree currently holds.
   await applyApprovedPaths(gitRoot, recomputed.afterTree, approved);
+  await restoreToBaseline(gitRoot, recomputed.baselineTree, rejected);
 
   // Flip the cards in place (append-only-safe — status change, id preserved).
   for (const [path, card] of cardByPath) {
@@ -249,13 +267,16 @@ function buildCaptureCard(change: CapturedFileChange): ToolCall {
 }
 
 function approvalMessageFor(change: CapturedFileChange): string {
+  // Keep/discard framing: in capture mode the change is already applied on disk,
+  // so approval is a decision to KEEP it (reject discards it), matching the
+  // Cursor IDE's Accept/Reject semantics.
   switch (change.changeType) {
     case FileChangeType.CREATE:
-      return `Create file: ${change.path}`;
+      return `Keep new file: ${change.path}`;
     case FileChangeType.DELETE:
-      return `Delete file: ${change.path}`;
+      return `Keep deletion of: ${change.path}`;
     default:
-      return `Edit file: ${change.path}`;
+      return `Keep edit to: ${change.path}`;
   }
 }
 

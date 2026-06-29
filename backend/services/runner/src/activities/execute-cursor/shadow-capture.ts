@@ -4,24 +4,41 @@
  * THE MODEL
  * ---------
  * The Cursor IDE applies edits live and lets you review them after; rejecting a
- * file snaps it back exactly. We reproduce that on the server while keeping the
- * platform's "nothing lands until you approve" safety. The deny-only harness
- * cannot do this (it fragments one logical change into many approval cycles), so
- * for a GIT workspace we instead let every file edit flow during the turn, then
- * use git as a NO-COMMIT snapshot/restore substrate at the turn boundary:
+ * file snaps it back exactly. We reproduce that 1:1 on the server: the agent's
+ * edits stay APPLIED to the working tree while the user reviews, and approval is
+ * a KEEP/DISCARD decision over the real, on-disk change — not an apply-after-the-
+ * fact. The deny-only harness cannot do this (it fragments one logical change
+ * into many approval cycles), so for a GIT workspace we let every file edit flow
+ * during the turn and use git as a NO-COMMIT snapshot/restore substrate at the
+ * turn boundary:
  *
- *  1. snapshotBaseline() at turn start — record the exact pre-turn working tree.
+ *  1. snapshotBaseline() at turn start — record the exact pre-turn working tree
+ *     and pin it behind a ref so it survives a multi-day approval wait.
  *  2. The agent edits files freely (the hook allows write/edit/delete).
  *  3. captureChangeSet() at turn end — diff the post-turn tree against the
  *     baseline into a per-file change set, and pin the post-turn ("after") tree
- *     behind a ref so it survives a multi-day approval wait.
- *  4. restoreToBaseline() — put the working tree back to its pre-turn state so
- *     NOTHING has landed while the user reviews.
- *  5. On approval, applyApprovedPaths() re-materializes ONLY the approved files
- *     from the captured "after" tree, as ordinary UNCOMMITTED working-tree
- *     changes (the harness never commits — see the no-writeback finding in the
- *     plan). Rejected/undecided files stay at baseline.
- *  6. dropCaptureRefs() releases the pinned objects.
+ *     behind a ref. The working tree is LEFT in its "after" state: the user
+ *     reviews the real, applied change (Cursor parity) and the workspace browser
+ *     shows it.
+ *  4. On resume, reconcile the working tree to the per-file decisions, sourced
+ *     ENTIRELY from the two pinned refs (not the live tree, not the persisted
+ *     card bodies — the refs are the single source of truth):
+ *       - approved           -> applyApprovedPaths() ensures the "after" bytes.
+ *       - rejected/undecided -> restoreToBaseline() snaps the file back to its
+ *         exact pre-turn bytes.
+ *     This is symmetric and idempotent: it converges to the correct end state
+ *     regardless of the tree's current contents, so a Temporal retry or a tree
+ *     reset is harmless. Approved work stays UNCOMMITTED (the harness never
+ *     commits — see the no-writeback finding in the plan).
+ *  5. dropCaptureRefs() releases the pinned objects.
+ *
+ * NOTHING IS PERMANENT UNTIL APPROVAL
+ * -----------------------------------
+ * Edits are visible during review (as in the Cursor IDE), but nothing is
+ * committed and the next turn is blocked until the user decides; a reject snaps
+ * the file back byte-for-byte from the baseline ref. Shell/MCP and gitignored
+ * writes/deletes are NOT reversible by this substrate, so they stay on the
+ * deny-gate (approve-before-run) — see hook-script.ts.
  *
  * WHY GIT, NO COMMITS
  * -------------------
@@ -108,8 +125,13 @@ export interface CapturedFileChange {
   readonly fileChange: FileChange;
 }
 
-/** Result of {@link captureChangeSet}. */
+/** Result of {@link captureChangeSet} / {@link recomputeChangeSet}. */
 export interface CaptureResult {
+  /**
+   * The pre-turn tree sha (pinned behind the baseline ref). On resume this is
+   * the authoritative source for reverting rejected/undecided files exactly.
+   */
+  readonly baselineTree: string;
   /** The post-turn tree sha, also pinned behind the capture ref. */
   readonly afterTree: string;
   /** One entry per changed file (excluding runner-owned gate files). */
@@ -262,15 +284,17 @@ export async function captureChangeSet(
     const change = await buildCapturedChange(gitRoot, baselineTree, afterTree, status, path);
     if (change) changes.push(change);
   }
-  return { afterTree, changes };
+  return { baselineTree, afterTree, changes };
 }
 
 /**
- * Restore the working tree to `baselineTree` so nothing the turn produced has
- * landed while the user reviews. Surgical (bounded by the change set): an
- * agent-created file is removed; an agent-modified or agent-deleted file is
- * rewritten with its baseline bytes. `.stigmer` and other ignored paths are
- * never touched (they are not in the change set).
+ * Restore the given files to their `baselineTree` (pre-turn) bytes. On resume
+ * this reverts the REJECTED/undecided subset so a discarded change snaps back
+ * exactly; it is the generic "ensure baseline bytes" primitive. Surgical
+ * (bounded by the passed change set): an agent-created file is removed; an
+ * agent-modified or agent-deleted file is rewritten with its baseline bytes.
+ * `.stigmer` and other ignored paths are never touched (they are not in the
+ * change set). Idempotent — safe to re-run (e.g. on a Temporal retry).
  */
 export async function restoreToBaseline(
   gitRoot: string,
@@ -289,10 +313,14 @@ export async function restoreToBaseline(
 }
 
 /**
- * Re-materialize ONLY the approved files from the captured "after" tree, as
- * uncommitted working-tree changes (no commit). The tree is assumed to be at
- * baseline (post-{@link restoreToBaseline}); applying replays the agent's change
- * for each approved path. Rejected/undecided paths are simply not passed in.
+ * Ensure the APPROVED files hold their captured "after" bytes, as uncommitted
+ * working-tree changes (no commit). In capture mode the agent's edits are left
+ * applied through the review window, so on resume this is normally an idempotent
+ * re-assert of bytes already on disk; sourcing from the pinned "after" tree also
+ * makes it self-healing if the tree was reset (Temporal retry / sandbox
+ * recycle). An approved CREATE/MODIFY writes the after bytes; an approved DELETE
+ * removes the file. Rejected/undecided paths are not passed in (they go to
+ * {@link restoreToBaseline}).
  */
 export async function applyApprovedPaths(
   gitRoot: string,
@@ -338,7 +366,7 @@ export async function recomputeChangeSet(
     const change = await buildCapturedChange(gitRoot, baselineTree, afterTree, status, path);
     if (change) changes.push(change);
   }
-  return { afterTree, changes };
+  return { baselineTree, afterTree, changes };
 }
 
 /** Resolve a ref to its tree sha, or `undefined` when the ref does not exist. */
