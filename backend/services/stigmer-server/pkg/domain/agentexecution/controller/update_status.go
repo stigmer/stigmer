@@ -11,6 +11,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview"
 )
 
 // UpdateStatus updates execution status during agent execution
@@ -282,6 +283,17 @@ func applyUpdateStatusMerge(
 		status.GetMessages(),
 		status.GetSubAgentExecutions(),
 		status.GetApprovalEventStream(),
+	)
+
+	// Recompute file_change_sets from the append-only file_review ledger via its
+	// single projection seam. The ledger is server-only (carried over from the
+	// loaded resource, never sent by the runner) and authored by the runner's
+	// capture/reconcile activities and by SubmitFileDecision; this projection is
+	// always derived, never merged, so it cannot go stale. Empty until a producer
+	// authors events (Phase 2).
+	status.FileChangeSets = filereview.ProjectFileChangeSets(
+		status.GetPhase(),
+		status.GetFileReviewEventStream(),
 	)
 
 	// Merge streaming_usage (replace with latest from request).

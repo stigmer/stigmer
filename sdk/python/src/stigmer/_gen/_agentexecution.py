@@ -57,6 +57,12 @@ class AgentExecutionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def submit_file_decision(self, input: io_pb2.SubmitFileDecisionInput) -> api_pb2.AgentExecution:
+        try:
+            return self._command.submitFileDecision(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def cancel(self, input: io_pb2.CancelAgentExecutionInput) -> api_pb2.AgentExecution:
         try:
             return self._command.cancel(input)

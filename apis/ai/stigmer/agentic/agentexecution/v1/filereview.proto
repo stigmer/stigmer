@@ -1,0 +1,425 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentexecution/v1/message.proto";
+import "buf/validate/validate.proto";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File Change Review (apply-then-review HITL)
+//
+// These types model AI file edits as captured workspace deltas reviewed as a
+// unit, NOT as tool calls. A turn captures a baseline snapshot, lets edits
+// happen in a reversible substrate, captures the candidate at the turn
+// boundary, and the authoritative diff(baseline, candidate) is reviewed at
+// change-set / file granularity. Decisions bind to content digests; the runner
+// reconciles the exact approved bytes with hash verification.
+//
+// The lifecycle is recorded in a FileReviewEventStream — an append-only ledger
+// that is a SIBLING of the approval event stream, deliberately separate from
+// the message transcript. FileChangeSet is the computed projection over that
+// ledger, exactly as PendingApproval is the projection over the approval
+// stream. This file holds the projection types (SDK-facing) and the ledger
+// types (@internal, server-only), mirroring the split between approval.proto's
+// PendingApproval and ApprovalEventStream.
+//
+// Identity rule (load-bearing): correlation is ALWAYS by stable id
+// (FileChangeSet.id, CapturedFileChange.id); content digests
+// (aggregate_digest, file_digest, before/after_sha256, expected_digest) are an
+// ENFORCEMENT gate only — the runner refuses to apply content whose digest
+// differs from what the user approved — and are NEVER used to match a decision
+// to a change. This is the platform's standing "fingerprint = enforcement,
+// never correlation" rule applied to file review.
+//
+// @since File-Change HITL Redesign (Phase 1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The set of file deltas produced by one agent turn, reviewed and reconciled
+// as a unit.
+//
+// A FileChangeSet has no identity or lifecycle independent of the turn that
+// produced it: it is born when the turn captures its baseline and dies when its
+// decisions are reconciled into the workspace. It is therefore a computed
+// projection on AgentExecutionStatus (field file_change_sets), mirroring
+// pending_approvals — recomputed on every status write from the file_review
+// event ledger, never merged, so it is always consistent with the authoritative
+// stream.
+//
+// @internal
+//
+// Server-authored: the runner never sends this; it is derived server-side in
+// both editions through one projection seam. status and decisions are DERIVED
+// folds over the ledger, not stored-mutable state. A terminal execution
+// projects no actionable review (the workflow that would reconcile is gone),
+// mirroring the phase-aware pending_approvals rule.
+//
+// @since File-Change HITL Redesign (Phase 1)
+message FileChangeSet {
+  // Stable id of this change set, unique per turn. The correlation key a
+  // FileDecision and every ledger event reference. Never a content hash.
+  string id = 1;
+
+  // Id of the turn that produced this change set.
+  string turn_id = 2;
+
+  // Harness that produced the edits: "cursor" | "deep-agent". Carried for audit
+  // and so the reconcile adapter knows which harness lifecycle authored the set.
+  string harness_id = 3;
+
+  // Current state of the change set, DERIVED from the file_review ledger (a fold
+  // over the events for this change set). See FileChangeSetStatus.
+  FileChangeSetStatus status = 4 [(buf.validate.field).enum.defined_only = true];
+
+  // Workspace state captured at turn start — the "before" the authoritative
+  // diff is computed against.
+  SnapshotRef baseline_snapshot = 5;
+
+  // Workspace state captured at the turn boundary — the "after". The authoritative
+  // diff is diff(baseline_snapshot, candidate_snapshot); no streamed args, no
+  // pre-execution proposal is ever authoritative.
+  SnapshotRef candidate_snapshot = 6;
+
+  // Workspace state derived after decisions (the exact bytes to reconcile to).
+  // Empty until the change set is decided. Reconcile verifies the filesystem
+  // hashes against this snapshot.
+  SnapshotRef approved_snapshot = 7;
+
+  // The per-file deltas in this change set (the rendered review surface).
+  repeated CapturedFileChange changes = 8;
+
+  // Canonical digest over the ordered change manifest. ENFORCEMENT only: lets
+  // the reconcile refuse to apply a manifest that differs from what was
+  // reviewed. Never a correlation key.
+  string aggregate_digest = 9;
+
+  // Whether the rendered diff is complete enough to approve safely. A
+  // non-COMPLETE value blocks normal approval (an elided/binary-only diff can
+  // never be approved as if complete). See DiffCompleteness.
+  DiffCompleteness diff_completeness = 10 [(buf.validate.field).enum.defined_only = true];
+
+  // Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
+  // events in the ledger (never stored-mutable). Ordered by decision time.
+  repeated FileDecision decisions = 11;
+}
+
+// One file's delta within a FileChangeSet.
+//
+// Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef
+// for the offloadable unified diff — no parallel blob/artifact types. This is
+// the apply-then-review successor to the tool-call-coupled FileChange in
+// message.proto; the two coexist until the legacy file-change coupling is
+// deleted, at which point this message takes the canonical FileChange name.
+//
+// @since File-Change HITL Redesign (Phase 1)
+message CapturedFileChange {
+  // Stable id of this file change within its set. The correlation key a
+  // FILE-scoped FileDecision references. Never a content hash.
+  string id = 1;
+
+  // Path before the change (workspace-root-relative). Empty for ADD.
+  string path_before = 2;
+
+  // Path after the change (workspace-root-relative). Empty for DELETE; differs
+  // from path_before for RENAME.
+  string path_after = 3;
+
+  // The per-file outcome. See FileChangeKind.
+  FileChangeKind kind = 4 [(buf.validate.field).enum.defined_only = true];
+
+  // How this file was captured (git-tracked vs ignored vs non-git/CAS), which
+  // governs which substrate holds its before/after bytes. See FileCaptureClass.
+  FileCaptureClass capture_class = 5 [(buf.validate.field).enum.defined_only = true];
+
+  // Pre-edit content. Empty for ADD. Large bodies offloaded via FileContent.ref.
+  FileContent before = 6;
+
+  // Post-edit content. Empty for DELETE. Large bodies offloaded via FileContent.ref.
+  FileContent after = 7;
+
+  // SHA-256 of the pre-edit bytes. ENFORCEMENT digest (the reconcile compares
+  // against the on-disk baseline). Empty for ADD.
+  string before_sha256 = 8;
+
+  // SHA-256 of the post-edit bytes. ENFORCEMENT digest (the reconcile applies
+  // only these exact bytes). Empty for DELETE.
+  string after_sha256 = 9;
+
+  // Offloadable unified diff artifact for this file. The rendered hunks; large
+  // diffs spill to artifact storage via the same envelope tool output uses.
+  ToolCallOutputRef unified_diff = 10;
+
+  // False when this file's diff is incomplete (elided, truncated, or not
+  // capturable). A change set with any diff_complete == false cannot be
+  // approved as complete — the structural guard against approving an
+  // unreviewable change.
+  bool diff_complete = 11;
+
+  // Canonical digest of (path, kind, before, after) for this file. ENFORCEMENT
+  // only — the per-file analogue of aggregate_digest. Never a correlation key.
+  string file_digest = 12;
+}
+
+// An immutable pointer to a captured workspace state.
+//
+// One of git / cas is set per kind; HYBRID carries both (git-tracked files via
+// the tree ref, ignored/non-git files via the CAS manifest). Snapshots are
+// captured by the runner and are idempotent under Temporal retries.
+//
+// @since File-Change HITL Redesign (Phase 1)
+message SnapshotRef {
+  // Which substrate holds this snapshot. See SnapshotKind.
+  SnapshotKind kind = 1 [(buf.validate.field).enum.defined_only = true];
+
+  // Git no-commit tree reference; set when kind is GIT_TREE_REF or HYBRID.
+  GitTreeRef git = 2;
+
+  // Content-addressed manifest reference for ignored/non-git paths; set when
+  // kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).
+  CasManifestRef cas = 3;
+}
+
+// A git no-commit tree snapshot (write-tree + a stigmer-namespaced ref).
+//
+// @since File-Change HITL Redesign (Phase 1)
+message GitTreeRef {
+  // The tree object id produced by git write-tree.
+  string tree_oid = 1;
+
+  // The ref the snapshot is pinned under, e.g.
+  // "refs/stigmer/{execution}/{baseline|candidate|approved}". Keeps the
+  // snapshot reachable (un-GC'd) without a commit on any user branch.
+  string ref = 2;
+}
+
+// A content-addressed snapshot manifest for paths git cannot capture
+// (gitignored or non-git workspaces).
+//
+// @internal
+// Realized in Phase 3 (CAS). Present in the contract now so the snapshot shape
+// is stable before producers exist.
+//
+// @since File-Change HITL Redesign (Phase 1)
+message CasManifestRef {
+  // Digest of the manifest listing each captured path and its blob digest.
+  string manifest_digest = 1;
+
+  // Storage URI of the manifest artifact.
+  string artifact_uri = 2;
+}
+
+// One human decision on a change set or a single file within it.
+//
+// Bound to content by expected_digest: the runner's reconcile applies the
+// decision only when the target's current digest still matches what the user
+// saw, so "what you approve is what gets applied". expected_digest is an
+// ENFORCEMENT gate, never a correlation key — correlation is by change_set_id
+// (+ file_change_id for FILE scope).
+//
+// @since File-Change HITL Redesign (Phase 1)
+message FileDecision {
+  // Stable id of this decision.
+  string id = 1;
+
+  // The change set this decision targets (correlation key).
+  string change_set_id = 2;
+
+  // Whether the decision applies to the whole change set or one file. HUNK is
+  // intentionally deferred. See FileDecisionScope.
+  FileDecisionScope scope = 3 [(buf.validate.field).enum.defined_only = true];
+
+  // The CapturedFileChange this decision targets; set only when scope is FILE
+  // (correlation key). Empty for CHANGE_SET scope.
+  string file_change_id = 4;
+
+  // Approve or reject. See FileDecisionAction.
+  FileDecisionAction action = 5 [(buf.validate.field).enum.defined_only = true];
+
+  // The digest of the content the reviewer actually saw. ENFORCEMENT gate: the
+  // reconcile refuses to apply if the target's current digest differs. Never a
+  // correlation key.
+  string expected_digest = 6;
+
+  // Identity of the reviewer (principal). Empty when not attributed.
+  string reviewer_id = 7;
+
+  // ISO 8601 timestamp when the decision was made.
+  string decided_at = 8;
+
+  // Optional free-text comment supplied with the decision (audit trail).
+  string reason = 9;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File Review Event Stream (the append-only ledger — server-only)
+//
+// The authoritative source FileChangeSet is projected from. A sibling of the
+// approval event stream, NOT a reuse of it: the ApprovalEvent payload oneof is
+// closed and models a different lifecycle ("a gated call is requested, then
+// decided or retracted"), whereas file review is "capture baseline → execute →
+// capture candidate → decide per file → reconcile → verify". File-review events
+// therefore get their own typed event union here, while inheriting every
+// write-discipline guarantee of the approval stream verbatim (one append-only
+// chokepoint per edition, deterministic event_id idempotency, a computed
+// projection seam).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The baseline workspace state captured at turn start.
+//
+// @internal
+// Authored by the runner's turn-begin capture activity. The first event of a
+// change set's lifecycle; carries the change set's stable identity so the
+// projection can materialize the set before any candidate exists.
+//
+// @since File-Change HITL Redesign (Phase 1)
+message FileReviewBaselineCaptured {
+  // Stable id of the change set this baseline opens.
+  string change_set_id = 1;
+
+  // The turn that produced it.
+  string turn_id = 2;
+
+  // The harness that produced it ("cursor" | "deep-agent").
+  string harness_id = 3;
+
+  // The captured baseline state.
+  SnapshotRef baseline_snapshot = 4;
+}
+
+// The candidate workspace state captured at the turn boundary, carrying the
+// computed authoritative diff.
+//
+// @internal
+// Authored by the runner's turn-boundary capture activity. Large before/after
+// bodies are offloaded (FileContent.ref) before this event is persisted.
+//
+// @since File-Change HITL Redesign (Phase 1)
+message FileReviewCandidateCaptured {
+  // The change set this candidate closes.
+  string change_set_id = 1;
+
+  // The captured candidate state.
+  SnapshotRef candidate_snapshot = 2;
+
+  // The authoritative per-file diff (diff of baseline → candidate).
+  repeated CapturedFileChange changes = 3;
+
+  // Canonical digest over the ordered manifest (enforcement).
+  string aggregate_digest = 4;
+
+  // Whether the diff is complete enough to approve. See DiffCompleteness.
+  DiffCompleteness diff_completeness = 5 [(buf.validate.field).enum.defined_only = true];
+}
+
+// The result of reconciling approved decisions into the workspace.
+//
+// @internal
+// Authored by the runner's reconcile activity after decisions land. Idempotent:
+// it reconciles to an exact approved snapshot and verifies hashes, so re-running
+// converges.
+//
+// @since File-Change HITL Redesign (Phase 1)
+message FileReviewReconciled {
+  // The change set that was reconciled.
+  string change_set_id = 1;
+
+  // The exact workspace state reconciled to and hash-verified.
+  SnapshotRef approved_snapshot = 2;
+}
+
+// A terminal failure in the file-review lifecycle.
+//
+// @internal
+// Authored by the runner. A DIFF_UNREVIEWABLE failure blocks the change set
+// from becoming approvable (the diff cannot be shown completely); the others
+// record capture/reconcile/verification failures for audit and resume.
+//
+// @since File-Change HITL Redesign (Phase 1)
+message FileReviewFailure {
+  // The change set the failure pertains to.
+  string change_set_id = 1;
+
+  // The precise failure mode. event_type buckets this as FAILED; this carries
+  // the fidelity. See FileReviewFailureKind.
+  FileReviewFailureKind kind = 2 [(buf.validate.field).enum.defined_only = true];
+
+  // Human-readable detail for the audit trail. Never affects control flow.
+  string detail = 3;
+}
+
+// An immutable event in the file-review lifecycle.
+//
+// The payload is a closed oneof so each event type is type-safe and
+// self-documenting, mirroring ApprovalEvent. event_type is the coarse bucket;
+// the payload carries fidelity.
+//
+// @internal
+//
+// @since File-Change HITL Redesign (Phase 1)
+message FileReviewEvent {
+  // Unique id of this event, deterministic by design: derived from
+  // change_set_id + scope id + event_type. The permanent idempotency key for
+  // append-only authoring, so re-deriving or re-authoring never duplicates an
+  // event.
+  string event_id = 1;
+
+  // Correlation id shared by every event for one change set.
+  string change_set_id = 2;
+
+  // Coarse lifecycle bucket of this event. See FileReviewEventType.
+  FileReviewEventType event_type = 3 [(buf.validate.field).enum.defined_only = true];
+
+  // ISO 8601 timestamp of the event.
+  string timestamp = 4;
+
+  // Who produced the event: "system"/"runner" for capture and reconcile,
+  // "user" for decisions.
+  string actor = 5;
+
+  // Typed payload, selected by event_type.
+  oneof payload {
+    // Set when event_type == BASELINE_CAPTURED.
+    FileReviewBaselineCaptured baseline_captured = 6;
+
+    // Set when event_type == CANDIDATE_CAPTURED.
+    FileReviewCandidateCaptured candidate_captured = 7;
+
+    // Set when event_type == FILE_DECIDED — authored by SubmitFileDecision.
+    FileDecision file_decided = 8;
+
+    // Set when event_type == RECONCILED.
+    FileReviewReconciled reconciled = 9;
+
+    // Set when event_type == FAILED.
+    FileReviewFailure failed = 10;
+  }
+}
+
+// The ordered sequence of file-review events for a single agent execution.
+//
+// Persisted on AgentExecutionStatus.file_review_event_stream as a
+// server-authored, append-only record. FileChangeSet is the projection of this
+// stream; the stream is the source of truth.
+//
+// @internal
+//
+// Field ownership (one writer per event type):
+//   - BASELINE_CAPTURED / CANDIDATE_CAPTURED / RECONCILED / FAILED events are
+//     authored by the runner's capture and reconcile activities (Phase 2).
+//   - FILE_DECIDED events are authored by the SubmitFileDecision handler,
+//     carrying reviewer_id and the user's comment.
+//
+// Every append is keyed by the deterministic FileReviewEvent.event_id, so the
+// stream is idempotent under retries. Because it is server-only, the
+// agent-runner never sends it; it is preserved across UpdateStatus writes (the
+// merge starts from the loaded execution and only replaces runner-owned
+// fields).
+//
+// @since File-Change HITL Redesign (Phase 1)
+message FileReviewEventStream {
+  // AgentExecution.metadata.id this stream belongs to.
+  string execution_id = 1;
+
+  // Events in lifecycle order.
+  repeated FileReviewEvent events = 2;
+}

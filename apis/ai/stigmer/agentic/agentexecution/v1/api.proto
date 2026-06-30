@@ -6,6 +6,7 @@ import "ai/stigmer/agentic/agentexecution/v1/approval.proto";
 import "ai/stigmer/agentic/agentexecution/v1/artifact.proto";
 import "ai/stigmer/agentic/agentexecution/v1/context.proto";
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentexecution/v1/filereview.proto";
 import "ai/stigmer/agentic/agentexecution/v1/message.proto";
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
 import "ai/stigmer/agentic/agentexecution/v1/subagent.proto";
@@ -301,6 +302,45 @@ message AgentExecutionStatus {
   // YAML from messages. Workflow callback path reads structured_output from
   // the Temporal activity result (separate channel, same data).
   google.protobuf.Struct structured_output = 21;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // File Change Review (HITL — Computed Projection + Append-Only Ledger)
+  //
+  // Apply-then-review file edits: file_change_sets is the read-model the review
+  // surface consumes; file_review_event_stream is the append-only source of
+  // truth it is projected from. The pair mirrors pending_approvals (16) +
+  // approval_event_stream (22) exactly, for a second lifecycle.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Server-computed projection of file change sets awaiting or completing
+  // review for this execution.
+  //
+  // @internal
+  //
+  // Recomputed on every status write from file_review_event_stream (never
+  // merged), so it is always consistent with the authoritative ledger — exactly
+  // as pending_approvals is recomputed from the message scan / approval stream.
+  // Empty until the runner's capture activity authors events (Phase 2). A
+  // terminal execution projects no actionable review. See FileChangeSet.
+  //
+  // Field 23: appended after approval_event_stream (22), the prior maximum.
+  repeated FileChangeSet file_change_sets = 23;
+
+  // Server-authored, append-only record of every file-review event (baseline /
+  // candidate capture, file decisions, reconcile, failures).
+  //
+  // @internal
+  //
+  // The persisted source of truth that file_change_sets is projected from — a
+  // sibling of approval_event_stream for the file-review lifecycle (the
+  // ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+  // keyed by the deterministic FileReviewEvent.event_id, so the stream is
+  // idempotent under retries. Server-only: the agent-runner never sends it; it
+  // is preserved across UpdateStatus writes (the merge starts from the loaded
+  // execution and only replaces runner-owned fields). See FileReviewEventStream.
+  //
+  // Field 24: appended after file_change_sets (23), the prior maximum.
+  FileReviewEventStream file_review_event_stream = 24;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

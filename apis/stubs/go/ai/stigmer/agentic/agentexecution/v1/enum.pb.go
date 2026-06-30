@@ -1484,6 +1484,588 @@ func (FileChangeCaptureLevel) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{16}
 }
 
+// FileChangeSetStatus is the state of a FileChangeSet, DERIVED by folding its
+// file-review events (never stored-mutable).
+//
+// @since File-Change HITL Redesign (Phase 1)
+type FileChangeSetStatus int32
+
+const (
+	// Default value, not a valid status.
+	FileChangeSetStatus_FILE_CHANGE_SET_STATUS_UNSPECIFIED FileChangeSetStatus = 0
+	// Baseline captured; the turn is executing and the candidate is not yet
+	// captured. No diff to review yet.
+	FileChangeSetStatus_FILE_CHANGE_SET_STATUS_CAPTURING FileChangeSetStatus = 1
+	// Candidate captured and the diff is reviewable; awaiting user decisions.
+	// Partially-decided sets stay here (still actionable) until every change is
+	// decided.
+	FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW FileChangeSetStatus = 2
+	// All changes decided; awaiting the runner's reconcile.
+	FileChangeSetStatus_FILE_CHANGE_SET_STATUS_DECIDED FileChangeSetStatus = 3
+	// Approved bytes reconciled into the workspace and hash-verified. Terminal.
+	FileChangeSetStatus_FILE_CHANGE_SET_STATUS_RECONCILED FileChangeSetStatus = 4
+	// A capture, diff, or reconcile failure halted the lifecycle. Terminal. See
+	// FileReviewFailureKind for the precise cause.
+	FileChangeSetStatus_FILE_CHANGE_SET_STATUS_FAILED FileChangeSetStatus = 5
+)
+
+// Enum value maps for FileChangeSetStatus.
+var (
+	FileChangeSetStatus_name = map[int32]string{
+		0: "FILE_CHANGE_SET_STATUS_UNSPECIFIED",
+		1: "FILE_CHANGE_SET_STATUS_CAPTURING",
+		2: "FILE_CHANGE_SET_STATUS_AWAITING_REVIEW",
+		3: "FILE_CHANGE_SET_STATUS_DECIDED",
+		4: "FILE_CHANGE_SET_STATUS_RECONCILED",
+		5: "FILE_CHANGE_SET_STATUS_FAILED",
+	}
+	FileChangeSetStatus_value = map[string]int32{
+		"FILE_CHANGE_SET_STATUS_UNSPECIFIED":     0,
+		"FILE_CHANGE_SET_STATUS_CAPTURING":       1,
+		"FILE_CHANGE_SET_STATUS_AWAITING_REVIEW": 2,
+		"FILE_CHANGE_SET_STATUS_DECIDED":         3,
+		"FILE_CHANGE_SET_STATUS_RECONCILED":      4,
+		"FILE_CHANGE_SET_STATUS_FAILED":          5,
+	}
+)
+
+func (x FileChangeSetStatus) Enum() *FileChangeSetStatus {
+	p := new(FileChangeSetStatus)
+	*p = x
+	return p
+}
+
+func (x FileChangeSetStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileChangeSetStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[17].Descriptor()
+}
+
+func (FileChangeSetStatus) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[17]
+}
+
+func (x FileChangeSetStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileChangeSetStatus.Descriptor instead.
+func (FileChangeSetStatus) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{17}
+}
+
+// FileChangeKind is the per-file outcome within a FileChangeSet.
+//
+// The minimal set that covers the overwhelming majority of edits; COPY /
+// MODE_CHANGE / SYMLINK_CHANGE are deferred (adding enum values later is
+// non-breaking).
+//
+// @since File-Change HITL Redesign (Phase 1)
+type FileChangeKind int32
+
+const (
+	// Default value, not a valid kind.
+	FileChangeKind_FILE_CHANGE_KIND_UNSPECIFIED FileChangeKind = 0
+	// A new file was created.
+	FileChangeKind_FILE_CHANGE_KIND_ADD FileChangeKind = 1
+	// An existing file's contents changed.
+	FileChangeKind_FILE_CHANGE_KIND_MODIFY FileChangeKind = 2
+	// A file was deleted.
+	FileChangeKind_FILE_CHANGE_KIND_DELETE FileChangeKind = 3
+	// A file was renamed or moved; path_before holds the source, path_after the
+	// destination.
+	FileChangeKind_FILE_CHANGE_KIND_RENAME FileChangeKind = 4
+	// A binary file changed; rendered as "binary file changed" rather than a text
+	// diff.
+	FileChangeKind_FILE_CHANGE_KIND_BINARY_CHANGE FileChangeKind = 5
+)
+
+// Enum value maps for FileChangeKind.
+var (
+	FileChangeKind_name = map[int32]string{
+		0: "FILE_CHANGE_KIND_UNSPECIFIED",
+		1: "FILE_CHANGE_KIND_ADD",
+		2: "FILE_CHANGE_KIND_MODIFY",
+		3: "FILE_CHANGE_KIND_DELETE",
+		4: "FILE_CHANGE_KIND_RENAME",
+		5: "FILE_CHANGE_KIND_BINARY_CHANGE",
+	}
+	FileChangeKind_value = map[string]int32{
+		"FILE_CHANGE_KIND_UNSPECIFIED":   0,
+		"FILE_CHANGE_KIND_ADD":           1,
+		"FILE_CHANGE_KIND_MODIFY":        2,
+		"FILE_CHANGE_KIND_DELETE":        3,
+		"FILE_CHANGE_KIND_RENAME":        4,
+		"FILE_CHANGE_KIND_BINARY_CHANGE": 5,
+	}
+)
+
+func (x FileChangeKind) Enum() *FileChangeKind {
+	p := new(FileChangeKind)
+	*p = x
+	return p
+}
+
+func (x FileChangeKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileChangeKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[18].Descriptor()
+}
+
+func (FileChangeKind) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[18]
+}
+
+func (x FileChangeKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileChangeKind.Descriptor instead.
+func (FileChangeKind) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{18}
+}
+
+// FileCaptureClass records how a file was captured, which governs which
+// substrate (git tree ref vs CAS) holds its bytes and whether it is reviewable
+// before CAS lands.
+//
+// @since File-Change HITL Redesign (Phase 1)
+type FileCaptureClass int32
+
+const (
+	// Default value, not a valid capture class.
+	FileCaptureClass_FILE_CAPTURE_CLASS_UNSPECIFIED FileCaptureClass = 0
+	// A git-tracked file; captured via the git no-commit tree snapshot.
+	FileCaptureClass_FILE_CAPTURE_CLASS_GIT_TRACKED FileCaptureClass = 1
+	// A git-untracked (but not ignored) file captured into the snapshot.
+	FileCaptureClass_FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED FileCaptureClass = 2
+	// A gitignored file captured via CAS (Phase 3).
+	FileCaptureClass_FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED FileCaptureClass = 3
+	// A file in a non-git workspace captured via CAS (Phase 3).
+	FileCaptureClass_FILE_CAPTURE_CLASS_NON_GIT_CAS FileCaptureClass = 4
+)
+
+// Enum value maps for FileCaptureClass.
+var (
+	FileCaptureClass_name = map[int32]string{
+		0: "FILE_CAPTURE_CLASS_UNSPECIFIED",
+		1: "FILE_CAPTURE_CLASS_GIT_TRACKED",
+		2: "FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED",
+		3: "FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED",
+		4: "FILE_CAPTURE_CLASS_NON_GIT_CAS",
+	}
+	FileCaptureClass_value = map[string]int32{
+		"FILE_CAPTURE_CLASS_UNSPECIFIED":            0,
+		"FILE_CAPTURE_CLASS_GIT_TRACKED":            1,
+		"FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED": 2,
+		"FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED":   3,
+		"FILE_CAPTURE_CLASS_NON_GIT_CAS":            4,
+	}
+)
+
+func (x FileCaptureClass) Enum() *FileCaptureClass {
+	p := new(FileCaptureClass)
+	*p = x
+	return p
+}
+
+func (x FileCaptureClass) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileCaptureClass) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[19].Descriptor()
+}
+
+func (FileCaptureClass) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[19]
+}
+
+func (x FileCaptureClass) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileCaptureClass.Descriptor instead.
+func (FileCaptureClass) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{19}
+}
+
+// DiffCompleteness describes whether a change set's rendered diff is complete
+// enough to approve safely. A non-COMPLETE value blocks normal approval so an
+// elided or binary-only diff can never be approved as if it were the whole
+// change.
+//
+// @since File-Change HITL Redesign (Phase 1)
+type DiffCompleteness int32
+
+const (
+	// Default value, not a valid completeness.
+	DiffCompleteness_DIFF_COMPLETENESS_UNSPECIFIED DiffCompleteness = 0
+	// Every file's full diff is available; safe to approve.
+	DiffCompleteness_DIFF_COMPLETENESS_COMPLETE DiffCompleteness = 1
+	// At least one file's diff is elided/truncated/uncapturable; approval is
+	// blocked until the full diff is available.
+	DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED DiffCompleteness = 2
+	// Only a binary-change summary is available (no text diff); approval requires
+	// the explicit binary-change UX, not a text-diff review.
+	DiffCompleteness_DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY DiffCompleteness = 3
+)
+
+// Enum value maps for DiffCompleteness.
+var (
+	DiffCompleteness_name = map[int32]string{
+		0: "DIFF_COMPLETENESS_UNSPECIFIED",
+		1: "DIFF_COMPLETENESS_COMPLETE",
+		2: "DIFF_COMPLETENESS_PARTIAL_BLOCKED",
+		3: "DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY",
+	}
+	DiffCompleteness_value = map[string]int32{
+		"DIFF_COMPLETENESS_UNSPECIFIED":         0,
+		"DIFF_COMPLETENESS_COMPLETE":            1,
+		"DIFF_COMPLETENESS_PARTIAL_BLOCKED":     2,
+		"DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY": 3,
+	}
+)
+
+func (x DiffCompleteness) Enum() *DiffCompleteness {
+	p := new(DiffCompleteness)
+	*p = x
+	return p
+}
+
+func (x DiffCompleteness) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DiffCompleteness) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[20].Descriptor()
+}
+
+func (DiffCompleteness) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[20]
+}
+
+func (x DiffCompleteness) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DiffCompleteness.Descriptor instead.
+func (DiffCompleteness) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{20}
+}
+
+// SnapshotKind is the substrate backing a SnapshotRef.
+//
+// @since File-Change HITL Redesign (Phase 1)
+type SnapshotKind int32
+
+const (
+	// Default value, not a valid snapshot kind.
+	SnapshotKind_SNAPSHOT_KIND_UNSPECIFIED SnapshotKind = 0
+	// A git no-commit tree ref (git-tracked/untracked paths only).
+	SnapshotKind_SNAPSHOT_KIND_GIT_TREE_REF SnapshotKind = 1
+	// A content-addressed manifest (ignored/non-git paths; Phase 3).
+	SnapshotKind_SNAPSHOT_KIND_CAS_MANIFEST SnapshotKind = 2
+	// Both a git tree ref and a CAS manifest (mixed workspace).
+	SnapshotKind_SNAPSHOT_KIND_HYBRID SnapshotKind = 3
+)
+
+// Enum value maps for SnapshotKind.
+var (
+	SnapshotKind_name = map[int32]string{
+		0: "SNAPSHOT_KIND_UNSPECIFIED",
+		1: "SNAPSHOT_KIND_GIT_TREE_REF",
+		2: "SNAPSHOT_KIND_CAS_MANIFEST",
+		3: "SNAPSHOT_KIND_HYBRID",
+	}
+	SnapshotKind_value = map[string]int32{
+		"SNAPSHOT_KIND_UNSPECIFIED":  0,
+		"SNAPSHOT_KIND_GIT_TREE_REF": 1,
+		"SNAPSHOT_KIND_CAS_MANIFEST": 2,
+		"SNAPSHOT_KIND_HYBRID":       3,
+	}
+)
+
+func (x SnapshotKind) Enum() *SnapshotKind {
+	p := new(SnapshotKind)
+	*p = x
+	return p
+}
+
+func (x SnapshotKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SnapshotKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[21].Descriptor()
+}
+
+func (SnapshotKind) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[21]
+}
+
+func (x SnapshotKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SnapshotKind.Descriptor instead.
+func (SnapshotKind) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{21}
+}
+
+// FileDecisionScope is the granularity a FileDecision applies to.
+//
+// HUNK is intentionally deferred — per-hunk approval is a derived approved
+// snapshot, not a new lease, and ships after file-level is stable.
+//
+// @since File-Change HITL Redesign (Phase 1)
+type FileDecisionScope int32
+
+const (
+	// Default value, not a valid scope.
+	FileDecisionScope_FILE_DECISION_SCOPE_UNSPECIFIED FileDecisionScope = 0
+	// The decision applies to the whole change set.
+	FileDecisionScope_FILE_DECISION_SCOPE_CHANGE_SET FileDecisionScope = 1
+	// The decision applies to one CapturedFileChange (FileDecision.file_change_id).
+	FileDecisionScope_FILE_DECISION_SCOPE_FILE FileDecisionScope = 2
+)
+
+// Enum value maps for FileDecisionScope.
+var (
+	FileDecisionScope_name = map[int32]string{
+		0: "FILE_DECISION_SCOPE_UNSPECIFIED",
+		1: "FILE_DECISION_SCOPE_CHANGE_SET",
+		2: "FILE_DECISION_SCOPE_FILE",
+	}
+	FileDecisionScope_value = map[string]int32{
+		"FILE_DECISION_SCOPE_UNSPECIFIED": 0,
+		"FILE_DECISION_SCOPE_CHANGE_SET":  1,
+		"FILE_DECISION_SCOPE_FILE":        2,
+	}
+)
+
+func (x FileDecisionScope) Enum() *FileDecisionScope {
+	p := new(FileDecisionScope)
+	*p = x
+	return p
+}
+
+func (x FileDecisionScope) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileDecisionScope) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[22].Descriptor()
+}
+
+func (FileDecisionScope) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[22]
+}
+
+func (x FileDecisionScope) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileDecisionScope.Descriptor instead.
+func (FileDecisionScope) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{22}
+}
+
+// FileDecisionAction is a user's verdict on a change set or file.
+//
+// @since File-Change HITL Redesign (Phase 1)
+type FileDecisionAction int32
+
+const (
+	// Default value, not a valid action.
+	FileDecisionAction_FILE_DECISION_ACTION_UNSPECIFIED FileDecisionAction = 0
+	// Keep the change(s): reconcile the captured bytes into the workspace.
+	FileDecisionAction_FILE_DECISION_ACTION_APPROVE FileDecisionAction = 1
+	// Discard the change(s): reconcile back to baseline for the targeted scope.
+	FileDecisionAction_FILE_DECISION_ACTION_REJECT FileDecisionAction = 2
+)
+
+// Enum value maps for FileDecisionAction.
+var (
+	FileDecisionAction_name = map[int32]string{
+		0: "FILE_DECISION_ACTION_UNSPECIFIED",
+		1: "FILE_DECISION_ACTION_APPROVE",
+		2: "FILE_DECISION_ACTION_REJECT",
+	}
+	FileDecisionAction_value = map[string]int32{
+		"FILE_DECISION_ACTION_UNSPECIFIED": 0,
+		"FILE_DECISION_ACTION_APPROVE":     1,
+		"FILE_DECISION_ACTION_REJECT":      2,
+	}
+)
+
+func (x FileDecisionAction) Enum() *FileDecisionAction {
+	p := new(FileDecisionAction)
+	*p = x
+	return p
+}
+
+func (x FileDecisionAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileDecisionAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[23].Descriptor()
+}
+
+func (FileDecisionAction) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[23]
+}
+
+func (x FileDecisionAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileDecisionAction.Descriptor instead.
+func (FileDecisionAction) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{23}
+}
+
+// FileReviewEventType is the kind of event in the append-only file-review
+// stream (see FileReviewEvent in filereview.proto). It is the coarse lifecycle
+// bucket; failure fidelity lives on FileReviewFailure.kind.
+//
+// @since File-Change HITL Redesign (Phase 1)
+type FileReviewEventType int32
+
+const (
+	// Default value, not a valid event type.
+	FileReviewEventType_FILE_REVIEW_EVENT_TYPE_UNSPECIFIED FileReviewEventType = 0
+	// Baseline captured at turn start. Payload: FileReviewBaselineCaptured.
+	FileReviewEventType_FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED FileReviewEventType = 1
+	// Candidate captured at the turn boundary, carrying the diff. Payload:
+	// FileReviewCandidateCaptured.
+	FileReviewEventType_FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED FileReviewEventType = 2
+	// A user decided a change set or file. Payload: FileDecision.
+	FileReviewEventType_FILE_REVIEW_EVENT_TYPE_FILE_DECIDED FileReviewEventType = 3
+	// Approved bytes reconciled and verified. Payload: FileReviewReconciled.
+	FileReviewEventType_FILE_REVIEW_EVENT_TYPE_RECONCILED FileReviewEventType = 4
+	// A capture/diff/reconcile failure. Payload: FileReviewFailure.
+	FileReviewEventType_FILE_REVIEW_EVENT_TYPE_FAILED FileReviewEventType = 5
+)
+
+// Enum value maps for FileReviewEventType.
+var (
+	FileReviewEventType_name = map[int32]string{
+		0: "FILE_REVIEW_EVENT_TYPE_UNSPECIFIED",
+		1: "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+		2: "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+		3: "FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+		4: "FILE_REVIEW_EVENT_TYPE_RECONCILED",
+		5: "FILE_REVIEW_EVENT_TYPE_FAILED",
+	}
+	FileReviewEventType_value = map[string]int32{
+		"FILE_REVIEW_EVENT_TYPE_UNSPECIFIED":        0,
+		"FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED":  1,
+		"FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED": 2,
+		"FILE_REVIEW_EVENT_TYPE_FILE_DECIDED":       3,
+		"FILE_REVIEW_EVENT_TYPE_RECONCILED":         4,
+		"FILE_REVIEW_EVENT_TYPE_FAILED":             5,
+	}
+)
+
+func (x FileReviewEventType) Enum() *FileReviewEventType {
+	p := new(FileReviewEventType)
+	*p = x
+	return p
+}
+
+func (x FileReviewEventType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileReviewEventType) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[24].Descriptor()
+}
+
+func (FileReviewEventType) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[24]
+}
+
+func (x FileReviewEventType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileReviewEventType.Descriptor instead.
+func (FileReviewEventType) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{24}
+}
+
+// FileReviewFailureKind is the precise cause carried by a FAILED file-review
+// event (FileReviewFailure.kind). Audit/control metadata for the failure
+// lifecycle.
+//
+// @since File-Change HITL Redesign (Phase 1)
+type FileReviewFailureKind int32
+
+const (
+	// Default value, not a valid failure kind.
+	FileReviewFailureKind_FILE_REVIEW_FAILURE_KIND_UNSPECIFIED FileReviewFailureKind = 0
+	// Capturing the baseline or candidate snapshot failed.
+	FileReviewFailureKind_FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED FileReviewFailureKind = 1
+	// The diff could not be rendered completely (uncapturable path); the change
+	// set cannot become approvable.
+	FileReviewFailureKind_FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE FileReviewFailureKind = 2
+	// Reconciling approved bytes into the workspace failed.
+	FileReviewFailureKind_FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED FileReviewFailureKind = 3
+	// A post-reconcile filesystem hash did not match the approved digest.
+	FileReviewFailureKind_FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH FileReviewFailureKind = 4
+)
+
+// Enum value maps for FileReviewFailureKind.
+var (
+	FileReviewFailureKind_name = map[int32]string{
+		0: "FILE_REVIEW_FAILURE_KIND_UNSPECIFIED",
+		1: "FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED",
+		2: "FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE",
+		3: "FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED",
+		4: "FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH",
+	}
+	FileReviewFailureKind_value = map[string]int32{
+		"FILE_REVIEW_FAILURE_KIND_UNSPECIFIED":       0,
+		"FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED":    1,
+		"FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE": 2,
+		"FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED":  3,
+		"FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH":     4,
+	}
+)
+
+func (x FileReviewFailureKind) Enum() *FileReviewFailureKind {
+	p := new(FileReviewFailureKind)
+	*p = x
+	return p
+}
+
+func (x FileReviewFailureKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileReviewFailureKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[25].Descriptor()
+}
+
+func (FileReviewFailureKind) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[25]
+}
+
+func (x FileReviewFailureKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileReviewFailureKind.Descriptor instead.
+func (FileReviewFailureKind) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{25}
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
@@ -1600,7 +2182,58 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x16FileChangeCaptureLevel\x12)\n" +
 	"%FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED\x10\x00\x12(\n" +
 	"$FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE\x10\x01\x12'\n" +
-	"#FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY\x10\x02B\xca\x02\n" +
+	"#FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY\x10\x02*\xfd\x01\n" +
+	"\x13FileChangeSetStatus\x12&\n" +
+	"\"FILE_CHANGE_SET_STATUS_UNSPECIFIED\x10\x00\x12$\n" +
+	" FILE_CHANGE_SET_STATUS_CAPTURING\x10\x01\x12*\n" +
+	"&FILE_CHANGE_SET_STATUS_AWAITING_REVIEW\x10\x02\x12\"\n" +
+	"\x1eFILE_CHANGE_SET_STATUS_DECIDED\x10\x03\x12%\n" +
+	"!FILE_CHANGE_SET_STATUS_RECONCILED\x10\x04\x12!\n" +
+	"\x1dFILE_CHANGE_SET_STATUS_FAILED\x10\x05*\xc7\x01\n" +
+	"\x0eFileChangeKind\x12 \n" +
+	"\x1cFILE_CHANGE_KIND_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14FILE_CHANGE_KIND_ADD\x10\x01\x12\x1b\n" +
+	"\x17FILE_CHANGE_KIND_MODIFY\x10\x02\x12\x1b\n" +
+	"\x17FILE_CHANGE_KIND_DELETE\x10\x03\x12\x1b\n" +
+	"\x17FILE_CHANGE_KIND_RENAME\x10\x04\x12\"\n" +
+	"\x1eFILE_CHANGE_KIND_BINARY_CHANGE\x10\x05*\xda\x01\n" +
+	"\x10FileCaptureClass\x12\"\n" +
+	"\x1eFILE_CAPTURE_CLASS_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1eFILE_CAPTURE_CLASS_GIT_TRACKED\x10\x01\x12-\n" +
+	")FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED\x10\x02\x12+\n" +
+	"'FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED\x10\x03\x12\"\n" +
+	"\x1eFILE_CAPTURE_CLASS_NON_GIT_CAS\x10\x04*\xa7\x01\n" +
+	"\x10DiffCompleteness\x12!\n" +
+	"\x1dDIFF_COMPLETENESS_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aDIFF_COMPLETENESS_COMPLETE\x10\x01\x12%\n" +
+	"!DIFF_COMPLETENESS_PARTIAL_BLOCKED\x10\x02\x12)\n" +
+	"%DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY\x10\x03*\x87\x01\n" +
+	"\fSnapshotKind\x12\x1d\n" +
+	"\x19SNAPSHOT_KIND_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aSNAPSHOT_KIND_GIT_TREE_REF\x10\x01\x12\x1e\n" +
+	"\x1aSNAPSHOT_KIND_CAS_MANIFEST\x10\x02\x12\x18\n" +
+	"\x14SNAPSHOT_KIND_HYBRID\x10\x03*z\n" +
+	"\x11FileDecisionScope\x12#\n" +
+	"\x1fFILE_DECISION_SCOPE_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1eFILE_DECISION_SCOPE_CHANGE_SET\x10\x01\x12\x1c\n" +
+	"\x18FILE_DECISION_SCOPE_FILE\x10\x02*}\n" +
+	"\x12FileDecisionAction\x12$\n" +
+	" FILE_DECISION_ACTION_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cFILE_DECISION_ACTION_APPROVE\x10\x01\x12\x1f\n" +
+	"\x1bFILE_DECISION_ACTION_REJECT\x10\x02*\x8d\x02\n" +
+	"\x13FileReviewEventType\x12&\n" +
+	"\"FILE_REVIEW_EVENT_TYPE_UNSPECIFIED\x10\x00\x12,\n" +
+	"(FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED\x10\x01\x12-\n" +
+	")FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED\x10\x02\x12'\n" +
+	"#FILE_REVIEW_EVENT_TYPE_FILE_DECIDED\x10\x03\x12%\n" +
+	"!FILE_REVIEW_EVENT_TYPE_RECONCILED\x10\x04\x12!\n" +
+	"\x1dFILE_REVIEW_EVENT_TYPE_FAILED\x10\x05*\xf9\x01\n" +
+	"\x15FileReviewFailureKind\x12(\n" +
+	"$FILE_REVIEW_FAILURE_KIND_UNSPECIFIED\x10\x00\x12+\n" +
+	"'FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED\x10\x01\x12.\n" +
+	"*FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE\x10\x02\x12-\n" +
+	")FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED\x10\x03\x12*\n" +
+	"&FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH\x10\x04B\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -1615,7 +2248,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 17)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 26)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionPhase)(0),           // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(MessageType)(0),              // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -1634,6 +2267,15 @@ var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(InteractionMode)(0),          // 14: ai.stigmer.agentic.agentexecution.v1.InteractionMode
 	(FileChangeType)(0),           // 15: ai.stigmer.agentic.agentexecution.v1.FileChangeType
 	(FileChangeCaptureLevel)(0),   // 16: ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
+	(FileChangeSetStatus)(0),      // 17: ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
+	(FileChangeKind)(0),           // 18: ai.stigmer.agentic.agentexecution.v1.FileChangeKind
+	(FileCaptureClass)(0),         // 19: ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
+	(DiffCompleteness)(0),         // 20: ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
+	(SnapshotKind)(0),             // 21: ai.stigmer.agentic.agentexecution.v1.SnapshotKind
+	(FileDecisionScope)(0),        // 22: ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
+	(FileDecisionAction)(0),       // 23: ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
+	(FileReviewEventType)(0),      // 24: ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
+	(FileReviewFailureKind)(0),    // 25: ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1653,7 +2295,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      17,
+			NumEnums:      26,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

@@ -5,7 +5,7 @@
 
 import { AgentExecution } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AgentExecutionUpdateStatusInput, CancelAgentExecutionInput, PauseAgentExecutionInput, RecoverAgentExecutionInput, ResumeAgentExecutionInput, SubmitApprovalInput, TerminateAgentExecutionInput, UpdateStatusResponse, UploadAttachmentRequest, UploadAttachmentResponse } from "./io_pbjs";
+import { AgentExecutionUpdateStatusInput, CancelAgentExecutionInput, PauseAgentExecutionInput, RecoverAgentExecutionInput, ResumeAgentExecutionInput, SubmitApprovalInput, SubmitFileDecisionInput, TerminateAgentExecutionInput, UpdateStatusResponse, UploadAttachmentRequest, UploadAttachmentResponse } from "./io_pbjs";
 import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -121,6 +121,45 @@ export const AgentExecutionCommandController = {
     submitApproval: {
       name: "submitApproval",
       I: SubmitApprovalInput,
+      O: AgentExecution,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Submit a keep/discard decision on a file change set (or a single file).
+     *
+     * Records a FILE_DECIDED event in the append-only file_review stream;
+     * FileChangeSet.decisions is the derived projection. The runner reconciles
+     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * that expected_digest still matches the captured content the user reviewed.
+     *
+     * ## Preconditions
+     *
+     * - Execution must exist and be non-terminal
+     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
+     *   file_change_id must match a CapturedFileChange.id within it
+     * - expected_digest must match the target's current digest
+     * - User must have can_edit permission on the execution
+     *
+     * @internal
+     *
+     * ## Error Conditions
+     *
+     * - NOT_FOUND: Execution doesn't exist
+     * - FAILED_PRECONDITION: Execution terminal, or change set/file not found
+     * - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
+     *   FILE scope, or expected_digest mismatch
+     * - PERMISSION_DENIED: User lacks can_edit permission
+     *
+     * ## Idempotency
+     *
+     * Re-submitting the same decision (same change set, scope, target) is a no-op
+     * and returns the current state — appends are keyed by FileReviewEvent.event_id.
+     *
+     * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.submitFileDecision
+     */
+    submitFileDecision: {
+      name: "submitFileDecision",
+      I: SubmitFileDecisionInput,
       O: AgentExecution,
       kind: MethodKind.Unary,
     },

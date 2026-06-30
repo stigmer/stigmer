@@ -12,6 +12,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview"
 	"go.temporal.io/sdk/activity"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -160,6 +161,17 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 				status.GetMessages(),
 				status.GetSubAgentExecutions(),
 				status.GetApprovalEventStream(),
+			)
+
+			// Recompute file_change_sets from the append-only file_review ledger via
+			// its single projection seam. The ledger (server-only, preserved in place
+			// across this merge like approval_event_stream) is authored by the runner's
+			// capture/reconcile activities and by SubmitFileDecision; this projection is
+			// always derived, never merged, so it cannot go stale. Empty until a producer
+			// authors events (Phase 2).
+			status.FileChangeSets = filereview.ProjectFileChangeSets(
+				status.GetPhase(),
+				status.GetFileReviewEventStream(),
 			)
 
 			// Error: Update if provided

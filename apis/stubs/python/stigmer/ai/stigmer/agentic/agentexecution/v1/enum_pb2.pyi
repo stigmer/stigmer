@@ -146,6 +146,75 @@ class FileChangeCaptureLevel(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED: _ClassVar[FileChangeCaptureLevel]
     FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE: _ClassVar[FileChangeCaptureLevel]
     FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY: _ClassVar[FileChangeCaptureLevel]
+
+class FileChangeSetStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FILE_CHANGE_SET_STATUS_UNSPECIFIED: _ClassVar[FileChangeSetStatus]
+    FILE_CHANGE_SET_STATUS_CAPTURING: _ClassVar[FileChangeSetStatus]
+    FILE_CHANGE_SET_STATUS_AWAITING_REVIEW: _ClassVar[FileChangeSetStatus]
+    FILE_CHANGE_SET_STATUS_DECIDED: _ClassVar[FileChangeSetStatus]
+    FILE_CHANGE_SET_STATUS_RECONCILED: _ClassVar[FileChangeSetStatus]
+    FILE_CHANGE_SET_STATUS_FAILED: _ClassVar[FileChangeSetStatus]
+
+class FileChangeKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FILE_CHANGE_KIND_UNSPECIFIED: _ClassVar[FileChangeKind]
+    FILE_CHANGE_KIND_ADD: _ClassVar[FileChangeKind]
+    FILE_CHANGE_KIND_MODIFY: _ClassVar[FileChangeKind]
+    FILE_CHANGE_KIND_DELETE: _ClassVar[FileChangeKind]
+    FILE_CHANGE_KIND_RENAME: _ClassVar[FileChangeKind]
+    FILE_CHANGE_KIND_BINARY_CHANGE: _ClassVar[FileChangeKind]
+
+class FileCaptureClass(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FILE_CAPTURE_CLASS_UNSPECIFIED: _ClassVar[FileCaptureClass]
+    FILE_CAPTURE_CLASS_GIT_TRACKED: _ClassVar[FileCaptureClass]
+    FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED: _ClassVar[FileCaptureClass]
+    FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED: _ClassVar[FileCaptureClass]
+    FILE_CAPTURE_CLASS_NON_GIT_CAS: _ClassVar[FileCaptureClass]
+
+class DiffCompleteness(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    DIFF_COMPLETENESS_UNSPECIFIED: _ClassVar[DiffCompleteness]
+    DIFF_COMPLETENESS_COMPLETE: _ClassVar[DiffCompleteness]
+    DIFF_COMPLETENESS_PARTIAL_BLOCKED: _ClassVar[DiffCompleteness]
+    DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY: _ClassVar[DiffCompleteness]
+
+class SnapshotKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SNAPSHOT_KIND_UNSPECIFIED: _ClassVar[SnapshotKind]
+    SNAPSHOT_KIND_GIT_TREE_REF: _ClassVar[SnapshotKind]
+    SNAPSHOT_KIND_CAS_MANIFEST: _ClassVar[SnapshotKind]
+    SNAPSHOT_KIND_HYBRID: _ClassVar[SnapshotKind]
+
+class FileDecisionScope(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FILE_DECISION_SCOPE_UNSPECIFIED: _ClassVar[FileDecisionScope]
+    FILE_DECISION_SCOPE_CHANGE_SET: _ClassVar[FileDecisionScope]
+    FILE_DECISION_SCOPE_FILE: _ClassVar[FileDecisionScope]
+
+class FileDecisionAction(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FILE_DECISION_ACTION_UNSPECIFIED: _ClassVar[FileDecisionAction]
+    FILE_DECISION_ACTION_APPROVE: _ClassVar[FileDecisionAction]
+    FILE_DECISION_ACTION_REJECT: _ClassVar[FileDecisionAction]
+
+class FileReviewEventType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FILE_REVIEW_EVENT_TYPE_UNSPECIFIED: _ClassVar[FileReviewEventType]
+    FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED: _ClassVar[FileReviewEventType]
+    FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED: _ClassVar[FileReviewEventType]
+    FILE_REVIEW_EVENT_TYPE_FILE_DECIDED: _ClassVar[FileReviewEventType]
+    FILE_REVIEW_EVENT_TYPE_RECONCILED: _ClassVar[FileReviewEventType]
+    FILE_REVIEW_EVENT_TYPE_FAILED: _ClassVar[FileReviewEventType]
+
+class FileReviewFailureKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FILE_REVIEW_FAILURE_KIND_UNSPECIFIED: _ClassVar[FileReviewFailureKind]
+    FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED: _ClassVar[FileReviewFailureKind]
+    FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE: _ClassVar[FileReviewFailureKind]
+    FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED: _ClassVar[FileReviewFailureKind]
+    FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH: _ClassVar[FileReviewFailureKind]
 EXECUTION_PHASE_UNSPECIFIED: ExecutionPhase
 EXECUTION_PENDING: ExecutionPhase
 EXECUTION_IN_PROGRESS: ExecutionPhase
@@ -238,3 +307,45 @@ FILE_CHANGE_TYPE_RENAME: FileChangeType
 FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED: FileChangeCaptureLevel
 FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE: FileChangeCaptureLevel
 FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY: FileChangeCaptureLevel
+FILE_CHANGE_SET_STATUS_UNSPECIFIED: FileChangeSetStatus
+FILE_CHANGE_SET_STATUS_CAPTURING: FileChangeSetStatus
+FILE_CHANGE_SET_STATUS_AWAITING_REVIEW: FileChangeSetStatus
+FILE_CHANGE_SET_STATUS_DECIDED: FileChangeSetStatus
+FILE_CHANGE_SET_STATUS_RECONCILED: FileChangeSetStatus
+FILE_CHANGE_SET_STATUS_FAILED: FileChangeSetStatus
+FILE_CHANGE_KIND_UNSPECIFIED: FileChangeKind
+FILE_CHANGE_KIND_ADD: FileChangeKind
+FILE_CHANGE_KIND_MODIFY: FileChangeKind
+FILE_CHANGE_KIND_DELETE: FileChangeKind
+FILE_CHANGE_KIND_RENAME: FileChangeKind
+FILE_CHANGE_KIND_BINARY_CHANGE: FileChangeKind
+FILE_CAPTURE_CLASS_UNSPECIFIED: FileCaptureClass
+FILE_CAPTURE_CLASS_GIT_TRACKED: FileCaptureClass
+FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED: FileCaptureClass
+FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED: FileCaptureClass
+FILE_CAPTURE_CLASS_NON_GIT_CAS: FileCaptureClass
+DIFF_COMPLETENESS_UNSPECIFIED: DiffCompleteness
+DIFF_COMPLETENESS_COMPLETE: DiffCompleteness
+DIFF_COMPLETENESS_PARTIAL_BLOCKED: DiffCompleteness
+DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY: DiffCompleteness
+SNAPSHOT_KIND_UNSPECIFIED: SnapshotKind
+SNAPSHOT_KIND_GIT_TREE_REF: SnapshotKind
+SNAPSHOT_KIND_CAS_MANIFEST: SnapshotKind
+SNAPSHOT_KIND_HYBRID: SnapshotKind
+FILE_DECISION_SCOPE_UNSPECIFIED: FileDecisionScope
+FILE_DECISION_SCOPE_CHANGE_SET: FileDecisionScope
+FILE_DECISION_SCOPE_FILE: FileDecisionScope
+FILE_DECISION_ACTION_UNSPECIFIED: FileDecisionAction
+FILE_DECISION_ACTION_APPROVE: FileDecisionAction
+FILE_DECISION_ACTION_REJECT: FileDecisionAction
+FILE_REVIEW_EVENT_TYPE_UNSPECIFIED: FileReviewEventType
+FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED: FileReviewEventType
+FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED: FileReviewEventType
+FILE_REVIEW_EVENT_TYPE_FILE_DECIDED: FileReviewEventType
+FILE_REVIEW_EVENT_TYPE_RECONCILED: FileReviewEventType
+FILE_REVIEW_EVENT_TYPE_FAILED: FileReviewEventType
+FILE_REVIEW_FAILURE_KIND_UNSPECIFIED: FileReviewFailureKind
+FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED: FileReviewFailureKind
+FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE: FileReviewFailureKind
+FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED: FileReviewFailureKind
+FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH: FileReviewFailureKind

@@ -1,0 +1,72 @@
+{
+  "name": "capture-only",
+  "description": "Baseline + candidate captured, no decisions yet -> one AWAITING_REVIEW change set with two changes.",
+  "execution_id": "aex_capture_only",
+  "phase": "EXECUTION_IN_PROGRESS",
+  "events": [
+    {
+      "eventId": "cs1::FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs1",
+        "turnId": "t1",
+        "harnessId": "cursor",
+        "baselineSnapshot": {
+          "kind": "SNAPSHOT_KIND_GIT_TREE_REF",
+          "git": { "treeOid": "base-oid", "ref": "refs/stigmer/aex_capture_only/baseline" }
+        }
+      }
+    },
+    {
+      "eventId": "cs1::FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs1",
+        "candidateSnapshot": {
+          "kind": "SNAPSHOT_KIND_GIT_TREE_REF",
+          "git": { "treeOid": "cand-oid", "ref": "refs/stigmer/aex_capture_only/candidate" }
+        },
+        "changes": [
+          {
+            "id": "fc1",
+            "pathBefore": "src/a.ts",
+            "pathAfter": "src/a.ts",
+            "kind": "FILE_CHANGE_KIND_MODIFY",
+            "captureClass": "FILE_CAPTURE_CLASS_GIT_TRACKED",
+            "beforeSha256": "aaa",
+            "afterSha256": "bbb",
+            "diffComplete": true,
+            "fileDigest": "d-fc1"
+          },
+          {
+            "id": "fc2",
+            "pathAfter": "src/b.ts",
+            "kind": "FILE_CHANGE_KIND_ADD",
+            "captureClass": "FILE_CAPTURE_CLASS_GIT_TRACKED",
+            "afterSha256": "ccc",
+            "diffComplete": true,
+            "fileDigest": "d-fc2"
+          }
+        ],
+        "aggregateDigest": "agg1",
+        "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs1",
+      "status": "FILE_CHANGE_SET_STATUS_AWAITING_REVIEW",
+      "change_ids": ["fc1", "fc2"],
+      "decision_count": 0,
+      "aggregate_digest": "agg1",
+      "has_approved_snapshot": false
+    }
+  ]
+}

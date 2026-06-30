@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZW51bS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxKv8BCg5FeGVjdXRpb25QaGFzZRIfChtFWEVDVVRJT05fUEhBU0VfVU5TUEVDSUZJRUQQABIVChFFWEVDVVRJT05fUEVORElORxABEhkKFUVYRUNVVElPTl9JTl9QUk9HUkVTUxACEhcKE0VYRUNVVElPTl9DT01QTEVURUQQAxIUChBFWEVDVVRJT05fRkFJTEVEEAQSFwoTRVhFQ1VUSU9OX0NBTkNFTExFRBAFEhgKFEVYRUNVVElPTl9URVJNSU5BVEVEEAgSIgoeRVhFQ1VUSU9OX1dBSVRJTkdfRk9SX0FQUFJPVkFMEAYSFAoQRVhFQ1VUSU9OX1BBVVNFRBAHKooBCgtNZXNzYWdlVHlwZRIcChhNRVNTQUdFX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1NRVNTQUdFX0hVTUFOEAESDgoKTUVTU0FHRV9BSRACEhAKDE1FU1NBR0VfVE9PTBADEhIKDk1FU1NBR0VfU1lTVEVNEAQSFAoQTUVTU0FHRV9USElOS0lORxAFKsYBCg5Ub29sQ2FsbFN0YXR1cxIgChxUT09MX0NBTExfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFQoRVE9PTF9DQUxMX1BFTkRJTkcQARIVChFUT09MX0NBTExfUlVOTklORxACEhcKE1RPT0xfQ0FMTF9DT01QTEVURUQQAxIUChBUT09MX0NBTExfRkFJTEVEEAQSHgoaVE9PTF9DQUxMX1dBSVRJTkdfQVBQUk9WQUwQBRIVChFUT09MX0NBTExfU0tJUFBFRBAGKs4CCghUb29sS2luZBIZChVUT09MX0tJTkRfVU5TUEVDSUZJRUQQABIXChNUT09MX0tJTkRfRklMRV9SRUFEEAESGAoUVE9PTF9LSU5EX0ZJTEVfV1JJVEUQAhIXChNUT09MX0tJTkRfRklMRV9FRElUEAMSGQoVVE9PTF9LSU5EX0ZJTEVfREVMRVRFEAQSEwoPVE9PTF9LSU5EX1NIRUxMEAUSFAoQVE9PTF9LSU5EX1NFQVJDSBAGEhIKDlRPT0xfS0lORF9MSVNUEAcSEwoPVE9PTF9LSU5EX0ZFVENIEAgSGAoUVE9PTF9LSU5EX1dFQl9TRUFSQ0gQCRITCg9UT09MX0tJTkRfVEhJTksQChISCg5UT09MX0tJTkRfVE9ETxALEhYKElRPT0xfS0lORF9TVUJBR0VOVBAMEhEKDVRPT0xfS0lORF9NQ1AQDSp5CgpUb2RvU3RhdHVzEhsKF1RPRE9fU1RBVFVTX1VOU1BFQ0lGSUVEEAASEAoMVE9ET19QRU5ESU5HEAESFAoQVE9ET19JTl9QUk9HUkVTUxACEhIKDlRPRE9fQ09NUExFVEVEEAMSEgoOVE9ET19DQU5DRUxMRUQQBCqsAQoOU3ViQWdlbnRTdGF0dXMSIAocU1VCX0FHRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVNVQl9BR0VOVF9QRU5ESU5HEAESGQoVU1VCX0FHRU5UX0lOX1BST0dSRVNTEAISFwoTU1VCX0FHRU5UX0NPTVBMRVRFRBADEhQKEFNVQl9BR0VOVF9GQUlMRUQQBBIXChNTVUJfQUdFTlRfQ0FOQ0VMTEVEEAUqiQEKFUV4ZWN1dGlvbkFydGlmYWN0S2luZBInCiNFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9VTlNQRUNJRklFRBAAEiAKHEVYRUNVVElPTl9BUlRJRkFDVF9LSU5EX0ZJTEUQARIlCiFFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9ESVJFQ1RPUlkQAipfChNTdW1tYXJpemF0aW9uU291cmNlEiQKIFNVTU1BUklaQVRJT05fU09VUkNFX1VOU1BFQ0lGSUVEEAASDwoLZ3JhcGhfc3RhcnQQARIRCg1taWRfZXhlY3V0aW9uEAIqkgEKF1Rvb2xDYWxsU3RyZWFtaW5nU291cmNlEioKJlRPT0xfQ0FMTF9TVFJFQU1JTkdfU09VUkNFX1VOU1BFQ0lGSUVEEAASJAogVE9PTF9DQUxMX1NUUkVBTUlOR19TT1VSQ0VfSU5QVVQQARIlCiFUT09MX0NBTExfU1RSRUFNSU5HX1NPVVJDRV9PVVRQVVQQAiqLAQoWRXhlY3V0aW9uQ29udHJvbFNpZ25hbBIoCiRFWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfVU5TUEVDSUZJRUQQABIhCh1FWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfU1RPUBABEiQKIEVYRUNVVElPTl9DT05UUk9MX1NJR05BTF9XQVJOSU5HEAIqpQEKDkFwcHJvdmFsQWN0aW9uEh8KG0FQUFJPVkFMX0FDVElPTl9VTlNQRUNJRklFRBAAEhsKF0FQUFJPVkFMX0FDVElPTl9BUFBST1ZFEAESGAoUQVBQUk9WQUxfQUNUSU9OX1NLSVAQAhIaChZBUFBST1ZBTF9BQ1RJT05fUkVKRUNUEAMSHwobQVBQUk9WQUxfQUNUSU9OX0FQUFJPVkVfQUxMEAQqhAMKFEFwcHJvdmFsUG9saWN5U291cmNlEiYKIkFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfVU5TUEVDSUZJRUQQABItCilBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0NMQVNTSUZJRVJfREVGQVVMVBABEioKJkFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfUElOTkVEX09WRVJSSURFEAISKQolQVBQUk9WQUxfUE9MSUNZX1NPVVJDRV9BR0VOVF9PVkVSUklERRADEisKJ0FQUFJPVkFMX1BPTElDWV9TT1VSQ0VfQVVUT19BUFBST1ZFX0FMTBAEEikKJUFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfQVBQUk9WQUxfTEVBU0UQBRIrCidBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0JVSUxUSU5fQ0FURUdPUlkQBhI5CjVBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0FOTk9UQVRJT05fREVTVFJVQ1RJVkVfVElHSFRFThAHKuMBChFBcHByb3ZhbEV2ZW50VHlwZRIjCh9BUFBST1ZBTF9FVkVOVF9UWVBFX1VOU1BFQ0lGSUVEEAASIQodQVBQUk9WQUxfRVZFTlRfVFlQRV9SRVFVRVNURUQQARIgChxBUFBST1ZBTF9FVkVOVF9UWVBFX0FQUFJPVkVEEAISIAocQVBQUk9WQUxfRVZFTlRfVFlQRV9SRUpFQ1RFRBADEh8KG0FQUFJPVkFMX0VWRU5UX1RZUEVfU0tJUFBFRBAEEiEKHUFQUFJPVkFMX0VWRU5UX1RZUEVfUkVUUkFDVEVEEAUqpAEKGEFwcHJvdmFsUmV0cmFjdGlvblJlYXNvbhIqCiZBUFBST1ZBTF9SRVRSQUNUSU9OX1JFQVNPTl9VTlNQRUNJRklFRBAAEjEKLUFQUFJPVkFMX1JFVFJBQ1RJT05fUkVBU09OX1NVQl9BR0VOVF9URVJNSU5BTBABEikKJUFQUFJPVkFMX1JFVFJBQ1RJT05fUkVBU09OX1NVUEVSU0VERUQQAipqCg9JbnRlcmFjdGlvbk1vZGUSIAocSU5URVJBQ1RJT05fTU9ERV9VTlNQRUNJRklFRBAAEhoKFklOVEVSQUNUSU9OX01PREVfQUdFTlQQARIZChVJTlRFUkFDVElPTl9NT0RFX1BMQU4QAiqmAQoORmlsZUNoYW5nZVR5cGUSIAocRklMRV9DSEFOR0VfVFlQRV9VTlNQRUNJRklFRBAAEhsKF0ZJTEVfQ0hBTkdFX1RZUEVfQ1JFQVRFEAESGwoXRklMRV9DSEFOR0VfVFlQRV9NT0RJRlkQAhIbChdGSUxFX0NIQU5HRV9UWVBFX0RFTEVURRADEhsKF0ZJTEVfQ0hBTkdFX1RZUEVfUkVOQU1FEAQqlgEKFkZpbGVDaGFuZ2VDYXB0dXJlTGV2ZWwSKQolRklMRV9DSEFOR0VfQ0FQVFVSRV9MRVZFTF9VTlNQRUNJRklFRBAAEigKJEZJTEVfQ0hBTkdFX0NBUFRVUkVfTEVWRUxfV0hPTEVfRklMRRABEicKI0ZJTEVfQ0hBTkdFX0NBUFRVUkVfTEVWRUxfSFVOS19PTkxZEAJiBnByb3RvMw");
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZW51bS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxKv8BCg5FeGVjdXRpb25QaGFzZRIfChtFWEVDVVRJT05fUEhBU0VfVU5TUEVDSUZJRUQQABIVChFFWEVDVVRJT05fUEVORElORxABEhkKFUVYRUNVVElPTl9JTl9QUk9HUkVTUxACEhcKE0VYRUNVVElPTl9DT01QTEVURUQQAxIUChBFWEVDVVRJT05fRkFJTEVEEAQSFwoTRVhFQ1VUSU9OX0NBTkNFTExFRBAFEhgKFEVYRUNVVElPTl9URVJNSU5BVEVEEAgSIgoeRVhFQ1VUSU9OX1dBSVRJTkdfRk9SX0FQUFJPVkFMEAYSFAoQRVhFQ1VUSU9OX1BBVVNFRBAHKooBCgtNZXNzYWdlVHlwZRIcChhNRVNTQUdFX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1NRVNTQUdFX0hVTUFOEAESDgoKTUVTU0FHRV9BSRACEhAKDE1FU1NBR0VfVE9PTBADEhIKDk1FU1NBR0VfU1lTVEVNEAQSFAoQTUVTU0FHRV9USElOS0lORxAFKsYBCg5Ub29sQ2FsbFN0YXR1cxIgChxUT09MX0NBTExfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFQoRVE9PTF9DQUxMX1BFTkRJTkcQARIVChFUT09MX0NBTExfUlVOTklORxACEhcKE1RPT0xfQ0FMTF9DT01QTEVURUQQAxIUChBUT09MX0NBTExfRkFJTEVEEAQSHgoaVE9PTF9DQUxMX1dBSVRJTkdfQVBQUk9WQUwQBRIVChFUT09MX0NBTExfU0tJUFBFRBAGKs4CCghUb29sS2luZBIZChVUT09MX0tJTkRfVU5TUEVDSUZJRUQQABIXChNUT09MX0tJTkRfRklMRV9SRUFEEAESGAoUVE9PTF9LSU5EX0ZJTEVfV1JJVEUQAhIXChNUT09MX0tJTkRfRklMRV9FRElUEAMSGQoVVE9PTF9LSU5EX0ZJTEVfREVMRVRFEAQSEwoPVE9PTF9LSU5EX1NIRUxMEAUSFAoQVE9PTF9LSU5EX1NFQVJDSBAGEhIKDlRPT0xfS0lORF9MSVNUEAcSEwoPVE9PTF9LSU5EX0ZFVENIEAgSGAoUVE9PTF9LSU5EX1dFQl9TRUFSQ0gQCRITCg9UT09MX0tJTkRfVEhJTksQChISCg5UT09MX0tJTkRfVE9ETxALEhYKElRPT0xfS0lORF9TVUJBR0VOVBAMEhEKDVRPT0xfS0lORF9NQ1AQDSp5CgpUb2RvU3RhdHVzEhsKF1RPRE9fU1RBVFVTX1VOU1BFQ0lGSUVEEAASEAoMVE9ET19QRU5ESU5HEAESFAoQVE9ET19JTl9QUk9HUkVTUxACEhIKDlRPRE9fQ09NUExFVEVEEAMSEgoOVE9ET19DQU5DRUxMRUQQBCqsAQoOU3ViQWdlbnRTdGF0dXMSIAocU1VCX0FHRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVNVQl9BR0VOVF9QRU5ESU5HEAESGQoVU1VCX0FHRU5UX0lOX1BST0dSRVNTEAISFwoTU1VCX0FHRU5UX0NPTVBMRVRFRBADEhQKEFNVQl9BR0VOVF9GQUlMRUQQBBIXChNTVUJfQUdFTlRfQ0FOQ0VMTEVEEAUqiQEKFUV4ZWN1dGlvbkFydGlmYWN0S2luZBInCiNFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9VTlNQRUNJRklFRBAAEiAKHEVYRUNVVElPTl9BUlRJRkFDVF9LSU5EX0ZJTEUQARIlCiFFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9ESVJFQ1RPUlkQAipfChNTdW1tYXJpemF0aW9uU291cmNlEiQKIFNVTU1BUklaQVRJT05fU09VUkNFX1VOU1BFQ0lGSUVEEAASDwoLZ3JhcGhfc3RhcnQQARIRCg1taWRfZXhlY3V0aW9uEAIqkgEKF1Rvb2xDYWxsU3RyZWFtaW5nU291cmNlEioKJlRPT0xfQ0FMTF9TVFJFQU1JTkdfU09VUkNFX1VOU1BFQ0lGSUVEEAASJAogVE9PTF9DQUxMX1NUUkVBTUlOR19TT1VSQ0VfSU5QVVQQARIlCiFUT09MX0NBTExfU1RSRUFNSU5HX1NPVVJDRV9PVVRQVVQQAiqLAQoWRXhlY3V0aW9uQ29udHJvbFNpZ25hbBIoCiRFWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfVU5TUEVDSUZJRUQQABIhCh1FWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfU1RPUBABEiQKIEVYRUNVVElPTl9DT05UUk9MX1NJR05BTF9XQVJOSU5HEAIqpQEKDkFwcHJvdmFsQWN0aW9uEh8KG0FQUFJPVkFMX0FDVElPTl9VTlNQRUNJRklFRBAAEhsKF0FQUFJPVkFMX0FDVElPTl9BUFBST1ZFEAESGAoUQVBQUk9WQUxfQUNUSU9OX1NLSVAQAhIaChZBUFBST1ZBTF9BQ1RJT05fUkVKRUNUEAMSHwobQVBQUk9WQUxfQUNUSU9OX0FQUFJPVkVfQUxMEAQqhAMKFEFwcHJvdmFsUG9saWN5U291cmNlEiYKIkFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfVU5TUEVDSUZJRUQQABItCilBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0NMQVNTSUZJRVJfREVGQVVMVBABEioKJkFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfUElOTkVEX09WRVJSSURFEAISKQolQVBQUk9WQUxfUE9MSUNZX1NPVVJDRV9BR0VOVF9PVkVSUklERRADEisKJ0FQUFJPVkFMX1BPTElDWV9TT1VSQ0VfQVVUT19BUFBST1ZFX0FMTBAEEikKJUFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfQVBQUk9WQUxfTEVBU0UQBRIrCidBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0JVSUxUSU5fQ0FURUdPUlkQBhI5CjVBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0FOTk9UQVRJT05fREVTVFJVQ1RJVkVfVElHSFRFThAHKuMBChFBcHByb3ZhbEV2ZW50VHlwZRIjCh9BUFBST1ZBTF9FVkVOVF9UWVBFX1VOU1BFQ0lGSUVEEAASIQodQVBQUk9WQUxfRVZFTlRfVFlQRV9SRVFVRVNURUQQARIgChxBUFBST1ZBTF9FVkVOVF9UWVBFX0FQUFJPVkVEEAISIAocQVBQUk9WQUxfRVZFTlRfVFlQRV9SRUpFQ1RFRBADEh8KG0FQUFJPVkFMX0VWRU5UX1RZUEVfU0tJUFBFRBAEEiEKHUFQUFJPVkFMX0VWRU5UX1RZUEVfUkVUUkFDVEVEEAUqpAEKGEFwcHJvdmFsUmV0cmFjdGlvblJlYXNvbhIqCiZBUFBST1ZBTF9SRVRSQUNUSU9OX1JFQVNPTl9VTlNQRUNJRklFRBAAEjEKLUFQUFJPVkFMX1JFVFJBQ1RJT05fUkVBU09OX1NVQl9BR0VOVF9URVJNSU5BTBABEikKJUFQUFJPVkFMX1JFVFJBQ1RJT05fUkVBU09OX1NVUEVSU0VERUQQAipqCg9JbnRlcmFjdGlvbk1vZGUSIAocSU5URVJBQ1RJT05fTU9ERV9VTlNQRUNJRklFRBAAEhoKFklOVEVSQUNUSU9OX01PREVfQUdFTlQQARIZChVJTlRFUkFDVElPTl9NT0RFX1BMQU4QAiqmAQoORmlsZUNoYW5nZVR5cGUSIAocRklMRV9DSEFOR0VfVFlQRV9VTlNQRUNJRklFRBAAEhsKF0ZJTEVfQ0hBTkdFX1RZUEVfQ1JFQVRFEAESGwoXRklMRV9DSEFOR0VfVFlQRV9NT0RJRlkQAhIbChdGSUxFX0NIQU5HRV9UWVBFX0RFTEVURRADEhsKF0ZJTEVfQ0hBTkdFX1RZUEVfUkVOQU1FEAQqlgEKFkZpbGVDaGFuZ2VDYXB0dXJlTGV2ZWwSKQolRklMRV9DSEFOR0VfQ0FQVFVSRV9MRVZFTF9VTlNQRUNJRklFRBAAEigKJEZJTEVfQ0hBTkdFX0NBUFRVUkVfTEVWRUxfV0hPTEVfRklMRRABEicKI0ZJTEVfQ0hBTkdFX0NBUFRVUkVfTEVWRUxfSFVOS19PTkxZEAIq/QEKE0ZpbGVDaGFuZ2VTZXRTdGF0dXMSJgoiRklMRV9DSEFOR0VfU0VUX1NUQVRVU19VTlNQRUNJRklFRBAAEiQKIEZJTEVfQ0hBTkdFX1NFVF9TVEFUVVNfQ0FQVFVSSU5HEAESKgomRklMRV9DSEFOR0VfU0VUX1NUQVRVU19BV0FJVElOR19SRVZJRVcQAhIiCh5GSUxFX0NIQU5HRV9TRVRfU1RBVFVTX0RFQ0lERUQQAxIlCiFGSUxFX0NIQU5HRV9TRVRfU1RBVFVTX1JFQ09OQ0lMRUQQBBIhCh1GSUxFX0NIQU5HRV9TRVRfU1RBVFVTX0ZBSUxFRBAFKscBCg5GaWxlQ2hhbmdlS2luZBIgChxGSUxFX0NIQU5HRV9LSU5EX1VOU1BFQ0lGSUVEEAASGAoURklMRV9DSEFOR0VfS0lORF9BREQQARIbChdGSUxFX0NIQU5HRV9LSU5EX01PRElGWRACEhsKF0ZJTEVfQ0hBTkdFX0tJTkRfREVMRVRFEAMSGwoXRklMRV9DSEFOR0VfS0lORF9SRU5BTUUQBBIiCh5GSUxFX0NIQU5HRV9LSU5EX0JJTkFSWV9DSEFOR0UQBSraAQoQRmlsZUNhcHR1cmVDbGFzcxIiCh5GSUxFX0NBUFRVUkVfQ0xBU1NfVU5TUEVDSUZJRUQQABIiCh5GSUxFX0NBUFRVUkVfQ0xBU1NfR0lUX1RSQUNLRUQQARItCilGSUxFX0NBUFRVUkVfQ0xBU1NfR0lUX1VOVFJBQ0tFRF9DQVBUVVJFRBACEisKJ0ZJTEVfQ0FQVFVSRV9DTEFTU19HSVRfSUdOT1JFRF9DQVBUVVJFRBADEiIKHkZJTEVfQ0FQVFVSRV9DTEFTU19OT05fR0lUX0NBUxAEKqcBChBEaWZmQ29tcGxldGVuZXNzEiEKHURJRkZfQ09NUExFVEVORVNTX1VOU1BFQ0lGSUVEEAASHgoaRElGRl9DT01QTEVURU5FU1NfQ09NUExFVEUQARIlCiFESUZGX0NPTVBMRVRFTkVTU19QQVJUSUFMX0JMT0NLRUQQAhIpCiVESUZGX0NPTVBMRVRFTkVTU19CSU5BUllfU1VNTUFSWV9PTkxZEAMqhwEKDFNuYXBzaG90S2luZBIdChlTTkFQU0hPVF9LSU5EX1VOU1BFQ0lGSUVEEAASHgoaU05BUFNIT1RfS0lORF9HSVRfVFJFRV9SRUYQARIeChpTTkFQU0hPVF9LSU5EX0NBU19NQU5JRkVTVBACEhgKFFNOQVBTSE9UX0tJTkRfSFlCUklEEAMqegoRRmlsZURlY2lzaW9uU2NvcGUSIwofRklMRV9ERUNJU0lPTl9TQ09QRV9VTlNQRUNJRklFRBAAEiIKHkZJTEVfREVDSVNJT05fU0NPUEVfQ0hBTkdFX1NFVBABEhwKGEZJTEVfREVDSVNJT05fU0NPUEVfRklMRRACKn0KEkZpbGVEZWNpc2lvbkFjdGlvbhIkCiBGSUxFX0RFQ0lTSU9OX0FDVElPTl9VTlNQRUNJRklFRBAAEiAKHEZJTEVfREVDSVNJT05fQUNUSU9OX0FQUFJPVkUQARIfChtGSUxFX0RFQ0lTSU9OX0FDVElPTl9SRUpFQ1QQAiqNAgoTRmlsZVJldmlld0V2ZW50VHlwZRImCiJGSUxFX1JFVklFV19FVkVOVF9UWVBFX1VOU1BFQ0lGSUVEEAASLAooRklMRV9SRVZJRVdfRVZFTlRfVFlQRV9CQVNFTElORV9DQVBUVVJFRBABEi0KKUZJTEVfUkVWSUVXX0VWRU5UX1RZUEVfQ0FORElEQVRFX0NBUFRVUkVEEAISJwojRklMRV9SRVZJRVdfRVZFTlRfVFlQRV9GSUxFX0RFQ0lERUQQAxIlCiFGSUxFX1JFVklFV19FVkVOVF9UWVBFX1JFQ09OQ0lMRUQQBBIhCh1GSUxFX1JFVklFV19FVkVOVF9UWVBFX0ZBSUxFRBAFKvkBChVGaWxlUmV2aWV3RmFpbHVyZUtpbmQSKAokRklMRV9SRVZJRVdfRkFJTFVSRV9LSU5EX1VOU1BFQ0lGSUVEEAASKwonRklMRV9SRVZJRVdfRkFJTFVSRV9LSU5EX0NBUFRVUkVfRkFJTEVEEAESLgoqRklMRV9SRVZJRVdfRkFJTFVSRV9LSU5EX0RJRkZfVU5SRVZJRVdBQkxFEAISLQopRklMRV9SRVZJRVdfRkFJTFVSRV9LSU5EX1JFQ09OQ0lMRV9GQUlMRUQQAxIqCiZGSUxFX1JFVklFV19GQUlMVVJFX0tJTkRfSEFTSF9NSVNNQVRDSBAEYgZwcm90bzM");
 
 /**
  * ExecutionPhase defines the lifecycle phase of an agent execution.
@@ -1271,4 +1271,460 @@ export enum FileChangeCaptureLevel {
  */
 export const FileChangeCaptureLevelSchema: GenEnum<FileChangeCaptureLevel> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 16);
+
+/**
+ * FileChangeSetStatus is the state of a FileChangeSet, DERIVED by folding its
+ * file-review events (never stored-mutable).
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
+ */
+export enum FileChangeSetStatus {
+  /**
+   * Default value, not a valid status.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Baseline captured; the turn is executing and the candidate is not yet
+   * captured. No diff to review yet.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_CAPTURING = 1;
+   */
+  CAPTURING = 1,
+
+  /**
+   * Candidate captured and the diff is reviewable; awaiting user decisions.
+   * Partially-decided sets stay here (still actionable) until every change is
+   * decided.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_AWAITING_REVIEW = 2;
+   */
+  AWAITING_REVIEW = 2,
+
+  /**
+   * All changes decided; awaiting the runner's reconcile.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_DECIDED = 3;
+   */
+  DECIDED = 3,
+
+  /**
+   * Approved bytes reconciled into the workspace and hash-verified. Terminal.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_RECONCILED = 4;
+   */
+  RECONCILED = 4,
+
+  /**
+   * A capture, diff, or reconcile failure halted the lifecycle. Terminal. See
+   * FileReviewFailureKind for the precise cause.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_FAILED = 5;
+   */
+  FAILED = 5,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus.
+ */
+export const FileChangeSetStatusSchema: GenEnum<FileChangeSetStatus> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 17);
+
+/**
+ * FileChangeKind is the per-file outcome within a FileChangeSet.
+ *
+ * The minimal set that covers the overwhelming majority of edits; COPY /
+ * MODE_CHANGE / SYMLINK_CHANGE are deferred (adding enum values later is
+ * non-breaking).
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileChangeKind
+ */
+export enum FileChangeKind {
+  /**
+   * Default value, not a valid kind.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A new file was created.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_ADD = 1;
+   */
+  ADD = 1,
+
+  /**
+   * An existing file's contents changed.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_MODIFY = 2;
+   */
+  MODIFY = 2,
+
+  /**
+   * A file was deleted.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_DELETE = 3;
+   */
+  DELETE = 3,
+
+  /**
+   * A file was renamed or moved; path_before holds the source, path_after the
+   * destination.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_RENAME = 4;
+   */
+  RENAME = 4,
+
+  /**
+   * A binary file changed; rendered as "binary file changed" rather than a text
+   * diff.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_BINARY_CHANGE = 5;
+   */
+  BINARY_CHANGE = 5,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileChangeKind.
+ */
+export const FileChangeKindSchema: GenEnum<FileChangeKind> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 18);
+
+/**
+ * FileCaptureClass records how a file was captured, which governs which
+ * substrate (git tree ref vs CAS) holds its bytes and whether it is reviewable
+ * before CAS lands.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
+ */
+export enum FileCaptureClass {
+  /**
+   * Default value, not a valid capture class.
+   *
+   * @generated from enum value: FILE_CAPTURE_CLASS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A git-tracked file; captured via the git no-commit tree snapshot.
+   *
+   * @generated from enum value: FILE_CAPTURE_CLASS_GIT_TRACKED = 1;
+   */
+  GIT_TRACKED = 1,
+
+  /**
+   * A git-untracked (but not ignored) file captured into the snapshot.
+   *
+   * @generated from enum value: FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED = 2;
+   */
+  GIT_UNTRACKED_CAPTURED = 2,
+
+  /**
+   * A gitignored file captured via CAS (Phase 3).
+   *
+   * @generated from enum value: FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED = 3;
+   */
+  GIT_IGNORED_CAPTURED = 3,
+
+  /**
+   * A file in a non-git workspace captured via CAS (Phase 3).
+   *
+   * @generated from enum value: FILE_CAPTURE_CLASS_NON_GIT_CAS = 4;
+   */
+  NON_GIT_CAS = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileCaptureClass.
+ */
+export const FileCaptureClassSchema: GenEnum<FileCaptureClass> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 19);
+
+/**
+ * DiffCompleteness describes whether a change set's rendered diff is complete
+ * enough to approve safely. A non-COMPLETE value blocks normal approval so an
+ * elided or binary-only diff can never be approved as if it were the whole
+ * change.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
+ */
+export enum DiffCompleteness {
+  /**
+   * Default value, not a valid completeness.
+   *
+   * @generated from enum value: DIFF_COMPLETENESS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Every file's full diff is available; safe to approve.
+   *
+   * @generated from enum value: DIFF_COMPLETENESS_COMPLETE = 1;
+   */
+  COMPLETE = 1,
+
+  /**
+   * At least one file's diff is elided/truncated/uncapturable; approval is
+   * blocked until the full diff is available.
+   *
+   * @generated from enum value: DIFF_COMPLETENESS_PARTIAL_BLOCKED = 2;
+   */
+  PARTIAL_BLOCKED = 2,
+
+  /**
+   * Only a binary-change summary is available (no text diff); approval requires
+   * the explicit binary-change UX, not a text-diff review.
+   *
+   * @generated from enum value: DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY = 3;
+   */
+  BINARY_SUMMARY_ONLY = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.DiffCompleteness.
+ */
+export const DiffCompletenessSchema: GenEnum<DiffCompleteness> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 20);
+
+/**
+ * SnapshotKind is the substrate backing a SnapshotRef.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.SnapshotKind
+ */
+export enum SnapshotKind {
+  /**
+   * Default value, not a valid snapshot kind.
+   *
+   * @generated from enum value: SNAPSHOT_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A git no-commit tree ref (git-tracked/untracked paths only).
+   *
+   * @generated from enum value: SNAPSHOT_KIND_GIT_TREE_REF = 1;
+   */
+  GIT_TREE_REF = 1,
+
+  /**
+   * A content-addressed manifest (ignored/non-git paths; Phase 3).
+   *
+   * @generated from enum value: SNAPSHOT_KIND_CAS_MANIFEST = 2;
+   */
+  CAS_MANIFEST = 2,
+
+  /**
+   * Both a git tree ref and a CAS manifest (mixed workspace).
+   *
+   * @generated from enum value: SNAPSHOT_KIND_HYBRID = 3;
+   */
+  HYBRID = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.SnapshotKind.
+ */
+export const SnapshotKindSchema: GenEnum<SnapshotKind> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 21);
+
+/**
+ * FileDecisionScope is the granularity a FileDecision applies to.
+ *
+ * HUNK is intentionally deferred — per-hunk approval is a derived approved
+ * snapshot, not a new lease, and ships after file-level is stable.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
+ */
+export enum FileDecisionScope {
+  /**
+   * Default value, not a valid scope.
+   *
+   * @generated from enum value: FILE_DECISION_SCOPE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The decision applies to the whole change set.
+   *
+   * @generated from enum value: FILE_DECISION_SCOPE_CHANGE_SET = 1;
+   */
+  CHANGE_SET = 1,
+
+  /**
+   * The decision applies to one CapturedFileChange (FileDecision.file_change_id).
+   *
+   * @generated from enum value: FILE_DECISION_SCOPE_FILE = 2;
+   */
+  FILE = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileDecisionScope.
+ */
+export const FileDecisionScopeSchema: GenEnum<FileDecisionScope> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 22);
+
+/**
+ * FileDecisionAction is a user's verdict on a change set or file.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
+ */
+export enum FileDecisionAction {
+  /**
+   * Default value, not a valid action.
+   *
+   * @generated from enum value: FILE_DECISION_ACTION_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Keep the change(s): reconcile the captured bytes into the workspace.
+   *
+   * @generated from enum value: FILE_DECISION_ACTION_APPROVE = 1;
+   */
+  APPROVE = 1,
+
+  /**
+   * Discard the change(s): reconcile back to baseline for the targeted scope.
+   *
+   * @generated from enum value: FILE_DECISION_ACTION_REJECT = 2;
+   */
+  REJECT = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileDecisionAction.
+ */
+export const FileDecisionActionSchema: GenEnum<FileDecisionAction> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 23);
+
+/**
+ * FileReviewEventType is the kind of event in the append-only file-review
+ * stream (see FileReviewEvent in filereview.proto). It is the coarse lifecycle
+ * bucket; failure fidelity lives on FileReviewFailure.kind.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
+ */
+export enum FileReviewEventType {
+  /**
+   * Default value, not a valid event type.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Baseline captured at turn start. Payload: FileReviewBaselineCaptured.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED = 1;
+   */
+  BASELINE_CAPTURED = 1,
+
+  /**
+   * Candidate captured at the turn boundary, carrying the diff. Payload:
+   * FileReviewCandidateCaptured.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED = 2;
+   */
+  CANDIDATE_CAPTURED = 2,
+
+  /**
+   * A user decided a change set or file. Payload: FileDecision.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_FILE_DECIDED = 3;
+   */
+  FILE_DECIDED = 3,
+
+  /**
+   * Approved bytes reconciled and verified. Payload: FileReviewReconciled.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_RECONCILED = 4;
+   */
+  RECONCILED = 4,
+
+  /**
+   * A capture/diff/reconcile failure. Payload: FileReviewFailure.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_FAILED = 5;
+   */
+  FAILED = 5,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileReviewEventType.
+ */
+export const FileReviewEventTypeSchema: GenEnum<FileReviewEventType> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 24);
+
+/**
+ * FileReviewFailureKind is the precise cause carried by a FAILED file-review
+ * event (FileReviewFailure.kind). Audit/control metadata for the failure
+ * lifecycle.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
+ */
+export enum FileReviewFailureKind {
+  /**
+   * Default value, not a valid failure kind.
+   *
+   * @generated from enum value: FILE_REVIEW_FAILURE_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Capturing the baseline or candidate snapshot failed.
+   *
+   * @generated from enum value: FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED = 1;
+   */
+  CAPTURE_FAILED = 1,
+
+  /**
+   * The diff could not be rendered completely (uncapturable path); the change
+   * set cannot become approvable.
+   *
+   * @generated from enum value: FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE = 2;
+   */
+  DIFF_UNREVIEWABLE = 2,
+
+  /**
+   * Reconciling approved bytes into the workspace failed.
+   *
+   * @generated from enum value: FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED = 3;
+   */
+  RECONCILE_FAILED = 3,
+
+  /**
+   * A post-reconcile filesystem hash did not match the approved digest.
+   *
+   * @generated from enum value: FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH = 4;
+   */
+  HASH_MISMATCH = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind.
+ */
+export const FileReviewFailureKindSchema: GenEnum<FileReviewFailureKind> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 25);
 

@@ -1,0 +1,68 @@
+{
+  "name": "changeset-decide-reconcile",
+  "description": "A CHANGE_SET-scoped decision covers all changes, then reconcile -> status RECONCILED with an approved snapshot.",
+  "execution_id": "aex_reconcile",
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "events": [
+    {
+      "eventId": "cs1::FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs1", "turnId": "t1", "harnessId": "deep-agent",
+        "baselineSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "base", "ref": "refs/stigmer/x/baseline" } }
+      }
+    },
+    {
+      "eventId": "cs1::FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs1",
+        "candidateSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "cand", "ref": "refs/stigmer/x/candidate" } },
+        "changes": [
+          { "id": "fc1", "pathBefore": "src/a.ts", "pathAfter": "src/a.ts", "kind": "FILE_CHANGE_KIND_MODIFY", "fileDigest": "d-fc1", "diffComplete": true }
+        ],
+        "aggregateDigest": "agg-cs1",
+        "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE"
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "timestamp": "2026-06-30T00:01:00Z",
+      "actor": "user",
+      "fileDecided": {
+        "id": "cs1:cs1", "changeSetId": "cs1",
+        "scope": "FILE_DECISION_SCOPE_CHANGE_SET", "action": "FILE_DECISION_ACTION_APPROVE",
+        "expectedDigest": "agg-cs1", "reviewerId": "u1", "decidedAt": "2026-06-30T00:01:00Z"
+      }
+    },
+    {
+      "eventId": "cs1::FILE_REVIEW_EVENT_TYPE_RECONCILED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_RECONCILED",
+      "timestamp": "2026-06-30T00:02:00Z",
+      "actor": "runner",
+      "reconciled": {
+        "changeSetId": "cs1",
+        "approvedSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "approved", "ref": "refs/stigmer/x/approved" } }
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs1",
+      "status": "FILE_CHANGE_SET_STATUS_RECONCILED",
+      "change_ids": ["fc1"],
+      "decision_count": 1,
+      "aggregate_digest": "agg-cs1",
+      "has_approved_snapshot": true
+    }
+  ]
+}

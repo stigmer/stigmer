@@ -43,6 +43,11 @@ class AgentExecutionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitApprovalInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
                 _registered_method=True)
+        self.submitFileDecision = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitFileDecision',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitFileDecisionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+                _registered_method=True)
         self.cancel = channel.unary_unary(
                 '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/cancel',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.CancelAgentExecutionInput.SerializeToString,
@@ -162,6 +167,41 @@ class AgentExecutionCommandControllerServicer(object):
 
         If the same approval is submitted twice (same execution, tool_call, action),
         the second call is a no-op and returns the current state.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def submitFileDecision(self, request, context):
+        """Submit a keep/discard decision on a file change set (or a single file).
+
+        Records a FILE_DECIDED event in the append-only file_review stream;
+        FileChangeSet.decisions is the derived projection. The runner reconciles
+        the approved bytes (Phase 2) — this RPC records the decision and enforces
+        that expected_digest still matches the captured content the user reviewed.
+
+        ## Preconditions
+
+        - Execution must exist and be non-terminal
+        - change_set_id must match a status.file_change_sets[].id; for FILE scope,
+        file_change_id must match a CapturedFileChange.id within it
+        - expected_digest must match the target's current digest
+        - User must have can_edit permission on the execution
+
+        @internal
+
+        ## Error Conditions
+
+        - NOT_FOUND: Execution doesn't exist
+        - FAILED_PRECONDITION: Execution terminal, or change set/file not found
+        - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
+        FILE scope, or expected_digest mismatch
+        - PERMISSION_DENIED: User lacks can_edit permission
+
+        ## Idempotency
+
+        Re-submitting the same decision (same change set, scope, target) is a no-op
+        and returns the current state — appends are keyed by FileReviewEvent.event_id.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -502,6 +542,11 @@ def add_AgentExecutionCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitApprovalInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
             ),
+            'submitFileDecision': grpc.unary_unary_rpc_method_handler(
+                    servicer.submitFileDecision,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitFileDecisionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+            ),
             'cancel': grpc.unary_unary_rpc_method_handler(
                     servicer.cancel,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.CancelAgentExecutionInput.FromString,
@@ -669,6 +714,33 @@ class AgentExecutionCommandController(object):
             target,
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval',
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitApprovalInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def submitFileDecision(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitFileDecision',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitFileDecisionInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
             options,
             channel_credentials,

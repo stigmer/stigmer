@@ -49,6 +49,14 @@
           "description": "Submit an approval decision for a pending tool call.\n\n ## Preconditions\n\n - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase\n - tool_call_id must match status.pending_approval.tool_call_id\n - User must have can_edit permission on the execution\n\n ## Behavior by Action\n\n - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS\n - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS\n - REJECT: Execution fails with rejection error, phase becomes FAILED\n\n @internal\n\n ## State Transitions\n\n On success:\n - ToolCall.approval_action = submitted action\n - ToolCall.approval_decided_at = current timestamp\n - ToolCall.approved_by = authenticated user ID\n - AgentExecutionStatus.pending_approval = cleared\n - ExecutionPhase = EXECUTION_IN_PROGRESS (or EXECUTION_FAILED if REJECT)\n\n ## Error Conditions\n\n - NOT_FOUND: Execution doesn't exist\n - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase\n - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED\n - PERMISSION_DENIED: User lacks can_edit permission\n\n ## Idempotency\n\n If the same approval is submitted twice (same execution, tool_call, action),\n the second call is a no-op and returns the current state."
         },
         {
+          "name": "SubmitFileDecision",
+          "inputType": "SubmitFileDecisionInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Submit a keep/discard decision on a file change set (or a single file).\n\n Records a FILE_DECIDED event in the append-only file_review stream;\n FileChangeSet.decisions is the derived projection. The runner reconciles\n the approved bytes (Phase 2) — this RPC records the decision and enforces\n that expected_digest still matches the captured content the user reviewed.\n\n ## Preconditions\n\n - Execution must exist and be non-terminal\n - change_set_id must match a status.file_change_sets[].id; for FILE scope,\n   file_change_id must match a CapturedFileChange.id within it\n - expected_digest must match the target's current digest\n - User must have can_edit permission on the execution\n\n @internal\n\n ## Error Conditions\n\n - NOT_FOUND: Execution doesn't exist\n - FAILED_PRECONDITION: Execution terminal, or change set/file not found\n - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for\n   FILE scope, or expected_digest mismatch\n - PERMISSION_DENIED: User lacks can_edit permission\n\n ## Idempotency\n\n Re-submitting the same decision (same change set, scope, target) is a no-op\n and returns the current state — appends are keyed by FileReviewEvent.event_id."
+        },
+        {
           "name": "Cancel",
           "inputType": "CancelAgentExecutionInput",
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput",
@@ -321,6 +329,103 @@
             "kind": "string"
           },
           "description": "Optional reason/comment for the decision.\n Stored in audit trail for compliance and debugging.\n Examples:\n   - \"Verified the target repository is safe to delete\" (on APPROVE)\n   - \"Will handle this operation manually\" (on SKIP)\n   - \"Unexpected target - this looks like the wrong repository\" (on REJECT)",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SubmitFileDecisionInput",
+      "description": "SubmitFileDecisionInput is a user's keep/discard decision on a file change\n set or a single file within it.\n\n The decision is recorded in the append-only file_review event stream as a\n FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The\n runner reconciles approved bytes (Phase 2); this RPC only records the\n decision and enforces that expected_digest still matches what the user saw.\n\n Example:\n   {\n     \"agent_execution_id\": \"aex_abc123xyz456\",\n     \"change_set_id\": \"fcs_def789\",\n     \"scope\": \"FILE_DECISION_SCOPE_FILE\",\n     \"file_change_id\": \"fc_001\",\n     \"action\": \"FILE_DECISION_ACTION_APPROVE\",\n     \"expected_digest\": \"sha256:…\",\n     \"reason\": \"Looks correct\"\n   }",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentExecutionId",
+          "jsonName": "agentExecutionId",
+          "protoField": "agent_execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent execution.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the change set this decision targets. Must match\n status.file_change_sets[].id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Scope",
+          "jsonName": "scope",
+          "protoField": "scope",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionScope",
+            "enumValues": [
+              "FILE_DECISION_SCOPE_CHANGE_SET",
+              "FILE_DECISION_SCOPE_FILE"
+            ]
+          },
+          "description": "Whether the decision applies to the whole change set or one file.\n FILE_DECISION_SCOPE_UNSPECIFIED (0) is rejected by validation.",
+          "required": false
+        },
+        {
+          "name": "FileChangeId",
+          "jsonName": "fileChangeId",
+          "protoField": "file_change_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the file change to decide; required when scope is FILE, ignored for\n CHANGE_SET (the cross-field rule is enforced in the handler). Must match a\n CapturedFileChange.id within the change set.",
+          "required": false
+        },
+        {
+          "name": "Action",
+          "jsonName": "action",
+          "protoField": "action",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionAction",
+            "enumValues": [
+              "FILE_DECISION_ACTION_APPROVE",
+              "FILE_DECISION_ACTION_REJECT"
+            ]
+          },
+          "description": "Keep (APPROVE) or discard (REJECT). FILE_DECISION_ACTION_UNSPECIFIED (0) is\n rejected by validation.",
+          "required": false
+        },
+        {
+          "name": "ExpectedDigest",
+          "jsonName": "expectedDigest",
+          "protoField": "expected_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Digest of the content the user actually saw — the enforcement gate. The\n handler rejects the decision if the target's current digest differs, so a\n change captured after the user reviewed cannot be silently decided.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional reason/comment for the decision (audit trail).",
           "required": false
         }
       ]
@@ -1466,6 +1571,40 @@
       ]
     },
     {
+      "name": "FileDecisionScope",
+      "description": "FileDecisionScope is the granularity a FileDecision applies to.\n\n HUNK is intentionally deferred — per-hunk approval is a derived approved\n snapshot, not a new lease, and ships after file-level is stable.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionScope",
+      "values": [
+        {
+          "name": "FILE_DECISION_SCOPE_CHANGE_SET",
+          "number": 1,
+          "description": "The decision applies to the whole change set."
+        },
+        {
+          "name": "FILE_DECISION_SCOPE_FILE",
+          "number": 2,
+          "description": "The decision applies to one CapturedFileChange (FileDecision.file_change_id)."
+        }
+      ]
+    },
+    {
+      "name": "FileDecisionAction",
+      "description": "FileDecisionAction is a user's verdict on a change set or file.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionAction",
+      "values": [
+        {
+          "name": "FILE_DECISION_ACTION_APPROVE",
+          "number": 1,
+          "description": "Keep the change(s): reconcile the captured bytes into the workspace."
+        },
+        {
+          "name": "FILE_DECISION_ACTION_REJECT",
+          "number": 2,
+          "description": "Discard the change(s): reconcile back to baseline for the targeted scope."
+        }
+      ]
+    },
+    {
       "name": "ExecutionPhase",
       "description": "ExecutionPhase defines the lifecycle phase of an agent execution.\n\n Phase Transitions:\n\n Normal flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED\n\n Failure flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED\n\n Termination flow (platform-initiated stop):\n EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED\n\n Approval flow (HITL):\n EXECUTION_IN_PROGRESS → EXECUTION_WAITING_FOR_APPROVAL → EXECUTION_IN_PROGRESS\n\n Pause/Resume flow:\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n Terminal States:\n - EXECUTION_COMPLETED: Agent finished successfully\n - EXECUTION_FAILED: Agent encountered an unexpected error\n - EXECUTION_TERMINATED: Platform stopped the agent (stall, budget, or force-kill)\n - EXECUTION_CANCELLED: User gracefully stopped the agent\n\n Non-Terminal States:\n - EXECUTION_WAITING_FOR_APPROVAL: Awaiting user approval for tool\n - EXECUTION_PAUSED: Temporarily paused, can be resumed",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionPhase",
@@ -1735,6 +1874,65 @@
       ]
     },
     {
+      "name": "FileChangeKind",
+      "description": "FileChangeKind is the per-file outcome within a FileChangeSet.\n\n The minimal set that covers the overwhelming majority of edits; COPY /\n MODE_CHANGE / SYMLINK_CHANGE are deferred (adding enum values later is\n non-breaking).\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeKind",
+      "values": [
+        {
+          "name": "FILE_CHANGE_KIND_ADD",
+          "number": 1,
+          "description": "A new file was created."
+        },
+        {
+          "name": "FILE_CHANGE_KIND_MODIFY",
+          "number": 2,
+          "description": "An existing file's contents changed."
+        },
+        {
+          "name": "FILE_CHANGE_KIND_DELETE",
+          "number": 3,
+          "description": "A file was deleted."
+        },
+        {
+          "name": "FILE_CHANGE_KIND_RENAME",
+          "number": 4,
+          "description": "A file was renamed or moved; path_before holds the source, path_after the\n destination."
+        },
+        {
+          "name": "FILE_CHANGE_KIND_BINARY_CHANGE",
+          "number": 5,
+          "description": "A binary file changed; rendered as \"binary file changed\" rather than a text\n diff."
+        }
+      ]
+    },
+    {
+      "name": "FileCaptureClass",
+      "description": "FileCaptureClass records how a file was captured, which governs which\n substrate (git tree ref vs CAS) holds its bytes and whether it is reviewable\n before CAS lands.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileCaptureClass",
+      "values": [
+        {
+          "name": "FILE_CAPTURE_CLASS_GIT_TRACKED",
+          "number": 1,
+          "description": "A git-tracked file; captured via the git no-commit tree snapshot."
+        },
+        {
+          "name": "FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED",
+          "number": 2,
+          "description": "A git-untracked (but not ignored) file captured into the snapshot."
+        },
+        {
+          "name": "FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED",
+          "number": 3,
+          "description": "A gitignored file captured via CAS (Phase 3)."
+        },
+        {
+          "name": "FILE_CAPTURE_CLASS_NON_GIT_CAS",
+          "number": 4,
+          "description": "A file in a non-git workspace captured via CAS (Phase 3)."
+        }
+      ]
+    },
+    {
       "name": "ExecutionArtifactKind",
       "description": "ExecutionArtifactKind defines the type of artifact published by an agent.\n\n When an agent publishes a file, it's stored as-is.\n When an agent publishes a directory, it's archived as a ZIP file.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind",
@@ -1792,6 +1990,141 @@
           "name": "FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY",
           "number": 2,
           "description": "Only a hunk-level unified_diff is available (Cursor today). Clients render\n the hunk diff; before/after whole-file content is absent."
+        }
+      ]
+    },
+    {
+      "name": "FileChangeSetStatus",
+      "description": "FileChangeSetStatus is the state of a FileChangeSet, DERIVED by folding its\n file-review events (never stored-mutable).\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus",
+      "values": [
+        {
+          "name": "FILE_CHANGE_SET_STATUS_CAPTURING",
+          "number": 1,
+          "description": "Baseline captured; the turn is executing and the candidate is not yet\n captured. No diff to review yet."
+        },
+        {
+          "name": "FILE_CHANGE_SET_STATUS_AWAITING_REVIEW",
+          "number": 2,
+          "description": "Candidate captured and the diff is reviewable; awaiting user decisions.\n Partially-decided sets stay here (still actionable) until every change is\n decided."
+        },
+        {
+          "name": "FILE_CHANGE_SET_STATUS_DECIDED",
+          "number": 3,
+          "description": "All changes decided; awaiting the runner's reconcile."
+        },
+        {
+          "name": "FILE_CHANGE_SET_STATUS_RECONCILED",
+          "number": 4,
+          "description": "Approved bytes reconciled into the workspace and hash-verified. Terminal."
+        },
+        {
+          "name": "FILE_CHANGE_SET_STATUS_FAILED",
+          "number": 5,
+          "description": "A capture, diff, or reconcile failure halted the lifecycle. Terminal. See\n FileReviewFailureKind for the precise cause."
+        }
+      ]
+    },
+    {
+      "name": "DiffCompleteness",
+      "description": "DiffCompleteness describes whether a change set's rendered diff is complete\n enough to approve safely. A non-COMPLETE value blocks normal approval so an\n elided or binary-only diff can never be approved as if it were the whole\n change.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.DiffCompleteness",
+      "values": [
+        {
+          "name": "DIFF_COMPLETENESS_COMPLETE",
+          "number": 1,
+          "description": "Every file's full diff is available; safe to approve."
+        },
+        {
+          "name": "DIFF_COMPLETENESS_PARTIAL_BLOCKED",
+          "number": 2,
+          "description": "At least one file's diff is elided/truncated/uncapturable; approval is\n blocked until the full diff is available."
+        },
+        {
+          "name": "DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY",
+          "number": 3,
+          "description": "Only a binary-change summary is available (no text diff); approval requires\n the explicit binary-change UX, not a text-diff review."
+        }
+      ]
+    },
+    {
+      "name": "FileReviewEventType",
+      "description": "FileReviewEventType is the kind of event in the append-only file-review\n stream (see FileReviewEvent in filereview.proto). It is the coarse lifecycle\n bucket; failure fidelity lives on FileReviewFailure.kind.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewEventType",
+      "values": [
+        {
+          "name": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+          "number": 1,
+          "description": "Baseline captured at turn start. Payload: FileReviewBaselineCaptured."
+        },
+        {
+          "name": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+          "number": 2,
+          "description": "Candidate captured at the turn boundary, carrying the diff. Payload:\n FileReviewCandidateCaptured."
+        },
+        {
+          "name": "FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+          "number": 3,
+          "description": "A user decided a change set or file. Payload: FileDecision."
+        },
+        {
+          "name": "FILE_REVIEW_EVENT_TYPE_RECONCILED",
+          "number": 4,
+          "description": "Approved bytes reconciled and verified. Payload: FileReviewReconciled."
+        },
+        {
+          "name": "FILE_REVIEW_EVENT_TYPE_FAILED",
+          "number": 5,
+          "description": "A capture/diff/reconcile failure. Payload: FileReviewFailure."
+        }
+      ]
+    },
+    {
+      "name": "FileReviewFailureKind",
+      "description": "FileReviewFailureKind is the precise cause carried by a FAILED file-review\n event (FileReviewFailure.kind). Audit/control metadata for the failure\n lifecycle.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind",
+      "values": [
+        {
+          "name": "FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED",
+          "number": 1,
+          "description": "Capturing the baseline or candidate snapshot failed."
+        },
+        {
+          "name": "FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE",
+          "number": 2,
+          "description": "The diff could not be rendered completely (uncapturable path); the change\n set cannot become approvable."
+        },
+        {
+          "name": "FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED",
+          "number": 3,
+          "description": "Reconciling approved bytes into the workspace failed."
+        },
+        {
+          "name": "FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH",
+          "number": 4,
+          "description": "A post-reconcile filesystem hash did not match the approved digest."
+        }
+      ]
+    },
+    {
+      "name": "SnapshotKind",
+      "description": "SnapshotKind is the substrate backing a SnapshotRef.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SnapshotKind",
+      "values": [
+        {
+          "name": "SNAPSHOT_KIND_GIT_TREE_REF",
+          "number": 1,
+          "description": "A git no-commit tree ref (git-tracked/untracked paths only)."
+        },
+        {
+          "name": "SNAPSHOT_KIND_CAS_MANIFEST",
+          "number": 2,
+          "description": "A content-addressed manifest (ignored/non-git paths; Phase 3)."
+        },
+        {
+          "name": "SNAPSHOT_KIND_HYBRID",
+          "number": 3,
+          "description": "Both a git tree ref and a CAS manifest (mixed workspace)."
         }
       ]
     },
@@ -2226,6 +2559,31 @@
           "kind": "struct"
         },
         "description": "Structured output extracted from the agent's final response.\n\n Populated when ExecutionConfig.structured_output_schema was set and the\n runner successfully extracted schema-conforming data. Only meaningful\n when phase is EXECUTION_COMPLETED.\n\n For native harness: populated from LangGraph graphState.structuredResponse\n (ToolStrategy enforcement). For Cursor harness: populated from 3-tier\n extraction (JSON.parse → fence extraction → extraction LLM fallback).\n\n Consumers: frontend architect/refine hooks read this instead of parsing\n YAML from messages. Workflow callback path reads structured_output from\n the Temporal activity result (separate channel, same data).",
+        "required": false
+      },
+      {
+        "name": "FileChangeSets",
+        "jsonName": "fileChangeSets",
+        "protoField": "file_change_sets",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "FileChangeSet"
+          }
+        },
+        "description": "Server-computed projection of file change sets awaiting or completing\n review for this execution.\n\n @internal\n\n Recomputed on every status write from file_review_event_stream (never\n merged), so it is always consistent with the authoritative ledger — exactly\n as pending_approvals is recomputed from the message scan / approval stream.\n Empty until the runner's capture activity authors events (Phase 2). A\n terminal execution projects no actionable review. See FileChangeSet.\n\n Field 23: appended after approval_event_stream (22), the prior maximum.",
+        "required": false
+      },
+      {
+        "name": "FileReviewEventStream",
+        "jsonName": "fileReviewEventStream",
+        "protoField": "file_review_event_stream",
+        "type": {
+          "kind": "message",
+          "messageType": "FileReviewEventStream"
+        },
+        "description": "Server-authored, append-only record of every file-review event (baseline /\n candidate capture, file decisions, reconcile, failures).\n\n @internal\n\n The persisted source of truth that file_change_sets is projected from — a\n sibling of approval_event_stream for the file-review lifecycle (the\n ApprovalEvent oneof is closed, so file events cannot ride it). Appends are\n keyed by the deterministic FileReviewEvent.event_id, so the stream is\n idempotent under retries. Server-only: the agent-runner never sends it; it\n is preserved across UpdateStatus writes (the merge starts from the loaded\n execution and only replaces runner-owned fields). See FileReviewEventStream.\n\n Field 24: appended after file_change_sets (23), the prior maximum.",
         "required": false
       }
     ]
@@ -2840,6 +3198,180 @@
       ]
     },
     {
+      "name": "CapturedFileChange",
+      "description": "One file's delta within a FileChangeSet.\n\n Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef\n for the offloadable unified diff — no parallel blob/artifact types. This is\n the apply-then-review successor to the tool-call-coupled FileChange in\n message.proto; the two coexist until the legacy file-change coupling is\n deleted, at which point this message takes the canonical FileChange name.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.CapturedFileChange",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stable id of this file change within its set. The correlation key a\n FILE-scoped FileDecision references. Never a content hash.",
+          "required": false
+        },
+        {
+          "name": "PathBefore",
+          "jsonName": "pathBefore",
+          "protoField": "path_before",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Path before the change (workspace-root-relative). Empty for ADD.",
+          "required": false
+        },
+        {
+          "name": "PathAfter",
+          "jsonName": "pathAfter",
+          "protoField": "path_after",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Path after the change (workspace-root-relative). Empty for DELETE; differs\n from path_before for RENAME.",
+          "required": false
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileChangeKind",
+            "enumValues": [
+              "FILE_CHANGE_KIND_ADD",
+              "FILE_CHANGE_KIND_MODIFY",
+              "FILE_CHANGE_KIND_DELETE",
+              "FILE_CHANGE_KIND_RENAME",
+              "FILE_CHANGE_KIND_BINARY_CHANGE"
+            ]
+          },
+          "description": "The per-file outcome. See FileChangeKind.",
+          "required": false
+        },
+        {
+          "name": "CaptureClass",
+          "jsonName": "captureClass",
+          "protoField": "capture_class",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileCaptureClass",
+            "enumValues": [
+              "FILE_CAPTURE_CLASS_GIT_TRACKED",
+              "FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED",
+              "FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED",
+              "FILE_CAPTURE_CLASS_NON_GIT_CAS"
+            ]
+          },
+          "description": "How this file was captured (git-tracked vs ignored vs non-git/CAS), which\n governs which substrate holds its before/after bytes. See FileCaptureClass.",
+          "required": false
+        },
+        {
+          "name": "Before",
+          "jsonName": "before",
+          "protoField": "before",
+          "type": {
+            "kind": "message",
+            "messageType": "FileContent"
+          },
+          "description": "Pre-edit content. Empty for ADD. Large bodies offloaded via FileContent.ref.",
+          "required": false
+        },
+        {
+          "name": "After",
+          "jsonName": "after",
+          "protoField": "after",
+          "type": {
+            "kind": "message",
+            "messageType": "FileContent"
+          },
+          "description": "Post-edit content. Empty for DELETE. Large bodies offloaded via FileContent.ref.",
+          "required": false
+        },
+        {
+          "name": "BeforeSha256",
+          "jsonName": "beforeSha256",
+          "protoField": "before_sha256",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 of the pre-edit bytes. ENFORCEMENT digest (the reconcile compares\n against the on-disk baseline). Empty for ADD.",
+          "required": false
+        },
+        {
+          "name": "AfterSha256",
+          "jsonName": "afterSha256",
+          "protoField": "after_sha256",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 of the post-edit bytes. ENFORCEMENT digest (the reconcile applies\n only these exact bytes). Empty for DELETE.",
+          "required": false
+        },
+        {
+          "name": "UnifiedDiff",
+          "jsonName": "unifiedDiff",
+          "protoField": "unified_diff",
+          "type": {
+            "kind": "message",
+            "messageType": "ToolCallOutputRef"
+          },
+          "description": "Offloadable unified diff artifact for this file. The rendered hunks; large\n diffs spill to artifact storage via the same envelope tool output uses.",
+          "required": false
+        },
+        {
+          "name": "DiffComplete",
+          "jsonName": "diffComplete",
+          "protoField": "diff_complete",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "False when this file's diff is incomplete (elided, truncated, or not\n capturable). A change set with any diff_complete == false cannot be\n approved as complete — the structural guard against approving an\n unreviewable change.",
+          "required": false
+        },
+        {
+          "name": "FileDigest",
+          "jsonName": "fileDigest",
+          "protoField": "file_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Canonical digest of (path, kind, before, after) for this file. ENFORCEMENT\n only — the per-file analogue of aggregate_digest. Never a correlation key.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CasManifestRef",
+      "description": "A content-addressed snapshot manifest for paths git cannot capture\n (gitignored or non-git workspaces).\n\n @internal\n Realized in Phase 3 (CAS). Present in the contract now so the snapshot shape\n is stable before producers exist.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.CasManifestRef",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "ManifestDigest",
+          "jsonName": "manifestDigest",
+          "protoField": "manifest_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Digest of the manifest listing each captured path and its blob digest.",
+          "required": false
+        },
+        {
+          "name": "ArtifactUri",
+          "jsonName": "artifactUri",
+          "protoField": "artifact_uri",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Storage URI of the manifest artifact.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ContextInfo",
       "description": "ContextInfo provides visibility into context window utilization.\n\n This message enables monitoring, debugging, and optimization of context\n usage during agent executions. It tracks both the current state and\n historical summarization events.\n\n ## Real-Time Updates\n\n Fields are updated progressively during execution:\n - current_token_count: Updated after each LLM call\n - utilization_percent: Recalculated when token count changes\n - summarization_events: Appended when summarization occurs\n\n ## Configuration Visibility\n\n The message also surfaces the effective configuration:\n - What thresholds are in effect (model defaults or custom overrides)\n - Whether summarization is enabled\n - The model's context window limit\n\n ## Use Cases\n\n - **Dashboard**: Show context health indicator (green/yellow/red based on utilization)\n - **Alerts**: Notify when utilization consistently exceeds thresholds\n - **Analytics**: Track summarization frequency across agent fleet\n - **Debugging**: Understand context-related failures\n\n @since Phase 3 (Context Summarization Architecture)",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ContextInfo",
@@ -3150,6 +3682,149 @@
       ]
     },
     {
+      "name": "FileChangeSet",
+      "description": "The set of file deltas produced by one agent turn, reviewed and reconciled\n as a unit.\n\n A FileChangeSet has no identity or lifecycle independent of the turn that\n produced it: it is born when the turn captures its baseline and dies when its\n decisions are reconciled into the workspace. It is therefore a computed\n projection on AgentExecutionStatus (field file_change_sets), mirroring\n pending_approvals — recomputed on every status write from the file_review\n event ledger, never merged, so it is always consistent with the authoritative\n stream.\n\n @internal\n\n Server-authored: the runner never sends this; it is derived server-side in\n both editions through one projection seam. status and decisions are DERIVED\n folds over the ledger, not stored-mutable state. A terminal execution\n projects no actionable review (the workflow that would reconcile is gone),\n mirroring the phase-aware pending_approvals rule.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeSet",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stable id of this change set, unique per turn. The correlation key a\n FileDecision and every ledger event reference. Never a content hash.",
+          "required": false
+        },
+        {
+          "name": "TurnId",
+          "jsonName": "turnId",
+          "protoField": "turn_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Id of the turn that produced this change set.",
+          "required": false
+        },
+        {
+          "name": "HarnessId",
+          "jsonName": "harnessId",
+          "protoField": "harness_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Harness that produced the edits: \"cursor\" | \"deep-agent\". Carried for audit\n and so the reconcile adapter knows which harness lifecycle authored the set.",
+          "required": false
+        },
+        {
+          "name": "Status",
+          "jsonName": "status",
+          "protoField": "status",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus",
+            "enumValues": [
+              "FILE_CHANGE_SET_STATUS_CAPTURING",
+              "FILE_CHANGE_SET_STATUS_AWAITING_REVIEW",
+              "FILE_CHANGE_SET_STATUS_DECIDED",
+              "FILE_CHANGE_SET_STATUS_RECONCILED",
+              "FILE_CHANGE_SET_STATUS_FAILED"
+            ]
+          },
+          "description": "Current state of the change set, DERIVED from the file_review ledger (a fold\n over the events for this change set). See FileChangeSetStatus.",
+          "required": false
+        },
+        {
+          "name": "BaselineSnapshot",
+          "jsonName": "baselineSnapshot",
+          "protoField": "baseline_snapshot",
+          "type": {
+            "kind": "message",
+            "messageType": "SnapshotRef"
+          },
+          "description": "Workspace state captured at turn start — the \"before\" the authoritative\n diff is computed against.",
+          "required": false
+        },
+        {
+          "name": "CandidateSnapshot",
+          "jsonName": "candidateSnapshot",
+          "protoField": "candidate_snapshot",
+          "type": {
+            "kind": "message",
+            "messageType": "SnapshotRef"
+          },
+          "description": "Workspace state captured at the turn boundary — the \"after\". The authoritative\n diff is diff(baseline_snapshot, candidate_snapshot); no streamed args, no\n pre-execution proposal is ever authoritative.",
+          "required": false
+        },
+        {
+          "name": "ApprovedSnapshot",
+          "jsonName": "approvedSnapshot",
+          "protoField": "approved_snapshot",
+          "type": {
+            "kind": "message",
+            "messageType": "SnapshotRef"
+          },
+          "description": "Workspace state derived after decisions (the exact bytes to reconcile to).\n Empty until the change set is decided. Reconcile verifies the filesystem\n hashes against this snapshot.",
+          "required": false
+        },
+        {
+          "name": "Changes",
+          "jsonName": "changes",
+          "protoField": "changes",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "CapturedFileChange"
+            }
+          },
+          "description": "The per-file deltas in this change set (the rendered review surface).",
+          "required": false
+        },
+        {
+          "name": "AggregateDigest",
+          "jsonName": "aggregateDigest",
+          "protoField": "aggregate_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Canonical digest over the ordered change manifest. ENFORCEMENT only: lets\n the reconcile refuse to apply a manifest that differs from what was\n reviewed. Never a correlation key.",
+          "required": false
+        },
+        {
+          "name": "DiffCompleteness",
+          "jsonName": "diffCompleteness",
+          "protoField": "diff_completeness",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.DiffCompleteness",
+            "enumValues": [
+              "DIFF_COMPLETENESS_COMPLETE",
+              "DIFF_COMPLETENESS_PARTIAL_BLOCKED",
+              "DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY"
+            ]
+          },
+          "description": "Whether the rendered diff is complete enough to approve safely. A\n non-COMPLETE value blocks normal approval (an elided/binary-only diff can\n never be approved as if complete). See DiffCompleteness.",
+          "required": false
+        },
+        {
+          "name": "Decisions",
+          "jsonName": "decisions",
+          "protoField": "decisions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "FileDecision"
+            }
+          },
+          "description": "Human decisions on this change set, a DERIVED fold over the FILE_DECIDED\n events in the ledger (never stored-mutable). Ordered by decision time.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "FileContent",
       "description": "One side (before or after) of a file's content.\n\n Small bodies are carried inline; large bodies are offloaded to artifact\n storage and referenced via the existing tool-output offload envelope. Exactly\n one of inline or ref is set; when offloaded, the head preview lives in\n ref.truncated_preview and the full size in ref.size_bytes.\n\n @since First-Class Diff Review (#186)",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileContent",
@@ -3186,6 +3861,492 @@
             "kind": "bool"
           },
           "description": "True when this side is binary; clients skip text diffing and render\n \"binary file changed\" instead.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileDecision",
+      "description": "One human decision on a change set or a single file within it.\n\n Bound to content by expected_digest: the runner's reconcile applies the\n decision only when the target's current digest still matches what the user\n saw, so \"what you approve is what gets applied\". expected_digest is an\n ENFORCEMENT gate, never a correlation key — correlation is by change_set_id\n (+ file_change_id for FILE scope).\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileDecision",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stable id of this decision.",
+          "required": false
+        },
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The change set this decision targets (correlation key).",
+          "required": false
+        },
+        {
+          "name": "Scope",
+          "jsonName": "scope",
+          "protoField": "scope",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionScope",
+            "enumValues": [
+              "FILE_DECISION_SCOPE_CHANGE_SET",
+              "FILE_DECISION_SCOPE_FILE"
+            ]
+          },
+          "description": "Whether the decision applies to the whole change set or one file. HUNK is\n intentionally deferred. See FileDecisionScope.",
+          "required": false
+        },
+        {
+          "name": "FileChangeId",
+          "jsonName": "fileChangeId",
+          "protoField": "file_change_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The CapturedFileChange this decision targets; set only when scope is FILE\n (correlation key). Empty for CHANGE_SET scope.",
+          "required": false
+        },
+        {
+          "name": "Action",
+          "jsonName": "action",
+          "protoField": "action",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionAction",
+            "enumValues": [
+              "FILE_DECISION_ACTION_APPROVE",
+              "FILE_DECISION_ACTION_REJECT"
+            ]
+          },
+          "description": "Approve or reject. See FileDecisionAction.",
+          "required": false
+        },
+        {
+          "name": "ExpectedDigest",
+          "jsonName": "expectedDigest",
+          "protoField": "expected_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The digest of the content the reviewer actually saw. ENFORCEMENT gate: the\n reconcile refuses to apply if the target's current digest differs. Never a\n correlation key.",
+          "required": false
+        },
+        {
+          "name": "ReviewerId",
+          "jsonName": "reviewerId",
+          "protoField": "reviewer_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identity of the reviewer (principal). Empty when not attributed.",
+          "required": false
+        },
+        {
+          "name": "DecidedAt",
+          "jsonName": "decidedAt",
+          "protoField": "decided_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the decision was made.",
+          "required": false
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional free-text comment supplied with the decision (audit trail).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileReviewBaselineCaptured",
+      "description": "The baseline workspace state captured at turn start.\n\n @internal\n Authored by the runner's turn-begin capture activity. The first event of a\n change set's lifecycle; carries the change set's stable identity so the\n projection can materialize the set before any candidate exists.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stable id of the change set this baseline opens.",
+          "required": false
+        },
+        {
+          "name": "TurnId",
+          "jsonName": "turnId",
+          "protoField": "turn_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The turn that produced it.",
+          "required": false
+        },
+        {
+          "name": "HarnessId",
+          "jsonName": "harnessId",
+          "protoField": "harness_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The harness that produced it (\"cursor\" | \"deep-agent\").",
+          "required": false
+        },
+        {
+          "name": "BaselineSnapshot",
+          "jsonName": "baselineSnapshot",
+          "protoField": "baseline_snapshot",
+          "type": {
+            "kind": "message",
+            "messageType": "SnapshotRef"
+          },
+          "description": "The captured baseline state.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileReviewCandidateCaptured",
+      "description": "The candidate workspace state captured at the turn boundary, carrying the\n computed authoritative diff.\n\n @internal\n Authored by the runner's turn-boundary capture activity. Large before/after\n bodies are offloaded (FileContent.ref) before this event is persisted.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The change set this candidate closes.",
+          "required": false
+        },
+        {
+          "name": "CandidateSnapshot",
+          "jsonName": "candidateSnapshot",
+          "protoField": "candidate_snapshot",
+          "type": {
+            "kind": "message",
+            "messageType": "SnapshotRef"
+          },
+          "description": "The captured candidate state.",
+          "required": false
+        },
+        {
+          "name": "Changes",
+          "jsonName": "changes",
+          "protoField": "changes",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "CapturedFileChange"
+            }
+          },
+          "description": "The authoritative per-file diff (diff of baseline → candidate).",
+          "required": false
+        },
+        {
+          "name": "AggregateDigest",
+          "jsonName": "aggregateDigest",
+          "protoField": "aggregate_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Canonical digest over the ordered manifest (enforcement).",
+          "required": false
+        },
+        {
+          "name": "DiffCompleteness",
+          "jsonName": "diffCompleteness",
+          "protoField": "diff_completeness",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.DiffCompleteness",
+            "enumValues": [
+              "DIFF_COMPLETENESS_COMPLETE",
+              "DIFF_COMPLETENESS_PARTIAL_BLOCKED",
+              "DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY"
+            ]
+          },
+          "description": "Whether the diff is complete enough to approve. See DiffCompleteness.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileReviewEvent",
+      "description": "An immutable event in the file-review lifecycle.\n\n The payload is a closed oneof so each event type is type-safe and\n self-documenting, mirroring ApprovalEvent. event_type is the coarse bucket;\n the payload carries fidelity.\n\n @internal\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewEvent",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "EventId",
+          "jsonName": "eventId",
+          "protoField": "event_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique id of this event, deterministic by design: derived from\n change_set_id + scope id + event_type. The permanent idempotency key for\n append-only authoring, so re-deriving or re-authoring never duplicates an\n event.",
+          "required": false
+        },
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Correlation id shared by every event for one change set.",
+          "required": false
+        },
+        {
+          "name": "EventType",
+          "jsonName": "eventType",
+          "protoField": "event_type",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileReviewEventType",
+            "enumValues": [
+              "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+              "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+              "FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+              "FILE_REVIEW_EVENT_TYPE_RECONCILED",
+              "FILE_REVIEW_EVENT_TYPE_FAILED"
+            ]
+          },
+          "description": "Coarse lifecycle bucket of this event. See FileReviewEventType.",
+          "required": false
+        },
+        {
+          "name": "Timestamp",
+          "jsonName": "timestamp",
+          "protoField": "timestamp",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp of the event.",
+          "required": false
+        },
+        {
+          "name": "Actor",
+          "jsonName": "actor",
+          "protoField": "actor",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Who produced the event: \"system\"/\"runner\" for capture and reconcile,\n \"user\" for decisions.",
+          "required": false
+        },
+        {
+          "name": "BaselineCaptured",
+          "jsonName": "baselineCaptured",
+          "protoField": "baseline_captured",
+          "type": {
+            "kind": "message",
+            "messageType": "FileReviewBaselineCaptured"
+          },
+          "description": "Set when event_type == BASELINE_CAPTURED.",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "CandidateCaptured",
+          "jsonName": "candidateCaptured",
+          "protoField": "candidate_captured",
+          "type": {
+            "kind": "message",
+            "messageType": "FileReviewCandidateCaptured"
+          },
+          "description": "Set when event_type == CANDIDATE_CAPTURED.",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "FileDecided",
+          "jsonName": "fileDecided",
+          "protoField": "file_decided",
+          "type": {
+            "kind": "message",
+            "messageType": "FileDecision"
+          },
+          "description": "Set when event_type == FILE_DECIDED — authored by SubmitFileDecision.",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "Reconciled",
+          "jsonName": "reconciled",
+          "protoField": "reconciled",
+          "type": {
+            "kind": "message",
+            "messageType": "FileReviewReconciled"
+          },
+          "description": "Set when event_type == RECONCILED.",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "Failed",
+          "jsonName": "failed",
+          "protoField": "failed",
+          "type": {
+            "kind": "message",
+            "messageType": "FileReviewFailure"
+          },
+          "description": "Set when event_type == FAILED.",
+          "required": false,
+          "oneofGroup": "payload"
+        }
+      ]
+    },
+    {
+      "name": "FileReviewEventStream",
+      "description": "The ordered sequence of file-review events for a single agent execution.\n\n Persisted on AgentExecutionStatus.file_review_event_stream as a\n server-authored, append-only record. FileChangeSet is the projection of this\n stream; the stream is the source of truth.\n\n @internal\n\n Field ownership (one writer per event type):\n   - BASELINE_CAPTURED / CANDIDATE_CAPTURED / RECONCILED / FAILED events are\n     authored by the runner's capture and reconcile activities (Phase 2).\n   - FILE_DECIDED events are authored by the SubmitFileDecision handler,\n     carrying reviewer_id and the user's comment.\n\n Every append is keyed by the deterministic FileReviewEvent.event_id, so the\n stream is idempotent under retries. Because it is server-only, the\n agent-runner never sends it; it is preserved across UpdateStatus writes (the\n merge starts from the loaded execution and only replaces runner-owned\n fields).\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentExecution.metadata.id this stream belongs to.",
+          "required": false
+        },
+        {
+          "name": "Events",
+          "jsonName": "events",
+          "protoField": "events",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "FileReviewEvent"
+            }
+          },
+          "description": "Events in lifecycle order.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileReviewFailure",
+      "description": "A terminal failure in the file-review lifecycle.\n\n @internal\n Authored by the runner. A DIFF_UNREVIEWABLE failure blocks the change set\n from becoming approvable (the diff cannot be shown completely); the others\n record capture/reconcile/verification failures for audit and resume.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewFailure",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The change set the failure pertains to.",
+          "required": false
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind",
+            "enumValues": [
+              "FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED",
+              "FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE",
+              "FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED",
+              "FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH"
+            ]
+          },
+          "description": "The precise failure mode. event_type buckets this as FAILED; this carries\n the fidelity. See FileReviewFailureKind.",
+          "required": false
+        },
+        {
+          "name": "Detail",
+          "jsonName": "detail",
+          "protoField": "detail",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable detail for the audit trail. Never affects control flow.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileReviewReconciled",
+      "description": "The result of reconciling approved decisions into the workspace.\n\n @internal\n Authored by the runner's reconcile activity after decisions land. Idempotent:\n it reconciles to an exact approved snapshot and verifies hashes, so re-running\n converges.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The change set that was reconciled.",
+          "required": false
+        },
+        {
+          "name": "ApprovedSnapshot",
+          "jsonName": "approvedSnapshot",
+          "protoField": "approved_snapshot",
+          "type": {
+            "kind": "message",
+            "messageType": "SnapshotRef"
+          },
+          "description": "The exact workspace state reconciled to and hash-verified.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GitTreeRef",
+      "description": "A git no-commit tree snapshot (write-tree + a stigmer-namespaced ref).\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GitTreeRef",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "TreeOid",
+          "jsonName": "treeOid",
+          "protoField": "tree_oid",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The tree object id produced by git write-tree.",
+          "required": false
+        },
+        {
+          "name": "Ref",
+          "jsonName": "ref",
+          "protoField": "ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The ref the snapshot is pinned under, e.g.\n \"refs/stigmer/{execution}/{baseline|candidate|approved}\". Keeps the\n snapshot reachable (un-GC'd) without a commit on any user branch.",
           "required": false
         }
       ]
@@ -3494,6 +4655,52 @@
             "kind": "string"
           },
           "description": "Human-readable label for the current setup phase.\n Examples: \"Initializing sandbox…\", \"Setting up workspace…\", \"Loading skills…\"\n Empty when setup phase reporting has not started or is complete.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SnapshotRef",
+      "description": "An immutable pointer to a captured workspace state.\n\n One of git / cas is set per kind; HYBRID carries both (git-tracked files via\n the tree ref, ignored/non-git files via the CAS manifest). Snapshots are\n captured by the runner and are idempotent under Temporal retries.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SnapshotRef",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.SnapshotKind",
+            "enumValues": [
+              "SNAPSHOT_KIND_GIT_TREE_REF",
+              "SNAPSHOT_KIND_CAS_MANIFEST",
+              "SNAPSHOT_KIND_HYBRID"
+            ]
+          },
+          "description": "Which substrate holds this snapshot. See SnapshotKind.",
+          "required": false
+        },
+        {
+          "name": "Git",
+          "jsonName": "git",
+          "protoField": "git",
+          "type": {
+            "kind": "message",
+            "messageType": "GitTreeRef"
+          },
+          "description": "Git no-commit tree reference; set when kind is GIT_TREE_REF or HYBRID.",
+          "required": false
+        },
+        {
+          "name": "Cas",
+          "jsonName": "cas",
+          "protoField": "cas",
+          "type": {
+            "kind": "message",
+            "messageType": "CasManifestRef"
+          },
+          "description": "Content-addressed manifest reference for ignored/non-git paths; set when\n kind is CAS_MANIFEST or HYBRID. See doc 06 (CAS lands in Phase 3).",
           "required": false
         }
       ]

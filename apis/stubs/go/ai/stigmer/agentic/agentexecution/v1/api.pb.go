@@ -292,8 +292,36 @@ type AgentExecutionStatus struct {
 	// YAML from messages. Workflow callback path reads structured_output from
 	// the Temporal activity result (separate channel, same data).
 	StructuredOutput *structpb.Struct `protobuf:"bytes,21,opt,name=structured_output,json=structuredOutput,proto3" json:"structured_output,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Server-computed projection of file change sets awaiting or completing
+	// review for this execution.
+	//
+	// @internal
+	//
+	// Recomputed on every status write from file_review_event_stream (never
+	// merged), so it is always consistent with the authoritative ledger — exactly
+	// as pending_approvals is recomputed from the message scan / approval stream.
+	// Empty until the runner's capture activity authors events (Phase 2). A
+	// terminal execution projects no actionable review. See FileChangeSet.
+	//
+	// Field 23: appended after approval_event_stream (22), the prior maximum.
+	FileChangeSets []*FileChangeSet `protobuf:"bytes,23,rep,name=file_change_sets,json=fileChangeSets,proto3" json:"file_change_sets,omitempty"`
+	// Server-authored, append-only record of every file-review event (baseline /
+	// candidate capture, file decisions, reconcile, failures).
+	//
+	// @internal
+	//
+	// The persisted source of truth that file_change_sets is projected from — a
+	// sibling of approval_event_stream for the file-review lifecycle (the
+	// ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+	// keyed by the deterministic FileReviewEvent.event_id, so the stream is
+	// idempotent under retries. Server-only: the agent-runner never sends it; it
+	// is preserved across UpdateStatus writes (the merge starts from the loaded
+	// execution and only replaces runner-owned fields). See FileReviewEventStream.
+	//
+	// Field 24: appended after file_change_sets (23), the prior maximum.
+	FileReviewEventStream *FileReviewEventStream `protobuf:"bytes,24,opt,name=file_review_event_stream,json=fileReviewEventStream,proto3" json:"file_review_event_stream,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *AgentExecutionStatus) Reset() {
@@ -452,6 +480,20 @@ func (x *AgentExecutionStatus) GetStructuredOutput() *structpb.Struct {
 	return nil
 }
 
+func (x *AgentExecutionStatus) GetFileChangeSets() []*FileChangeSet {
+	if x != nil {
+		return x.FileChangeSets
+	}
+	return nil
+}
+
+func (x *AgentExecutionStatus) GetFileReviewEventStream() *FileReviewEventStream {
+	if x != nil {
+		return x.FileReviewEventStream
+	}
+	return nil
+}
+
 // Setup progress reported during the EXECUTION_PENDING phase.
 //
 // @internal
@@ -509,7 +551,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_api_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/agentexecution/v1/api.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x1a2ai/stigmer/agentic/agentexecution/v1/context.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x1a/ai/stigmer/agentic/agentexecution/v1/todo.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a4ai/stigmer/agentic/agentexecution/v1/writeback.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xf5\x02\n" +
+	".ai/stigmer/agentic/agentexecution/v1/api.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x1a2ai/stigmer/agentic/agentexecution/v1/context.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a5ai/stigmer/agentic/agentexecution/v1/filereview.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x1a/ai/stigmer/agentic/agentexecution/v1/todo.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a4ai/stigmer/agentic/agentexecution/v1/writeback.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xf5\x02\n" +
 	"\x0eAgentExecution\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
@@ -518,7 +560,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\x96\f\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xeb\r\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -539,7 +581,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x15workspace_write_backs\x18\x11 \x03(\v28.ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackR\x13workspaceWriteBacks\x12Z\n" +
 	"\x0esetup_progress\x18\x12 \x01(\v23.ai.stigmer.agentic.agentexecution.v1.SetupProgressR\rsetupProgress\x12d\n" +
 	"\x0fstreaming_usage\x18\x14 \x01(\v2;.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryR\x0estreamingUsage\x12D\n" +
-	"\x11structured_output\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x10structuredOutput\x1ah\n" +
+	"\x11structured_output\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x10structuredOutput\x12]\n" +
+	"\x10file_change_sets\x18\x17 \x03(\v23.ai.stigmer.agentic.agentexecution.v1.FileChangeSetR\x0efileChangeSets\x12t\n" +
+	"\x18file_review_event_stream\x18\x18 \x01(\v2;.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamR\x15fileReviewEventStream\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -580,7 +624,9 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*WorkspaceWriteBack)(nil),              // 15: ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
 	(*StreamingUsageSummary)(nil),           // 16: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
 	(*structpb.Struct)(nil),                 // 17: google.protobuf.Struct
-	(*TodoItem)(nil),                        // 18: ai.stigmer.agentic.agentexecution.v1.TodoItem
+	(*FileChangeSet)(nil),                   // 18: ai.stigmer.agentic.agentexecution.v1.FileChangeSet
+	(*FileReviewEventStream)(nil),           // 19: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
+	(*TodoItem)(nil),                        // 20: ai.stigmer.agentic.agentexecution.v1.TodoItem
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	4,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -600,12 +646,14 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	2,  // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.setup_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.SetupProgress
 	16, // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.streaming_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
 	17, // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.structured_output:type_name -> google.protobuf.Struct
-	18, // 17: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	18, // 17: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_change_sets:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeSet
+	19, // 18: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_review_event_stream:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
+	20, // 19: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }
@@ -617,6 +665,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() {
 	file_ai_stigmer_agentic_agentexecution_v1_artifact_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_context_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
+	file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_message_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_init()

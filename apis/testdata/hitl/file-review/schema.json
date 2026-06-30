@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "File Review Projection Fixture",
+  "description": "A persisted file_review ledger plus the expected file_change_sets projection summary, replayed identically by Go and Java.",
+  "type": "object",
+  "required": ["name", "execution_id", "phase", "events", "expected"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "execution_id": { "type": "string" },
+    "phase": { "type": "string", "description": "ExecutionPhase enum value name, e.g. EXECUTION_IN_PROGRESS." },
+    "events": {
+      "type": "array",
+      "description": "Ordered FileReviewEvent protojson objects (the persisted ledger).",
+      "items": { "type": "object" }
+    },
+    "expected": {
+      "type": "array",
+      "description": "Expected projected FileChangeSet summaries, in projection order.",
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "change_ids", "decision_count", "aggregate_digest", "has_approved_snapshot"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "type": "string", "description": "FileChangeSetStatus enum value name." },
+          "change_ids": { "type": "array", "items": { "type": "string" } },
+          "decision_count": { "type": "integer" },
+          "aggregate_digest": { "type": "string" },
+          "has_approved_snapshot": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}
