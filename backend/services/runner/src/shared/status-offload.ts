@@ -37,6 +37,8 @@ import {
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { FileChange, FileContent, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import { DiffCompleteness } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 
 /**
@@ -399,6 +401,37 @@ async function maybeOffloadFileChanges(
 }
 
 /**
+ * Every captured file change carried on a CANDIDATE_CAPTURED event in the
+ * file_review ledger. The before/after bodies live HERE (not on tool calls)
+ * under the apply-then-review model, so the persist-boundary size guards must
+ * cover this location too — otherwise a large captured file silently pushes the
+ * status past the gRPC cap (the freeze this module exists to prevent).
+ */
+function candidateChanges(status: AgentExecutionStatus): CapturedFileChange[] {
+  const out: CapturedFileChange[] = [];
+  for (const ev of status.fileReviewEventStream?.events ?? []) {
+    if (ev.payload.case === "candidateCaptured") {
+      out.push(...ev.payload.value.changes);
+    }
+  }
+  return out;
+}
+
+/** Offload oversized before/after bodies of every captured file-review change. */
+async function maybeOffloadCandidateChanges(
+  status: AgentExecutionStatus,
+  ctx: ToolOutputOffloadContext,
+  maxBytes: number,
+): Promise<void> {
+  const changes = candidateChanges(status);
+  for (const change of changes) {
+    const base = `artifacts/${ctx.executionId}/filereview/${change.id}`;
+    await maybeOffloadFileContent(change.before, `${base}.before.txt`, ctx, maxBytes);
+    await maybeOffloadFileContent(change.after, `${base}.after.txt`, ctx, maxBytes);
+  }
+}
+
+/**
  * Offload every oversized tool result in the status to artifact storage,
  * replacing the inline value with a short head + ToolCallOutputRef. Per-tool
  * failures fall back to an inline truncation (a bounded result beats a failed
@@ -440,6 +473,19 @@ export async function offloadOversizedToolOutputs(
       }
     }
   }
+
+  // File-review ledger: offload oversized captured before/after bodies the same
+  // way (the proto's contract is "offloaded before the candidate event is
+  // persisted"). A failure is non-fatal — the body stays inline and the
+  // mark-incomplete backstop handles it without corrupting the ledger.
+  try {
+    await maybeOffloadCandidateChanges(status, ctx, maxFileBytes);
+  } catch {
+    console.warn(
+      `[status-offload] execution=${ctx.executionId} ` +
+      `file-review change offload failed (non-fatal); left inline for the size backstop`,
+    );
+  }
 }
 
 function encodedSize(status: AgentExecutionStatus): number {
@@ -473,6 +519,26 @@ function elideFileChange(fc: FileChange): boolean {
     elided = true;
   }
   return elided;
+}
+
+/**
+ * Drop a captured change's oversized inline before/after bodies (replacing them
+ * with nothing), returning true if either side was large enough to drop. Used by
+ * the backstop for file-review bodies, where overwriting with the elision marker
+ * would corrupt the authoritative content — dropping + marking incomplete is the
+ * safe alternative (bytes are re-sourced from refs/re-capture on reconcile).
+ */
+function dropInlineBodiesIfLarge(change: CapturedFileChange): boolean {
+  let dropped = false;
+  if (change.before?.body.case === "inline" && byteLen(change.before.body.value) > ELISION_MIN_BYTES) {
+    change.before = undefined;
+    dropped = true;
+  }
+  if (change.after?.body.case === "inline" && byteLen(change.after.body.value) > ELISION_MIN_BYTES) {
+    change.after = undefined;
+    dropped = true;
+  }
+  return dropped;
 }
 
 /**
@@ -519,6 +585,34 @@ export function enforceStatusSizeLimit(
     for (const fc of tc.fileChanges) {
       if (encodedSize(status) <= softLimitBytes) return elidedAny;
       if (elideFileChange(fc)) elidedAny = true;
+    }
+  }
+
+  // File-review ledger bodies. Unlike tool output, the captured before/after IS
+  // the authoritative content the review renders and the decision binds to —
+  // overwriting it in place with the elision marker would CORRUPT the ledger.
+  // So instead drop the inline body and mark the file incomplete: the reconcile
+  // sources bytes from the git refs / re-capture (never the persisted inline),
+  // and the review surface blocks approval of an incomplete diff (the proto's
+  // designed-for unreviewable gate). This trades reviewability for a bounded
+  // payload, never correctness.
+  if (encodedSize(status) > softLimitBytes) {
+    for (const ev of status.fileReviewEventStream?.events ?? []) {
+      if (encodedSize(status) <= softLimitBytes) break;
+      if (ev.payload.case !== "candidateCaptured") continue;
+      const candidate = ev.payload.value;
+      let markedAny = false;
+      for (const change of candidate.changes) {
+        if (encodedSize(status) <= softLimitBytes) break;
+        if (dropInlineBodiesIfLarge(change)) {
+          change.diffComplete = false;
+          markedAny = true;
+          elidedAny = true;
+        }
+      }
+      if (markedAny) {
+        candidate.diffCompleteness = DiffCompleteness.PARTIAL_BLOCKED;
+      }
     }
   }
 

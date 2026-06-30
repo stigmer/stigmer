@@ -1,0 +1,26 @@
+/**
+ * The runner's file-review producer: harness-agnostic digest + event authoring
+ * for the apply-then-review HITL subsystem. Consumed by both the Cursor and
+ * deep-agent harnesses to author identical ledger entries.
+ */
+
+export {
+  aggregateDigest,
+  fileChangeKindName,
+  fileDigest,
+  sha256Bytes,
+  sha256Hex,
+  type FileDigestInput,
+} from "./digest.js";
+
+export {
+  appendFileReviewEvents,
+  buildBaselineCapturedEvent,
+  buildCandidateCapturedEvent,
+  buildCapturedFileChange,
+  buildFailedEvent,
+  buildReconciledEvent,
+  eventId,
+  type CapturedChangeInput,
+  type ChangeSetContext,
+} from "./events.js";
