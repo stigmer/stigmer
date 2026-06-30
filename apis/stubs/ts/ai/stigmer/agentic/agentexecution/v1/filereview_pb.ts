@@ -756,15 +756,17 @@ export const FileReviewEventSchema: GenMessage<FileReviewEvent> = /*@__PURE__*/
  *
  * Field ownership (one writer per event type):
  *   - BASELINE_CAPTURED / CANDIDATE_CAPTURED / RECONCILED / FAILED events are
- *     authored by the runner's capture and reconcile activities (Phase 2).
+ *     authored by the runner's capture and reconcile activities, which
+ *     CONTRIBUTE them on the UpdateStatus payload; the server folds them into
+ *     this server-owned stream append-only, by event_id.
  *   - FILE_DECIDED events are authored by the SubmitFileDecision handler,
- *     carrying reviewer_id and the user's comment.
+ *     carrying reviewer_id and the user's comment. A runner-sent FILE_DECIDED is
+ *     dropped — the runner can never forge a human decision.
  *
  * Every append is keyed by the deterministic FileReviewEvent.event_id, so the
- * stream is idempotent under retries. Because it is server-only, the
- * agent-runner never sends it; it is preserved across UpdateStatus writes (the
- * merge starts from the loaded execution and only replaces runner-owned
- * fields).
+ * stream is idempotent under retries and an existing event is never overwritten.
+ * The stored stream is server-owned: preserved in place across UpdateStatus
+ * writes and only ever extended by the fold above and by SubmitFileDecision.
  *
  * @since File-Change HITL Redesign (Phase 1)
  *

@@ -1519,7 +1519,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
   private ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream fileReviewEventStream_;
   /**
    * <pre>
-   * Server-authored, append-only record of every file-review event (baseline /
+   * Server-owned, append-only record of every file-review event (baseline /
    * candidate capture, file decisions, reconcile, failures).
    *
    * &#64;internal
@@ -1528,9 +1528,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * sibling of approval_event_stream for the file-review lifecycle (the
    * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
    * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-   * idempotent under retries. Server-only: the agent-runner never sends it; it
-   * is preserved across UpdateStatus writes (the merge starts from the loaded
-   * execution and only replaces runner-owned fields). See FileReviewEventStream.
+   * idempotent under retries.
+   *
+   * Write contract (one writer per event type): the runner CONTRIBUTES its
+   * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+   * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+   * them into the stored stream append-only, by event_id, on the freshly-loaded
+   * execution under the write lock. The runner can never replace an existing
+   * event and never authors FILE_DECIDED (the server drops a runner-sent
+   * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+   * stream is otherwise preserved in place across writes. See
+   * FileReviewEventStream.
    *
    * Field 24: appended after file_change_sets (23), the prior maximum.
    * </pre>
@@ -1544,7 +1552,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
   }
   /**
    * <pre>
-   * Server-authored, append-only record of every file-review event (baseline /
+   * Server-owned, append-only record of every file-review event (baseline /
    * candidate capture, file decisions, reconcile, failures).
    *
    * &#64;internal
@@ -1553,9 +1561,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * sibling of approval_event_stream for the file-review lifecycle (the
    * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
    * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-   * idempotent under retries. Server-only: the agent-runner never sends it; it
-   * is preserved across UpdateStatus writes (the merge starts from the loaded
-   * execution and only replaces runner-owned fields). See FileReviewEventStream.
+   * idempotent under retries.
+   *
+   * Write contract (one writer per event type): the runner CONTRIBUTES its
+   * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+   * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+   * them into the stored stream append-only, by event_id, on the freshly-loaded
+   * execution under the write lock. The runner can never replace an existing
+   * event and never authors FILE_DECIDED (the server drops a runner-sent
+   * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+   * stream is otherwise preserved in place across writes. See
+   * FileReviewEventStream.
    *
    * Field 24: appended after file_change_sets (23), the prior maximum.
    * </pre>
@@ -1569,7 +1585,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
   }
   /**
    * <pre>
-   * Server-authored, append-only record of every file-review event (baseline /
+   * Server-owned, append-only record of every file-review event (baseline /
    * candidate capture, file decisions, reconcile, failures).
    *
    * &#64;internal
@@ -1578,9 +1594,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    * sibling of approval_event_stream for the file-review lifecycle (the
    * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
    * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-   * idempotent under retries. Server-only: the agent-runner never sends it; it
-   * is preserved across UpdateStatus writes (the merge starts from the loaded
-   * execution and only replaces runner-owned fields). See FileReviewEventStream.
+   * idempotent under retries.
+   *
+   * Write contract (one writer per event type): the runner CONTRIBUTES its
+   * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+   * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+   * them into the stored stream append-only, by event_id, on the freshly-loaded
+   * execution under the write lock. The runner can never replace an existing
+   * event and never authors FILE_DECIDED (the server drops a runner-sent
+   * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+   * stream is otherwise preserved in place across writes. See
+   * FileReviewEventStream.
    *
    * Field 24: appended after file_change_sets (23), the prior maximum.
    * </pre>
@@ -8108,7 +8132,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream, ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.Builder, ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamOrBuilder> fileReviewEventStreamBuilder_;
     /**
      * <pre>
-     * Server-authored, append-only record of every file-review event (baseline /
+     * Server-owned, append-only record of every file-review event (baseline /
      * candidate capture, file decisions, reconcile, failures).
      *
      * &#64;internal
@@ -8117,9 +8141,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * sibling of approval_event_stream for the file-review lifecycle (the
      * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
      * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-     * idempotent under retries. Server-only: the agent-runner never sends it; it
-     * is preserved across UpdateStatus writes (the merge starts from the loaded
-     * execution and only replaces runner-owned fields). See FileReviewEventStream.
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
      *
      * Field 24: appended after file_change_sets (23), the prior maximum.
      * </pre>
@@ -8132,7 +8164,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every file-review event (baseline /
+     * Server-owned, append-only record of every file-review event (baseline /
      * candidate capture, file decisions, reconcile, failures).
      *
      * &#64;internal
@@ -8141,9 +8173,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * sibling of approval_event_stream for the file-review lifecycle (the
      * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
      * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-     * idempotent under retries. Server-only: the agent-runner never sends it; it
-     * is preserved across UpdateStatus writes (the merge starts from the loaded
-     * execution and only replaces runner-owned fields). See FileReviewEventStream.
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
      *
      * Field 24: appended after file_change_sets (23), the prior maximum.
      * </pre>
@@ -8160,7 +8200,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every file-review event (baseline /
+     * Server-owned, append-only record of every file-review event (baseline /
      * candidate capture, file decisions, reconcile, failures).
      *
      * &#64;internal
@@ -8169,9 +8209,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * sibling of approval_event_stream for the file-review lifecycle (the
      * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
      * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-     * idempotent under retries. Server-only: the agent-runner never sends it; it
-     * is preserved across UpdateStatus writes (the merge starts from the loaded
-     * execution and only replaces runner-owned fields). See FileReviewEventStream.
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
      *
      * Field 24: appended after file_change_sets (23), the prior maximum.
      * </pre>
@@ -8193,7 +8241,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every file-review event (baseline /
+     * Server-owned, append-only record of every file-review event (baseline /
      * candidate capture, file decisions, reconcile, failures).
      *
      * &#64;internal
@@ -8202,9 +8250,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * sibling of approval_event_stream for the file-review lifecycle (the
      * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
      * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-     * idempotent under retries. Server-only: the agent-runner never sends it; it
-     * is preserved across UpdateStatus writes (the merge starts from the loaded
-     * execution and only replaces runner-owned fields). See FileReviewEventStream.
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
      *
      * Field 24: appended after file_change_sets (23), the prior maximum.
      * </pre>
@@ -8224,7 +8280,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every file-review event (baseline /
+     * Server-owned, append-only record of every file-review event (baseline /
      * candidate capture, file decisions, reconcile, failures).
      *
      * &#64;internal
@@ -8233,9 +8289,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * sibling of approval_event_stream for the file-review lifecycle (the
      * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
      * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-     * idempotent under retries. Server-only: the agent-runner never sends it; it
-     * is preserved across UpdateStatus writes (the merge starts from the loaded
-     * execution and only replaces runner-owned fields). See FileReviewEventStream.
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
      *
      * Field 24: appended after file_change_sets (23), the prior maximum.
      * </pre>
@@ -8262,7 +8326,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every file-review event (baseline /
+     * Server-owned, append-only record of every file-review event (baseline /
      * candidate capture, file decisions, reconcile, failures).
      *
      * &#64;internal
@@ -8271,9 +8335,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * sibling of approval_event_stream for the file-review lifecycle (the
      * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
      * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-     * idempotent under retries. Server-only: the agent-runner never sends it; it
-     * is preserved across UpdateStatus writes (the merge starts from the loaded
-     * execution and only replaces runner-owned fields). See FileReviewEventStream.
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
      *
      * Field 24: appended after file_change_sets (23), the prior maximum.
      * </pre>
@@ -8292,7 +8364,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every file-review event (baseline /
+     * Server-owned, append-only record of every file-review event (baseline /
      * candidate capture, file decisions, reconcile, failures).
      *
      * &#64;internal
@@ -8301,9 +8373,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * sibling of approval_event_stream for the file-review lifecycle (the
      * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
      * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-     * idempotent under retries. Server-only: the agent-runner never sends it; it
-     * is preserved across UpdateStatus writes (the merge starts from the loaded
-     * execution and only replaces runner-owned fields). See FileReviewEventStream.
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
      *
      * Field 24: appended after file_change_sets (23), the prior maximum.
      * </pre>
@@ -8317,7 +8397,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every file-review event (baseline /
+     * Server-owned, append-only record of every file-review event (baseline /
      * candidate capture, file decisions, reconcile, failures).
      *
      * &#64;internal
@@ -8326,9 +8406,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * sibling of approval_event_stream for the file-review lifecycle (the
      * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
      * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-     * idempotent under retries. Server-only: the agent-runner never sends it; it
-     * is preserved across UpdateStatus writes (the merge starts from the loaded
-     * execution and only replaces runner-owned fields). See FileReviewEventStream.
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
      *
      * Field 24: appended after file_change_sets (23), the prior maximum.
      * </pre>
@@ -8345,7 +8433,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every file-review event (baseline /
+     * Server-owned, append-only record of every file-review event (baseline /
      * candidate capture, file decisions, reconcile, failures).
      *
      * &#64;internal
@@ -8354,9 +8442,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * sibling of approval_event_stream for the file-review lifecycle (the
      * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
      * keyed by the deterministic FileReviewEvent.event_id, so the stream is
-     * idempotent under retries. Server-only: the agent-runner never sends it; it
-     * is preserved across UpdateStatus writes (the merge starts from the loaded
-     * execution and only replaces runner-owned fields). See FileReviewEventStream.
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
      *
      * Field 24: appended after file_change_sets (23), the prior maximum.
      * </pre>

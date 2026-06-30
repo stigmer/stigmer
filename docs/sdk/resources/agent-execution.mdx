@@ -1704,7 +1704,7 @@ AgentExecutionStatus contains all execution results and state.
     streamingUsage: { type: "StreamingUsageSummary", description: "Streaming usage summary, updated progressively during execution.", typeDescriptionLink: "#streamingusagesummary" },
     structuredOutput: { type: "object", description: "Structured output extracted from the agent's final response." },
     fileChangeSets: { type: "FileChangeSet[]", description: "Server-computed projection of file change sets awaiting or completing review for this execution.", typeDescriptionLink: "#filechangeset" },
-    fileReviewEventStream: { type: "FileReviewEventStream", description: "Server-authored, append-only record of every file-review event (baseline / candidate capture, file decisions, reconcile, failures).", typeDescriptionLink: "#filerevieweventstream" },
+    fileReviewEventStream: { type: "FileReviewEventStream", description: "Server-owned, append-only record of every file-review event (baseline / candidate capture, file decisions, reconcile, failures).", typeDescriptionLink: "#filerevieweventstream" },
   }}
 />
 

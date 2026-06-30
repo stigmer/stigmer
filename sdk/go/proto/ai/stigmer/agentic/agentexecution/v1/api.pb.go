@@ -305,7 +305,7 @@ type AgentExecutionStatus struct {
 	//
 	// Field 23: appended after approval_event_stream (22), the prior maximum.
 	FileChangeSets []*FileChangeSet `protobuf:"bytes,23,rep,name=file_change_sets,json=fileChangeSets,proto3" json:"file_change_sets,omitempty"`
-	// Server-authored, append-only record of every file-review event (baseline /
+	// Server-owned, append-only record of every file-review event (baseline /
 	// candidate capture, file decisions, reconcile, failures).
 	//
 	// @internal
@@ -314,9 +314,17 @@ type AgentExecutionStatus struct {
 	// sibling of approval_event_stream for the file-review lifecycle (the
 	// ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
 	// keyed by the deterministic FileReviewEvent.event_id, so the stream is
-	// idempotent under retries. Server-only: the agent-runner never sends it; it
-	// is preserved across UpdateStatus writes (the merge starts from the loaded
-	// execution and only replaces runner-owned fields). See FileReviewEventStream.
+	// idempotent under retries.
+	//
+	// Write contract (one writer per event type): the runner CONTRIBUTES its
+	// capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+	// RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+	// them into the stored stream append-only, by event_id, on the freshly-loaded
+	// execution under the write lock. The runner can never replace an existing
+	// event and never authors FILE_DECIDED (the server drops a runner-sent
+	// decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+	// stream is otherwise preserved in place across writes. See
+	// FileReviewEventStream.
 	//
 	// Field 24: appended after file_change_sets (23), the prior maximum.
 	FileReviewEventStream *FileReviewEventStream `protobuf:"bytes,24,opt,name=file_review_event_stream,json=fileReviewEventStream,proto3" json:"file_review_event_stream,omitempty"`
