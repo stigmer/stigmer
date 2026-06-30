@@ -288,8 +288,12 @@ function ConversationColumn({
   isEndUser,
 }: ConversationColumnProps) {
   const { conv } = flow;
-  const sendError =
-    flow.submitError ?? conv.sendError ?? conv.approvalError ?? conv.stopError;
+  // Approval failures are NOT folded into this banner: they now surface in-card,
+  // beside the exact gate that failed (see MessageThread's approvalErrors →
+  // ApprovalCard), matching the file-review card. A single banner cannot name
+  // which of several concurrent gates failed. The scalar conv.approvalError
+  // stays available for headless/`ink` consumers.
+  const sendError = flow.submitError ?? conv.sendError ?? conv.stopError;
 
   // Retry a terminal-failed execution by resending its originating message
   // through the full submit pipeline (agent override, runtime-env, workspace).
@@ -331,6 +335,7 @@ function ConversationColumn({
         onRetryExecution={onRetryExecution}
         onApprovalSubmit={flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
+        approvalErrors={conv.approvalErrors}
         onFileDecisionSubmit={conv.submitFileDecision}
         submittingFileDecisionKeys={conv.submittingFileDecisionKeys}
         fileDecisionErrors={conv.fileDecisionErrors}

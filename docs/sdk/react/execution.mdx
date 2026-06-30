@@ -572,6 +572,47 @@ function useFileChangeContent(change: FileChange): UseFileChangeContentReturn
 />
 
 
+### useFileReview
+
+Behavior hook that wraps `agentExecution.submitFileDecision()` with per-decision
+loading state and error management — the file-review sibling of
+[`useSubmitApproval`](#usesubmitapproval).
+
+File edits are reviewed as a captured change set (the `file_change_sets`
+projection), NOT as tool-call approvals. Platform builders who want full
+control over the review UI use this hook directly; those who prefer a drop-in
+surface use [`FileReviewCard`](#filereviewcard), which accepts the callback shape this
+hook produces.
+
+**Signature**
+
+```tsx
+function useFileReview(): UseFileReviewReturn
+```
+
+**Returns** — `UseFileReviewReturn`
+
+<TypeTable
+  type={{
+    clearDecisionError: { type: "(key: string) => void", description: "Clear the error for one decision key (e.g. before a retry of that target)." },
+    clearError: { type: "() => void", description: "Reset every decision error (both decisionErrors and error)." },
+    decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed exactly like submittingDecisionKeys (via fileDecisionKey). This is the per-target parallel of the in-flight Set: a review card has many decision targets (the whole set plus each file), so a failure must be attributable to the *one* control that failed — a single scalar cannot say which file. FileReviewCard consumes this map to render the error in-card, beside the failed control." },
+    error: { type: "Error | null", description: "The most-recent decision failure, or `null` when healthy — a convenience mirror of decisionErrors for a headless consumer that wants a single error value (a banner). The map is authoritative for per-control surfacing." },
+    submitFileDecision: { type: "(executionId: string, changeSetId: string, action: FileDecisionAction, options?: FileDecisionOptions) => Promise<void>", description: "Submit an approve/reject decision for a change set (or one file within it). Resolves when the backend accepts the decision; the execution stream will deliver the updated `file_change_sets` projection." },
+    submittingDecisionKeys: { type: "ReadonlySet<string>", description: "Keys (`changeSetId` for a whole-set decision, `changeSetId:fileChangeId` for a per-file one) currently being submitted — drives per-button loading state when a reviewer decides files independently. Build a key with fileDecisionKey." },
+  }}
+/>
+
+```tsx
+const { submitFileDecision, submittingDecisionKeys } = useFileReview();
+
+// Approve the whole change set:
+await submitFileDecision(executionId, changeSet.id, FileDecisionAction.APPROVE, {
+  expectedDigest: changeSet.aggregateDigest,
+});
+```
+
+
 ### useSessionVariables
 
 Behavior hook that manages an array of session variable entries for
@@ -659,8 +700,9 @@ function useSubmitApproval(): UseSubmitApprovalReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    error: { type: "Error | null", description: "Error from the last failed approval submission, or `null` when healthy." },
+    clearError: { type: "() => void", description: "Reset every approval error (both errorsByToolCallId and error)." },
+    error: { type: "Error | null", description: "Error from the last failed approval submission, or `null` when healthy — a convenience mirror of errorsByToolCallId for a headless consumer that wants a single error value (e.g. a banner, or the `ink` surface). The map is authoritative for per-gate surfacing." },
+    errorsByToolCallId: { type: "ReadonlyMap<string, Error>", description: "Per-tool-call failures, keyed by `toolCallId` exactly like submittingToolCallIds. This is the per-target parallel of the in-flight Set: a thread can hold many simultaneous gates (one per inline tool row, plus the bottom backstop), so a failure must be attributable to the *one* gate that failed — a single scalar cannot say which. ApprovalCard / ApprovalCardBody consume this (threaded via ApprovalContext) to render the error in-card, beside the failed gate." },
     submitApproval: { type: "(executionId: string, toolCallId: string, action: ApprovalAction, comment?: string) => Promise<void>", description: "Submit an approval decision for a specific tool call within an execution. Resolves when the backend accepts the decision; the execution stream will deliver the updated state." },
     submittingToolCallIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted. Enables per-button loading state in batch approval scenarios where the user may approve one tool while another decision is still in flight." },
   }}
@@ -797,6 +839,7 @@ the item's own row is the header. One body, identical preview in both.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the body container." },
+    error: { type: "Error | null", description: "This gate's last failed decision, or `null` — surfaced in-card below the actions." },
     isSubmitting: { type: "boolean", description: "True while the RPC for this tool call is in flight." },
     onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Called when the user picks Approve / Approve-all / Skip / Reject.", required: true },
     pendingApproval: { type: "PendingApproval", description: "The pending approval to render a decision panel for.", required: true },
@@ -1350,13 +1393,16 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     activeStreamExecution: { type: "AgentExecution | null", description: "The currently streaming execution. Appended after `executions` to form a continuous thread. Pass `null` or `undefined` when no execution is actively streaming." },
+    approvalErrors: { type: "ReadonlyMap<string, Error>", description: "Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card beside the gate that failed (an inline tool row or the bottom backstop card). Supply useSubmitApproval's `errorsByToolCallId`. Only meaningful when `onApprovalSubmit` is provided." },
     centerContent: { type: "boolean", description: "Center thread content within a max-width reading column.  When `true`, items are constrained to `max-w-3xl` (768 px) and horizontally centered. The scroll container stays full-width so the scrollbar remains at the viewport edge.  Opt-in per DD-011 — existing consumers see no layout change." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     executions: { type: "readonly AgentExecution[]", description: "Completed executions in chronological order.", required: true },
+    fileDecisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed by fileDecisionKey — surfaced in-card beside the control that failed (whole-set or per-file). Supply useFileReview's `decisionErrors`. Only meaningful with `onFileDecisionSubmit`." },
     formatToolCallSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom formatter for tool call summary labels. Passed through to each ToolCallGroup." },
     onApprovalSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Callback for approval actions. When provided and the active execution has pending approvals, ApprovalCards are rendered as thread items. When omitted, no approval UI is shown (backward compatible)." },
     onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode execution's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode execution completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered. Backward compatible — existing consumers see no change." },
     onEditMessage: { type: "(text: string) => void", description: "When provided, the in-flight human turn (the active execution's prompt) shows a hover \"Edit\" affordance. Clicking it invokes this callback with the message text — the session chat stops the running execution and pre-fills the composer for an edit-and-resubmit.  Provide this only while the active execution is stoppable; the SDK marks exactly the active-stream human turn editable. When omitted, no edit control is shown (backward compatible)." },
+    onFileDecisionSubmit: { type: "(changeSetId: string, action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Callback for file-review decisions. When provided, a FileReviewCard is rendered for each captured change set the active execution projects as AWAITING_REVIEW. When omitted, no file-review UI is shown (backward compatible). Pair with useFileReview." },
     onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => void", description: "Optional override for file path click behavior. Platform builders use this to integrate their own file viewer or navigation instead of the default open-URL / copy-to-clipboard." },
     onRetryExecution: { type: "(message: string) => void", description: "Retry handler for a terminal-failed execution that exposed a server error reason. Receives the originating message; the consumer typically resends it as a new execution. When omitted, no Retry control is shown beside the surfaced failure reason." },
     onRetrySend: { type: "() => void", description: "Retry handler for a failed pending message. Wired to the inline \"Retry\" control when pendingMessageFailed is `true`." },
@@ -1366,6 +1412,7 @@ All visual properties flow through `--stgm-*` tokens.
     planActionsDisabled: { type: "boolean", description: "Disables the plan completion card's actions (Implement / Review). Defense in depth for the brief windows where a follow-up cannot be sent (e.g. an execution is streaming); the composer also no-ops a disabled submit." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval. Drives per-card loading state. Only meaningful when `onApprovalSubmit` is provided." },
+    submittingFileDecisionKeys: { type: "ReadonlySet<string>", description: "Decision keys (fileDecisionKey) currently being submitted. Drives per-card loading state. Only meaningful when `onFileDecisionSubmit` is set." },
     summarizationEvents: { type: "readonly SummarizationEventView[]", description: "Summarization events from context window tracking. When provided, \"Context compacted\" cards are interleaved into the thread at the correct chronological position based on event timestamps.  Obtain from useContextWindow.summarizationEvents." },
     virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When provided, file paths in tool call rendering become interactive — git-sourced paths open on GitHub, local paths offer copy-to-clipboard.  Passed to FilePathContext for consumption by FilePathLink components deep in the tree." },
@@ -1737,6 +1784,7 @@ Props for [`ApprovalCard`](#approvalcard).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    error: { type: "Error | null", description: "This gate's last failed decision, or `null` — surfaced in-card, beside the action buttons (the optimistic spinner reverts on failure, so this explains the snap-back). A thread can hold many gates; the error must name the one it belongs to, which a single global banner cannot do. Supply the entry from useSubmitApproval's `errorsByToolCallId` for this `toolCallId`." },
     isSubmitting: { type: "boolean", description: "True while the RPC for this specific tool call is in flight." },
     onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Called when the user clicks Approve, Skip, or Reject. The consumer (typically MessageThread or a platform builder's custom thread) handles the RPC via useSubmitApproval.", required: true },
     pendingApproval: { type: "PendingApproval", description: "The pending approval request to render.", required: true },
@@ -1770,6 +1818,7 @@ the thread's streaming re-render isolation (DD-009 / DD-010).
 <TypeTable
   type={{
     approvalsByToolCallId: { type: "ReadonlyMap<string, PendingApproval>", description: "Unresolved approvals, keyed by the `tool_call_id` they gate.", required: true },
+    errorsByToolCallId: { type: "ReadonlyMap<string, Error>", description: "Per-tool-call failures, keyed by `tool_call_id` (the parallel of submittingIds). A failed decision is surfaced in-card, beside the exact gate that failed, so the inline row can name *which* action did not take and why. Empty when no provider supplies it.", required: true },
     onSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Submits a decision for a gated tool call. Wired to the same handler the bottom ApprovalCard backstop uses; when absent, no inline approval UI is shown." },
     submittingIds: { type: "ReadonlySet<string>", description: "Tool-call ids whose decision RPC is in flight, for per-card spinners.", required: true },
   }}
@@ -1948,6 +1997,30 @@ Props for [`ExecutionPhaseBadge`](#executionphasebadge).
 />
 
 
+### fileDecisionKey
+
+The loading-state key for a file decision: the change set id for a whole-set
+(CHANGE_SET) decision, or `changeSetId:fileChangeId` for a per-file one.
+
+```tsx
+function fileDecisionKey(changeSetId: string, fileChangeId?: string): string
+```
+
+
+### FileDecisionOptions
+
+Options narrowing a file decision to a single file and binding its digest.
+
+<TypeTable
+  type={{
+    expectedDigest: { type: "string", description: "The digest the reviewer saw (`aggregate_digest` for CHANGE_SET, `file_digest` for FILE). The server enforces it at decision time and the runner re-verifies it at reconcile — \"what you approve is what gets applied\"." },
+    fileChangeId: { type: "string", description: "The captured file this decision targets; required for `FILE` scope." },
+    reason: { type: "string", description: "Optional free-text comment recorded on the decision (audit trail)." },
+    scope: { type: "FileDecisionScope", description: "Decision scope. Defaults to `FILE` when fileChangeId is set, else `CHANGE_SET` (the whole-set decision that covers every file)." },
+  }}
+/>
+
+
 ### FilePathContext
 
 Context that supplies workspace file-path metadata for display-time path resolution.
@@ -1966,6 +2039,59 @@ copy-to-clipboard for all paths.
   type={{
     onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => void", description: "Optional override for the default click behavior. When provided, `FilePathLink` delegates to this callback instead of opening a URL or copying to clipboard. Platform builders use this to integrate their own file viewer or navigation." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec, used for path resolution.", required: true },
+  }}
+/>
+
+
+### FileReviewCard
+
+Renders a captured `FileChangeSet` for review: a summary bar, the
+per-file before/after diffs (reusing [`FileChangeDiff`](#filechangediff)), and the
+decision controls.
+
+File edits are reviewed as a captured workspace delta, not tool calls, so this
+is a dedicated review surface distinct from the message transcript and the
+tool-approval [`ApprovalCard`](#approvalcard). The reviewer can decide each file
+individually (Keep / Discard, a `FILE`-scoped decision) or act on the whole
+set at once (Approve / Reject, a `CHANGE_SET` decision). Either way the runner
+reconciles the exact approved bytes with hash verification.
+
+The unified HITL gate clears only when EVERY file has a verdict — one
+`CHANGE_SET` decision, or a `FILE` decision per file — so a partially-decided
+set stays actionable and deciding the last file is what resumes the turn. A
+per-file verdict is changeable while the set is still open: clicking the other
+option records a new decision (the backend reconcile is last-write-wins).
+
+An incomplete diff (`diff_completeness != COMPLETE`) cannot be approved as a
+whole set — the Approve button is disabled with an explanation. For a
+multi-file set the per-file path is the escape: keep the reviewable files and
+discard the binary/truncated one.
+
+Wrapped in `React.memo` — the streamed `FileChangeSet` reference is preserved
+by structural sharing when unchanged, so review cards skip re-renders during
+unrelated stream updates.
+
+```tsx
+const { submitFileDecision, submittingDecisionKeys } = useFileReview();
+<FileReviewCard
+  fileChangeSet={changeSet}
+  onSubmit={(action, opts) => submitFileDecision(executionId, changeSet.id, action, opts)}
+  submittingDecisionKeys={submittingDecisionKeys}
+/>
+```
+
+
+### FileReviewCardProps
+
+Props for [`FileReviewCard`](#filereviewcard).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed exactly like submittingDecisionKeys (via fileDecisionKey) — the set's id for a whole-set decision, the `setId:fileChangeId` for a per-file one. A failed decision is surfaced in-card, beside the control that failed (and the optimistic verdict reverts), so the reviewer sees *which* action did not take and why. Supply useFileReview's `decisionErrors`." },
+    fileChangeSet: { type: "FileChangeSet", description: "The captured change set awaiting review (status AWAITING_REVIEW).", required: true },
+    onSubmit: { type: "(action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Called when the user makes a decision. The consumer (typically MessageThread or a platform builder's surface) handles the RPC via useFileReview. A whole-set Approve/Reject sends `CHANGE_SET` scope; a per-file Keep/Discard sends `FILE` scope with the file's id.", required: true },
+    submittingDecisionKeys: { type: "ReadonlySet<string>", description: "The decision keys currently being submitted — exactly the set useFileReview returns as `submittingDecisionKeys`. A card has more than one decision target (the whole set plus each file), so it takes the keyed set rather than a single boolean and derives each control's in-flight state via fileDecisionKey." },
   }}
 />
 
@@ -2802,10 +2928,13 @@ Options for [`useAgentExecutionActions`](#useagentexecutionactions).
 
 ### UseApprovalResult
 
-Resolved inline-approval state for a single tool call.
+Resolved inline-approval state for a single tool call. Its shape is a superset
+of the props [`ApprovalCardBody`](#approvalcardbody) reads, so a consumer can spread it
+directly: `<ApprovalCardBody {...approval} />`.
 
 <TypeTable
   type={{
+    error: { type: "Error | null", description: "This gate's last failed decision, or `null` — surfaced in-card beside it.", required: true },
     isSubmitting: { type: "boolean", description: "True while this tool call's decision RPC is in flight.", required: true },
     onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Submits a decision for this tool call (id already bound).", required: true },
     pendingApproval: { type: "PendingApproval", description: "The pending approval gating this tool call.", required: true },

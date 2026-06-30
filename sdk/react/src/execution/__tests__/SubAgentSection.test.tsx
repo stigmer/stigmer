@@ -59,6 +59,7 @@ function sectionExpanded(container: HTMLElement): boolean {
 const emptyCtx: ApprovalContextValue = {
   approvalsByToolCallId: new Map(),
   submittingIds: new Set(),
+  errorsByToolCallId: new Map(),
 };
 
 describe("SubAgentSection auto-disclosure", () => {
@@ -94,6 +95,7 @@ describe("SubAgentSection auto-disclosure", () => {
       approvalsByToolCallId: new Map([["tc-nested", approval]]),
       onSubmit: () => {},
       submittingIds: new Set(),
+      errorsByToolCallId: new Map(),
     };
 
     const { container } = render(

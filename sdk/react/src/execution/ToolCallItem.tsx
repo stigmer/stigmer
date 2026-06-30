@@ -280,6 +280,7 @@ export const ToolCallItem = memo(function ToolCallItem({
       pendingApproval={approval.pendingApproval}
       onSubmit={approval.onSubmit}
       isSubmitting={approval.isSubmitting}
+      error={approval.error}
     />
   ) : (
     <ToolCallDetail

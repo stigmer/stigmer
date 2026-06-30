@@ -198,9 +198,20 @@ export interface UseSessionConversationReturn {
   ) => Promise<void>;
   /** Set of tool call IDs currently being submitted for approval. */
   readonly submittingApprovalIds: ReadonlySet<string>;
-  /** Error from the last approval submission, or `null` when healthy. */
+  /**
+   * Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card by
+   * {@link MessageThread}/{@link ApprovalCard} beside the gate that failed
+   * (inline row or bottom backstop). The keyed parallel of
+   * {@link submittingApprovalIds}.
+   */
+  readonly approvalErrors: ReadonlyMap<string, Error>;
+  /**
+   * Error from the last approval submission, or `null` when healthy — the scalar
+   * mirror of {@link approvalErrors} (symmetric with `fileReviewError`), for a
+   * headless consumer wanting a single error value (e.g. the `ink` surface).
+   */
   readonly approvalError: Error | null;
-  /** Reset `approvalError` to `null`. */
+  /** Reset every approval error (both {@link approvalErrors} and `approvalError`). */
   readonly clearApprovalError: () => void;
 
   /** Captured change sets awaiting file review on the active execution, empty when none. */
@@ -365,6 +376,7 @@ export function useSessionConversation(
   const {
     submitApproval: rawSubmitApproval,
     submittingToolCallIds,
+    errorsByToolCallId: approvalErrors,
     error: approvalError,
     clearError: clearApprovalError,
   } = useSubmitApproval();
@@ -661,6 +673,7 @@ export function useSessionConversation(
     pendingApprovals,
     submitApproval,
     submittingApprovalIds: submittingToolCallIds,
+    approvalErrors,
     approvalError,
     clearApprovalError,
 

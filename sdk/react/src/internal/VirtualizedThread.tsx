@@ -38,6 +38,7 @@ export interface VirtualizedThreadProps {
     comment?: string,
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly approvalErrors?: ReadonlyMap<string, Error>;
   readonly onFileDecisionSubmit?: (
     changeSetId: string,
     action: FileDecisionAction,
@@ -110,6 +111,7 @@ export function VirtualizedThread({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  approvalErrors,
   onFileDecisionSubmit,
   submittingFileDecisionKeys,
   fileDecisionErrors,
@@ -152,6 +154,7 @@ export function VirtualizedThread({
       formatToolCallSummary,
       onApprovalSubmit,
       submittingApprovalIds,
+      approvalErrors,
       onFileDecisionSubmit,
       submittingFileDecisionKeys,
       fileDecisionErrors,
@@ -162,7 +165,7 @@ export function VirtualizedThread({
       onRetryExecution,
       onEditMessage,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, onFileDecisionSubmit, submittingFileDecisionKeys, fileDecisionErrors, onBuildFromPlan, org, planActionsDisabled, onRetrySend, onRetryExecution, onEditMessage],
+    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onFileDecisionSubmit, submittingFileDecisionKeys, fileDecisionErrors, onBuildFromPlan, org, planActionsDisabled, onRetrySend, onRetryExecution, onEditMessage],
   );
 
   return (

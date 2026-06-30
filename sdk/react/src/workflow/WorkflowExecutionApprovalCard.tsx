@@ -52,6 +52,15 @@ export const WorkflowExecutionApprovalCard = memo(function WorkflowExecutionAppr
     if (!isSubmitting) setActive(null);
   }, [isSubmitting]);
 
+  // FOLLOW-UP: a failed decision here still surfaces only via the workflow
+  // viewer's shared "Action error banner" — the optimistic spinner above reverts
+  // with no in-card explanation. The agent ApprovalCard + FileReviewCard now show
+  // failures in-card (via the shared internal/InCardDecisionError), beside the
+  // exact control. Converging this card needs `useWorkflowExecutionActions` to
+  // expose per-control error/isSubmitting state first (its `error`/`isSubmitting`
+  // are a single scalar pair shared across cancel/pause/resume/recover and both
+  // approvals), so a failed pause and a failed approval don't share one error.
+
   // ApprovalAction enum values: 0=UNSPECIFIED, 1=APPROVE, 2=SKIP, 3=REJECT
   const handleApprove = useCallback(() => {
     setActive("approve");

@@ -55,6 +55,7 @@ const LazyVirtualizedThread = lazy(() =>
 /** Stable empty collections so an approval-free thread keeps referential identity. */
 const EMPTY_APPROVALS: readonly PendingApproval[] = [];
 const EMPTY_SUBMITTING_IDS: ReadonlySet<string> = new Set();
+const EMPTY_APPROVAL_ERRORS: ReadonlyMap<string, Error> = new Map();
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
@@ -129,6 +130,13 @@ export interface MessageThreadProps {
    * `onApprovalSubmit` is provided.
    */
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  /**
+   * Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card
+   * beside the gate that failed (an inline tool row or the bottom backstop
+   * card). Supply {@link useSubmitApproval}'s `errorsByToolCallId`. Only
+   * meaningful when `onApprovalSubmit` is provided.
+   */
+  readonly approvalErrors?: ReadonlyMap<string, Error>;
   /**
    * Callback for file-review decisions. When provided, a {@link FileReviewCard}
    * is rendered for each captured change set the active execution projects as
@@ -703,6 +711,7 @@ export function MessageThread({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  approvalErrors,
   onFileDecisionSubmit,
   submittingFileDecisionKeys,
   fileDecisionErrors,
@@ -763,8 +772,9 @@ export function MessageThread({
       approvalsByToolCallId,
       onSubmit: onApprovalSubmit,
       submittingIds: submittingApprovalIds ?? EMPTY_SUBMITTING_IDS,
+      errorsByToolCallId: approvalErrors ?? EMPTY_APPROVAL_ERRORS,
     }),
-    [approvalsByToolCallId, onApprovalSubmit, submittingApprovalIds],
+    [approvalsByToolCallId, onApprovalSubmit, submittingApprovalIds, approvalErrors],
   );
 
   // Drives the global "approval needed" peek affordance — a count, not the
@@ -780,6 +790,7 @@ export function MessageThread({
             formatToolCallSummary={formatToolCallSummary}
             onApprovalSubmit={onApprovalSubmit}
             submittingApprovalIds={submittingApprovalIds}
+            approvalErrors={approvalErrors}
             onFileDecisionSubmit={onFileDecisionSubmit}
             submittingFileDecisionKeys={submittingFileDecisionKeys}
             fileDecisionErrors={fileDecisionErrors}
@@ -808,6 +819,7 @@ export function MessageThread({
       formatToolCallSummary={formatToolCallSummary}
       onApprovalSubmit={onApprovalSubmit}
       submittingApprovalIds={submittingApprovalIds}
+      approvalErrors={approvalErrors}
       onFileDecisionSubmit={onFileDecisionSubmit}
       submittingFileDecisionKeys={submittingFileDecisionKeys}
       fileDecisionErrors={fileDecisionErrors}
@@ -840,6 +852,7 @@ interface NonVirtualizedThreadProps {
     comment?: string,
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly approvalErrors?: ReadonlyMap<string, Error>;
   readonly onFileDecisionSubmit?: (
     changeSetId: string,
     action: FileDecisionAction,
@@ -866,6 +879,7 @@ function NonVirtualizedThread({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  approvalErrors,
   onFileDecisionSubmit,
   submittingFileDecisionKeys,
   fileDecisionErrors,
@@ -912,6 +926,7 @@ function NonVirtualizedThread({
                   formatToolCallSummary={formatToolCallSummary}
                   onApprovalSubmit={onApprovalSubmit}
                   submittingApprovalIds={submittingApprovalIds}
+                  approvalErrors={approvalErrors}
                   onFileDecisionSubmit={onFileDecisionSubmit}
                   submittingFileDecisionKeys={submittingFileDecisionKeys}
                   fileDecisionErrors={fileDecisionErrors}
@@ -965,6 +980,7 @@ export interface ThreadItemRendererProps {
     comment?: string,
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly approvalErrors?: ReadonlyMap<string, Error>;
   readonly onFileDecisionSubmit?: (
     changeSetId: string,
     action: FileDecisionAction,
@@ -996,6 +1012,7 @@ export function ThreadItemRenderer({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  approvalErrors,
   onFileDecisionSubmit,
   submittingFileDecisionKeys,
   fileDecisionErrors,
@@ -1060,6 +1077,7 @@ export function ThreadItemRenderer({
           pendingApproval={item.pendingApproval}
           onApprovalSubmit={onApprovalSubmit!}
           isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
+          error={approvalErrors?.get(item.pendingApproval.toolCallId) ?? null}
         />
       );
     case "file-review-request":
@@ -1235,12 +1253,16 @@ interface ApprovalCardRowProps {
     comment?: string,
   ) => void;
   readonly isSubmitting: boolean;
+  // This gate's last failed decision, or null — a stable ref from the
+  // approvalErrors map, so the row re-renders only when its error appears/clears.
+  readonly error?: Error | null;
 }
 
 const ApprovalCardRow = memo(function ApprovalCardRow({
   pendingApproval,
   onApprovalSubmit,
   isSubmitting,
+  error = null,
 }: ApprovalCardRowProps) {
   const handleSubmit = useCallback(
     (action: ApprovalAction, comment?: string) => {
@@ -1254,6 +1276,7 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
       pendingApproval={pendingApproval}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
+      error={error}
       className="mx-4"
     />
   );

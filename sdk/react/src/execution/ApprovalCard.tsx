@@ -22,6 +22,7 @@ import { FileChangeDiff } from "./FileChangesView";
 import { EmptyChangeNotice } from "./EmptyChangeNotice";
 import { FilePathLink } from "./FilePathLink";
 import { DecisionButton } from "../internal/DecisionButton";
+import { InCardDecisionError } from "../internal/InCardDecisionError";
 
 /** Props for {@link ApprovalCard}. */
 export interface ApprovalCardProps {
@@ -36,6 +37,14 @@ export interface ApprovalCardProps {
   readonly onSubmit: (action: ApprovalAction, comment?: string) => void;
   /** True while the RPC for this specific tool call is in flight. */
   readonly isSubmitting?: boolean;
+  /**
+   * This gate's last failed decision, or `null` — surfaced in-card, beside the
+   * action buttons (the optimistic spinner reverts on failure, so this explains
+   * the snap-back). A thread can hold many gates; the error must name the one it
+   * belongs to, which a single global banner cannot do. Supply the entry from
+   * {@link useSubmitApproval}'s `errorsByToolCallId` for this `toolCallId`.
+   */
+  readonly error?: Error | null;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -70,6 +79,7 @@ export const ApprovalCard = memo(function ApprovalCard({
   pendingApproval,
   onSubmit,
   isSubmitting = false,
+  error = null,
   className,
 }: ApprovalCardProps) {
   // Prefer the denormalized wire tool_kind (populated by the server-side
@@ -104,6 +114,7 @@ export const ApprovalCard = memo(function ApprovalCard({
         pendingApproval={pendingApproval}
         onSubmit={onSubmit}
         isSubmitting={isSubmitting}
+        error={error}
       />
     </div>
   );
@@ -205,6 +216,8 @@ export interface ApprovalCardBodyProps {
   readonly onSubmit: (action: ApprovalAction, comment?: string) => void;
   /** True while the RPC for this tool call is in flight. */
   readonly isSubmitting?: boolean;
+  /** This gate's last failed decision, or `null` — surfaced in-card below the actions. */
+  readonly error?: Error | null;
   /** Additional CSS class names for the body container. */
   readonly className?: string;
 }
@@ -220,6 +233,7 @@ export function ApprovalCardBody({
   pendingApproval,
   onSubmit,
   isSubmitting = false,
+  error = null,
   className,
 }: ApprovalCardBodyProps) {
   const [activeAction, setActiveAction] = useState<ApprovalAction | null>(null);
@@ -405,6 +419,19 @@ export function ApprovalCardBody({
         >
           {gateReason}
         </p>
+      )}
+
+      {/* A failed decision is surfaced HERE, in-card, beside the actions — not
+          via the session's global banner. A thread can hold many gates (each
+          inline tool row, plus the bottom backstop), so a failure must name the
+          one it belongs to; the optimistic spinner has already reverted, and
+          this explains the snap-back. Shared with FileReviewCard. */}
+      {error && (
+        <InCardDecisionError
+          error={error}
+          leadIn="submit decision"
+          cursorTarget="approval-error"
+        />
       )}
     </div>
   );

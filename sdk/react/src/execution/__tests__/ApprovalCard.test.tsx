@@ -655,3 +655,40 @@ describe("ApprovalCard file-change diff", () => {
     expect(screen.getAllByText("notes.md")).toHaveLength(1);
   });
 });
+
+describe("ApprovalCard in-card decision error", () => {
+  function makeApproval() {
+    return create(PendingApprovalSchema, {
+      toolCallId: "tc-err",
+      toolName: "delete_file",
+      argsPreview: '{"path":"/tmp/x"}',
+    });
+  }
+
+  it("surfaces a failed decision in-card, beside the actions (not via a banner)", () => {
+    const { container } = render(
+      <ApprovalCard
+        pendingApproval={makeApproval()}
+        onSubmit={noop}
+        error={new Error("gate already resolved")}
+      />,
+    );
+
+    const alert = container.querySelector(
+      '[data-cursor-target="approval-error"]',
+    );
+    expect(alert).toBeTruthy();
+    expect(alert!.textContent).toContain("gate already resolved");
+    // The shared notice announces itself.
+    expect(alert!.getAttribute("role")).toBe("alert");
+  });
+
+  it("shows no in-card error when healthy", () => {
+    const { container } = render(
+      <ApprovalCard pendingApproval={makeApproval()} onSubmit={noop} />,
+    );
+    expect(
+      container.querySelector('[data-cursor-target="approval-error"]'),
+    ).toBeNull();
+  });
+});

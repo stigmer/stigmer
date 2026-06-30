@@ -250,6 +250,7 @@ describe("ToolCallItem disclosure", () => {
       approvalsByToolCallId: new Map([["tc-gated", approval]]),
       onSubmit: () => {},
       submittingIds: new Set(),
+      errorsByToolCallId: new Map(),
     };
 
     const { container } = render(
@@ -282,6 +283,7 @@ describe("ToolCallItem disclosure", () => {
       approvalsByToolCallId: new Map([["tc-shell-gated", approval]]),
       onSubmit: () => {},
       submittingIds: new Set(),
+      errorsByToolCallId: new Map(),
     };
 
     const { container } = render(
@@ -310,6 +312,7 @@ describe("ToolCallItem disclosure", () => {
       approvalsByToolCallId: new Map([["tc-gated", approval]]),
       onSubmit: () => {},
       submittingIds: new Set(),
+      errorsByToolCallId: new Map(),
     };
 
     const { container } = render(
@@ -339,6 +342,7 @@ describe("ToolCallItem disclosure", () => {
       approvalsByToolCallId: new Map([["tc-gated", approval]]),
       onSubmit,
       submittingIds: new Set(),
+      errorsByToolCallId: new Map(),
     };
 
     render(
@@ -354,6 +358,38 @@ describe("ToolCallItem disclosure", () => {
       ApprovalAction.APPROVE_ALL,
       undefined,
     );
+  });
+
+  it("surfaces a keyed approval error in-card on the gated row (the primary route)", () => {
+    const tc = makeToolCall({
+      id: "tc-gated",
+      name: "delete_file",
+      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+    });
+    const approval: PendingApproval = create(PendingApprovalSchema, {
+      toolCallId: "tc-gated",
+      toolName: "delete_file",
+      argsPreview: '{"path":"/tmp/x"}',
+    });
+    const ctx: ApprovalContextValue = {
+      approvalsByToolCallId: new Map([["tc-gated", approval]]),
+      onSubmit: () => {},
+      submittingIds: new Set(),
+      // The error for THIS gate, keyed by its tool call id.
+      errorsByToolCallId: new Map([["tc-gated", new Error("gate already resolved")]]),
+    };
+
+    const { container } = render(
+      <ApprovalContext.Provider value={ctx}>
+        <ToolCallItem toolCall={tc} />
+      </ApprovalContext.Provider>,
+    );
+
+    const alert = container.querySelector(
+      '[data-cursor-target="approval-error"]',
+    );
+    expect(alert).toBeTruthy();
+    expect(alert!.textContent).toContain("gate already resolved");
   });
 
   // --- Card chrome -----------------------------------------------------------

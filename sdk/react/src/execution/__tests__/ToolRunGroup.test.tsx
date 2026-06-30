@@ -85,6 +85,7 @@ describe("ToolRunGroup", () => {
       approvalsByToolCallId: new Map([["r2", approval]]),
       onSubmit: () => {},
       submittingIds: new Set(),
+      errorsByToolCallId: new Map(),
     };
 
     const { container } = render(

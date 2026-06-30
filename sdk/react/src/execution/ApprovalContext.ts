@@ -34,18 +34,30 @@ export interface ApprovalContextValue {
   ) => void;
   /** Tool-call ids whose decision RPC is in flight, for per-card spinners. */
   readonly submittingIds: ReadonlySet<string>;
+  /**
+   * Per-tool-call failures, keyed by `tool_call_id` (the parallel of
+   * {@link submittingIds}). A failed decision is surfaced in-card, beside the
+   * exact gate that failed, so the inline row can name *which* action did not
+   * take and why. Empty when no provider supplies it.
+   */
+  readonly errorsByToolCallId: ReadonlyMap<string, Error>;
 }
 
 const DEFAULT_VALUE: ApprovalContextValue = {
   approvalsByToolCallId: new Map(),
   submittingIds: new Set(),
+  errorsByToolCallId: new Map(),
 };
 
 /** Context that supplies a run's pending approvals to the tool rows they gate. */
 export const ApprovalContext =
   createContext<ApprovalContextValue>(DEFAULT_VALUE);
 
-/** Resolved inline-approval state for a single tool call. */
+/**
+ * Resolved inline-approval state for a single tool call. Its shape is a superset
+ * of the props {@link ApprovalCardBody} reads, so a consumer can spread it
+ * directly: `<ApprovalCardBody {...approval} />`.
+ */
 export interface UseApprovalResult {
   /** The pending approval gating this tool call. */
   readonly pendingApproval: PendingApproval;
@@ -53,6 +65,8 @@ export interface UseApprovalResult {
   readonly onSubmit: (action: ApprovalAction, comment?: string) => void;
   /** True while this tool call's decision RPC is in flight. */
   readonly isSubmitting: boolean;
+  /** This gate's last failed decision, or `null` — surfaced in-card beside it. */
+  readonly error: Error | null;
 }
 
 /**
@@ -71,7 +85,7 @@ export interface UseApprovalResult {
  * ```
  */
 export function useApproval(toolCallId: string): UseApprovalResult | null {
-  const { approvalsByToolCallId, onSubmit, submittingIds } =
+  const { approvalsByToolCallId, onSubmit, submittingIds, errorsByToolCallId } =
     useContext(ApprovalContext);
 
   const handleSubmit = useCallback(
@@ -90,5 +104,6 @@ export function useApproval(toolCallId: string): UseApprovalResult | null {
     pendingApproval,
     onSubmit: handleSubmit,
     isSubmitting: submittingIds.has(toolCallId),
+    error: errorsByToolCallId.get(toolCallId) ?? null,
   };
 }

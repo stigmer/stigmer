@@ -21,6 +21,7 @@ import { cn } from "@stigmer/theme";
 import { FileChangeDiff } from "./FileChangesView";
 import { DiffSummary } from "../version-history/DiffSummary";
 import { DecisionButton } from "../internal/DecisionButton";
+import { InCardDecisionError } from "../internal/InCardDecisionError";
 import { fileDecisionKey, type FileDecisionOptions } from "./useFileReview";
 
 /** A stable empty set so the default `submittingDecisionKeys` keeps a constant ref. */
@@ -247,12 +248,19 @@ export const FileReviewCard = memo(function FileReviewCard({
         </div>
 
         {/* A failed whole-set decision is surfaced HERE, in-card, not via the
-            session's global error banner. A file-review card has many decision
+            session's global error banner. A review card has many decision
             targets (the whole set plus each file), so a failure must name the
             control it belongs to — something a single global banner cannot do.
-            (The tool-approval ApprovalCard still uses the banner today; both
-            converge on in-card surfacing — see the ApprovalCard follow-up.) */}
-        {wholeSetError && <DecisionError error={wholeSetError} target="set" />}
+            The tool-approval ApprovalCard now surfaces failures in-card the same
+            way (via the shared InCardDecisionError); the workflow approval cards
+            are the remaining convergence — see their breadcrumbs. */}
+        {wholeSetError && (
+          <InCardDecisionError
+            error={wholeSetError}
+            leadIn="submit decision"
+            cursorTarget="file-review-error"
+          />
+        )}
       </div>
     </div>
   );
@@ -290,7 +298,13 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
         isSubmitting={isSubmitting}
         onDecide={onDecide}
       />
-      {error && <DecisionError error={error} target="file" />}
+      {error && (
+        <InCardDecisionError
+          error={error}
+          leadIn="save"
+          cursorTarget="file-review-file-error"
+        />
+      )}
     </div>
   );
 });
@@ -432,30 +446,6 @@ function ReviewProgress({ decided, total }: { decided: number; total: number }) 
     <p role="status" className="text-[11px] text-muted-foreground">
       {decided} of {total} files reviewed
       {decided > 0 && decided < total && " — decide the rest to continue"}
-    </p>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// DecisionError — a failed decision surfaced beside the control that failed
-// ---------------------------------------------------------------------------
-
-/**
- * The in-card failure notice for a decision that did not take. `role="alert"`
- * (matching the thread's other inline failures) announces it the moment it
- * appears, since it is a dynamic reaction to the reviewer's action — the
- * optimistic verdict has already reverted, and this explains why. The server
- * message is shown verbatim because it is the actionable part (e.g. a digest
- * mismatch means the captured content moved on); the lead-in stays short.
- */
-function DecisionError({ error, target }: { error: Error; target: "set" | "file" }) {
-  return (
-    <p
-      role="alert"
-      className="text-[11px] text-destructive"
-      data-cursor-target={target === "set" ? "file-review-error" : "file-review-file-error"}
-    >
-      Couldn&rsquo;t {target === "set" ? "submit decision" : "save"} — {error.message}
     </p>
   );
 }

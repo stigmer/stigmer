@@ -274,6 +274,58 @@ describe("MessageThread", () => {
     expect(err.getAttribute("data-cursor-target")).toBe("file-review-error");
   });
 
+  it("threads an approvalErrors entry to an inline gate (the primary route)", () => {
+    const exec = makeExecutionWithInlineApproval("exec-ia", "tc-1", "delete_file");
+    const approvalErrors = new Map([["tc-1", new Error("gate already resolved")]]);
+
+    const { container } = render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={exec}
+        onApprovalSubmit={() => {}}
+        approvalErrors={approvalErrors}
+      />,
+    );
+
+    const alert = container.querySelector('[data-cursor-target="approval-error"]');
+    expect(alert).toBeTruthy();
+    expect(alert!.textContent).toContain("gate already resolved");
+  });
+
+  it("threads an approvalErrors entry to a bottom backstop card (orphan approval)", () => {
+    // An approval whose tool call has no inline row renders as the bottom
+    // backstop ApprovalCard; the keyed error must reach it too.
+    const exec = create(AgentExecutionSchema);
+    exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-orphan" });
+    exec.spec = create(AgentExecutionSpecSchema, { message: "Do something" });
+    const status = create(AgentExecutionStatusSchema);
+    status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+    status.messages = [];
+    status.pendingApprovals = [
+      create(PendingApprovalSchema, {
+        toolCallId: "tc-orphan",
+        toolName: "delete_file",
+        argsPreview: '{"path":"/tmp/x"}',
+      }),
+    ];
+    exec.status = status;
+
+    const approvalErrors = new Map([["tc-orphan", new Error("network down")]]);
+
+    const { container } = render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={exec}
+        onApprovalSubmit={() => {}}
+        approvalErrors={approvalErrors}
+      />,
+    );
+
+    const alert = container.querySelector('[data-cursor-target="approval-error"]');
+    expect(alert).toBeTruthy();
+    expect(alert!.textContent).toContain("network down");
+  });
+
   it("renders role=log container when executions array is empty", () => {
     render(<MessageThread executions={[]} />);
 
