@@ -146,6 +146,13 @@ export interface MessageThreadProps {
    */
   readonly submittingFileDecisionKeys?: ReadonlySet<string>;
   /**
+   * Per-decision failures, keyed by {@link fileDecisionKey} — surfaced in-card
+   * beside the control that failed (whole-set or per-file). Supply
+   * {@link useFileReview}'s `decisionErrors`. Only meaningful with
+   * `onFileDecisionSubmit`.
+   */
+  readonly fileDecisionErrors?: ReadonlyMap<string, Error>;
+  /**
    * Workspace entries from the session spec. When provided, file
    * paths in tool call rendering become interactive — git-sourced
    * paths open on GitHub, local paths offer copy-to-clipboard.
@@ -698,6 +705,7 @@ export function MessageThread({
   submittingApprovalIds,
   onFileDecisionSubmit,
   submittingFileDecisionKeys,
+  fileDecisionErrors,
   workspaceEntries,
   onFilePathClick,
   sandboxWorkspaceRoot,
@@ -774,6 +782,7 @@ export function MessageThread({
             submittingApprovalIds={submittingApprovalIds}
             onFileDecisionSubmit={onFileDecisionSubmit}
             submittingFileDecisionKeys={submittingFileDecisionKeys}
+            fileDecisionErrors={fileDecisionErrors}
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
             approvalCtx={approvalCtx}
@@ -801,6 +810,7 @@ export function MessageThread({
       submittingApprovalIds={submittingApprovalIds}
       onFileDecisionSubmit={onFileDecisionSubmit}
       submittingFileDecisionKeys={submittingFileDecisionKeys}
+      fileDecisionErrors={fileDecisionErrors}
       filePathCtx={filePathCtx}
       sandboxCtx={sandboxCtx}
       approvalCtx={approvalCtx}
@@ -836,6 +846,7 @@ interface NonVirtualizedThreadProps {
     options?: FileDecisionOptions,
   ) => void;
   readonly submittingFileDecisionKeys?: ReadonlySet<string>;
+  readonly fileDecisionErrors?: ReadonlyMap<string, Error>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly approvalCtx: ApprovalContextValue;
@@ -857,6 +868,7 @@ function NonVirtualizedThread({
   submittingApprovalIds,
   onFileDecisionSubmit,
   submittingFileDecisionKeys,
+  fileDecisionErrors,
   filePathCtx,
   sandboxCtx,
   approvalCtx,
@@ -902,6 +914,7 @@ function NonVirtualizedThread({
                   submittingApprovalIds={submittingApprovalIds}
                   onFileDecisionSubmit={onFileDecisionSubmit}
                   submittingFileDecisionKeys={submittingFileDecisionKeys}
+                  fileDecisionErrors={fileDecisionErrors}
                   onBuildFromPlan={onBuildFromPlan}
                   org={org}
                   planActionsDisabled={planActionsDisabled}
@@ -958,6 +971,7 @@ export interface ThreadItemRendererProps {
     options?: FileDecisionOptions,
   ) => void;
   readonly submittingFileDecisionKeys?: ReadonlySet<string>;
+  readonly fileDecisionErrors?: ReadonlyMap<string, Error>;
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
@@ -984,6 +998,7 @@ export function ThreadItemRenderer({
   submittingApprovalIds,
   onFileDecisionSubmit,
   submittingFileDecisionKeys,
+  fileDecisionErrors,
   onBuildFromPlan,
   org,
   planActionsDisabled,
@@ -1053,6 +1068,7 @@ export function ThreadItemRenderer({
           fileChangeSet={item.fileChangeSet}
           onFileDecisionSubmit={onFileDecisionSubmit!}
           submittingDecisionKeys={submittingFileDecisionKeys}
+          decisionErrors={fileDecisionErrors}
         />
       );
     case "setup-progress":
@@ -1258,12 +1274,16 @@ interface FileReviewCardRowProps {
   // controls independently; it is a stable ref from useFileReview's useMemo, so
   // the row only re-renders when a decision actually starts or settles.
   readonly submittingDecisionKeys?: ReadonlySet<string>;
+  // Per-decision failures, keyed like submittingDecisionKeys — also a stable ref
+  // from useFileReview, so the row re-renders only when an error appears/clears.
+  readonly decisionErrors?: ReadonlyMap<string, Error>;
 }
 
 const FileReviewCardRow = memo(function FileReviewCardRow({
   fileChangeSet,
   onFileDecisionSubmit,
   submittingDecisionKeys,
+  decisionErrors,
 }: FileReviewCardRowProps) {
   const handleSubmit = useCallback(
     (action: FileDecisionAction, options?: FileDecisionOptions) => {
@@ -1277,6 +1297,7 @@ const FileReviewCardRow = memo(function FileReviewCardRow({
       fileChangeSet={fileChangeSet}
       onSubmit={handleSubmit}
       submittingDecisionKeys={submittingDecisionKeys}
+      decisionErrors={decisionErrors}
       className="mx-4"
     />
   );

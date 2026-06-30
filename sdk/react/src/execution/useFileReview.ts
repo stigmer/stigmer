@@ -49,9 +49,24 @@ export interface UseFileReviewReturn {
    * {@link fileDecisionKey}.
    */
   readonly submittingDecisionKeys: ReadonlySet<string>;
-  /** Error from the last failed decision submission, or `null` when healthy. */
+  /**
+   * Per-decision failures, keyed exactly like {@link submittingDecisionKeys}
+   * (via {@link fileDecisionKey}). This is the per-target parallel of the
+   * in-flight Set: a review card has many decision targets (the whole set plus
+   * each file), so a failure must be attributable to the *one* control that
+   * failed — a single scalar cannot say which file. {@link FileReviewCard}
+   * consumes this map to render the error in-card, beside the failed control.
+   */
+  readonly decisionErrors: ReadonlyMap<string, Error>;
+  /** Clear the error for one decision key (e.g. before a retry of that target). */
+  readonly clearDecisionError: (key: string) => void;
+  /**
+   * The most-recent decision failure, or `null` when healthy — a convenience
+   * mirror of {@link decisionErrors} for a headless consumer that wants a single
+   * error value (a banner). The map is authoritative for per-control surfacing.
+   */
   readonly error: Error | null;
-  /** Reset `error` to `null`. */
+  /** Reset every decision error (both {@link decisionErrors} and {@link error}). */
   readonly clearError: () => void;
 }
 
@@ -62,6 +77,9 @@ export interface UseFileReviewReturn {
 export function fileDecisionKey(changeSetId: string, fileChangeId?: string): string {
   return fileChangeId ? `${changeSetId}:${fileChangeId}` : changeSetId;
 }
+
+/** A stable empty map so an error-free hook keeps a constant `decisionErrors` ref. */
+const NO_DECISION_ERRORS: ReadonlyMap<string, Error> = new Map();
 
 /**
  * Behavior hook that wraps `agentExecution.submitFileDecision()` with per-decision
@@ -89,9 +107,23 @@ export function useFileReview(): UseFileReviewReturn {
   const [submittingKeys, setSubmittingKeys] = useState<ReadonlySet<string>>(
     new Set(),
   );
+  const [decisionErrors, setDecisionErrors] =
+    useState<ReadonlyMap<string, Error>>(NO_DECISION_ERRORS);
   const [error, setError] = useState<Error | null>(null);
 
-  const clearError = useCallback(() => setError(null), []);
+  const clearDecisionError = useCallback((key: string) => {
+    setDecisionErrors((prev) => {
+      if (!prev.has(key)) return prev;
+      const next = new Map(prev);
+      next.delete(key);
+      return next;
+    });
+  }, []);
+
+  const clearError = useCallback(() => {
+    setDecisionErrors(NO_DECISION_ERRORS);
+    setError(null);
+  }, []);
 
   const submitFileDecision = useCallback(
     async (
@@ -111,6 +143,9 @@ export function useFileReview(): UseFileReviewReturn {
         next.add(key);
         return next;
       });
+      // Clear this target's prior failure (and the scalar mirror) so a retry
+      // starts clean — the map and `error` are updated together, never drift.
+      clearDecisionError(key);
       setError(null);
 
       try {
@@ -125,7 +160,9 @@ export function useFileReview(): UseFileReviewReturn {
         });
         await stigmer.agentExecution.submitFileDecision(input);
       } catch (err) {
-        setError(toError(err));
+        const e = toError(err);
+        setDecisionErrors((prev) => new Map(prev).set(key, e));
+        setError(e);
         throw err;
       } finally {
         setSubmittingKeys((prev) => {
@@ -135,11 +172,18 @@ export function useFileReview(): UseFileReviewReturn {
         });
       }
     },
-    [stigmer],
+    [stigmer, clearDecisionError],
   );
 
   return useMemo(
-    () => ({ submitFileDecision, submittingDecisionKeys: submittingKeys, error, clearError }),
-    [submitFileDecision, submittingKeys, error, clearError],
+    () => ({
+      submitFileDecision,
+      submittingDecisionKeys: submittingKeys,
+      decisionErrors,
+      clearDecisionError,
+      error,
+      clearError,
+    }),
+    [submitFileDecision, submittingKeys, decisionErrors, clearDecisionError, error, clearError],
   );
 }

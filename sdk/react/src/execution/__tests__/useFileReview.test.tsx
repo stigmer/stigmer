@@ -101,7 +101,7 @@ describe("useFileReview", () => {
     expect(result.current.submittingDecisionKeys.size).toBe(0);
   });
 
-  it("surfaces the error and rethrows on failure", async () => {
+  it("surfaces the error and rethrows on failure, keyed by the whole-set key", async () => {
     mockSubmitFileDecision.mockRejectedValueOnce(new Error("digest mismatch"));
 
     const { result } = renderHook(() => useFileReview(), {
@@ -114,11 +114,83 @@ describe("useFileReview", () => {
       ).rejects.toThrow("digest mismatch");
     });
 
+    // Scalar mirror (single-error consumers).
     expect(result.current.error).toBeInstanceOf(Error);
     expect(result.current.error!.message).toBe("digest mismatch");
+    // Keyed map (per-control surfacing) — under the whole-set key.
+    expect(result.current.decisionErrors.get(fileDecisionKey("aex-1:0"))?.message).toBe(
+      "digest mismatch",
+    );
     expect(result.current.submittingDecisionKeys.size).toBe(0);
 
     act(() => result.current.clearError());
     expect(result.current.error).toBeNull();
+    expect(result.current.decisionErrors.size).toBe(0);
+  });
+
+  it("keys a per-file failure under setId:fileChangeId, leaving other keys untouched", async () => {
+    mockSubmitFileDecision.mockRejectedValueOnce(new Error("network down"));
+
+    const { result } = renderHook(() => useFileReview(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.submitFileDecision("aex-1", "aex-1:0", FileDecisionAction.REJECT, {
+          fileChangeId: "fc1",
+        }),
+      ).rejects.toThrow("network down");
+    });
+
+    const perFileKey = fileDecisionKey("aex-1:0", "fc1");
+    expect(result.current.decisionErrors.get(perFileKey)?.message).toBe("network down");
+    // The whole-set key (and any other file) is unaffected.
+    expect(result.current.decisionErrors.has(fileDecisionKey("aex-1:0"))).toBe(false);
+  });
+
+  it("clears one key on a retry-start and via clearDecisionError, without touching siblings", async () => {
+    mockSubmitFileDecision
+      .mockRejectedValueOnce(new Error("fail-a"))
+      .mockRejectedValueOnce(new Error("fail-b"));
+
+    const { result } = renderHook(() => useFileReview(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    // Two distinct files fail.
+    await act(async () => {
+      await expect(
+        result.current.submitFileDecision("aex-1", "aex-1:0", FileDecisionAction.REJECT, {
+          fileChangeId: "fc1",
+        }),
+      ).rejects.toThrow("fail-a");
+    });
+    await act(async () => {
+      await expect(
+        result.current.submitFileDecision("aex-1", "aex-1:0", FileDecisionAction.REJECT, {
+          fileChangeId: "fc2",
+        }),
+      ).rejects.toThrow("fail-b");
+    });
+
+    const keyA = fileDecisionKey("aex-1:0", "fc1");
+    const keyB = fileDecisionKey("aex-1:0", "fc2");
+    expect(result.current.decisionErrors.get(keyA)?.message).toBe("fail-a");
+    expect(result.current.decisionErrors.get(keyB)?.message).toBe("fail-b");
+
+    // Retrying fc1 succeeds: its error clears at submit-start, fc2's stays.
+    mockSubmitFileDecision.mockResolvedValueOnce({});
+    await act(async () => {
+      await result.current.submitFileDecision("aex-1", "aex-1:0", FileDecisionAction.APPROVE, {
+        fileChangeId: "fc1",
+      });
+    });
+    expect(result.current.decisionErrors.has(keyA)).toBe(false);
+    expect(result.current.decisionErrors.get(keyB)?.message).toBe("fail-b");
+
+    // clearDecisionError removes only the targeted key.
+    act(() => result.current.clearDecisionError(keyB));
+    expect(result.current.decisionErrors.size).toBe(0);
   });
 });

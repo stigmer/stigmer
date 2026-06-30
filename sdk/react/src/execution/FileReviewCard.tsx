@@ -26,6 +26,9 @@ import { fileDecisionKey, type FileDecisionOptions } from "./useFileReview";
 /** A stable empty set so the default `submittingDecisionKeys` keeps a constant ref. */
 const NO_KEYS: ReadonlySet<string> = new Set();
 
+/** A stable empty map so the default `decisionErrors` keeps a constant ref. */
+const NO_ERRORS: ReadonlyMap<string, Error> = new Map();
+
 /** Props for {@link FileReviewCard}. */
 export interface FileReviewCardProps {
   /** The captured change set awaiting review (status AWAITING_REVIEW). */
@@ -45,6 +48,15 @@ export interface FileReviewCardProps {
    * state via {@link fileDecisionKey}.
    */
   readonly submittingDecisionKeys?: ReadonlySet<string>;
+  /**
+   * Per-decision failures, keyed exactly like {@link submittingDecisionKeys}
+   * (via {@link fileDecisionKey}) — the set's id for a whole-set decision, the
+   * `setId:fileChangeId` for a per-file one. A failed decision is surfaced
+   * in-card, beside the control that failed (and the optimistic verdict reverts),
+   * so the reviewer sees *which* action did not take and why. Supply
+   * {@link useFileReview}'s `decisionErrors`.
+   */
+  readonly decisionErrors?: ReadonlyMap<string, Error>;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -90,6 +102,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   fileChangeSet,
   onSubmit,
   submittingDecisionKeys = NO_KEYS,
+  decisionErrors = NO_ERRORS,
   className,
 }: FileReviewCardProps) {
   const changes = fileChangeSet.changes;
@@ -114,6 +127,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   const incomplete = fileChangeSet.diffCompleteness !== DiffCompleteness.COMPLETE;
 
   const wholeSetSubmitting = submittingDecisionKeys.has(setId);
+  const wholeSetError = decisionErrors.get(setId) ?? null;
 
   // Bulk (CHANGE_SET) decision state — mirrors ApprovalCardBody: one active
   // action drives the clicked button's spinner, cleared when the RPC settles.
@@ -194,6 +208,7 @@ export const FileReviewCard = memo(function FileReviewCard({
                   submittingDecisionKeys.has(fileDecisionKey(setId, change.id)) ||
                   wholeSetSubmitting
                 }
+                error={decisionErrors.get(fileDecisionKey(setId, change.id)) ?? null}
                 onDecide={handleFileDecide}
               />
             ))
@@ -230,6 +245,14 @@ export const FileReviewCard = memo(function FileReviewCard({
             cursorTarget="file-review-reject"
           />
         </div>
+
+        {/* A failed whole-set decision is surfaced HERE, in-card, not via the
+            session's global error banner. A file-review card has many decision
+            targets (the whole set plus each file), so a failure must name the
+            control it belongs to — something a single global banner cannot do.
+            (The tool-approval ApprovalCard still uses the banner today; both
+            converge on in-card surfacing — see the ApprovalCard follow-up.) */}
+        {wholeSetError && <DecisionError error={wholeSetError} target="set" />}
       </div>
     </div>
   );
@@ -245,6 +268,8 @@ interface FileChangeReviewRowProps {
   readonly verdict: FileDecisionAction | null;
   /** True while THIS file's decision (or a whole-set decision) is in flight. */
   readonly isSubmitting: boolean;
+  /** This file's last failed decision, or null — surfaced beside its control. */
+  readonly error: Error | null;
   readonly onDecide: (change: CapturedFileChange, action: FileDecisionAction) => void;
 }
 
@@ -252,6 +277,7 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
   change,
   verdict,
   isSubmitting,
+  error,
   onDecide,
 }: FileChangeReviewRowProps) {
   const adapted = useMemo(() => toFileChange(change), [change]);
@@ -264,6 +290,7 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
         isSubmitting={isSubmitting}
         onDecide={onDecide}
       />
+      {error && <DecisionError error={error} target="file" />}
     </div>
   );
 });
@@ -405,6 +432,30 @@ function ReviewProgress({ decided, total }: { decided: number; total: number }) 
     <p role="status" className="text-[11px] text-muted-foreground">
       {decided} of {total} files reviewed
       {decided > 0 && decided < total && " — decide the rest to continue"}
+    </p>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DecisionError — a failed decision surfaced beside the control that failed
+// ---------------------------------------------------------------------------
+
+/**
+ * The in-card failure notice for a decision that did not take. `role="alert"`
+ * (matching the thread's other inline failures) announces it the moment it
+ * appears, since it is a dynamic reaction to the reviewer's action — the
+ * optimistic verdict has already reverted, and this explains why. The server
+ * message is shown verbatim because it is the actionable part (e.g. a digest
+ * mismatch means the captured content moved on); the lead-in stays short.
+ */
+function DecisionError({ error, target }: { error: Error; target: "set" | "file" }) {
+  return (
+    <p
+      role="alert"
+      className="text-[11px] text-destructive"
+      data-cursor-target={target === "set" ? "file-review-error" : "file-review-file-error"}
+    >
+      Couldn&rsquo;t {target === "set" ? "submit decision" : "save"} — {error.message}
     </p>
   );
 }

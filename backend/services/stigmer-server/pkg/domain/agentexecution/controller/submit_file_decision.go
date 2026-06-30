@@ -28,10 +28,10 @@ const fileDecisionIdempotentKey = "isIdempotentFileDecision"
 // file_review stream; FileChangeSet.decisions is the derived projection. The
 // runner's reconcile (Phase 2) applies the approved bytes — this RPC records the
 // decision and enforces that expected_digest still matches the captured content
-// the user reviewed ("what you approve is what gets applied"). Unlike
-// SubmitApproval there is no workflow signal here: nothing is paused on file
-// review until the Phase-2 runner introduces the pause, at which point the
-// resume signal is added alongside the producer.
+// the user reviewed ("what you approve is what gets applied"). Like
+// SubmitApproval, it then signals the workflow (see the pipeline's step 5,
+// signalFileDecisionWorkflowStep): the turn paused on file review resumes once
+// the unified HITL gate fully clears, via the same approvalGateResolved signal.
 //
 // ## Preconditions
 //

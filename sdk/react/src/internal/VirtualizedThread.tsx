@@ -44,6 +44,7 @@ export interface VirtualizedThreadProps {
     options?: FileDecisionOptions,
   ) => void;
   readonly submittingFileDecisionKeys?: ReadonlySet<string>;
+  readonly fileDecisionErrors?: ReadonlyMap<string, Error>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly approvalCtx: ApprovalContextValue;
@@ -111,6 +112,7 @@ export function VirtualizedThread({
   submittingApprovalIds,
   onFileDecisionSubmit,
   submittingFileDecisionKeys,
+  fileDecisionErrors,
   filePathCtx,
   sandboxCtx,
   approvalCtx,
@@ -152,6 +154,7 @@ export function VirtualizedThread({
       submittingApprovalIds,
       onFileDecisionSubmit,
       submittingFileDecisionKeys,
+      fileDecisionErrors,
       onBuildFromPlan,
       org,
       planActionsDisabled,
@@ -159,7 +162,7 @@ export function VirtualizedThread({
       onRetryExecution,
       onEditMessage,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, onFileDecisionSubmit, submittingFileDecisionKeys, onBuildFromPlan, org, planActionsDisabled, onRetrySend, onRetryExecution, onEditMessage],
+    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, onFileDecisionSubmit, submittingFileDecisionKeys, fileDecisionErrors, onBuildFromPlan, org, planActionsDisabled, onRetrySend, onRetryExecution, onEditMessage],
   );
 
   return (

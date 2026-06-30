@@ -17,13 +17,38 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
+  CapturedFileChangeSchema,
+  FileChangeSetSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import {
+  DiffCompleteness,
   ExecutionPhase,
+  FileChangeKind,
+  FileChangeSetStatus,
+  FileDecisionAction,
   InteractionMode,
   MessageType,
   TodoStatus,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+
+// FileReviewCard renders FileChangeDiff, which transitively pulls the
+// offload-resolving content hook. Mock it so the diff path renders without an
+// artifact-fetch context — this suite only exercises the file-review prop seam.
+vi.mock("../useFileChangeContent", () => ({
+  useFileChangeContent: () => ({
+    beforeText: "old\n",
+    afterText: "new\n",
+    isBinary: false,
+    isLoading: false,
+    error: null,
+    isTruncated: false,
+    downloadUrl: null,
+  }),
+}));
+
 import { MessageThread } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
@@ -187,11 +212,68 @@ function makeExecutionWithInlineApproval(
   return exec;
 }
 
+/**
+ * An active execution carrying one single-file change set AWAITING_REVIEW — the
+ * input that makes {@link MessageThread} render a {@link FileReviewCard}.
+ */
+function makeExecutionWithFileReview(id: string, setId: string): AgentExecution {
+  const exec = create(AgentExecutionSchema);
+  exec.metadata = create(ApiResourceMetadataSchema, { id });
+  exec.spec = create(AgentExecutionSpecSchema, { message: "Edit a file" });
+
+  const status = create(AgentExecutionStatusSchema);
+  status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
+  status.messages = [
+    create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),
+  ];
+  status.fileChangeSets = [
+    create(FileChangeSetSchema, {
+      id: setId,
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      aggregateDigest: "agg-1",
+      diffCompleteness: DiffCompleteness.COMPLETE,
+      changes: [
+        create(CapturedFileChangeSchema, {
+          id: `${setId}:src/a.ts`,
+          pathBefore: "src/a.ts",
+          pathAfter: "src/a.ts",
+          kind: FileChangeKind.MODIFY,
+          before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
+          after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
+          fileDigest: "d-a",
+          diffComplete: true,
+        }),
+      ],
+    }),
+  ];
+  exec.status = status;
+  return exec;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe("MessageThread", () => {
+  it("threads a fileDecisionErrors entry through to the rendered FileReviewCard", () => {
+    const setId = "aex-1:0";
+    const exec = makeExecutionWithFileReview("exec-fr", setId);
+    const decisionErrors = new Map([[setId, new Error("digest mismatch")]]);
+
+    render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={exec}
+        onFileDecisionSubmit={() => {}}
+        fileDecisionErrors={decisionErrors}
+      />,
+    );
+
+    // The whole-set failure reaches the card and surfaces in-card.
+    const err = screen.getByText(/Couldn.t submit decision — digest mismatch/);
+    expect(err.getAttribute("data-cursor-target")).toBe("file-review-error");
+  });
+
   it("renders role=log container when executions array is empty", () => {
     render(<MessageThread executions={[]} />);
 

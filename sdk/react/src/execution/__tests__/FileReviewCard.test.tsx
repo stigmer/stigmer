@@ -372,4 +372,48 @@ describe("FileReviewCard", () => {
       ).toBe(true);
     });
   });
+
+  describe("decision errors (in-card surfacing)", () => {
+    it("renders no error element when the map is empty (default path)", () => {
+      const { container } = render(
+        <FileReviewCard fileChangeSet={changeSet()} onSubmit={noop} />,
+      );
+      expect(container.querySelector('[data-cursor-target="file-review-error"]')).toBeNull();
+      expect(
+        container.querySelector('[data-cursor-target="file-review-file-error"]'),
+      ).toBeNull();
+    });
+
+    it("surfaces a whole-set failure beside the bulk buttons", () => {
+      const decisionErrors = new Map([["aex-1:0", new Error("digest mismatch")]]);
+      render(
+        <FileReviewCard
+          fileChangeSet={changeSet()}
+          onSubmit={noop}
+          decisionErrors={decisionErrors}
+        />,
+      );
+      const err = screen.getByText(/Couldn.t submit decision — digest mismatch/);
+      expect(err.getAttribute("data-cursor-target")).toBe("file-review-error");
+    });
+
+    it("surfaces a per-file failure under the right file row only", () => {
+      const decisionErrors = new Map([
+        [fileDecisionKey("aex-1:0", "fc1"), new Error("network down")],
+      ]);
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet()}
+          onSubmit={noop}
+          decisionErrors={decisionErrors}
+        />,
+      );
+      // Exactly one per-file error, and it carries fc1's message.
+      const fileErrors = screen.getAllByText(/Couldn.t save/);
+      expect(fileErrors).toHaveLength(1);
+      expect(fileErrors[0].textContent).toMatch(/network down/);
+      // The whole-set error is NOT shown (the failure was per-file).
+      expect(screen.queryByText(/Couldn.t submit decision/)).toBeNull();
+    });
+  });
 });

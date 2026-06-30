@@ -213,9 +213,20 @@ export interface UseSessionConversationReturn {
   ) => Promise<void>;
   /** Decision keys ({@link fileDecisionKey}) currently being submitted. */
   readonly submittingFileDecisionKeys: ReadonlySet<string>;
-  /** Error from the last file-review submission, or `null` when healthy. */
+  /**
+   * Per-decision failures, keyed by {@link fileDecisionKey} — surfaced in-card
+   * by {@link MessageThread}/{@link FileReviewCard} beside the failed control.
+   */
+  readonly fileDecisionErrors: ReadonlyMap<string, Error>;
+  /** Clear the error for one decision key (e.g. before a retry of that target). */
+  readonly clearFileDecisionError: (key: string) => void;
+  /**
+   * The most-recent file-review failure, or `null` when healthy — the scalar
+   * mirror of {@link fileDecisionErrors} (symmetric with `approvalError`), for a
+   * headless consumer wanting a single error value.
+   */
   readonly fileReviewError: Error | null;
-  /** Reset `fileReviewError` to `null`. */
+  /** Reset every file-review error (both {@link fileDecisionErrors} and `fileReviewError`). */
   readonly clearFileReviewError: () => void;
 
   /**
@@ -360,6 +371,8 @@ export function useSessionConversation(
   const {
     submitFileDecision: rawSubmitFileDecision,
     submittingDecisionKeys,
+    decisionErrors: fileDecisionErrors,
+    clearDecisionError: clearFileDecisionError,
     error: fileReviewError,
     clearError: clearFileReviewError,
   } = useFileReview();
@@ -654,6 +667,8 @@ export function useSessionConversation(
     fileChangeSets,
     submitFileDecision,
     submittingFileDecisionKeys: submittingDecisionKeys,
+    fileDecisionErrors,
+    clearFileDecisionError,
     fileReviewError,
     clearFileReviewError,
 
