@@ -85,6 +85,57 @@ func RecordFileDecisionEvent(
 	stream.Events = append(stream.Events, event)
 }
 
+// AppendRunnerEvents folds the capture/reconcile events the runner authored on
+// its UpdateStatus payload into the execution's server-owned file_review stream,
+// append-only and idempotent by event_id. It is the file-review analogue of
+// approval.EnsureApprovalRequests: the runner contributes events, the server
+// owns the stream.
+//
+// Two invariants are enforced here, not merely documented:
+//   - One writer per event type. FILE_DECIDED is authored exclusively by
+//     SubmitFileDecision; a runner-sent FILE_DECIDED is dropped, so the runner
+//     can never forge a human decision.
+//   - Append-only. An event whose deterministic event_id already exists is
+//     skipped, so a re-sent heartbeat or a Temporal retry never duplicates an
+//     event (and can never overwrite one — existing events are immutable here).
+//
+// Must run inside the store write lock on the freshly-loaded stream so the
+// appends cannot clobber a concurrent SubmitFileDecision.
+func AppendRunnerEvents(
+	status *agentexecutionv1.AgentExecutionStatus,
+	executionID string,
+	requestStatus *agentexecutionv1.AgentExecutionStatus,
+) {
+	if status == nil || requestStatus == nil {
+		return
+	}
+	incoming := requestStatus.GetFileReviewEventStream().GetEvents()
+	if len(incoming) == 0 {
+		return
+	}
+
+	stream := status.GetFileReviewEventStream()
+	if stream == nil {
+		stream = &agentexecutionv1.FileReviewEventStream{ExecutionId: executionID}
+		status.FileReviewEventStream = stream
+	}
+
+	for _, ev := range incoming {
+		// Decisions are server-owned (SubmitFileDecision). Never accept one from
+		// the runner — defense in depth against a forged human verdict.
+		if ev.GetEventType() == agentexecutionv1.FileReviewEventType_FILE_REVIEW_EVENT_TYPE_FILE_DECIDED {
+			continue
+		}
+		if ev.GetEventId() == "" || ev.GetChangeSetId() == "" {
+			continue
+		}
+		if hasEvent(stream, ev.GetEventId()) {
+			continue
+		}
+		stream.Events = append(stream.Events, ev)
+	}
+}
+
 func hasEvent(stream *agentexecutionv1.FileReviewEventStream, eventID string) bool {
 	for _, ev := range stream.GetEvents() {
 		if ev.GetEventId() == eventID {

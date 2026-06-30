@@ -163,12 +163,19 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 				status.GetApprovalEventStream(),
 			)
 
+			// Fold the runner-authored capture/reconcile events (carried on the
+			// status update) into the server-owned ledger: append-only, idempotent
+			// by event_id, FILE_DECIDED dropped (server-authored by
+			// SubmitFileDecision). Runs on the freshly-loaded stream under the write
+			// lock so it can never clobber a concurrent decision.
+			filereview.AppendRunnerEvents(status, executionID, statusUpdates)
+
 			// Recompute file_change_sets from the append-only file_review ledger via
-			// its single projection seam. The ledger (server-only, preserved in place
+			// its single projection seam. The ledger (server-owned, preserved in place
 			// across this merge like approval_event_stream) is authored by the runner's
-			// capture/reconcile activities and by SubmitFileDecision; this projection is
-			// always derived, never merged, so it cannot go stale. Empty until a producer
-			// authors events (Phase 2).
+			// capture/reconcile activities (folded just above) and by
+			// SubmitFileDecision; this projection is always derived, never merged, so
+			// it cannot go stale.
 			status.FileChangeSets = filereview.ProjectFileChangeSets(
 				status.GetPhase(),
 				status.GetFileReviewEventStream(),

@@ -240,9 +240,9 @@ func TestHitlZeroPendingApprovalFailsFast(t *testing.T) {
 	require.True(t, env.IsWorkflowCompleted())
 	require.Error(t, env.GetWorkflowError(),
 		"a persistent zero-pending WAITING_FOR_APPROVAL must fail fast, not tight-loop")
-	// Initial invocation + MaxZeroPendingApprovalCycles bounded re-invocations
+	// Initial invocation + MaxZeroGateCycles bounded re-invocations
 	// before giving up — well below MaxApprovalCycles (100).
-	require.Equal(t, MaxZeroPendingApprovalCycles+1, callCount,
+	require.Equal(t, MaxZeroGateCycles+1, callCount,
 		"workflow must stop after a small bounded number of zero-pending cycles")
 }
 
@@ -363,7 +363,7 @@ func TestCursorHitlZeroPendingApprovalFailsFast(t *testing.T) {
 	require.True(t, env.IsWorkflowCompleted())
 	require.Error(t, env.GetWorkflowError(),
 		"a persistent zero-pending WAITING_FOR_APPROVAL on the Cursor flow must fail fast, not tight-loop")
-	require.Equal(t, MaxZeroPendingApprovalCycles+1, callCount,
+	require.Equal(t, MaxZeroGateCycles+1, callCount,
 		"Cursor flow must stop after a small bounded number of zero-pending cycles")
 }
 

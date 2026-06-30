@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "author.go",
         "digest.go",
+        "gate.go",
         "project.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview",
@@ -15,9 +16,11 @@ go_library(
 go_test(
     name = "filereview_test",
     srcs = [
+        "append_runner_events_test.go",
         "author_test.go",
         "corpus_test.go",
         "digest_test.go",
+        "gate_test.go",
     ],
     embed = [":filereview"],
     deps = [

@@ -13,6 +13,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview"
+	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"google.golang.org/grpc/status"
 )
 
@@ -55,20 +56,22 @@ func (c *AgentExecutionController) SubmitFileDecision(ctx context.Context, input
 	return execution, nil
 }
 
-// buildSubmitFileDecisionPipeline mirrors the approval pipeline minus the
-// workflow-signal step (Phase 1 records the decision; resume is Phase 2).
+// buildSubmitFileDecisionPipeline mirrors the approval pipeline, including the
+// workflow-signal step that resumes the turn through the unified HITL gate.
 //
 //  1. ValidateProto       - input constraints (ids, scope/action not UNSPECIFIED, digest)
 //  2. LoadExisting        - load AgentExecution
 //  3. ValidateDecision    - phase, change set / file existence, digest match, idempotency
 //  4. RecordFileDecision  - author FILE_DECIDED, recompute file_change_sets, persist, broadcast
-//  5. BuildResponse       - return current execution state
+//  5. SignalWorkflow      - resume the workflow once the unified gate fully clears
+//  6. BuildResponse       - return current execution state
 func (c *AgentExecutionController) buildSubmitFileDecisionPipeline() *pipeline.Pipeline[*agentexecutionv1.SubmitFileDecisionInput] {
 	return pipeline.NewPipeline[*agentexecutionv1.SubmitFileDecisionInput]("agent-execution-submit-file-decision").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.SubmitFileDecisionInput]()).
 		AddStep(newLoadExistingForFileDecisionStep(c.store)).
 		AddStep(newValidateFileDecisionStep()).
 		AddStep(newRecordFileDecisionStep(c.store, c.streamBroker)).
+		AddStep(newSignalFileDecisionWorkflowStep(c.workflowCreator, c.store)).
 		AddStep(newBuildFileDecisionResponseStep()).
 		Build()
 }
@@ -276,6 +279,117 @@ func (s *recordFileDecisionStep) Execute(ctx *pipeline.RequestContext[*agentexec
 	}
 	ctx.Set(steps.TargetResourceKey, updated)
 	return nil
+}
+
+// signalFileDecisionWorkflowStep resumes the agent-execution workflow once the
+// unified HITL gate fully clears. It is the file-review twin of the approval
+// signalWorkflowStep and sends the SAME approvalGateResolved signal: the gate is
+// shared, so a turn blocked on file review (and possibly tool approvals too)
+// resumes through one signal and one wait.
+//
+// The signal fires only when filereview.GateResolved is true — no pending
+// approvals AND no change set awaiting review — so a partially-decided set, or a
+// fully-decided set while tool approvals remain, keeps the workflow waiting.
+//
+// If the workflow is no longer running (WorkflowNotFound), this reconciles the
+// stale execution to FAILED, mirroring the approval path.
+type signalFileDecisionWorkflowStep struct {
+	workflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
+	store           store.Store
+}
+
+func newSignalFileDecisionWorkflowStep(creator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator, s store.Store) *signalFileDecisionWorkflowStep {
+	return &signalFileDecisionWorkflowStep{workflowCreator: creator, store: s}
+}
+
+func (s *signalFileDecisionWorkflowStep) Name() string { return "SignalWorkflow" }
+
+func (s *signalFileDecisionWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.SubmitFileDecisionInput]) error {
+	if isIdempotent, ok := ctx.Get(fileDecisionIdempotentKey).(bool); ok && isIdempotent {
+		log.Debug().Msg("Skipping workflow signal for idempotent file decision")
+		return nil
+	}
+	if s.workflowCreator == nil {
+		log.Warn().Msg("Workflow creator not available - skipping Temporal signal")
+		return nil
+	}
+
+	input := ctx.Input()
+	execution := ctx.Get(steps.TargetResourceKey).(*agentexecutionv1.AgentExecution)
+	executionID := execution.GetMetadata().GetId()
+
+	// Resume only when the WHOLE gate is clear: no change set awaiting review and
+	// no tool approval pending. Unlike approvals, a file REJECT has no
+	// immediate-resume shortcut — every file in the set must be decided (or one
+	// CHANGE_SET-scoped decision must cover them) before the runner reconciles.
+	if !filereview.GateResolved(execution.GetStatus()) {
+		log.Info().
+			Str("execution_id", executionID).
+			Str("change_set_id", input.GetChangeSetId()).
+			Int("pending_approvals_remaining", len(execution.GetStatus().GetPendingApprovals())).
+			Int("change_sets_awaiting_review", filereview.CountAwaitingReview(execution.GetStatus().GetFileChangeSets())).
+			Msg("File decision recorded, HITL gate not yet resolved — waiting")
+		return nil
+	}
+
+	log.Info().
+		Str("execution_id", executionID).
+		Str("change_set_id", input.GetChangeSetId()).
+		Msg("HITL gate resolved by file decision — sending approvalGateResolved signal")
+
+	if err := s.workflowCreator.SignalApprovalGateResolved(executionID); err != nil {
+		if errors.Is(err, agentexecutiontemporal.ErrWorkflowNotFound) {
+			log.Warn().
+				Str("execution_id", executionID).
+				Msg("Workflow not found - reconciling stale execution status to FAILED")
+			s.reconcileStaleExecution(ctx.Context(), execution)
+			return grpclib.FailedPreconditionError(
+				"workflow not running for execution %s - the backing workflow has terminated unexpectedly and the execution has been marked as failed",
+				executionID,
+			)
+		}
+		log.Error().Err(err).Str("execution_id", executionID).Msg("Failed to signal workflow")
+		return grpclib.UnavailableError("failed to signal workflow: %v", err)
+	}
+
+	log.Info().
+		Str("execution_id", executionID).
+		Msg("Successfully sent approvalGateResolved signal to workflow")
+	return nil
+}
+
+// reconcileStaleExecution marks an execution FAILED when its backing workflow is
+// gone. Best-effort, mirroring the approval path; both append-only ledgers are
+// preserved verbatim for the audit trail, the projections left empty (terminal).
+func (s *signalFileDecisionWorkflowStep) reconcileStaleExecution(ctx context.Context, execution *agentexecutionv1.AgentExecution) {
+	executionID := execution.GetMetadata().GetId()
+
+	reconciledExecution := &agentexecutionv1.AgentExecution{
+		ApiVersion: execution.GetApiVersion(),
+		Kind:       execution.GetKind(),
+		Metadata:   execution.GetMetadata(),
+		Spec:       execution.GetSpec(),
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase:                 agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
+			Error:                 "Workflow backing this execution is no longer running. Execution has been marked as failed.",
+			Messages:              execution.GetStatus().GetMessages(),
+			Audit:                 execution.GetStatus().GetAudit(),
+			ApprovalEventStream:   execution.GetStatus().GetApprovalEventStream(),
+			FileReviewEventStream: execution.GetStatus().GetFileReviewEventStream(),
+		},
+	}
+	reconciledExecution.Status.Messages = append(reconciledExecution.Status.Messages, &agentexecutionv1.AgentMessage{
+		Type:    agentexecutionv1.MessageType_MESSAGE_SYSTEM,
+		Content: "The workflow backing this execution is no longer running. This can happen due to infrastructure issues or manual termination. The execution has been marked as failed.",
+	})
+
+	if err := s.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, executionID, reconciledExecution); err != nil {
+		log.Error().Err(err).Str("execution_id", executionID).
+			Msg("Failed to reconcile stale execution status - execution will remain in WAITING_FOR_APPROVAL until next attempt")
+		return
+	}
+	log.Info().Str("execution_id", executionID).
+		Msg("RECONCILIATION: Updated stale file-review execution status to FAILED")
 }
 
 type buildFileDecisionResponseStep struct{}

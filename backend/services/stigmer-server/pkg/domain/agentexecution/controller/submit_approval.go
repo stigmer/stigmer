@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 )
 
@@ -424,21 +425,30 @@ func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutio
 	executionID := execution.GetMetadata().GetId()
 	action := input.GetAction()
 	pendingRemaining := len(execution.GetStatus().GetPendingApprovals())
+	awaitingReview := filereview.CountAwaitingReview(execution.GetStatus().GetFileChangeSets())
 
 	isReject := action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
-	allDecided := pendingRemaining == 0
 
-	if !isReject && !allDecided {
+	// The HITL gate is unified: a turn resumes only when BOTH sub-gates clear.
+	// The approval sub-gate clears on REJECT (Python auto-skips the rest) or when
+	// no approvals remain; the file-review sub-gate clears when no change set is
+	// awaiting a human decision. Clearing the last approval while file review is
+	// still pending must NOT resume the turn.
+	approvalSubGateClear := isReject || pendingRemaining == 0
+	fileReviewClear := awaitingReview == 0
+
+	if !(approvalSubGateClear && fileReviewClear) {
 		log.Info().
 			Str("execution_id", executionID).
 			Str("tool_call_id", input.GetToolCallId()).
 			Str("action", action.String()).
 			Int("pending_approvals_remaining", pendingRemaining).
-			Msg("Approval recorded, gate not yet resolved — waiting for remaining approvals")
+			Int("change_sets_awaiting_review", awaitingReview).
+			Msg("Approval recorded, HITL gate not yet resolved — waiting")
 		return nil
 	}
 
-	reason := "all tool calls decided"
+	reason := "all approvals decided and no file review pending"
 	if isReject {
 		reason = "REJECT triggers immediate resume"
 	}

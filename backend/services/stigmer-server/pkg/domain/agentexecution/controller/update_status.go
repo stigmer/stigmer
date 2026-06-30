@@ -285,12 +285,19 @@ func applyUpdateStatusMerge(
 		status.GetApprovalEventStream(),
 	)
 
+	// Fold the runner-authored capture/reconcile events (carried on the request
+	// payload) into the server-owned ledger: append-only, idempotent by
+	// event_id, FILE_DECIDED dropped (server-authored by SubmitFileDecision).
+	// Runs on the freshly-loaded stream under the write lock so it can never
+	// clobber a concurrent decision. The stream itself is otherwise preserved in
+	// place — only this fold and SubmitFileDecision ever extend it.
+	filereview.AppendRunnerEvents(status, input.ExecutionId, requestStatus)
+
 	// Recompute file_change_sets from the append-only file_review ledger via its
-	// single projection seam. The ledger is server-only (carried over from the
-	// loaded resource, never sent by the runner) and authored by the runner's
-	// capture/reconcile activities and by SubmitFileDecision; this projection is
-	// always derived, never merged, so it cannot go stale. Empty until a producer
-	// authors events (Phase 2).
+	// single projection seam. The ledger is server-owned and authored by the
+	// runner's capture/reconcile activities (folded just above) and by
+	// SubmitFileDecision; this projection is always derived, never merged, so it
+	// cannot go stale.
 	status.FileChangeSets = filereview.ProjectFileChangeSets(
 		status.GetPhase(),
 		status.GetFileReviewEventStream(),

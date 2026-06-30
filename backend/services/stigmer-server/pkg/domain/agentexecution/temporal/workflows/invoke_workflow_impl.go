@@ -7,6 +7,7 @@ import (
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
 	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"go.temporal.io/api/enums/v1"
@@ -131,14 +132,15 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 // MaxApprovalCycles is the maximum number of approval iterations to prevent infinite loops.
 const MaxApprovalCycles = 100
 
-// MaxZeroPendingApprovalCycles bounds how many consecutive approval cycles the
-// workflow tolerates with phase=WAITING_FOR_APPROVAL but pending_approvals
-// empty. Once the runner<->backend approval-finalize contract holds this state
-// is unreachable, but if it ever occurs the workflow must fail fast rather than
-// tight-loop the full agent activity up to MaxApprovalCycles (the production
-// "RUNNING<->WAITING" churn). A small tolerance absorbs a transient read race
-// between the runner's WAITING_FOR_APPROVAL persist and the workflow's DB read.
-const MaxZeroPendingApprovalCycles = 3
+// MaxZeroGateCycles bounds how many consecutive HITL cycles the workflow
+// tolerates with phase=WAITING_FOR_APPROVAL but the unified gate already empty
+// (no pending approvals AND no change set awaiting review). Once the
+// runner<->backend finalize contract holds this state is unreachable, but if it
+// ever occurs the workflow must fail fast rather than tight-loop the full agent
+// activity up to MaxApprovalCycles (the production "RUNNING<->WAITING" churn). A
+// small tolerance absorbs a transient read race between the runner's
+// WAITING_FOR_APPROVAL persist and the workflow's DB read.
+const MaxZeroGateCycles = 3
 
 // MaxPauseCycles is the maximum number of pause/resume cycles to prevent infinite loops.
 const MaxPauseCycles = 100
@@ -394,7 +396,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 		"phase_value", int32(finalPhase))
 
 	approvalCycle := 0
-	zeroPendingApprovalCycles := 0
+	zeroGateCycles := 0
 	for finalPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
 		if approvalCycle > MaxApprovalCycles {
@@ -410,39 +412,42 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 				"execution_id", executionID, "error", err.Error())
 		}
 
+		// The HITL gate is unified: count pending approvals AND change sets
+		// awaiting review. A turn blocked purely on file review (zero pending
+		// approvals) must still wait for, and resume from, the same signal.
 		dbExecution, loadErr := w.loadExecution(ctx, executionID)
-		pendingCount := 0
+		gateCount := 0
 		if loadErr != nil {
-			logger.Warn("Failed to load execution from DB for pending count (non-fatal, will wait for signal)",
+			logger.Warn("Failed to load execution from DB for gate count (non-fatal, will wait for signal)",
 				"execution_id", executionID, "error", loadErr.Error())
-			pendingCount = 1
+			gateCount = 1
 		} else {
-			pendingCount = len(dbExecution.GetStatus().GetPendingApprovals())
+			gateCount = filereview.UnresolvedGateCount(dbExecution.GetStatus())
 		}
 
-		logger.Info("Execution waiting for approval — waiting for approvalGateResolved signal",
+		logger.Info("Execution waiting at HITL gate — waiting for approvalGateResolved signal",
 			"execution_id", executionID,
 			"cycle", approvalCycle,
-			"pending_count", pendingCount)
+			"gate_count", gateCount)
 
-		if pendingCount == 0 {
-			// WAITING_FOR_APPROVAL with no pending approvals is an inconsistency
-			// the approval-finalize contract should make impossible. Tolerate a
-			// few consecutive occurrences (transient read race) then fail fast,
-			// rather than tight-looping the full activity to MaxApprovalCycles.
-			zeroPendingApprovalCycles++
-			if zeroPendingApprovalCycles > MaxZeroPendingApprovalCycles {
-				logger.Error("WAITING_FOR_APPROVAL with empty pending_approvals across consecutive cycles — failing fast to avoid a tight re-invocation loop",
-					"execution_id", executionID, "cycle", approvalCycle, "zero_pending_cycles", zeroPendingApprovalCycles)
-				return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with no pending approvals after %d consecutive cycles - approval propagation is broken", zeroPendingApprovalCycles)
+		if gateCount == 0 {
+			// WAITING_FOR_APPROVAL with an empty unified gate is an inconsistency
+			// the finalize contract should make impossible. Tolerate a few
+			// consecutive occurrences (transient read race) then fail fast, rather
+			// than tight-looping the full activity to MaxApprovalCycles.
+			zeroGateCycles++
+			if zeroGateCycles > MaxZeroGateCycles {
+				logger.Error("WAITING_FOR_APPROVAL with empty HITL gate across consecutive cycles — failing fast to avoid a tight re-invocation loop",
+					"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
+				return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with an empty HITL gate after %d consecutive cycles - gate propagation is broken", zeroGateCycles)
 			}
-			logger.Warn("pending_approvals is empty but phase is WAITING_FOR_APPROVAL — "+
+			logger.Warn("HITL gate is empty but phase is WAITING_FOR_APPROVAL — "+
 				"re-invoking (bounded) to resolve inconsistency",
 				"execution_id", executionID,
 				"cycle", approvalCycle,
-				"zero_pending_cycles", zeroPendingApprovalCycles)
+				"zero_gate_cycles", zeroGateCycles)
 		} else {
-			zeroPendingApprovalCycles = 0
+			zeroGateCycles = 0
 			signalChan := workflow.GetSignalChannel(ctx, SignalApprovalGateResolved)
 			signalChan.Receive(ctx, nil)
 
@@ -451,7 +456,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 				"cycle", approvalCycle)
 		}
 
-		logger.Info("Re-invoking deep agent after approval gate resolved",
+		logger.Info("Re-invoking deep agent after HITL gate resolved",
 			"execution_id", executionID,
 			"cycle", approvalCycle)
 
@@ -643,7 +648,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 		"phase", finalPhase.String())
 
 	approvalCycle := 0
-	zeroPendingApprovalCycles := 0
+	zeroGateCycles := 0
 	for finalPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
 		if approvalCycle > MaxApprovalCycles {
@@ -658,34 +663,37 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 				"execution_id", executionID, "error", err.Error())
 		}
 
+		// The HITL gate is unified: count pending approvals AND change sets
+		// awaiting review. A turn blocked purely on file review (zero pending
+		// approvals) must still wait for, and resume from, the same signal.
 		dbExecution, loadErr := w.loadExecution(ctx, executionID)
-		pendingCount := 0
+		gateCount := 0
 		if loadErr != nil {
-			logger.Warn("Failed to load execution for pending count (non-fatal)",
+			logger.Warn("Failed to load execution for gate count (non-fatal)",
 				"execution_id", executionID, "error", loadErr.Error())
-			pendingCount = 1
+			gateCount = 1
 		} else {
-			pendingCount = len(dbExecution.GetStatus().GetPendingApprovals())
+			gateCount = filereview.UnresolvedGateCount(dbExecution.GetStatus())
 		}
 
-		logger.Info("Cursor execution waiting for approval",
-			"execution_id", executionID, "cycle", approvalCycle, "pending_count", pendingCount)
+		logger.Info("Cursor execution waiting at HITL gate",
+			"execution_id", executionID, "cycle", approvalCycle, "gate_count", gateCount)
 
-		if pendingCount == 0 {
-			// WAITING_FOR_APPROVAL with no pending approvals is an inconsistency
-			// the approval-finalize contract should make impossible. Tolerate a
-			// few consecutive occurrences (transient read race) then fail fast,
-			// rather than tight-looping the full activity to MaxApprovalCycles.
-			zeroPendingApprovalCycles++
-			if zeroPendingApprovalCycles > MaxZeroPendingApprovalCycles {
-				logger.Error("WAITING_FOR_APPROVAL with empty pending_approvals across consecutive cycles — failing fast to avoid a tight re-invocation loop",
-					"execution_id", executionID, "cycle", approvalCycle, "zero_pending_cycles", zeroPendingApprovalCycles)
-				return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with no pending approvals after %d consecutive cycles - approval propagation is broken", zeroPendingApprovalCycles)
+		if gateCount == 0 {
+			// WAITING_FOR_APPROVAL with an empty unified gate is an inconsistency
+			// the finalize contract should make impossible. Tolerate a few
+			// consecutive occurrences (transient read race) then fail fast, rather
+			// than tight-looping the full activity to MaxApprovalCycles.
+			zeroGateCycles++
+			if zeroGateCycles > MaxZeroGateCycles {
+				logger.Error("WAITING_FOR_APPROVAL with empty HITL gate across consecutive cycles — failing fast to avoid a tight re-invocation loop",
+					"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
+				return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with an empty HITL gate after %d consecutive cycles - gate propagation is broken", zeroGateCycles)
 			}
-			logger.Warn("pending_approvals empty but phase is WAITING_FOR_APPROVAL — re-invoking (bounded)",
-				"execution_id", executionID, "cycle", approvalCycle, "zero_pending_cycles", zeroPendingApprovalCycles)
+			logger.Warn("HITL gate empty but phase is WAITING_FOR_APPROVAL — re-invoking (bounded)",
+				"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
 		} else {
-			zeroPendingApprovalCycles = 0
+			zeroGateCycles = 0
 			signalChan := workflow.GetSignalChannel(ctx, SignalApprovalGateResolved)
 			signalChan.Receive(ctx, nil)
 			logger.Info("Received approvalGateResolved signal",
