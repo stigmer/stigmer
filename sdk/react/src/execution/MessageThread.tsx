@@ -1052,7 +1052,7 @@ export function ThreadItemRenderer({
         <FileReviewCardRow
           fileChangeSet={item.fileChangeSet}
           onFileDecisionSubmit={onFileDecisionSubmit!}
-          isSubmitting={submittingFileDecisionKeys?.has(item.fileChangeSet.id) ?? false}
+          submittingDecisionKeys={submittingFileDecisionKeys}
         />
       );
     case "setup-progress":
@@ -1254,13 +1254,16 @@ interface FileReviewCardRowProps {
     action: FileDecisionAction,
     options?: FileDecisionOptions,
   ) => void;
-  readonly isSubmitting: boolean;
+  // The full keyed set (whole-set + per-file) so the card can drive each of its
+  // controls independently; it is a stable ref from useFileReview's useMemo, so
+  // the row only re-renders when a decision actually starts or settles.
+  readonly submittingDecisionKeys?: ReadonlySet<string>;
 }
 
 const FileReviewCardRow = memo(function FileReviewCardRow({
   fileChangeSet,
   onFileDecisionSubmit,
-  isSubmitting,
+  submittingDecisionKeys,
 }: FileReviewCardRowProps) {
   const handleSubmit = useCallback(
     (action: FileDecisionAction, options?: FileDecisionOptions) => {
@@ -1273,7 +1276,7 @@ const FileReviewCardRow = memo(function FileReviewCardRow({
     <FileReviewCard
       fileChangeSet={fileChangeSet}
       onSubmit={handleSubmit}
-      isSubmitting={isSubmitting}
+      submittingDecisionKeys={submittingDecisionKeys}
       className="mx-4"
     />
   );
