@@ -199,6 +199,67 @@ func TestHitlApprovalLoopWithoutPause(t *testing.T) {
 	require.Equal(t, 2, callCount)
 }
 
+// TestHitlFileReviewOnlyGateWaitsForSignal verifies the UNIFIED HITL gate for a
+// turn blocked purely on file review (apply-then-review): the execution is
+// WAITING_FOR_APPROVAL with ZERO pending tool approvals but one change set
+// AWAITING_REVIEW. The gate is non-empty (filereview.UnresolvedGateCount counts
+// the change set), so the workflow must WAIT for the approvalGateResolved signal
+// and re-invoke once — exactly like the pending-approval path — rather than
+// tripping the zero-gate fail-fast watchdog (TestHitlZeroPendingApprovalFailsFast)
+// that fires only when BOTH sub-gates are empty. This pins the file-review half
+// of the unified gate that the pending-approval test does not exercise.
+func TestHitlFileReviewOnlyGateWaitsForSignal(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-filereview"
+	const executionID = "exec-filereview-only"
+	registerCommonMocks(env, threadID)
+
+	// The DB reports zero pending approvals but one change set awaiting review —
+	// the pure-file-review gate. UnresolvedGateCount must see it as non-empty.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{
+				FileChangeSets: []*agentexecutionv1.FileChangeSet{
+					{
+						Id:     "cs-1",
+						Status: agentexecutionv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW,
+					},
+				},
+			},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
+			callCount++
+			if callCount == 1 {
+				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+			}
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
+		})
+
+	// The file decision clears the gate and sends the SAME unified signal.
+	env.RegisterDelayedCallback(func() {
+		env.SignalWorkflow(SignalApprovalGateResolved, nil)
+	}, 0)
+
+	input := &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+	}
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError(),
+		"a file-review-only gate must wait for the signal and resume, not fail fast")
+	require.Equal(t, 2, callCount,
+		"workflow must re-invoke once after the file-review gate is resolved")
+}
+
 // TestHitlZeroPendingApprovalFailsFast verifies the workflow does NOT tight-loop
 // the full agent activity when the execution is WAITING_FOR_APPROVAL but
 // pending_approvals is empty. That state is an inconsistency that should be

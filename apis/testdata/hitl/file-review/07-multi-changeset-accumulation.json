@@ -1,0 +1,103 @@
+{
+  "name": "multi-changeset-accumulation",
+  "description": "Two change sets within one execution (turn 1 reconciled, turn 2 awaiting review) -> two projected sets with DISTINCT statuses, in first-seen order. Pins per-set grouping by change_set_id, ordering, and a terminal RECONCILED set coexisting with an actionable AWAITING_REVIEW set (every other fixture has exactly one set). This is the deep-agent accumulation-across-turns shape (change_set_id = executionId:turnSeq).",
+  "execution_id": "aex_multi",
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "events": [
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs1", "turnId": "t1", "harnessId": "deep-agent",
+        "baselineSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "base1", "ref": "refs/stigmer/x/baseline" } }
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs1",
+        "candidateSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "cand1", "ref": "refs/stigmer/x/candidate" } },
+        "changes": [
+          { "id": "fc1", "pathAfter": "src/turn1.ts", "kind": "FILE_CHANGE_KIND_ADD", "fileDigest": "d-fc1", "diffComplete": true }
+        ],
+        "aggregateDigest": "agg-cs1",
+        "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE"
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "timestamp": "2026-06-30T00:01:00Z",
+      "actor": "user",
+      "fileDecided": {
+        "id": "cs1:cs1", "changeSetId": "cs1",
+        "scope": "FILE_DECISION_SCOPE_CHANGE_SET", "action": "FILE_DECISION_ACTION_APPROVE",
+        "expectedDigest": "agg-cs1", "reviewerId": "u1", "decidedAt": "2026-06-30T00:01:00Z"
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_RECONCILED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_RECONCILED",
+      "timestamp": "2026-06-30T00:01:05Z",
+      "actor": "runner",
+      "reconciled": {
+        "changeSetId": "cs1",
+        "approvedSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "approved1", "ref": "refs/stigmer/x/approved" } }
+      }
+    },
+    {
+      "eventId": "cs2:cs2:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs2",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-06-30T00:02:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs2", "turnId": "t2", "harnessId": "deep-agent",
+        "baselineSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "base2", "ref": "refs/stigmer/x/baseline" } }
+      }
+    },
+    {
+      "eventId": "cs2:cs2:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs2",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-06-30T00:02:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs2",
+        "candidateSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "cand2", "ref": "refs/stigmer/x/candidate" } },
+        "changes": [
+          { "id": "fc2", "pathBefore": "src/turn2.ts", "pathAfter": "src/turn2.ts", "kind": "FILE_CHANGE_KIND_MODIFY", "fileDigest": "d-fc2", "diffComplete": true }
+        ],
+        "aggregateDigest": "agg-cs2",
+        "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs1",
+      "status": "FILE_CHANGE_SET_STATUS_RECONCILED",
+      "change_ids": ["fc1"],
+      "decision_count": 1,
+      "aggregate_digest": "agg-cs1",
+      "has_approved_snapshot": true
+    },
+    {
+      "id": "cs2",
+      "status": "FILE_CHANGE_SET_STATUS_AWAITING_REVIEW",
+      "change_ids": ["fc2"],
+      "decision_count": 0,
+      "aggregate_digest": "agg-cs2",
+      "has_approved_snapshot": false
+    }
+  ]
+}
