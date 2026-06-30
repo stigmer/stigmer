@@ -16,6 +16,7 @@ import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/st
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionPhase, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
+import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
 import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
 import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
@@ -48,7 +49,15 @@ export function createDeepAgentActivities(config: Config) {
   const streamingConfig = loadStreamingConfig();
 
   return {
-    ExecuteDeepAgent: async (executionId: string, threadId: string): Promise<unknown> => {
+    // Accepts the new typed object OR the legacy positional args (transitional
+    // dual-shape so the runner can deploy before the control planes — see
+    // shared/activity-input.ts). Drop the positional arm once both control
+    // planes send the object.
+    ExecuteDeepAgent: async (
+      arg0: ExecuteActivityInput | string,
+      arg1?: string,
+    ): Promise<unknown> => {
+      const { executionId, threadId } = normalizeActivityInput(arg0, arg1);
       activityStarted();
       let setup: SetupResult | null = null;
 

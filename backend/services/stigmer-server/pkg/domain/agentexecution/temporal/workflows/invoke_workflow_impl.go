@@ -272,7 +272,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 
 		// Execute the agent with HITL approval loop (uses cancellable context)
 		finalResult, err = w.executeDeepAgentWithHitl(
-			activityCtx, activityTaskQueue, executionID, threadID,
+			activityCtx, activityTaskQueue, executionID, threadID, input.InvokerIdentityAccountID,
 		)
 
 		if err != nil && pauseRequested {
@@ -374,12 +374,17 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 	activityTaskQueue string,
 	executionID string,
 	threadID string,
+	invokerIdentityAccountID string,
 ) (activities.RunnerActivityResult, error) {
 	logger := workflow.GetLogger(ctx)
 
 	executeDeepAgentActivity := activities.NewExecuteDeepAgentActivityStub(ctx, activityTaskQueue)
 
-	finalResult, err := executeDeepAgentActivity.ExecuteDeepAgent(executionID, threadID)
+	finalResult, err := executeDeepAgentActivity.ExecuteDeepAgent(activities.ExecuteDeepAgentActivityInput{
+		ExecutionID:              executionID,
+		ThreadID:                 threadID,
+		InvokerIdentityAccountID: invokerIdentityAccountID,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -460,7 +465,11 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 			"execution_id", executionID,
 			"cycle", approvalCycle)
 
-		finalResult, err = executeDeepAgentActivity.ExecuteDeepAgent(executionID, threadID)
+		finalResult, err = executeDeepAgentActivity.ExecuteDeepAgent(activities.ExecuteDeepAgentActivityInput{
+			ExecutionID:              executionID,
+			ThreadID:                 threadID,
+			InvokerIdentityAccountID: invokerIdentityAccountID,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -531,7 +540,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 			cancelActivity()
 		})
 
-		cursorResult, err := w.executeCursorWithHitl(activityCtx, activityTaskQueue, executionID, sessionID)
+		cursorResult, err := w.executeCursorWithHitl(activityCtx, activityTaskQueue, executionID, sessionID, input.InvokerIdentityAccountID)
 
 		if err != nil && pauseRequested {
 			pauseCycle++
@@ -621,6 +630,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 	activityTaskQueue string,
 	executionID string,
 	sessionID string,
+	invokerIdentityAccountID string,
 ) (activities.RunnerActivityResult, error) {
 	logger := workflow.GetLogger(ctx)
 
@@ -633,7 +643,11 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 
 	executeCursorActivity := activities.NewExecuteCursorActivityStub(ctx, activityTaskQueue)
 
-	finalResult, err := executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
+	finalResult, err := executeCursorActivity.ExecuteCursor(activities.ExecuteCursorActivityInput{
+		ExecutionID:              executionID,
+		ThreadID:                 harnessStateID,
+		InvokerIdentityAccountID: invokerIdentityAccountID,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -708,7 +722,11 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 		logger.Info("Re-invoking Cursor after approval", "execution_id", executionID,
 			"cycle", approvalCycle, "harness_state_id", harnessStateID)
 
-		finalResult, err = executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
+		finalResult, err = executeCursorActivity.ExecuteCursor(activities.ExecuteCursorActivityInput{
+			ExecutionID:              executionID,
+			ThreadID:                 harnessStateID,
+			InvokerIdentityAccountID: invokerIdentityAccountID,
+		})
 		if err != nil {
 			return nil, err
 		}

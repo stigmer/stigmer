@@ -20,7 +20,7 @@ import (
 // workflow.ExecuteActivity calls can be matched and mocked.
 func stubEnsureThread(_ string, _ string) (string, error) { return "", nil }
 func stubGenerateSessionSubject(_ string) error           { return nil }
-func stubExecuteDeepAgent(_ string, _ string) (activities.RunnerActivityResult, error) {
+func stubExecuteDeepAgent(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 	return nil, nil
 }
 
@@ -102,8 +102,8 @@ func TestPauseSignalCancelsActivityAndWaitsForResume(t *testing.T) {
 	// The first invocation is cancelled by the pause signal (mock not called).
 	// After resume, the second invocation runs the mock and completes.
 	resumeCallCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			resumeCallCount++
 			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
 		})
@@ -137,7 +137,7 @@ func TestNormalCompletionWithoutPause(t *testing.T) {
 	const executionID = "exec-456"
 	registerCommonMocks(env, threadID)
 
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
 		Return(runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil)
 
 	input := &InvokeAgentExecutionWorkflowInput{
@@ -172,8 +172,8 @@ func TestHitlApprovalLoopWithoutPause(t *testing.T) {
 		}, nil)
 
 	callCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			callCount++
 			if callCount == 1 {
 				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
@@ -223,8 +223,8 @@ func TestHitlZeroPendingApprovalFailsFast(t *testing.T) {
 		}, nil)
 
 	callCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			callCount++
 			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
 		})
@@ -254,7 +254,7 @@ func TestHitlZeroPendingApprovalFailsFast(t *testing.T) {
 // ExecuteCursor instead of EnsureThread + ExecuteDeepAgent.
 // ─────────────────────────────────────────────────────────────────────────────
 
-func stubExecuteCursor(_ string, _ string) (activities.RunnerActivityResult, error) {
+func stubExecuteCursor(_ activities.ExecuteCursorActivityInput) (activities.RunnerActivityResult, error) {
 	return nil, nil
 }
 func stubReadHarnessStateId(_ string) (string, error) { return "", nil }
@@ -307,8 +307,8 @@ func TestCursorHitlApprovalLoopWithoutPause(t *testing.T) {
 		}, nil)
 
 	callCount := 0
-	env.OnActivity(stubExecuteCursor, mock.Anything, mock.Anything).
-		Return(func(_ string, _ string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteCursor, mock.Anything).
+		Return(func(_ activities.ExecuteCursorActivityInput) (activities.RunnerActivityResult, error) {
 			callCount++
 			if callCount == 1 {
 				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
@@ -352,8 +352,8 @@ func TestCursorHitlZeroPendingApprovalFailsFast(t *testing.T) {
 		}, nil)
 
 	callCount := 0
-	env.OnActivity(stubExecuteCursor, mock.Anything, mock.Anything).
-		Return(func(_ string, _ string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteCursor, mock.Anything).
+		Return(func(_ activities.ExecuteCursorActivityInput) (activities.RunnerActivityResult, error) {
 			callCount++
 			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
 		})
@@ -379,8 +379,8 @@ func TestMultiplePauseResumeCycles(t *testing.T) {
 	// In the test env, cancelled invocations don't run the mock, so only the
 	// final (non-cancelled) invocation runs.
 	resumeCallCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			resumeCallCount++
 			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
 		})
@@ -425,8 +425,8 @@ func TestRecoverableInterruptionResumesFromState(t *testing.T) {
 	registerCommonMocks(env, threadID)
 
 	callCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			callCount++
 			if callCount == 1 {
 				// Simulate the worker being reaped mid-run: a heartbeat timeout.
@@ -460,8 +460,8 @@ func TestRecoveryIsBoundedByMaxCycles(t *testing.T) {
 	registerCommonMocks(env, threadID)
 
 	callCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			callCount++
 			return nil, temporal.NewTimeoutError(enums.TIMEOUT_TYPE_HEARTBEAT, nil)
 		})
@@ -488,7 +488,7 @@ func TestFailedActivityPropagatesError(t *testing.T) {
 	const executionID = "exec-fail"
 	registerCommonMocks(env, threadID)
 
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
 		Return(runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_FAILED, "something went wrong"), nil)
 
 	input := &InvokeAgentExecutionWorkflowInput{

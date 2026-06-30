@@ -22,8 +22,27 @@ import (
 // task queue (global: agent_execution_runner, or per-session: session:{id}).
 // Temporal routes by activity name — no queue suffix is needed. The workflow
 // dispatches to the correct activity based on session.spec.harness.
+// ExecuteCursorActivityInput is the typed input for the ExecuteCursor activity.
+//
+// Modeled on the workflow-input convention (a single serializable object with
+// snake_case JSON keys) so the Go control plane, the Java control plane, and
+// the single TypeScript runner all agree on one wire shape — ending the prior
+// positional-arg drift (Go sent 2 args, Java sent 3, the runner read 2). The
+// JSON keys here MUST stay byte-identical to the Java record
+// (ExecuteCursorActivityInput, @JsonNaming snake_case) and the runner's
+// normalized input object.
+type ExecuteCursorActivityInput struct {
+	// ExecutionID is the agent execution being run.
+	ExecutionID string `json:"execution_id"`
+	// ThreadID stores the Cursor agentId (harness_state_id); empty on first run.
+	ThreadID string `json:"thread_id"`
+	// InvokerIdentityAccountID is carried for parity with the Java edition; the
+	// runner hydrates the invoker from the DB and does not read this field.
+	InvokerIdentityAccountID string `json:"invoker_identity_account_id"`
+}
+
 type ExecuteCursorActivity interface {
-	ExecuteCursor(executionID string, threadID string) (RunnerActivityResult, error)
+	ExecuteCursor(input ExecuteCursorActivityInput) (RunnerActivityResult, error)
 }
 
 // ExecuteCursorActivityName is the activity name used for registration.
@@ -52,8 +71,8 @@ type executeCursorActivityStub struct {
 	ctx workflow.Context
 }
 
-func (s *executeCursorActivityStub) ExecuteCursor(executionID string, threadID string) (RunnerActivityResult, error) {
+func (s *executeCursorActivityStub) ExecuteCursor(input ExecuteCursorActivityInput) (RunnerActivityResult, error) {
 	var result RunnerActivityResult
-	err := workflow.ExecuteActivity(s.ctx, ExecuteCursorActivityName, executionID, threadID).Get(s.ctx, &result)
+	err := workflow.ExecuteActivity(s.ctx, ExecuteCursorActivityName, input).Get(s.ctx, &result)
 	return result, err
 }

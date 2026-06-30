@@ -83,6 +83,7 @@ import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pri
 import { UsageAccumulator } from "./usage-accumulator.js";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
+import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
 import { getCapturedRejection, clearCapturedRejection } from "./rejection-capture.js";
 import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent } from "./error-classifier.js";
 import type { ClassifiedError } from "./error-classifier.js";
@@ -103,7 +104,15 @@ export function createCursorActivities(config: Config) {
   });
 
   return {
-    ExecuteCursor: async (executionId: string, threadId: string): Promise<unknown> => {
+    // Accepts the new typed object OR the legacy positional args (transitional
+    // dual-shape so the runner can deploy before the control planes — see
+    // shared/activity-input.ts). Drop the positional arm once both control
+    // planes send the object.
+    ExecuteCursor: async (
+      arg0: ExecuteActivityInput | string,
+      arg1?: string,
+    ): Promise<unknown> => {
+      const { executionId, threadId } = normalizeActivityInput(arg0, arg1);
       activityStarted();
       try {
         return await executeCursor(config, client, executionId, threadId);
