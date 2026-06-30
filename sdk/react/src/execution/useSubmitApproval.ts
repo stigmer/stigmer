@@ -6,9 +6,7 @@ import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
-
-/** A stable empty map so an error-free hook keeps a constant `errorsByToolCallId` ref. */
-const NO_ERRORS: ReadonlyMap<string, Error> = new Map();
+import { useKeyedSubmission } from "../internal/useKeyedSubmission";
 
 /** Return value of {@link useSubmitApproval}. */
 export interface UseSubmitApprovalReturn {
@@ -72,17 +70,16 @@ export interface UseSubmitApprovalReturn {
  */
 export function useSubmitApproval(): UseSubmitApprovalReturn {
   const stigmer = useStigmer();
-  const [submittingIds, setSubmittingIds] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
-  const [errorsByToolCallId, setErrorsByToolCallId] =
-    useState<ReadonlyMap<string, Error>>(NO_ERRORS);
+  // Per-gate in-flight + error state, keyed by tool-call id, lives in the
+  // shared keyed-submission primitive. The scalar `error` below is a thin
+  // mirror kept in lockstep for headless / ink consumers.
+  const keyed = useKeyedSubmission<void>();
   const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => {
-    setErrorsByToolCallId(NO_ERRORS);
+    keyed.clearErrors();
     setError(null);
-  }, []);
+  }, [keyed.clearErrors]);
 
   const submitApproval = useCallback(
     async (
@@ -91,53 +88,36 @@ export function useSubmitApproval(): UseSubmitApprovalReturn {
       action: ApprovalAction,
       comment?: string,
     ): Promise<void> => {
-      setSubmittingIds((prev) => {
-        const next = new Set(prev);
-        next.add(toolCallId);
-        return next;
-      });
-      // Clear this gate's prior failure (and the scalar mirror) so a retry
-      // starts clean — the map and `error` are updated together, never drift.
-      setErrorsByToolCallId((prev) => {
-        if (!prev.has(toolCallId)) return prev;
-        const next = new Map(prev);
-        next.delete(toolCallId);
-        return next;
-      });
+      // Clear the scalar mirror at submit-start; `keyed.run` clears this gate's
+      // keyed entry, so the map and `error` are updated together and never drift.
       setError(null);
-
       try {
-        const input = create(SubmitApprovalInputSchema, {
-          agentExecutionId: executionId,
-          toolCallId,
-          action,
-          comment: comment ?? "",
+        await keyed.run(toolCallId, async () => {
+          await stigmer.agentExecution.submitApproval(
+            create(SubmitApprovalInputSchema, {
+              agentExecutionId: executionId,
+              toolCallId,
+              action,
+              comment: comment ?? "",
+            }),
+          );
         });
-        await stigmer.agentExecution.submitApproval(input);
       } catch (err) {
-        const e = toError(err);
-        setErrorsByToolCallId((prev) => new Map(prev).set(toolCallId, e));
-        setError(e);
+        setError(toError(err));
         throw err;
-      } finally {
-        setSubmittingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(toolCallId);
-          return next;
-        });
       }
     },
-    [stigmer],
+    [stigmer, keyed.run],
   );
 
   return useMemo(
     () => ({
       submitApproval,
-      submittingToolCallIds: submittingIds,
-      errorsByToolCallId,
+      submittingToolCallIds: keyed.submittingKeys,
+      errorsByToolCallId: keyed.errorsByKey,
       error,
       clearError,
     }),
-    [submitApproval, submittingIds, errorsByToolCallId, error, clearError],
+    [submitApproval, keyed.submittingKeys, keyed.errorsByKey, error, clearError],
   );
 }

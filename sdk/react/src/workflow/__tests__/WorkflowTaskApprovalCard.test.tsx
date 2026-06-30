@@ -248,6 +248,22 @@ describe("WorkflowTaskApprovalCard", () => {
     });
   });
 
+  describe("in-card decision error", () => {
+    it("renders the failure notice beside the outcomes when error is set", () => {
+      render(
+        <WorkflowTaskApprovalCard {...defaultProps} error={new Error("signal failed")} />,
+      );
+      expect(
+        screen.getByText(/Couldn.t submit decision — signal failed/),
+      ).toBeTruthy();
+    });
+
+    it("renders no failure notice when error is null", () => {
+      render(<WorkflowTaskApprovalCard {...defaultProps} error={null} />);
+      expect(screen.queryByText(/Couldn.t submit decision/)).toBeNull();
+    });
+  });
+
   describe("accessibility", () => {
     it('root element has role="form"', () => {
       render(<WorkflowTaskApprovalCard {...defaultProps} />);

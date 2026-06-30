@@ -23,8 +23,17 @@ export interface WorkflowExecutionTimelineProps {
     formData?: Record<string, unknown>,
     comment?: string,
   ) => Promise<unknown>;
-  /** True while a task approval submission is in flight. */
-  readonly isSubmittingApproval?: boolean;
+  /**
+   * Task names whose human_input approval is currently in flight, keyed by
+   * `taskName` so deciding one gate never spins another. Supply
+   * {@link useWorkflowExecutionActions}'s `taskApprovalSubmittingTaskNames`.
+   */
+  readonly taskApprovalSubmittingTaskNames?: ReadonlySet<string>;
+  /**
+   * Per-gate human_input approval failures, keyed by `taskName`. Supply
+   * {@link useWorkflowExecutionActions}'s `taskApprovalErrorsByTaskName`.
+   */
+  readonly taskApprovalErrorsByTaskName?: ReadonlyMap<string, Error>;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -47,7 +56,8 @@ export const WorkflowExecutionTimeline = memo(function WorkflowExecutionTimeline
   onNavigateToAgentExecution,
   taskStates,
   onSubmitTaskApproval,
-  isSubmittingApproval,
+  taskApprovalSubmittingTaskNames,
+  taskApprovalErrorsByTaskName,
   className,
 }: WorkflowExecutionTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -112,7 +122,8 @@ export const WorkflowExecutionTimeline = memo(function WorkflowExecutionTimeline
           onNavigateToAgentExecution={onNavigateToAgentExecution}
           taskStates={taskStates}
           onSubmitTaskApproval={onSubmitTaskApproval}
-          isSubmittingApproval={isSubmittingApproval}
+          taskApprovalSubmittingTaskNames={taskApprovalSubmittingTaskNames}
+          taskApprovalErrorsByTaskName={taskApprovalErrorsByTaskName}
         />
       ))}
 

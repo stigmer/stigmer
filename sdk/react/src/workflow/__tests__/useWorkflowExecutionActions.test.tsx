@@ -278,3 +278,146 @@ describe("onSuccess callback", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Per-gate approval state (keyed; separate from the lifecycle scalar)
+// ---------------------------------------------------------------------------
+
+describe("per-gate approval state", () => {
+  it("tracks an in-flight tool approval keyed by toolCallId, not the lifecycle scalar", async () => {
+    let resolve!: (v: unknown) => void;
+    mockSubmitApproval.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions("wex-001"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    let pending: Promise<unknown>;
+    act(() => {
+      pending = result.current.submitApproval("tc-1", 1 as any);
+    });
+
+    expect(result.current.approvalSubmittingToolCallIds.has("tc-1")).toBe(true);
+    // The lifecycle scalar is untouched by an approval.
+    expect(result.current.isSubmitting).toBe(false);
+
+    await act(async () => {
+      resolve(makeExecution());
+      await pending;
+    });
+
+    expect(result.current.approvalSubmittingToolCallIds.size).toBe(0);
+  });
+
+  it("records a failed tool approval in the keyed map, not the lifecycle scalar, and resolves null", async () => {
+    mockSubmitApproval.mockRejectedValueOnce(new Error("gate already resolved"));
+
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions("wex-001"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    let returned: any;
+    await act(async () => {
+      returned = await result.current.submitApproval("tc-1", 1 as any);
+    });
+
+    expect(returned).toBeNull();
+    expect(result.current.approvalErrorsByToolCallId.get("tc-1")?.message).toBe(
+      "gate already resolved",
+    );
+    // The lifecycle scalar (header banner) must NOT pick up an approval failure.
+    expect(result.current.error).toBeNull();
+    expect(result.current.isSubmitting).toBe(false);
+  });
+
+  it("records a failed task approval keyed by taskName, not the lifecycle scalar", async () => {
+    mockSubmitWorkflowTaskApproval.mockRejectedValueOnce(new Error("signal failed"));
+
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions("wex-001"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    let returned: any;
+    await act(async () => {
+      returned = await result.current.submitTaskApproval("review_task", "approved");
+    });
+
+    expect(returned).toBeNull();
+    expect(result.current.taskApprovalErrorsByTaskName.get("review_task")?.message).toBe(
+      "signal failed",
+    );
+    expect(result.current.error).toBeNull();
+  });
+
+  it("keeps tool and task approval errors in separate keyed spaces", async () => {
+    mockSubmitApproval.mockRejectedValueOnce(new Error("tool fail"));
+    mockSubmitWorkflowTaskApproval.mockRejectedValueOnce(new Error("task fail"));
+
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions("wex-001"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    await act(async () => {
+      await result.current.submitApproval("tc-1", 1 as any);
+    });
+    await act(async () => {
+      await result.current.submitTaskApproval("review_task", "approved");
+    });
+
+    expect(result.current.approvalErrorsByToolCallId.get("tc-1")?.message).toBe("tool fail");
+    expect(result.current.taskApprovalErrorsByTaskName.get("review_task")?.message).toBe("task fail");
+    // Neither keyed failure crosses into the other space or the scalar.
+    expect(result.current.approvalErrorsByToolCallId.has("review_task")).toBe(false);
+    expect(result.current.taskApprovalErrorsByTaskName.has("tc-1")).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("keeps a failed lifecycle action in the scalar, never in the keyed approval maps", async () => {
+    mockCancel.mockRejectedValueOnce(new Error("temporal down"));
+
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions("wex-001"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    await act(async () => {
+      await result.current.cancel();
+    });
+
+    expect(result.current.error?.message).toBe("temporal down");
+    expect(result.current.approvalErrorsByToolCallId.size).toBe(0);
+    expect(result.current.taskApprovalErrorsByTaskName.size).toBe(0);
+  });
+
+  it("null executionId returns null without recording keyed state", async () => {
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions(null),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    let returned: any;
+    await act(async () => {
+      returned = await result.current.submitApproval("tc-1", 1 as any);
+    });
+
+    expect(returned).toBeNull();
+    expect(mockSubmitApproval).not.toHaveBeenCalled();
+    expect(result.current.approvalSubmittingToolCallIds.size).toBe(0);
+    expect(result.current.approvalErrorsByToolCallId.size).toBe(0);
+  });
+
+  it("keeps a stable return reference across renders when nothing changes", () => {
+    const { result, rerender } = renderHook(
+      () => useWorkflowExecutionActions("wex-001"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    const first = result.current;
+    rerender();
+    expect(result.current).toBe(first);
+  });
+});

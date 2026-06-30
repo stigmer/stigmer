@@ -5,6 +5,7 @@ import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components";
 import { DecisionButton, type DecisionVariant } from "../internal/DecisionButton";
+import { InCardDecisionError } from "../internal/InCardDecisionError";
 
 /** Outcome descriptor for UI rendering. */
 export interface TaskOutcome {
@@ -45,8 +46,15 @@ export interface WorkflowTaskApprovalCardProps {
     formData?: Record<string, unknown>,
     comment?: string,
   ) => Promise<unknown>;
-  /** True while the submission RPC is in flight. */
+  /** True while this gate's submission RPC is in flight. */
   readonly isSubmitting: boolean;
+  /**
+   * This gate's last failed decision, or `null`. Surfaced in-card beside the
+   * outcome buttons (via the shared {@link InCardDecisionError}) — supply
+   * {@link useWorkflowExecutionActions}'s `taskApprovalErrorsByTaskName` for
+   * this `taskName`.
+   */
+  readonly error?: Error | null;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -93,6 +101,7 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
   formSchema,
   onSubmit,
   isSubmitting,
+  error,
   className,
 }: WorkflowTaskApprovalCardProps) {
   const outcomes = outcomesProp.length > 0 ? outcomesProp : DEFAULT_OUTCOMES;
@@ -107,15 +116,6 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
       setActiveOutcome(null);
     }
   }, [isSubmitting]);
-
-  // FOLLOW-UP: a failed decision here still surfaces only via the workflow
-  // viewer's shared "Action error banner" — the optimistic spinner above reverts
-  // with no in-card explanation. The agent ApprovalCard + FileReviewCard now show
-  // failures in-card (via the shared internal/InCardDecisionError), beside the
-  // exact control. Converging this card needs `useWorkflowExecutionActions` to
-  // expose per-control error/isSubmitting state first (its `error`/`isSubmitting`
-  // are a single scalar pair shared across cancel/pause/resume/recover and both
-  // approvals), so a failed pause and a failed approval don't share one error.
 
   const handleFieldChange = useCallback((fieldName: string, value: string) => {
     setFormData((prev) => ({ ...prev, [fieldName]: value }));
@@ -220,6 +220,21 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
           />
         ))}
       </div>
+
+      {/* A failed decision surfaces HERE, beside this gate's outcome buttons —
+          not in the viewer's lifecycle banner. A workflow can hold many gates at
+          once, so a failure must name the one it belongs to; the optimistic
+          spinner has already reverted, and this explains the snap-back. Shared
+          with the agent ApprovalCard / FileReviewCard via InCardDecisionError. */}
+      {error && (
+        <div className="mt-2">
+          <InCardDecisionError
+            error={error}
+            leadIn="submit decision"
+            cursorTarget="wf-task-approval-error"
+          />
+        </div>
+      )}
     </div>
   );
 });

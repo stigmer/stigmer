@@ -287,7 +287,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         onClose={handleCloseComparePicker}
       />
 
-      {/* Action error banner (lifecycle actions: cancel, pause, recover, etc.) */}
+      {/* Action error banner — lifecycle actions only (cancel/terminate/pause/
+          resume/recover). Approval failures are per-gate and surface in-card on
+          the failing approval card, never here. */}
       {actions.error && (
         <div className="flex items-center gap-2 border-b border-destructive/20 bg-destructive/5 px-4 py-2">
           <p className="flex-1 text-xs text-destructive">{actions.error.message}</p>
@@ -365,9 +367,11 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
                     onNavigateToAgentExecution={onNavigateToAgentExecution}
                     pendingApprovals={execution?.status?.pendingApprovals}
                     onSubmitApproval={actions.submitApproval}
-                    isSubmittingApproval={actions.isSubmitting}
+                    approvalSubmittingToolCallIds={actions.approvalSubmittingToolCallIds}
+                    approvalErrorsByToolCallId={actions.approvalErrorsByToolCallId}
                     onSubmitTaskApproval={actions.submitTaskApproval}
-                    isSubmittingTaskApproval={actions.isSubmitting}
+                    taskApprovalSubmittingTaskNames={actions.taskApprovalSubmittingTaskNames}
+                    taskApprovalErrorsByTaskName={actions.taskApprovalErrorsByTaskName}
                     className="min-h-0 flex-1"
                   />
 
@@ -403,9 +407,12 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           onNavigateToAgentExecution={onNavigateToAgentExecution}
           taskStates={effectiveTaskStates}
           onSubmitTaskApproval={actions.submitTaskApproval}
-          isSubmittingApproval={actions.isSubmitting}
+          taskApprovalSubmittingTaskNames={actions.taskApprovalSubmittingTaskNames}
+          taskApprovalErrorsByTaskName={actions.taskApprovalErrorsByTaskName}
           pendingApprovals={execution?.status?.pendingApprovals}
           onSubmitApproval={actions.submitApproval}
+          approvalSubmittingToolCallIds={actions.approvalSubmittingToolCallIds}
+          approvalErrorsByToolCallId={actions.approvalErrorsByToolCallId}
         />
       </div>
       </>
@@ -449,9 +456,12 @@ function ExecutionBottomPanel({
   onNavigateToAgentExecution,
   taskStates,
   onSubmitTaskApproval,
-  isSubmittingApproval,
+  taskApprovalSubmittingTaskNames,
+  taskApprovalErrorsByTaskName,
   pendingApprovals,
   onSubmitApproval,
+  approvalSubmittingToolCallIds,
+  approvalErrorsByToolCallId,
 }: {
   events: WorkflowExecutionTimelineProps["events"];
   streamState: WorkflowExecutionTimelineProps["streamState"];
@@ -462,9 +472,12 @@ function ExecutionBottomPanel({
   onNavigateToAgentExecution?: (id: string) => void;
   taskStates: ReadonlyMap<string, DerivedTaskState>;
   onSubmitTaskApproval: WorkflowExecutionTimelineProps["onSubmitTaskApproval"];
-  isSubmittingApproval: boolean;
+  taskApprovalSubmittingTaskNames: ReadonlySet<string>;
+  taskApprovalErrorsByTaskName: ReadonlyMap<string, Error>;
   pendingApprovals?: readonly WorkflowPendingApproval[];
   onSubmitApproval?: (toolCallId: string, action: ApprovalAction, comment?: string) => Promise<unknown>;
+  approvalSubmittingToolCallIds: ReadonlySet<string>;
+  approvalErrorsByToolCallId: ReadonlyMap<string, Error>;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<BottomTab>("waterfall");
@@ -546,24 +559,29 @@ function ExecutionBottomPanel({
               onNavigateToAgentExecution={onNavigateToAgentExecution}
               taskStates={taskStates}
               onSubmitTaskApproval={onSubmitTaskApproval}
-              isSubmittingApproval={isSubmittingApproval}
+              taskApprovalSubmittingTaskNames={taskApprovalSubmittingTaskNames}
+              taskApprovalErrorsByTaskName={taskApprovalErrorsByTaskName}
               className="h-full"
             />
           )}
           {activeTab === "approvals" && pendingApprovals && onSubmitApproval && (
             <div className="h-full overflow-y-auto px-4 py-3">
               <div className="space-y-3">
-                {pendingApprovals.map((pa) => (
-                  <WorkflowExecutionApprovalCard
-                    key={pa.approval?.toolCallId ?? pa.childAgentExecutionId}
-                    prompt={pa.approval?.message || `Tool "${pa.approval?.toolName}" requires approval`}
-                    toolCallId={pa.approval?.toolCallId ?? ""}
-                    approvers={[]}
-                    timeoutSeconds={0}
-                    onSubmitApproval={onSubmitApproval}
-                    isSubmitting={isSubmittingApproval}
-                  />
-                ))}
+                {pendingApprovals.map((pa) => {
+                  const toolCallId = pa.approval?.toolCallId ?? "";
+                  return (
+                    <WorkflowExecutionApprovalCard
+                      key={toolCallId || pa.childAgentExecutionId}
+                      prompt={pa.approval?.message || `Tool "${pa.approval?.toolName}" requires approval`}
+                      toolCallId={toolCallId}
+                      approvers={[]}
+                      timeoutSeconds={0}
+                      onSubmitApproval={onSubmitApproval}
+                      isSubmitting={approvalSubmittingToolCallIds.has(toolCallId)}
+                      error={approvalErrorsByToolCallId.get(toolCallId) ?? null}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}

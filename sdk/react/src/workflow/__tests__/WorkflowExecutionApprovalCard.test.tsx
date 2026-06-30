@@ -107,4 +107,23 @@ describe("WorkflowExecutionApprovalCard", () => {
       ).toBeNull();
     });
   });
+
+  describe("in-card decision error", () => {
+    it("renders the failure notice beside the actions when error is set", () => {
+      render(
+        <WorkflowExecutionApprovalCard
+          {...defaultProps}
+          error={new Error("gate already resolved")}
+        />,
+      );
+      expect(
+        screen.getByText(/Couldn.t submit decision — gate already resolved/),
+      ).toBeTruthy();
+    });
+
+    it("renders no failure notice when error is null", () => {
+      render(<WorkflowExecutionApprovalCard {...defaultProps} error={null} />);
+      expect(screen.queryByText(/Couldn.t submit decision/)).toBeNull();
+    });
+  });
 });

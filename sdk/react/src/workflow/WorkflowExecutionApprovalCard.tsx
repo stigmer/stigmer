@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useState } from "react";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { DecisionButton } from "../internal/DecisionButton";
+import { InCardDecisionError } from "../internal/InCardDecisionError";
 
 /** Props for {@link WorkflowExecutionApprovalCard}. */
 export interface WorkflowExecutionApprovalCardProps {
@@ -21,8 +22,15 @@ export interface WorkflowExecutionApprovalCardProps {
     action: ApprovalAction,
     comment?: string,
   ) => Promise<unknown>;
-  /** `true` while a submission is in flight. */
+  /** `true` while this gate's submission is in flight. */
   readonly isSubmitting: boolean;
+  /**
+   * This gate's last failed decision, or `null`. Surfaced in-card beside the
+   * actions (via the shared {@link InCardDecisionError}) — supply
+   * {@link useWorkflowExecutionActions}'s `approvalErrorsByToolCallId` for this
+   * `toolCallId`.
+   */
+  readonly error?: Error | null;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -41,6 +49,7 @@ export const WorkflowExecutionApprovalCard = memo(function WorkflowExecutionAppr
   timeoutSeconds,
   onSubmitApproval,
   isSubmitting,
+  error,
   className,
 }: WorkflowExecutionApprovalCardProps) {
   const [comment, setComment] = useState("");
@@ -51,15 +60,6 @@ export const WorkflowExecutionApprovalCard = memo(function WorkflowExecutionAppr
   useEffect(() => {
     if (!isSubmitting) setActive(null);
   }, [isSubmitting]);
-
-  // FOLLOW-UP: a failed decision here still surfaces only via the workflow
-  // viewer's shared "Action error banner" — the optimistic spinner above reverts
-  // with no in-card explanation. The agent ApprovalCard + FileReviewCard now show
-  // failures in-card (via the shared internal/InCardDecisionError), beside the
-  // exact control. Converging this card needs `useWorkflowExecutionActions` to
-  // expose per-control error/isSubmitting state first (its `error`/`isSubmitting`
-  // are a single scalar pair shared across cancel/pause/resume/recover and both
-  // approvals), so a failed pause and a failed approval don't share one error.
 
   // ApprovalAction enum values: 0=UNSPECIFIED, 1=APPROVE, 2=SKIP, 3=REJECT
   const handleApprove = useCallback(() => {
@@ -128,6 +128,19 @@ export const WorkflowExecutionApprovalCard = memo(function WorkflowExecutionAppr
           isSubmitting={isSubmitting}
         />
       </div>
+
+      {/* A failed decision surfaces HERE, beside this gate's actions — not in the
+          viewer's lifecycle banner. A workflow can hold many gates at once, so a
+          failure must name the one it belongs to; the optimistic spinner has
+          already reverted, and this explains the snap-back. Shared with the
+          agent ApprovalCard / FileReviewCard via InCardDecisionError. */}
+      {error && (
+        <InCardDecisionError
+          error={error}
+          leadIn="submit decision"
+          cursorTarget="wf-approval-error"
+        />
+      )}
     </div>
   );
 });

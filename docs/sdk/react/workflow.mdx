@@ -963,15 +963,19 @@ function useWorkflowExecutionActions(executionId: string | null, options?: UseWo
 
 <TypeTable
   type={{
+    approvalErrorsByToolCallId: { type: "ReadonlyMap<string, Error>", description: "Per-gate agent-tool approval failures, keyed by `toolCallId`. Consumed by WorkflowExecutionApprovalCard to surface the failure in-card, beside the gate that failed. Cleared for a gate when it is retried." },
+    approvalSubmittingToolCallIds: { type: "ReadonlySet<string>", description: "Tool-call ids whose agent-tool approval is currently being submitted, keyed exactly like approvalErrorsByToolCallId. A workflow can hold many concurrent gates, so deciding one must not spin or disable the others." },
     cancel: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Cancel a running execution gracefully." },
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    error: { type: "Error | null", description: "Error from the last failed action, or `null`." },
-    isSubmitting: { type: "boolean", description: "`true` while any action is in flight." },
+    clearError: { type: "() => void", description: "Reset the lifecycle error to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed **lifecycle** action, or `null`. Approval failures are per-gate and live in approvalErrorsByToolCallId / taskApprovalErrorsByTaskName so each surfaces beside the gate that failed — never in this shared scalar (which backs the header banner)." },
+    isSubmitting: { type: "boolean", description: "`true` while a **lifecycle** action (cancel/terminate/pause/resume/recover) is in flight. Approvals are excluded — they are per-gate, so read their in-flight state from approvalSubmittingToolCallIds / taskApprovalSubmittingTaskNames instead." },
     pause: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Pause a running execution." },
     recover: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Recover a failed execution with task-level resume.  Terminates stale workflows, re-resolves environment variables (picks up any config fixes), and starts a fresh run in recovery mode. Completed tasks are skipped — their outputs are restored from the event log — and execution resumes from the first incomplete or failed task." },
     resume: { type: "() => Promise<WorkflowExecution | null>", description: "Resume a paused execution." },
     submitApproval: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => Promise<WorkflowExecution | null>", description: "Submit an approval decision for a child agent's tool execution." },
     submitTaskApproval: { type: "(taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => Promise<WorkflowExecution | null>", description: "Submit a reviewer's decision for a workflow-level human_input task.  Unlike `submitApproval` (which forwards agent tool approvals), this sends a Temporal signal to the workflow runner's human_input orchestrator, unblocking the task with the selected outcome." },
+    taskApprovalErrorsByTaskName: { type: "ReadonlyMap<string, Error>", description: "Per-gate human_input task approval failures, keyed by `taskName`. Consumed by WorkflowTaskApprovalCard to surface the failure in-card, beside the gate that failed. Cleared for a gate when it is retried." },
+    taskApprovalSubmittingTaskNames: { type: "ReadonlySet<string>", description: "Task names whose human_input task approval is currently being submitted, keyed exactly like taskApprovalErrorsByTaskName." },
     terminate: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Terminate a running execution immediately." },
   }}
 />
@@ -3096,7 +3100,8 @@ Props for [`WorkflowExecutionApprovalCard`](#workflowexecutionapprovalcard).
   type={{
     approvers: { type: "readonly string[]", description: "List of users/roles that can approve.", required: true },
     className: { type: "string", description: "Additional CSS class names." },
-    isSubmitting: { type: "boolean", description: "`true` while a submission is in flight.", required: true },
+    error: { type: "Error | null", description: "This gate's last failed decision, or `null`. Surfaced in-card beside the actions (via the shared InCardDecisionError) — supply useWorkflowExecutionActions's `approvalErrorsByToolCallId` for this `toolCallId`." },
+    isSubmitting: { type: "boolean", description: "`true` while this gate's submission is in flight.", required: true },
     onSubmitApproval: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => Promise<unknown>", description: "Callback to submit the approval decision.", required: true },
     prompt: { type: "string", description: "The prompt message explaining what needs approval.", required: true },
     timeoutSeconds: { type: "number", description: "Timeout in seconds (0 = no timeout).", required: true },
@@ -3279,10 +3284,11 @@ Props for [`WorkflowExecutionTimeline`](#workflowexecutiontimeline).
   type={{
     className: { type: "string", description: "Additional CSS class names." },
     events: { type: "readonly WorkflowExecutionEvent[]", description: "Events ordered by sequence_number ascending.", required: true },
-    isSubmittingApproval: { type: "boolean", description: "True while a task approval submission is in flight." },
     onNavigateToAgentExecution: { type: "(executionId: string) => void", description: "Callback when user clicks an agent execution link." },
     onSubmitTaskApproval: { type: "(taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => Promise<unknown>", description: "Callback to submit a human_input task approval decision." },
     streamState: { type: "WorkflowEventStreamState", description: "Current stream lifecycle state.", required: true },
+    taskApprovalErrorsByTaskName: { type: "ReadonlyMap<string, Error>", description: "Per-gate human_input approval failures, keyed by `taskName`. Supply useWorkflowExecutionActions's `taskApprovalErrorsByTaskName`." },
+    taskApprovalSubmittingTaskNames: { type: "ReadonlySet<string>", description: "Task names whose human_input approval is currently in flight, keyed by `taskName` so deciding one gate never spins another. Supply useWorkflowExecutionActions's `taskApprovalSubmittingTaskNames`." },
     taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Derived task states for rendering interactive approval cards." },
   }}
 />

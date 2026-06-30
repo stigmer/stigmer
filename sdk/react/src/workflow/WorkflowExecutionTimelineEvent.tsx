@@ -19,7 +19,10 @@ interface TimelineEventProps {
     formData?: Record<string, unknown>,
     comment?: string,
   ) => Promise<unknown>;
-  readonly isSubmittingApproval?: boolean;
+  /** Task names whose human_input approval is in flight, keyed by `taskName`. */
+  readonly taskApprovalSubmittingTaskNames?: ReadonlySet<string>;
+  /** Per-gate human_input approval failures, keyed by `taskName`. */
+  readonly taskApprovalErrorsByTaskName?: ReadonlyMap<string, Error>;
 }
 
 /**
@@ -37,7 +40,8 @@ export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTim
   onNavigateToAgentExecution,
   taskStates,
   onSubmitTaskApproval,
-  isSubmittingApproval,
+  taskApprovalSubmittingTaskNames,
+  taskApprovalErrorsByTaskName,
 }: TimelineEventProps) {
   const timestamp = formatTimestamp(event.occurredAt);
   const p = event.payload;
@@ -277,7 +281,8 @@ export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTim
                 ? (p.value.formSchema as unknown as Record<string, unknown>)
                 : undefined}
               onSubmit={onSubmitTaskApproval}
-              isSubmitting={isSubmittingApproval ?? false}
+              isSubmitting={taskApprovalSubmittingTaskNames?.has(event.taskName) ?? false}
+              error={taskApprovalErrorsByTaskName?.get(event.taskName) ?? null}
             />
           )}
         </EventRow>

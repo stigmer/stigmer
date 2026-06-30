@@ -35,8 +35,17 @@ export interface ExecutionInspectorProps {
   readonly pendingApprovals?: readonly WorkflowPendingApproval[];
   /** Callback to submit an agent tool approval decision. */
   readonly onSubmitApproval?: (toolCallId: string, action: ApprovalAction, comment?: string) => Promise<unknown>;
-  /** Whether an approval submission is in flight. */
-  readonly isSubmittingApproval?: boolean;
+  /**
+   * Tool-call ids whose agent-tool approval is in flight, keyed by `toolCallId`
+   * so deciding one gate never spins another. Supply
+   * {@link useWorkflowExecutionActions}'s `approvalSubmittingToolCallIds`.
+   */
+  readonly approvalSubmittingToolCallIds?: ReadonlySet<string>;
+  /**
+   * Per-gate agent-tool approval failures, keyed by `toolCallId`. Supply
+   * {@link useWorkflowExecutionActions}'s `approvalErrorsByToolCallId`.
+   */
+  readonly approvalErrorsByToolCallId?: ReadonlyMap<string, Error>;
   /** Callback to submit a workflow-level human_input task decision. */
   readonly onSubmitTaskApproval?: (
     taskName: string,
@@ -44,8 +53,16 @@ export interface ExecutionInspectorProps {
     formData?: Record<string, unknown>,
     comment?: string,
   ) => Promise<unknown>;
-  /** Whether a task approval submission is in flight. */
-  readonly isSubmittingTaskApproval?: boolean;
+  /**
+   * Task names whose human_input approval is in flight, keyed by `taskName`.
+   * Supply {@link useWorkflowExecutionActions}'s `taskApprovalSubmittingTaskNames`.
+   */
+  readonly taskApprovalSubmittingTaskNames?: ReadonlySet<string>;
+  /**
+   * Per-gate human_input approval failures, keyed by `taskName`. Supply
+   * {@link useWorkflowExecutionActions}'s `taskApprovalErrorsByTaskName`.
+   */
+  readonly taskApprovalErrorsByTaskName?: ReadonlyMap<string, Error>;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -89,9 +106,11 @@ export const ExecutionInspector = memo(function ExecutionInspector({
   onNavigateToAgentExecution,
   pendingApprovals,
   onSubmitApproval,
-  isSubmittingApproval,
+  approvalSubmittingToolCallIds,
+  approvalErrorsByToolCallId,
   onSubmitTaskApproval,
-  isSubmittingTaskApproval,
+  taskApprovalSubmittingTaskNames,
+  taskApprovalErrorsByTaskName,
   className,
 }: ExecutionInspectorProps) {
   const { detail } = useExecutionTaskDetail({
@@ -212,17 +231,21 @@ export const ExecutionInspector = memo(function ExecutionInspector({
           )}
           {effectiveTab === "approval" && taskApprovals.length > 0 && onSubmitApproval && (
             <div className="space-y-2">
-              {taskApprovals.map((pa) => (
-                <WorkflowExecutionApprovalCard
-                  key={pa.approval?.toolCallId ?? pa.childAgentExecutionId}
-                  prompt={pa.approval?.message || `Tool "${pa.approval?.toolName}" requires approval`}
-                  toolCallId={pa.approval?.toolCallId ?? ""}
-                  approvers={[]}
-                  timeoutSeconds={0}
-                  onSubmitApproval={onSubmitApproval}
-                  isSubmitting={isSubmittingApproval ?? false}
-                />
-              ))}
+              {taskApprovals.map((pa) => {
+                const toolCallId = pa.approval?.toolCallId ?? "";
+                return (
+                  <WorkflowExecutionApprovalCard
+                    key={toolCallId || pa.childAgentExecutionId}
+                    prompt={pa.approval?.message || `Tool "${pa.approval?.toolName}" requires approval`}
+                    toolCallId={toolCallId}
+                    approvers={[]}
+                    timeoutSeconds={0}
+                    onSubmitApproval={onSubmitApproval}
+                    isSubmitting={approvalSubmittingToolCallIds?.has(toolCallId) ?? false}
+                    error={approvalErrorsByToolCallId?.get(toolCallId) ?? null}
+                  />
+                );
+              })}
             </div>
           )}
           {effectiveTab === "approval" && detail.approval && (
@@ -234,7 +257,8 @@ export const ExecutionInspector = memo(function ExecutionInspector({
                 outcomes={detail.approval.outcomes}
                 formSchema={detail.approval.formSchema ?? undefined}
                 onSubmit={onSubmitTaskApproval}
-                isSubmitting={isSubmittingTaskApproval ?? false}
+                isSubmitting={taskApprovalSubmittingTaskNames?.has(detail.taskName) ?? false}
+                error={taskApprovalErrorsByTaskName?.get(detail.taskName) ?? null}
               />
             ) : (
               // Gate resolved — present the captured decision read-only so a

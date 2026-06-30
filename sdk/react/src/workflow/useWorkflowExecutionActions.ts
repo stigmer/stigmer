@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { create, type JsonObject } from "@bufbuild/protobuf";
@@ -15,6 +15,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
+import { useKeyedSubmission } from "../internal/useKeyedSubmission";
 
 /** Options for {@link useWorkflowExecutionActions}. */
 export interface UseWorkflowExecutionActionsOptions {
@@ -71,12 +72,45 @@ export interface UseWorkflowExecutionActionsReturn {
     formData?: Record<string, unknown>,
     comment?: string,
   ) => Promise<WorkflowExecution | null>;
-  /** `true` while any action is in flight. */
+  /**
+   * `true` while a **lifecycle** action (cancel/terminate/pause/resume/recover)
+   * is in flight. Approvals are excluded — they are per-gate, so read their
+   * in-flight state from {@link approvalSubmittingToolCallIds} /
+   * {@link taskApprovalSubmittingTaskNames} instead.
+   */
   readonly isSubmitting: boolean;
-  /** Error from the last failed action, or `null`. */
+  /**
+   * Error from the last failed **lifecycle** action, or `null`. Approval
+   * failures are per-gate and live in {@link approvalErrorsByToolCallId} /
+   * {@link taskApprovalErrorsByTaskName} so each surfaces beside the gate that
+   * failed — never in this shared scalar (which backs the header banner).
+   */
   readonly error: Error | null;
-  /** Reset `error` to `null`. */
+  /** Reset the lifecycle {@link error} to `null`. */
   readonly clearError: () => void;
+  /**
+   * Tool-call ids whose agent-tool approval is currently being submitted, keyed
+   * exactly like {@link approvalErrorsByToolCallId}. A workflow can hold many
+   * concurrent gates, so deciding one must not spin or disable the others.
+   */
+  readonly approvalSubmittingToolCallIds: ReadonlySet<string>;
+  /**
+   * Per-gate agent-tool approval failures, keyed by `toolCallId`. Consumed by
+   * {@link WorkflowExecutionApprovalCard} to surface the failure in-card,
+   * beside the gate that failed. Cleared for a gate when it is retried.
+   */
+  readonly approvalErrorsByToolCallId: ReadonlyMap<string, Error>;
+  /**
+   * Task names whose human_input task approval is currently being submitted,
+   * keyed exactly like {@link taskApprovalErrorsByTaskName}.
+   */
+  readonly taskApprovalSubmittingTaskNames: ReadonlySet<string>;
+  /**
+   * Per-gate human_input task approval failures, keyed by `taskName`. Consumed
+   * by {@link WorkflowTaskApprovalCard} to surface the failure in-card, beside
+   * the gate that failed. Cleared for a gate when it is retried.
+   */
+  readonly taskApprovalErrorsByTaskName: ReadonlyMap<string, Error>;
 }
 
 /**
@@ -106,6 +140,13 @@ export function useWorkflowExecutionActions(
   const stigmer = useStigmer();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  // Approvals are per-gate (a workflow can hold many at once), so each kind gets
+  // its own keyed in-flight + error state — keyed by tool-call id for agent-tool
+  // approvals and by task name for human_input task approvals. The lifecycle
+  // actions below stay on the shared scalar (they are header singletons).
+  const approvals = useKeyedSubmission<WorkflowExecution>();
+  const taskApprovals = useKeyedSubmission<WorkflowExecution>();
 
   const executionIdRef = useRef(executionId);
   executionIdRef.current = executionId;
@@ -202,10 +243,15 @@ export function useWorkflowExecutionActions(
     [wrap],
   );
 
+  // Approvals do NOT go through `wrap`: their in-flight + error state is keyed
+  // (per gate), and the keyed primitive re-throws after recording, so we swallow
+  // to `null` here to keep the `WorkflowExecution | null` contract. They never
+  // fire `onSuccess` — their effects arrive via the event stream.
   const submitApproval = useCallback(
-    (toolCallId: string, action: ApprovalAction, comment?: string) =>
-      wrap(
-        () =>
+    (toolCallId: string, action: ApprovalAction, comment?: string) => {
+      if (!executionIdRef.current) return Promise.resolve(null);
+      return approvals
+        .run(toolCallId, () =>
           stigmerRef.current.workflowExecution.submitApproval(
             create(SubmitWorkflowApprovalInputSchema, {
               executionId: executionIdRef.current!,
@@ -214,15 +260,17 @@ export function useWorkflowExecutionActions(
               comment: comment ?? "",
             }),
           ),
-        false,
-      ),
-    [wrap],
+        )
+        .catch(() => null);
+    },
+    [approvals.run],
   );
 
   const submitTaskApproval = useCallback(
-    (taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) =>
-      wrap(
-        () =>
+    (taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => {
+      if (!executionIdRef.current) return Promise.resolve(null);
+      return taskApprovals
+        .run(taskName, () =>
           stigmerRef.current.workflowExecution.submitWorkflowTaskApproval(
             create(SubmitWorkflowTaskApprovalInputSchema, {
               executionId: executionIdRef.current!,
@@ -233,21 +281,44 @@ export function useWorkflowExecutionActions(
               comment: comment ?? "",
             }),
           ),
-        false,
-      ),
-    [wrap],
+        )
+        .catch(() => null);
+    },
+    [taskApprovals.run],
   );
 
-  return {
-    cancel,
-    terminate,
-    pause,
-    resume,
-    recover,
-    submitApproval,
-    submitTaskApproval,
-    isSubmitting,
-    error,
-    clearError,
-  };
+  return useMemo(
+    () => ({
+      cancel,
+      terminate,
+      pause,
+      resume,
+      recover,
+      submitApproval,
+      submitTaskApproval,
+      isSubmitting,
+      error,
+      clearError,
+      approvalSubmittingToolCallIds: approvals.submittingKeys,
+      approvalErrorsByToolCallId: approvals.errorsByKey,
+      taskApprovalSubmittingTaskNames: taskApprovals.submittingKeys,
+      taskApprovalErrorsByTaskName: taskApprovals.errorsByKey,
+    }),
+    [
+      cancel,
+      terminate,
+      pause,
+      resume,
+      recover,
+      submitApproval,
+      submitTaskApproval,
+      isSubmitting,
+      error,
+      clearError,
+      approvals.submittingKeys,
+      approvals.errorsByKey,
+      taskApprovals.submittingKeys,
+      taskApprovals.errorsByKey,
+    ],
+  );
 }
