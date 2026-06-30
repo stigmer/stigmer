@@ -20,17 +20,27 @@ export interface ExecuteActivityInput {
   readonly thread_id: string;
   /** Carried for cross-edition parity; the runner hydrates the invoker from the DB. */
   readonly invoker_identity_account_id?: string;
+  /**
+   * Monotonic HITL-cycle index within this execution: 0 on the first invocation,
+   * then the workflow's approvalCycle on each reinvocation. The Cursor producer
+   * mints its deterministic file-review change-set id ({@code executionId:turnSeq})
+   * from it. Absent on the legacy positional wire shape (defaults to 0).
+   */
+  readonly turn_seq?: number;
 }
 
 export interface NormalizedActivityInput {
   readonly executionId: string;
   readonly threadId: string;
+  /** HITL-cycle index for this invocation; 0 on the first turn / legacy wire shape. */
+  readonly turnSeq: number;
 }
 
 /**
  * Normalizes either the new typed object or the legacy positional args into the
- * `{ executionId, threadId }` the inner activity path consumes. `thread_id` is
- * empty on a first invocation (new harness state) by design.
+ * `{ executionId, threadId, turnSeq }` the inner activity path consumes.
+ * `thread_id` is empty on a first invocation (new harness state) and `turn_seq`
+ * defaults to 0 (first turn, or the legacy positional shape that never carried it).
  */
 export function normalizeActivityInput(
   arg0: ExecuteActivityInput | string | undefined,
@@ -40,7 +50,8 @@ export function normalizeActivityInput(
     return {
       executionId: arg0.execution_id ?? "",
       threadId: arg0.thread_id ?? "",
+      turnSeq: arg0.turn_seq ?? 0,
     };
   }
-  return { executionId: arg0 ?? "", threadId: arg1 ?? "" };
+  return { executionId: arg0 ?? "", threadId: arg1 ?? "", turnSeq: 0 };
 }

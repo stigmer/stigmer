@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ApprovalAction, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import { ApprovalAction, ExecutionPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -23,6 +24,7 @@ import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import { useExecutionStream } from "../execution/useExecutionStream";
 import { useAgentExecutionActions } from "../execution/useAgentExecutionActions";
 import { useSubmitApproval } from "../execution/useSubmitApproval";
+import { useFileReview, type FileDecisionOptions } from "../execution/useFileReview";
 import { useSession } from "./useSession";
 import { useSessionExecutions } from "./useSessionExecutions";
 import { useUpdateSession } from "./useUpdateSession";
@@ -201,6 +203,21 @@ export interface UseSessionConversationReturn {
   /** Reset `approvalError` to `null`. */
   readonly clearApprovalError: () => void;
 
+  /** Captured change sets awaiting file review on the active execution, empty when none. */
+  readonly fileChangeSets: readonly FileChangeSet[];
+  /** Submit a file-review decision for a change set. The executionId is managed internally. */
+  readonly submitFileDecision: (
+    changeSetId: string,
+    action: FileDecisionAction,
+    options?: FileDecisionOptions,
+  ) => Promise<void>;
+  /** Decision keys ({@link fileDecisionKey}) currently being submitted. */
+  readonly submittingFileDecisionKeys: ReadonlySet<string>;
+  /** Error from the last file-review submission, or `null` when healthy. */
+  readonly fileReviewError: Error | null;
+  /** Reset `fileReviewError` to `null`. */
+  readonly clearFileReviewError: () => void;
+
   /**
    * `true` when the active execution can be stopped — i.e. it is in a phase
    * the backend accepts a cancel/terminate from (`PENDING` or `IN_PROGRESS`).
@@ -340,6 +357,12 @@ export function useSessionConversation(
     error: approvalError,
     clearError: clearApprovalError,
   } = useSubmitApproval();
+  const {
+    submitFileDecision: rawSubmitFileDecision,
+    submittingDecisionKeys,
+    error: fileReviewError,
+    clearError: clearFileReviewError,
+  } = useFileReview();
 
   // Local execution: attach the session's runner worker while it is open and
   // detach it on close. No-op for cloud sessions or when no adapter is set.
@@ -578,6 +601,26 @@ export function useSessionConversation(
     [activeExecutionId, rawSubmitApproval],
   );
 
+  const fileChangeSets = useMemo<readonly FileChangeSet[]>(
+    () =>
+      (activeStreamExecution?.status?.fileChangeSets ?? []).filter(
+        (cs) => cs.status === FileChangeSetStatus.AWAITING_REVIEW,
+      ),
+    [activeStreamExecution],
+  );
+
+  const submitFileDecision = useCallback(
+    async (
+      changeSetId: string,
+      action: FileDecisionAction,
+      options?: FileDecisionOptions,
+    ): Promise<void> => {
+      if (!activeExecutionId) return;
+      await rawSubmitFileDecision(activeExecutionId, changeSetId, action, options);
+    },
+    [activeExecutionId, rawSubmitFileDecision],
+  );
+
   const isLoading = sessionLoading || executionsLoading;
   const loadError = sessionError || executionsError;
 
@@ -607,6 +650,12 @@ export function useSessionConversation(
     submittingApprovalIds: submittingToolCallIds,
     approvalError,
     clearApprovalError,
+
+    fileChangeSets,
+    submitFileDecision,
+    submittingFileDecisionKeys: submittingDecisionKeys,
+    fileReviewError,
+    clearFileReviewError,
 
     isStoppable,
     stop,

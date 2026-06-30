@@ -21,6 +21,11 @@ export interface DecisionButtonProps {
   readonly isSubmitting?: boolean;
   /** True when THIS button's RPC is the one in flight — shows the spinner. */
   readonly isActive?: boolean;
+  /**
+   * Disables the button independent of {@link isSubmitting} — e.g. an action that
+   * is structurally unavailable (approving an incomplete, unreviewable diff).
+   */
+  readonly disabled?: boolean;
   /** Extra classes (e.g. `ml-auto` to visually separate a demoted action). */
   readonly className?: string;
   /** Stable hook for e2e/visual targeting (`data-cursor-target`). */
@@ -73,13 +78,14 @@ export function DecisionButton({
   onClick,
   isSubmitting = false,
   isActive = false,
+  disabled = false,
   className,
   cursorTarget,
 }: DecisionButtonProps) {
   return (
     <button
       type="button"
-      disabled={isSubmitting}
+      disabled={isSubmitting || disabled}
       onClick={onClick}
       aria-label={label}
       data-cursor-target={cursorTarget}

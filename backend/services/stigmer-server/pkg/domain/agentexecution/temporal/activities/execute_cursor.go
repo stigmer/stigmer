@@ -39,6 +39,13 @@ type ExecuteCursorActivityInput struct {
 	// InvokerIdentityAccountID is carried for parity with the Java edition; the
 	// runner hydrates the invoker from the DB and does not read this field.
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id"`
+	// TurnSeq is the monotonic HITL-cycle index within this execution: 0 on the
+	// first invocation, then the workflow's approvalCycle on each reinvocation.
+	// The runner mints the deterministic file-review change-set id
+	// (executionId:turnSeq) from it. It is identical across a Temporal retry of
+	// the same invocation (the workflow passes the same value), so ledger
+	// authoring stays idempotent. See the file-change HITL redesign.
+	TurnSeq int64 `json:"turn_seq"`
 }
 
 type ExecuteCursorActivity interface {

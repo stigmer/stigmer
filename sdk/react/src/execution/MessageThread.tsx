@@ -7,11 +7,14 @@ import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import {
   ApprovalAction,
   ExecutionPhase,
+  FileChangeSetStatus,
+  FileDecisionAction,
   InteractionMode,
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -24,6 +27,8 @@ import { SubAgentSection } from "./SubAgentSection";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 import { SetupProgress } from "./SetupProgress";
 import { ApprovalCard } from "./ApprovalCard";
+import { FileReviewCard } from "./FileReviewCard";
+import type { FileDecisionOptions } from "./useFileReview";
 import { SummarizationCard } from "./SummarizationCard";
 import { PlanCompletionCard } from "./PlanCompletionCard";
 import { PlanArtifactCard } from "./PlanArtifactCard";
@@ -125,6 +130,22 @@ export interface MessageThreadProps {
    */
   readonly submittingApprovalIds?: ReadonlySet<string>;
   /**
+   * Callback for file-review decisions. When provided, a {@link FileReviewCard}
+   * is rendered for each captured change set the active execution projects as
+   * AWAITING_REVIEW. When omitted, no file-review UI is shown (backward
+   * compatible). Pair with {@link useFileReview}.
+   */
+  readonly onFileDecisionSubmit?: (
+    changeSetId: string,
+    action: FileDecisionAction,
+    options?: FileDecisionOptions,
+  ) => void;
+  /**
+   * Decision keys ({@link fileDecisionKey}) currently being submitted. Drives
+   * per-card loading state. Only meaningful when `onFileDecisionSubmit` is set.
+   */
+  readonly submittingFileDecisionKeys?: ReadonlySet<string>;
+  /**
    * Workspace entries from the session spec. When provided, file
    * paths in tool call rendering become interactive — git-sourced
    * paths open on GitHub, local paths offer copy-to-clipboard.
@@ -224,6 +245,7 @@ export type ThreadItem =
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
+  | { readonly kind: "file-review-request"; readonly fileChangeSet: FileChangeSet; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
   | {
@@ -297,6 +319,7 @@ export function buildThreadItems(
   summarizationEvents?: readonly SummarizationEventView[],
   pendingMessageFailed = false,
   editableActiveTurn = false,
+  includeFileReview = false,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   // Tool-call ids that render as an inline-approval-capable ToolCallItem (a
@@ -601,6 +624,21 @@ export function buildThreadItems(
     }
   }
 
+  if (includeFileReview) {
+    // File edits are reviewed as captured change sets — a dedicated surface,
+    // separate from the message transcript and the tool-approval cards. Surface
+    // one review card per set the server projects as AWAITING_REVIEW.
+    const changeSets = lastExec?.status?.fileChangeSets ?? [];
+    for (const changeSet of changeSets) {
+      if (changeSet.status !== FileChangeSetStatus.AWAITING_REVIEW) continue;
+      items.push({
+        kind: "file-review-request",
+        fileChangeSet: changeSet,
+        key: `file-review-${changeSet.id}`,
+      });
+    }
+  }
+
   if (pendingUserMessage) {
     const alreadySynthesized =
       lastExec?.spec?.message === pendingUserMessage;
@@ -658,6 +696,8 @@ export function MessageThread({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  onFileDecisionSubmit,
+  submittingFileDecisionKeys,
   workspaceEntries,
   onFilePathClick,
   sandboxWorkspaceRoot,
@@ -671,10 +711,11 @@ export function MessageThread({
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
   const includeApprovals = onApprovalSubmit != null;
+  const includeFileReview = onFileDecisionSubmit != null;
   const editableActiveTurn = onEditMessage != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, includeFileReview),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, includeFileReview],
   );
 
   useKeyStability(items);
@@ -731,6 +772,8 @@ export function MessageThread({
             formatToolCallSummary={formatToolCallSummary}
             onApprovalSubmit={onApprovalSubmit}
             submittingApprovalIds={submittingApprovalIds}
+            onFileDecisionSubmit={onFileDecisionSubmit}
+            submittingFileDecisionKeys={submittingFileDecisionKeys}
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
             approvalCtx={approvalCtx}
@@ -756,6 +799,8 @@ export function MessageThread({
       formatToolCallSummary={formatToolCallSummary}
       onApprovalSubmit={onApprovalSubmit}
       submittingApprovalIds={submittingApprovalIds}
+      onFileDecisionSubmit={onFileDecisionSubmit}
+      submittingFileDecisionKeys={submittingFileDecisionKeys}
       filePathCtx={filePathCtx}
       sandboxCtx={sandboxCtx}
       approvalCtx={approvalCtx}
@@ -785,6 +830,12 @@ interface NonVirtualizedThreadProps {
     comment?: string,
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly onFileDecisionSubmit?: (
+    changeSetId: string,
+    action: FileDecisionAction,
+    options?: FileDecisionOptions,
+  ) => void;
+  readonly submittingFileDecisionKeys?: ReadonlySet<string>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly approvalCtx: ApprovalContextValue;
@@ -804,6 +855,8 @@ function NonVirtualizedThread({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  onFileDecisionSubmit,
+  submittingFileDecisionKeys,
   filePathCtx,
   sandboxCtx,
   approvalCtx,
@@ -847,6 +900,8 @@ function NonVirtualizedThread({
                   formatToolCallSummary={formatToolCallSummary}
                   onApprovalSubmit={onApprovalSubmit}
                   submittingApprovalIds={submittingApprovalIds}
+                  onFileDecisionSubmit={onFileDecisionSubmit}
+                  submittingFileDecisionKeys={submittingFileDecisionKeys}
                   onBuildFromPlan={onBuildFromPlan}
                   org={org}
                   planActionsDisabled={planActionsDisabled}
@@ -897,6 +952,12 @@ export interface ThreadItemRendererProps {
     comment?: string,
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly onFileDecisionSubmit?: (
+    changeSetId: string,
+    action: FileDecisionAction,
+    options?: FileDecisionOptions,
+  ) => void;
+  readonly submittingFileDecisionKeys?: ReadonlySet<string>;
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
@@ -921,6 +982,8 @@ export function ThreadItemRenderer({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  onFileDecisionSubmit,
+  submittingFileDecisionKeys,
   onBuildFromPlan,
   org,
   planActionsDisabled,
@@ -982,6 +1045,14 @@ export function ThreadItemRenderer({
           pendingApproval={item.pendingApproval}
           onApprovalSubmit={onApprovalSubmit!}
           isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
+        />
+      );
+    case "file-review-request":
+      return (
+        <FileReviewCardRow
+          fileChangeSet={item.fileChangeSet}
+          onFileDecisionSubmit={onFileDecisionSubmit!}
+          isSubmitting={submittingFileDecisionKeys?.has(item.fileChangeSet.id) ?? false}
         />
       );
     case "setup-progress":
@@ -1165,6 +1236,42 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
   return (
     <ApprovalCard
       pendingApproval={pendingApproval}
+      onSubmit={handleSubmit}
+      isSubmitting={isSubmitting}
+      className="mx-4"
+    />
+  );
+});
+
+// ---------------------------------------------------------------------------
+// FileReviewCardRow — stabilizes the onSubmit callback for React.memo
+// ---------------------------------------------------------------------------
+
+interface FileReviewCardRowProps {
+  readonly fileChangeSet: FileChangeSet;
+  readonly onFileDecisionSubmit: (
+    changeSetId: string,
+    action: FileDecisionAction,
+    options?: FileDecisionOptions,
+  ) => void;
+  readonly isSubmitting: boolean;
+}
+
+const FileReviewCardRow = memo(function FileReviewCardRow({
+  fileChangeSet,
+  onFileDecisionSubmit,
+  isSubmitting,
+}: FileReviewCardRowProps) {
+  const handleSubmit = useCallback(
+    (action: FileDecisionAction, options?: FileDecisionOptions) => {
+      onFileDecisionSubmit(fileChangeSet.id, action, options);
+    },
+    [onFileDecisionSubmit, fileChangeSet.id],
+  );
+
+  return (
+    <FileReviewCard
+      fileChangeSet={fileChangeSet}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       className="mx-4"

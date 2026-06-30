@@ -186,12 +186,18 @@ export type { TodoCardProps } from "./TodoCard";
 export { useSubmitApproval } from "./useSubmitApproval";
 export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
 
+export { useFileReview, fileDecisionKey } from "./useFileReview";
+export type { UseFileReviewReturn, FileDecisionOptions } from "./useFileReview";
+
 export { ApprovalCard, ApprovalCardHeader, ApprovalCardBody } from "./ApprovalCard";
 export type {
   ApprovalCardProps,
   ApprovalCardHeaderProps,
   ApprovalCardBodyProps,
 } from "./ApprovalCard";
+
+export { FileReviewCard } from "./FileReviewCard";
+export type { FileReviewCardProps } from "./FileReviewCard";
 
 export { ApprovalContext, useApproval } from "./ApprovalContext";
 export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext";

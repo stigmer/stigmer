@@ -90,11 +90,17 @@ const EXCLUDE_PATHSPECS: readonly string[] = RUNNER_OWNED_PATHS.map(
   (p) => `:(exclude)${p}`,
 );
 
-/** Refs that pin the per-execution baseline and after trees against GC. */
-function baselineRef(executionId: string): string {
+/**
+ * Refs that pin the per-execution baseline and after trees against GC. Exported
+ * so the file-review producer can stamp them onto the ledger's SnapshotRef
+ * (GitTreeRef.ref) without re-deriving the format. Keyed by executionId only:
+ * the unified gate guarantees at most one un-reconciled change set per execution
+ * at a time, and the reconcile drops these refs before the next turn re-pins.
+ */
+export function baselineRef(executionId: string): string {
   return `refs/stigmer/baseline/${executionId}`;
 }
-function captureRef(executionId: string): string {
+export function captureRef(executionId: string): string {
   return `refs/stigmer/capture/${executionId}`;
 }
 
@@ -378,12 +384,34 @@ async function resolveRefTree(gitRoot: string, ref: string): Promise<string | un
   }
 }
 
-/** Release the per-execution baseline and capture refs (idempotent). */
+/** The ref pinning the post-reconcile (approved) tree for the RECONCILED event. */
+function approvedRef(executionId: string): string {
+  return `refs/stigmer/approved/${executionId}`;
+}
+
+/**
+ * Snapshot the post-reconcile working tree (after approved bytes were applied and
+ * rejected files were reverted) and pin it behind the approved ref. Returns the
+ * approved tree sha for the RECONCILED event's `approved_snapshot`, plus the ref
+ * so the producer can stamp the SnapshotRef. Idempotent under a Temporal retry.
+ */
+export async function snapshotApproved(
+  gitRoot: string,
+  executionId: string,
+): Promise<{ treeOid: string; ref: string }> {
+  const gitDir = await resolveGitDir(gitRoot);
+  const tree = await writeWorkingTree(gitRoot, gitDir, "approved", executionId);
+  const ref = approvedRef(executionId);
+  await pinTree(gitRoot, ref, tree, `stigmer approved ${executionId}`);
+  return { treeOid: tree, ref };
+}
+
+/** Release the per-execution baseline, capture, and approved refs (idempotent). */
 export async function dropCaptureRefs(
   gitRoot: string,
   executionId: string,
 ): Promise<void> {
-  for (const ref of [baselineRef(executionId), captureRef(executionId)]) {
+  for (const ref of [baselineRef(executionId), captureRef(executionId), approvedRef(executionId)]) {
     try {
       await git(gitRoot, ["update-ref", "-d", ref]);
     } catch {

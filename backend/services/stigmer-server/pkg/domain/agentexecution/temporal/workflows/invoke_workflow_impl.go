@@ -384,6 +384,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 		ExecutionID:              executionID,
 		ThreadID:                 threadID,
 		InvokerIdentityAccountID: invokerIdentityAccountID,
+		TurnSeq:                  0,
 	})
 	if err != nil {
 		return nil, err
@@ -469,6 +470,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 			ExecutionID:              executionID,
 			ThreadID:                 threadID,
 			InvokerIdentityAccountID: invokerIdentityAccountID,
+			TurnSeq:                  int64(approvalCycle),
 		})
 		if err != nil {
 			return nil, err
@@ -647,6 +649,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 		ExecutionID:              executionID,
 		ThreadID:                 harnessStateID,
 		InvokerIdentityAccountID: invokerIdentityAccountID,
+		TurnSeq:                  0,
 	})
 	if err != nil {
 		return nil, err
@@ -726,6 +729,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 			ExecutionID:              executionID,
 			ThreadID:                 harnessStateID,
 			InvokerIdentityAccountID: invokerIdentityAccountID,
+			TurnSeq:                  int64(approvalCycle),
 		})
 		if err != nil {
 			return nil, err

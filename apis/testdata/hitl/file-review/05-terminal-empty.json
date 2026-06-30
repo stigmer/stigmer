@@ -5,7 +5,7 @@
   "phase": "EXECUTION_COMPLETED",
   "events": [
     {
-      "eventId": "cs1::FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
       "changeSetId": "cs1",
       "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
       "timestamp": "2026-06-30T00:00:00Z",
@@ -16,7 +16,7 @@
       }
     },
     {
-      "eventId": "cs1::FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
       "changeSetId": "cs1",
       "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
       "timestamp": "2026-06-30T00:00:05Z",

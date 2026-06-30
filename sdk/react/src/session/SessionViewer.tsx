@@ -331,6 +331,8 @@ function ConversationColumn({
         onRetryExecution={onRetryExecution}
         onApprovalSubmit={flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
+        onFileDecisionSubmit={conv.submitFileDecision}
+        submittingFileDecisionKeys={conv.submittingFileDecisionKeys}
         onEditMessage={conv.isStoppable ? handleEditMessage : undefined}
         workspaceEntries={conv.workspaceEntries}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}

@@ -38,7 +38,12 @@ import {
 import { aggregateDigest, fileDigest, sha256Bytes } from "./digest.js";
 import { looksBinary } from "../file-change.js";
 
-const ACTOR_SYSTEM = "system";
+// The runner is the author of capture/reconcile/failure events. "runner" (not
+// the generic "system") matches the cross-edition corpus fixtures and the
+// proto's actor convention ("runner" for capture/reconcile, "user" for
+// decisions). The projection ignores actor, but keeping it canonical keeps the
+// ledger self-describing and the dual-edition corpus honest.
+const ACTOR_RUNNER = "runner";
 
 /**
  * The proto enum value NAME for a {@link FileReviewEventType}, e.g.
@@ -161,7 +166,7 @@ export function buildBaselineCapturedEvent(
     changeSetId: ctx.changeSetId,
     eventType: FileReviewEventType.BASELINE_CAPTURED,
     timestamp: ctx.timestamp,
-    actor: ACTOR_SYSTEM,
+    actor: ACTOR_RUNNER,
     payload: {
       case: "baselineCaptured",
       value: create(FileReviewBaselineCapturedSchema, {
@@ -190,7 +195,7 @@ export function buildCandidateCapturedEvent(
     changeSetId: ctx.changeSetId,
     eventType: FileReviewEventType.CANDIDATE_CAPTURED,
     timestamp: ctx.timestamp,
-    actor: ACTOR_SYSTEM,
+    actor: ACTOR_RUNNER,
     payload: {
       case: "candidateCaptured",
       value: create(FileReviewCandidateCapturedSchema, {
@@ -224,7 +229,7 @@ export function buildReconciledEvent(
     changeSetId: ctx.changeSetId,
     eventType: FileReviewEventType.RECONCILED,
     timestamp: ctx.timestamp,
-    actor: ACTOR_SYSTEM,
+    actor: ACTOR_RUNNER,
     payload: {
       case: "reconciled",
       value: create(FileReviewReconciledSchema, {
@@ -246,7 +251,7 @@ export function buildFailedEvent(
     changeSetId: ctx.changeSetId,
     eventType: FileReviewEventType.FAILED,
     timestamp: ctx.timestamp,
-    actor: ACTOR_SYSTEM,
+    actor: ACTOR_RUNNER,
     payload: {
       case: "failed",
       value: create(FileReviewFailureSchema, { changeSetId: ctx.changeSetId, kind, detail }),

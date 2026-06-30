@@ -34,7 +34,7 @@ import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agen
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionControlSignal, ExecutionPhase, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionControlSignal, ExecutionPhase, FileChangeSetStatus, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage, Run, ConversationTurn } from "@cursor/sdk";
 
 import type { Config } from "../../config.js";
@@ -70,8 +70,8 @@ import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, readD
 import { applyApprovedWholeFileWrites } from "./exact-apply.js";
 import { isGitWorkTree } from "./shadow-capture.js";
 import {
-  snapshotCaptureBaseline,
-  captureTurnForApproval,
+  captureBaselineToLedger,
+  captureTurnToLedger,
   applyCaptureDecisions,
 } from "./capture-flow.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
@@ -112,10 +112,10 @@ export function createCursorActivities(config: Config) {
       arg0: ExecuteActivityInput | string,
       arg1?: string,
     ): Promise<unknown> => {
-      const { executionId, threadId } = normalizeActivityInput(arg0, arg1);
+      const { executionId, threadId, turnSeq } = normalizeActivityInput(arg0, arg1);
       activityStarted();
       try {
-        return await executeCursor(config, client, executionId, threadId);
+        return await executeCursor(config, client, executionId, threadId, turnSeq);
       } finally {
         activityFinished();
       }
@@ -128,15 +128,16 @@ async function executeCursor(
   client: StigmerClient,
   executionId: string,
   threadId: string,
+  turnSeq: number,
 ): Promise<unknown> {
-  console.log(`ExecuteCursor started: execution=${executionId}, threadId=${threadId || "(new)"}`);
+  console.log(`ExecuteCursor started: execution=${executionId}, threadId=${threadId || "(new)"}, turnSeq=${turnSeq}`);
 
   // Ensure fresh HTTP/2 transport — prevents a degraded session from a
   // prior workflow task from poisoning this execution's agent stream.
   closeProxySessions();
 
   setInterceptorExecutionId(executionId);
-  return runWithExecutionContext(executionId, () => executeCursorInner(config, client, executionId, threadId));
+  return runWithExecutionContext(executionId, () => executeCursorInner(config, client, executionId, threadId, turnSeq));
 }
 
 async function executeCursorInner(
@@ -144,6 +145,10 @@ async function executeCursorInner(
   client: StigmerClient,
   executionId: string,
   threadId: string,
+  // turnSeq is the monotonic HITL-cycle index (0 on the first turn). The
+  // file-review producer consumes it to mint the deterministic change-set id
+  // (executionId:turnSeq) in the capture phase.
+  turnSeq: number,
 ): Promise<unknown> {
 
   const status = create(AgentExecutionStatusSchema, {
@@ -249,6 +254,13 @@ async function executeCursorInner(
     // Pre-turn baseline tree, pinned before the agent runs (capture mode only)
     // so the turn-end capture diffs against it and the tree restores exactly.
     let baselineTree: string | undefined;
+    // Deterministic id of the change set this turn may produce:
+    // `${executionId}:${turnSeq}`. Minted from the workflow-threaded turn index
+    // so it is stable across a Temporal retry (idempotent ledger authoring) and
+    // unique per turn. The resume reconcile reads the change set id back from the
+    // DECIDED projection, not from turnSeq — so a "wasted" id on a pure-reconcile
+    // resume (which never authors a baseline) is harmless.
+    const changeSetId = `${executionId}:${turnSeq}`;
     heartbeat();
 
     // Set OTel baggage so downstream calls carry execution context.
@@ -306,77 +318,50 @@ async function executeCursorInner(
       // are reconciled onto these seeded calls by canonical identity inside the
       // accumulator. Mirrors the deep-agent seedStatusFromExecution.
       seededSubAgents = seedCursorTranscriptFromExecution(status, execution);
+
+      // File-review reconcile (the dual-source half): reconcile every change set
+      // the server projected as DECIDED, sourced from the ledger decisions and
+      // the pinned git refs (approved kept at their "after" bytes, rejected
+      // snapped back to baseline — all uncommitted, hash-verified). This is
+      // independent of tool approvals: a single turn can carry BOTH a DECIDED
+      // file change set AND an approved shell/MCP action.
+      let reconciledFileReview = false;
+      let fileReviewFailed = false;
+      let fileReviewFailureDetail = "";
+      const discardedPaths: string[] = [];
+      if (captureMode && primaryWorkspaceDir) {
+        const decidedSets = (existingStatus?.fileChangeSets ?? []).filter(
+          (cs) => cs.status === FileChangeSetStatus.DECIDED,
+        );
+        for (const changeSet of decidedSets) {
+          const capResult = await applyCaptureDecisions({
+            status,
+            gitRoot: primaryWorkspaceDir,
+            executionId,
+            changeSet,
+          });
+          if (!capResult.isCaptureTurn) continue;
+          reconciledFileReview = true;
+          if (capResult.failed) {
+            fileReviewFailed = true;
+            fileReviewFailureDetail = capResult.failureDetail ?? "file review reconcile failed";
+          }
+          if (capResult.hadReject) discardedPaths.push(...capResult.rejectedPaths);
+        }
+      }
+
+      // Tool approvals (shell / MCP / gitignored writes) still resolve from the
+      // message transcript — the deny-gate path, unchanged by the file-review
+      // cutover.
       const adjudicated = reconstructAdjudicatedApprovals(existingStatus?.messages ?? []);
       if (adjudicated.decisions.size > 0) {
         approvalDecisions = adjudicated.decisions;
         adjudicatedApprovals = adjudicated.pendingApprovals;
         adjudicatedContentDigests = adjudicated.contentDigests;
 
-        // Capture-mode resume: reconcile the working tree to the per-file
-        // decisions from the pinned refs (approved kept at their "after" bytes,
-        // rejected/undecided snapped back to baseline — all uncommitted), flip
-        // each per-file card in place, and drop the refs. If the turn's ONLY
-        // approvals were file cards, the agent already finished its full turn
-        // during capture, so there is nothing to re-run — short-circuit to
-        // COMPLETED (Cursor-like: keeping the change does not re-prompt the
-        // agent). We re-invoke the agent only when an approved irreversible
-        // action (shell/MCP that stopped the turn early) must still run.
-        if (captureMode && primaryWorkspaceDir) {
-          const capResult = await applyCaptureDecisions({
-            gitRoot: primaryWorkspaceDir,
-            executionId,
-            messages: status.messages,
-          });
-          if (capResult.isCaptureTurn) {
-            const decisionEntries = [...adjudicated.decisions.entries()];
-            const isCaptureCard = (id: string) => id.startsWith("capture:");
-            const nonCaptureReject = decisionEntries.some(
-              ([id, a]) => a === ApprovalAction.REJECT && !isCaptureCard(id),
-            );
-            const approvedIrreversible = decisionEntries.some(
-              ([id, a]) =>
-                (a === ApprovalAction.APPROVE || a === ApprovalAction.APPROVE_ALL) &&
-                !isCaptureCard(id),
-            );
-            if (!nonCaptureReject && !approvedIrreversible) {
-              // Pure file review. Reconcile is done; the execution is complete.
-              // A reject is a DISCARD, not a failure (Cursor-like) — surface a
-              // SYSTEM note to the USER listing the files that were discarded
-              // (reverted to baseline). This note is for the human; it does NOT
-              // re-sync the Cursor SDK agent (its native context still believes
-              // those edits stuck). We deliberately do not inject a cross-turn
-              // re-sync prompt: the agent self-corrects by re-reading, and any
-              // edit it makes from that stale belief is itself re-surfaced as a
-              // capture card next turn (the structural safety net). See
-              // design-decisions/capture-reject-next-turn-resync-not-built.md.
-              status.phase = ExecutionPhase.EXECUTION_COMPLETED;
-              status.completedAt = utcTimestamp();
-              if (capResult.hadReject) {
-                status.messages.push(create(AgentMessageSchema, {
-                  type: MessageType.MESSAGE_SYSTEM,
-                  content:
-                    "Some proposed file changes were discarded by the user and were not applied: " +
-                    capResult.rejectedPaths.join(", ") + ".",
-                  timestamp: utcTimestamp(),
-                }));
-              }
-              await persist(status);
-              console.log(
-                `ExecuteCursor capture resume short-circuit: execution=${executionId}, ` +
-                `applied=${capResult.approvedPaths.length}, discarded=${capResult.rejectedPaths.length}`,
-              );
-              return slimStatus(status);
-            }
-            // else: fall through to run the approved shell/MCP and continue; the
-            // agent may produce further edits, captured in the next cycle.
-          }
-        }
-
-        // A reject of an irreversible action (shell/MCP) keeps the fail
-        // semantics; capture-card rejects are handled above (discard), so they
-        // are excluded here.
-        const hasReject = [...approvalDecisions.entries()].some(
-          ([id, a]) => a === ApprovalAction.REJECT && !id.startsWith("capture:"),
+        // A reject of an irreversible action (shell/MCP) fails the execution.
+        const hasReject = [...approvalDecisions.values()].some(
+          (a) => a === ApprovalAction.REJECT,
         );
         if (hasReject) {
           status.phase = ExecutionPhase.EXECUTION_FAILED;
@@ -390,6 +375,47 @@ async function executeCursorInner(
           await persist(status);
           return slimStatus(status);
         }
+        // else: fall through to run the approved shell/MCP. The agent may produce
+        // further edits, captured as a new change set in the next cycle.
+      } else if (reconciledFileReview) {
+        // Pure file review: the agent already finished its full turn during
+        // capture, so keeping/discarding a change does NOT re-prompt it
+        // (Cursor-like). The reconcile is done; the execution is complete.
+        status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+        status.completedAt = utcTimestamp();
+        if (fileReviewFailed) {
+          // What-you-approve-is-what-applies could not be honored (on-disk bytes
+          // diverged from the approved digest). Surface it to the human; the
+          // FileReviewFailure(HASH_MISMATCH) event is the audit record.
+          status.messages.push(create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_SYSTEM,
+            content:
+              "Some approved file changes could not be applied because the file " +
+              "changed after review: " + fileReviewFailureDetail + ".",
+            timestamp: utcTimestamp(),
+          }));
+        } else if (discardedPaths.length > 0) {
+          // A reject is a DISCARD that COMPLETES (not FAILED) — surface a SYSTEM
+          // note listing the reverted files. This note is for the human; it does
+          // NOT re-sync the Cursor SDK agent (its native context still believes
+          // those edits stuck). The agent self-corrects by re-reading, and any
+          // edit it makes from that stale belief is itself re-surfaced as a new
+          // change set next turn (the structural safety net). See
+          // design-decisions/capture-reject-next-turn-resync-not-built.md.
+          status.messages.push(create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_SYSTEM,
+            content:
+              "Some proposed file changes were discarded by the user and were not applied: " +
+              discardedPaths.join(", ") + ".",
+            timestamp: utcTimestamp(),
+          }));
+        }
+        await persist(status);
+        console.log(
+          `ExecuteCursor file-review resume short-circuit: execution=${executionId}, ` +
+          `failed=${fileReviewFailed}, discarded=${discardedPaths.length}`,
+        );
+        return slimStatus(status);
       }
     }
 
@@ -509,7 +535,15 @@ async function executeCursorInner(
     // to on resume. Covers a fresh turn and the approved-irreversible resume
     // fall-through (the agent will run and may make further edits).
     if (captureMode && primaryWorkspaceDir) {
-      baselineTree = await snapshotCaptureBaseline(primaryWorkspaceDir, executionId);
+      // Pin the pre-turn tree AND author BASELINE_CAPTURED so the projection can
+      // materialize the change set (status CAPTURING) before any candidate exists.
+      // The event rides the next persist; CAPTURING does not arm the unified gate.
+      baselineTree = await captureBaselineToLedger({
+        status,
+        gitRoot: primaryWorkspaceDir,
+        executionId,
+        changeSetId,
+      });
     }
 
     hitlDir = await ensureHitlDir(sessionId);
@@ -1091,19 +1125,23 @@ async function executeCursorInner(
     // discarded by the backend's recompute on the next updateStatus.
     const deniedLedger = await readDenialLedger(hitlDir ?? "");
 
-    // Capture mode: turn the net change set into one WAITING_APPROVAL card per
-    // file (the runner-owned gate files are excluded from the capture). The
-    // agent's edits are LEFT applied on the working tree (Cursor parity — the
-    // user reviews the real change; nothing is committed and the next turn is
-    // blocked until approval, and a reject snaps each file back on resume). Runs
-    // BEFORE the denial reconcile so a denied (gitignored) write stays on the
-    // deny-gate path while every flowed edit becomes a capture card.
+    // Capture mode: author the net change set to the file_review ledger as the
+    // CANDIDATE_CAPTURED event (projected server-side to a file_change_set
+    // AWAITING_REVIEW — the single review surface). The runner-owned gate files
+    // are excluded from the capture. The agent's edits are LEFT applied on the
+    // working tree (Cursor parity — the user reviews the real change; nothing is
+    // committed and the next turn is blocked until approval, and a reject snaps
+    // each file back on resume). Runs BEFORE the denial reconcile so a denied
+    // (gitignored) write stays on the deny-gate path while every flowed edit is
+    // captured to the ledger.
     let capturedChangeCount = 0;
     if (captureMode && baselineTree && primaryWorkspaceDir) {
       const deniedTokens = new Set(deniedLedger.map((e) => e.token));
-      const captured = await captureTurnForApproval({
+      const captured = await captureTurnToLedger({
+        status,
         gitRoot: primaryWorkspaceDir,
         executionId,
+        changeSetId,
         baselineTree,
         messages: status.messages,
         deniedTokens,
@@ -1111,8 +1149,9 @@ async function executeCursorInner(
       capturedChangeCount = captured.length;
       if (capturedChangeCount > 0) {
         console.log(
-          `ExecuteCursor capture: ${capturedChangeCount} file card(s) for review, ` +
-          `working tree left applied for review (execution=${executionId})`,
+          `ExecuteCursor capture: ${capturedChangeCount} file change(s) authored to the ` +
+          `file_review ledger (change_set=${changeSetId}), working tree left applied ` +
+          `for review (execution=${executionId})`,
         );
       }
     }
