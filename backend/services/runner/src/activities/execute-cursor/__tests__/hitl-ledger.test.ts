@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fixes #1, #2, #3, #5 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Unit tests for the Cursor-harness HITL denial-ledger flow.
  *
  * These cover the architecture the platform converges on: the preToolUse hook

@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fix #4 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Unit tests for resume-time exact-apply (the HITL "what you approve is what gets
  * applied" guarantee for the Cursor deny-only harness).
  *

@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fix #3 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Unit tests for MessageAccumulator tool call status transitions.
  *
  * Validates the indexed tool call tracking that prevents the

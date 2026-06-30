@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fix #2 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Cursor analog of execute-deep-agent/__tests__/sequential-gate-resume.test.ts:
  * two SEQUENTIAL approval gates across a resume, on the Cursor deny-and-reconcile
  * harness instead of the native in-process gate.

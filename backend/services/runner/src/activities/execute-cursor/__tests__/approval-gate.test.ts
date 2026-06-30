@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fix #6 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Unit tests for the Cursor-harness HITL approval gate logic.
  *
  * The crux this suite guards: the Cursor preToolUse hook and the SDK event

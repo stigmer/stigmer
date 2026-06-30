@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fix #6 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Resume-grant identity round-trip — the H1 lock.
  *
  * The Cursor HITL model has no pause primitive: a resumed agent re-issues an

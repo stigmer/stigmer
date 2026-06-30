@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fixes #7, #8, #9 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Tests for capture-mode turn orchestration: the turn-end transform (streamed
  * edits -> per-file cards, tree LEFT applied for Cursor-parity review) and the
  * resume transform (reconcile to refs — approved kept, rejected reverted — cards

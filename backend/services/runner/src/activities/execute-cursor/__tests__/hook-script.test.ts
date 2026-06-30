@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fix #2 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Behavior tests for the generated preToolUse bash hook.
  *
  * These run the ACTUAL bash script the runner writes into the workspace, feeding
