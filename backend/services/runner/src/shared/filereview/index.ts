@@ -24,3 +24,12 @@ export {
   type CapturedChangeInput,
   type ChangeSetContext,
 } from "./events.js";
+
+export {
+  applyCaptureDecisions,
+  captureBaselineToLedger,
+  captureCandidateToLedger,
+  type CaptureResumeResult,
+} from "./capture.js";
+
+export { isGitWorkTree } from "./git-substrate.js";

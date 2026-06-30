@@ -162,7 +162,8 @@ export interface ApprovalStateFile {
    * Capture mode (git workspaces): when true, the hook ALLOWS file mutations
    * (write/edit/delete) to flow during the turn, because the runner captures the
    * whole change set with git at the turn boundary and gates it per-file for
-   * review (see shadow-capture.ts). The ONLY exception is a write/delete whose
+   * review (see shared/filereview/git-substrate.ts). The ONLY exception is a
+   * write/delete whose
    * path is gitignored — the git snapshot cannot capture or revert it, so the
    * hook keeps gating those (it runs `git check-ignore`). shell and MCP stay
    * gated as always. False (the default) keeps the classic deny-gate behavior

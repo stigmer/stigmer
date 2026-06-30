@@ -1,62 +1,62 @@
 /**
- * Git snapshot/restore capture for the Cursor HITL "capture mode".
+ * Git snapshot/restore substrate for the apply-then-review HITL "capture mode".
  *
  * THE MODEL
  * ---------
- * The Cursor IDE applies edits live and lets you review them after; rejecting a
- * file snaps it back exactly. We reproduce that 1:1 on the server: the agent's
- * edits stay APPLIED to the working tree while the user reviews, and approval is
- * a KEEP/DISCARD decision over the real, on-disk change — not an apply-after-the-
- * fact. The deny-only harness cannot do this (it fragments one logical change
- * into many approval cycles), so for a GIT workspace we let every file edit flow
- * during the turn and use git as a NO-COMMIT snapshot/restore substrate at the
- * turn boundary:
+ * Edits are applied to the working tree and reviewed AFTER the fact; rejecting a
+ * file snaps it back exactly. We use git as a NO-COMMIT snapshot/restore
+ * substrate at the turn boundary:
  *
  *  1. snapshotBaseline() at turn start — record the exact pre-turn working tree
  *     and pin it behind a ref so it survives a multi-day approval wait.
- *  2. The agent edits files freely (the hook allows write/edit/delete).
+ *  2. The agent edits files freely (the gate allows git-tracked write/edit/delete).
  *  3. captureChangeSet() at turn end — diff the post-turn tree against the
  *     baseline into a per-file change set, and pin the post-turn ("after") tree
  *     behind a ref. The working tree is LEFT in its "after" state: the user
- *     reviews the real, applied change (Cursor parity) and the workspace browser
- *     shows it.
+ *     reviews the real, applied change and the workspace browser shows it.
  *  4. On resume, reconcile the working tree to the per-file decisions, sourced
  *     ENTIRELY from the two pinned refs (not the live tree, not the persisted
- *     card bodies — the refs are the single source of truth):
+ *     bodies — the refs are the single source of truth):
  *       - approved           -> applyApprovedPaths() ensures the "after" bytes.
  *       - rejected/undecided -> restoreToBaseline() snaps the file back to its
  *         exact pre-turn bytes.
  *     This is symmetric and idempotent: it converges to the correct end state
  *     regardless of the tree's current contents, so a Temporal retry or a tree
- *     reset is harmless. Approved work stays UNCOMMITTED (the harness never
- *     commits — see the no-writeback finding in the plan).
+ *     reset is harmless.
  *  5. dropCaptureRefs() releases the pinned objects.
+ *
+ * HARNESS-AGNOSTIC
+ * ----------------
+ * This is pure git plumbing keyed by `executionId`. It carries no Cursor- or
+ * deep-agent-specific knowledge: the runner-owned files a harness writes into the
+ * workspace (e.g. the Cursor gate's `.cursor/hooks.json`) are passed in as
+ * `excludePaths` so they never pollute the captured diff, rather than being
+ * hard-coded here. Both harnesses author IDENTICAL ledger entries through the
+ * shared producer (events.ts) on top of this substrate. A future CAS substrate
+ * (for ignored / non-git paths) sits beside this module.
  *
  * NOTHING IS PERMANENT UNTIL APPROVAL
  * -----------------------------------
- * Edits are visible during review (as in the Cursor IDE), but nothing is
- * committed and the next turn is blocked until the user decides; a reject snaps
- * the file back byte-for-byte from the baseline ref. Shell/MCP and gitignored
- * writes/deletes are NOT reversible by this substrate, so they stay on the
- * deny-gate (approve-before-run) — see hook-script.ts.
+ * Edits are visible during review, but nothing is committed and the next turn is
+ * blocked until the user decides; a reject snaps the file back byte-for-byte from
+ * the baseline ref. Shell/MCP and gitignored writes/deletes are NOT reversible by
+ * this substrate, so they stay on the approve-before-run gate (see each harness's
+ * gate: the Cursor hook and the deep-agent approval-gate middleware).
  *
  * WHY GIT, NO COMMITS
  * -------------------
- * The Cursor harness has no git writeback and never commits — agent edits
- * accumulate as uncommitted working-tree changes across turns. We honor that:
- * approved work stays uncommitted, and git is used ONLY as an exact, reversible
- * capture/restore mechanism. We never move HEAD, never touch a branch, never
- * push. The deep-agent WriteBackCoordinator is a separate path and is untouched.
+ * Git is used ONLY as an exact, reversible capture/restore mechanism. We never
+ * move HEAD, never touch a branch, never push. Approved work stays uncommitted;
+ * a harness's own writeback path (if any) commits the reconciled tree afterwards.
  *
  * HARD INVARIANTS
  * ---------------
  * - NEVER `git clean -x`/`-a` or `git stash -a`: the git-excluded `.stigmer/`
- *   directory holds the Cursor SDK resume state and MUST survive. `git clean -fd`
- *   (no `-x`) leaves ignored paths alone, so `.stigmer`/`lost+found` are safe.
- * - The runner-owned gate files written into the workspace
- *   (`.cursor/hooks.json`, `.cursor/rules/stigmer-tool-approval.mdc`) are
- *   EXCLUDED from both the baseline and the after tree, so they never pollute
- *   the captured diff regardless of gate-teardown ordering.
+ *   directory holds SDK resume state and MUST survive. `git clean -fd` (no `-x`)
+ *   leaves ignored paths alone, so `.stigmer`/`lost+found` are safe.
+ * - Runner-owned files written into the workspace are EXCLUDED (via `excludePaths`)
+ *   from both the baseline and the after tree, so they never pollute the captured
+ *   diff regardless of gate-teardown ordering.
  * - All staging uses a TEMP index (GIT_INDEX_FILE) so the repo's real index is
  *   never disturbed.
  */
@@ -70,25 +70,14 @@ import {
   FileChangeCaptureLevel,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { buildFileChange, looksBinary } from "../../shared/file-change.js";
+import { buildFileChange, looksBinary } from "../file-change.js";
 
 const execFileAsync = promisify(execFile);
 
-/**
- * Workspace-relative paths the runner writes into the repo for the approval
- * gate. They are excluded from capture so a turn's diff never shows the gate's
- * own machinery. (The workspace-scoped gate dir and SDK state live under
- * `~/.stigmer` / the git-excluded `.stigmer`, so they need no exclusion here.)
- */
-const RUNNER_OWNED_PATHS: readonly string[] = [
-  ".cursor/hooks.json",
-  ".cursor/rules/stigmer-tool-approval.mdc",
-];
-
-/** `:(exclude)` pathspecs for the runner-owned gate files. */
-const EXCLUDE_PATHSPECS: readonly string[] = RUNNER_OWNED_PATHS.map(
-  (p) => `:(exclude)${p}`,
-);
+/** Build `:(exclude)` pathspecs for the runner-owned files a harness passes in. */
+function excludePathspecs(excludePaths: readonly string[]): string[] {
+  return excludePaths.map((p) => `:(exclude)${p}`);
+}
 
 /**
  * Refs that pin the per-execution baseline and after trees against GC. Exported
@@ -121,13 +110,13 @@ const SNAPSHOT_IDENTITY_ENV: Record<string, string> = {
 /**
  * A single file mutation captured from the git diff between the baseline and
  * after trees. `path` is repo-relative (forward slashes); `changeType` drives
- * restore/apply; `fileChange` is the proto rendered on the approval card.
+ * restore/apply; `fileChange` is the proto rendered on the review surface.
  */
 export interface CapturedFileChange {
   /** Repo-relative path (the diff's path; the destination for a create/modify). */
   readonly path: string;
   readonly changeType: FileChangeType;
-  /** The proto for the approval card (WHOLE_FILE before/after). */
+  /** The proto for the review surface (WHOLE_FILE before/after). */
   readonly fileChange: FileChange;
 }
 
@@ -140,7 +129,7 @@ export interface CaptureResult {
   readonly baselineTree: string;
   /** The post-turn tree sha, also pinned behind the capture ref. */
   readonly afterTree: string;
-  /** One entry per changed file (excluding runner-owned gate files). */
+  /** One entry per changed file (excluding the passed runner-owned paths). */
   readonly changes: readonly CapturedFileChange[];
 }
 
@@ -185,6 +174,25 @@ export async function isGitWorkTree(dir: string): Promise<boolean> {
   }
 }
 
+/**
+ * Whether a repo-relative path is capturable by this substrate — i.e. it would
+ * appear in the `git add -A` snapshot. A gitignored path is NOT capturable: the
+ * snapshot cannot see it, so it can be neither reviewed nor reverted, and a
+ * capture-mode gate must keep gating it. Mirrors the Cursor hook's
+ * `__stigmer_is_gitignored` check: `git check-ignore -q` exits 0 when the path IS
+ * ignored, non-zero otherwise; a non-git context / error is treated as
+ * not-ignored (capturable), matching the hook's allow-on-error behavior.
+ */
+export async function isPathCapturable(gitRoot: string, path: string): Promise<boolean> {
+  if (!path) return false;
+  try {
+    await git(gitRoot, ["check-ignore", "-q", "--", path]);
+    return false; // exit 0 -> ignored -> not capturable
+  } catch {
+    return true; // exit 1 (not ignored) or error -> capturable
+  }
+}
+
 /** Whether the repo has a resolvable HEAD (false for a brand-new empty repo). */
 async function headExists(gitRoot: string): Promise<boolean> {
   try {
@@ -203,7 +211,7 @@ async function resolveGitDir(gitRoot: string): Promise<string> {
 
 /**
  * Stage the entire working tree (tracked + untracked, honoring `.gitignore` /
- * `.git/info/exclude`, EXCLUDING the runner-owned gate files) into a TEMP index
+ * `.git/info/exclude`, EXCLUDING the passed runner-owned paths) into a TEMP index
  * and write it out as a tree object. The real index is never touched.
  *
  * Using a temp index with `git add -A` records every present file as the tree's
@@ -216,12 +224,13 @@ async function writeWorkingTree(
   gitDir: string,
   label: string,
   executionId: string,
+  excludePaths: readonly string[],
 ): Promise<string> {
   const tmpIndex = join(gitDir, `stigmer-index-${label}-${executionId}`);
   try {
     await rm(tmpIndex, { force: true });
     const env = { GIT_INDEX_FILE: tmpIndex };
-    await git(gitRoot, ["add", "-A", "--", ".", ...EXCLUDE_PATHSPECS], env);
+    await git(gitRoot, ["add", "-A", "--", ".", ...excludePathspecs(excludePaths)], env);
     return (await git(gitRoot, ["write-tree"], env)).trim();
   } finally {
     await rm(tmpIndex, { force: true });
@@ -246,14 +255,16 @@ async function pinTree(
 /**
  * Snapshot the working tree at turn start and pin it behind the baseline ref.
  * Returns the baseline tree sha (used by {@link captureChangeSet} and
- * {@link restoreToBaseline} later in the SAME activity invocation).
+ * {@link restoreToBaseline} later in the SAME activity invocation). `excludePaths`
+ * are the runner-owned files the harness writes into the workspace (omit for none).
  */
 export async function snapshotBaseline(
   gitRoot: string,
   executionId: string,
+  excludePaths: readonly string[] = [],
 ): Promise<string> {
   const gitDir = await resolveGitDir(gitRoot);
-  const tree = await writeWorkingTree(gitRoot, gitDir, "baseline", executionId);
+  const tree = await writeWorkingTree(gitRoot, gitDir, "baseline", executionId, excludePaths);
   await pinTree(gitRoot, baselineRef(executionId), tree, `stigmer baseline ${executionId}`);
   return tree;
 }
@@ -264,16 +275,17 @@ export async function snapshotBaseline(
  * against `baselineTree` into a per-file {@link CapturedFileChange} list.
  *
  * Renames are intentionally NOT detected (`--no-renames`): a rename surfaces as
- * a delete + create, which restores and applies exactly and matches the plan's
- * per-file review model.
+ * a delete + create, which restores and applies exactly and matches the per-file
+ * review model.
  */
 export async function captureChangeSet(
   gitRoot: string,
   executionId: string,
   baselineTree: string,
+  excludePaths: readonly string[] = [],
 ): Promise<CaptureResult> {
   const gitDir = await resolveGitDir(gitRoot);
-  const afterTree = await writeWorkingTree(gitRoot, gitDir, "capture", executionId);
+  const afterTree = await writeWorkingTree(gitRoot, gitDir, "capture", executionId, excludePaths);
   await pinTree(gitRoot, captureRef(executionId), afterTree, `stigmer capture ${executionId}`);
 
   const raw = await git(gitRoot, [
@@ -347,9 +359,9 @@ export async function applyApprovedPaths(
 /**
  * Recompute the captured change set on a RESUME, from the pinned baseline and
  * capture refs — the authoritative source that survived the approval wait,
- * independent of any persisted card fidelity. Returns `undefined` when this was
- * not a capture turn (the capture ref is absent), so the caller can fall through
- * to the non-capture path.
+ * independent of any persisted fidelity. Returns `undefined` when this was not a
+ * capture turn (the capture ref is absent), so the caller can fall through to the
+ * non-capture path.
  */
 export async function recomputeChangeSet(
   gitRoot: string,
@@ -398,9 +410,10 @@ function approvedRef(executionId: string): string {
 export async function snapshotApproved(
   gitRoot: string,
   executionId: string,
+  excludePaths: readonly string[] = [],
 ): Promise<{ treeOid: string; ref: string }> {
   const gitDir = await resolveGitDir(gitRoot);
-  const tree = await writeWorkingTree(gitRoot, gitDir, "approved", executionId);
+  const tree = await writeWorkingTree(gitRoot, gitDir, "approved", executionId, excludePaths);
   const ref = approvedRef(executionId);
   await pinTree(gitRoot, ref, tree, `stigmer approved ${executionId}`);
   return { treeOid: tree, ref };
@@ -473,7 +486,7 @@ async function writeBlobToDisk(
 
 /**
  * Build a {@link CapturedFileChange} from a diff entry. WHOLE_FILE capture: the
- * before/after bodies come from the two trees (byte-exact via git), so the card
+ * before/after bodies come from the two trees (byte-exact via git), so the review
  * shows the file's true net change regardless of how many edit tool calls
  * produced it. A binary side is still carried (the proto flags it); large bodies
  * are offloaded later at the persist chokepoint.

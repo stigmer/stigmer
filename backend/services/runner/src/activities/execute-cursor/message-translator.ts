@@ -47,6 +47,7 @@ import {
 } from "../../shared/approval-policy.js";
 import { grantToken, primaryToken, toolIdentity, type DeniedLedgerEntry } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
+import { hideToolCallRow } from "../../shared/tool-row.js";
 import { classifyTool, toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { buildFileChange, resolveWorkspacePath } from "../../shared/file-change.js";
 import { buildGateFileChange } from "../../shared/gate-file-change.js";
@@ -1727,25 +1728,9 @@ function collapseDenialTwin(tc: ToolCall): void {
   hideToolCallRow(tc);
 }
 
-/**
- * Blank a tool call in place to a hidden SKIPPED row: keep the committed `id`
- * (append-only), `name`, and `toolKind`; clear every renderable surface and the
- * approval flags so the SDK's `isCollapsedToolCall` predicate recognizes it and
- * renders nothing. Shared by the denial-twin collapse and the capture flow (which
- * hides the streamed file-edit rows once their net change is shown on a per-file
- * approval card), so the "hidden row" shape has exactly one definition.
- */
-export function hideToolCallRow(tc: ToolCall): void {
-  tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
-  tc.requiresApproval = false;
-  tc.approvalRequestedAt = "";
-  tc.approvalMessage = "";
-  tc.error = "";
-  tc.result = "";
-  tc.argsPreview = "";
-  tc.fileChanges = [];
-  if (!tc.completedAt) tc.completedAt = utcTimestamp();
-}
+// `hideToolCallRow` (the "hidden row" shape, shared by the denial-twin collapse
+// and the capture flow) lives in shared/tool-row.ts so both harnesses collapse
+// rows identically; imported at the top of this module.
 
 /**
  * Overlay the hook-captured authoritative tool input onto a gated tool call so

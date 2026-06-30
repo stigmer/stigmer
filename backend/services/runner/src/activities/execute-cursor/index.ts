@@ -68,7 +68,7 @@ import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
 import { applyApprovedWholeFileWrites } from "./exact-apply.js";
-import { isGitWorkTree } from "./shadow-capture.js";
+import { isGitWorkTree } from "../../shared/filereview/git-substrate.js";
 import {
   captureBaselineToLedger,
   captureTurnToLedger,
@@ -244,7 +244,8 @@ async function executeCursorInner(
 
     // Capture mode (git workspaces): when the primary workspace is a real git
     // work tree, file edits flow during the turn and are captured per-file with
-    // git at the turn boundary for review (see capture-flow.ts / shadow-capture.ts);
+    // git at the turn boundary for review (see capture-flow.ts /
+    // shared/filereview/git-substrate.ts);
     // otherwise the classic deny-gate fires before each edit (the unchanged
     // fallback). Detected once from the provisioned primary root.
     const primaryWorkspaceDir = blueprint.workspaceDirs[0];

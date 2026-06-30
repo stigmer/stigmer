@@ -53,6 +53,7 @@ import {
   resolveApprovalMessage,
 } from "../shared/approval-policy.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
+import { extractFilePath } from "../shared/file-tools.js";
 import {
   computeApprovalFingerprint,
   type FingerprintKey,
@@ -80,6 +81,25 @@ export interface ApprovalGateConfig {
   readonly fingerprintKey?: FingerprintKey;
   /** Execution id, carried into the shadow receipt for audit correlation. */
   readonly executionId?: string;
+  /**
+   * Apply-then-review capture mode (git workspaces). When true, a built-in
+   * `write`/`delete` whose target path is capturable (git-tracked — see
+   * {@link isCapturablePath}) FLOWS instead of interrupting: the edit is reviewed
+   * post-hoc as a captured `FileChangeSet`, not gated before it runs. A gitignored
+   * path is NOT capturable, so it stays gated (the git substrate cannot capture or
+   * revert it) — the exact twin of the Cursor hook's `__stigmer_is_gitignored`
+   * allow-branch. `shell` and MCP tools are never bypassed by this flag. Off (the
+   * default) keeps the classic true-pause gate for every mutation.
+   */
+  readonly fileCaptureMode?: boolean;
+  /**
+   * Capturability predicate for {@link fileCaptureMode}: given a tool's raw target
+   * path (as the model wrote it), resolves true when the path would be captured by
+   * the git snapshot (tracked / not gitignored). Injected by setup so the gate
+   * stays pure and testable, and so the harness owns path normalization (the
+   * deep-agent virtual-root path mapping). Absent ⇒ nothing is bypassed (safe).
+   */
+  readonly isCapturablePath?: (rawPath: string) => Promise<boolean>;
 }
 
 interface ApprovalDecision {
@@ -115,6 +135,26 @@ export function createApprovalGateMiddleware(
       const toolName = toolCall.name;
       const serverSlug = toolServerMap.get(toolName) ?? "";
       const category = toolApprovalCategory(toolName);
+
+      // Capture mode (git workspaces): a git-tracked built-in file mutation flows
+      // during the turn and is reviewed post-hoc via the file_review ledger (the
+      // apply-then-review model). A gitignored path cannot be captured or reverted
+      // by the git substrate, so it stays gated below — the exact twin of the
+      // Cursor hook's __stigmer_is_gitignored allow-branch. shell and MCP tools
+      // (serverSlug present) are never bypassed here.
+      if (
+        config.fileCaptureMode &&
+        config.isCapturablePath &&
+        !serverSlug &&
+        (category === "write" || category === "delete")
+      ) {
+        const path = extractFilePath(toolCall.args);
+        if (path !== null && (await config.isCapturablePath(path))) {
+          // Backing authorization: the edit flows and is reviewed post-hoc.
+          emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", "file_capture");
+          return await handler(request);
+        }
+      }
 
       const requirement = resolveToolApproval(
         toolName,

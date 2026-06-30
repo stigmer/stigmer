@@ -8,7 +8,7 @@
  * the streaming phase needs.
  */
 
-import { createDeepAgent, type FilesystemPermission } from "deepagents";
+import { createDeepAgent, FilesystemBackend, type FilesystemPermission } from "deepagents";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import { z } from "zod";
@@ -31,6 +31,8 @@ import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
 import { CapturingFilesystemBackend } from "./capturing-filesystem-backend.js";
 import { FileChangeCaptureBuffer } from "./file-change-buffer.js";
+import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-substrate.js";
+import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
 import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
 import { reportSetupProgress } from "../../shared/status.js";
@@ -102,8 +104,19 @@ export interface SetupResult {
   readonly globalBypass: boolean;
   readonly hasStructuredOutput: boolean;
   readonly streamVersion: "v2" | "v3";
-  /** Race-free before/after captures from the wrapped FilesystemBackend. */
+  /**
+   * Race-free before/after captures from the wrapped FilesystemBackend. Used only
+   * in the legacy (non-capture) path; in capture mode the git diff is
+   * authoritative, so the wrapper is not installed and this buffer stays empty.
+   */
   readonly fileChangeBuffer: FileChangeCaptureBuffer;
+  /**
+   * Apply-then-review capture mode: true when the workspace is a git work tree.
+   * File edits flow during the turn and are reviewed post-hoc as a captured
+   * `FileChangeSet` (the activity authors the baseline/candidate ledger events and
+   * reconciles on resume). False keeps the classic true-pause file gate.
+   */
+  readonly captureMode: boolean;
 }
 
 export interface SetupDependencies {
@@ -176,6 +189,20 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       envResult.mergedEnvVars,
       sessionId,
     );
+
+    // Apply-then-review capture mode: a git work tree lets file edits flow during
+    // the turn and be reviewed post-hoc against a captured baseline -> candidate
+    // diff (reconciled byte-exactly on resume). A non-git workspace keeps the
+    // classic true-pause file gate. The capturability predicate (git check-ignore,
+    // via the deep-agent virtual-root path mapping) lets the gate flow only
+    // git-tracked edits; a gitignored path stays gated (the git substrate cannot
+    // capture or revert it).
+    const captureMode = await isGitWorkTree(workspaceBackend.rootDir);
+    const isCapturablePath = (rawPath: string): Promise<boolean> =>
+      isPathCapturable(
+        workspaceBackend.rootDir,
+        resolveWorkspacePath(rawPath, workspaceBackend.rootDir, true).path,
+      );
 
     // Step 7: Resolve and connect MCP servers
     const mcpServerUsages = [
@@ -333,6 +360,12 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
             executionId,
           ),
           executionId,
+          // Capture mode: git-tracked file edits flow and are reviewed post-hoc;
+          // gitignored edits + shell/MCP stay gated. Inherited verbatim by
+          // sub-agents (their edits land in the same work tree and are captured by
+          // the same turn-boundary diff).
+          fileCaptureMode: captureMode,
+          isCapturablePath,
         }
       : null;
 
@@ -424,18 +457,26 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       { operations: ["write"], paths: ["/**"], mode: "deny" },
     ];
 
-    // Capture before/after of every file mutation at the source. The buffer is
-    // drained at tool-finished by the FileChangeCoordinator (see index.ts), so
-    // the wrapped backend is the single race-free capture point for both stream
-    // versions, which share this backend.
+    // File capture point.
+    //  - Legacy (non-git) mode: wrap the backend so before/after of every
+    //    mutation is captured at the source, drained at tool-finished by the
+    //    FileChangeCoordinator (see index.ts) — the race-free capture point for
+    //    both stream versions, which share this backend.
+    //  - Capture mode (git work tree): edits flow to disk and the turn-boundary
+    //    git diff is the authoritative change set, so the wrapper and coordinator
+    //    are not used. Use the plain backend; the buffer stays empty (no dead
+    //    capture machinery in the hot path).
     const fileChangeBuffer = new FileChangeCaptureBuffer();
+    const fileBackend = captureMode
+      ? new FilesystemBackend({ rootDir: workspaceBackend.rootDir })
+      : new CapturingFilesystemBackend(
+          { rootDir: workspaceBackend.rootDir },
+          { buffer: fileChangeBuffer, reader: workspaceBackend },
+        );
     const agentGraph = await createDeepAgent({
       model,
       checkpointer: checkpointer as any,
-      backend: new CapturingFilesystemBackend(
-        { rootDir: workspaceBackend.rootDir },
-        { buffer: fileChangeBuffer, reader: workspaceBackend },
-      ),
+      backend: fileBackend,
       systemPrompt,
       tools,
       middleware: middleware as any,
@@ -488,6 +529,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       hasStructuredOutput: !!outputSchema,
       streamVersion,
       fileChangeBuffer,
+      captureMode,
     };
   } catch (err) {
     if (mcpConnection) {

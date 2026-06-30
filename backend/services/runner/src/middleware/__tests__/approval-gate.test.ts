@@ -367,6 +367,145 @@ describe("ApprovalGateMiddleware", () => {
     });
   });
 
+  describe("capture mode (apply-then-review)", () => {
+    it("flows a git-tracked built-in write without interrupting", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => true, // git-tracked
+      }));
+
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: "src/app.ts" } }),
+        passthrough,
+      );
+
+      expect((result as ToolMessage).content).toBe("tool result");
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+    });
+
+    it("flows a git-tracked built-in delete without interrupting", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => true,
+      }));
+
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "delete", args: { path: "src/old.ts" } }),
+        passthrough,
+      );
+
+      expect((result as ToolMessage).content).toBe("tool result");
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+    });
+
+    it("KEEPS GATING a gitignored write (it cannot be captured or reverted)", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false, // gitignored
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: ".env" } }),
+        passthrough,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it("KEEPS GATING a gitignored delete", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "delete", args: { path: "build/out.js" } }),
+        passthrough,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it("never bypasses shell in capture mode (only file mutations flow)", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => true,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "shell", args: { command: "rm -rf /" } }),
+        passthrough,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it("never bypasses a gated MCP tool in capture mode", async () => {
+      const policies = new Map<string, MergedToolPolicy>([
+        ["srv/mutate", {
+          toolName: "mutate",
+          mcpServerSlug: "srv",
+          requiresApproval: true,
+          approvalMessage: "Run mutate",
+          source: "classifier_default",
+        }],
+      ]);
+      const mw = createApprovalGateMiddleware(makeConfig({
+        policies,
+        toolServerMap: new Map([["mutate", "srv"]]),
+        fileCaptureMode: true,
+        isCapturablePath: async () => true,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(makeRequest({ name: "mutate", args: {} }), passthrough);
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not bypass when no capturability predicate is supplied (safe default)", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({ fileCaptureMode: true }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: "src/app.ts" } }),
+        passthrough,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it("emits a file_capture receipt when a git-tracked edit flows", async () => {
+      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      try {
+        const mw = createApprovalGateMiddleware(makeConfig({
+          fileCaptureMode: true,
+          isCapturablePath: async () => true,
+          fingerprintKey: "test-key",
+          executionId: "exec-cap",
+        }));
+
+        await mw.wrapToolCall!(
+          makeRequest({ name: "edit", args: { path: "src/app.ts" } }),
+          passthrough,
+        );
+
+        const receipt = logSpy.mock.calls
+          .map((c) => String(c[0] ?? ""))
+          .filter((line) => line.startsWith("[hitl-gateway] receipt "))
+          .map((line) => JSON.parse(line.slice("[hitl-gateway] receipt ".length)) as Record<string, unknown>)[0];
+        expect(receipt.authorization).toBe("auto_approve");
+        expect(receipt.policySource).toBe("file_capture");
+        expect(receipt.category).toBe("write");
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+  });
+
   it("handles unknown action as skip", async () => {
     const policies = new Map<string, MergedToolPolicy>([
       ["srv/tool_c", {

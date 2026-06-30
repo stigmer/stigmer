@@ -14,7 +14,8 @@ import { create, clone, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionPhase, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ExecutionPhase, FileChangeSetStatus, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
 import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
@@ -38,6 +39,16 @@ import { FileChangeCoordinator } from "./file-change-coordinator.js";
 import { processPostStream } from "./post-stream.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { captureApprovalArtifacts } from "./approval-file-change.js";
+import {
+  applyCaptureDecisions,
+  captureBaselineToLedger,
+  captureCandidateToLedger,
+} from "../../shared/filereview/capture.js";
+import { toolApprovalCategory } from "../../shared/tool-kind.js";
+import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
+
+/** The harness id stamped on the deep-agent's file-review ledger events. */
+const DEEP_AGENT_HARNESS_ID = "deep-agent";
 
 export function createDeepAgentActivities(config: Config) {
   const client = new StigmerClient({
@@ -57,7 +68,7 @@ export function createDeepAgentActivities(config: Config) {
       arg0: ExecuteActivityInput | string,
       arg1?: string,
     ): Promise<unknown> => {
-      const { executionId, threadId } = normalizeActivityInput(arg0, arg1);
+      const { executionId, threadId, turnSeq } = normalizeActivityInput(arg0, arg1);
       activityStarted();
       let setup: SetupResult | null = null;
 
@@ -142,11 +153,106 @@ export function createDeepAgentActivities(config: Config) {
             })
           : null;
 
-        const fileChangeCoordinator = new FileChangeCoordinator({
-          statusWriter: statusBuilder,
-          buffer: setup.fileChangeBuffer,
-          workspaceBackend: setup.workspaceBackend,
-        });
+        // Capture mode reviews file edits via the git-diff change set, so the
+        // per-tool-call before/after coordinator is not used (no dead machinery).
+        const fileChangeCoordinator = setup.captureMode
+          ? undefined
+          : new FileChangeCoordinator({
+              statusWriter: statusBuilder,
+              buffer: setup.fileChangeBuffer,
+              workspaceBackend: setup.workspaceBackend,
+            });
+
+        // Apply-then-review capture identity + substrate root for this turn.
+        const gitRoot = setup.workspaceBackend.rootDir;
+        const changeSetId = `${executionId}:${turnSeq}`;
+
+        // (1) Capture-mode resume — reconcile any DECIDED change set FIRST (this
+        // drops the per-execution refs), before the next baseline re-pins them
+        // (refs are executionId-keyed). Then (2) short-circuit a pure file-review
+        // resume — the agent already finished in a prior segment, so finalize with
+        // NO model re-invocation. A mixed turn (a tool gate is also pending) falls
+        // through to resume the graph for the gated tool.
+        if (setup.captureMode) {
+          const decidedSets = (setup.execution.status?.fileChangeSets ?? []).filter(
+            (cs) => cs.status === FileChangeSetStatus.DECIDED,
+          );
+          let reconciledAny = false;
+          let reconcileFailed = false;
+          let reconcileFailureDetail = "";
+          for (const changeSet of decidedSets) {
+            const capResult = await applyCaptureDecisions({
+              status: initialStatus,
+              gitRoot,
+              executionId,
+              changeSet,
+              harnessId: DEEP_AGENT_HARNESS_ID,
+            });
+            if (!capResult.isCaptureTurn) continue;
+            reconciledAny = true;
+            if (capResult.failed) {
+              reconcileFailed = true;
+              reconcileFailureDetail =
+                capResult.failureDetail ?? "file review reconcile failed";
+            }
+          }
+
+          if (reconciledAny) {
+            if (reconcileFailed) {
+              // What-you-approve-is-what-applies failed: nothing was applied.
+              initialStatus.phase = ExecutionPhase.EXECUTION_FAILED;
+              initialStatus.error = `File review reconcile failed: ${reconcileFailureDetail}`;
+              initialStatus.completedAt = utcTimestamp();
+              await persistStatus(client, executionId, initialStatus, { offload: statusOffload });
+              return slimStatus(initialStatus);
+            }
+            if (!hasPendingToolApprovals(setup.execution)) {
+              // Pure file review: the agent's final answer + outputs already rode
+              // the prior segment's persisted status (seeded into initialStatus).
+              // Complete now and push only the approved tree — NO model re-run.
+              //
+              // The discriminator is the PERSISTED transcript, not the live graph
+              // checkpoint: the memory checkpointer (OSS local / desktop) recreates
+              // the checkpoint empty each invocation, so a graphState-based check
+              // would wrongly fire for a mixed turn. A mixed turn leaves
+              // WAITING_APPROVAL tool rows in the transcript; a pure file-review
+              // turn leaves none.
+              initialStatus.phase = ExecutionPhase.EXECUTION_COMPLETED;
+              initialStatus.completedAt = utcTimestamp();
+              if (writebackCoordinator) {
+                await processCaptureWriteback(writebackCoordinator, executionId);
+              }
+              await persistStatus(client, executionId, initialStatus, { offload: statusOffload });
+              // Surface the agent's final outputs (computed in the prior segment,
+              // carried on the seeded status) the same way a normal completion does.
+              const slim = slimStatus(initialStatus) as Record<string, unknown>;
+              const lastAi = [...initialStatus.messages]
+                .reverse()
+                .find((m) => m.type === MessageType.MESSAGE_AI);
+              if (lastAi?.content) slim.final_text = lastAi.content;
+              if (initialStatus.structuredOutput !== undefined) {
+                slim.structured = initialStatus.structuredOutput;
+              }
+              return slim;
+            }
+            // else: mixed turn — fall through; the graph resumes for the gated
+            // tool and a new baseline is taken below for the continuation segment.
+          }
+        }
+
+        // Turn start (capture mode): pin the pre-turn tree + author BASELINE. Taken
+        // AFTER any reconcile above and AFTER performSetup's workspace writes, so
+        // the baseline absorbs the reconciled state and the runner-owned files.
+        let captureBaselineTree = "";
+        if (setup.captureMode) {
+          captureBaselineTree = await captureBaselineToLedger({
+            status: initialStatus,
+            gitRoot,
+            executionId,
+            changeSetId,
+            harnessId: DEEP_AGENT_HARNESS_ID,
+          });
+        }
 
         const cancellationSignal = Context.current().cancellationSignal;
 
@@ -161,7 +267,9 @@ export function createDeepAgentActivities(config: Config) {
           offload: statusOffload,
           gracefulStop: setup.gracefulStop,
           inlinePublisher,
-          writebackCoordinator: writebackCoordinator ?? undefined,
+          // Capture mode: never push speculative edits during the turn. Writeback
+          // is deferred until the approved tree is reconciled (post-decision).
+          writebackCoordinator: setup.captureMode ? undefined : (writebackCoordinator ?? undefined),
           fileChangeCoordinator,
           heartbeatFn: (details) => Context.current().heartbeat(details),
           isCancelledFn: () => cancellationSignal.aborted,
@@ -177,11 +285,36 @@ export function createDeepAgentActivities(config: Config) {
         await processPostStream({
           status: initialStatus,
           inlinePublisher,
-          writebackCoordinator,
+          // Capture mode: suppress the post-stream writeback finalize — the edits
+          // on disk are still speculative until reviewed. Writeback runs only on
+          // the approved tree (processCaptureWriteback, after reconcile).
+          writebackCoordinator: setup.captureMode ? null : writebackCoordinator,
           pendingPublishPromises: result.pendingPublishPromises,
           pendingWritebackPromises: result.pendingWritebackPromises,
           executionId,
         });
+
+        // Turn boundary (capture mode): capture the candidate change set from the
+        // git diff and author CANDIDATE_CAPTURED, then hide the flowed file-edit
+        // rows so file_change_sets is the single review surface. Skipped on an
+        // abnormal terminal (pause / stop / recursion limit) — there is no review
+        // to open. `fileReviewPending` then composes with any tool gate below.
+        let fileReviewPending = false;
+        const abnormalTerminal =
+          !!result.terminalStatus &&
+          initialStatus.phase !== ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+        if (setup.captureMode && !abnormalTerminal) {
+          const changes = await captureCandidateToLedger({
+            status: initialStatus,
+            gitRoot,
+            executionId,
+            changeSetId,
+            baselineTree: captureBaselineTree,
+            harnessId: DEEP_AGENT_HARNESS_ID,
+          });
+          hideFlowedFileEditRows(initialStatus.messages);
+          fileReviewPending = changes.length > 0;
+        }
 
         if (result.terminalStatus) {
           if (initialStatus.phase === ExecutionPhase.EXECUTION_PAUSED) {
@@ -189,31 +322,23 @@ export function createDeepAgentActivities(config: Config) {
             console.log(`[ExecuteDeepAgent] Paused for execution ${executionId}: events=${result.eventsProcessed}`);
             throw new CancelledFailure("Activity paused by orchestrator");
           }
+          // Capture mode: a tool gate set WAITING during the stream while file
+          // edits also flowed this turn. The CANDIDATE event + hidden file-edit
+          // rows post-date the stream's slim, so persist + return the current
+          // status (both review surfaces — the file change set and the tool gate —
+          // are now pending). `!abnormalTerminal` means the capture block ran.
+          if (setup.captureMode && !abnormalTerminal) {
+            await persistStatus(client, executionId, initialStatus, { offload: statusOffload });
+            return slimStatus(initialStatus);
+          }
           return result.terminalStatus;
         }
 
         if (!setup.globalBypass) {
-          const graphState = await setup.agentGraph.getState(setup.langgraphConfig);
-          const graphMessages = (graphState.values as { messages?: unknown }).messages;
+          const postStreamGraphState = await setup.agentGraph.getState(setup.langgraphConfig);
+          const graphMessages = (postStreamGraphState.values as { messages?: unknown }).messages;
           const aiMessages = Array.isArray(graphMessages) ? graphMessages : [];
-          const pendingInterrupts = graphState.tasks?.flatMap(
-            (task: { id: string; interrupts?: readonly { value: Record<string, unknown>; resumeValue?: unknown }[] }) =>
-              (task.interrupts ?? [])
-                .filter((intr) => intr.resumeValue === undefined)
-                .map((intr) => {
-                  const val = intr.value as Record<string, unknown>;
-                  return {
-                    toolCallId: (val?.tool_call_id as string) ?? "",
-                    toolName: (val?.tool_name as string) ?? "",
-                    mcpServerSlug: (val?.mcp_server_slug as string) ?? "",
-                    message: (val?.message as string) ?? "",
-                    // Provenance verdict carried through the gate's interrupt
-                    // (approval-gate.ts). Absent on interrupts seeded before this
-                    // field existed → undefined → UNSPECIFIED, like an unset tool_kind.
-                    policySource: (val?.policy_source as PolicySource) || undefined,
-                  };
-                }),
-          ) ?? [];
+          const pendingInterrupts = detectPendingInterrupts(postStreamGraphState);
 
           if (pendingInterrupts.length > 0) {
             console.log(
@@ -266,8 +391,17 @@ export function createDeepAgentActivities(config: Config) {
           }
         }
 
-        initialStatus.phase = ExecutionPhase.EXECUTION_COMPLETED;
-        initialStatus.completedAt = utcTimestamp();
+        // Capture mode: file edits flowed but no tool gate fired — open file
+        // review instead of completing. The agent's final answer + outputs are
+        // still computed and persisted below, so the pure-file-review resume can
+        // complete from the seeded status with no model re-invocation.
+        const completeNow = !fileReviewPending;
+        initialStatus.phase = completeNow
+          ? ExecutionPhase.EXECUTION_COMPLETED
+          : ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+        if (completeNow) {
+          initialStatus.completedAt = utcTimestamp();
+        }
 
         let structuredOutput: JsonObject | undefined;
         let finalText: string | undefined;
@@ -329,16 +463,30 @@ export function createDeepAgentActivities(config: Config) {
           });
         }
 
+        // Capture mode: push the approved tree exactly once, on terminal
+        // completion — never the speculative mid-turn edits.
+        if (setup.captureMode && completeNow && writebackCoordinator) {
+          await processCaptureWriteback(writebackCoordinator, executionId);
+        }
+
         await persistStatus(client, executionId, initialStatus, { offload: statusOffload });
 
         console.log(
-          `[ExecuteDeepAgent] Completed for execution ${executionId}: ` +
+          `[ExecuteDeepAgent] ${completeNow ? "Completed" : "Awaiting file review for"} ` +
+          `execution ${executionId}: ` +
           `events=${result.eventsProcessed}, ` +
           `messages=${initialStatus.messages.length}, ` +
           `artifacts=${initialStatus.artifacts.length}, ` +
           `writebacks=${initialStatus.workspaceWriteBacks.length}, ` +
           `hasStructuredOutput=${structuredOutput !== undefined}`,
         );
+
+        // A WAITING (file-review) return carries no final outputs yet — those are
+        // surfaced when the pure-file-review resume completes from this persisted
+        // status. The COMPLETED return enriches the slim with final text/outputs.
+        if (!completeNow) {
+          return slimStatus(initialStatus);
+        }
 
         const slim = slimStatus(initialStatus) as Record<string, unknown>;
         if (finalText !== undefined) {
@@ -398,6 +546,98 @@ export function createDeepAgentActivities(config: Config) {
       }
     },
   };
+}
+
+/** A pending LangGraph approval interrupt, normalized from the graph checkpoint. */
+interface PendingInterrupt {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly mcpServerSlug: string;
+  readonly message: string;
+  /** Gate provenance carried through the interrupt; undefined → UNSPECIFIED. */
+  readonly policySource: PolicySource | undefined;
+}
+
+/**
+ * Normalize the graph checkpoint's un-resumed interrupts into pending approvals.
+ * Used both before streaming (to detect whether a resume is a pure file review)
+ * and after (to seed the WAITING_FOR_APPROVAL tool rows).
+ */
+function detectPendingInterrupts(graphState: GraphStateSnapshot): PendingInterrupt[] {
+  const tasks = (graphState as {
+    tasks?: readonly {
+      interrupts?: readonly { value: Record<string, unknown>; resumeValue?: unknown }[];
+    }[];
+  }).tasks;
+  return (
+    tasks?.flatMap((task) =>
+      (task.interrupts ?? [])
+        .filter((intr) => intr.resumeValue === undefined)
+        .map((intr) => {
+          const val = intr.value as Record<string, unknown>;
+          return {
+            toolCallId: (val?.tool_call_id as string) ?? "",
+            toolName: (val?.tool_name as string) ?? "",
+            mcpServerSlug: (val?.mcp_server_slug as string) ?? "",
+            message: (val?.message as string) ?? "",
+            policySource: (val?.policy_source as PolicySource) || undefined,
+          };
+        }),
+    ) ?? []
+  );
+}
+
+/**
+ * Whether the persisted transcript holds any tool call awaiting approval — the
+ * checkpointer-independent signal that a resume must drive a tool gate (resume
+ * the graph), not just a file review. Scans root + sub-agent messages. A tool
+ * keeps `WAITING_APPROVAL` after the user decides (the decision rides
+ * `approval_action`) until the runner reconciles it, so this is true for a mixed
+ * turn's resume and false for a pure file-review turn.
+ */
+function hasPendingToolApprovals(execution: AgentExecution): boolean {
+  const status = execution.status;
+  if (!status) return false;
+  const anyWaiting = (msgs: { toolCalls: { status: ToolCallStatus }[] }[]): boolean =>
+    msgs.some((m) =>
+      m.toolCalls.some((tc) => tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL),
+    );
+  if (anyWaiting(status.messages)) return true;
+  return status.subAgentExecutions.some((sa) => anyWaiting(sa.messages));
+}
+
+/**
+ * Hide the streamed file-edit tool rows (write/delete category) so the captured
+ * `file_change_sets` is the single review surface — the deep-agent analogue of the
+ * Cursor capture flow's row hiding. No deny-token coordination is needed here: the
+ * deep-agent has no deny gate, so every flowed file-edit row is collapsed. Uses
+ * the shared {@link toolApprovalCategory} oracle and {@link hideToolCallRow} shape.
+ */
+function hideFlowedFileEditRows(messages: readonly AgentMessage[]): void {
+  for (const msg of messages) {
+    for (const tc of msg.toolCalls) {
+      if (isToolCallRowHidden(tc)) continue;
+      const category = toolApprovalCategory(tc.name);
+      if (category !== "write" && category !== "delete") continue;
+      hideToolCallRow(tc);
+    }
+  }
+}
+
+/**
+ * Push the reconciled (approved) tree exactly once, on terminal completion in
+ * capture mode. The coordinator's {@link WriteBackCoordinator.finalize} commits +
+ * pushes whatever uncommitted changes remain — which, post-reconcile, is exactly
+ * the approved content (rejected files were already snapped back to baseline).
+ * Speculative mid-turn edits never reach here (writeback is suppressed during the
+ * turn). Fire-and-forget by the coordinator's own contract (errors logged).
+ */
+async function processCaptureWriteback(
+  writebackCoordinator: WriteBackCoordinator,
+  executionId: string,
+): Promise<void> {
+  await writebackCoordinator.finalize();
+  console.log(`[ExecuteDeepAgent] capture writeback finalized for execution ${executionId}`);
 }
 
 /**

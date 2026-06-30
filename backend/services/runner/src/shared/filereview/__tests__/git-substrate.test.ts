@@ -7,10 +7,10 @@
  * These run against a REAL temporary git repo (the behavior is entirely git
  * plumbing, so a real repo is the only faithful test). They exercise each
  * primitive directly — restoreToBaseline and applyApprovedPaths are the
- * reconcile pair the resume path composes (see capture-flow.ts: capture mode
- * leaves the tree applied during review and reconciles to the refs on resume) —
- * plus the hard invariants (the `.stigmer` SDK state and gitignored paths
- * survive; runner-owned gate files never pollute the diff).
+ * reconcile pair the resume path composes (capture mode leaves the tree applied
+ * during review and reconciles to the refs on resume) — plus the hard invariants
+ * (the `.stigmer` SDK state and gitignored paths survive; the harness's
+ * runner-owned files, passed as excludePaths, never pollute the diff).
  */
 
 import { execFile } from "node:child_process";
@@ -25,15 +25,21 @@ import {
   captureChangeSet,
   dropCaptureRefs,
   isGitWorkTree,
+  isPathCapturable,
   recomputeChangeSet,
   restoreToBaseline,
   snapshotBaseline,
-  type CapturedFileChange,
-} from "../shadow-capture.js";
+} from "../git-substrate.js";
 
 const execFileAsync = promisify(execFile);
 
 const EXEC_ID = "exec-test-1";
+
+/** The runner-owned files a harness (here, Cursor) writes into the workspace. */
+const RUNNER_OWNED_PATHS: readonly string[] = [
+  ".cursor/hooks.json",
+  ".cursor/rules/stigmer-tool-approval.mdc",
+];
 
 let repo: string;
 
@@ -61,7 +67,7 @@ async function write(rel: string, content: string): Promise<void> {
 }
 
 beforeEach(async () => {
-  repo = await mkdtemp(join(tmpdir(), "stigmer-shadow-"));
+  repo = await mkdtemp(join(tmpdir(), "stigmer-substrate-"));
   await git(["init", "-q"]);
   await git(["config", "user.email", "t@t.local"]);
   await git(["config", "user.name", "t"]);
@@ -113,7 +119,7 @@ describe("capture lifecycle", () => {
     expect(byPath.get("src/new.ts")?.changeType).toBe(FileChangeType.CREATE);
     expect(byPath.get("src/main.ts")?.changeType).toBe(FileChangeType.DELETE);
 
-    // The card carries the true before/after net change.
+    // The capture carries the true before/after net change.
     const notes = byPath.get("notes.md")!.fileChange;
     expect(notes.before?.body.value).toBe("platon notes\n");
     expect(notes.after?.body.value).toBe("planton notes\n\n## TODO\n- ship it\n");
@@ -168,19 +174,29 @@ describe("hard invariants", () => {
     expect(await read(".stigmer/cursor-sdk-state/db.sqlite")).toBe("STATE2");
   });
 
-  it("excludes runner-owned gate files from the captured diff", async () => {
-    const baseline = await snapshotBaseline(repo, EXEC_ID);
+  it("excludes the passed runner-owned paths from the captured diff", async () => {
+    const baseline = await snapshotBaseline(repo, EXEC_ID, RUNNER_OWNED_PATHS);
     // The gate writes these during the turn.
     await write(".cursor/hooks.json", '{"version":1,"hooks":{}}\n');
     await write(".cursor/rules/stigmer-tool-approval.mdc", "rule\n");
     await write("notes.md", "planton\n");
 
-    const { changes } = await captureChangeSet(repo, EXEC_ID, baseline);
+    const { changes } = await captureChangeSet(repo, EXEC_ID, baseline, RUNNER_OWNED_PATHS);
     expect(changes.some((c) => c.path === ".cursor/hooks.json")).toBe(false);
     expect(
       changes.some((c) => c.path === ".cursor/rules/stigmer-tool-approval.mdc"),
     ).toBe(false);
     expect(changes.some((c) => c.path === "notes.md")).toBe(true);
+  });
+
+  it("captures everything when no excludePaths are passed (deep-agent: no runner-owned files)", async () => {
+    // The deep-agent harness writes no gate files into the work tree, so it passes
+    // no excludePaths; a normal source file is captured as usual.
+    const baseline = await snapshotBaseline(repo, EXEC_ID);
+    await write("src/new.ts", "export const y = 2;\n");
+
+    const { changes } = await captureChangeSet(repo, EXEC_ID, baseline);
+    expect(changes.some((c) => c.path === "src/new.ts")).toBe(true);
   });
 
   it("preserves a gitignored file the agent created (NOT in the change set)", async () => {
@@ -220,6 +236,35 @@ describe("recomputeChangeSet (resume source of truth)", () => {
 
   it("returns undefined when the execution never captured (no refs)", async () => {
     expect(await recomputeChangeSet(repo, "never-captured")).toBeUndefined();
+  });
+});
+
+describe("isPathCapturable (capture-mode gate predicate)", () => {
+  beforeEach(async () => {
+    // .env + the build/ dir are gitignored; everything else is capturable.
+    await write(".gitignore", ".env\nbuild/\n");
+    await git(["add", ".gitignore"]);
+    await git(["commit", "-q", "-m", "gitignore"]);
+  });
+
+  it("returns true for a git-tracked path (capturable -> flows)", async () => {
+    expect(await isPathCapturable(repo, "src/main.ts")).toBe(true);
+  });
+
+  it("returns true for a new untracked-but-not-ignored path (capturable)", async () => {
+    expect(await isPathCapturable(repo, "src/brand-new.ts")).toBe(true);
+  });
+
+  it("returns false for a gitignored file (NOT capturable -> stays gated)", async () => {
+    expect(await isPathCapturable(repo, ".env")).toBe(false);
+  });
+
+  it("returns false for a path under a gitignored directory", async () => {
+    expect(await isPathCapturable(repo, "build/out.js")).toBe(false);
+  });
+
+  it("returns false for an empty path", async () => {
+    expect(await isPathCapturable(repo, "")).toBe(false);
   });
 });
 

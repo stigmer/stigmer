@@ -169,6 +169,7 @@ export type PolicySource =
   | "auto_approve_all"               // Layer 4: pre-armed spec.auto_approve_all (whole-run global bypass)
   | "approval_lease"                 // Layer 4: a run-lifetime scoped lease cleared this action
   | "builtin_category"               // Non-MCP built-in gated by the shared tool taxonomy
+  | "file_capture"                   // Capture mode: a git-tracked built-in file edit flows, reviewed post-hoc via the file_review ledger (not gated; audit-only on the shadow receipt)
   | "annotation_destructive_tighten"; // Layer 1 sub-case: connect-time destructiveHint tightener force-gated this MCP tool
 
 /**
@@ -204,6 +205,11 @@ export function toProtoPolicySource(source: PolicySource | undefined): ApprovalP
       return ApprovalPolicySource.BUILTIN_CATEGORY;
     case "annotation_destructive_tighten":
       return ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN;
+    case "file_capture":
+      // Capture-mode flow is never persisted on a gated tool call (the file tool
+      // is not gated — it has no WAITING_APPROVAL row); it exists only on the
+      // audit receipt. Map to UNSPECIFIED for the proto-persisted field.
+      return ApprovalPolicySource.UNSPECIFIED;
     case undefined:
       return ApprovalPolicySource.UNSPECIFIED;
   }

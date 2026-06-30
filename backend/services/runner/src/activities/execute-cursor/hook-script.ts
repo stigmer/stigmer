@@ -431,7 +431,8 @@ STATE=$(cat "$STATE_FILE")
 
 # Capture mode (git workspaces): file mutations flow during the turn and are
 # captured/gated per-file by the runner at the turn boundary (see
-# shadow-capture.ts). Read once; consulted only in the gated-built-in arm below.
+# shared/filereview/git-substrate.ts). Read once; consulted only in the
+# gated-built-in arm below.
 CAPTURE_MODE=false
 if echo "$STATE" | grep -q '"captureMode":true'; then
   CAPTURE_MODE=true
