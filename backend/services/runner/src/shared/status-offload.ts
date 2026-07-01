@@ -20,12 +20,22 @@
  *      Idempotent and content-hash-deduped so the throttled, repeated persists
  *      (and result re-inflation by mergeToolCallEvent) upload each blob once.
  *
- *   2. enforceStatusSizeLimit — an aggregate, type-agnostic backstop that runs
+ *   2. offloadCandidateChangesToFit — an aggregate, storage-backed step for the
+ *      file-review ledger: if the status still exceeds the soft cap after (1),
+ *      it offloads the largest still-inline captured before/after bodies to
+ *      retrievable refs (biggest-first) until it fits, so a captured file stays
+ *      REVIEWABLE (the UI lazily fetches the ref) instead of being dropped. The
+ *      persisted body is a display projection — reconcile sources bytes from the
+ *      git refs / CAS manifest, never this body — so this is correctness-neutral.
+ *
+ *   3. enforceStatusSizeLimit — an aggregate, type-agnostic backstop that runs
  *      even when no artifact storage is available: if the encoded status still
  *      exceeds a soft cap (comfortably under 4 MiB), it elides the largest
- *      remaining inline fields in place until the payload fits.
+ *      remaining inline fields in place until the payload fits. For file-review
+ *      bodies this is the LAST resort (no storage, or (2) could not free enough):
+ *      the body is dropped and the file marked SIZE_ELIDED / incomplete.
  *
- * Both operate ONLY on what is persisted/streamed; the agent's working context
+ * All operate ONLY on what is persisted/streamed; the agent's working context
  * is managed by the harness/SDK separately, so reasoning is unaffected.
  */
 
@@ -489,6 +499,83 @@ export async function offloadOversizedToolOutputs(
   }
 }
 
+/**
+ * Aggregate-budget offload of file-review candidate bodies (async, storage-backed).
+ *
+ * The per-item pass ({@link offloadOversizedToolOutputs}) only offloads a body
+ * over {@link INLINE_FILE_CONTENT_MAX_BYTES}; many mid-sized captured files (each
+ * under that per-file cap) can still sum the whole status past the soft limit.
+ * Rather than let the storage-less backstop ({@link enforceStatusSizeLimit}) DROP
+ * those bodies — which sets `diff_complete=false` and blocks approval, turning a
+ * reviewable change discard-only — this step offloads the largest still-inline
+ * captured bodies to retrievable refs (biggest-first) until the status fits. The
+ * review UI then lazily fetches each ref via getArtifactContent exactly as it
+ * already does for a >128 KiB file, and the change stays reviewable
+ * (`diff_complete` is untouched, so the set rollup is unchanged).
+ *
+ * Correctness: the persisted before/after body is a DISPLAY projection —
+ * reconcile sources the approved bytes from the pinned git refs / CAS manifest
+ * and verifies them against the enforcement digests (`before_sha256`/
+ * `after_sha256`), never this body (see {@link ../filereview/capture.js}). So
+ * converting a body to a ref (or, in the backstop, dropping it) cannot change
+ * what is applied on approval.
+ *
+ * Non-fatal per side: a storage failure leaves that body inline for the backstop
+ * to drop. Returns true if any body was offloaded. Called only for a status that
+ * actually carries file-review events (the caller guards on that), and a no-op
+ * (single encode) when the status already fits.
+ */
+export async function offloadCandidateChangesToFit(
+  status: AgentExecutionStatus,
+  ctx: ToolOutputOffloadContext,
+  softLimitBytes: number = STATUS_PAYLOAD_SOFT_LIMIT_BYTES,
+): Promise<boolean> {
+  if (encodedSize(status) <= softLimitBytes) return false;
+
+  // Every still-inline captured side worth offloading, paired with its stable
+  // artifact key (identical to maybeOffloadCandidateChanges so a later persist is
+  // idempotent) and its byte size. ELISION_MIN_BYTES is the same "worth it"
+  // threshold the drop backstop uses, so the two agree on what is large enough.
+  interface InlineCandidateSide {
+    readonly content: FileContent;
+    readonly key: string;
+    readonly bytes: number;
+  }
+  const sides: InlineCandidateSide[] = [];
+  for (const change of candidateChanges(status)) {
+    const base = `artifacts/${ctx.executionId}/filereview/${change.id}`;
+    if (change.before?.body.case === "inline" && byteLen(change.before.body.value) > ELISION_MIN_BYTES) {
+      sides.push({ content: change.before, key: `${base}.before.txt`, bytes: byteLen(change.before.body.value) });
+    }
+    if (change.after?.body.case === "inline" && byteLen(change.after.body.value) > ELISION_MIN_BYTES) {
+      sides.push({ content: change.after, key: `${base}.after.txt`, bytes: byteLen(change.after.body.value) });
+    }
+  }
+
+  // Largest first: shed the most bytes per upload and offload the fewest bodies.
+  sides.sort((a, b) => b.bytes - a.bytes);
+
+  let offloadedAny = false;
+  for (const side of sides) {
+    if (encodedSize(status) <= softLimitBytes) break;
+    try {
+      // Pre-filtered to inline & over the threshold, so this always offloads;
+      // the shared helper keeps the ref shape + the `case === "ref"` idempotency.
+      await maybeOffloadFileContent(side.content, side.key, ctx, ELISION_MIN_BYTES);
+      offloadedAny = true;
+    } catch {
+      // Non-fatal: leave this body inline for enforceStatusSizeLimit to drop.
+      console.warn(
+        `[status-offload] execution=${ctx.executionId} ` +
+        `aggregate file-review offload failed for ${side.key} (non-fatal); ` +
+        `left inline for the size backstop`,
+      );
+    }
+  }
+
+  return offloadedAny;
+}
+
 function encodedSize(status: AgentExecutionStatus): number {
   return toBinary(AgentExecutionStatusSchema, status).length;
 }
@@ -589,14 +676,16 @@ export function enforceStatusSizeLimit(
     }
   }
 
-  // File-review ledger bodies. Unlike tool output, the captured before/after IS
-  // the authoritative content the review renders and the decision binds to —
-  // overwriting it in place with the elision marker would CORRUPT the ledger.
-  // So instead drop the inline body and mark the file incomplete: the reconcile
-  // sources bytes from the git refs / re-capture (never the persisted inline),
-  // and the review surface blocks approval of an incomplete diff (the proto's
-  // designed-for unreviewable gate). This trades reviewability for a bounded
-  // payload, never correctness.
+  // File-review ledger bodies — the storage-less LAST resort. When storage is
+  // available, offloadCandidateChangesToFit has already turned oversized captured
+  // bodies into retrievable refs (kept reviewable); a body still inline here means
+  // there was no storage, or offloading everything still did not free enough.
+  // Unlike a tool output, we never overwrite the captured body with the elision
+  // marker — the review renders this body, so a marker would show corrupt content;
+  // instead we DROP it and mark the file incomplete (SIZE_ELIDED). Reconcile
+  // sources bytes from the git refs / CAS manifest (never this display body), and
+  // the review surface blocks approval of an incomplete diff. This trades
+  // reviewability for a bounded payload, never correctness.
   if (encodedSize(status) > softLimitBytes) {
     for (const ev of status.fileReviewEventStream?.events ?? []) {
       if (encodedSize(status) <= softLimitBytes) break;

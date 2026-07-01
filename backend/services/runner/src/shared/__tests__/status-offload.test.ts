@@ -15,6 +15,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   offloadOversizedToolOutputs,
+  offloadCandidateChangesToFit,
   enforceStatusSizeLimit,
   detectImagePayload,
 } from "../status-offload.js";
@@ -25,6 +26,7 @@ import {
   buildCapturedFileChange,
   type ChangeSetContext,
 } from "../filereview/events.js";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 
 function makeFakeStorage() {
   // Canonical double, with the metadata-tracking `uploads` shim these tests assert
@@ -591,6 +593,164 @@ describe("enforceStatusSizeLimit", () => {
         FileReviewBlockReason.SECRET_WITHHELD,
       );
     }
+  });
+});
+
+describe("offloadCandidateChangesToFit", () => {
+  function statusWithCandidate(
+    changes: CapturedFileChange[],
+    executionId: string,
+  ): AgentExecutionStatus {
+    const ctx: ChangeSetContext = {
+      changeSetId: `${executionId}:0`,
+      turnId: "turn-0",
+      harnessId: "deep-agent",
+      timestamp: "2026-07-01T00:00:00Z",
+    };
+    const status = create(AgentExecutionStatusSchema, {});
+    appendFileReviewEvents(status, executionId, [
+      buildCandidateCapturedEvent(ctx, undefined, changes),
+    ]);
+    return status;
+  }
+
+  function candidateOf(status: AgentExecutionStatus) {
+    const ev = status.fileReviewEventStream?.events.find(
+      (e) => e.payload.case === "candidateCaptured",
+    );
+    if (ev?.payload.case !== "candidateCaptured") throw new Error("no candidate event");
+    return ev.payload.value;
+  }
+
+  function textChange(id: string, path: string, before: string, after: string): CapturedFileChange {
+    return buildCapturedFileChange({
+      id,
+      pathBefore: before === "" ? "" : path,
+      pathAfter: after === "" ? "" : path,
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      ...(before !== "" ? { before } : {}),
+      ...(after !== "" ? { after } : {}),
+    });
+  }
+
+  it("offloads oversized captured bodies to refs so they stay reviewable (no SIZE_ELIDED)", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    // Two mid-sized files, each under the 128 KiB per-file cap but summing well
+    // past the injected soft cap — the exact case the per-item pass misses. The
+    // cap sits above the ~4 KB-per-side preview floor a ref keeps, so all four
+    // oversized sides can be offloaded and the status still lands under it.
+    const a = textChange("exec-fit:0:a.ts", "a.ts", "A".repeat(30_000), "A".repeat(50_000));
+    const b = textChange("exec-fit:0:b.ts", "b.ts", "B".repeat(40_000), "B".repeat(60_000));
+    const status = statusWithCandidate([a, b], "exec-fit");
+    expect(candidateOf(status).diffCompleteness).toBe(DiffCompleteness.COMPLETE);
+    expect(encodedSize(status)).toBeGreaterThan(150_000);
+
+    const offloaded = await offloadCandidateChangesToFit(
+      status,
+      { artifactStorage: storage, executionId: "exec-fit" },
+      20_000,
+    );
+    expect(offloaded).toBe(true);
+    expect(encodedSize(status)).toBeLessThanOrEqual(20_000);
+
+    const cs = candidateOf(status);
+    for (const c of cs.changes) {
+      // Every remaining side is a retrievable ref (never dropped, never left large-inline).
+      if (c.before) expect(c.before.body.case).toBe("ref");
+      if (c.after) expect(c.after.body.case).toBe("ref");
+      // Reviewability preserved: complete, no block reason.
+      expect(c.diffComplete).toBe(true);
+      expect(c.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
+    }
+    // The set stays COMPLETE (approvable), never PARTIAL_BLOCKED.
+    expect(cs.diffCompleteness).toBe(DiffCompleteness.COMPLETE);
+    // Keys follow the canonical maybeOffloadCandidateChanges convention.
+    expect(uploads.some((u) => u.key === "artifacts/exec-fit/filereview/exec-fit:0:a.ts.after.txt")).toBe(true);
+  });
+
+  it("offloads biggest-first and stops as soon as the status fits", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const big = textChange("exec-bf:0:big.ts", "big.ts", "", "B".repeat(60_000));
+    const small = textChange("exec-bf:0:small.ts", "small.ts", "", "s".repeat(2_000));
+    const status = statusWithCandidate([small, big], "exec-bf");
+    // Cap chosen so offloading only the big side gets under it.
+    const cap = encodedSize(status) - 40_000;
+
+    await offloadCandidateChangesToFit(
+      status,
+      { artifactStorage: storage, executionId: "exec-bf" },
+      cap,
+    );
+
+    const cs = candidateOf(status);
+    const bigC = cs.changes.find((c) => c.id === "exec-bf:0:big.ts");
+    const smallC = cs.changes.find((c) => c.id === "exec-bf:0:small.ts");
+    // The big body was offloaded; the small one was never touched (still inline).
+    expect(bigC?.after?.body.case).toBe("ref");
+    expect(smallC?.after?.body.case).toBe("inline");
+    expect(uploads).toHaveLength(1);
+    expect(uploads[0].key).toBe("artifacts/exec-bf/filereview/exec-bf:0:big.ts.after.txt");
+  });
+
+  it("is idempotent: an already-offloaded ref side is skipped, never re-uploaded", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const c = textChange("exec-idem:0:x.ts", "x.ts", "", "X".repeat(40_000));
+    const status = statusWithCandidate([c], "exec-idem");
+    const ctx = { artifactStorage: storage, executionId: "exec-idem" };
+
+    // A tiny cap the ref can never satisfy forces full iteration on both passes.
+    const first = await offloadCandidateChangesToFit(status, ctx, 100);
+    expect(first).toBe(true);
+    expect(uploads).toHaveLength(1);
+    expect(candidateOf(status).changes[0].after?.body.case).toBe("ref");
+
+    // Second pass over the same status: the side is a ref, so it is not collected
+    // and nothing is re-uploaded.
+    const second = await offloadCandidateChangesToFit(status, ctx, 100);
+    expect(second).toBe(false);
+    expect(uploads).toHaveLength(1);
+  });
+
+  it("falls through to the SIZE_ELIDED backstop when the upload fails", async () => {
+    const { storage } = makeFakeStorage();
+    storage.upload.mockRejectedValue(new Error("storage down"));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const c = textChange("exec-fail:0:y.ts", "y.ts", "", "Y".repeat(50_000));
+    const status = statusWithCandidate([c], "exec-fail");
+
+    const offloaded = await offloadCandidateChangesToFit(
+      status,
+      { artifactStorage: storage, executionId: "exec-fail" },
+      4_000,
+    );
+    // Nothing offloaded; the body is left inline for the backstop, not dropped here.
+    expect(offloaded).toBe(false);
+    expect(candidateOf(status).changes[0].after?.body.case).toBe("inline");
+
+    // The storage-less backstop then drops it and records the honest cause.
+    expect(enforceStatusSizeLimit(status, 4_000)).toBe(true);
+    const dropped = candidateOf(status).changes[0];
+    expect(dropped.after).toBeUndefined();
+    expect(dropped.diffComplete).toBe(false);
+    expect(dropped.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
+  });
+
+  it("only offloads file-review bodies, never tool-call content", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const tc = create(ToolCallSchema, { id: "tc-1", name: "Read", result: "R".repeat(50_000) });
+    const status = statusWithToolCall(tc);
+    expect(encodedSize(status)).toBeGreaterThan(40_000);
+
+    const offloaded = await offloadCandidateChangesToFit(
+      status,
+      { artifactStorage: storage, executionId: "exec-tc" },
+      4_000,
+    );
+    expect(offloaded).toBe(false);
+    expect(uploads).toHaveLength(0);
+    // The tool-call result is untouched (that is offloadOversizedToolOutputs' job).
+    expect(status.messages[0].toolCalls[0].result).toHaveLength(50_000);
   });
 });
 
