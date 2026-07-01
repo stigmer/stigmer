@@ -79,3 +79,43 @@ export function isSecretLikePath(path: string): boolean {
   }
   return false;
 }
+
+/** How the turn's observed gitignored paths split under the secret gate. */
+export interface CasSecretPartition {
+  /** Paths safe to capture into durable CAS (their bytes may be persisted). */
+  readonly capturablePaths: readonly string[];
+  /**
+   * Paths withheld from capture — authored as content-less DIFF_UNREVIEWABLE.
+   * The union of the gate's up-front blocks and any observed secret-like path.
+   */
+  readonly unreviewablePaths: readonly string[];
+}
+
+/**
+ * Split a turn's observed gitignored paths into capturable vs withheld — the
+ * single source of truth for "which ignored bytes may reach durable storage".
+ *
+ * `unreviewablePaths = gateBlockedPaths ∪ { p ∈ observed : isSecretLikePath(p) }`
+ * and `capturablePaths = { p ∈ observed : ¬isSecretLikePath(p) }`. The
+ * `isSecretLikePath` re-check over `observed` is the fail-closed backstop that
+ * holds **even under the global bypass** (`spec.auto_approve_all`): there the
+ * approval gate is not installed, so `gateBlockedPaths` is empty and this
+ * re-check is the only thing keeping a secret's bytes out of CAS. Order is
+ * preserved (gate blocks first, then observed order) and duplicates are folded,
+ * so the result is deterministic for the cross-edition corpus.
+ */
+export function partitionIgnoredPathsBySecret(
+  observedPaths: Iterable<string>,
+  gateBlockedPaths: ReadonlySet<string>,
+): CasSecretPartition {
+  const unreviewable = new Set<string>(gateBlockedPaths);
+  const capturablePaths: string[] = [];
+  for (const path of observedPaths) {
+    if (isSecretLikePath(path)) {
+      unreviewable.add(path);
+      continue;
+    }
+    capturablePaths.push(path);
+  }
+  return { capturablePaths, unreviewablePaths: [...unreviewable] };
+}

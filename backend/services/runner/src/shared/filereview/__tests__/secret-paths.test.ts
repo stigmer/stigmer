@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { isSecretLikePath } from "../secret-paths.js";
+import { isSecretLikePath, partitionIgnoredPathsBySecret } from "../secret-paths.js";
 
 describe("isSecretLikePath — blocks secret-like paths (fail-closed)", () => {
   it.each([
@@ -65,5 +65,57 @@ describe("isSecretLikePath — captures ordinary ignored files", () => {
     ".envrc.example",
   ])("captures %s", (path) => {
     expect(isSecretLikePath(path)).toBe(false);
+  });
+});
+
+describe("partitionIgnoredPathsBySecret", () => {
+  it("captures ordinary ignored paths and withholds secret-like ones", () => {
+    const { capturablePaths, unreviewablePaths } = partitionIgnoredPathsBySecret(
+      ["cache/data.json", ".env", "dist/app.js", "server.key"],
+      new Set(),
+    );
+    expect(capturablePaths).toEqual(["cache/data.json", "dist/app.js"]);
+    expect(unreviewablePaths).toEqual([".env", "server.key"]);
+  });
+
+  it("withholds a secret observed with an EMPTY gate set (global-bypass backstop)", () => {
+    // Under spec.auto_approve_all the approval gate is never installed, so the
+    // blocked set is empty and this re-check is the ONLY thing keeping a secret's
+    // bytes out of durable CAS storage. This is the load-bearing case.
+    const { capturablePaths, unreviewablePaths } = partitionIgnoredPathsBySecret(
+      [".env"],
+      new Set(),
+    );
+    expect(capturablePaths).toEqual([]);
+    expect(unreviewablePaths).toEqual([".env"]);
+  });
+
+  it("unions the gate's blocks with observed secrets, gate blocks first, deduped", () => {
+    // The gate blocked `.aws/credentials` up front (it never reached the
+    // observer); `.env` was observed and re-caught here; `id_rsa` is both.
+    const { capturablePaths, unreviewablePaths } = partitionIgnoredPathsBySecret(
+      [".env", "cache/x", "id_rsa"],
+      new Set([".aws/credentials", "id_rsa"]),
+    );
+    expect(capturablePaths).toEqual(["cache/x"]);
+    // Gate blocks first (set insertion order), then observed secrets not already present.
+    expect(unreviewablePaths).toEqual([".aws/credentials", "id_rsa", ".env"]);
+  });
+
+  it("returns empty partitions for an empty turn", () => {
+    const { capturablePaths, unreviewablePaths } = partitionIgnoredPathsBySecret(
+      [],
+      new Set(),
+    );
+    expect(capturablePaths).toEqual([]);
+    expect(unreviewablePaths).toEqual([]);
+  });
+
+  it("preserves observed order for capturable paths", () => {
+    const { capturablePaths } = partitionIgnoredPathsBySecret(
+      ["cache/b.txt", "cache/a.txt", "logs/c.log"],
+      new Set(),
+    );
+    expect(capturablePaths).toEqual(["cache/b.txt", "cache/a.txt", "logs/c.log"]);
   });
 });

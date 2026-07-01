@@ -161,6 +161,27 @@ describe("InlinePublisher", () => {
     expect(sb.currentStatus.artifacts[0].contentHash).toBe(expected);
   });
 
+  it("never publishes a secret-like file to artifact storage (design doc 12, D4)", async () => {
+    // Under the global bypass a secret write is not blocked up front, so it would
+    // otherwise be uploaded here. The publisher must withhold it: no read, no
+    // upload, no registered artifact — the secret's bytes never reach storage.
+    const secretBackend = mockWorkspaceBackend({ ".env": "API_KEY=super-secret-value" });
+    const readSpy = secretBackend.readFile as ReturnType<typeof vi.fn>;
+    const pub = new InlinePublisher({
+      workspaceBackend: secretBackend,
+      artifactStorage: storage,
+      statusWriter: sb,
+      executionId: "exec-secret",
+    });
+
+    await pub.publish(".env");
+
+    expect(storage.uploadedKeys).toHaveLength(0);
+    expect(sb.currentStatus.artifacts).toHaveLength(0);
+    expect(readSpy).not.toHaveBeenCalled(); // withheld before the file is even read
+    expect(pub.publishedPaths.size).toBe(0);
+  });
+
   it("guesses content type for common extensions", async () => {
     const jsonBackend = mockWorkspaceBackend({ "data.json": '{"key":"val"}' });
     const pub = new InlinePublisher({

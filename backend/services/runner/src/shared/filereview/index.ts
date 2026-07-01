@@ -52,6 +52,8 @@ export {
 
 export {
   isSecretLikePath,
+  partitionIgnoredPathsBySecret,
   SECRET_BASENAME_PATTERNS,
   SECRET_PATH_PATTERNS,
+  type CasSecretPartition,
 } from "./secret-paths.js";

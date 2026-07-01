@@ -110,11 +110,21 @@ type UnifiedRunnerManager struct {
 	// artifactServer serves LocalArtifactDir over HTTP for the CAS reconcile's
 	// read path (nil when no local artifact dir is configured). Torn down by Stop.
 	artifactServer *artifactFileServer
+	// localArtifactDir is the on-disk root the runner writes CAS/offloaded blobs
+	// into (empty when no local artifact dir is configured). Exposed so tests can
+	// assert on what did — or must never — reach durable storage.
+	localArtifactDir string
 }
 
 // LogPath returns the path to the runner's stderr log file.
 func (m *UnifiedRunnerManager) LogPath() string {
 	return m.logPath
+}
+
+// LocalArtifactDir returns the on-disk root the runner writes CAS/offloaded
+// blobs into, or "" when no local artifact dir was configured.
+func (m *UnifiedRunnerManager) LocalArtifactDir() string {
+	return m.localArtifactDir
 }
 
 // ProtocolVersion returns the IPC protocol version the runner advertised in its `ready`
@@ -215,13 +225,14 @@ func StartUnifiedRunnerManager(ctx context.Context, cfg UnifiedRunnerConfig, log
 	scanner := bufio.NewScanner(stdout)
 
 	mgr := &UnifiedRunnerManager{
-		cmd:            cmd,
-		stdin:          stdin,
-		scanner:        scanner,
-		logFile:        logFile,
-		logPath:        logPath,
-		logger:         logger,
-		artifactServer: artifactServer,
+		cmd:              cmd,
+		stdin:            stdin,
+		scanner:          scanner,
+		logFile:          logFile,
+		logPath:          logPath,
+		logger:           logger,
+		artifactServer:   artifactServer,
+		localArtifactDir: cfg.LocalArtifactDir,
 	}
 
 	resp, err := mgr.readResponse(ctx, 30*time.Second)

@@ -22,6 +22,7 @@ import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ExecutionStatusWriter } from "./execution-status-writer.js";
 import { utcTimestamp } from "../../shared/status.js";
+import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
 
 export class InlinePublisher {
   private readonly workspaceBackend: WorkspaceBackend;
@@ -56,6 +57,21 @@ export class InlinePublisher {
   async publish(path: string): Promise<void> {
     try {
       const sandboxPath = normalizePath(path);
+
+      // Never publish a secret-like file to durable artifact storage (design
+      // doc 12, D4). This is the third secret-withholding choke point beside the
+      // CAS capture gate and the transcript args scrub: under the global bypass
+      // (spec.auto_approve_all) a secret write is not blocked up front, so it
+      // would otherwise be uploaded here (keyed by basename) and registered as an
+      // ExecutionArtifact. Fail-closed and unconditional — the same name-based
+      // gate the capture path uses, so the decision has one source of truth.
+      if (isSecretLikePath(sandboxPath)) {
+        console.log(
+          `[InlinePublisher] execution=${this.executionId} — withheld '${sandboxPath}' ` +
+          `(secret-like; never published to artifact storage)`,
+        );
+        return;
+      }
 
       const content = await this.workspaceBackend.readFile(sandboxPath);
       const contentBuffer = Buffer.from(content, "utf-8");

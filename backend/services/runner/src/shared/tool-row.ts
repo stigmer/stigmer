@@ -14,8 +14,18 @@ import { utcTimestamp } from "./status.js";
 
 /**
  * Collapse a tool-call row to the hidden shape the SDK renders as absent: a
- * SKIPPED row with no approval state, result, error, preview, or file changes.
- * Idempotent (re-running yields the same shape).
+ * SKIPPED row with no approval state, result, error, preview, file changes, or
+ * args. Idempotent (re-running yields the same shape).
+ *
+ * `args` is cleared, not just `args_preview`. A hidden row is redundant with the
+ * `file_change_set` (the single review surface), so its content must not linger
+ * anywhere: for a file-mutating tool `args` holds the full write body, which for
+ * a secret-like path would otherwise persist into the transcript / Temporal
+ * history in violation of the never-persist-secret-contents contract (design
+ * doc 12, D4). Dropping it is safe at resume — identity is carried by
+ * `approval_content_digest`, deliberately immune to `args` being absent (the
+ * size-limit elision already drops `args`); no consumer reads a hidden row's
+ * `args`.
  */
 export function hideToolCallRow(tc: ToolCall): void {
   tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
@@ -25,6 +35,7 @@ export function hideToolCallRow(tc: ToolCall): void {
   tc.error = "";
   tc.result = "";
   tc.argsPreview = "";
+  tc.args = undefined;
   tc.fileChanges = [];
   if (!tc.completedAt) tc.completedAt = utcTimestamp();
 }
@@ -39,6 +50,7 @@ export function isToolCallRowHidden(tc: ToolCall): boolean {
     tc.status === ToolCallStatus.TOOL_CALL_SKIPPED &&
     !tc.requiresApproval &&
     tc.fileChanges.length === 0 &&
+    tc.args === undefined &&
     !tc.result &&
     !tc.error
   );

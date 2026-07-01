@@ -3,7 +3,10 @@
 package offline
 
 import (
+	"bytes"
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // --- Offline Deep-Agent File-Review HITL Tests (PR 2.5) ---
@@ -64,6 +68,23 @@ func startFileReviewRun(
 	message string,
 ) (*harness.MockLLMProxyServer, *harness.Clients, *harness.AgentExecutionWaiter, string) {
 	t.Helper()
+	mockLLM, clients, waiter, _, execID := startFileReviewRunOpts(t, ctx, gitDir, entries, message, false)
+	return mockLLM, clients, waiter, execID
+}
+
+// startFileReviewRunOpts is startFileReviewRun with the knobs a few tests need:
+// `autoApproveAll` selects the global bypass (no approval gate installed), and
+// the runner manager is returned so a test can reach its LocalArtifactDir to
+// assert on what did — or must never — reach durable storage.
+func startFileReviewRunOpts(
+	t *testing.T,
+	ctx context.Context,
+	gitDir string,
+	entries []harness.RecordedLLMEntry,
+	message string,
+	autoApproveAll bool,
+) (*harness.MockLLMProxyServer, *harness.Clients, *harness.AgentExecutionWaiter, *harness.UnifiedRunnerManager, string) {
+	t.Helper()
 
 	mockLLM, mgr := startOfflineRunner(t, ctx, entries)
 
@@ -95,11 +116,11 @@ func startFileReviewRun(
 	require.NoError(t, err, "AddSession should succeed")
 
 	exec := harness.CreateTestAgentExecution(t, ctx, clients, sessionID, message,
-		harness.WithAutoApproveAll(false),
+		harness.WithAutoApproveAll(autoApproveAll),
 	)
 
 	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
-	return mockLLM, clients, waiter, exec.GetMetadata().GetId()
+	return mockLLM, clients, waiter, mgr, exec.GetMetadata().GetId()
 }
 
 // writeFileTurn / editFileTurn / textTurn are the scripted LLM turns the tests
@@ -617,6 +638,103 @@ func TestOffline_FileReview_MixedTurn_TrackedKeptSecretDiscarded(t *testing.T) {
 	assert.False(t, harness.WorkspaceFileExists(t, gitDir, ignoredPath),
 		"the discarded secret write must never exist on disk")
 	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review resolution must NOT re-invoke the model")
+}
+
+// TestOffline_FileReview_SecretUnderGlobalBypass_NeverPersisted is the global-
+// bypass safety lock (design doc 12, D4; DD-09 Option A). Under spec.auto_approve_all
+// the approval gate is NOT installed, so a secret-like gitignored write is not
+// hard-blocked up front — it executes and the .env lands on the user's own local
+// disk (the accepted Option A trade-off: the gate is off by the user's opt-in).
+// What must STILL hold is the durable-storage contract: the secret's CONTENT must
+// never reach the persisted transcript (incl. tool-call args) or artifact storage.
+// Two backstops enforce it — the turn-boundary secret re-check that withholds the
+// path from CAS, and hideToolCallRow scrubbing tc.args — and this test would FAIL
+// before either was in place (the secret would ride along in args / a CAS blob).
+func TestOffline_FileReview_SecretUnderGlobalBypass_NeverPersisted(t *testing.T) {
+	requireOfflineService(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	gitDir := harness.NewGitWorkspace(t) // seeds .gitignore with .env and .stigmer/
+	const path = ".env"
+	// A distinctive payload so a substring scan cannot false-positive on the path.
+	const secret = "API_KEY=sk-live-SUPER-SECRET-DO-NOT-PERSIST-abc123xyz\n"
+
+	mockLLM, clients, waiter, mgr, execID := startFileReviewRunOpts(t, ctx, gitDir,
+		[]harness.RecordedLLMEntry{
+			writeFileTurn(0, "toolu_w_env", path, secret),
+			textTurn(1, "Wrote the env file."),
+		},
+		"Write the .env file using the filesystem tools.",
+		true, // auto_approve_all -> global bypass -> no approval gate
+	)
+
+	// Fact under test #1: file review pauses even under the global bypass
+	// (auto_approve_all bypasses TOOL gates, not file review).
+	waiting, err := waiter.WaitForFileReview(ctx, execID, 2*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, execID)
+		t.Fatalf("a secret write under global bypass should still open a file review: %v", err)
+	}
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	harness.AssertPendingApprovals(t, waiting, 0) // never a tool approval
+
+	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
+	require.NotNil(t, set, "the secret write must surface an AWAITING_REVIEW change set")
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, set.GetDiffCompleteness(),
+		"the withheld secret makes the set PARTIAL_BLOCKED")
+
+	ch := harness.FindCapturedChangeByPath(set, path)
+	require.NotNil(t, ch, "the secret path must be surfaced (path only) for review")
+	assert.False(t, ch.GetDiffComplete(), "a withheld secret entry must be diff_complete=false")
+	assert.Equal(t, agentexecv1.FileCaptureClass_FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED, ch.GetCaptureClass(),
+		"a withheld gitignored secret is captured as GIT_IGNORED_CAPTURED")
+	assert.Nil(t, ch.GetBefore(), "no before blob ref: the secret's bytes never reached CAS")
+	assert.Nil(t, ch.GetAfter(), "no after blob ref: the secret's bytes never reached CAS")
+
+	// The Option A trade-off, made explicit: under the global bypass the gate is
+	// off, so the write DID reach the user's own local disk. This is accepted and
+	// documented — the safety contract is about DURABLE PLATFORM storage, below.
+	assert.True(t, harness.WorkspaceFileExists(t, gitDir, path),
+		"under global bypass the gate is off, so the secret write reaches the user's local disk (accepted)")
+
+	// Backstop #1 (transcript): the secret's CONTENT must appear NOWHERE in the
+	// persisted status — most critically the flowed write row's tool-call args,
+	// which hideToolCallRow now scrubs. A full marshal is the adversarial check.
+	statusJSON, err := protojson.Marshal(waiting)
+	require.NoError(t, err, "marshal the persisted execution for the leak scan")
+	assert.NotContains(t, string(statusJSON), secret,
+		"secret content must never persist in the transcript (tool-call args included)")
+
+	// Backstop #2 (storage): the secret's bytes must be in NO artifact-store file.
+	artifactDir := mgr.LocalArtifactDir()
+	require.NotEmpty(t, artifactDir, "the offline runner must have a local artifact dir")
+	secretBytes := []byte(secret)
+	walkErr := filepath.Walk(artifactDir, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		data, rerr := os.ReadFile(p)
+		if rerr != nil {
+			return rerr
+		}
+		assert.Falsef(t, bytes.Contains(data, secretBytes),
+			"secret bytes must never reach artifact storage; found in %s", p)
+		return nil
+	})
+	require.NoError(t, walkErr, "scan the artifact dir for leaked secret bytes")
+
+	// Liveness: the unreviewable secret can only be discarded; that completes the
+	// execution with no model re-invocation.
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, path,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_REJECT)
+	_, err = waiter.WaitForPhase(ctx, execID, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "discarding the unreviewable secret entry must complete the execution")
+	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review decision must NOT re-invoke the model")
 }
 
 // TestOffline_FileReview_GitignoredCaptured_ReviewedAndReconciled is the headline

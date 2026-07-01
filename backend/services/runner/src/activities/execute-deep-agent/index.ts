@@ -47,7 +47,7 @@ import {
   captureCandidateToLedger,
 } from "../../shared/filereview/capture.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
-import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
+import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
 import type { CasBeforeMap } from "./cas-capture-backend.js";
 import { toolApprovalCategory } from "../../shared/tool-kind.js";
 import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
@@ -657,22 +657,24 @@ async function buildCasTurnCaptures(
   blockedSecretPaths: ReadonlySet<string>,
   workspaceRoot: string,
 ): Promise<{ casCaptures: CasPathCapture[]; unreviewablePaths: string[] }> {
+  // The secret partition (pure, corpus-lockable) decides what may be captured;
+  // this shell only performs the IO for the capturable set. The backstop that
+  // withholds a secret observed under the global bypass lives in the partition.
+  const { capturablePaths, unreviewablePaths } = partitionIgnoredPathsBySecret(
+    casBeforeByPath.keys(),
+    blockedSecretPaths,
+  );
   const casCaptures: CasPathCapture[] = [];
-  const unreviewable = new Set<string>(blockedSecretPaths);
-  for (const [relPath, before] of casBeforeByPath) {
-    if (isSecretLikePath(relPath)) {
-      unreviewable.add(relPath);
-      continue;
-    }
+  for (const relPath of capturablePaths) {
     const after = await readFileOrNull(join(workspaceRoot, relPath));
     casCaptures.push({
       path: relPath,
-      before,
+      before: casBeforeByPath.get(relPath) ?? null,
       after,
       captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
     });
   }
-  return { casCaptures, unreviewablePaths: [...unreviewable] };
+  return { casCaptures, unreviewablePaths: [...unreviewablePaths] };
 }
 
 /** Raw bytes of a file, or `null` when it does not exist (a DELETE). */
