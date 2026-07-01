@@ -506,6 +506,114 @@ describe("ApprovalGateMiddleware", () => {
     });
   });
 
+  describe("capture mode — gitignored CAS routing (captureIgnored)", () => {
+    it("flows a non-secret gitignored write and does NOT gate it (parent gate)", async () => {
+      const handler = vi.fn(passthrough);
+      const recordBlockedSecret = vi.fn();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false, // gitignored
+        captureIgnored: true,
+        recordBlockedSecret,
+      }));
+
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: "dist/bundle.js" } }),
+        handler,
+      );
+
+      expect((result as ToolMessage).content).toBe("tool result");
+      expect(handler).toHaveBeenCalledTimes(1); // the edit flowed (apply-then-review)
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+      expect(recordBlockedSecret).not.toHaveBeenCalled();
+    });
+
+    it("HARD-BLOCKS a secret-like gitignored write: never runs, never gates, records the path", async () => {
+      const handler = vi.fn(passthrough);
+      const recordBlockedSecret = vi.fn();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false, // gitignored
+        captureIgnored: true,
+        recordBlockedSecret,
+      }));
+
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: ".env" } }),
+        handler,
+      );
+
+      expect(handler).not.toHaveBeenCalled(); // fail-closed: the write never runs
+      expect(mockedInterrupt).not.toHaveBeenCalled(); // hard block, not a pause
+      expect(recordBlockedSecret).toHaveBeenCalledWith(".env");
+      expect((result as ToolMessage).content).toContain("blocked for security");
+    });
+
+    it("hard-blocks a secret-like edit by content pattern too (e.g. id_rsa)", async () => {
+      const handler = vi.fn(passthrough);
+      const recordBlockedSecret = vi.fn();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false,
+        captureIgnored: true,
+        recordBlockedSecret,
+      }));
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "edit", args: { path: ".ssh/id_rsa" } }),
+        handler,
+      );
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(recordBlockedSecret).toHaveBeenCalledWith(".ssh/id_rsa");
+    });
+
+    it("with captureIgnored OFF (sub-agent gate) keeps a gitignored write on the interrupt gate", async () => {
+      const handler = vi.fn(passthrough);
+      const recordBlockedSecret = vi.fn();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false,
+        captureIgnored: false, // sub-agent posture — no CAS routing
+        recordBlockedSecret,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: "dist/bundle.js" } }),
+        handler,
+      );
+
+      // Falls through to the interrupt gate exactly as before — no CAS flow, no
+      // secret recording (sub-agent backends are not CAS-observed).
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+      expect(recordBlockedSecret).not.toHaveBeenCalled();
+    });
+
+    it("still flows a git-tracked write with captureIgnored on (secret gate is ignored-only)", async () => {
+      const handler = vi.fn(passthrough);
+      const recordBlockedSecret = vi.fn();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => true, // git-tracked
+        captureIgnored: true,
+        recordBlockedSecret,
+      }));
+
+      // A secret-NAMED but git-tracked path still flows: the secret gate applies
+      // only to gitignored paths (a tracked file is already in the user's repo).
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: "config/.env.example" } }),
+        handler,
+      );
+
+      expect((result as ToolMessage).content).toBe("tool result");
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(recordBlockedSecret).not.toHaveBeenCalled();
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+    });
+  });
+
   it("handles unknown action as skip", async () => {
     const policies = new Map<string, MergedToolPolicy>([
       ["srv/tool_c", {

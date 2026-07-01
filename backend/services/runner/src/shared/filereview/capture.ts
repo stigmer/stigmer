@@ -132,10 +132,18 @@ export async function captureCandidateToLedger(opts: {
   readonly casCaptures?: readonly CasPathCapture[];
   /** The CAS blob store; required when {@link casCaptures} is non-empty. */
   readonly storage?: ArtifactStorage;
+  /**
+   * Gitignored paths whose bytes are deliberately NOT captured — the DD-E secret
+   * gate refused them. Each is authored as a content-less `DIFF_UNREVIEWABLE`
+   * change entry (`diff_complete=false`, no before/after) so the change set is
+   * PARTIAL_BLOCKED (approval blocked) and the path is honestly surfaced, while
+   * its content never enters the ledger or storage. Never overlaps `casCaptures`.
+   */
+  readonly unreviewablePaths?: readonly string[];
 }): Promise<readonly GitCapturedChange[]> {
   const {
     status, gitRoot, executionId, changeSetId, baselineTree, harnessId, excludePaths,
-    casCaptures, storage,
+    casCaptures, storage, unreviewablePaths,
   } = opts;
 
   const { afterTree, changes: gitChanges } = await captureChangeSet(
@@ -158,15 +166,23 @@ export async function captureCandidateToLedger(opts: {
     if (casFiles.length > 0) casRef = snap.ref;
   }
 
-  // A turn that changed nothing (neither tracked nor ignored) authors no event.
-  if (gitChanges.length === 0 && casFiles.length === 0) return gitChanges;
+  const unreviewable = unreviewablePaths ?? [];
 
-  // One combined change set: git-tracked (inline bodies) + CAS (blob refs). The
-  // aggregate digest folds both (buildCandidateCapturedEvent sorts by file
-  // digest), so the reviewed diff and its identity span both substrates.
+  // A turn that changed nothing (no tracked/ignored change and no blocked path)
+  // authors no event.
+  if (gitChanges.length === 0 && casFiles.length === 0 && unreviewable.length === 0) {
+    return gitChanges;
+  }
+
+  // One combined change set: git-tracked (inline bodies) + CAS (blob refs) +
+  // secret-blocked (content-less, DIFF_UNREVIEWABLE). The aggregate digest folds
+  // all (buildCandidateCapturedEvent sorts by file digest), so the reviewed diff
+  // and its identity span every substrate; any content-less entry forces
+  // PARTIAL_BLOCKED so approval is blocked until the change is reviewable.
   const captured = [
     ...gitChanges.map((c) => buildCapturedFileChange(toCapturedChangeInput(changeSetId, c))),
     ...casFiles.map((f) => buildCapturedFileChange(casToCapturedChangeInput(changeSetId, f))),
+    ...unreviewable.map((p) => buildCapturedFileChange(unreviewableChangeInput(changeSetId, p))),
   ];
   const snapshot = casRef
     ? hybridSnapshotRef(afterTree, captureRef(executionId), casRef)
@@ -477,6 +493,26 @@ function casToCapturedChangeInput(
         }
       : undefined,
     diffComplete: file.diffComplete,
+  };
+}
+
+/**
+ * Map a secret-blocked gitignored path to a content-less `DIFF_UNREVIEWABLE`
+ * producer input (design doc 12). The bytes are deliberately never captured, so
+ * both sides are absent (empty enforcement digests) and `diffComplete=false`
+ * forces the change set to PARTIAL_BLOCKED — approval is blocked and the path is
+ * surfaced honestly, while its CONTENT never enters the ledger or storage. Kind
+ * is MODIFY: the write was blocked before it ran, so create-vs-modify is unknown
+ * and irrelevant (nothing is ever applied or reconciled for this entry).
+ */
+function unreviewableChangeInput(changeSetId: string, path: string): CapturedChangeInput {
+  return {
+    id: `${changeSetId}:${path}`,
+    pathBefore: path,
+    pathAfter: path,
+    kind: FileChangeKind.MODIFY,
+    captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+    diffComplete: false,
   };
 }
 

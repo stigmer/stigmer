@@ -369,3 +369,56 @@ describe("capture orchestration — hybrid git + CAS (Phase 3)", () => {
     ).rejects.toThrow(/requires an ArtifactStorage/);
   });
 });
+
+describe("capture orchestration — secret-blocked DIFF_UNREVIEWABLE (DD-E)", () => {
+  it("authors a content-less DIFF_UNREVIEWABLE entry that blocks approval and persists nothing", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+
+    await write("notes.md", "planton\n"); // a real git change alongside the block
+
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, storage,
+      unreviewablePaths: [".env"],
+    });
+
+    const byPath = new Map(candidateChanges(status).map((c) => [c.pathAfter || c.pathBefore, c]));
+    expect([...byPath.keys()].sort()).toEqual([".env", "notes.md"]);
+
+    const secret = byPath.get(".env")!;
+    expect(secret.captureClass).toBe(FileCaptureClass.GIT_IGNORED_CAPTURED);
+    expect(secret.diffComplete).toBe(false);
+    // No content and no enforcement digests: the bytes are never captured.
+    expect(secret.before).toBeUndefined();
+    expect(secret.after).toBeUndefined();
+    expect(secret.beforeSha256).toBe("");
+    expect(secret.afterSha256).toBe("");
+
+    // One incomplete file forces the whole set PARTIAL_BLOCKED (approval blocked).
+    expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+    // Nothing was persisted to storage for the blocked path.
+    expect(storage.blobs.size).toBe(0);
+  });
+
+  it("authors a CANDIDATE for an unreviewable-only turn (no git or CAS change)", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+
+    // The only thing that "happened" is a blocked secret write attempt.
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS,
+      unreviewablePaths: [".env"],
+    });
+
+    expect(eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)).toHaveLength(1);
+    expect(candidateChanges(status).map((c) => c.pathAfter)).toEqual([".env"]);
+    expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+  });
+});

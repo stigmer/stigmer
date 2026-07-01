@@ -9,13 +9,15 @@
  * incremental git writeback, and post-stream safety net.
  */
 
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { Context, CancelledFailure } from "@temporalio/activity";
 import { create, clone, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionPhase, FileChangeSetStatus, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase, FileCaptureClass, FileChangeSetStatus, FileReviewEventType, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
 import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
@@ -44,6 +46,9 @@ import {
   captureBaselineToLedger,
   captureCandidateToLedger,
 } from "../../shared/filereview/capture.js";
+import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
+import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
+import type { CasBeforeMap } from "./cas-capture-backend.js";
 import { toolApprovalCategory } from "../../shared/tool-kind.js";
 import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
 
@@ -180,6 +185,9 @@ export function createDeepAgentActivities(config: Config) {
           let reconciledAny = false;
           let reconcileFailed = false;
           let reconcileFailureDetail = "";
+          // The CAS blob reader reconciles ignored-file decisions from the durable
+          // manifest (git-only turns have no manifest, so the CAS branch no-ops).
+          const casReadBlob = casBlobReader(setup.artifactStorage);
           for (const changeSet of decidedSets) {
             const capResult = await applyCaptureDecisions({
               status: initialStatus,
@@ -187,6 +195,8 @@ export function createDeepAgentActivities(config: Config) {
               executionId,
               changeSet,
               harnessId: DEEP_AGENT_HARNESS_ID,
+              storage: setup.artifactStorage,
+              readBlob: casReadBlob,
             });
             if (!capResult.isCaptureTurn) continue;
             reconciledAny = true;
@@ -304,16 +314,34 @@ export function createDeepAgentActivities(config: Config) {
           !!result.terminalStatus &&
           initialStatus.phase !== ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
         if (setup.captureMode && !abnormalTerminal) {
-          const changes = await captureCandidateToLedger({
+          // Compose the ignored-path CAS captures (before-bytes from the observer,
+          // after-bytes re-read from disk) and the secret-blocked paths into the
+          // one hybrid change set alongside the git-tracked diff.
+          const { casCaptures, unreviewablePaths } = await buildCasTurnCaptures(
+            setup.casBeforeByPath,
+            setup.blockedSecretPaths,
+            gitRoot,
+          );
+          await captureCandidateToLedger({
             status: initialStatus,
             gitRoot,
             executionId,
             changeSetId,
             baselineTree: captureBaselineTree,
             harnessId: DEEP_AGENT_HARNESS_ID,
+            casCaptures,
+            storage: setup.artifactStorage,
+            unreviewablePaths,
           });
           hideFlowedFileEditRows(initialStatus.messages);
-          fileReviewPending = changes.length > 0;
+          // Review is pending iff a CANDIDATE was actually authored (the seam
+          // drops no-op captures), so a turn that only touched-then-unchanged an
+          // ignored file does not open an empty review.
+          fileReviewPending = (initialStatus.fileReviewEventStream?.events ?? []).some(
+            (e) =>
+              e.changeSetId === changeSetId &&
+              e.eventType === FileReviewEventType.CANDIDATE_CAPTURED,
+          );
         }
 
         if (result.terminalStatus) {
@@ -613,6 +641,49 @@ function hasPendingToolApprovals(execution: AgentExecution): boolean {
  * deep-agent has no deny gate, so every flowed file-edit row is collapsed. Uses
  * the shared {@link toolApprovalCategory} oracle and {@link hideToolCallRow} shape.
  */
+/**
+ * Assemble the turn's CAS captures and secret-blocked paths from the observer's
+ * pre-turn bytes and the gate's blocked set.
+ *
+ * For each observed gitignored path the after-bytes are re-read from disk (the
+ * authoritative net result of the turn; `null` when the file is gone). A path
+ * that is secret-like is diverted to `unreviewablePaths` and its before-bytes are
+ * dropped — the fail-closed backstop that holds even under the global bypass,
+ * where the gate did not run to block it up front. The result composes into one
+ * hybrid change set in {@link captureCandidateToLedger}.
+ */
+async function buildCasTurnCaptures(
+  casBeforeByPath: CasBeforeMap,
+  blockedSecretPaths: ReadonlySet<string>,
+  workspaceRoot: string,
+): Promise<{ casCaptures: CasPathCapture[]; unreviewablePaths: string[] }> {
+  const casCaptures: CasPathCapture[] = [];
+  const unreviewable = new Set<string>(blockedSecretPaths);
+  for (const [relPath, before] of casBeforeByPath) {
+    if (isSecretLikePath(relPath)) {
+      unreviewable.add(relPath);
+      continue;
+    }
+    const after = await readFileOrNull(join(workspaceRoot, relPath));
+    casCaptures.push({
+      path: relPath,
+      before,
+      after,
+      captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+    });
+  }
+  return { casCaptures, unreviewablePaths: [...unreviewable] };
+}
+
+/** Raw bytes of a file, or `null` when it does not exist (a DELETE). */
+async function readFileOrNull(absolutePath: string): Promise<Uint8Array | null> {
+  try {
+    return await readFile(absolutePath);
+  } catch {
+    return null;
+  }
+}
+
 function hideFlowedFileEditRows(messages: readonly AgentMessage[]): void {
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {

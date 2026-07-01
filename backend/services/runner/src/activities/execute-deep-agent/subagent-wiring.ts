@@ -70,7 +70,18 @@ export function buildSubAgentMiddleware(
   stack.push(createToolTruncationMiddleware(options.toolTruncation));
 
   if (options.approvalGate) {
-    stack.push(createApprovalGateMiddleware(options.approvalGate));
+    // Sub-agent gates must NOT flow gitignored edits into CAS: a sub-agent runs on
+    // its own filesystem backend, which the CAS observer does not wrap, so a
+    // flowed gitignored edit would apply unobserved, unreviewable bytes. Force the
+    // CAS routing off here (and drop the parent's blocked-secret sink) so
+    // gitignored paths stay on the interrupt gate for sub-agents, exactly as
+    // before. Sub-agent git-tracked edits are still captured by the
+    // backend-agnostic turn-boundary git diff.
+    stack.push(createApprovalGateMiddleware({
+      ...options.approvalGate,
+      captureIgnored: false,
+      recordBlockedSecret: undefined,
+    }));
   }
 
   if (options.costCap) {

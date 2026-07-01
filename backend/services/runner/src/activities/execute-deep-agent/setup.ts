@@ -8,7 +8,7 @@
  * the streaming phase needs.
  */
 
-import { createDeepAgent, FilesystemBackend, type FilesystemPermission } from "deepagents";
+import { createDeepAgent, type FilesystemPermission } from "deepagents";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import { z } from "zod";
@@ -30,6 +30,7 @@ import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
 import { CapturingFilesystemBackend } from "./capturing-filesystem-backend.js";
+import { CasCaptureFilesystemBackend, type CasBeforeMap } from "./cas-capture-backend.js";
 import { FileChangeCaptureBuffer } from "./file-change-buffer.js";
 import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-substrate.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
@@ -110,6 +111,19 @@ export interface SetupResult {
    * authoritative, so the wrapper is not installed and this buffer stays empty.
    */
   readonly fileChangeBuffer: FileChangeCaptureBuffer;
+  /**
+   * Pre-turn bytes of first-touched gitignored paths, recorded gate-independently
+   * by the capture-mode CAS observer. The turn boundary composes these into the
+   * CAS change set (design docs 08/11). Empty in the legacy (non-capture) path.
+   */
+  readonly casBeforeByPath: CasBeforeMap;
+  /**
+   * Gitignored paths the approval gate hard-blocked as secret-like (DD-E): the
+   * turn boundary authors a DIFF_UNREVIEWABLE entry for each (path only, never
+   * content). Empty under the global bypass (the gate is not installed) — the
+   * boundary re-classifies observed captures there as the fail-closed backstop.
+   */
+  readonly blockedSecretPaths: ReadonlySet<string>;
   /**
    * Apply-then-review capture mode: true when the workspace is a git work tree.
    * File edits flow during the turn and are reviewed post-hoc as a captured
@@ -203,6 +217,25 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         workspaceBackend.rootDir,
         resolveWorkspacePath(rawPath, workspaceBackend.rootDir, true).path,
       );
+
+    // CAS capture (design docs 08/11/12), for the .gitignored half of
+    // apply-then-review. Both the observer (gate-independent, at the mutation
+    // point) and the boundary key paths workspace-root-relative, so they align
+    // with the CAS reconcile's `join(workspaceRoot, path)`.
+    //  - casBeforeByPath: pre-turn bytes of first-touched gitignored paths.
+    //  - blockedSecretPaths: gitignored paths the gate refused as secret-like.
+    //  - isIgnoredPath: memoized `git check-ignore`, so the observer runs it at
+    //    most once per distinct path and holds only gitignored before-bytes.
+    const casBeforeByPath: CasBeforeMap = new Map();
+    const blockedSecretPaths = new Set<string>();
+    const ignoredPathCache = new Map<string, boolean>();
+    const isIgnoredPath = async (relPath: string): Promise<boolean> => {
+      const cached = ignoredPathCache.get(relPath);
+      if (cached !== undefined) return cached;
+      const ignored = !(await isPathCapturable(workspaceBackend.rootDir, relPath));
+      ignoredPathCache.set(relPath, ignored);
+      return ignored;
+    };
 
     // Step 7: Resolve and connect MCP servers
     const mcpServerUsages = [
@@ -360,12 +393,21 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
             executionId,
           ),
           executionId,
-          // Capture mode: git-tracked file edits flow and are reviewed post-hoc;
-          // gitignored edits + shell/MCP stay gated. Inherited verbatim by
-          // sub-agents (their edits land in the same work tree and are captured by
-          // the same turn-boundary diff).
+          // Capture mode: git-tracked file edits flow and are reviewed post-hoc.
+          // Gitignored edits flow into CAS (captureIgnored) on THIS parent gate;
+          // secret-like ones are hard-blocked (DD-E) and recorded for a
+          // DIFF_UNREVIEWABLE entry. shell/MCP stay gated. Sub-agents inherit this
+          // config but buildSubAgentMiddleware forces captureIgnored off (their
+          // backends are not CAS-observed) — their git-tracked edits are still
+          // captured by the backend-agnostic turn-boundary diff.
           fileCaptureMode: captureMode,
           isCapturablePath,
+          captureIgnored: captureMode,
+          recordBlockedSecret: (rawPath: string) => {
+            blockedSecretPaths.add(
+              resolveWorkspacePath(rawPath, workspaceBackend.rootDir, true).path,
+            );
+          },
         }
       : null;
 
@@ -462,13 +504,17 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     //    mutation is captured at the source, drained at tool-finished by the
     //    FileChangeCoordinator (see index.ts) — the race-free capture point for
     //    both stream versions, which share this backend.
-    //  - Capture mode (git work tree): edits flow to disk and the turn-boundary
-    //    git diff is the authoritative change set, so the wrapper and coordinator
-    //    are not used. Use the plain backend; the buffer stays empty (no dead
-    //    capture machinery in the hot path).
+    //  - Capture mode (git work tree): git-tracked edits flow to disk and the
+    //    turn-boundary git diff is authoritative (no legacy buffer/coordinator).
+    //    The CAS observer additionally records the pre-turn bytes of gitignored
+    //    paths (which git cannot see) so the boundary can capture them into CAS —
+    //    gate-independent, so it works even under the global bypass.
     const fileChangeBuffer = new FileChangeCaptureBuffer();
     const fileBackend = captureMode
-      ? new FilesystemBackend({ rootDir: workspaceBackend.rootDir })
+      ? new CasCaptureFilesystemBackend(
+          { rootDir: workspaceBackend.rootDir },
+          { collector: casBeforeByPath, isIgnored: isIgnoredPath },
+        )
       : new CapturingFilesystemBackend(
           { rootDir: workspaceBackend.rootDir },
           { buffer: fileChangeBuffer, reader: workspaceBackend },
@@ -529,6 +575,8 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       hasStructuredOutput: !!outputSchema,
       streamVersion,
       fileChangeBuffer,
+      casBeforeByPath,
+      blockedSecretPaths,
       captureMode,
     };
   } catch (err) {

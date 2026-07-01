@@ -54,6 +54,7 @@ import {
 } from "../shared/approval-policy.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
 import { extractFilePath } from "../shared/file-tools.js";
+import { isSecretLikePath } from "../shared/filereview/secret-paths.js";
 import {
   computeApprovalFingerprint,
   type FingerprintKey,
@@ -100,6 +101,26 @@ export interface ApprovalGateConfig {
    * deep-agent virtual-root path mapping). Absent ⇒ nothing is bypassed (safe).
    */
   readonly isCapturablePath?: (rawPath: string) => Promise<boolean>;
+  /**
+   * Route gitignored `write`/`edit` edits into CAS capture (apply-then-review)
+   * instead of the interrupt gate, applying the DD-E secret gate. When off, a
+   * gitignored path stays on the interrupt gate exactly as before.
+   *
+   * TRUE ONLY FOR THE PARENT GATE. Sub-agents build their own plain filesystem
+   * backends, which the CAS observer does not wrap, so flowing their gitignored
+   * edits would apply unobserved, unreviewable bytes. `buildSubAgentMiddleware`
+   * therefore forces this to false for sub-agent gates — it must NOT be inherited
+   * as true. (Sub-agent git-tracked edits are still captured by the turn-boundary
+   * git diff, which is backend-agnostic.)
+   */
+  readonly captureIgnored?: boolean;
+  /**
+   * Sink for a gitignored path hard-blocked as secret-like (DD-E): the write is
+   * never applied and never captured, and the turn boundary reads these paths to
+   * author a `DIFF_UNREVIEWABLE` change entry (path only — the name is not the
+   * secret; the CONTENT never leaves the workspace). Absent ⇒ nothing recorded.
+   */
+  readonly recordBlockedSecret?: (rawPath: string) => void;
 }
 
 interface ApprovalDecision {
@@ -138,10 +159,8 @@ export function createApprovalGateMiddleware(
 
       // Capture mode (git workspaces): a git-tracked built-in file mutation flows
       // during the turn and is reviewed post-hoc via the file_review ledger (the
-      // apply-then-review model). A gitignored path cannot be captured or reverted
-      // by the git substrate, so it stays gated below — the exact twin of the
-      // Cursor hook's __stigmer_is_gitignored allow-branch. shell and MCP tools
-      // (serverSlug present) are never bypassed here.
+      // apply-then-review model). shell and MCP tools (serverSlug present) are
+      // never bypassed here.
       if (
         config.fileCaptureMode &&
         config.isCapturablePath &&
@@ -149,10 +168,38 @@ export function createApprovalGateMiddleware(
         (category === "write" || category === "delete")
       ) {
         const path = extractFilePath(toolCall.args);
-        if (path !== null && (await config.isCapturablePath(path))) {
-          // Backing authorization: the edit flows and is reviewed post-hoc.
-          emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", "file_capture");
-          return await handler(request);
+        if (path !== null) {
+          if (await config.isCapturablePath(path)) {
+            // Git-tracked: flows and is reviewed post-hoc by the git substrate.
+            emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", "file_capture");
+            return await handler(request);
+          }
+          // Gitignored path. Only the PARENT gate (captureIgnored) routes it into
+          // CAS capture; sub-agent gates fall through to the interrupt gate below,
+          // exactly as before (their backends are not CAS-observed).
+          if (config.captureIgnored) {
+            if (isSecretLikePath(path)) {
+              // DD-E fail-closed: a secret-like gitignored edit is NEVER applied
+              // and NEVER captured. Record it so the turn boundary authors a
+              // DIFF_UNREVIEWABLE entry (blocking approval); nothing is written.
+              config.recordBlockedSecret?.(path);
+              return new ToolMessage({
+                content:
+                  `Tool '${toolName}' was blocked for security: '${path}' matches a ` +
+                  `secret-like path Stigmer will not capture for review. Nothing was written.`,
+                tool_call_id: toolCall.id,
+                name: toolName,
+              });
+            }
+            if (category === "write") {
+              // Non-secret gitignored write/edit: flows (apply-then-review). The
+              // CAS observer already holds its before-bytes and the turn boundary
+              // captures it into CAS. (A gitignored delete has no backend capture
+              // path, so it falls through to the interrupt gate.)
+              emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", "file_capture");
+              return await handler(request);
+            }
+          }
         }
       }
 

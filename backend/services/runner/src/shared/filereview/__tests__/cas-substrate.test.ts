@@ -10,13 +10,14 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { createServer } from "node:http";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   FileCaptureClass,
   FileChangeKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ArtifactStorage } from "../../artifact-storage.js";
+import { LocalArtifactStorage, type ArtifactStorage } from "../../artifact-storage.js";
 import { sha256Bytes } from "../digest.js";
 import {
   applyCasApproved,
@@ -334,6 +335,42 @@ describe("casBlobReader", () => {
     expect(got.toString("utf8")).toBe("hello");
 
     vi.unstubAllGlobals();
+  });
+});
+
+describe("casBlobReader — real LocalArtifactStorage serve path (OSS-local)", () => {
+  it("uploads, resolves the download URL, fetches over HTTP, and returns exact bytes", async () => {
+    const basePath = mkdtempSync(join(tmpdir(), "cas-serve-"));
+    // A minimal static server over the artifact base path — the OSS-local serve
+    // endpoint the reconcile fetches from. Uses the REAL global fetch (no mock),
+    // exercising the path unit tests with an injected reader never touch.
+    const server = createServer((req, res) => {
+      try {
+        const key = decodeURIComponent((req.url ?? "").replace(/^\/+/, ""));
+        res.writeHead(200);
+        res.end(readFileSync(join(basePath, key)));
+      } catch {
+        res.writeHead(404);
+        res.end();
+      }
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const addr = server.address();
+      const port = typeof addr === "object" && addr ? addr.port : 0;
+      const storage = new LocalArtifactStorage(basePath, `http://127.0.0.1:${port}`);
+
+      const payload = Buffer.from("SECRET_TREASURE=42\n", "utf8");
+      const key = casBlobKey(EXEC, sha256Bytes(payload));
+      await storage.upload(key, payload, "application/octet-stream");
+
+      const reader = casBlobReader(storage);
+      const got = await reader(key);
+      expect(got.equals(payload)).toBe(true);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      rmSync(basePath, { recursive: true, force: true });
+    }
   });
 });
 
