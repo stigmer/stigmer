@@ -177,3 +177,37 @@ func TargetDigest(cs *agentexecutionv1.FileChangeSet, scope agentexecutionv1.Fil
 	}
 	return cs.GetAggregateDigest()
 }
+
+// ApproveBlockedReason returns why an APPROVE of the decision's target must be
+// refused because its diff is not fully reviewable, or "" when the approve may
+// proceed. It is the completeness sibling of TargetDigest: the second
+// precondition SubmitFileDecision enforces before authoring a decision.
+//
+// The report rule (design docs 05 D3 / 11 D2): a non-COMPLETE diff can never be
+// kept as if complete, so an unreviewable target is not approvable. The caller
+// applies this to APPROVE only — REJECT is never gated, so an unreviewable change
+// stays discardable and the turn can still resume (liveness). FILE scope turns
+// on the one file's diff_complete; CHANGE_SET scope on the set's
+// diff_completeness, so a complete file inside a PARTIAL_BLOCKED set is still
+// approvable on its own. Fail-closed: an UNSPECIFIED completeness, an absent
+// change, or a nil set are all treated as not approvable. Enforcement only,
+// never a correlation key (mirrors TargetDigest's contract).
+func ApproveBlockedReason(cs *agentexecutionv1.FileChangeSet, scope agentexecutionv1.FileDecisionScope, fileChangeID string) string {
+	if cs == nil {
+		return "change set is not reviewable"
+	}
+	if scope == agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE {
+		c := FindChange(cs, fileChangeID)
+		if c == nil {
+			return "file change " + fileChangeID + " is not reviewable"
+		}
+		if !c.GetDiffComplete() {
+			return "file change " + fileChangeID + " cannot be approved: its diff is not fully reviewable (incomplete or binary); reject it to discard, or wait for a complete capture"
+		}
+		return ""
+	}
+	if cs.GetDiffCompleteness() != agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE {
+		return "change set " + cs.GetId() + " cannot be approved: at least one file's diff is not fully reviewable (incomplete or binary); reject the affected files or the whole set, or wait for a complete capture"
+	}
+	return ""
+}

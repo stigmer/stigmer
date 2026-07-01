@@ -170,6 +170,16 @@ func validateFileDecisionTarget(execution *agentexecutionv1.AgentExecution, inpu
 		}
 	}
 
+	// Completeness precondition: a non-COMPLETE diff can never be approved as if
+	// complete (report rule). Gated before the digest check — it holds even with a
+	// fresh digest — and only for APPROVE, so an unreviewable change stays
+	// discardable (REJECT) and the turn can still resume.
+	if input.GetAction() == agentexecutionv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE {
+		if reason := filereview.ApproveBlockedReason(cs, input.GetScope(), input.GetFileChangeId()); reason != "" {
+			return grpclib.FailedPreconditionError("%s", reason)
+		}
+	}
+
 	target := filereview.TargetDigest(cs, input.GetScope(), input.GetFileChangeId())
 	if input.GetExpectedDigest() != target {
 		return grpclib.InvalidArgumentError(

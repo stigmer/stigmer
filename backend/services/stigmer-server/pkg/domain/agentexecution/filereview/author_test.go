@@ -76,3 +76,50 @@ func TestTargetDigestSelectsByScope(t *testing.T) {
 		t.Errorf("FILE target digest = %q, want %q", got, "d-fc1")
 	}
 }
+
+// TestApproveBlockedReason locks the completeness precondition in lockstep with
+// the Java FileReviewStreamAuthorTest table: an APPROVE of an unreviewable target
+// is refused; a complete target (even inside a PARTIAL_BLOCKED set, via FILE
+// scope) is allowed; UNSPECIFIED/absent/nil are fail-closed.
+func TestApproveBlockedReason(t *testing.T) {
+	const (
+		fileScope = agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE
+		setScope  = agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_CHANGE_SET
+	)
+	// A set that mixes a reviewable and an unreviewable file — the per-target case.
+	setWith := func(completeness agentexecutionv1.DiffCompleteness) *agentexecutionv1.FileChangeSet {
+		return &agentexecutionv1.FileChangeSet{
+			Id:               "cs1",
+			DiffCompleteness: completeness,
+			Changes: []*agentexecutionv1.CapturedFileChange{
+				{Id: "fc-complete", DiffComplete: true},
+				{Id: "fc-incomplete", DiffComplete: false},
+			},
+		}
+	}
+
+	cases := []struct {
+		name        string
+		cs          *agentexecutionv1.FileChangeSet
+		scope       agentexecutionv1.FileDecisionScope
+		fileID      string
+		wantBlocked bool
+	}{
+		{"nil set is fail-closed", nil, setScope, "", true},
+		{"FILE scope, complete file in partial set is approvable", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-complete", false},
+		{"FILE scope, incomplete file is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-incomplete", true},
+		{"FILE scope, absent file is fail-closed", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE), fileScope, "nope", true},
+		{"CHANGE_SET scope, COMPLETE is approvable", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE), setScope, "", false},
+		{"CHANGE_SET scope, PARTIAL_BLOCKED is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), setScope, "", true},
+		{"CHANGE_SET scope, BINARY_SUMMARY_ONLY is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY), setScope, "", true},
+		{"CHANGE_SET scope, UNSPECIFIED is fail-closed", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_UNSPECIFIED), setScope, "", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			reason := ApproveBlockedReason(tc.cs, tc.scope, tc.fileID)
+			if blocked := reason != ""; blocked != tc.wantBlocked {
+				t.Errorf("ApproveBlockedReason = %q (blocked=%v), want blocked=%v", reason, blocked, tc.wantBlocked)
+			}
+		})
+	}
+}

@@ -406,6 +406,75 @@ func TestOffline_FileReview_ExpectedDigestMismatch_Rejected(t *testing.T) {
 	assert.Equal(t, content, harness.ReadWorkspaceFile(t, gitDir, path))
 }
 
+// TestOffline_FileReview_ApproveBlockedOnIncompleteDiff proves the completeness
+// gate end to end: a binary git-tracked file surfaces as a PARTIAL_BLOCKED change
+// set whose file is not reviewable, so an APPROVE is refused with
+// FAILED_PRECONDITION and leaves the set awaiting review, while a REJECT discards
+// it and completes. This is the honest "you cannot keep what you could not
+// review" contract wired through the real SubmitFileDecision RPC.
+func TestOffline_FileReview_ApproveBlockedOnIncompleteDiff(t *testing.T) {
+	requireOfflineService(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	gitDir := harness.NewGitWorkspace(t)
+	const path = "blob.bin"
+	// A NUL byte makes the captured content binary (looksBinary), so the runner
+	// flags the file diff_complete=false and the whole set PARTIAL_BLOCKED — the
+	// diff cannot be rendered for review.
+	const content = "\x00binary\x00payload\n"
+
+	mockLLM, clients, waiter, execID := startFileReviewRun(t, ctx, gitDir,
+		[]harness.RecordedLLMEntry{
+			writeFileTurn(0, "toolu_bin", path, content),
+			textTurn(1, "Wrote the binary asset."),
+		},
+		"Create the binary asset using the filesystem tools.")
+
+	waiting, err := waiter.WaitForFileReview(ctx, execID, 2*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, execID)
+		t.Fatalf("execution should reach file review: %v", err)
+	}
+	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
+	require.NotNil(t, set, "a binary create must still surface an AWAITING_REVIEW change set")
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, set.GetDiffCompleteness(),
+		"a binary file must mark the set PARTIAL_BLOCKED (its diff is not reviewable)")
+	ch := harness.FindCapturedChangeByPath(set, path)
+	require.NotNil(t, ch, "the binary file must be captured for review")
+	assert.False(t, ch.GetDiffComplete(), "the binary file must be flagged diff_complete=false")
+
+	// APPROVE is refused: a diff that was never reviewable cannot be kept.
+	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
+		AgentExecutionId: execID,
+		ChangeSetId:      set.GetId(),
+		Scope:            agentexecv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
+		FileChangeId:     ch.GetId(),
+		Action:           agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		ExpectedDigest:   ch.GetFileDigest(),
+	})
+	require.Error(t, err, "approving an unreviewable (binary) diff must be refused")
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err),
+		"an unreviewable-diff approval is a precondition failure, not INVALID_ARGUMENT")
+
+	// The execution is untouched: still awaiting review.
+	stillWaiting, err := clients.AgentExecutionQuery.Get(ctx, &agentexecv1.AgentExecutionId{Value: execID})
+	require.NoError(t, err)
+	harness.AssertAgentPhase(t, stillWaiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.NotNil(t, harness.FindFileChangeSet(stillWaiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW),
+		"a blocked approval must leave the set awaiting review")
+
+	// REJECT is always allowed: discard the unreviewable change and complete.
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, path,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_REJECT)
+	_, err = waiter.WaitForPhase(ctx, execID, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "rejecting the unreviewable change must complete the execution")
+	assert.False(t, harness.WorkspaceFileExists(t, gitDir, path),
+		"the rejected binary create must be snapped back (the file must not exist)")
+	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review decision must NOT re-invoke the model")
+}
+
 // TestOffline_FileReview_GitignoredStaysGated proves the gitignore-aware capture
 // gate: a write to a .gitignore'd path cannot be captured/reverted by the git
 // substrate, so it stays a true-paused TOOL approval — never a FileChangeSet.
