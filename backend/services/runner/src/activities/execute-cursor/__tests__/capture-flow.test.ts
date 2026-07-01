@@ -36,6 +36,7 @@ import {
   FileDecisionScope,
   FileReviewBlockReason,
   FileReviewEventType,
+  SnapshotKind,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
@@ -588,5 +589,153 @@ describe("hybrid capture (git-tracked + gitignored CAS)", () => {
     expect(result.rejectedPaths).toEqual(["build/out.log"]);
     // Snapped back byte-exact to the pre-turn content the hook staged.
     expect(await read("build/out.log")).toBe("BEFORE");
+  });
+});
+
+// Slice 2c: a NON-git Cursor workspace has no git snapshot, so the whole change
+// set is CAS (every touched path), classed NON_GIT_CAS, with a CAS_MANIFEST
+// baseline/candidate/reconcile. Exercised with the REAL staging script + a plain
+// (non-git) temp dir + an in-memory artifact store.
+describe("non-git workspace CAS-only capture (Slice 2c)", () => {
+  let ws: string;
+  let hitl: string;
+
+  /** Run the real staging script exactly as the hook does (salient on stdin). */
+  function stage(salient: string): void {
+    execFileSync(process.execPath, ["-e", buildObservationStagingScript(), ws, casObservationsDir(hitl)], {
+      input: salient,
+    });
+  }
+  async function wsRead(rel: string): Promise<string> {
+    return readFile(join(ws, rel), "utf-8");
+  }
+  async function wsWrite(rel: string, content: string): Promise<void> {
+    await mkdir(join(ws, rel, ".."), { recursive: true });
+    await writeFile(join(ws, rel), content, "utf-8");
+  }
+
+  beforeEach(async () => {
+    // A plain directory — deliberately NOT a git repo.
+    ws = await mkdtemp(join(tmpdir(), "stigmer-capflow-nongit-"));
+    hitl = await mkdtemp(join(tmpdir(), "stigmer-capflow-nongit-hitl-"));
+  });
+  afterEach(async () => {
+    await rm(ws, { recursive: true, force: true });
+    await rm(hitl, { recursive: true, force: true });
+  });
+
+  it("authors a CAS_MANIFEST baseline + NON_GIT_CAS candidate and reconciles approve/reject", async () => {
+    const status = newStatus();
+    const { storage } = makeInMemoryArtifactStorage();
+
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, gitWorkspace: false,
+    });
+    // No git tree to pin in a non-git workspace.
+    expect(baseline).toBe("");
+
+    // Two edits this turn: a MODIFY (before staged first) and an ADD.
+    await wsWrite("keep.txt", "OLD");
+    stage("keep.txt");
+    await wsWrite("keep.txt", "NEW");
+    stage("created.txt");
+    await wsWrite("created.txt", "X");
+
+    const changes = await captureTurnToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, messages: [], deniedTokens: new Set(),
+      hitlDir: hitl, storage, gitWorkspace: false,
+    });
+    // No git-tracked changes exist in a non-git workspace — the set is CAS-only.
+    expect(changes).toHaveLength(0);
+
+    const cand = candidateChanges(status);
+    const byPath = new Map(cand.map((c) => [c.pathAfter || c.pathBefore, c]));
+    expect([...byPath.keys()].sort()).toEqual(["created.txt", "keep.txt"]);
+    expect(byPath.get("keep.txt")!.captureClass).toBe(FileCaptureClass.NON_GIT_CAS);
+    expect(byPath.get("created.txt")!.captureClass).toBe(FileCaptureClass.NON_GIT_CAS);
+
+    const changeSet = decidedChangeSet(status, {
+      "keep.txt": FileDecisionAction.APPROVE,
+      "created.txt": FileDecisionAction.REJECT,
+    });
+    const result = await applyCaptureDecisions({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSet, storage, gitWorkspace: false,
+    });
+
+    expect(result.isCaptureTurn).toBe(true);
+    expect(result.failed).toBe(false);
+    expect(result.approvedPaths).toEqual(["keep.txt"]);
+    expect(result.rejectedPaths).toEqual(["created.txt"]);
+    // Approved kept at its "after" bytes; the rejected ADD is removed.
+    expect(await wsRead("keep.txt")).toBe("NEW");
+    await expect(readFile(join(ws, "created.txt"), "utf-8")).rejects.toThrow();
+
+    // RECONCILED authored with a CAS_MANIFEST snapshot (no git tree to re-pin).
+    const reconciled = eventsOfType(status, FileReviewEventType.RECONCILED);
+    expect(reconciled).toHaveLength(1);
+    if (reconciled[0].payload.case === "reconciled") {
+      expect(reconciled[0].payload.value.approvedSnapshot?.kind).toBe(SnapshotKind.CAS_MANIFEST);
+    }
+  });
+
+  it("labels a non-git secret-blocked path NON_GIT_CAS and blocks approval", async () => {
+    const status = newStatus();
+    const { storage } = makeInMemoryArtifactStorage();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, gitWorkspace: false,
+    });
+
+    await wsWrite("app.txt", "hi");
+    stage("app.txt");
+    stage(".env"); // secret-like -> a content-less marker only
+
+    await captureTurnToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, messages: [], deniedTokens: new Set(),
+      hitlDir: hitl, storage, gitWorkspace: false,
+    });
+
+    const cand = candidateChanges(status);
+    const env = cand.find((c) => (c.pathAfter || c.pathBefore) === ".env")!;
+    expect(env.captureClass).toBe(FileCaptureClass.NON_GIT_CAS);
+    expect(env.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
+    expect(env.after).toBeUndefined();
+  });
+
+  it("is durable across a sandbox recycle: reconciles from the manifest after the tree is wiped", async () => {
+    const status = newStatus();
+    const { storage } = makeInMemoryArtifactStorage();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, gitWorkspace: false,
+    });
+
+    await wsWrite("keep.txt", "OLD");
+    stage("keep.txt");
+    await wsWrite("keep.txt", "NEW");
+
+    await captureTurnToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, messages: [], deniedTokens: new Set(),
+      hitlDir: hitl, storage, gitWorkspace: false,
+    });
+
+    const changeSet = decidedChangeSet(status, { "keep.txt": FileDecisionAction.APPROVE });
+
+    // Simulate a sandbox recycle before resume: the whole working tree is gone,
+    // but the durable CAS manifest + blobs (artifact storage, a different
+    // durability domain) survive. Reconcile must re-materialize the approved bytes
+    // from them alone — never the live tree.
+    await rm(ws, { recursive: true, force: true });
+    await mkdir(ws, { recursive: true });
+
+    const result = await applyCaptureDecisions({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSet, storage, gitWorkspace: false,
+    });
+
+    expect(result.isCaptureTurn).toBe(true);
+    expect(result.failed).toBe(false);
+    expect(result.approvedPaths).toEqual(["keep.txt"]);
+    expect(await wsRead("keep.txt")).toBe("NEW");
   });
 });

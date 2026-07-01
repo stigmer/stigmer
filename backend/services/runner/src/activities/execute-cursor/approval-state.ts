@@ -187,6 +187,19 @@ export interface ApprovalStateFile {
    * the hook honors this switch even under the global bypass.
    */
   captureIgnored: boolean;
+  /**
+   * Whether the primary workspace is a git work tree (Slice 2c). Selects the
+   * hook's capture substrate:
+   *  - `true` (default): git tree — git-tracked write/edit/delete flow freely
+   *    (the runner captures them from the git diff at the turn boundary); only a
+   *    GITIGNORED write is CAS-staged (when `captureIgnored`), a gitignored delete
+   *    stays gated.
+   *  - `false`: non-git workspace — there is no git snapshot, so EVERY file write
+   *    is CAS-staged and flowed for review (`captureIgnored` is on in this mode),
+   *    a delete stays gated (no CAS delete-capture path, parity with the
+   *    deep-agent), and shell/MCP gate as always.
+   */
+  gitWorkspace: boolean;
 }
 
 /**
@@ -351,6 +364,7 @@ export function buildApprovalState(
   grants?: ApprovalGrant[],
   captureMode = false,
   captureIgnored = false,
+  gitWorkspace = true,
 ): ApprovalStateFile {
   const approvedGrants = grants ?? [];
 
@@ -373,6 +387,7 @@ export function buildApprovalState(
     approvedGrantTokens: approvedGrants.map((g) => primaryToken(g.key, g.salient, g.contentDigest)),
     captureMode,
     captureIgnored,
+    gitWorkspace,
   };
 }
 

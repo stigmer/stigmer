@@ -461,21 +461,32 @@ CAPTURE_IGNORED=false
 if echo "$STATE" | grep -q '"captureIgnored":true'; then
   CAPTURE_IGNORED=true
 fi
+# gitWorkspace selects the capture substrate (Slice 2c). Default true when the
+# key is absent (older state files). When false the workspace is NOT a git tree:
+# there is no git snapshot, so EVERY file write is CAS-staged below (not only
+# gitignored ones), the git-tracked flow arm is skipped, and a delete stays gated
+# (no CAS delete-capture path, parity with the deep-agent).
+GIT_WORKSPACE=true
+if echo "$STATE" | grep -q '"gitWorkspace":false'; then
+  GIT_WORKSPACE=false
+fi
 
-# --- Capture mode: observe gitignored writes for CAS review ------------------
+# --- Capture mode: observe CAS-owned writes for review ----------------------
 # Runs BEFORE the auto-approve-all shortcut and the grant/lease checks because
-# capture is a property of the TURN, not authorization: a non-secret gitignored
+# capture is a property of the TURN, not authorization: a non-secret CAS-owned
 # write must be staged and reviewed even under the global bypass, and a
-# secret-like gitignored write must be hard-blocked in every mode. Only a
-# built-in write/edit (category "write") on a gitignored path takes this arm;
-# gitignored deletes and shell/MCP stay on the deny-gate below (parity with the
-# deep-agent approval gate). The staging runs on the runner's own Node binary
-# (the disk-backed mirror of CasCaptureFilesystemBackend.recordBefore): the
-# salient path rides stdin (no argv escaping), the workspace root and the
-# per-turn cas-observations dir ride argv. "captured" -> allow (apply-then-
-# review); "secret" -> hard-block; "error"/Node-unavailable -> fail closed (deny,
-# since a write we cannot capture cannot be reviewed).
-if [ "$CAPTURE_IGNORED" = "true" ] && [ "$CATEGORY" = "write" ] && [ -n "$SALIENT" ] && __stigmer_is_gitignored "$SALIENT"; then
+# secret-like one must be hard-blocked in every mode. WHICH writes are CAS-owned
+# depends on the substrate: in a git tree it is only the GITIGNORED writes (git
+# captures the tracked ones); in a NON-GIT workspace it is EVERY write (there is
+# no git snapshot). Only a built-in write/edit (category "write") takes this arm;
+# deletes and shell/MCP stay on the deny-gate below (parity with the deep-agent
+# approval gate). The staging runs on the runner's own Node binary (the
+# disk-backed mirror of CasCaptureFilesystemBackend.recordBefore): the salient
+# path rides stdin (no argv escaping), the workspace root and the per-turn
+# cas-observations dir ride argv. "captured" -> allow (apply-then-review);
+# "secret" -> hard-block; "error"/Node-unavailable -> fail closed (deny, since a
+# write we cannot capture cannot be reviewed).
+if [ "$CAPTURE_IGNORED" = "true" ] && [ "$CATEGORY" = "write" ] && [ -n "$SALIENT" ] && { [ "$GIT_WORKSPACE" = "false" ] || __stigmer_is_gitignored "$SALIENT"; }; then
   OBS_DIR="$(dirname "$STATE_FILE")/${CAS_OBSERVATIONS_DIRNAME}"
   OBS_RESULT=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${observationStagingScript}' "$GIT_ROOT" "$OBS_DIR" 2>/dev/null || echo error)
   if [ "$OBS_RESULT" = "captured" ]; then
@@ -542,15 +553,17 @@ fi
 
 # --- 3. Gated built-in tools (preToolUse event, category non-empty) ---
 if [ -n "$CATEGORY" ]; then
-  # Capture mode: a git-tracked file mutation (write/edit/delete) flows freely —
-  # the runner captures the whole change set with git at the turn boundary and
-  # gates it per-file for review. A gitignored path is invisible to that git
-  # snapshot: a non-secret gitignored WRITE was already handled above (staged +
-  # allowed, or hard-blocked) when captureIgnored is on; here it only reaches the
-  # deny-gate when captureIgnored is off (no artifact storage) or it is a
-  # gitignored DELETE (no CAS capture path, parity with deep-agent). shell
-  # (category "shell") never takes this branch and stays gated as always.
-  if [ "$CAPTURE_MODE" = "true" ] && { [ "$CATEGORY" = "write" ] || [ "$CATEGORY" = "delete" ]; }; then
+  # Capture mode (GIT tree only): a git-tracked file mutation (write/edit/delete)
+  # flows freely — the runner captures the whole change set with git at the turn
+  # boundary and gates it per-file for review. A gitignored path is invisible to
+  # that git snapshot: a non-secret gitignored WRITE was already handled above
+  # (staged + allowed, or hard-blocked) when captureIgnored is on; here it only
+  # reaches the deny-gate when captureIgnored is off (no artifact storage) or it is
+  # a gitignored DELETE (no CAS capture path, parity with deep-agent). shell
+  # (category "shell") never takes this branch and stays gated as always. In a
+  # NON-GIT workspace this arm is skipped entirely (there is no git diff): writes
+  # were CAS-staged above and a delete falls through to the deny-gate.
+  if [ "$CAPTURE_MODE" = "true" ] && [ "$GIT_WORKSPACE" = "true" ] && { [ "$CATEGORY" = "write" ] || [ "$CATEGORY" = "delete" ]; }; then
     if ! __stigmer_is_gitignored "$SALIENT"; then
       echo '{"permission":"allow"}'
       exit 0

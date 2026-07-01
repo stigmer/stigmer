@@ -242,16 +242,21 @@ async function executeCursorInner(
     );
     heartbeat();
 
-    // Capture mode (git workspaces): when the primary workspace is a real git
-    // work tree, file edits flow during the turn and are captured per-file with
-    // git at the turn boundary for review (see capture-flow.ts /
-    // shared/filereview/git-substrate.ts);
-    // otherwise the classic deny-gate fires before each edit (the unchanged
-    // fallback). Detected once from the provisioned primary root.
+    // Apply-then-review is the universal file-review model (Slice 2c). When the
+    // primary workspace is a real git work tree, file edits flow during the turn
+    // and are captured per-file from the git diff at the turn boundary
+    // (capture-flow.ts / shared/filereview/git-substrate.ts). A NON-git workspace
+    // has no git snapshot, so it captures every file write via the path-scoped CAS
+    // substrate instead — which requires artifact storage to persist blobs; when
+    // storage is unavailable a non-git workspace falls back to the classic
+    // deny-gate (no regression). `gitWorkspace` selects the substrate; both flow
+    // file edits and review post-hoc, and the deny-gate then survives only for
+    // shell/MCP/irreversible tools. Detected once from the provisioned primary root.
     const primaryWorkspaceDir = blueprint.workspaceDirs[0];
-    const captureMode = primaryWorkspaceDir
+    const gitWorkspace = primaryWorkspaceDir
       ? await isGitWorkTree(primaryWorkspaceDir)
       : false;
+    const captureMode = !!primaryWorkspaceDir && (gitWorkspace || !!artifactStorage);
     // Pre-turn baseline tree, pinned before the agent runs (capture mode only)
     // so the turn-end capture diffs against it and the tree restores exactly.
     let baselineTree: string | undefined;
@@ -340,11 +345,12 @@ async function executeCursorInner(
             gitRoot: primaryWorkspaceDir,
             executionId,
             changeSet,
-            // Thread the CAS store so gitignored files in the change set reconcile
-            // from the durable manifest (approved after-blobs written, rejected
-            // snapped back). Undefined storage -> the shared CAS branch no-ops and
-            // only git-tracked files reconcile, exactly as before.
+            // Thread the CAS store so CAS-captured files in the change set
+            // reconcile from the durable manifest (approved after-blobs written,
+            // rejected snapped back). In a non-git workspace this is the ONLY
+            // reconcile; in a git tree it composes with the git-ref reconcile.
             storage: artifactStorage,
+            gitWorkspace,
           });
           if (!capResult.isCaptureTurn) continue;
           reconciledFileReview = true;
@@ -549,6 +555,7 @@ async function executeCursorInner(
         gitRoot: primaryWorkspaceDir,
         executionId,
         changeSetId,
+        gitWorkspace,
       });
     }
 
@@ -566,11 +573,14 @@ async function executeCursorInner(
         executionId,
       );
     }
-    // CAS capture of gitignored writes requires artifact storage to persist blobs
-    // (captureCandidateToLedger throws without it). captureMode alone (a git work
-    // tree) governs tracked-file capture, which needs no storage; captureIgnored
-    // is the narrower switch that also demands storage. When storage is absent,
-    // gitignored writes keep the classic deny-gate behavior (no regression).
+    // CAS capture requires artifact storage to persist blobs
+    // (captureCandidateToLedger throws without it). In a git tree, captureMode
+    // alone governs tracked-file capture (no storage needed) and captureIgnored is
+    // the narrower switch (git tree + storage) that also captures gitignored
+    // writes. In a non-git workspace ALL capture is CAS, so captureMode already
+    // required storage — captureIgnored then equals captureMode. When storage is
+    // absent a git tree keeps gating gitignored writes and a non-git workspace
+    // falls back to the deny-gate entirely (no regression).
     const captureIgnored = captureMode && !!artifactStorage;
     const approvalState = buildApprovalState(
       mergedPolicies,
@@ -579,6 +589,7 @@ async function executeCursorInner(
       approvalGrants,
       captureMode,
       captureIgnored,
+      gitWorkspace,
     );
     const hitlGate = await installHitlGate({
       workspaceRoot: primaryWorkspaceDir,
@@ -1148,7 +1159,10 @@ async function executeCursorInner(
     // (gitignored) write stays on the deny-gate path while every flowed edit is
     // captured to the ledger.
     let capturedChangeCount = 0;
-    if (captureMode && baselineTree && primaryWorkspaceDir) {
+    // `baselineTree !== undefined` means a baseline was authored this turn — the
+    // git tree sha for a git workspace, or "" (empty, but authored) for a non-git
+    // one. A plain truthiness check would wrongly skip the non-git capture.
+    if (captureMode && baselineTree !== undefined && primaryWorkspaceDir) {
       const deniedTokens = new Set(deniedLedger.map((e) => e.token));
       const captured = await captureTurnToLedger({
         status,
@@ -1158,12 +1172,14 @@ async function executeCursorInner(
         baselineTree,
         messages: status.messages,
         deniedTokens,
-        // The gitignored CAS half: read the sidecar the hook staged this turn and
-        // compose it into the hybrid change set. hitlDir + storage are present
-        // exactly when captureIgnored was on (git work tree + artifact storage);
-        // omitted otherwise, leaving a git-only capture.
+        // The CAS half: read the sidecar the hook staged this turn and compose it
+        // into the change set. hitlDir + storage are present when captureIgnored
+        // was on (a git tree's gitignored writes, or ALL writes in a non-git
+        // workspace). In a git tree this composes with the git diff (HYBRID); in a
+        // non-git workspace it IS the whole change set (CAS-only).
         hitlDir,
         storage: artifactStorage,
+        gitWorkspace,
       });
       capturedChangeCount = captured.length;
       if (capturedChangeCount > 0) {

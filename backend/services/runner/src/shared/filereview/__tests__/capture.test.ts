@@ -88,10 +88,17 @@ function decidedChangeSet(
         expectedDigest: c.fileDigest,
       }),
     );
+  // Carry the candidate snapshot too (as the server projection does), so a CAS-only
+  // reconcile can point RECONCILED back at the durable manifest. Git tests reconcile
+  // from git refs and ignore it.
+  const candEv = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
+  const candidateSnapshot =
+    candEv?.payload.case === "candidateCaptured" ? candEv.payload.value.candidateSnapshot : undefined;
   return create(FileChangeSetSchema, {
     id: CHANGE_SET_ID,
     changes,
     decisions,
+    candidateSnapshot,
     status: FileChangeSetStatus.DECIDED,
   });
 }
@@ -455,6 +462,252 @@ describe("capture orchestration — secret-blocked DIFF_UNREVIEWABLE (DD-E)", ()
 
     expect(eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)).toHaveLength(1);
     expect(candidateChanges(status).map((c) => c.pathAfter)).toEqual([".env"]);
+    expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+  });
+});
+
+// Slice 2a (DD-21 D2): the shared orchestration must capture and reconcile a
+// NON-GIT workspace entirely from the CAS manifest — no git refs, no whole-tree
+// snapshot, bounded to the paths the observer actually touched. These exercise
+// capture.ts directly against a plain (non-git) temp dir; the harness wirings
+// that flip `gitWorkspace=false` and observe all touched paths are slices 2b/2c.
+function reconcilerReadBlob(storage: { blobs: Map<string, Buffer> }): (key: string) => Promise<Buffer> {
+  return async (key: string): Promise<Buffer> => {
+    const b = storage.blobs.get(key);
+    if (!b) throw new Error(`missing ${key}`);
+    return b;
+  };
+}
+
+describe("capture orchestration — CAS-only non-git workspace (Slice 2a)", () => {
+  let ws: string;
+  beforeEach(async () => {
+    ws = await mkdtemp(join(tmpdir(), "stigmer-nongit-"));
+  });
+  afterEach(async () => {
+    await rm(ws, { recursive: true, force: true });
+  });
+
+  it("authors a CAS_MANIFEST baseline (returns \"\") + candidate with NON_GIT_CAS changes", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      harnessId: HARNESS, gitWorkspace: false,
+    });
+    // No git tree to pin — baseline is empty; the event still carries turn/harness
+    // (the projection's only source) and a CAS-kind snapshot placeholder.
+    expect(baseline).toBe("");
+    const baseEv = eventsOfType(status, FileReviewEventType.BASELINE_CAPTURED)[0];
+    expect(baseEv.payload.case).toBe("baselineCaptured");
+    if (baseEv.payload.case === "baselineCaptured") {
+      expect(baseEv.payload.value.harnessId).toBe(HARNESS);
+      expect(baseEv.payload.value.turnId).toBe(CHANGE_SET_ID);
+      expect(baseEv.payload.value.baselineSnapshot?.kind).toBe(SnapshotKind.CAS_MANIFEST);
+    }
+
+    await writeFile(join(ws, "app.log"), "new\n");
+    await captureCandidateToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, gitWorkspace: false, storage,
+      casCaptures: [
+        { path: "app.log", before: null, after: new TextEncoder().encode("new\n"), captureClass: FileCaptureClass.NON_GIT_CAS },
+      ],
+    });
+
+    expect(candidateSnapshotKind(status)).toBe(SnapshotKind.CAS_MANIFEST);
+    const cand = candidateChanges(status);
+    expect(cand.map((c) => c.pathAfter)).toEqual(["app.log"]);
+    expect(cand[0].captureClass).toBe(FileCaptureClass.NON_GIT_CAS);
+    expect(cand[0].kind).toBe(FileChangeKind.ADD);
+    // Bytes are offloaded to a content-addressed blob, never inlined.
+    expect(cand[0].after?.body.case).toBe("ref");
+    if (cand[0].after?.body.case === "ref") {
+      expect(storage.blobs.has(cand[0].after.body.value.storageKey)).toBe(true);
+    }
+  });
+
+  it("reconciles approve/reject from the manifest and authors a CAS_MANIFEST RECONCILED", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+    const readBlob = reconcilerReadBlob(storage);
+    const enc = (s: string) => new TextEncoder().encode(s);
+
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      harnessId: HARNESS, gitWorkspace: false,
+    });
+
+    // The turn's edits are already on disk (the "after" state the review shows).
+    await writeFile(join(ws, "created.txt"), "X");
+    await writeFile(join(ws, "edited.txt"), "NEW");
+    await captureCandidateToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, gitWorkspace: false, storage,
+      casCaptures: [
+        { path: "created.txt", before: null, after: enc("X"), captureClass: FileCaptureClass.NON_GIT_CAS },
+        { path: "edited.txt", before: enc("OLD"), after: enc("NEW"), captureClass: FileCaptureClass.NON_GIT_CAS },
+      ],
+    });
+
+    const changeSet = decidedChangeSet(status, {
+      "created.txt": FileDecisionAction.APPROVE,
+      "edited.txt": FileDecisionAction.REJECT,
+    });
+
+    const result = await applyCaptureDecisions({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+      gitWorkspace: false, storage, readBlob,
+    });
+
+    expect(result.isCaptureTurn).toBe(true);
+    expect(result.failed).toBe(false);
+    expect(result.approvedPaths).toEqual(["created.txt"]);
+    expect(result.rejectedPaths).toEqual(["edited.txt"]);
+
+    // Approved kept at its "after" bytes; rejected snapped back to "before".
+    expect(await readFile(join(ws, "created.txt"), "utf-8")).toBe("X");
+    expect(await readFile(join(ws, "edited.txt"), "utf-8")).toBe("OLD");
+
+    const reconciled = eventsOfType(status, FileReviewEventType.RECONCILED);
+    expect(reconciled).toHaveLength(1);
+    if (reconciled[0].payload.case === "reconciled") {
+      const snap = reconciled[0].payload.value.approvedSnapshot;
+      expect(snap?.kind).toBe(SnapshotKind.CAS_MANIFEST);
+      // Points back at the durable candidate manifest (the reconciled state is
+      // manifest + decisions; there is no tree to re-pin).
+      expect(snap?.cas?.artifactUri).not.toBe("");
+    }
+  });
+
+  it("a rejected ADD is removed; enforcement re-applies an approved file from the blob", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+    const readBlob = reconcilerReadBlob(storage);
+    const enc = (s: string) => new TextEncoder().encode(s);
+
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      harnessId: HARNESS, gitWorkspace: false,
+    });
+    await writeFile(join(ws, "keep.txt"), "KEEP");
+    await writeFile(join(ws, "drop.txt"), "DROP");
+    await captureCandidateToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, gitWorkspace: false, storage,
+      casCaptures: [
+        { path: "keep.txt", before: null, after: enc("KEEP"), captureClass: FileCaptureClass.NON_GIT_CAS },
+        { path: "drop.txt", before: null, after: enc("DROP"), captureClass: FileCaptureClass.NON_GIT_CAS },
+      ],
+    });
+
+    const changeSet = decidedChangeSet(status, {
+      "keep.txt": FileDecisionAction.APPROVE,
+      "drop.txt": FileDecisionAction.REJECT,
+    });
+
+    // Delete the approved file from disk first to prove reconcile re-applies it
+    // from the durable blob, not the live tree.
+    await rm(join(ws, "keep.txt"), { force: true });
+
+    const result = await applyCaptureDecisions({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+      gitWorkspace: false, storage, readBlob,
+    });
+
+    expect(result.failed).toBe(false);
+    expect(await readFile(join(ws, "keep.txt"), "utf-8")).toBe("KEEP");
+    // A rejected create is removed (it did not exist at baseline).
+    await expect(readFile(join(ws, "drop.txt"), "utf-8")).rejects.toThrow();
+  });
+
+  it("is not a capture turn when neither a git ref nor a CAS manifest exists", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+    const readBlob = reconcilerReadBlob(storage);
+    const changeSet = create(FileChangeSetSchema, { id: CHANGE_SET_ID, status: FileChangeSetStatus.DECIDED });
+
+    const result = await applyCaptureDecisions({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+      gitWorkspace: false, storage, readBlob,
+    });
+
+    expect(result.isCaptureTurn).toBe(false);
+    expect(eventsOfType(status, FileReviewEventType.RECONCILED)).toHaveLength(0);
+  });
+
+  // Slice 2d: durable across a sandbox recycle — the reconcile sources approved
+  // bytes ENTIRELY from the CAS manifest + blobs (a different durability domain
+  // than the workspace), so it converges even after the whole tree is wiped.
+  it("is durable across a sandbox recycle: reconciles from the manifest after the tree is wiped", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+    const readBlob = reconcilerReadBlob(storage);
+    const enc = (s: string) => new TextEncoder().encode(s);
+
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      harnessId: HARNESS, gitWorkspace: false,
+    });
+    await writeFile(join(ws, "keep.txt"), "NEW");
+    await captureCandidateToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, gitWorkspace: false, storage,
+      casCaptures: [
+        { path: "keep.txt", before: enc("OLD"), after: enc("NEW"), captureClass: FileCaptureClass.NON_GIT_CAS },
+      ],
+    });
+
+    const changeSet = decidedChangeSet(status, { "keep.txt": FileDecisionAction.APPROVE });
+
+    // Wipe the whole tree (sandbox recycle / Temporal retry on a fresh host).
+    await rm(ws, { recursive: true, force: true });
+    await mkdir(ws, { recursive: true });
+
+    const result = await applyCaptureDecisions({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+      gitWorkspace: false, storage, readBlob,
+    });
+
+    expect(result.isCaptureTurn).toBe(true);
+    expect(result.failed).toBe(false);
+    expect(result.approvedPaths).toEqual(["keep.txt"]);
+    expect(await readFile(join(ws, "keep.txt"), "utf-8")).toBe("NEW");
+  });
+
+  // Slice 2b: a non-git secret-blocked path must be labeled NON_GIT_CAS (not
+  // "gitignored"), so the review UI reports its true provenance while its content
+  // is still withheld (DD-E).
+  it("labels a non-git secret-blocked path NON_GIT_CAS and blocks approval", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      harnessId: HARNESS, gitWorkspace: false,
+    });
+
+    await writeFile(join(ws, "app.log"), "log\n");
+    await captureCandidateToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, gitWorkspace: false, storage,
+      casCaptures: [
+        { path: "app.log", before: null, after: new TextEncoder().encode("log\n"), captureClass: FileCaptureClass.NON_GIT_CAS },
+      ],
+      unreviewablePaths: [".env"],
+      unreviewableCaptureClass: FileCaptureClass.NON_GIT_CAS,
+    });
+
+    const byPath = new Map(candidateChanges(status).map((c) => [c.pathAfter || c.pathBefore, c]));
+    const blocked = byPath.get(".env")!;
+    expect(blocked.captureClass).toBe(FileCaptureClass.NON_GIT_CAS);
+    expect(blocked.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
+    expect(blocked.diffComplete).toBe(false);
+    // The blocked path never enters storage; only the reviewable log's blob does.
+    expect(blocked.before).toBeUndefined();
+    expect(blocked.after).toBeUndefined();
+    // One incomplete (non-binary) file forces PARTIAL_BLOCKED (approval blocked).
     expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
   });
 });

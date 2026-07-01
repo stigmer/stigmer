@@ -64,6 +64,8 @@ export function captureBaselineToLedger(opts: {
   readonly gitRoot: string;
   readonly executionId: string;
   readonly changeSetId: string;
+  /** True (default) for a git work tree; false for a CAS-only non-git workspace. */
+  readonly gitWorkspace?: boolean;
 }): Promise<string> {
   return sharedCaptureBaselineToLedger({
     ...opts,
@@ -77,11 +79,12 @@ export function captureBaselineToLedger(opts: {
  * streamed file-edit rows that flowed this turn so `file_change_sets` is the
  * single review surface. The working tree is LEFT applied (Cursor parity).
  *
- * The change set is HYBRID: git-tracked edits (diffed here) composed with the
- * gitignored writes the hook staged into the cas-observations sidecar this turn
- * ({@link readCasObservations}) — the Cursor analog of deep-agent's
- * `buildCasTurnCaptures`. Non-secret staged paths become `GIT_IGNORED_CAPTURED`
- * CAS captures (before-bytes from the sidecar, after-bytes re-read from disk);
+ * The change set is HYBRID (git tree) or CAS-only (non-git): the hook-staged
+ * writes from the cas-observations sidecar this turn ({@link readCasObservations})
+ * — the Cursor analog of deep-agent's `buildCasTurnCaptures` — composed with the
+ * git-tracked diff when `gitWorkspace`. Non-secret staged paths become
+ * `GIT_IGNORED_CAPTURED` (git tree) or `NON_GIT_CAS` (non-git) CAS captures
+ * (before-bytes from the sidecar, after-bytes re-read from disk);
  * secret-blocked paths become content-less `DIFF_UNREVIEWABLE` entries. The
  * boundary re-runs {@link partitionIgnoredPathsBySecret} as a fail-closed
  * backstop, so a secret that ever slipped into the captured set still has its
@@ -109,10 +112,28 @@ export async function captureTurnToLedger(opts: {
   readonly deniedTokens: ReadonlySet<string>;
   readonly hitlDir?: string;
   readonly storage?: ArtifactStorage;
+  /**
+   * True (default) for a git work tree — the candidate is the git diff composed
+   * with the gitignored CAS captures (`GIT_IGNORED_CAPTURED`). False for a non-git
+   * workspace (Slice 2c): there is no git diff, so the whole change set is the CAS
+   * captures the hook staged for EVERY touched path (`NON_GIT_CAS`).
+   */
+  readonly gitWorkspace?: boolean;
 }): Promise<readonly GitCapturedChange[]> {
   const { status, gitRoot, executionId, changeSetId, baselineTree, messages, deniedTokens, hitlDir, storage } = opts;
+  const gitWorkspace = opts.gitWorkspace ?? true;
 
-  const { casCaptures, unreviewablePaths } = await buildCasTurnCaptures(gitRoot, hitlDir, storage);
+  // The CAS substrate class for this turn's staged writes: gitignored paths in a
+  // git tree, all touched paths in a non-git workspace.
+  const casCaptureClass = gitWorkspace
+    ? FileCaptureClass.GIT_IGNORED_CAPTURED
+    : FileCaptureClass.NON_GIT_CAS;
+  const { casCaptures, unreviewablePaths } = await buildCasTurnCaptures(
+    gitRoot,
+    hitlDir,
+    storage,
+    casCaptureClass,
+  );
 
   const changes = await sharedCaptureCandidateToLedger({
     status,
@@ -125,6 +146,8 @@ export async function captureTurnToLedger(opts: {
     casCaptures,
     storage,
     unreviewablePaths,
+    unreviewableCaptureClass: casCaptureClass,
+    gitWorkspace,
   });
 
   // Single review surface: the per-file edits now live on the file_review ledger
@@ -138,20 +161,23 @@ export async function captureTurnToLedger(opts: {
 }
 
 /**
- * Compose this turn's gitignored CAS captures from the sidecar the hook staged,
- * mirroring deep-agent's `buildCasTurnCaptures`: for each non-secret observed
- * path, the before-bytes come from the sidecar and the after-bytes are re-read
- * from disk now (`null` = the file was removed after the write). Secret-blocked
- * paths are returned as `unreviewablePaths`. The secret partition is re-run as a
- * fail-closed backstop over the observed set.
+ * Compose this turn's CAS captures from the sidecar the hook staged, mirroring
+ * deep-agent's `buildCasTurnCaptures`: for each non-secret observed path, the
+ * before-bytes come from the sidecar and the after-bytes are re-read from disk now
+ * (`null` = the file was removed after the write). Secret-blocked paths are
+ * returned as `unreviewablePaths`. The secret partition is re-run as a
+ * fail-closed backstop over the observed set. `captureClass` labels each captured
+ * path's provenance (GIT_IGNORED_CAPTURED for a git tree's ignored paths,
+ * NON_GIT_CAS for a non-git workspace).
  *
  * Returns empty when the harness has no storage (captureIgnored off) or the
- * sidecar is empty — a git-only turn, leaving the shared capture unchanged.
+ * sidecar is empty — leaving the shared capture unchanged.
  */
 async function buildCasTurnCaptures(
   gitRoot: string,
   hitlDir: string | undefined,
   storage: ArtifactStorage | undefined,
+  captureClass: FileCaptureClass,
 ): Promise<{ casCaptures: CasPathCapture[]; unreviewablePaths: string[] }> {
   if (!hitlDir || !storage) return { casCaptures: [], unreviewablePaths: [] };
 
@@ -169,7 +195,7 @@ async function buildCasTurnCaptures(
       path: relPath,
       before: beforeByPath.get(relPath) ?? null,
       after,
-      captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+      captureClass,
     });
   }
   return { casCaptures, unreviewablePaths: [...unreviewablePaths] };
@@ -202,6 +228,12 @@ export function applyCaptureDecisions(opts: {
   readonly executionId: string;
   readonly changeSet: FileChangeSet;
   readonly storage?: ArtifactStorage;
+  /**
+   * True (default) for a git work tree; false for a CAS-only non-git workspace
+   * (Slice 2c). When false the reconcile never consults git refs — it is driven
+   * entirely by the durable CAS manifest.
+   */
+  readonly gitWorkspace?: boolean;
 }): Promise<CaptureResumeResult> {
   const { storage, ...rest } = opts;
   return sharedApplyCaptureDecisions({

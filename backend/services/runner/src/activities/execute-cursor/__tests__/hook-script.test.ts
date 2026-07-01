@@ -510,6 +510,66 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
+  // Slice 2c: a NON-git workspace has no git snapshot, so EVERY file write is
+  // CAS-staged and flowed for review (not only gitignored ones), a delete stays
+  // gated (no CAS delete-capture path, parity with the deep-agent), and shell/MCP
+  // gate as always. The workspace is deliberately NOT git-initialized.
+  describe("non-git workspace CAS capture (Slice 2c)", () => {
+    it("stages EVERY write (not just gitignored) and allows it, no denial", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      writeFileSync(join(h.root, "notes.md"), "ORIGINAL", "utf-8");
+      expect(h.decide(hookWrite("notes.md", "NEW")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+      const obs = await h.observations();
+      expect(obs.secretPaths).toEqual([]);
+      expect(obs.captured).toHaveLength(1);
+      expect(obs.captured[0].path).toBe("notes.md");
+      expect(Buffer.from(obs.captured[0].before!).toString("utf8")).toBe("ORIGINAL");
+    });
+
+    it("stages an ADD (before=null) and allows it", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      expect(h.decide(hookWrite("created.ts", "x")).permission).toBe("allow");
+      const obs = await h.observations();
+      expect(obs.captured).toHaveLength(1);
+      expect(obs.captured[0].before).toBeNull();
+    });
+
+    it("hard-blocks a secret-like write and records NO denial-ledger entry", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      const dcn = h.decide(hookWrite(".env", "API_KEY=abc"));
+      expect(dcn.permission).toBe("deny");
+      expect(dcn.raw).toContain("blocked for security");
+      expect(h.ledger()).toEqual([]);
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+      expect(obs.secretPaths).toEqual([".env"]);
+    });
+
+    it("still gates a DELETE (deny-gate, parity with deep-agent) and stages nothing", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      expect(h.decide(hookDelete("notes.md")).permission).toBe("deny");
+      expect(h.ledger()).toHaveLength(1);
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+    });
+
+    it("still gates shell (never git-reversible, never CAS-captured)", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      expect(h.decide(hookShell("rm -rf /")).permission).toBe("deny");
+    });
+
+    it("still gates a require-approval MCP tool", async () => {
+      const h = setup({
+        captureMode: true,
+        captureIgnored: true,
+        gitWorkspace: false,
+        mcpPolicies: { click: { requiresApproval: true } },
+      });
+      expect(h.decide(hookMcp("click")).permission).toBe("deny");
+    });
+  });
+
   it("still denies gated tools via the bash fallback when the Node binary is unavailable", () => {
     const ws = mkdtempSync(join(tmpdir(), "hook-script-fallback-"));
     onTestFinished(() => rmSync(ws, { recursive: true, force: true }));

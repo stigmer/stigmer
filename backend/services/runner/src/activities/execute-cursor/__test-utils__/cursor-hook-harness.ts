@@ -94,6 +94,13 @@ export interface CursorHookHarnessOptions {
    * {@link captureMode} or {@link gitignored}).
    */
   captureIgnored?: boolean;
+  /**
+   * Whether the workspace is a git tree (Slice 2c). Default true. When false the
+   * throwaway workspace is NOT git-initialized and the state's `gitWorkspace` flag
+   * is false, so the hook CAS-stages EVERY write (not only gitignored ones) and
+   * skips the git-tracked flow arm.
+   */
+  gitWorkspace?: boolean;
 }
 
 /**
@@ -104,8 +111,10 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
   const ws = mkdtempSync(join(tmpdir(), "hook-script-"));
   onTestFinished(() => rmSync(ws, { recursive: true, force: true }));
 
-  // Capture-mode tests need a real git repo so `git check-ignore` resolves.
-  if (opts.captureMode || opts.gitignored) {
+  // Capture-mode tests need a real git repo so `git check-ignore` resolves. A
+  // non-git test (gitWorkspace:false) deliberately leaves the workspace un-inited
+  // so the hook's substrate matches the state's gitWorkspace flag.
+  if ((opts.captureMode || opts.gitignored) && opts.gitWorkspace !== false) {
     execSync("git init -q", { cwd: ws });
     if (opts.gitignored && opts.gitignored.length > 0) {
       writeFileSync(join(ws, ".gitignore"), opts.gitignored.join("\n") + "\n", "utf-8");
@@ -152,6 +161,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       opts.grants,
       opts.captureMode ?? false,
       opts.captureIgnored ?? false,
+      opts.gitWorkspace ?? true,
     );
     writeFileSync(statePath, JSON.stringify(state), "utf-8");
   }

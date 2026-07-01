@@ -197,6 +197,7 @@ export function createDeepAgentActivities(config: Config) {
               harnessId: DEEP_AGENT_HARNESS_ID,
               storage: setup.artifactStorage,
               readBlob: casReadBlob,
+              gitWorkspace: setup.gitWorkspace,
             });
             if (!capResult.isCaptureTurn) continue;
             reconciledAny = true;
@@ -261,6 +262,7 @@ export function createDeepAgentActivities(config: Config) {
             executionId,
             changeSetId,
             harnessId: DEEP_AGENT_HARNESS_ID,
+            gitWorkspace: setup.gitWorkspace,
           });
         }
 
@@ -314,12 +316,20 @@ export function createDeepAgentActivities(config: Config) {
           !!result.terminalStatus &&
           initialStatus.phase !== ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
         if (setup.captureMode && !abnormalTerminal) {
-          // Compose the ignored-path CAS captures (before-bytes from the observer,
+          // Compose the CAS-captured paths (before-bytes from the observer,
           // after-bytes re-read from disk) and the secret-blocked paths into the
-          // one hybrid change set alongside the git-tracked diff.
+          // change set. The substrate class labels their provenance:
+          // GIT_IGNORED_CAPTURED for a git tree's ignored paths, NON_GIT_CAS for a
+          // non-git workspace (where these ARE the whole change set). In a git turn
+          // they compose with the git-tracked diff into one hybrid set; in a non-git
+          // turn they are the entire (CAS-only) set.
+          const casCaptureClass = setup.gitWorkspace
+            ? FileCaptureClass.GIT_IGNORED_CAPTURED
+            : FileCaptureClass.NON_GIT_CAS;
           const { casCaptures, unreviewablePaths } = await buildCasTurnCaptures(
             setup.casObserver,
             gitRoot,
+            casCaptureClass,
           );
           await captureCandidateToLedger({
             status: initialStatus,
@@ -331,6 +341,8 @@ export function createDeepAgentActivities(config: Config) {
             casCaptures,
             storage: setup.artifactStorage,
             unreviewablePaths,
+            unreviewableCaptureClass: casCaptureClass,
+            gitWorkspace: setup.gitWorkspace,
           });
           hideFlowedFileEditRows(initialStatus.messages);
           // Review is pending iff a CANDIDATE was actually authored (the seam
@@ -645,16 +657,21 @@ function hasPendingToolApprovals(execution: AgentExecution): boolean {
  * observer (the pre-turn bytes recorded by the parent AND every sub-agent CAS
  * backend, plus the gate's secret-blocked set).
  *
- * For each observed gitignored path the after-bytes are re-read from disk (the
+ * For each observed CAS-owned path the after-bytes are re-read from disk (the
  * authoritative net result of the turn; `null` when the file is gone). A path
  * that is secret-like is diverted to `unreviewablePaths` and its before-bytes are
  * dropped — the fail-closed backstop that holds even under the global bypass,
- * where the gate did not run to block it up front. The result composes into one
- * hybrid change set in {@link captureCandidateToLedger}.
+ * where the gate did not run to block it up front. The result composes into the
+ * change set in {@link captureCandidateToLedger}.
+ *
+ * `captureClass` is the turn's CAS substrate class — GIT_IGNORED_CAPTURED for a
+ * git work tree's ignored paths, NON_GIT_CAS for a non-git workspace (where these
+ * ARE the whole change set) — so each captured path carries its true provenance.
  */
 async function buildCasTurnCaptures(
   observer: CasCaptureObserver,
   workspaceRoot: string,
+  captureClass: FileCaptureClass,
 ): Promise<{ casCaptures: CasPathCapture[]; unreviewablePaths: string[] }> {
   // The secret partition (pure, corpus-lockable) decides what may be captured;
   // this shell only performs the IO for the capturable set. The backstop that
@@ -670,7 +687,7 @@ async function buildCasTurnCaptures(
       path: relPath,
       before: observer.before.get(relPath) ?? null,
       after,
-      captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+      captureClass,
     });
   }
   return { casCaptures, unreviewablePaths: [...unreviewablePaths] };

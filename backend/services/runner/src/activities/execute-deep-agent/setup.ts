@@ -122,12 +122,20 @@ export interface SetupResult {
    */
   readonly casObserver: CasCaptureObserver;
   /**
-   * Apply-then-review capture mode: true when the workspace is a git work tree.
-   * File edits flow during the turn and are reviewed post-hoc as a captured
+   * Apply-then-review capture mode. Universal in the native harness (Slice 2b):
+   * file edits flow during the turn and are reviewed post-hoc as a captured
    * `FileChangeSet` (the activity authors the baseline/candidate ledger events and
-   * reconciles on resume). False keeps the classic true-pause file gate.
+   * reconciles on resume), for both git and non-git workspaces. The deny-gate then
+   * covers only shell/MCP/irreversible tools, never file writes.
    */
   readonly captureMode: boolean;
+  /**
+   * True when the workspace is a git work tree. Selects the capture SUBSTRATE for
+   * this turn: git-diff (pinned baseline/after trees) when true; content-addressed
+   * CAS manifest (path-scoped to touched paths) when false. Threaded into the
+   * baseline/candidate/reconcile seam (`capture.ts`) and the CAS capture-class.
+   */
+  readonly gitWorkspace: boolean;
 }
 
 export interface SetupDependencies {
@@ -201,32 +209,51 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       sessionId,
     );
 
-    // Apply-then-review capture mode: a git work tree lets file edits flow during
-    // the turn and be reviewed post-hoc against a captured baseline -> candidate
-    // diff (reconciled byte-exactly on resume). A non-git workspace keeps the
-    // classic true-pause file gate. The capturability predicate (git check-ignore,
-    // via the deep-agent virtual-root path mapping) lets the gate flow only
-    // git-tracked edits; a gitignored path stays gated (the git substrate cannot
-    // capture or revert it).
-    const captureMode = await isGitWorkTree(workspaceBackend.rootDir);
-    const isCapturablePath = (rawPath: string): Promise<boolean> =>
-      isPathCapturable(
-        workspaceBackend.rootDir,
-        resolveWorkspacePath(rawPath, workspaceBackend.rootDir, true).path,
-      );
+    // Apply-then-review is the UNIVERSAL file-review model in the native harness
+    // (DD-21 D2, Slice 2b): file edits flow during the turn and are reviewed
+    // post-hoc as a captured `FileChangeSet` (reconciled byte-exactly on resume),
+    // never gated before they run. Only the capture SUBSTRATE differs, selected by
+    // `gitWorkspace`:
+    //   - a git work tree diffs a pinned baseline -> candidate tree (git-substrate),
+    //     and routes its .gitignored edits into the path-scoped CAS observer;
+    //   - a non-git workspace has no git snapshot at all, so EVERY touched path is
+    //     captured into the content-addressed CAS manifest (cas-substrate),
+    //     path-scoped to what the agent actually wrote.
+    // The deny-gate then survives only for shell/MCP/irreversible tools, never for
+    // file writes.
+    const gitWorkspace = await isGitWorkTree(workspaceBackend.rootDir);
+    const captureMode: boolean = true;
 
-    // CAS capture (design docs 08/11/12), for the .gitignored half of
+    // Git-tracked capturability, consulted by the gate to route a file write to
+    // disk-and-git-diff (tracked) vs into CAS (ignored). Only meaningful in a git
+    // work tree. In a non-git workspace nothing is "git-capturable" (there is no
+    // snapshot), so this resolves false for every path and the gate routes all
+    // file writes through its captureIgnored (CAS) arm.
+    const isCapturablePath = gitWorkspace
+      ? (rawPath: string): Promise<boolean> =>
+          isPathCapturable(
+            workspaceBackend.rootDir,
+            resolveWorkspacePath(rawPath, workspaceBackend.rootDir, true).path,
+          )
+      : (_rawPath: string): Promise<boolean> => Promise.resolve(false);
+
+    // CAS capture (design docs 08/11/12): the content-addressed half of
     // apply-then-review. The single per-turn observer owns the before-bytes of
-    // first-touched gitignored paths AND the secret-blocked paths, keyed
+    // first-touched CAS-owned paths AND the secret-blocked paths, keyed
     // workspace-root-relative so they align with the CAS reconcile's
     // `join(workspaceRoot, path)`. It is shared by the parent AND every sub-agent
     // CAS backend, giving race-free first-touch-wins across concurrent graphs.
-    // Its gitignore predicate is memoized, so `git check-ignore` runs at most
-    // once per distinct path.
+    // Its ownership predicate is memoized, so `git check-ignore` runs at most once
+    // per distinct path.
     const casObserver = new CasCaptureObserver({
       rootDir: workspaceBackend.rootDir,
-      isIgnored: async (relPath) =>
-        !(await isPathCapturable(workspaceBackend.rootDir, relPath)),
+      // Which touched paths the observer owns (records pre-turn bytes for). In a
+      // git work tree that is the .gitignored set only — git captures the tracked
+      // ones. In a non-git workspace there is no git substrate, so the observer
+      // owns EVERY touched path; the CAS manifest is the sole capture surface.
+      isIgnored: gitWorkspace
+        ? async (relPath) => !(await isPathCapturable(workspaceBackend.rootDir, relPath))
+        : async () => true,
     });
 
     // Step 7: Resolve and connect MCP servers
@@ -385,13 +412,15 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
             executionId,
           ),
           executionId,
-          // Capture mode: git-tracked file edits flow and are reviewed post-hoc.
-          // Gitignored edits flow into CAS (captureIgnored) on THIS parent gate;
-          // secret-like ones are hard-blocked (DD-E) and recorded for a
+          // Capture mode: file edits flow and are reviewed post-hoc. In a git work
+          // tree, git-tracked edits flow to the git diff and .gitignored edits flow
+          // into CAS (captureIgnored) on THIS parent gate; in a non-git workspace
+          // isCapturablePath is always false, so ALL file writes take the CAS arm.
+          // Secret-like paths are hard-blocked (DD-E) and recorded for a
           // DIFF_UNREVIEWABLE entry. shell/MCP stay gated. Sub-agents inherit this
           // config; buildSubAgentMiddleware sets their captureIgnored explicitly
           // from whether a CAS observer backs the sub-agent (Session 26, DD-19),
-          // so their gitignored edits flow into the SAME observer.
+          // so their captured edits flow into the SAME observer.
           fileCaptureMode: captureMode,
           isCapturablePath,
           captureIgnored: captureMode,
@@ -454,12 +483,11 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         skillClient: client,
         workspaceBackend,
         approvalGate: approvalGateConfig,
-        // In capture mode, give every sub-agent a CAS-observing backend wired to
-        // the SAME per-turn observer as the parent, so their gitignored writes are
-        // captured for review (Session 26, DD-19). Absent (undefined) outside
-        // capture mode, where sub-agents keep the plain filesystem backend and the
-        // classic gitignored deny-gate.
-        casObserver: captureMode ? casObserver : undefined,
+        // Capture is universal (Slice 2b), so every sub-agent gets a CAS-observing
+        // backend wired to the SAME per-turn observer as the parent — their
+        // captured writes (.gitignored in a git tree, all touched paths in a
+        // non-git one) compose into the parent's change set (Session 26, DD-19).
+        casObserver,
         parentModelName: modelName,
         parentHasNativeThinking: _modelHasNativeThinking(modelName),
         costCap: costCapMiddleware ?? undefined,
@@ -493,16 +521,18 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       { operations: ["write"], paths: ["/**"], mode: "deny" },
     ];
 
-    // File capture point.
-    //  - Legacy (non-git) mode: wrap the backend so before/after of every
-    //    mutation is captured at the source, drained at tool-finished by the
-    //    FileChangeCoordinator (see index.ts) — the race-free capture point for
-    //    both stream versions, which share this backend.
-    //  - Capture mode (git work tree): git-tracked edits flow to disk and the
-    //    turn-boundary git diff is authoritative (no legacy buffer/coordinator).
-    //    The CAS observer additionally records the pre-turn bytes of gitignored
-    //    paths (which git cannot see) so the boundary can capture them into CAS —
-    //    gate-independent, so it works even under the global bypass.
+    // File capture point. Apply-then-review is universal (Slice 2b), so the
+    // CAS-observing backend is always installed: git-tracked edits flow to disk
+    // (the turn-boundary git diff is authoritative), and the shared CAS observer
+    // records the pre-turn bytes of every CAS-owned path — .gitignored paths in a
+    // git work tree, all touched paths in a non-git one — so the boundary can
+    // capture them into CAS. It is gate-independent, so it holds even under the
+    // global bypass.
+    //
+    // The legacy FileChangeCaptureBuffer + CapturingFilesystemBackend below are
+    // now unreachable at runtime (the ternary always takes the capture arm); they
+    // survive only for their standalone unit surface and are removed together with
+    // `ToolCall.file_changes` in Slice 4 (DD-21 D1).
     const fileChangeBuffer = new FileChangeCaptureBuffer();
     const fileBackend = captureMode
       ? new CasCaptureFilesystemBackend(
@@ -571,6 +601,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       fileChangeBuffer,
       casObserver,
       captureMode,
+      gitWorkspace,
     };
   } catch (err) {
     if (mcpConnection) {
