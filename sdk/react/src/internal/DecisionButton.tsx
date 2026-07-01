@@ -30,6 +30,12 @@ export interface DecisionButtonProps {
   readonly className?: string;
   /** Stable hook for e2e/visual targeting (`data-cursor-target`). */
   readonly cursorTarget?: string;
+  /**
+   * Id of an element that explains this button — wired to `aria-describedby` so a
+   * disabled, structurally-unavailable action (e.g. approving an unreviewable
+   * change) is associated with the notice stating why.
+   */
+  readonly ariaDescribedby?: string;
 }
 
 const BASE = cn(
@@ -81,6 +87,7 @@ export function DecisionButton({
   disabled = false,
   className,
   cursorTarget,
+  ariaDescribedby,
 }: DecisionButtonProps) {
   return (
     <button
@@ -88,6 +95,7 @@ export function DecisionButton({
       disabled={isSubmitting || disabled}
       onClick={onClick}
       aria-label={label}
+      aria-describedby={ariaDescribedby}
       data-cursor-target={cursorTarget}
       className={cn(BASE, VARIANT[variant], className)}
     >

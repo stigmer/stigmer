@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type {
   CapturedFileChange,
@@ -11,6 +11,7 @@ import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecut
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   DiffCompleteness,
+  FileCaptureClass,
   FileChangeCaptureLevel,
   FileChangeKind,
   FileChangeType,
@@ -23,6 +24,7 @@ import { DiffSummary } from "../version-history/DiffSummary";
 import { DecisionButton } from "../internal/DecisionButton";
 import { InCardDecisionError } from "../internal/InCardDecisionError";
 import { fileDecisionKey, type FileDecisionOptions } from "./useFileReview";
+import { fileReviewability, type FileReviewability } from "./file-review-status";
 
 /** A stable empty set so the default `submittingDecisionKeys` keeps a constant ref. */
 const NO_KEYS: ReadonlySet<string> = new Set();
@@ -83,7 +85,16 @@ export interface FileReviewCardProps {
  * An incomplete diff (`diff_completeness != COMPLETE`) cannot be approved as a
  * whole set — the Approve button is disabled with an explanation. For a
  * multi-file set the per-file path is the escape: keep the reviewable files and
- * discard the binary/truncated one.
+ * discard the ones that cannot be reviewed.
+ *
+ * Each non-reviewable file is labeled honestly by {@link fileReviewability}: a
+ * `binary` change has no text diff to review; an `unavailable` change is one
+ * whose diff isn't available at all (deliberately cause-agnostic — the wire
+ * cannot distinguish a secret-withheld diff from one dropped to bound the
+ * status). Both are discard-only, and their Keep affordance is disabled with the
+ * reason associated via `aria-describedby`. Files captured outside normal git
+ * tracking (gitignored / non-git CAS) carry a small provenance badge so the
+ * reviewer knows the change is not part of the repo's tracked history.
  *
  * Wrapped in `React.memo` — the streamed `FileChangeSet` reference is preserved
  * by structural sharing when unchanged, so review cards skip re-renders during
@@ -174,6 +185,24 @@ export const FileReviewCard = memo(function FileReviewCard({
     return { additions, deletions };
   }, [changes]);
 
+  // Which non-reviewable classes are present in the set — folded once (memoized
+  // like `totals`, DD-010) so the blocked-set copy is accurate to what's actually
+  // here (never the generic "binary or truncated").
+  const blockSummary = useMemo(() => {
+    let hasBinary = false;
+    let hasUnavailable = false;
+    for (const c of changes) {
+      const r = fileReviewability(c);
+      if (r === "binary") hasBinary = true;
+      else if (r === "unavailable") hasUnavailable = true;
+    }
+    return { hasBinary, hasUnavailable };
+  }, [changes]);
+
+  // Associates the disabled whole-set Approve with the notice explaining why it
+  // is unavailable (a11y: a disabled action is never an unexplained dead end).
+  const incompleteNoticeId = useId();
+
   const labels = bulkLabels(total, decidedCount);
 
   return (
@@ -214,16 +243,20 @@ export const FileReviewCard = memo(function FileReviewCard({
               />
             ))
           : changes.map((change) => (
-              <FileChangeDiff key={change.id} change={toFileChange(change)} bounded />
+              <div key={change.id} className="space-y-1.5">
+                <CaptureBadge change={change} />
+                <FileChangeDiff change={toFileChange(change)} bounded />
+              </div>
             ))}
 
         {showPerFile && <ReviewProgress decided={decidedCount} total={total} />}
 
         {incomplete && (
-          <p className="text-[11px] italic text-muted-foreground">
-            {showPerFile
-              ? "Some files can't be reviewed completely (binary or truncated), so the whole set can't be approved at once — keep the reviewable files and discard the rest."
-              : "This change can't be reviewed completely (a file is binary or the diff was truncated), so it can't be approved as a complete change."}
+          <p
+            id={incompleteNoticeId}
+            className="text-[11px] italic text-muted-foreground"
+          >
+            {incompleteNotice(showPerFile, blockSummary)}
           </p>
         )}
 
@@ -235,6 +268,7 @@ export const FileReviewCard = memo(function FileReviewCard({
             isActive={activeAction === FileDecisionAction.APPROVE}
             isSubmitting={wholeSetSubmitting}
             disabled={incomplete}
+            ariaDescribedby={incomplete ? incompleteNoticeId : undefined}
             cursorTarget="file-review-approve"
           />
           <DecisionButton
@@ -289,15 +323,24 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
   onDecide,
 }: FileChangeReviewRowProps) {
   const adapted = useMemo(() => toFileChange(change), [change]);
+  // One classification per change drives BOTH the disabled Keep and its reason,
+  // so the two can never disagree (single source of truth).
+  const reviewability = fileReviewability(change);
+  const blocked = reviewability !== "reviewable";
+  const reasonId = useId();
   return (
     <div className="space-y-1.5">
+      <CaptureBadge change={change} />
       <FileChangeDiff change={adapted} bounded />
       <FileVerdictControl
         change={change}
+        reviewability={reviewability}
         verdict={verdict}
         isSubmitting={isSubmitting}
         onDecide={onDecide}
+        describedById={blocked ? reasonId : undefined}
       />
+      {blocked && <BlockReasonNote reviewability={reviewability} id={reasonId} />}
       {error && (
         <InCardDecisionError
           error={error}
@@ -315,9 +358,13 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
 
 interface FileVerdictControlProps {
   readonly change: CapturedFileChange;
+  /** The file's reviewability — `Keep` is available only when `reviewable`. */
+  readonly reviewability: FileReviewability;
   readonly verdict: FileDecisionAction | null;
   readonly isSubmitting: boolean;
   readonly onDecide: (change: CapturedFileChange, action: FileDecisionAction) => void;
+  /** Id of the reason note describing why `Keep` is unavailable (a11y). */
+  readonly describedById?: string;
 }
 
 /**
@@ -327,14 +374,17 @@ interface FileVerdictControlProps {
  * each file decision). The committed verdict reads as `aria-checked`; clicking
  * the other option flips it (a new last-write-wins decision).
  *
- * `Keep` is disabled when the file's diff is incomplete — an unreviewable file
- * can never be approved; it can only be discarded.
+ * `Keep` is disabled for any non-reviewable file (`binary` or `unavailable`) —
+ * such a change can never be approved; it can only be discarded. When disabled,
+ * `describedById` associates the group with the note stating why.
  */
 function FileVerdictControl({
   change,
+  reviewability,
   verdict,
   isSubmitting,
   onDecide,
+  describedById,
 }: FileVerdictControlProps) {
   // Optimistic: show the clicked option immediately; the server's decisions
   // projection then confirms it (or, on failure, it reverts to `verdict`).
@@ -345,7 +395,7 @@ function FileVerdictControl({
 
   const effective = pending ?? verdict;
   const path = change.pathAfter || change.pathBefore;
-  const keepUnavailable = !change.diffComplete;
+  const keepUnavailable = reviewability !== "reviewable";
 
   const decide = useCallback(
     (action: FileDecisionAction) => {
@@ -360,6 +410,7 @@ function FileVerdictControl({
     <div
       role="radiogroup"
       aria-label={`Decision for ${path}`}
+      aria-describedby={describedById}
       className="flex items-center gap-1.5"
     >
       <VerdictOption
@@ -435,6 +486,112 @@ function VerdictOption({
       {label}
     </button>
   );
+}
+
+// ---------------------------------------------------------------------------
+// CaptureBadge — provenance for a file captured outside normal git tracking
+// ---------------------------------------------------------------------------
+
+/** Non-default provenance the reviewer should be told about, with its a11y text. */
+const PROVENANCE: Partial<Record<FileCaptureClass, { label: string; aria: string }>> = {
+  [FileCaptureClass.GIT_IGNORED_CAPTURED]: {
+    label: "gitignored",
+    aria: "This file is ignored by git; the change was captured for review",
+  },
+  [FileCaptureClass.NON_GIT_CAS]: {
+    label: "outside git",
+    aria: "This file is outside the git repository; the change was captured for review",
+  },
+};
+
+/**
+ * A small provenance pill for a file captured outside normal git tracking —
+ * gitignored or non-git (CAS). Renders nothing for ordinary git-tracked (or
+ * untracked-but-new) files, so the badge appears only when it carries real
+ * signal: this change is not part of the repo's tracked history.
+ */
+function CaptureBadge({ change }: { change: CapturedFileChange }) {
+  const provenance = PROVENANCE[change.captureClass];
+  if (!provenance) return null;
+  return (
+    <span
+      className="inline-flex w-fit items-center rounded border border-border bg-muted-subtle px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+      aria-label={provenance.aria}
+      data-cursor-target="file-review-capture"
+    >
+      {provenance.label}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BlockReasonNote — why a file's Keep is unavailable (associated via aria)
+// ---------------------------------------------------------------------------
+
+/**
+ * The in-place explanation for why a non-reviewable file's `Keep` is disabled,
+ * associated with the verdict control via `aria-describedby`. Honest per
+ * {@link fileReviewability}: a `binary` change has no text diff; an `unavailable`
+ * change's diff cannot be shown at all (cause-agnostic — the wire cannot prove
+ * secret-withheld vs size-dropped). A reviewable file renders no note.
+ */
+function BlockReasonNote({
+  reviewability,
+  id,
+}: {
+  reviewability: FileReviewability;
+  id: string;
+}) {
+  const text = blockReasonText(reviewability);
+  if (!text) return null;
+  return (
+    <p
+      id={id}
+      className="text-[11px] italic text-muted-foreground"
+      data-cursor-target="file-review-block-reason"
+    >
+      {text}
+    </p>
+  );
+}
+
+/** The per-file reason copy for a non-reviewable change (null when reviewable). */
+function blockReasonText(reviewability: FileReviewability): string | null {
+  switch (reviewability) {
+    case "binary":
+      return "Binary file — no text diff to review, so it can only be discarded.";
+    case "unavailable":
+      return "The full diff isn't available to review, so this change can only be discarded.";
+    default:
+      return null;
+  }
+}
+
+/**
+ * The whole-set incompleteness copy, accurate to which non-reviewable classes are
+ * present (never the generic "binary or truncated"). Unavailable is reported
+ * ahead of binary because it is the stronger "nothing to see" signal.
+ */
+function incompleteNotice(
+  showPerFile: boolean,
+  summary: { hasBinary: boolean; hasUnavailable: boolean },
+): string {
+  if (showPerFile) {
+    if (summary.hasUnavailable) {
+      return "Part of this change isn't available to review, so the whole set can't be approved — keep the reviewable files and discard the rest.";
+    }
+    if (summary.hasBinary) {
+      return "This set includes a binary change with no text diff, so it can't be approved at once — keep the reviewable files and discard the binary one.";
+    }
+    return "Some files can't be reviewed completely, so the whole set can't be approved at once — keep the reviewable files and discard the rest.";
+  }
+  if (summary.hasUnavailable) {
+    return "This change isn't available to review, so it can't be approved — it can only be discarded.";
+  }
+  if (summary.hasBinary) {
+    return "This is a binary change with no text diff, so it can't be approved as a complete change — it can only be discarded.";
+  }
+  return "This change can't be reviewed completely, so it can't be approved as a complete change.";
 }
 
 // ---------------------------------------------------------------------------

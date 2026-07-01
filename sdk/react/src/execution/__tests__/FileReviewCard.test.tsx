@@ -9,6 +9,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
   DiffCompleteness,
+  FileCaptureClass,
   FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
@@ -45,8 +46,8 @@ afterEach(cleanup);
 
 const noop = () => {};
 
-function inline(value: string) {
-  return create(FileContentSchema, { body: { case: "inline", value } });
+function inline(value: string, isBinary = false) {
+  return create(FileContentSchema, { body: { case: "inline", value }, isBinary });
 }
 
 function capturedChange(opts: {
@@ -54,16 +55,59 @@ function capturedChange(opts: {
   path: string;
   fileDigest: string;
   diffComplete?: boolean;
+  captureClass?: FileCaptureClass;
 }) {
   return create(CapturedFileChangeSchema, {
     id: opts.id,
     pathBefore: opts.path,
     pathAfter: opts.path,
     kind: FileChangeKind.MODIFY,
+    captureClass: opts.captureClass ?? FileCaptureClass.GIT_TRACKED,
     before: inline("old\n"),
     after: inline("new\n"),
     fileDigest: opts.fileDigest,
     diffComplete: opts.diffComplete ?? true,
+  });
+}
+
+/** A binary change (real wire shape): both sides present + flagged, incomplete. */
+function capturedBinaryChange(opts: {
+  id: string;
+  path: string;
+  fileDigest: string;
+  captureClass?: FileCaptureClass;
+}) {
+  return create(CapturedFileChangeSchema, {
+    id: opts.id,
+    pathBefore: opts.path,
+    pathAfter: opts.path,
+    kind: FileChangeKind.MODIFY,
+    captureClass: opts.captureClass ?? FileCaptureClass.GIT_TRACKED,
+    before: inline("\u0000old", true),
+    after: inline("\u0000new", true),
+    fileDigest: opts.fileDigest,
+    diffComplete: false,
+  });
+}
+
+/**
+ * A diff-unavailable change (real wire shape): content-less + incomplete — the
+ * shape both the secret gate and the size backstop produce.
+ */
+function capturedUnavailableChange(opts: {
+  id: string;
+  path: string;
+  fileDigest: string;
+  captureClass?: FileCaptureClass;
+}) {
+  return create(CapturedFileChangeSchema, {
+    id: opts.id,
+    pathBefore: opts.path,
+    pathAfter: opts.path,
+    kind: FileChangeKind.MODIFY,
+    captureClass: opts.captureClass ?? FileCaptureClass.GIT_IGNORED_CAPTURED,
+    fileDigest: opts.fileDigest,
+    diffComplete: false,
   });
 }
 
@@ -77,14 +121,18 @@ function fileDecision(fileChangeId: string, action: FileDecisionAction) {
 }
 
 /** Single-file change set (the whole set IS the file — no per-file controls). */
-function changeSet(opts?: { diffCompleteness?: DiffCompleteness }) {
+function changeSet(opts?: {
+  diffCompleteness?: DiffCompleteness;
+  change?: ReturnType<typeof capturedChange>;
+}) {
   return create(FileChangeSetSchema, {
     id: "aex-1:0",
     status: FileChangeSetStatus.AWAITING_REVIEW,
     aggregateDigest: "agg-1",
     diffCompleteness: opts?.diffCompleteness ?? DiffCompleteness.COMPLETE,
     changes: [
-      capturedChange({ id: "aex-1:0:src/a.ts", path: "src/a.ts", fileDigest: "d-a" }),
+      opts?.change ??
+        capturedChange({ id: "aex-1:0:src/a.ts", path: "src/a.ts", fileDigest: "d-a" }),
     ],
   });
 }
@@ -92,7 +140,8 @@ function changeSet(opts?: { diffCompleteness?: DiffCompleteness }) {
 /** Two-file change set with per-file Keep/Discard controls. */
 function multiChangeSet(opts?: {
   diffCompleteness?: DiffCompleteness;
-  fc2DiffComplete?: boolean;
+  fc1?: ReturnType<typeof capturedChange>;
+  fc2?: ReturnType<typeof capturedChange>;
   decisions?: ReturnType<typeof fileDecision>[];
 }) {
   return create(FileChangeSetSchema, {
@@ -101,13 +150,8 @@ function multiChangeSet(opts?: {
     aggregateDigest: "agg-1",
     diffCompleteness: opts?.diffCompleteness ?? DiffCompleteness.COMPLETE,
     changes: [
-      capturedChange({ id: "fc1", path: "src/a.ts", fileDigest: "d-fc1" }),
-      capturedChange({
-        id: "fc2",
-        path: "src/b.ts",
-        fileDigest: "d-fc2",
-        diffComplete: opts?.fc2DiffComplete ?? true,
-      }),
+      opts?.fc1 ?? capturedChange({ id: "fc1", path: "src/a.ts", fileDigest: "d-fc1" }),
+      opts?.fc2 ?? capturedChange({ id: "fc2", path: "src/b.ts", fileDigest: "d-fc2" }),
     ],
     decisions: opts?.decisions ?? [],
   });
@@ -225,13 +269,13 @@ describe("FileReviewCard", () => {
         <FileReviewCard
           fileChangeSet={multiChangeSet({
             diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
-            fc2DiffComplete: false,
+            fc2: capturedUnavailableChange({ id: "fc2", path: "src/b.ts", fileDigest: "d-fc2" }),
           })}
           onSubmit={onSubmit}
         />,
       );
 
-      // The binary/truncated file can only be discarded.
+      // The unavailable file can only be discarded.
       expect(
         (screen.getByRole("radio", { name: "Keep src/b.ts" }) as HTMLButtonElement)
           .disabled,
@@ -414,6 +458,144 @@ describe("FileReviewCard", () => {
       expect(fileErrors[0].textContent).toMatch(/network down/);
       // The whole-set error is NOT shown (the failure was per-file).
       expect(screen.queryByText(/Couldn.t submit decision/)).toBeNull();
+    });
+  });
+
+  describe("blocked / partial states (Slice 6)", () => {
+    it("labels a binary file's reason and disables only its Keep", () => {
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({
+            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            fc2: capturedBinaryChange({ id: "fc2", path: "img.png", fileDigest: "d-fc2" }),
+          })}
+          onSubmit={noop}
+        />,
+      );
+
+      expect(screen.getByText(/Binary file.*no text diff/i)).toBeTruthy();
+      expect(
+        (screen.getByRole("radio", { name: "Keep img.png" }) as HTMLButtonElement).disabled,
+      ).toBe(true);
+      expect(
+        (screen.getByRole("radio", { name: "Discard img.png" }) as HTMLButtonElement).disabled,
+      ).toBe(false);
+      // The reviewable sibling stays keepable.
+      expect(
+        (screen.getByRole("radio", { name: "Keep src/a.ts" }) as HTMLButtonElement).disabled,
+      ).toBe(false);
+    });
+
+    it("labels a diff-unavailable file and associates the reason via aria-describedby", () => {
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({
+            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            fc2: capturedUnavailableChange({ id: "fc2", path: "src/b.ts", fileDigest: "d-fc2" }),
+          })}
+          onSubmit={noop}
+        />,
+      );
+
+      const note = screen.getByText(/full diff isn.t available to review/i);
+      expect(note).toBeTruthy();
+      // The blocked file's radiogroup points at exactly that note (a11y).
+      const group = screen.getByRole("radiogroup", { name: "Decision for src/b.ts" });
+      const describedBy = group.getAttribute("aria-describedby");
+      expect(describedBy).toBeTruthy();
+      expect(note.getAttribute("id")).toBe(describedBy);
+      // The reviewable sibling's group carries no such description.
+      const okGroup = screen.getByRole("radiogroup", { name: "Decision for src/a.ts" });
+      expect(okGroup.getAttribute("aria-describedby")).toBeFalsy();
+    });
+
+    it("shows a provenance badge for a gitignored capture", () => {
+      render(
+        <FileReviewCard
+          fileChangeSet={changeSet({
+            change: capturedChange({
+              id: "x",
+              path: ".env.local",
+              fileDigest: "d",
+              captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+            }),
+          })}
+          onSubmit={noop}
+        />,
+      );
+      const badge = screen.getByText("gitignored");
+      expect(badge).toBeTruthy();
+      expect(badge.getAttribute("aria-label")).toMatch(/ignored by git/i);
+    });
+
+    it("shows no provenance badge for an ordinary git-tracked change", () => {
+      render(<FileReviewCard fileChangeSet={changeSet()} onSubmit={noop} />);
+      expect(screen.queryByText("gitignored")).toBeNull();
+      expect(screen.queryByText("outside git")).toBeNull();
+    });
+
+    it("uses unavailable-specific set copy when a diff-unavailable file is present", () => {
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({
+            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            fc2: capturedUnavailableChange({ id: "fc2", path: "src/b.ts", fileDigest: "d-fc2" }),
+          })}
+          onSubmit={noop}
+        />,
+      );
+      expect(screen.getByText(/isn.t available to review, so the whole set/i)).toBeTruthy();
+    });
+
+    it("uses binary-specific set copy when the only blocker is a binary file", () => {
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({
+            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            fc2: capturedBinaryChange({ id: "fc2", path: "img.png", fileDigest: "d-fc2" }),
+          })}
+          onSubmit={noop}
+        />,
+      );
+      expect(screen.getByText(/includes a binary change with no text diff/i)).toBeTruthy();
+    });
+
+    it("blocks Approve on a single-file binary set, allows Reject, and describes the disabled Approve", () => {
+      const onSubmit = vi.fn();
+      render(
+        <FileReviewCard
+          fileChangeSet={changeSet({
+            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            change: capturedBinaryChange({ id: "aex-1:0:img.png", path: "img.png", fileDigest: "d" }),
+          })}
+          onSubmit={onSubmit}
+        />,
+      );
+
+      const approve = screen.getByRole("button", { name: "Approve" });
+      expect((approve as HTMLButtonElement).disabled).toBe(true);
+      // The disabled Approve is associated with the notice explaining why.
+      const noticeId = approve.getAttribute("aria-describedby");
+      expect(noticeId).toBeTruthy();
+      expect(document.getElementById(noticeId as string)?.textContent).toMatch(/binary change/i);
+
+      fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.REJECT, expect.anything());
+    });
+
+    it("defensively disables Approve for any non-COMPLETE completeness (catch-all)", () => {
+      // BINARY_SUMMARY_ONLY is not produced today, but the guard must still block.
+      render(
+        <FileReviewCard
+          fileChangeSet={changeSet({
+            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
+          })}
+          onSubmit={noop}
+        />,
+      );
+      expect(
+        (screen.getByRole("button", { name: "Approve" }) as HTMLButtonElement).disabled,
+      ).toBe(true);
     });
   });
 });

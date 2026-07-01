@@ -189,6 +189,9 @@ export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
 export { useFileReview, fileDecisionKey } from "./useFileReview";
 export type { UseFileReviewReturn, FileDecisionOptions } from "./useFileReview";
 
+export { fileReviewability } from "./file-review-status";
+export type { FileReviewability } from "./file-review-status";
+
 export { ApprovalCard, ApprovalCardHeader, ApprovalCardBody } from "./ApprovalCard";
 export type {
   ApprovalCardProps,
