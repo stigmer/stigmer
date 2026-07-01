@@ -19,6 +19,7 @@ import {
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import { displayFileChangeSets } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { isTerminalPhase } from "./execution-phases";
 import { MessageEntry } from "./MessageEntry";
@@ -260,7 +261,7 @@ export type ThreadItem =
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
-  | { readonly kind: "file-review-request"; readonly fileChangeSet: FileChangeSet; readonly key: string }
+  | { readonly kind: "file-review-request"; readonly fileChangeSet: FileChangeSet; readonly interactive: boolean; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
   | {
@@ -641,14 +642,22 @@ export function buildThreadItems(
 
   if (includeFileReview) {
     // File edits are reviewed as captured change sets — a dedicated surface,
-    // separate from the message transcript and the tool-approval cards. Surface
-    // one review card per set the server projects as AWAITING_REVIEW.
-    const changeSets = lastExec?.status?.fileChangeSets ?? [];
-    for (const changeSet of changeSets) {
-      if (changeSet.status !== FileChangeSetStatus.AWAITING_REVIEW) continue;
+    // separate from the message transcript and the tool-approval cards. The
+    // display seam reads the server's live projection when present and folds the
+    // durable ledger for a terminal execution (whose projection is nil), so both
+    // live AND settled sets surface here. An AWAITING_REVIEW set on a non-terminal
+    // execution is actionable (interactive card); every other set — decided,
+    // reconciled, failed, or any set on a terminal execution — is shown read-only,
+    // a historical record of what changed and how it was decided. A CAPTURING set
+    // (baseline only, no diff yet) has nothing to show and is skipped.
+    const terminal = isTerminalPhase(lastPhase);
+    for (const changeSet of displayFileChangeSets(lastExec?.status)) {
+      if (changeSet.changes.length === 0) continue;
       items.push({
         kind: "file-review-request",
         fileChangeSet: changeSet,
+        interactive:
+          !terminal && changeSet.status === FileChangeSetStatus.AWAITING_REVIEW,
         key: `file-review-${changeSet.id}`,
       });
     }
@@ -1084,6 +1093,7 @@ export function ThreadItemRenderer({
       return (
         <FileReviewCardRow
           fileChangeSet={item.fileChangeSet}
+          interactive={item.interactive}
           onFileDecisionSubmit={onFileDecisionSubmit!}
           submittingDecisionKeys={submittingFileDecisionKeys}
           decisionErrors={fileDecisionErrors}
@@ -1288,6 +1298,10 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
 
 interface FileReviewCardRowProps {
   readonly fileChangeSet: FileChangeSet;
+  // Whether the set is actionable (an AWAITING_REVIEW set on a live execution).
+  // A settled or terminal set renders read-only — see the display seam in
+  // buildThreadItems.
+  readonly interactive: boolean;
   readonly onFileDecisionSubmit: (
     changeSetId: string,
     action: FileDecisionAction,
@@ -1304,6 +1318,7 @@ interface FileReviewCardRowProps {
 
 const FileReviewCardRow = memo(function FileReviewCardRow({
   fileChangeSet,
+  interactive,
   onFileDecisionSubmit,
   submittingDecisionKeys,
   decisionErrors,
@@ -1318,7 +1333,8 @@ const FileReviewCardRow = memo(function FileReviewCardRow({
   return (
     <FileReviewCard
       fileChangeSet={fileChangeSet}
-      onSubmit={handleSubmit}
+      interactive={interactive}
+      onSubmit={interactive ? handleSubmit : undefined}
       submittingDecisionKeys={submittingDecisionKeys}
       decisionErrors={decisionErrors}
       className="mx-4"

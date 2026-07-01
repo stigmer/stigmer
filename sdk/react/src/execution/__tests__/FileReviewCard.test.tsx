@@ -708,4 +708,47 @@ describe("FileReviewCard", () => {
       ).toBe(true);
     });
   });
+
+  describe("read-only settled card (interactive=false)", () => {
+    it("shows a passive record with no decision controls", () => {
+      render(<FileReviewCard fileChangeSet={changeSet()} interactive={false} />);
+      // A neutral group + settled header, never the actionable "Review" alert.
+      expect(screen.getByRole("group", { name: /1 file change/i })).toBeTruthy();
+      expect(screen.getByText("File changes")).toBeTruthy();
+      expect(screen.queryByText("Review file changes")).toBeNull();
+      // No decision affordances at all.
+      expect(
+        screen.queryByRole("button", { name: /approve|reject|keep/i }),
+      ).toBeNull();
+      expect(screen.queryByRole("radio")).toBeNull();
+    });
+
+    it("renders without an onSubmit callback", () => {
+      expect(() =>
+        render(<FileReviewCard fileChangeSet={changeSet()} interactive={false} />),
+      ).not.toThrow();
+    });
+
+    it("renders each file's committed verdict (Kept / Discarded)", () => {
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({
+            decisions: [
+              fileDecision("fc1", FileDecisionAction.APPROVE),
+              fileDecision("fc2", FileDecisionAction.REJECT),
+            ],
+          })}
+          interactive={false}
+        />,
+      );
+      expect(screen.getByText("Kept")).toBeTruthy();
+      expect(screen.getByText("Discarded")).toBeTruthy();
+      expect(screen.queryByRole("radio")).toBeNull();
+    });
+
+    it("labels an undecided file 'Not reviewed'", () => {
+      render(<FileReviewCard fileChangeSet={changeSet()} interactive={false} />);
+      expect(screen.getByText("Not reviewed")).toBeTruthy();
+    });
+  });
 });

@@ -9,6 +9,7 @@ import {
   FileChangeCaptureLevel,
   FileChangeType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { displayFileChangeSets, toDisplayFileChange } from "@stigmer/sdk";
 
 /** Return value of {@link useSessionFileChanges}. */
 export interface UseSessionFileChangesReturn {
@@ -26,17 +27,25 @@ export interface UseSessionFileChangesReturn {
 }
 
 /**
- * Pure derivation hook that aggregates the runner's authoritative
- * {@link FileChange} captures (`ToolCall.file_changes`, #186) across every
+ * Pure derivation hook that aggregates an agent's file changes across every
  * execution in a session into one net change per file — the data behind the
  * local-workspace "Changes" view.
  *
- * **Traversal.** Unlike {@link useSessionWriteBacks}/`useSessionArtifacts`,
- * which read flat `status.*` arrays, file changes live nested inside tool
- * calls. This walks the same surfaces the server-side approval recompute and
+ * **Source (ledger-first).** Under apply-then-review the changes live in the
+ * file-review ledger; {@link displayFileChangeSets} reads the server's live
+ * projection or folds the durable ledger for a terminal execution (whose
+ * projection is nil), and each captured change is projected onto the display
+ * {@link FileChange} via {@link toDisplayFileChange}. A pre-capture
+ * (legacy) execution has no ledger, so it falls back to the tool-call-coupled
+ * `ToolCall.file_changes` (#186; removed in a later slice with that field). The
+ * two sources are mutually exclusive per execution, so there is no double count.
+ *
+ * **Traversal.** The ledger is execution-scoped and already includes sub-agent
+ * captures (DD-19), so the primary path is one pass per execution. The legacy
+ * fallback walks the same surfaces the server-side approval recompute and
  * `MessageThread` walk: `status.messages[].toolCalls` **and**
- * `status.subAgentExecutions[].messages[].toolCalls`. Executions are visited
- * in chronological order, so each path's change list is chronological.
+ * `status.subAgentExecutions[].messages[].toolCalls`. Executions are visited in
+ * chronological order, so each path's change list is chronological.
  *
  * **Net-diff (not latest-wins).** `useSessionWriteBacks`/`useSessionArtifacts`
  * dedup by "latest wins" because each entry is a *snapshot* (a PR; a file's
@@ -85,6 +94,23 @@ export function useSessionFileChanges(
     };
 
     for (const execution of executions) {
+      // Prefer the file-review ledger (the single source under apply-then-review):
+      // the display seam reads the live projection or folds the durable ledger for
+      // a terminal execution, and the execution-scoped ledger already covers
+      // sub-agent captures (DD-19), so one pass suffices. Each CapturedFileChange
+      // is projected onto the display FileChange the net-collapse + renderer speak.
+      const capturedChanges = displayFileChangeSets(execution.status).flatMap(
+        (set) => set.changes,
+      );
+      if (capturedChanges.length > 0) {
+        for (const captured of capturedChanges) collect(toDisplayFileChange(captured));
+        continue;
+      }
+
+      // Legacy pre-capture executions have no ledger; fall back to the tool-call
+      // coupled FileChange (message.proto field 22). This branch — and the field —
+      // are removed in Slice 4; a capture-mode execution clears field 22, so the
+      // two sources are mutually exclusive per execution (no double count).
       for (const message of execution.status?.messages ?? []) {
         for (const toolCall of message.toolCalls) {
           for (const change of toolCall.fileChanges) collect(change);

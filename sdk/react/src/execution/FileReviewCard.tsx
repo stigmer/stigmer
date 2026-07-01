@@ -1,22 +1,18 @@
 "use client";
 
 import { memo, useCallback, useEffect, useId, useMemo, useState } from "react";
-import { create } from "@bufbuild/protobuf";
 import type {
   CapturedFileChange,
   FileChangeSet,
   FileDecision,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   FileCaptureClass,
-  FileChangeCaptureLevel,
   FileChangeKind,
-  FileChangeType,
   FileDecisionAction,
   FileDecisionScope,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { toDisplayFileChange } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { FileChangeDiff } from "./FileChangesView";
 import { DiffSummary } from "../version-history/DiffSummary";
@@ -43,9 +39,19 @@ export interface FileReviewCardProps {
    * Called when the user makes a decision. The consumer (typically
    * {@link MessageThread} or a platform builder's surface) handles the RPC via
    * {@link useFileReview}. A whole-set Approve/Reject sends `CHANGE_SET` scope;
-   * a per-file Keep/Discard sends `FILE` scope with the file's id.
+   * a per-file Keep/Discard sends `FILE` scope with the file's id. Optional and
+   * ignored when {@link FileReviewCardProps.interactive} is `false`.
    */
-  readonly onSubmit: (action: FileDecisionAction, options?: FileDecisionOptions) => void;
+  readonly onSubmit?: (action: FileDecisionAction, options?: FileDecisionOptions) => void;
+  /**
+   * Whether the card presents decision controls. Defaults to `true` (the live
+   * review surface). Set to `false` to render a **settled** change set read-only:
+   * the per-file diffs and each file's committed verdict are shown, but the
+   * decision controls, bulk footer, and error affordances are omitted. Used for a
+   * decided/reconciled set, or any set on a terminal execution — a historical
+   * record of what changed and how it was decided, not an actionable gate.
+   */
+  readonly interactive?: boolean;
   /**
    * The decision keys currently being submitted — exactly the set
    * {@link useFileReview} returns as `submittingDecisionKeys`. A card has more
@@ -119,6 +125,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   onSubmit,
   submittingDecisionKeys = NO_KEYS,
   decisionErrors = NO_ERRORS,
+  interactive = true,
   className,
 }: FileReviewCardProps) {
   const changes = fileChangeSet.changes;
@@ -172,7 +179,7 @@ export const FileReviewCard = memo(function FileReviewCard({
       // binaries have no text diff but reconcilable bytes, so the user
       // consciously keeps the whole set (DD-17). The server honors it only when
       // every incompleteness is binary and never relaxes the digest gate.
-      onSubmit(action, {
+      onSubmit?.(action, {
         scope: FileDecisionScope.CHANGE_SET,
         expectedDigest: fileChangeSet.aggregateDigest,
         acknowledgeUnreviewable: action === FileDecisionAction.APPROVE && binaryOnly,
@@ -190,7 +197,7 @@ export const FileReviewCard = memo(function FileReviewCard({
       // bytes are captured and reconcilable, so the user consciously keeps it
       // (DD-16). The server honors this only for a binary file and never relaxes
       // the digest gate.
-      onSubmit(action, {
+      onSubmit?.(action, {
         scope: FileDecisionScope.FILE,
         fileChangeId: change.id,
         expectedDigest: change.fileDigest,
@@ -234,17 +241,27 @@ export const FileReviewCard = memo(function FileReviewCard({
 
   return (
     <div
-      role="alert"
-      aria-label={`Review ${total} file change${total === 1 ? "" : "s"}`}
+      // Interactive: an actionable alert (a pending gate). Read-only: a passive
+      // historical record, so a neutral group without the warning accent.
+      role={interactive ? "alert" : "group"}
+      aria-label={
+        interactive
+          ? `Review ${total} file change${total === 1 ? "" : "s"}`
+          : `${total} file change${total === 1 ? "" : "s"}`
+      }
       className={cn(
-        "rounded-lg border border-border-prominent border-l-2 border-l-warning",
+        "rounded-lg border border-border-prominent",
+        interactive && "border-l-2 border-l-warning",
         className,
       )}
     >
       <div className="flex items-center gap-2 border-b border-border-muted px-2.5 py-1.5 text-xs">
-        <span className="shrink-0 font-medium text-foreground">Review file changes</span>
+        <span className="shrink-0 font-medium text-foreground">
+          {interactive ? "Review file changes" : "File changes"}
+        </span>
         <span className="text-muted-foreground">
-          {total} file{total === 1 ? "" : "s"} awaiting review
+          {total} file{total === 1 ? "" : "s"}{" "}
+          {interactive ? "awaiting review" : "changed"}
         </span>
       </div>
 
@@ -255,30 +272,42 @@ export const FileReviewCard = memo(function FileReviewCard({
           deletions={totals.deletions}
         />
 
-        {showPerFile
-          ? changes.map((change) => (
-              <FileChangeReviewRow
+        {!interactive
+          ? // Settled: every file's diff paired with its committed verdict, no
+            // controls — a historical record of what changed and how it was decided.
+            changes.map((change) => (
+              <SettledFileRow
                 key={change.id}
                 change={change}
                 verdict={verdictByFileId.get(change.id) ?? null}
-                isSubmitting={
-                  submittingDecisionKeys.has(fileDecisionKey(setId, change.id)) ||
-                  wholeSetSubmitting
-                }
-                error={decisionErrors.get(fileDecisionKey(setId, change.id)) ?? null}
-                onDecide={handleFileDecide}
               />
             ))
-          : changes.map((change) => (
-              <div key={change.id} className="space-y-1.5">
-                <CaptureBadge change={change} />
-                <FileChangeDiff change={toFileChange(change)} bounded />
-              </div>
-            ))}
+          : showPerFile
+            ? changes.map((change) => (
+                <FileChangeReviewRow
+                  key={change.id}
+                  change={change}
+                  verdict={verdictByFileId.get(change.id) ?? null}
+                  isSubmitting={
+                    submittingDecisionKeys.has(fileDecisionKey(setId, change.id)) ||
+                    wholeSetSubmitting
+                  }
+                  error={decisionErrors.get(fileDecisionKey(setId, change.id)) ?? null}
+                  onDecide={handleFileDecide}
+                />
+              ))
+            : changes.map((change) => (
+                <div key={change.id} className="space-y-1.5">
+                  <CaptureBadge change={change} />
+                  <FileChangeDiff change={toDisplayFileChange(change)} bounded />
+                </div>
+              ))}
 
-        {showPerFile && <ReviewProgress decided={decidedCount} total={total} />}
+        {interactive && showPerFile && (
+          <ReviewProgress decided={decidedCount} total={total} />
+        )}
 
-        {incomplete && showBulkFooter && (
+        {interactive && incomplete && showBulkFooter && (
           <p
             id={incompleteNoticeId}
             className="text-[11px] italic text-muted-foreground"
@@ -287,7 +316,7 @@ export const FileReviewCard = memo(function FileReviewCard({
           </p>
         )}
 
-        {showBulkFooter && (
+        {interactive && showBulkFooter && (
           <div className="flex items-center gap-2 pt-1">
             <DecisionButton
               label={labels.approve}
@@ -317,7 +346,7 @@ export const FileReviewCard = memo(function FileReviewCard({
             The tool-approval ApprovalCard now surfaces failures in-card the same
             way (via the shared InCardDecisionError); the workflow approval cards
             are the remaining convergence — see their breadcrumbs. */}
-        {wholeSetError && (
+        {interactive && wholeSetError && (
           <InCardDecisionError
             error={wholeSetError}
             leadIn="submit decision"
@@ -351,7 +380,7 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
   error,
   onDecide,
 }: FileChangeReviewRowProps) {
-  const adapted = useMemo(() => toFileChange(change), [change]);
+  const adapted = useMemo(() => toDisplayFileChange(change), [change]);
   // One classification per change drives BOTH the disabled Keep and its reason,
   // so the two can never disagree (single source of truth).
   const reviewability = fileReviewability(change);
@@ -380,6 +409,65 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
     </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// SettledFileRow — one file's diff paired with its committed verdict (read-only)
+// ---------------------------------------------------------------------------
+
+interface SettledFileRowProps {
+  readonly change: CapturedFileChange;
+  /** The file's committed verdict, or null if the set was never decided. */
+  readonly verdict: FileDecisionAction | null;
+}
+
+/**
+ * A read-only file row for a settled change set: the capture provenance badge,
+ * a static verdict badge, and the before/after diff. No decision controls — the
+ * verdict is history, not an action. Used by the read-only {@link FileReviewCard}
+ * (`interactive={false}`) for decided/reconciled sets and terminal executions.
+ */
+const SettledFileRow = memo(function SettledFileRow({
+  change,
+  verdict,
+}: SettledFileRowProps) {
+  const adapted = useMemo(() => toDisplayFileChange(change), [change]);
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <CaptureBadge change={change} />
+        <VerdictBadge verdict={verdict} />
+      </div>
+      <FileChangeDiff change={adapted} bounded />
+    </div>
+  );
+});
+
+/**
+ * A change's committed verdict as a static badge: APPROVE reads "Kept" (the
+ * bytes were reconciled into the workspace), REJECT reads "Discarded" (reverted
+ * to baseline), and an undecided change (a set terminated mid-review) reads "Not
+ * reviewed". Uses the same diff add/remove tokens the card uses elsewhere, so it
+ * introduces no new token.
+ */
+function VerdictBadge({ verdict }: { verdict: FileDecisionAction | null }) {
+  if (verdict === FileDecisionAction.APPROVE) {
+    return (
+      <span className="shrink-0 text-[11px] font-medium text-diff-added-fg">Kept</span>
+    );
+  }
+  if (verdict === FileDecisionAction.REJECT) {
+    return (
+      <span className="shrink-0 text-[11px] font-medium text-diff-removed-fg">
+        Discarded
+      </span>
+    );
+  }
+  return (
+    <span className="shrink-0 text-[11px] italic text-muted-foreground">
+      Not reviewed
+    </span>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // FileVerdictControl — a Keep|Discard segmented control for one file
@@ -705,40 +793,6 @@ function bulkLabels(
     return { approve: `${approveVerb} remaining`, reject: "Reject remaining" };
   }
   return { approve: `${approveVerb} all`, reject: "Reject all" };
-}
-
-// ---------------------------------------------------------------------------
-// Adapter — CapturedFileChange (file_review) -> FileChange (the diff renderer)
-// ---------------------------------------------------------------------------
-
-/**
- * Adapt a {@link CapturedFileChange} (the file_review ledger type) to the legacy
- * {@link FileChange} the {@link FileChangeDiff} renderer consumes. The two reuse
- * the same {@link FileContent} for before/after, so the bodies map directly; the
- * capture is always WHOLE_FILE (the candidate carries the byte-exact sides).
- */
-function toFileChange(captured: CapturedFileChange): FileChange {
-  return create(FileChangeSchema, {
-    path: captured.pathAfter || captured.pathBefore,
-    changeType: toFileChangeType(captured.kind),
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-    before: captured.before,
-    after: captured.after,
-    renameFrom: captured.kind === FileChangeKind.RENAME ? captured.pathBefore : "",
-  });
-}
-
-function toFileChangeType(kind: FileChangeKind): FileChangeType {
-  switch (kind) {
-    case FileChangeKind.ADD:
-      return FileChangeType.CREATE;
-    case FileChangeKind.DELETE:
-      return FileChangeType.DELETE;
-    case FileChangeKind.RENAME:
-      return FileChangeType.RENAME;
-    default:
-      return FileChangeType.MODIFY;
-  }
 }
 
 // ---------------------------------------------------------------------------

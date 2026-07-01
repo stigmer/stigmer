@@ -196,6 +196,14 @@ export type {
   ChangeSetReviewability,
 } from "./file-review-status";
 
+// Settled/historical file-review display: the ledger fold + its read seam +
+// the display-projection adapter, re-exported from @stigmer/sdk (pure, shared).
+export {
+  foldFileReviewEventStream,
+  displayFileChangeSets,
+  toDisplayFileChange,
+} from "@stigmer/sdk";
+
 export { ApprovalCard, ApprovalCardHeader, ApprovalCardBody } from "./ApprovalCard";
 export type {
   ApprovalCardProps,

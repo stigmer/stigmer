@@ -199,6 +199,12 @@ export {
   describeApprovalPolicySource,
   isInformativePolicySource,
 } from "./execution/approval-provenance";
+export { isTerminalPhase } from "./execution/execution-phases";
+export {
+  foldFileReviewEventStream,
+  displayFileChangeSets,
+} from "./execution/file-review-fold";
+export { toDisplayFileChange } from "./execution/to-display-file-change";
 export { SkillClient, type SkillInput } from "./gen/skill";
 export {
   WorkflowClient,

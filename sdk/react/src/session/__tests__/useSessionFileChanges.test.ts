@@ -17,8 +17,21 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import {
+  CapturedFileChangeSchema,
+  FileChangeSetSchema,
+  FileReviewBaselineCapturedSchema,
+  FileReviewCandidateCapturedSchema,
+  FileReviewEventSchema,
+  FileReviewEventStreamSchema,
+  type CapturedFileChange,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import {
+  ExecutionPhase,
   FileChangeCaptureLevel,
+  FileChangeKind,
+  FileChangeSetStatus,
   FileChangeType,
+  FileReviewEventType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useSessionFileChanges } from "../useSessionFileChanges";
 
@@ -97,6 +110,69 @@ function execWith(opts: {
 
 function run(executions: readonly AgentExecution[]) {
   return renderHook(() => useSessionFileChanges(executions)).result.current;
+}
+
+// --- File-review ledger fixtures (the primary, capture-mode source) ----------
+
+function capturedWhole(opts: {
+  id: string;
+  path: string;
+  before?: string;
+  after?: string;
+  kind?: FileChangeKind;
+}): CapturedFileChange {
+  return create(CapturedFileChangeSchema, {
+    id: opts.id,
+    pathBefore: opts.path,
+    pathAfter: opts.path,
+    kind: opts.kind ?? FileChangeKind.MODIFY,
+    before: opts.before !== undefined ? inlineSide(opts.before) : undefined,
+    after: opts.after !== undefined ? inlineSide(opts.after) : undefined,
+    diffComplete: true,
+  });
+}
+
+/** An execution carrying a live server projection of one change set. */
+function execWithProjection(id: string, changes: CapturedFileChange[]): AgentExecution {
+  const exec = execWith({ id });
+  exec.status!.fileChangeSets = [
+    create(FileChangeSetSchema, {
+      id: `${id}:0`,
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes,
+    }),
+  ];
+  return exec;
+}
+
+/** A terminal execution: empty projection, changes only in the durable ledger. */
+function execWithLedger(id: string, changes: CapturedFileChange[]): AgentExecution {
+  const exec = execWith({ id });
+  exec.status!.phase = ExecutionPhase.EXECUTION_COMPLETED;
+  exec.status!.fileChangeSets = [];
+  const changeSetId = `${id}:0`;
+  exec.status!.fileReviewEventStream = create(FileReviewEventStreamSchema, {
+    executionId: id,
+    events: [
+      create(FileReviewEventSchema, {
+        changeSetId,
+        eventType: FileReviewEventType.BASELINE_CAPTURED,
+        payload: {
+          case: "baselineCaptured",
+          value: create(FileReviewBaselineCapturedSchema, { changeSetId }),
+        },
+      }),
+      create(FileReviewEventSchema, {
+        changeSetId,
+        eventType: FileReviewEventType.CANDIDATE_CAPTURED,
+        payload: {
+          case: "candidateCaptured",
+          value: create(FileReviewCandidateCapturedSchema, { changeSetId, changes }),
+        },
+      }),
+    ],
+  });
+  return exec;
 }
 
 // ---------------------------------------------------------------------------
@@ -296,6 +372,65 @@ describe("useSessionFileChanges", () => {
       "a-new.ts",
       "z-del.ts",
     ]);
+  });
+
+  it("sources changes from the live file-review projection (CapturedFileChange)", () => {
+    const r = run([
+      execWithProjection("e1", [
+        capturedWhole({ id: "fc1", path: "src/led.ts", before: "a", after: "b" }),
+      ]),
+    ]);
+    expect(r.fileChangeCount).toBe(1);
+    expect(r.fileChanges[0].path).toBe("src/led.ts");
+    expect(r.fileChanges[0].captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
+  });
+
+  it("folds the durable ledger for a terminal execution (empty projection)", () => {
+    const r = run([
+      execWithLedger("e1", [
+        capturedWhole({ id: "fc1", path: "src/term.ts", before: "a", after: "b" }),
+      ]),
+    ]);
+    expect(r.fileChangeCount).toBe(1);
+    expect(r.fileChanges[0].path).toBe("src/term.ts");
+  });
+
+  it("net-diffs captures across turns from the ledger just like legacy edits", () => {
+    // Two change sets touching the same path: first.before -> last.after.
+    const exec = execWith({ id: "e1" });
+    exec.status!.fileChangeSets = [
+      create(FileChangeSetSchema, {
+        id: "e1:0",
+        status: FileChangeSetStatus.RECONCILED,
+        changes: [capturedWhole({ id: "fc1", path: "src/a.ts", before: "v0", after: "v1" })],
+      }),
+      create(FileChangeSetSchema, {
+        id: "e1:1",
+        status: FileChangeSetStatus.AWAITING_REVIEW,
+        changes: [capturedWhole({ id: "fc2", path: "src/a.ts", before: "v1", after: "v2" })],
+      }),
+    ];
+    const r = run([exec]);
+    expect(r.fileChangeCount).toBe(1);
+    const net = r.fileChanges[0];
+    expect(net.before?.body.case === "inline" && net.before.body.value).toBe("v0");
+    expect(net.after?.body.case === "inline" && net.after.body.value).toBe("v2");
+  });
+
+  it("prefers the ledger and ignores stray legacy field-22 for a capture-mode execution", () => {
+    const exec = execWithProjection("e1", [
+      capturedWhole({ id: "fc1", path: "src/led.ts", before: "a", after: "b" }),
+    ]);
+    // A stray legacy tool-call change must NOT be double-counted alongside the ledger.
+    exec.status!.messages = [
+      create(AgentMessageSchema, {
+        toolCalls: [
+          toolCallWith("tc1", [wholeFile({ path: "src/legacy.ts", before: "a", after: "b" })]),
+        ],
+      }),
+    ];
+    const r = run([exec]);
+    expect(r.fileChanges.map((c) => c.path)).toEqual(["src/led.ts"]);
   });
 
   it("preserves referential stability across re-renders for the same executions", () => {

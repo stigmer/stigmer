@@ -21,6 +21,11 @@ import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecu
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
+  FileReviewBaselineCapturedSchema,
+  FileReviewCandidateCapturedSchema,
+  FileReviewEventSchema,
+  FileReviewEventStreamSchema,
+  FileReviewReconciledSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
   DiffCompleteness,
@@ -28,6 +33,7 @@ import {
   FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
+  FileReviewEventType,
   InteractionMode,
   MessageType,
   TodoStatus,
@@ -272,6 +278,119 @@ describe("MessageThread", () => {
     // The whole-set failure reaches the card and surfaces in-card.
     const err = screen.getByText(/Couldn.t submit decision — digest mismatch/);
     expect(err.getAttribute("data-cursor-target")).toBe("file-review-error");
+  });
+
+  it("renders an interactive review card for an AWAITING set on a live execution", () => {
+    const exec = makeExecutionWithFileReview("exec-live", "cs-live:0");
+    render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={exec}
+        onFileDecisionSubmit={() => {}}
+      />,
+    );
+    expect(screen.getByText("Review file changes")).toBeTruthy();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-approve"]'),
+    ).toBeTruthy();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-reject"]'),
+    ).toBeTruthy();
+  });
+
+  it("renders a settled set read-only (no decision controls)", () => {
+    const exec = makeExecutionWithFileReview("exec-settled", "cs-settled:0");
+    // A decided/reconciled set: history, not an action.
+    exec.status!.fileChangeSets[0].status = FileChangeSetStatus.RECONCILED;
+
+    render(
+      <MessageThread
+        executions={[exec]}
+        onFileDecisionSubmit={() => {}}
+      />,
+    );
+    expect(screen.getByText("File changes")).toBeTruthy();
+    expect(screen.queryByText("Review file changes")).toBeNull();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-approve"]'),
+    ).toBeNull();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-reject"]'),
+    ).toBeNull();
+  });
+
+  it("folds the ledger and renders read-only for a terminal execution (empty projection)", () => {
+    // A terminal execution: the server projects no actionable file_change_sets,
+    // so MessageThread must fold the durable ledger to show what changed.
+    const exec = create(AgentExecutionSchema);
+    exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-terminal" });
+    exec.spec = create(AgentExecutionSpecSchema, { message: "Edit a file" });
+    const status = create(AgentExecutionStatusSchema);
+    status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+    status.messages = [
+      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),
+    ];
+    status.fileChangeSets = []; // terminal: server projects nil
+    const changeSetId = "cs-term:0";
+    status.fileReviewEventStream = create(FileReviewEventStreamSchema, {
+      executionId: "exec-terminal",
+      events: [
+        create(FileReviewEventSchema, {
+          changeSetId,
+          eventType: FileReviewEventType.BASELINE_CAPTURED,
+          payload: {
+            case: "baselineCaptured",
+            value: create(FileReviewBaselineCapturedSchema, {
+              changeSetId,
+              turnId: "t1",
+              harnessId: "deep-agent",
+            }),
+          },
+        }),
+        create(FileReviewEventSchema, {
+          changeSetId,
+          eventType: FileReviewEventType.CANDIDATE_CAPTURED,
+          payload: {
+            case: "candidateCaptured",
+            value: create(FileReviewCandidateCapturedSchema, {
+              changeSetId,
+              aggregateDigest: "agg-1",
+              changes: [
+                create(CapturedFileChangeSchema, {
+                  id: `${changeSetId}:src/a.ts`,
+                  pathBefore: "src/a.ts",
+                  pathAfter: "src/a.ts",
+                  kind: FileChangeKind.MODIFY,
+                  before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
+                  after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
+                  fileDigest: "d-a",
+                  diffComplete: true,
+                }),
+              ],
+            }),
+          },
+        }),
+        create(FileReviewEventSchema, {
+          changeSetId,
+          eventType: FileReviewEventType.RECONCILED,
+          payload: {
+            case: "reconciled",
+            value: create(FileReviewReconciledSchema, { changeSetId }),
+          },
+        }),
+      ],
+    });
+    exec.status = status;
+
+    render(
+      <MessageThread executions={[exec]} onFileDecisionSubmit={() => {}} />,
+    );
+    // The read-only card renders the changed file, with no decision controls.
+    expect(screen.getByText("File changes")).toBeTruthy();
+    expect(screen.getByTitle("src/a.ts")).toBeTruthy();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-approve"]'),
+    ).toBeNull();
   });
 
   it("threads an approvalErrors entry to an inline gate (the primary route)", () => {
