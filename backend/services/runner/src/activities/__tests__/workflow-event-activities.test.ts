@@ -329,7 +329,8 @@ describe("toProtoEvent", () => {
         attemptNumber: 1,
       };
       const proto = toProtoEvent(desc);
-      expect(proto.payload.value?.taskKind).toBe(WorkflowTaskKind.agent_call);
+      if (proto.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(proto.payload.value.taskKind).toBe(WorkflowTaskKind.agent_call);
     });
   });
 

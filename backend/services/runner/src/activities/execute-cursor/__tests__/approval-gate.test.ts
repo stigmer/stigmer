@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -37,7 +37,7 @@ import {
 } from "../approval-state.js";
 import { buildReinvocationPrompt } from "../prompt-builder.js";
 
-function pending(overrides: Partial<PendingApproval>): PendingApproval {
+function pending(overrides: MessageInitShape<typeof PendingApprovalSchema>): PendingApproval {
   return create(PendingApprovalSchema, {
     toolCallId: "call-1",
     toolName: "edit",

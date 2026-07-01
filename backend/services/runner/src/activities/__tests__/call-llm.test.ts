@@ -32,7 +32,7 @@ describe("callLlmAction", () => {
 
   // The LangChain provider SDKs pass a `Headers` instance (not a plain object)
   // to fetch, so read header values case-insensitively via the Headers API.
-  function getHeader(options: { headers?: HeadersInit }, name: string): string | null {
+  function getHeader(options: { headers?: ConstructorParameters<typeof Headers>[0] }, name: string): string | null {
     return new Headers(options.headers).get(name);
   }
 

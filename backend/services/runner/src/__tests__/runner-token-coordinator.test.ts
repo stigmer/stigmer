@@ -92,7 +92,7 @@ describe("createRunnerTokenCoordinator", () => {
     it("re-mints from the control-plane token before expiry and reschedules", async () => {
       const applyProxyToken = vi.fn();
       const reMint = vi
-        .fn<[], Promise<RefreshedRunnerToken | undefined>>()
+        .fn<() => Promise<RefreshedRunnerToken | undefined>>()
         .mockResolvedValueOnce({ token: "rt_v2", expiresInSeconds: 100 })
         .mockResolvedValueOnce({ token: "rt_v3", expiresInSeconds: 100 });
 
@@ -121,7 +121,7 @@ describe("createRunnerTokenCoordinator", () => {
     it("retries (without clobbering) when a re-mint fails, then recovers", async () => {
       const applyProxyToken = vi.fn();
       const reMint = vi
-        .fn<[], Promise<RefreshedRunnerToken | undefined>>()
+        .fn<() => Promise<RefreshedRunnerToken | undefined>>()
         .mockResolvedValueOnce(undefined) // first refresh fails to mint
         .mockResolvedValueOnce({ token: "rt_recovered", expiresInSeconds: 100 });
 
@@ -149,7 +149,7 @@ describe("createRunnerTokenCoordinator", () => {
     });
 
     it("stop() cancels the refresh timer", async () => {
-      const reMint = vi.fn<[], Promise<RefreshedRunnerToken | undefined>>();
+      const reMint = vi.fn<() => Promise<RefreshedRunnerToken | undefined>>();
       const coordinator = createRunnerTokenCoordinator({
         applyProxyToken: vi.fn(),
         reMint,

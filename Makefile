@@ -658,6 +658,7 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 	npm run build -w client-apps/web
 	npm run test -w client-apps/web
 	npm run test -w desktop
+	cd $(RUNNER_DIR) && npm run typecheck
 	cd $(RUNNER_DIR) && npm run build
 	cd $(RUNNER_DIR) && npm run check-deps
 	cd sdk/ink && npm run tsdoc:check

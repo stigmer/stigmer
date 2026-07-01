@@ -385,7 +385,7 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
     const state = createState();
     state.input = { pr_number: 7, repo: "acme/app", diff: "--- a/main.ts" };
 
-    const mockCallAgent = vi.fn(async () => ({
+    const mockCallAgent = vi.fn<TaskExecutionContext["callAgent"]>(async () => ({
       structured: { severity: "low", category: "style", customer_impact: false },
       final_text: "LGTM",
       agent_execution_id: "aex-verify",
@@ -434,7 +434,7 @@ describe("Golden Execution — Tier 1d: Advanced Tasks", () => {
     const model = loadWorkflowFromYaml(crossOrgYaml);
     const state = createState();
 
-    const mockCallAgent = vi.fn(async () => ({
+    const mockCallAgent = vi.fn<TaskExecutionContext["callAgent"]>(async () => ({
       final_text: "done",
     }));
     const ctx = makeCtx({ callAgent: mockCallAgent });
@@ -678,9 +678,11 @@ describe("Golden Execution — Structured Output Pipeline", () => {
     await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
 
     expect(mockCallAgent).toHaveBeenCalledOnce();
-    expect(state.context.analyze.dau).toBe(7175);
-    expect(state.context.analyze.executive_summary).toBe("DAU stable at 7175");
-    expect(state.context.analyze.cohorts).toHaveLength(2);
+    // `$context` is dynamic (typed `unknown` in production); narrow to the shape this golden produces.
+    const context = state.context as { analyze: { dau: number; executive_summary: string; cohorts: unknown[] } };
+    expect(context.analyze.dau).toBe(7175);
+    expect(context.analyze.executive_summary).toBe("DAU stable at 7175");
+    expect(context.analyze.cohorts).toHaveLength(2);
     expect(state.data.report_dau).toBe(7175);
     expect(state.data.cohort_count).toBe(2);
     expect(state.data.first_cohort).toBe("D1 New Players");
@@ -838,8 +840,10 @@ describe("Golden Execution — Structured Output Pipeline", () => {
 
     await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
 
-    expect(state.context.analyze.dau).toBe(7175);
-    expect(state.context.analyze.executive_summary).toBe("DAU stable at 7175");
+    // `$context` is dynamic (typed `unknown` in production); narrow to the shape this golden produces.
+    const context = state.context as { analyze: { dau: number; executive_summary: string } };
+    expect(context.analyze.dau).toBe(7175);
+    expect(context.analyze.executive_summary).toBe("DAU stable at 7175");
     expect(state.data.report_dau).toBe(7175);
     expect(state.data.summary).toBe("DAU stable at 7175");
   });
@@ -979,9 +983,11 @@ describe("Golden Execution — Structured Output Pipeline", () => {
 
     await executeDoTasks(model.do, null, state, model, evaluateExpressionBatch, ctx);
 
-    expect(state.context.analyze.dau).toBe(7175);
-    expect(state.context.analyze.cohorts).toHaveLength(2);
-    expect(state.context.analyze.anomalies).toHaveLength(1);
+    // `$context` is dynamic (typed `unknown` in production); narrow to the shape this golden produces.
+    const context = state.context as { analyze: { dau: number; cohorts: unknown[]; anomalies: unknown[] } };
+    expect(context.analyze.dau).toBe(7175);
+    expect(context.analyze.cohorts).toHaveLength(2);
+    expect(context.analyze.anomalies).toHaveLength(1);
     expect(state.data.summary).toBe("Garden Design Makeover DAU remains stable at 7,175");
     expect(state.data.anomaly_count).toBe(1);
   });
@@ -991,7 +997,7 @@ describe("Golden Execution — Structured Output Pipeline", () => {
     const state = createState();
     state.env = { NOTIFICATION_DATE: "2026-05-26" };
 
-    const mockCallAgent = vi.fn(async () => ({
+    const mockCallAgent = vi.fn<TaskExecutionContext["callAgent"]>(async () => ({
       structured: {
         executive_summary: "Garden Design Makeover DAU stable at 7,185",
         dau: 7185,
@@ -1019,13 +1025,22 @@ describe("Golden Execution — Structured Output Pipeline", () => {
     expect(mockCallAgent).toHaveBeenCalledOnce();
     const [config, env, metadata] = mockCallAgent.mock.calls[0];
 
-    // Schema must survive expression resolution
-    expect(config.output).toBeDefined();
+    // Schema must survive expression resolution. `output.schema` is an arbitrary
+    // JSON schema (typed `Record<string, unknown>` in production); narrow to the
+    // concrete shape this golden asserts against.
+    if (!config.output) throw new Error("expected an output contract on the agent call");
+    const schema = config.output.schema as {
+      required: string[];
+      properties: {
+        cohorts: { items: { required: string[] } };
+        anomalies: { items: { properties: { severity: { enum: string[] } } } };
+      };
+    };
     expect(config.output.schema).toBeDefined();
-    expect(config.output.schema.required).toEqual(["executive_summary", "cohorts", "anomalies"]);
-    expect(config.output.schema.properties.cohorts.items.required)
+    expect(schema.required).toEqual(["executive_summary", "cohorts", "anomalies"]);
+    expect(schema.properties.cohorts.items.required)
       .toEqual(["name", "size", "action_needed"]);
-    expect(config.output.schema.properties.anomalies.items.properties.severity.enum)
+    expect(schema.properties.anomalies.items.properties.severity.enum)
       .toEqual(["warning", "critical"]);
     expect(config.output.on_invalid).toBe("ON_INVALID_FAIL");
 
@@ -1040,8 +1055,10 @@ describe("Golden Execution — Structured Output Pipeline", () => {
     expect(metadata.taskName).toBe("analyze_player_data");
 
     // Structured output exported to context and consumed downstream
-    expect(state.context.analyze_player_data.dau).toBe(7185);
-    expect(state.context.analyze_player_data.executive_summary).toContain("7,185");
+    // `$context` is dynamic (typed `unknown` in production); narrow to the shape this golden produces.
+    const context = state.context as { analyze_player_data: { dau: number; executive_summary: string } };
+    expect(context.analyze_player_data.dau).toBe(7185);
+    expect(context.analyze_player_data.executive_summary).toContain("7,185");
     expect(state.data.final_dau).toBe(7185);
     expect(state.data.anomaly_count).toBe(1);
   });

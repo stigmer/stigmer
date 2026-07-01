@@ -76,6 +76,14 @@ jobs:
       - name: Build unified runner
         run: make build-runner
 
+      # Typecheck the runner's tests too (the production build above excludes
+      # them via tsconfig.build.json). Cheap (~5s), pure, and the only pre-merge
+      # gate that keeps the runner's test types from drifting out of sync with
+      # the contracts they guard.
+      - name: Typecheck runner (incl. tests)
+        working-directory: backend/services/runner
+        run: npm run typecheck
+
       - name: Run execution conformance suite (local-go-execution)
         env:
           CONFORMANCE_TARGET: local-go-execution

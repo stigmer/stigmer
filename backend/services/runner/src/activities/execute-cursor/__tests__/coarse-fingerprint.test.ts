@@ -30,7 +30,10 @@ const KEY = "slice-d-test-key";
 
 function grantOf(toolName: string, mcpServerSlug: string, args: Record<string, unknown>): ApprovalGrant {
   const id = toolIdentity(toolName, mcpServerSlug, args);
-  return { toolName, mcpServerSlug, key: id.key, salient: id.salient };
+  // These tests exercise only the COARSE identity (key/salient); the content
+  // digest is not part of the coarse fingerprint or token, so use the documented
+  // content-less value ("").
+  return { toolName, mcpServerSlug, key: id.key, salient: id.salient, contentDigest: "" };
 }
 
 describe("Cursor coarse fingerprint (Slice D)", () => {

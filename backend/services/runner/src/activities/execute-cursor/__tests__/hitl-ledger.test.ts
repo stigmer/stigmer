@@ -23,7 +23,7 @@
  */
 
 import { describe, it, expect, afterEach } from "vitest";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { mkdtempSync, rmSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -104,7 +104,7 @@ function fileBackend(files: Record<string, string>): WorkspaceBackend {
 // denial ledger uses the hook taxonomy (Write/Shell/Delete) + a canonical
 // category+salient token. The two correlate via approvalCategory — that cross-
 // taxonomy match is exactly what these tests pin.
-function toolCall(overrides: Partial<ToolCall>): ToolCall {
+function toolCall(overrides: MessageInitShape<typeof ToolCallSchema>): ToolCall {
   return create(ToolCallSchema, {
     id: "call-1",
     name: "edit",
@@ -1195,7 +1195,7 @@ describe("collapseRedundantToolCallTwins — terminal-path twin collapse", () =>
     });
   }
 
-  function bareEdit(id: string, path: string, overrides: Partial<ToolCall> = {}): ToolCall {
+  function bareEdit(id: string, path: string, overrides: MessageInitShape<typeof ToolCallSchema> = {}): ToolCall {
     return toolCall({
       id,
       name: "edit",

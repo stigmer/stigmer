@@ -376,7 +376,7 @@ describe("capture orchestration — hybrid git + CAS (Phase 3)", () => {
     });
 
     expect(result.failed).toBe(false);
-    expect(result.approvedPaths.sort()).toEqual(["dist/out.txt", "notes.md"]);
+    expect([...result.approvedPaths].sort()).toEqual(["dist/out.txt", "notes.md"]);
     expect(result.rejectedPaths).toEqual(["build/cache.txt"]);
 
     // Approved git + approved CAS kept; rejected CAS reverted to baseline bytes.

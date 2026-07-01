@@ -158,7 +158,7 @@ describe("ProxyArtifactStorage", () => {
         }
         // Build a real Headers from what the runner passed, so concatenation /
         // case-folding behavior matches a live PUT.
-        resolve(new Headers(init?.headers as HeadersInit));
+        resolve(new Headers(init?.headers as ConstructorParameters<typeof Headers>[0]));
         return new Response(null, { status: 200 });
       }) as typeof fetch;
     });

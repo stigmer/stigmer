@@ -22,7 +22,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import {
   AgentMessageSchema,
   ToolCallSchema,
@@ -98,7 +98,7 @@ function offloadedChange(storageKey: string, truncatedPreview: string, path = "b
   return fc;
 }
 
-function approvedEdit(overrides: Partial<ToolCall> = {}): ToolCall {
+function approvedEdit(overrides: MessageInitShape<typeof ToolCallSchema> = {}): ToolCall {
   return create(ToolCallSchema, {
     id: "tc-1",
     name: "edit",
