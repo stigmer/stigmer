@@ -170,6 +170,23 @@ export interface ApprovalStateFile {
    * for every file mutation (non-git workspaces / the fallback path).
    */
   captureMode: boolean;
+  /**
+   * CAS capture for gitignored writes (the deep-agent parity switch). When true,
+   * a non-secret gitignored write/edit no longer stays on the deny-gate: the hook
+   * stages its pre-write bytes into the runner-owned cas-observations sidecar and
+   * ALLOWS it to flow, and the turn boundary captures it into content-addressable
+   * storage as a `GIT_IGNORED_CAPTURED` change for per-file review (mirroring the
+   * deep-agent `CasCaptureFilesystemBackend` observer). A secret-like gitignored
+   * path is instead hard-blocked (denied, nothing written) and recorded as an
+   * unreviewable observation, so its bytes never reach durable storage.
+   *
+   * Set only when `captureMode` AND an artifact storage is configured — CAS blob
+   * persistence requires it. When false, gitignored writes keep the classic
+   * deny-gate behavior (gitignored deletes and shell/MCP always do). Independent
+   * of `autoApproveAll`: capture is a property of the turn, not authorization, so
+   * the hook honors this switch even under the global bypass.
+   */
+  captureIgnored: boolean;
 }
 
 /**
@@ -333,6 +350,7 @@ export function buildApprovalState(
   leasedCategories: ReadonlySet<ApprovalCategory>,
   grants?: ApprovalGrant[],
   captureMode = false,
+  captureIgnored = false,
 ): ApprovalStateFile {
   const approvedGrants = grants ?? [];
 
@@ -354,6 +372,7 @@ export function buildApprovalState(
     // only its exact content; a content-less grant authorizes the coarse token.
     approvedGrantTokens: approvedGrants.map((g) => primaryToken(g.key, g.salient, g.contentDigest)),
     captureMode,
+    captureIgnored,
   };
 }
 

@@ -418,6 +418,98 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
+  // CAS parity (DD-18): with captureIgnored on, a non-secret gitignored write no
+  // longer stays on the deny-gate — the hook stages its pre-turn bytes into the
+  // cas-observations sidecar and ALLOWS it (apply-then-review), while a secret-
+  // like gitignored write is hard-blocked and recorded as unreviewable. The
+  // sidecar is read back through the real reader.
+  describe("capture mode + captureIgnored (gitignored CAS capture)", () => {
+    it("stages a non-secret gitignored ADD and allows it (before=null)", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      expect(h.decide(hookWrite("app.log", "hello")).permission).toBe("allow");
+      // Flowed, not denied — it must not become a WAITING_APPROVAL row.
+      expect(h.ledger()).toEqual([]);
+      const obs = await h.observations();
+      expect(obs.secretPaths).toEqual([]);
+      expect(obs.captured).toHaveLength(1);
+      expect(obs.captured[0].path).toBe("app.log");
+      expect(obs.captured[0].before).toBeNull();
+    });
+
+    it("stages a non-secret gitignored MODIFY with the true pre-turn before-bytes", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      writeFileSync(join(h.root, "app.log"), "ORIGINAL", "utf-8");
+      expect(h.decide(hookWrite("app.log", "NEW")).permission).toBe("allow");
+      const obs = await h.observations();
+      expect(obs.captured).toHaveLength(1);
+      expect(obs.captured[0].before).not.toBeNull();
+      expect(Buffer.from(obs.captured[0].before!).toString("utf8")).toBe("ORIGINAL");
+    });
+
+    it("first-touch-wins: two edits to one gitignored path keep the original before", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      writeFileSync(join(h.root, "app.log"), "ORIGINAL", "utf-8");
+      expect(h.decide(hookWrite("app.log", "FIRST")).permission).toBe("allow");
+      // Simulate the first write having applied, then a second edit this turn.
+      writeFileSync(join(h.root, "app.log"), "FIRST", "utf-8");
+      expect(h.decide(hookEdit("app.log")).permission).toBe("allow");
+      const obs = await h.observations();
+      expect(obs.captured).toHaveLength(1);
+      expect(Buffer.from(obs.captured[0].before!).toString("utf8")).toBe("ORIGINAL");
+    });
+
+    it("hard-blocks a secret-like gitignored write and records NO denial-ledger entry", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: [".env"] });
+      const d = h.decide(hookWrite(".env", "API_KEY=abc"));
+      expect(d.permission).toBe("deny");
+      expect(d.raw).toContain("blocked for security");
+      // A secret is NOT approvable: it must never enter the denial ledger (which
+      // drives WAITING_APPROVAL) — it surfaces as DIFF_UNREVIEWABLE instead.
+      expect(h.ledger()).toEqual([]);
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+      expect(obs.secretPaths).toEqual([".env"]);
+    });
+
+    it("captures under auto_approve_all too (capture is a turn property, not authorization)", async () => {
+      const h = setup({
+        captureMode: true,
+        captureIgnored: true,
+        autoApproveAll: true,
+        gitignored: ["*.log", ".env"],
+      });
+      // Non-secret gitignored write is staged + allowed even under the bypass...
+      expect(h.decide(hookWrite("app.log", "x")).permission).toBe("allow");
+      // ...and a secret-like one is STILL hard-blocked under the bypass.
+      expect(h.decide(hookWrite(".env", "SECRET")).permission).toBe("deny");
+      const obs = await h.observations();
+      expect(obs.captured.map((c) => c.path)).toEqual(["app.log"]);
+      expect(obs.secretPaths).toEqual([".env"]);
+    });
+
+    it("does not stage a git-tracked write (git captures it) — flows, no observation", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      expect(h.decide(hookWrite("tracked.ts", "x")).permission).toBe("allow");
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+      expect(obs.secretPaths).toEqual([]);
+    });
+
+    it("still gates a gitignored DELETE (no CAS capture path, parity with deep-agent)", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      expect(h.decide(hookDelete("app.log")).permission).toBe("deny");
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+    });
+
+    it("with captureIgnored OFF, a gitignored write stays denied and stages nothing", async () => {
+      const h = setup({ captureMode: true, captureIgnored: false, gitignored: ["*.log"] });
+      expect(h.decide(hookWrite("app.log", "x")).permission).toBe("deny");
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+    });
+  });
+
   it("still denies gated tools via the bash fallback when the Node binary is unavailable", () => {
     const ws = mkdtempSync(join(tmpdir(), "hook-script-fallback-"));
     onTestFinished(() => rmSync(ws, { recursive: true, force: true }));

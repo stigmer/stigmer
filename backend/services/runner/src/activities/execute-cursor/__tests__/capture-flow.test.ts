@@ -9,7 +9,7 @@
  * against a REAL temp git repo with in-memory transcript + status protos.
  */
 
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, writeFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,9 +30,11 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
+  FileCaptureClass,
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionScope,
+  FileReviewBlockReason,
   FileReviewEventType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -41,6 +43,8 @@ import {
   captureBaselineToLedger,
   captureTurnToLedger,
 } from "../capture-flow.js";
+import { buildObservationStagingScript, casObservationsDir } from "../cas-observations.js";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 
 const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-capflow-1";
@@ -439,5 +443,150 @@ describe("applyCaptureDecisions (resume)", () => {
       changeSet,
     });
     expect(result.isCaptureTurn).toBe(false);
+  });
+});
+
+// The Cursor CAS half (DD-18): the hook stages gitignored writes into the
+// cas-observations sidecar; captureTurnToLedger composes them with the git diff
+// into ONE hybrid change set, and applyCaptureDecisions reconciles the CAS files
+// from the durable manifest. Exercised with the REAL staging script + a real git
+// repo + an in-memory artifact store — the deterministic stand-in for the live
+// (CURSOR_API_KEY) end-to-end test.
+describe("hybrid capture (git-tracked + gitignored CAS)", () => {
+  let hitl: string;
+
+  /** Run the real staging script exactly as the hook does (salient on stdin). */
+  function stage(wsRoot: string, salient: string): void {
+    execFileSync(process.execPath, ["-e", buildObservationStagingScript(), wsRoot, casObservationsDir(hitl)], {
+      input: salient,
+    });
+  }
+
+  beforeEach(async () => {
+    hitl = await mkdtemp(join(tmpdir(), "stigmer-capflow-hitl-"));
+    // Commit a .gitignore so the git half ignores *.log / .env (only CAS sees
+    // them) — otherwise they would double-capture as untracked git changes.
+    await write(".gitignore", "*.log\n.env\n");
+    await git(["add", ".gitignore"]);
+    await git(["commit", "-q", "-m", "gitignore"]);
+  });
+
+  afterEach(async () => {
+    await rm(hitl, { recursive: true, force: true });
+  });
+
+  it("composes one hybrid change set: git-tracked + GIT_IGNORED_CAPTURED + secret DIFF_UNREVIEWABLE", async () => {
+    const status = newStatus();
+    const { storage, blobs } = makeInMemoryArtifactStorage();
+
+    const baseline = await captureBaselineToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+    });
+
+    // A gitignored MODIFY: seed the pre-turn bytes, stage (records before), then
+    // let the write apply (the runner re-reads after at the boundary).
+    await write("build/out.log", "BEFORE");
+    stage(repo, "build/out.log");
+    await write("build/out.log", "AFTER");
+    // A secret-like gitignored write: hard-blocked by the hook -> a secret marker.
+    stage(repo, ".env");
+    // A git-tracked edit rides the same turn.
+    await write("notes.md", "changed\n");
+
+    const changes = await captureTurnToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline,
+      messages: [streamedEdit("tc-1", "notes.md", "changed\n")],
+      deniedTokens: new Set(),
+      hitlDir: hitl,
+      storage,
+    });
+
+    // captureTurnToLedger returns only the git-tracked changes.
+    expect(changes.map((c) => c.path)).toEqual(["notes.md"]);
+
+    const cand = candidateChanges(status);
+    const byPath = new Map(cand.map((c) => [c.pathAfter || c.pathBefore, c]));
+    expect([...byPath.keys()].sort()).toEqual([".env", "build/out.log", "notes.md"]);
+
+    // Git-tracked file.
+    expect(byPath.get("notes.md")!.captureClass).toBe(FileCaptureClass.GIT_TRACKED);
+
+    // The gitignored file is a CAS capture (blob-ref body), byte-exact after.
+    const log = byPath.get("build/out.log")!;
+    expect(log.captureClass).toBe(FileCaptureClass.GIT_IGNORED_CAPTURED);
+    expect(log.after?.body.case).toBe("ref");
+    expect(blobs.size).toBeGreaterThan(0); // before + after blobs persisted
+
+    // The secret is surfaced honestly as content-less DIFF_UNREVIEWABLE.
+    const env = byPath.get(".env")!;
+    expect(env.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
+    expect(env.diffComplete).toBe(false);
+    expect(env.after).toBeUndefined();
+  });
+
+  it("reconciles an APPROVED gitignored file (kept byte-exact) via the CAS manifest", async () => {
+    const status = newStatus();
+    const { storage } = makeInMemoryArtifactStorage();
+    const baseline = await captureBaselineToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID });
+
+    await write("build/out.log", "BEFORE");
+    stage(repo, "build/out.log");
+    await write("build/out.log", "AFTER");
+    await write("notes.md", "changed\n");
+
+    await captureTurnToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline,
+      messages: [streamedEdit("tc-1", "notes.md", "changed\n")],
+      deniedTokens: new Set(), hitlDir: hitl, storage,
+    });
+
+    const changeSet = decidedChangeSet(status, {
+      "notes.md": FileDecisionAction.APPROVE,
+      "build/out.log": FileDecisionAction.APPROVE,
+    });
+    const result = await applyCaptureDecisions({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSet, storage,
+    });
+
+    expect(result.isCaptureTurn).toBe(true);
+    expect(result.failed).toBe(false);
+    expect(result.approvedPaths.sort()).toEqual(["build/out.log", "notes.md"]);
+    expect(await read("build/out.log")).toBe("AFTER");
+    expect(await read("notes.md")).toBe("changed\n");
+  });
+
+  it("reconciles a REJECTED gitignored file by snapping it back to the pre-turn bytes", async () => {
+    const status = newStatus();
+    const { storage } = makeInMemoryArtifactStorage();
+    const baseline = await captureBaselineToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID });
+
+    await write("build/out.log", "BEFORE");
+    stage(repo, "build/out.log");
+    await write("build/out.log", "AFTER");
+
+    await captureTurnToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline,
+      messages: [],
+      deniedTokens: new Set(), hitlDir: hitl, storage,
+    });
+
+    const changeSet = decidedChangeSet(status, { "build/out.log": FileDecisionAction.REJECT });
+    const result = await applyCaptureDecisions({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSet, storage,
+    });
+
+    expect(result.hadReject).toBe(true);
+    expect(result.rejectedPaths).toEqual(["build/out.log"]);
+    // Snapped back byte-exact to the pre-turn content the hook staged.
+    expect(await read("build/out.log")).toBe("BEFORE");
   });
 });

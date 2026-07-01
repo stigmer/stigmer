@@ -340,6 +340,11 @@ async function executeCursorInner(
             gitRoot: primaryWorkspaceDir,
             executionId,
             changeSet,
+            // Thread the CAS store so gitignored files in the change set reconcile
+            // from the durable manifest (approved after-blobs written, rejected
+            // snapped back). Undefined storage -> the shared CAS branch no-ops and
+            // only git-tracked files reconcile, exactly as before.
+            storage: artifactStorage,
           });
           if (!capResult.isCaptureTurn) continue;
           reconciledFileReview = true;
@@ -561,12 +566,19 @@ async function executeCursorInner(
         executionId,
       );
     }
+    // CAS capture of gitignored writes requires artifact storage to persist blobs
+    // (captureCandidateToLedger throws without it). captureMode alone (a git work
+    // tree) governs tracked-file capture, which needs no storage; captureIgnored
+    // is the narrower switch that also demands storage. When storage is absent,
+    // gitignored writes keep the classic deny-gate behavior (no regression).
+    const captureIgnored = captureMode && !!artifactStorage;
     const approvalState = buildApprovalState(
       mergedPolicies,
       globalBypass,
       leases.categories,
       approvalGrants,
       captureMode,
+      captureIgnored,
     );
     const hitlGate = await installHitlGate({
       workspaceRoot: primaryWorkspaceDir,
@@ -1146,6 +1158,12 @@ async function executeCursorInner(
         baselineTree,
         messages: status.messages,
         deniedTokens,
+        // The gitignored CAS half: read the sidecar the hook staged this turn and
+        // compose it into the hybrid change set. hitlDir + storage are present
+        // exactly when captureIgnored was on (git work tree + artifact storage);
+        // omitted otherwise, leaving a git-only capture.
+        hitlDir,
+        storage: artifactStorage,
       });
       capturedChangeCount = captured.length;
       if (capturedChangeCount > 0) {

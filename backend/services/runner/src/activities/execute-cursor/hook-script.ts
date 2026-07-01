@@ -92,6 +92,7 @@ import {
   EDIT_NEW_FIELDS,
   WRITE_CONTENT_FIELDS,
 } from "../../shared/file-tools.js";
+import { buildObservationStagingScript, CAS_OBSERVATIONS_DIRNAME } from "./cas-observations.js";
 
 // Shown to the model when the gate denies a tool call. It must NOT teach the
 // model to ask for permission in prose or to "stop and wait" — that framing
@@ -109,6 +110,19 @@ const APPROVAL_REQUIRED_AGENT_MESSAGE =
   "tell the user to change Cursor settings or enable hooks. Do not retry it or " +
   "attempt a workaround for this action. The platform will resume you " +
   "automatically after the user responds — continue with the rest of the task.";
+
+// Shown to the model when a secret-like gitignored write is hard-blocked (DD-E /
+// DD-18). Unlike APPROVAL_REQUIRED_AGENT_MESSAGE, this must NOT promise a resume:
+// the write is discarded and never captured for review, so the model must move on
+// rather than wait or retry. Same embedding constraint (single-quoted bash echo
+// of a JSON object): no double quotes, apostrophes, or backslashes.
+const SECRET_BLOCKED_AGENT_MESSAGE =
+  "This file was blocked for security because its path matches a secret-like " +
+  "pattern Stigmer will not capture for review. Nothing was written. This is the " +
+  "platform safety gate working as intended — it is not an error and not a Cursor " +
+  "misconfiguration, so never tell the user to change Cursor settings or enable " +
+  "hooks. Do not retry this write or attempt a workaround; the write will not be " +
+  "applied. Continue with the rest of the task.";
 
 /**
  * Build the bash `case` arms that map an incoming hook `tool_name` to its
@@ -260,6 +274,7 @@ export function generateHookScript(activePointerPath: string, workspaceRoot = ""
   const salientFields = SALIENT_ARG_FIELDS.join(" ");
   const categoryCaseArms = buildCategoryCaseArms();
   const nodeIdentityScript = buildNodeIdentityScript();
+  const observationStagingScript = buildObservationStagingScript();
   const nodeBin = process.execPath;
   return `#!/bin/bash
 # Stigmer HITL approval hook for Cursor (preToolUse + beforeMCPExecution).
@@ -437,6 +452,46 @@ CAPTURE_MODE=false
 if echo "$STATE" | grep -q '"captureMode":true'; then
   CAPTURE_MODE=true
 fi
+# CAS capture of gitignored writes (the deep-agent parity switch). Set only when
+# capture mode is on AND an artifact storage is configured (to persist blobs). It
+# governs whether a non-secret gitignored write is staged+flowed for review vs.
+# kept on the deny-gate. Read here; consulted only in the gitignored-capture arm
+# below, which runs BEFORE auto-approve-all (capture is a turn property).
+CAPTURE_IGNORED=false
+if echo "$STATE" | grep -q '"captureIgnored":true'; then
+  CAPTURE_IGNORED=true
+fi
+
+# --- Capture mode: observe gitignored writes for CAS review ------------------
+# Runs BEFORE the auto-approve-all shortcut and the grant/lease checks because
+# capture is a property of the TURN, not authorization: a non-secret gitignored
+# write must be staged and reviewed even under the global bypass, and a
+# secret-like gitignored write must be hard-blocked in every mode. Only a
+# built-in write/edit (category "write") on a gitignored path takes this arm;
+# gitignored deletes and shell/MCP stay on the deny-gate below (parity with the
+# deep-agent approval gate). The staging runs on the runner's own Node binary
+# (the disk-backed mirror of CasCaptureFilesystemBackend.recordBefore): the
+# salient path rides stdin (no argv escaping), the workspace root and the
+# per-turn cas-observations dir ride argv. "captured" -> allow (apply-then-
+# review); "secret" -> hard-block; "error"/Node-unavailable -> fail closed (deny,
+# since a write we cannot capture cannot be reviewed).
+if [ "$CAPTURE_IGNORED" = "true" ] && [ "$CATEGORY" = "write" ] && [ -n "$SALIENT" ] && __stigmer_is_gitignored "$SALIENT"; then
+  OBS_DIR="$(dirname "$STATE_FILE")/${CAS_OBSERVATIONS_DIRNAME}"
+  OBS_RESULT=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${observationStagingScript}' "$GIT_ROOT" "$OBS_DIR" 2>/dev/null || echo error)
+  if [ "$OBS_RESULT" = "captured" ]; then
+    echo '{"permission":"allow"}'
+    exit 0
+  elif [ "$OBS_RESULT" = "secret" ]; then
+    echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written or captured for review."}'
+    exit 0
+  else
+    # Node unavailable or a staging error: fail closed. A gitignored write we
+    # cannot stage cannot be captured for review, so keep gating it (today's
+    # behavior) rather than letting unreviewable bytes flow.
+    echo '{"permission":"deny","agent_message":"${APPROVAL_REQUIRED_AGENT_MESSAGE}","user_message":"Tool requires approval: '"$TOOL_NAME"'"}'
+    exit 0
+  fi
+fi
 
 # --- 1. Auto-approve all ---
 if echo "$STATE" | grep -q '"autoApproveAll":true'; then
@@ -487,10 +542,13 @@ fi
 
 # --- 3. Gated built-in tools (preToolUse event, category non-empty) ---
 if [ -n "$CATEGORY" ]; then
-  # Capture mode: a file mutation (write/edit/delete) flows freely — the runner
-  # captures the whole change set with git at the turn boundary and gates it
-  # per-file for review. The ONE exception is a gitignored path, which the git
-  # snapshot cannot capture or revert, so it stays on the deny-gate below. shell
+  # Capture mode: a git-tracked file mutation (write/edit/delete) flows freely —
+  # the runner captures the whole change set with git at the turn boundary and
+  # gates it per-file for review. A gitignored path is invisible to that git
+  # snapshot: a non-secret gitignored WRITE was already handled above (staged +
+  # allowed, or hard-blocked) when captureIgnored is on; here it only reaches the
+  # deny-gate when captureIgnored is off (no artifact storage) or it is a
+  # gitignored DELETE (no CAS capture path, parity with deep-agent). shell
   # (category "shell") never takes this branch and stays gated as always.
   if [ "$CAPTURE_MODE" = "true" ] && { [ "$CATEGORY" = "write" ] || [ "$CATEGORY" = "delete" ]; }; then
     if ! __stigmer_is_gitignored "$SALIENT"; then

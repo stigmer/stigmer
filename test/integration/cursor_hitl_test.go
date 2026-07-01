@@ -1980,9 +1980,129 @@ func TestCursorHarness_Capture_MixedEditAndShell_FileCardPlusShellGate(t *testin
 	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 }
 
+// TestCursorHarness_Capture_GitignoredWrite_Approve is the CAS-parity headline
+// (DD-18): a NON-secret gitignored write — invisible to the git snapshot — is no
+// longer denied at the hook. The hook stages its pre-turn bytes into the
+// cas-observations sidecar and lets it flow; the turn boundary captures it as a
+// GIT_IGNORED_CAPTURED card; approving lands it byte-exact on disk. This is the
+// live end-to-end proof of the deterministic hook + capture-flow unit coverage.
+// Requires CURSOR_API_KEY.
+func TestCursorHarness_Capture_GitignoredWrite_Approve(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 6*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	gitDir := harness.NewGitWorkspace(t)
+	// A NON-secret ignored dir: git cannot capture it, so the CAS substrate must.
+	harness.SeedGitignorePattern(t, gitDir, "generated/")
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-capture-gitignored-approve",
+		"You are a helpful coding assistant.",
+	)
+	session := createCaptureSession(t, ctx, clients, agent.GetStatus().GetDefaultInstanceId(), gitDir)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Create a file at generated/output.txt containing exactly the text: hello-cas",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.True(t, hasApprovalForPath(waiting, "generated/output.txt"),
+		"a non-secret gitignored write must surface a capture card for review (CAS parity), "+
+			"not be silently denied")
+
+	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		exec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		3*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "approving a captured gitignored file should complete the turn")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// The approved gitignored file landed byte-exact on disk.
+	require.True(t, harness.WorkspaceFileExists(t, gitDir, "generated/output.txt"),
+		"the approved gitignored file must be applied on disk")
+	assert.Equal(t, "hello-cas", strings.TrimSpace(harness.ReadWorkspaceFile(t, gitDir, "generated/output.txt")),
+		"the approved gitignored file must carry the exact captured content")
+}
+
+// TestCursorHarness_Capture_GitignoredWrite_Reject proves reject semantics for a
+// captured gitignored ADD: discarding it COMPLETES (never FAILED) and removes the
+// file, snapping the working tree back to its pre-turn state. Requires CURSOR_API_KEY.
+func TestCursorHarness_Capture_GitignoredWrite_Reject(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 6*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	gitDir := harness.NewGitWorkspace(t)
+	harness.SeedGitignorePattern(t, gitDir, "generated/")
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-capture-gitignored-reject",
+		"You are a helpful coding assistant.",
+	)
+	session := createCaptureSession(t, ctx, clients, agent.GetStatus().GetDefaultInstanceId(), gitDir)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Create a file at generated/output.txt containing exactly the text: hello-cas",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.True(t, hasApprovalForPath(waiting, "generated/output.txt"),
+		"the gitignored write must surface a capture card before review")
+
+	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		exec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_REJECT,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		3*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "rejecting a captured gitignored file must COMPLETE with discard, not FAIL")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// A rejected ADD leaves no file behind — the tree is back to pre-turn state.
+	assert.False(t, harness.WorkspaceFileExists(t, gitDir, "generated/output.txt"),
+		"a rejected gitignored ADD must be removed (working tree snapped back)")
+}
+
 // =============================================================================
 // Capture-mode test helpers
 // =============================================================================
+
+// hasApprovalForPath reports whether any pending approval carries a file change
+// for the given workspace-relative path (used to assert a capture card surfaced
+// for a specific file, tolerant of card ordering and the tool taxonomy).
+func hasApprovalForPath(exec *agentexecv1.AgentExecution, path string) bool {
+	for _, pa := range exec.GetStatus().GetPendingApprovals() {
+		for _, fc := range pa.GetFileChanges() {
+			if fc.GetPath() == path {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // createCaptureSession creates a HARNESS_CURSOR session whose primary workspace
 // is the given hermetic git work tree (via a LocalPathSource entry), which is

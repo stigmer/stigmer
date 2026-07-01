@@ -43,6 +43,7 @@ import {
   removeActiveTurnPointer,
   type ApprovalStateFile,
 } from "./approval-state.js";
+import { resetCasObservations } from "./cas-observations.js";
 import { ensureHitlGateDir } from "../../shared/workspace/platform-dir.js";
 
 const CURSOR_DIR = ".cursor";
@@ -288,6 +289,10 @@ async function writeHitlArtifacts(
 
   const stateFilePath = await writeApprovalStateFile(hitlDir, approvalState);
   const ledgerFilePath = await resetDenialLedger(hitlDir);
+  // Reset the cas-observations sidecar too, so the turn boundary only ever reads
+  // gitignored observations the hook staged this run (deterministic across HITL
+  // reinvocations and Temporal retries, exactly like the denial ledger).
+  await resetCasObservations(hitlDir);
 
   const gateDir = await ensureHitlGateDir(workspaceRoot);
   const pointerPath = activePointerPath(gateDir);

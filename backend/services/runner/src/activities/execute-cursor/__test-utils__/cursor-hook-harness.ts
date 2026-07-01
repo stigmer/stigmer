@@ -24,6 +24,7 @@ import { join } from "node:path";
 import { generateHookScript } from "../hook-script.js";
 import { buildApprovalState, type ApprovalGrant, type McpToolPolicyEntry } from "../approval-state.js";
 import type { MergedToolPolicy, ApprovalCategory } from "../approval-policy.js";
+import { readCasObservations, type CasObservations } from "../cas-observations.js";
 
 /**
  * Whether `bash` is available on this machine. Hook tests must be skipped where
@@ -39,6 +40,8 @@ export const hasBash: boolean = (() => {
 })();
 
 export interface CursorHookHarness {
+  /** The throwaway workspace root (git repo when capture mode is on). */
+  readonly root: string;
   /** Run the hook against a single hook-input payload and report its decision. */
   decide(input: object): { permission: string; raw: string };
   /**
@@ -48,6 +51,12 @@ export interface CursorHookHarness {
   ledger(): Array<{ toolName: string; token: string; input?: string }>;
   /** Truncate the denial ledger (a fresh turn). */
   resetLedger(): void;
+  /**
+   * The cas-observations the hook staged this turn (captured gitignored writes +
+   * secret-blocked paths), read back through the real sidecar reader. Empty when
+   * captureIgnored is off / nothing was staged.
+   */
+  observations(): Promise<CasObservations>;
 }
 
 export interface CursorHookHarnessOptions {
@@ -77,6 +86,14 @@ export interface CursorHookHarnessOptions {
    * patterns, so capture mode's `git check-ignore` has a real repo to consult.
    */
   gitignored?: string[];
+  /**
+   * CAS capture of gitignored writes (deep-agent parity). When true, the hook
+   * stages a non-secret gitignored write's before-bytes into the cas-observations
+   * sidecar and ALLOWS it, and hard-blocks a secret-like gitignored write —
+   * instead of denying every gitignored write. Requires a git repo (set via
+   * {@link captureMode} or {@link gitignored}).
+   */
+  captureIgnored?: boolean;
 }
 
 /**
@@ -134,11 +151,13 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       new Set(opts.leasedCategories ?? []),
       opts.grants,
       opts.captureMode ?? false,
+      opts.captureIgnored ?? false,
     );
     writeFileSync(statePath, JSON.stringify(state), "utf-8");
   }
 
   return {
+    root: ws,
     decide(input: object) {
       const raw = execFileSync("bash", [scriptPath], { input: JSON.stringify(input) }).toString();
       const permission = raw.includes('"permission":"deny"')
@@ -157,6 +176,11 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
     },
     resetLedger() {
       writeFileSync(ledgerPath, "", "utf-8");
+    },
+    // The sidecar lives beside the state/ledger files (its `dir` is the harness's
+    // hitlDir analog), exactly as the runner derives it from dirname(STATE_FILE).
+    observations() {
+      return readCasObservations(dir);
     },
   };
 }
