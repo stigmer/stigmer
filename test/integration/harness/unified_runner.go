@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -47,6 +49,12 @@ type UnifiedRunnerConfig struct {
 	// offline mode where ProxyEndpoint is a MockLLMProxy that does not
 	// handle artifact presign endpoints.
 	LocalArtifactDir string
+
+	// LocalArtifactServeURL is set internally by StartUnifiedRunnerManager to
+	// the address of the file server it starts over LocalArtifactDir; it is
+	// threaded to the runner as LOCAL_ARTIFACT_SERVE_URL. Callers leave it
+	// empty — see startArtifactFileServer for why the runner needs it.
+	LocalArtifactServeURL string
 
 	// LogLabel, when set, is woven into the manager's log filename so that
 	// runners sharing a LogDir do not overwrite each other's logs. Without it,
@@ -99,6 +107,9 @@ type UnifiedRunnerManager struct {
 	logger          *slog.Logger
 	mu              sync.Mutex
 	protocolVersion int
+	// artifactServer serves LocalArtifactDir over HTTP for the CAS reconcile's
+	// read path (nil when no local artifact dir is configured). Torn down by Stop.
+	artifactServer *artifactFileServer
 }
 
 // LogPath returns the path to the runner's stderr log file.
@@ -151,6 +162,26 @@ func StartUnifiedRunnerManager(ctx context.Context, cfg UnifiedRunnerConfig, log
 	}
 	logger.Info("unified-runner-manager log", "path", logPath)
 
+	// Serve the runner's local artifact dir so the CAS reconcile's
+	// getDownloadUrl+fetch read path resolves offline (mirrors the control
+	// plane's file server). Closed on any early-return failure via `started`.
+	var artifactServer *artifactFileServer
+	started := false
+	if cfg.LocalArtifactDir != "" {
+		artifactServer, err = startArtifactFileServer(cfg.LocalArtifactDir)
+		if err != nil {
+			logFile.Close()
+			return nil, err
+		}
+		defer func() {
+			if !started {
+				artifactServer.Close()
+			}
+		}()
+		cfg.LocalArtifactServeURL = artifactServer.url
+		logger.Info("artifact file server", "url", artifactServer.url, "dir", cfg.LocalArtifactDir)
+	}
+
 	cmd := exec.Command(runBin, entrypoint)
 	cmd.Dir = runnerDir
 	cmd.Env = buildUnifiedRunnerEnv(cfg, "manager", "")
@@ -184,12 +215,13 @@ func StartUnifiedRunnerManager(ctx context.Context, cfg UnifiedRunnerConfig, log
 	scanner := bufio.NewScanner(stdout)
 
 	mgr := &UnifiedRunnerManager{
-		cmd:     cmd,
-		stdin:   stdin,
-		scanner: scanner,
-		logFile: logFile,
-		logPath: logPath,
-		logger:  logger,
+		cmd:            cmd,
+		stdin:          stdin,
+		scanner:        scanner,
+		logFile:        logFile,
+		logPath:        logPath,
+		logger:         logger,
+		artifactServer: artifactServer,
 	}
 
 	resp, err := mgr.readResponse(ctx, 30*time.Second)
@@ -211,6 +243,7 @@ func StartUnifiedRunnerManager(ctx context.Context, cfg UnifiedRunnerConfig, log
 	mgr.protocolVersion = resp.ProtocolVersion
 
 	logger.Info("unified-runner-manager ready", "pid", cmd.Process.Pid, "protocol_version", resp.ProtocolVersion)
+	started = true
 	return mgr, nil
 }
 
@@ -363,6 +396,8 @@ func (m *UnifiedRunnerManager) Stop() error {
 	case <-time.After(5 * time.Second):
 	case <-done:
 	}
+
+	m.artifactServer.Close()
 
 	if m.logFile != nil {
 		m.logFile.Close()
@@ -577,6 +612,43 @@ func resolveRunnerCommand(runnerDir string) (bin string, entrypoint string, err 
 	return tsxBin, filepath.Join(runnerDir, "src", "main.ts"), nil
 }
 
+// artifactFileServer serves a runner's local artifact directory over HTTP so
+// the CAS reconcile's read path (casBlobReader → getDownloadUrl → fetch)
+// resolves in offline tests — the harness twin of the control-plane file
+// server (stigmer-server server.go).
+//
+// Mapping: LocalArtifactStorage writes each blob to join(dir, key) and resolves
+// its download URL to {serveURL}/{key}, so serving `dir` at "/" makes a GET of
+// /{key} map straight back to join(dir, key). This is the exact shape proven by
+// the cas-substrate unit test's real-serve-path case.
+type artifactFileServer struct {
+	server *http.Server
+	url    string
+}
+
+func startArtifactFileServer(dir string) (*artifactFileServer, error) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, fmt.Errorf("listen for artifact file server: %w", err)
+	}
+	srv := &http.Server{Handler: http.FileServer(http.Dir(dir))}
+	go func() { _ = srv.Serve(ln) }()
+	return &artifactFileServer{
+		server: srv,
+		url:    fmt.Sprintf("http://%s", ln.Addr().String()),
+	}, nil
+}
+
+// Close shuts the server down; safe on a nil receiver (no local artifact dir).
+func (a *artifactFileServer) Close() {
+	if a == nil || a.server == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_ = a.server.Shutdown(ctx)
+}
+
 func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []string {
 	wsDir := UnifiedRunnerWorkspaceDir()
 	_ = os.MkdirAll(wsDir, 0o755)
@@ -632,6 +704,12 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 				"ARTIFACT_STORAGE_TYPE=local",
 				fmt.Sprintf("LOCAL_ARTIFACT_PATH=%s", cfg.LocalArtifactDir),
 			)
+			// Point the runner's blob reader at the harness file server so the
+			// CAS reconcile's getDownloadUrl+fetch resolves (default is :7235,
+			// which nothing serves in-test).
+			if cfg.LocalArtifactServeURL != "" {
+				env = append(env, fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=%s", cfg.LocalArtifactServeURL))
+			}
 		} else {
 			env = append(env, "ARTIFACT_STORAGE_TYPE=proxy")
 		}

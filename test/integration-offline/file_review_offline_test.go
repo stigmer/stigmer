@@ -42,13 +42,14 @@ import (
 // co-located in MODE=local, operates in place -> isGitWorkTree is true), exactly
 // as the live Cursor capture suite does.
 //
-// Deliberate boundary — the full MIXED-turn RESUME (a file edit plus a gitignored
-// /shell/MCP gate in one turn) is NOT asserted here. Resolving the tool gate
-// requires the durable checkpointer to resume the graph, which the offline
-// MemorySaver replays from scratch. TestOffline_FileReview_MixedTurn therefore
-// asserts only the GATE-TIME state (both review surfaces coexist) and cancels;
-// the full mixed resolution stays covered by the runner unit tests and the live
-// path.
+// Mixed turns — a file edit combined with a *secret-like gitignored* write (.env)
+// resolve FULLY offline, because DD-E hard-blocks the secret write (no tool gate):
+// the turn is a pure file review over one PARTIAL_BLOCKED set (see
+// TestOffline_FileReview_MixedTurn_TrackedKeptSecretDiscarded). A mixed turn with
+// an actual mid-turn TOOL gate (shell / MCP / a gitignored delete) is still NOT
+// resolved here: resuming that gate needs the durable checkpointer the offline
+// MemorySaver replays from scratch, so it stays covered by the runner unit tests
+// and the live path.
 
 // startFileReviewRun wires an offline native execution against a git workspace in
 // capture mode and returns the handles a file-review test needs. The caller owns
@@ -475,10 +476,13 @@ func TestOffline_FileReview_ApproveBlockedOnIncompleteDiff(t *testing.T) {
 	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review decision must NOT re-invoke the model")
 }
 
-// TestOffline_FileReview_GitignoredStaysGated proves the gitignore-aware capture
-// gate: a write to a .gitignore'd path cannot be captured/reverted by the git
-// substrate, so it stays a true-paused TOOL approval — never a FileChangeSet.
-func TestOffline_FileReview_GitignoredStaysGated(t *testing.T) {
+// TestOffline_FileReview_SecretGitignored_HardBlockedDiscardOnly proves the DD-E
+// contract: a secret-like gitignored write (.env) is hard-blocked — never
+// applied, never captured — and surfaces as a content-less DIFF_UNREVIEWABLE
+// entry in a PARTIAL_BLOCKED change set (NOT a tool approval). It cannot be
+// approved (nothing was reviewable), only discarded, after which the execution
+// completes with the file never having touched disk.
+func TestOffline_FileReview_SecretGitignored_HardBlockedDiscardOnly(t *testing.T) {
 	requireOfflineService(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -494,41 +498,69 @@ func TestOffline_FileReview_GitignoredStaysGated(t *testing.T) {
 		},
 		"Write the .env file using the filesystem tools.")
 
-	// A gitignored write must surface as a tool approval, not a change set.
-	gate, err := waiter.WaitForPendingApproval(ctx, execID, "write_file", 2*time.Minute)
+	// The secret-like write is hard-blocked (no interrupt), so the turn runs to
+	// completion and the boundary opens a file review — never a tool gate.
+	waiting, err := waiter.WaitForFileReview(ctx, execID, 2*time.Minute)
 	if err != nil {
 		harness.LogExecutionMessages(t, ctx, clients, execID)
-		t.Fatalf("a gitignored write should gate as a tool approval: %v", err)
+		t.Fatalf("a hard-blocked secret write should still open a file review: %v", err)
 	}
-	harness.AssertAgentPhase(t, gate, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
-	assert.Equal(t, 0,
-		harness.CountChangeSets(gate, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW),
-		"a gitignored edit must NOT be captured as a reviewable change set")
-	harness.AssertPendingApprovalFileChange(t, gate, "write_file", path,
-		agentexecv1.FileChangeType_FILE_CHANGE_TYPE_CREATE,
-		agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE)
+	harness.AssertPendingApprovals(t, waiting, 0) // never a tool approval
 
-	// Approving the tool gate drives a clean terminal state (one LLM call per
-	// gated turn — the offline tool-gate resume contract).
-	_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
+	require.NotNil(t, set, "the secret-blocked write must surface an AWAITING_REVIEW change set")
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, set.GetDiffCompleteness(),
+		"a secret-blocked path must mark the set PARTIAL_BLOCKED (its diff is not reviewable)")
+
+	// The entry is content-less: no before/after bytes, diff_complete=false,
+	// captured as GIT_IGNORED_CAPTURED. Its file_digest is derived from path+kind
+	// (not content), so it is non-empty and the entry is still addressable.
+	ch := harness.FindCapturedChangeByPath(set, path)
+	require.NotNil(t, ch, "the secret path must be surfaced (path only) for review")
+	assert.False(t, ch.GetDiffComplete(), "a secret-blocked entry must be diff_complete=false")
+	assert.Equal(t, agentexecv1.FileCaptureClass_FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED, ch.GetCaptureClass(),
+		"a secret-blocked gitignored path is captured as GIT_IGNORED_CAPTURED")
+	assert.Nil(t, ch.GetAfter(), "the secret content must never enter the ledger")
+	assert.False(t, harness.WorkspaceFileExists(t, gitDir, path),
+		"a hard-blocked secret write must never touch disk")
+
+	// APPROVE is refused: a diff that was never reviewable cannot be kept
+	// (completeness gate, before the digest check).
+	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
 		AgentExecutionId: execID,
-		ToolCallId:       gate.GetStatus().GetPendingApprovals()[0].GetToolCallId(),
-		Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		ChangeSetId:      set.GetId(),
+		Scope:            agentexecv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
+		FileChangeId:     ch.GetId(),
+		Action:           agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		ExpectedDigest:   ch.GetFileDigest(),
 	})
-	require.NoError(t, err, "approve the gitignored write gate")
+	require.Error(t, err, "approving an unreviewable secret entry must be refused")
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err),
+		"an unreviewable-diff approval is a precondition failure")
 
-	result, err := waiter.WaitForTerminal(ctx, execID, 2*time.Minute)
-	require.NoError(t, err, "execution should complete after the tool gate is approved")
-	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
-	assert.Equal(t, 0, mockLLM.Remaining(), "all scripted entries consumed")
+	// The execution is untouched: still awaiting review.
+	stillWaiting, err := clients.AgentExecutionQuery.Get(ctx, &agentexecv1.AgentExecutionId{Value: execID})
+	require.NoError(t, err)
+	harness.AssertAgentPhase(t, stillWaiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+
+	// REJECT (discard) is always allowed: complete, with the file still absent.
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, path,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_REJECT)
+	_, err = waiter.WaitForPhase(ctx, execID, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "discarding the unreviewable secret entry must complete the execution")
+	assert.False(t, harness.WorkspaceFileExists(t, gitDir, path),
+		"the rejected secret write must remain absent")
+	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review decision must NOT re-invoke the model")
 }
 
-// TestOffline_FileReview_MixedTurn_BothSurfacesCoexist proves a single turn can
-// block on BOTH review surfaces at once: a git-tracked edit flows and is captured
-// (file review) while a gitignored edit true-pauses (tool gate). Only the
-// GATE-TIME state is asserted; the full mixed RESUME is the deferred boundary
-// documented at the top of this file, so the test cancels rather than resolving.
-func TestOffline_FileReview_MixedTurn_BothSurfacesCoexist(t *testing.T) {
+// TestOffline_FileReview_MixedTurn_TrackedKeptSecretDiscarded proves a single
+// turn that touches a git-tracked file (flows, reviewable) AND a secret-like
+// gitignored file (.env, hard-blocked) yields ONE file-review surface — a
+// PARTIAL_BLOCKED set holding the reviewable tracked change plus the content-less
+// DIFF_UNREVIEWABLE entry — with NO tool approval. Because the secret path no
+// longer gates, the turn is fully resolvable offline: FILE-approve the (complete)
+// tracked file, FILE-discard .env, and the runner reconciles with no model re-run.
+func TestOffline_FileReview_MixedTurn_TrackedKeptSecretDiscarded(t *testing.T) {
 	requireOfflineService(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -537,41 +569,194 @@ func TestOffline_FileReview_MixedTurn_BothSurfacesCoexist(t *testing.T) {
 	gitDir := harness.NewGitWorkspace(t)
 	const trackedPath = "tracked.txt"
 	const ignoredPath = ".env"
+	const trackedBody = "tracked body\n"
 
-	_, clients, waiter, execID := startFileReviewRun(t, ctx, gitDir,
+	mockLLM, clients, waiter, execID := startFileReviewRun(t, ctx, gitDir,
 		[]harness.RecordedLLMEntry{
-			// Tracked edit flows (captured), THEN the gitignored edit gates.
-			writeFileTurn(0, "toolu_w_tracked", trackedPath, "tracked body\n"),
+			writeFileTurn(0, "toolu_w_tracked", trackedPath, trackedBody),
 			writeFileTurn(1, "toolu_w_ignored", ignoredPath, "SECRET=1\n"),
 			textTurn(2, "Wrote both files."),
 		},
 		"Write tracked.txt then .env using the filesystem tools.")
 
-	// At the gitignored gate, both surfaces must be present.
-	gate, err := waiter.WaitForPendingApproval(ctx, execID, "write_file", 2*time.Minute)
+	waiting, err := waiter.WaitForFileReview(ctx, execID, 2*time.Minute)
 	if err != nil {
 		harness.LogExecutionMessages(t, ctx, clients, execID)
-		t.Fatalf("the mixed turn should gate on the gitignored write: %v", err)
+		t.Fatalf("the mixed turn should open a file review: %v", err)
 	}
-	harness.AssertAgentPhase(t, gate, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	// One surface only: no tool approval (the secret write was hard-blocked).
+	harness.AssertPendingApprovals(t, waiting, 0)
 
-	// Surface 1: the tracked edit is awaiting file review.
-	set := harness.FindFileChangeSet(gate, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
-	require.NotNil(t, set, "the tracked edit must be captured as an AWAITING_REVIEW change set")
-	require.NotNil(t, harness.FindCapturedChangeByPath(set, trackedPath),
-		"the captured set must contain the tracked file")
+	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
+	require.NotNil(t, set, "the mixed turn must surface one AWAITING_REVIEW change set")
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, set.GetDiffCompleteness(),
+		"the secret entry makes the whole set PARTIAL_BLOCKED")
 
-	// Surface 2: the gitignored edit is a true-paused tool approval.
-	harness.AssertPendingApprovals(t, gate, 1)
-	harness.AssertPendingApprovalFileChange(t, gate, "write_file", ignoredPath,
-		agentexecv1.FileChangeType_FILE_CHANGE_TYPE_CREATE,
-		agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE)
+	// The tracked change is reviewable (complete, with content)...
+	tracked := harness.AssertCapturedChange(t, set, trackedPath, agentexecv1.FileChangeKind_FILE_CHANGE_KIND_ADD)
+	require.NotNil(t, tracked)
+	assert.True(t, tracked.GetDiffComplete(), "the tracked file must be diff_complete")
 
-	// Deferred boundary: do not resolve the mixed turn offline (the tool-gate
-	// resume needs the durable checkpointer). Cancel for a clean teardown.
-	_, err = clients.AgentExecutionCommand.Cancel(ctx, &agentexecv1.CancelAgentExecutionInput{
-		Id:     execID,
-		Reason: "offline mixed-turn test asserts gate-time state only",
-	})
-	require.NoError(t, err, "cancel the unresolved mixed-turn execution")
+	// ...while the secret entry is content-less and unreviewable.
+	secret := harness.FindCapturedChangeByPath(set, ignoredPath)
+	require.NotNil(t, secret, "the secret path must be surfaced (path only)")
+	assert.False(t, secret.GetDiffComplete(), "the secret entry must be diff_complete=false")
+
+	// Per-file: keep the (complete) tracked file, discard the secret entry. A
+	// per-file APPROVE of a complete file is allowed even in a PARTIAL_BLOCKED set.
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, trackedPath,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE)
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, ignoredPath,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_REJECT)
+
+	_, err = waiter.WaitForPhase(ctx, execID, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "deciding both changes must complete the mixed turn")
+
+	assert.Equal(t, trackedBody, harness.ReadWorkspaceFile(t, gitDir, trackedPath),
+		"the kept tracked file must reconcile to its approved bytes")
+	assert.False(t, harness.WorkspaceFileExists(t, gitDir, ignoredPath),
+		"the discarded secret write must never exist on disk")
+	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review resolution must NOT re-invoke the model")
+}
+
+// TestOffline_FileReview_GitignoredCaptured_ReviewedAndReconciled is the headline
+// CAS guard: a NON-secret gitignored write is not gated — it flows and is captured
+// into content-addressed storage (GIT_IGNORED_CAPTURED, diff_complete) alongside a
+// git-tracked edit in one HYBRID change set. A per-file APPROVE reconciles the CAS
+// bytes back onto disk (through the runner's real getDownloadUrl+fetch read path,
+// which the harness now serves), a per-file REJECT snaps a captured create back
+// out, and no model re-invocation occurs.
+func TestOffline_FileReview_GitignoredCaptured_ReviewedAndReconciled(t *testing.T) {
+	requireOfflineService(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	gitDir := harness.NewGitWorkspace(t)
+	harness.SeedGitignorePattern(t, gitDir, "cache/") // a non-secret ignored dir → CAS-captured
+	const trackedPath = "tracked.txt"
+	const keepPath = "cache/keep.txt"
+	const dropPath = "cache/drop.txt"
+	const trackedBody = "tracked body\n"
+	const keepBody = "cache keep body\n"
+	const dropBody = "cache drop body\n"
+
+	mockLLM, clients, waiter, execID := startFileReviewRun(t, ctx, gitDir,
+		[]harness.RecordedLLMEntry{
+			writeFileTurn(0, "toolu_w_tracked", trackedPath, trackedBody),
+			writeFileTurn(1, "toolu_w_keep", keepPath, keepBody),
+			writeFileTurn(2, "toolu_w_drop", dropPath, dropBody),
+			textTurn(3, "Wrote a tracked file and two ignored files."),
+		},
+		"Write tracked.txt and two files under cache/ using the filesystem tools.")
+
+	waiting, err := waiter.WaitForFileReview(ctx, execID, 2*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, execID)
+		t.Fatalf("the CAS capture turn should open a file review: %v", err)
+	}
+	// No tool gate: a non-secret gitignored write flows just like a tracked one.
+	harness.AssertPendingApprovals(t, waiting, 0)
+
+	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
+	require.NotNil(t, set, "the turn must surface one AWAITING_REVIEW change set")
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE, set.GetDiffCompleteness(),
+		"every change is reviewable text, so the hybrid set is COMPLETE")
+	assert.NotEmpty(t, set.GetAggregateDigest(), "the hybrid change set must carry an aggregate digest")
+
+	// The tracked edit is captured by the git substrate...
+	tracked := harness.AssertCapturedChange(t, set, trackedPath, agentexecv1.FileChangeKind_FILE_CHANGE_KIND_ADD)
+	require.NotNil(t, tracked)
+	assert.Equal(t, agentexecv1.FileCaptureClass_FILE_CAPTURE_CLASS_GIT_TRACKED, tracked.GetCaptureClass(),
+		"a tracked file is captured as GIT_TRACKED")
+
+	// ...and each ignored file by the CAS substrate (reviewable, complete).
+	for _, p := range []string{keepPath, dropPath} {
+		ch := harness.AssertCapturedChange(t, set, p, agentexecv1.FileChangeKind_FILE_CHANGE_KIND_ADD)
+		require.NotNilf(t, ch, "cas change for %s", p)
+		assert.Equalf(t, agentexecv1.FileCaptureClass_FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED, ch.GetCaptureClass(),
+			"%s is a gitignored path captured into CAS", p)
+		assert.Truef(t, ch.GetDiffComplete(), "%s is reviewable text, so diff_complete", p)
+	}
+
+	// Keep the tracked file and one ignored file; discard the other ignored file.
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, trackedPath,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE)
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, keepPath,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE)
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, dropPath,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_REJECT)
+
+	_, err = waiter.WaitForPhase(ctx, execID, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "deciding every change must complete the turn")
+
+	assert.Equal(t, trackedBody, harness.ReadWorkspaceFile(t, gitDir, trackedPath),
+		"the kept tracked file must reconcile to its approved bytes")
+	assert.Equal(t, keepBody, harness.ReadWorkspaceFile(t, gitDir, keepPath),
+		"the kept ignored file must reconcile byte-exact from its CAS blob")
+	assert.False(t, harness.WorkspaceFileExists(t, gitDir, dropPath),
+		"the discarded ignored create must be snapped back out of the working tree")
+	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review resolution must NOT re-invoke the model")
+}
+
+// TestOffline_FileReview_Durability_ReconcilesAfterWorkingTreeWiped proves the
+// durability contract (design doc 11, D3): a decision reconciles from the DURABLE
+// stores alone — the git object store (.git) for tracked files and the CAS blob
+// store (the artifact dir) for ignored files — even if the working tree is lost
+// between capture and decision. It models a sandbox recycle by deleting the
+// captured working files (keeping .git + the artifact dir) before approving, then
+// asserts both are restored byte-exact.
+func TestOffline_FileReview_Durability_ReconcilesAfterWorkingTreeWiped(t *testing.T) {
+	requireOfflineService(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	gitDir := harness.NewGitWorkspace(t)
+	harness.SeedGitignorePattern(t, gitDir, "cache/")
+	const trackedPath = "tracked.txt"
+	const ignoredPath = "cache/data.txt"
+	const trackedBody = "durable tracked body\n"
+	const ignoredBody = "durable cas body\n"
+
+	mockLLM, clients, waiter, execID := startFileReviewRun(t, ctx, gitDir,
+		[]harness.RecordedLLMEntry{
+			writeFileTurn(0, "toolu_w_tracked", trackedPath, trackedBody),
+			writeFileTurn(1, "toolu_w_ignored", ignoredPath, ignoredBody),
+			textTurn(2, "Wrote a tracked and an ignored file."),
+		},
+		"Write tracked.txt and cache/data.txt using the filesystem tools.")
+
+	waiting, err := waiter.WaitForFileReview(ctx, execID, 2*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, execID)
+		t.Fatalf("the capture turn should open a file review: %v", err)
+	}
+	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
+	require.NotNil(t, set, "the turn must surface one AWAITING_REVIEW change set")
+
+	// Both files were captured (git ref for the tracked, CAS blob for the ignored)
+	// before we wipe the working tree.
+	require.NotNil(t, harness.FindCapturedChangeByPath(set, trackedPath), "tracked file captured")
+	require.NotNil(t, harness.FindCapturedChangeByPath(set, ignoredPath), "ignored file captured")
+
+	// Recycle: drop the working copies, keeping .git and the artifact dir. The
+	// reconcile must now reconstruct purely from the durable stores.
+	harness.RemoveWorkspaceFile(t, gitDir, trackedPath)
+	harness.RemoveWorkspaceFile(t, gitDir, ignoredPath)
+	require.False(t, harness.WorkspaceFileExists(t, gitDir, trackedPath), "tracked working copy wiped")
+	require.False(t, harness.WorkspaceFileExists(t, gitDir, ignoredPath), "ignored working copy wiped")
+
+	// Keep everything: one CHANGE_SET-scoped approve over the (COMPLETE) set.
+	harness.SubmitChangeSetDecision(t, ctx, clients, execID, set,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE)
+
+	_, err = waiter.WaitForPhase(ctx, execID, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "approving the set must complete the execution")
+
+	assert.Equal(t, trackedBody, harness.ReadWorkspaceFile(t, gitDir, trackedPath),
+		"the tracked file must be restored byte-exact from the git object store")
+	assert.Equal(t, ignoredBody, harness.ReadWorkspaceFile(t, gitDir, ignoredPath),
+		"the ignored file must be restored byte-exact from its durable CAS blob")
+	assert.Equal(t, 0, mockLLM.Remaining(), "reconcile from durable stores must NOT re-invoke the model")
 }

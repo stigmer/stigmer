@@ -75,6 +75,19 @@ func SeedWorkspaceFile(t *testing.T, dir, relPath, content string) {
 	runGit(t, dir, "commit", "-q", "-m", "seed "+relPath)
 }
 
+// SeedGitignorePattern appends a pattern to the tracked .gitignore and commits
+// it, so a matching path is git-IGNORED from the pre-turn baseline onward. Use it
+// to create a NON-secret ignored path (e.g. "cache/") that the CAS substrate — not
+// the git diff — captures for review. (NewGitWorkspace already ignores .env and
+// .stigmer/, but those are secret/state; a distinct non-secret pattern is needed
+// to exercise the GIT_IGNORED_CAPTURED capture-and-reconcile path.)
+func SeedGitignorePattern(t *testing.T, dir, pattern string) {
+	t.Helper()
+	appendToFile(t, filepath.Join(dir, ".gitignore"), pattern+"\n")
+	runGit(t, dir, "add", ".gitignore")
+	runGit(t, dir, "commit", "-q", "-m", "gitignore "+pattern)
+}
+
 // ReadWorkspaceFile returns the current bytes of relPath under the workspace dir
 // as a string, failing the test if the file cannot be read. Use WorkspaceFileExists
 // first when a file may legitimately be absent (e.g. a rejected create).
@@ -90,6 +103,18 @@ func WorkspaceFileExists(t *testing.T, dir, relPath string) bool {
 	t.Helper()
 	_, err := os.Stat(filepath.Join(dir, relPath))
 	return err == nil
+}
+
+// RemoveWorkspaceFile deletes relPath from the working tree (a no-op if absent),
+// leaving .git and any out-of-tree stores untouched. Use it to model a sandbox
+// recycle where the working files are lost but the durable git object store and
+// CAS artifact store survive, so a resume must reconcile from those alone.
+func RemoveWorkspaceFile(t *testing.T, dir, relPath string) {
+	t.Helper()
+	err := os.Remove(filepath.Join(dir, relPath))
+	if err != nil && !os.IsNotExist(err) {
+		require.NoErrorf(t, err, "remove workspace file %s", relPath)
+	}
 }
 
 // WorkspaceHeadSHA returns the workspace's current HEAD commit SHA. Capture mode

@@ -53,7 +53,10 @@ export class CasCaptureFilesystemBackend extends FilesystemBackend {
   private readonly reserving = new Set<string>();
 
   constructor(
-    options: FilesystemBackendOptions,
+    // `rootDir` is required here (the base's is optional): this backend resolves
+    // gitignored paths against it, and the call site always passes the concrete
+    // workspace root. Narrowing keeps `this.rootDir` a plain `string`.
+    options: FilesystemBackendOptions & { rootDir: string },
     deps: {
       collector: CasBeforeMap;
       /** True when the workspace-relative path is gitignored (CAS-owned). */
