@@ -26,6 +26,7 @@ import {
   FileChangeType,
   FileDecisionAction,
   FileDecisionScope,
+  FileReviewBlockReason,
   FileReviewFailureKind,
   SnapshotKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -497,13 +498,15 @@ function casToCapturedChangeInput(
 }
 
 /**
- * Map a secret-blocked gitignored path to a content-less `DIFF_UNREVIEWABLE`
- * producer input (design doc 12). The bytes are deliberately never captured, so
- * both sides are absent (empty enforcement digests) and `diffComplete=false`
- * forces the change set to PARTIAL_BLOCKED — approval is blocked and the path is
- * surfaced honestly, while its CONTENT never enters the ledger or storage. Kind
- * is MODIFY: the write was blocked before it ran, so create-vs-modify is unknown
- * and irrelevant (nothing is ever applied or reconciled for this entry).
+ * Map a secret-blocked gitignored path to a content-less producer input (design
+ * doc 12, DD-E). The bytes are deliberately never captured, so both sides are
+ * absent (empty enforcement digests) and `diffComplete=false` forces the change
+ * set to PARTIAL_BLOCKED — approval is blocked and the path is surfaced honestly,
+ * while its CONTENT never enters the ledger or storage. `blockedReason` records
+ * the honest cause (SECRET_WITHHELD) so the review UI can say *why* rather than
+ * showing a cause-agnostic "unavailable" (doc 15). Kind is MODIFY: the write was
+ * blocked before it ran, so create-vs-modify is unknown and irrelevant (nothing
+ * is ever applied or reconciled for this entry).
  */
 function unreviewableChangeInput(changeSetId: string, path: string): CapturedChangeInput {
   return {
@@ -513,6 +516,7 @@ function unreviewableChangeInput(changeSetId: string, path: string): CapturedCha
     kind: FileChangeKind.MODIFY,
     captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
     diffComplete: false,
+    blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
   };
 }
 

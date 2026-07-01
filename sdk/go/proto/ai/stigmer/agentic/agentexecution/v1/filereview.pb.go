@@ -234,7 +234,13 @@ type CapturedFileChange struct {
 	DiffComplete bool `protobuf:"varint,11,opt,name=diff_complete,json=diffComplete,proto3" json:"diff_complete,omitempty"`
 	// Canonical digest of (path, kind, before, after) for this file. ENFORCEMENT
 	// only — the per-file analogue of aggregate_digest. Never a correlation key.
-	FileDigest    string `protobuf:"bytes,12,opt,name=file_digest,json=fileDigest,proto3" json:"file_digest,omitempty"`
+	FileDigest string `protobuf:"bytes,12,opt,name=file_digest,json=fileDigest,proto3" json:"file_digest,omitempty"`
+	// The honest cause this file's diff is not fully reviewable, set by the runner
+	// only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+	// provenance for the review UI — never an enforcement input and never folded
+	// into file_digest/aggregate_digest. Binary changes are conveyed by
+	// FileContent.is_binary, not here. See FileReviewBlockReason.
+	BlockedReason FileReviewBlockReason `protobuf:"varint,13,opt,name=blocked_reason,json=blockedReason,proto3,enum=ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason" json:"blocked_reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -351,6 +357,13 @@ func (x *CapturedFileChange) GetFileDigest() string {
 		return x.FileDigest
 	}
 	return ""
+}
+
+func (x *CapturedFileChange) GetBlockedReason() FileReviewBlockReason {
+	if x != nil {
+		return x.BlockedReason
+	}
+	return FileReviewBlockReason_FILE_REVIEW_BLOCK_REASON_UNSPECIFIED
 }
 
 // An immutable pointer to a captured workspace state.
@@ -1268,7 +1281,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDesc = "" +
 	"\x10aggregate_digest\x18\t \x01(\tR\x0faggregateDigest\x12m\n" +
 	"\x11diff_completeness\x18\n" +
 	" \x01(\x0e26.ai.stigmer.agentic.agentexecution.v1.DiffCompletenessB\b\xbaH\x05\x82\x01\x02\x10\x01R\x10diffCompleteness\x12P\n" +
-	"\tdecisions\x18\v \x03(\v22.ai.stigmer.agentic.agentexecution.v1.FileDecisionR\tdecisions\"\x9d\x05\n" +
+	"\tdecisions\x18\v \x03(\v22.ai.stigmer.agentic.agentexecution.v1.FileDecisionR\tdecisions\"\x8b\x06\n" +
 	"\x12CapturedFileChange\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vpath_before\x18\x02 \x01(\tR\n" +
@@ -1285,7 +1298,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDesc = "" +
 	" \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefR\vunifiedDiff\x12#\n" +
 	"\rdiff_complete\x18\v \x01(\bR\fdiffComplete\x12\x1f\n" +
 	"\vfile_digest\x18\f \x01(\tR\n" +
-	"fileDigest\"\xeb\x01\n" +
+	"fileDigest\x12l\n" +
+	"\x0eblocked_reason\x18\r \x01(\x0e2;.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReasonB\b\xbaH\x05\x82\x01\x02\x10\x01R\rblockedReason\"\xeb\x01\n" +
 	"\vSnapshotRef\x12P\n" +
 	"\x04kind\x18\x01 \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.SnapshotKindB\b\xbaH\x05\x82\x01\x02\x10\x01R\x04kind\x12B\n" +
 	"\x03git\x18\x02 \x01(\v20.ai.stigmer.agentic.agentexecution.v1.GitTreeRefR\x03git\x12F\n" +
@@ -1381,11 +1395,12 @@ var file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_goTypes = []any{
 	(FileCaptureClass)(0),               // 15: ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
 	(*FileContent)(nil),                 // 16: ai.stigmer.agentic.agentexecution.v1.FileContent
 	(*ToolCallOutputRef)(nil),           // 17: ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
-	(SnapshotKind)(0),                   // 18: ai.stigmer.agentic.agentexecution.v1.SnapshotKind
-	(FileDecisionScope)(0),              // 19: ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
-	(FileDecisionAction)(0),             // 20: ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
-	(FileReviewFailureKind)(0),          // 21: ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
-	(FileReviewEventType)(0),            // 22: ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
+	(FileReviewBlockReason)(0),          // 18: ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
+	(SnapshotKind)(0),                   // 19: ai.stigmer.agentic.agentexecution.v1.SnapshotKind
+	(FileDecisionScope)(0),              // 20: ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
+	(FileDecisionAction)(0),             // 21: ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
+	(FileReviewFailureKind)(0),          // 22: ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
+	(FileReviewEventType)(0),            // 23: ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
 }
 var file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_depIdxs = []int32{
 	12, // 0: ai.stigmer.agentic.agentexecution.v1.FileChangeSet.status:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
@@ -1400,29 +1415,30 @@ var file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_depIdxs = []int32
 	16, // 9: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.before:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
 	16, // 10: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.after:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
 	17, // 11: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.unified_diff:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
-	18, // 12: ai.stigmer.agentic.agentexecution.v1.SnapshotRef.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotKind
-	3,  // 13: ai.stigmer.agentic.agentexecution.v1.SnapshotRef.git:type_name -> ai.stigmer.agentic.agentexecution.v1.GitTreeRef
-	4,  // 14: ai.stigmer.agentic.agentexecution.v1.SnapshotRef.cas:type_name -> ai.stigmer.agentic.agentexecution.v1.CasManifestRef
-	19, // 15: ai.stigmer.agentic.agentexecution.v1.FileDecision.scope:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
-	20, // 16: ai.stigmer.agentic.agentexecution.v1.FileDecision.action:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
-	2,  // 17: ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured.baseline_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
-	2,  // 18: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.candidate_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
-	1,  // 19: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.changes:type_name -> ai.stigmer.agentic.agentexecution.v1.CapturedFileChange
-	13, // 20: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.diff_completeness:type_name -> ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
-	2,  // 21: ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled.approved_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
-	21, // 22: ai.stigmer.agentic.agentexecution.v1.FileReviewFailure.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
-	22, // 23: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.event_type:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
-	6,  // 24: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.baseline_captured:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured
-	7,  // 25: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.candidate_captured:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured
-	5,  // 26: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.file_decided:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecision
-	8,  // 27: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.reconciled:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled
-	9,  // 28: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.failed:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewFailure
-	10, // 29: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.events:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEvent
-	30, // [30:30] is the sub-list for method output_type
-	30, // [30:30] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	18, // 12: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.blocked_reason:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
+	19, // 13: ai.stigmer.agentic.agentexecution.v1.SnapshotRef.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotKind
+	3,  // 14: ai.stigmer.agentic.agentexecution.v1.SnapshotRef.git:type_name -> ai.stigmer.agentic.agentexecution.v1.GitTreeRef
+	4,  // 15: ai.stigmer.agentic.agentexecution.v1.SnapshotRef.cas:type_name -> ai.stigmer.agentic.agentexecution.v1.CasManifestRef
+	20, // 16: ai.stigmer.agentic.agentexecution.v1.FileDecision.scope:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
+	21, // 17: ai.stigmer.agentic.agentexecution.v1.FileDecision.action:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
+	2,  // 18: ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured.baseline_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
+	2,  // 19: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.candidate_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
+	1,  // 20: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.changes:type_name -> ai.stigmer.agentic.agentexecution.v1.CapturedFileChange
+	13, // 21: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.diff_completeness:type_name -> ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
+	2,  // 22: ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled.approved_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
+	22, // 23: ai.stigmer.agentic.agentexecution.v1.FileReviewFailure.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
+	23, // 24: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.event_type:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
+	6,  // 25: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.baseline_captured:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured
+	7,  // 26: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.candidate_captured:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured
+	5,  // 27: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.file_decided:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecision
+	8,  // 28: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.reconciled:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled
+	9,  // 29: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.failed:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewFailure
+	10, // 30: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.events:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEvent
+	31, // [31:31] is the sub-list for method output_type
+	31, // [31:31] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_init() }

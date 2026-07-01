@@ -276,4 +276,31 @@ public interface CapturedFileChangeOrBuilder extends
    */
   com.google.protobuf.ByteString
       getFileDigestBytes();
+
+  /**
+   * <pre>
+   * The honest cause this file's diff is not fully reviewable, set by the runner
+   * only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+   * provenance for the review UI — never an enforcement input and never folded
+   * into file_digest/aggregate_digest. Binary changes are conveyed by
+   * FileContent.is_binary, not here. See FileReviewBlockReason.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason blocked_reason = 13 [json_name = "blockedReason", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for blockedReason.
+   */
+  int getBlockedReasonValue();
+  /**
+   * <pre>
+   * The honest cause this file's diff is not fully reviewable, set by the runner
+   * only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+   * provenance for the review UI — never an enforcement input and never folded
+   * into file_digest/aggregate_digest. Binary changes are conveyed by
+   * FileContent.is_binary, not here. See FileReviewBlockReason.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason blocked_reason = 13 [json_name = "blockedReason", (.buf.validate.field) = { ... }</code>
+   * @return The blockedReason.
+   */
+  ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason getBlockedReason();
 }

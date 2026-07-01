@@ -1933,6 +1933,28 @@
       ]
     },
     {
+      "name": "FileReviewBlockReason",
+      "description": "FileReviewBlockReason is the honest cause a captured file's diff is not fully\n reviewable (carried on CapturedFileChange.blocked_reason, set only when\n diff_complete == false). It is INFORMATIONAL provenance for the review UI —\n never an enforcement input and never folded into file_digest/aggregate_digest.\n Binary changes are conveyed by FileContent.is_binary, not here, so there is no\n BINARY value (it would duplicate a signal the wire already carries).\n\n @since File-Change HITL Redesign (Phase 4)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason",
+      "values": [
+        {
+          "name": "FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD",
+          "number": 1,
+          "description": "A secret-like path (doc 12, DD-E): the bytes were deliberately never\n captured, so there is nothing to review. Authored content-less by the runner."
+        },
+        {
+          "name": "FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED",
+          "number": 2,
+          "description": "Captured, then its inline bodies were dropped to keep the persisted status\n under its size limit. The content exists but is not inline for review."
+        },
+        {
+          "name": "FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE",
+          "number": 3,
+          "description": "Generic non-capturable cause (forward-compat catch-all; e.g. a future\n non-git path class). Mirrors the fail-open spirit of DIFF_UNREVIEWABLE."
+        }
+      ]
+    },
+    {
       "name": "ExecutionArtifactKind",
       "description": "ExecutionArtifactKind defines the type of artifact published by an agent.\n\n When an agent publishes a file, it's stored as-is.\n When an agent publishes a directory, it's archived as a ZIP file.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind",
@@ -3339,6 +3361,22 @@
             "kind": "string"
           },
           "description": "Canonical digest of (path, kind, before, after) for this file. ENFORCEMENT\n only — the per-file analogue of aggregate_digest. Never a correlation key.",
+          "required": false
+        },
+        {
+          "name": "BlockedReason",
+          "jsonName": "blockedReason",
+          "protoField": "blocked_reason",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason",
+            "enumValues": [
+              "FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD",
+              "FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED",
+              "FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE"
+            ]
+          },
+          "description": "The honest cause this file's diff is not fully reviewable, set by the runner\n only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL\n provenance for the review UI — never an enforcement input and never folded\n into file_digest/aggregate_digest. Binary changes are conveyed by\n FileContent.is_binary, not here. See FileReviewBlockReason.",
           "required": false
         }
       ]

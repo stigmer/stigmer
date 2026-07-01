@@ -36,7 +36,7 @@ class FileChangeSet(_message.Message):
     def __init__(self, id: _Optional[str] = ..., turn_id: _Optional[str] = ..., harness_id: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.FileChangeSetStatus, str]] = ..., baseline_snapshot: _Optional[_Union[SnapshotRef, _Mapping]] = ..., candidate_snapshot: _Optional[_Union[SnapshotRef, _Mapping]] = ..., approved_snapshot: _Optional[_Union[SnapshotRef, _Mapping]] = ..., changes: _Optional[_Iterable[_Union[CapturedFileChange, _Mapping]]] = ..., aggregate_digest: _Optional[str] = ..., diff_completeness: _Optional[_Union[_enum_pb2.DiffCompleteness, str]] = ..., decisions: _Optional[_Iterable[_Union[FileDecision, _Mapping]]] = ...) -> None: ...
 
 class CapturedFileChange(_message.Message):
-    __slots__ = ("id", "path_before", "path_after", "kind", "capture_class", "before", "after", "before_sha256", "after_sha256", "unified_diff", "diff_complete", "file_digest")
+    __slots__ = ("id", "path_before", "path_after", "kind", "capture_class", "before", "after", "before_sha256", "after_sha256", "unified_diff", "diff_complete", "file_digest", "blocked_reason")
     ID_FIELD_NUMBER: _ClassVar[int]
     PATH_BEFORE_FIELD_NUMBER: _ClassVar[int]
     PATH_AFTER_FIELD_NUMBER: _ClassVar[int]
@@ -49,6 +49,7 @@ class CapturedFileChange(_message.Message):
     UNIFIED_DIFF_FIELD_NUMBER: _ClassVar[int]
     DIFF_COMPLETE_FIELD_NUMBER: _ClassVar[int]
     FILE_DIGEST_FIELD_NUMBER: _ClassVar[int]
+    BLOCKED_REASON_FIELD_NUMBER: _ClassVar[int]
     id: str
     path_before: str
     path_after: str
@@ -61,7 +62,8 @@ class CapturedFileChange(_message.Message):
     unified_diff: _message_pb2.ToolCallOutputRef
     diff_complete: bool
     file_digest: str
-    def __init__(self, id: _Optional[str] = ..., path_before: _Optional[str] = ..., path_after: _Optional[str] = ..., kind: _Optional[_Union[_enum_pb2.FileChangeKind, str]] = ..., capture_class: _Optional[_Union[_enum_pb2.FileCaptureClass, str]] = ..., before: _Optional[_Union[_message_pb2.FileContent, _Mapping]] = ..., after: _Optional[_Union[_message_pb2.FileContent, _Mapping]] = ..., before_sha256: _Optional[str] = ..., after_sha256: _Optional[str] = ..., unified_diff: _Optional[_Union[_message_pb2.ToolCallOutputRef, _Mapping]] = ..., diff_complete: bool = ..., file_digest: _Optional[str] = ...) -> None: ...
+    blocked_reason: _enum_pb2.FileReviewBlockReason
+    def __init__(self, id: _Optional[str] = ..., path_before: _Optional[str] = ..., path_after: _Optional[str] = ..., kind: _Optional[_Union[_enum_pb2.FileChangeKind, str]] = ..., capture_class: _Optional[_Union[_enum_pb2.FileCaptureClass, str]] = ..., before: _Optional[_Union[_message_pb2.FileContent, _Mapping]] = ..., after: _Optional[_Union[_message_pb2.FileContent, _Mapping]] = ..., before_sha256: _Optional[str] = ..., after_sha256: _Optional[str] = ..., unified_diff: _Optional[_Union[_message_pb2.ToolCallOutputRef, _Mapping]] = ..., diff_complete: bool = ..., file_digest: _Optional[str] = ..., blocked_reason: _Optional[_Union[_enum_pb2.FileReviewBlockReason, str]] = ...) -> None: ...
 
 class SnapshotRef(_message.Message):
     __slots__ = ("kind", "git", "cas")

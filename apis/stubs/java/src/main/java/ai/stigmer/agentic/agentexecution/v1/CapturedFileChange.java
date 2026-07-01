@@ -48,6 +48,7 @@ private static final long serialVersionUID = 0L;
     beforeSha256_ = "";
     afterSha256_ = "";
     fileDigest_ = "";
+    blockedReason_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -550,6 +551,40 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int BLOCKED_REASON_FIELD_NUMBER = 13;
+  private int blockedReason_ = 0;
+  /**
+   * <pre>
+   * The honest cause this file's diff is not fully reviewable, set by the runner
+   * only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+   * provenance for the review UI — never an enforcement input and never folded
+   * into file_digest/aggregate_digest. Binary changes are conveyed by
+   * FileContent.is_binary, not here. See FileReviewBlockReason.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason blocked_reason = 13 [json_name = "blockedReason", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for blockedReason.
+   */
+  @java.lang.Override public int getBlockedReasonValue() {
+    return blockedReason_;
+  }
+  /**
+   * <pre>
+   * The honest cause this file's diff is not fully reviewable, set by the runner
+   * only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+   * provenance for the review UI — never an enforcement input and never folded
+   * into file_digest/aggregate_digest. Binary changes are conveyed by
+   * FileContent.is_binary, not here. See FileReviewBlockReason.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason blocked_reason = 13 [json_name = "blockedReason", (.buf.validate.field) = { ... }</code>
+   * @return The blockedReason.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason getBlockedReason() {
+    ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason result = ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason.forNumber(blockedReason_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -599,6 +634,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fileDigest_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 12, fileDigest_);
+    }
+    if (blockedReason_ != ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason.FILE_REVIEW_BLOCK_REASON_UNSPECIFIED.getNumber()) {
+      output.writeEnum(13, blockedReason_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -651,6 +689,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fileDigest_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(12, fileDigest_);
     }
+    if (blockedReason_ != ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason.FILE_REVIEW_BLOCK_REASON_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(13, blockedReason_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -697,6 +739,7 @@ private static final long serialVersionUID = 0L;
         != other.getDiffComplete()) return false;
     if (!getFileDigest()
         .equals(other.getFileDigest())) return false;
+    if (blockedReason_ != other.blockedReason_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -739,6 +782,8 @@ private static final long serialVersionUID = 0L;
         getDiffComplete());
     hash = (37 * hash) + FILE_DIGEST_FIELD_NUMBER;
     hash = (53 * hash) + getFileDigest().hashCode();
+    hash = (37 * hash) + BLOCKED_REASON_FIELD_NUMBER;
+    hash = (53 * hash) + blockedReason_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -914,6 +959,7 @@ private static final long serialVersionUID = 0L;
       }
       diffComplete_ = false;
       fileDigest_ = "";
+      blockedReason_ = 0;
       return this;
     }
 
@@ -993,6 +1039,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000800) != 0)) {
         result.fileDigest_ = fileDigest_;
       }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.blockedReason_ = blockedReason_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1055,6 +1104,9 @@ private static final long serialVersionUID = 0L;
         fileDigest_ = other.fileDigest_;
         bitField0_ |= 0x00000800;
         onChanged();
+      }
+      if (other.blockedReason_ != 0) {
+        setBlockedReasonValue(other.getBlockedReasonValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1148,6 +1200,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000800;
               break;
             } // case 98
+            case 104: {
+              blockedReason_ = input.readEnum();
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 104
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2420,6 +2477,98 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       fileDigest_ = value;
       bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+
+    private int blockedReason_ = 0;
+    /**
+     * <pre>
+     * The honest cause this file's diff is not fully reviewable, set by the runner
+     * only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+     * provenance for the review UI — never an enforcement input and never folded
+     * into file_digest/aggregate_digest. Binary changes are conveyed by
+     * FileContent.is_binary, not here. See FileReviewBlockReason.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason blocked_reason = 13 [json_name = "blockedReason", (.buf.validate.field) = { ... }</code>
+     * @return The enum numeric value on the wire for blockedReason.
+     */
+    @java.lang.Override public int getBlockedReasonValue() {
+      return blockedReason_;
+    }
+    /**
+     * <pre>
+     * The honest cause this file's diff is not fully reviewable, set by the runner
+     * only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+     * provenance for the review UI — never an enforcement input and never folded
+     * into file_digest/aggregate_digest. Binary changes are conveyed by
+     * FileContent.is_binary, not here. See FileReviewBlockReason.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason blocked_reason = 13 [json_name = "blockedReason", (.buf.validate.field) = { ... }</code>
+     * @param value The enum numeric value on the wire for blockedReason to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setBlockedReasonValue(int value) {
+      blockedReason_ = value;
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The honest cause this file's diff is not fully reviewable, set by the runner
+     * only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+     * provenance for the review UI — never an enforcement input and never folded
+     * into file_digest/aggregate_digest. Binary changes are conveyed by
+     * FileContent.is_binary, not here. See FileReviewBlockReason.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason blocked_reason = 13 [json_name = "blockedReason", (.buf.validate.field) = { ... }</code>
+     * @return The blockedReason.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason getBlockedReason() {
+      ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason result = ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason.forNumber(blockedReason_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * The honest cause this file's diff is not fully reviewable, set by the runner
+     * only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+     * provenance for the review UI — never an enforcement input and never folded
+     * into file_digest/aggregate_digest. Binary changes are conveyed by
+     * FileContent.is_binary, not here. See FileReviewBlockReason.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason blocked_reason = 13 [json_name = "blockedReason", (.buf.validate.field) = { ... }</code>
+     * @param value The blockedReason to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBlockedReason(ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00001000;
+      blockedReason_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The honest cause this file's diff is not fully reviewable, set by the runner
+     * only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+     * provenance for the review UI — never an enforcement input and never folded
+     * into file_digest/aggregate_digest. Binary changes are conveyed by
+     * FileContent.is_binary, not here. See FileReviewBlockReason.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason blocked_reason = 13 [json_name = "blockedReason", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearBlockedReason() {
+      bitField0_ = (bitField0_ & ~0x00001000);
+      blockedReason_ = 0;
       onChanged();
       return this;
     }

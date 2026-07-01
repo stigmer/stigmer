@@ -158,6 +158,13 @@ message CapturedFileChange {
   // Canonical digest of (path, kind, before, after) for this file. ENFORCEMENT
   // only — the per-file analogue of aggregate_digest. Never a correlation key.
   string file_digest = 12;
+
+  // The honest cause this file's diff is not fully reviewable, set by the runner
+  // only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL
+  // provenance for the review UI — never an enforcement input and never folded
+  // into file_digest/aggregate_digest. Binary changes are conveyed by
+  // FileContent.is_binary, not here. See FileReviewBlockReason.
+  FileReviewBlockReason blocked_reason = 13 [(buf.validate.field).enum.defined_only = true];
 }
 
 // An immutable pointer to a captured workspace state.

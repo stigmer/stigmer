@@ -30,6 +30,7 @@ import {
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionScope,
+  FileReviewBlockReason,
   FileReviewEventType,
   SnapshotKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -285,6 +286,8 @@ describe("capture orchestration — hybrid git + CAS (Phase 3)", () => {
     });
     const cand = candidateChanges(status);
     expect(cand[0].diffComplete).toBe(false);
+    // Binary is conveyed by FileContent.is_binary, not blocked_reason (doc 15).
+    expect(cand[0].blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
     expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
   });
 
@@ -381,6 +384,10 @@ describe("capture orchestration — secret-blocked DIFF_UNREVIEWABLE (DD-E)", ()
     const secret = byPath.get(".env")!;
     expect(secret.captureClass).toBe(FileCaptureClass.GIT_IGNORED_CAPTURED);
     expect(secret.diffComplete).toBe(false);
+    // The honest cause is recorded so the UI can say *why* (doc 15), while the
+    // real git change beside it stays fully reviewable (UNSPECIFIED).
+    expect(secret.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
+    expect(byPath.get("notes.md")!.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
     // No content and no enforcement digests: the bytes are never captured.
     expect(secret.before).toBeUndefined();
     expect(secret.after).toBeUndefined();

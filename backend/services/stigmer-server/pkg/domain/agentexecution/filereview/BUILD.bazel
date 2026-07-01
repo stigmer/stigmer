@@ -4,6 +4,7 @@ go_library(
     name = "filereview",
     srcs = [
         "author.go",
+        "cas_blob.go",
         "digest.go",
         "gate.go",
         "project.go",
@@ -18,6 +19,7 @@ go_test(
     srcs = [
         "append_runner_events_test.go",
         "author_test.go",
+        "cas_blob_test.go",
         "corpus_test.go",
         "digest_test.go",
         "gate_test.go",

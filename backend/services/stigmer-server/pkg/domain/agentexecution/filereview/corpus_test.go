@@ -34,6 +34,7 @@ type fileChangeSetSummary struct {
 	ID                  string   `json:"id"`
 	Status              string   `json:"status"`
 	ChangeIDs           []string `json:"change_ids"`
+	BlockedReasons      []string `json:"blocked_reasons"`
 	DecisionCount       int      `json:"decision_count"`
 	AggregateDigest     string   `json:"aggregate_digest"`
 	HasApprovedSnapshot bool     `json:"has_approved_snapshot"`
@@ -90,13 +91,16 @@ func runFileReviewFixture(t *testing.T, fx fileReviewFixture) {
 
 func summarize(cs *agentexecutionv1.FileChangeSet) fileChangeSetSummary {
 	changeIDs := make([]string, 0, len(cs.GetChanges()))
+	blockedReasons := make([]string, 0, len(cs.GetChanges()))
 	for _, c := range cs.GetChanges() {
 		changeIDs = append(changeIDs, c.GetId())
+		blockedReasons = append(blockedReasons, c.GetBlockedReason().String())
 	}
 	return fileChangeSetSummary{
 		ID:                  cs.GetId(),
 		Status:              cs.GetStatus().String(),
 		ChangeIDs:           changeIDs,
+		BlockedReasons:      blockedReasons,
 		DecisionCount:       len(cs.GetDecisions()),
 		AggregateDigest:     cs.GetAggregateDigest(),
 		HasApprovedSnapshot: cs.GetApprovedSnapshot() != nil,
@@ -126,6 +130,18 @@ func assertSummary(t *testing.T, idx int, got, want fileChangeSetSummary) {
 	for i := range want.ChangeIDs {
 		if got.ChangeIDs[i] != want.ChangeIDs[i] {
 			t.Errorf("change set[%d] (%s) change_ids[%d] = %q, want %q", idx, want.ID, i, got.ChangeIDs[i], want.ChangeIDs[i])
+		}
+	}
+	// blocked_reasons is optional: asserted only when the fixture declares it, so
+	// it never forces every vector to enumerate the (usually UNSPECIFIED) reasons.
+	if len(want.BlockedReasons) > 0 {
+		if len(got.BlockedReasons) != len(want.BlockedReasons) {
+			t.Fatalf("change set[%d] (%s) blocked_reasons = %v, want %v", idx, want.ID, got.BlockedReasons, want.BlockedReasons)
+		}
+		for i := range want.BlockedReasons {
+			if got.BlockedReasons[i] != want.BlockedReasons[i] {
+				t.Errorf("change set[%d] (%s) blocked_reasons[%d] = %q, want %q", idx, want.ID, i, got.BlockedReasons[i], want.BlockedReasons[i])
+			}
 		}
 	}
 }

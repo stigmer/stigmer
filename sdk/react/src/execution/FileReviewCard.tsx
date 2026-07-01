@@ -89,12 +89,12 @@ export interface FileReviewCardProps {
  *
  * Each non-reviewable file is labeled honestly by {@link fileReviewability}: a
  * `binary` change has no text diff to review; an `unavailable` change is one
- * whose diff isn't available at all (deliberately cause-agnostic — the wire
- * cannot distinguish a secret-withheld diff from one dropped to bound the
- * status). Both are discard-only, and their Keep affordance is disabled with the
- * reason associated via `aria-describedby`. Files captured outside normal git
- * tracking (gitignored / non-git CAS) carry a small provenance badge so the
- * reviewer knows the change is not part of the repo's tracked history.
+ * whose diff isn't available at all, with the honest cause the runner recorded
+ * (a secret path whose bytes were never captured, or a diff dropped to bound the
+ * status — doc 15). Both are discard-only, and their Keep affordance is disabled
+ * with the reason associated via `aria-describedby`. Files captured outside
+ * normal git tracking (gitignored / non-git CAS) carry a small provenance badge
+ * so the reviewer knows the change is not part of the repo's tracked history.
  *
  * Wrapped in `React.memo` — the streamed `FileChangeSet` reference is preserved
  * by structural sharing when unchanged, so review cards skip re-renders during
@@ -193,8 +193,8 @@ export const FileReviewCard = memo(function FileReviewCard({
     let hasUnavailable = false;
     for (const c of changes) {
       const r = fileReviewability(c);
-      if (r === "binary") hasBinary = true;
-      else if (r === "unavailable") hasUnavailable = true;
+      if (r.kind === "binary") hasBinary = true;
+      else if (r.kind === "unavailable") hasUnavailable = true;
     }
     return { hasBinary, hasUnavailable };
   }, [changes]);
@@ -326,7 +326,7 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
   // One classification per change drives BOTH the disabled Keep and its reason,
   // so the two can never disagree (single source of truth).
   const reviewability = fileReviewability(change);
-  const blocked = reviewability !== "reviewable";
+  const blocked = reviewability.kind !== "reviewable";
   const reasonId = useId();
   return (
     <div className="space-y-1.5">
@@ -395,7 +395,7 @@ function FileVerdictControl({
 
   const effective = pending ?? verdict;
   const path = change.pathAfter || change.pathBefore;
-  const keepUnavailable = reviewability !== "reviewable";
+  const keepUnavailable = reviewability.kind !== "reviewable";
 
   const decide = useCallback(
     (action: FileDecisionAction) => {
@@ -532,8 +532,9 @@ function CaptureBadge({ change }: { change: CapturedFileChange }) {
  * The in-place explanation for why a non-reviewable file's `Keep` is disabled,
  * associated with the verdict control via `aria-describedby`. Honest per
  * {@link fileReviewability}: a `binary` change has no text diff; an `unavailable`
- * change's diff cannot be shown at all (cause-agnostic — the wire cannot prove
- * secret-withheld vs size-dropped). A reviewable file renders no note.
+ * change's diff cannot be shown at all, with the specific cause the runner
+ * recorded (secret-withheld vs size-dropped, doc 15). A reviewable file renders
+ * no note.
  */
 function BlockReasonNote({
   reviewability,
@@ -557,11 +558,18 @@ function BlockReasonNote({
 
 /** The per-file reason copy for a non-reviewable change (null when reviewable). */
 function blockReasonText(reviewability: FileReviewability): string | null {
-  switch (reviewability) {
+  switch (reviewability.kind) {
     case "binary":
       return "Binary file — no text diff to review, so it can only be discarded.";
     case "unavailable":
-      return "The full diff isn't available to review, so this change can only be discarded.";
+      switch (reviewability.reason) {
+        case "secret":
+          return "Contents withheld — this path looks like a secret, so it was never captured for review and can only be discarded.";
+        case "size":
+          return "Diff too large to display — the full contents were elided to stay within limits, so this change can only be discarded.";
+        default:
+          return "The full diff isn't available to review, so this change can only be discarded.";
+      }
     default:
       return null;
   }

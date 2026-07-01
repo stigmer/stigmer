@@ -278,6 +278,7 @@ export type {
   UseFileReviewReturn,
   FileDecisionOptions,
   FileReviewability,
+  FileBlockReason,
   ExecutionPhaseBadgeProps,
   InteractionModeBadgeProps,
   SetupProgressProps,

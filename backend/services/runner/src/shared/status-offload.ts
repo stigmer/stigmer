@@ -38,7 +38,7 @@ import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { FileChange, FileContent, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { DiffCompleteness } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { DiffCompleteness, FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 
 /**
@@ -606,6 +606,12 @@ export function enforceStatusSizeLimit(
         if (encodedSize(status) <= softLimitBytes) break;
         if (dropInlineBodiesIfLarge(change)) {
           change.diffComplete = false;
+          // Record the honest cause so the review UI distinguishes a size-elided
+          // diff from a secret-withheld one (doc 15). Don't overwrite a reason a
+          // more specific producer already set (e.g. SECRET_WITHHELD).
+          if (change.blockedReason === FileReviewBlockReason.UNSPECIFIED) {
+            change.blockedReason = FileReviewBlockReason.SIZE_ELIDED;
+          }
           markedAny = true;
           elidedAny = true;
         }

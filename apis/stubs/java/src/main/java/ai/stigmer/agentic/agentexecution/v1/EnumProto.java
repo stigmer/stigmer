@@ -159,13 +159,17 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "ND_CAPTURE_FAILED\020\001\022.\n*FILE_REVIEW_FAILU" +
       "RE_KIND_DIFF_UNREVIEWABLE\020\002\022-\n)FILE_REVI" +
       "EW_FAILURE_KIND_RECONCILE_FAILED\020\003\022*\n&FI" +
-      "LE_REVIEW_FAILURE_KIND_HASH_MISMATCH\020\004B\300" +
-      "\001B\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agent" +
-      "ic.Agentexecution.V1\312\002$Ai\\Stigmer\\Agenti" +
-      "c\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic" +
-      "\\Agentexecution\\V1\\GPBMetadata\352\002(Ai::Sti" +
-      "gmer::Agentic::Agentexecution::V1b\006proto" +
-      "3"
+      "LE_REVIEW_FAILURE_KIND_HASH_MISMATCH\020\004*\304" +
+      "\001\n\025FileReviewBlockReason\022(\n$FILE_REVIEW_" +
+      "BLOCK_REASON_UNSPECIFIED\020\000\022,\n(FILE_REVIE" +
+      "W_BLOCK_REASON_SECRET_WITHHELD\020\001\022(\n$FILE" +
+      "_REVIEW_BLOCK_REASON_SIZE_ELIDED\020\002\022)\n%FI" +
+      "LE_REVIEW_BLOCK_REASON_UNREVIEWABLE\020\003B\300\001" +
+      "B\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agenti" +
+      "c.Agentexecution.V1\312\002$Ai\\Stigmer\\Agentic" +
+      "\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\" +
+      "Agentexecution\\V1\\GPBMetadata\352\002(Ai::Stig" +
+      "mer::Agentic::Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

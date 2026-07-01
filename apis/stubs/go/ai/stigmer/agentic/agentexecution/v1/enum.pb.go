@@ -2066,6 +2066,74 @@ func (FileReviewFailureKind) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{25}
 }
 
+// FileReviewBlockReason is the honest cause a captured file's diff is not fully
+// reviewable (carried on CapturedFileChange.blocked_reason, set only when
+// diff_complete == false). It is INFORMATIONAL provenance for the review UI —
+// never an enforcement input and never folded into file_digest/aggregate_digest.
+// Binary changes are conveyed by FileContent.is_binary, not here, so there is no
+// BINARY value (it would duplicate a signal the wire already carries).
+//
+// @since File-Change HITL Redesign (Phase 4)
+type FileReviewBlockReason int32
+
+const (
+	// Default: the file is reviewable, or diff_complete is false for a reason the
+	// wire already conveys elsewhere (a binary side via FileContent.is_binary).
+	FileReviewBlockReason_FILE_REVIEW_BLOCK_REASON_UNSPECIFIED FileReviewBlockReason = 0
+	// A secret-like path (doc 12, DD-E): the bytes were deliberately never
+	// captured, so there is nothing to review. Authored content-less by the runner.
+	FileReviewBlockReason_FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD FileReviewBlockReason = 1
+	// Captured, then its inline bodies were dropped to keep the persisted status
+	// under its size limit. The content exists but is not inline for review.
+	FileReviewBlockReason_FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED FileReviewBlockReason = 2
+	// Generic non-capturable cause (forward-compat catch-all; e.g. a future
+	// non-git path class). Mirrors the fail-open spirit of DIFF_UNREVIEWABLE.
+	FileReviewBlockReason_FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE FileReviewBlockReason = 3
+)
+
+// Enum value maps for FileReviewBlockReason.
+var (
+	FileReviewBlockReason_name = map[int32]string{
+		0: "FILE_REVIEW_BLOCK_REASON_UNSPECIFIED",
+		1: "FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD",
+		2: "FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED",
+		3: "FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE",
+	}
+	FileReviewBlockReason_value = map[string]int32{
+		"FILE_REVIEW_BLOCK_REASON_UNSPECIFIED":     0,
+		"FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD": 1,
+		"FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED":     2,
+		"FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE":    3,
+	}
+)
+
+func (x FileReviewBlockReason) Enum() *FileReviewBlockReason {
+	p := new(FileReviewBlockReason)
+	*p = x
+	return p
+}
+
+func (x FileReviewBlockReason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FileReviewBlockReason) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[26].Descriptor()
+}
+
+func (FileReviewBlockReason) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[26]
+}
+
+func (x FileReviewBlockReason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FileReviewBlockReason.Descriptor instead.
+func (FileReviewBlockReason) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{26}
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
@@ -2233,7 +2301,12 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"'FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED\x10\x01\x12.\n" +
 	"*FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE\x10\x02\x12-\n" +
 	")FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED\x10\x03\x12*\n" +
-	"&FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH\x10\x04B\xca\x02\n" +
+	"&FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH\x10\x04*\xc4\x01\n" +
+	"\x15FileReviewBlockReason\x12(\n" +
+	"$FILE_REVIEW_BLOCK_REASON_UNSPECIFIED\x10\x00\x12,\n" +
+	"(FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD\x10\x01\x12(\n" +
+	"$FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED\x10\x02\x12)\n" +
+	"%FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\x10\x03B\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -2248,7 +2321,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 26)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 27)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionPhase)(0),           // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(MessageType)(0),              // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -2276,6 +2349,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(FileDecisionAction)(0),       // 23: ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
 	(FileReviewEventType)(0),      // 24: ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
 	(FileReviewFailureKind)(0),    // 25: ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
+	(FileReviewBlockReason)(0),    // 26: ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -2295,7 +2369,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      26,
+			NumEnums:      27,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

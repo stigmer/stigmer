@@ -11,6 +11,7 @@ import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
+  FileReviewBlockReason,
   FileReviewEventType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
@@ -61,6 +62,54 @@ describe("buildCapturedFileChange", () => {
     expect(change.diffComplete).toBe(true);
     expect(change.before?.body.case).toBe("inline");
     expect(change.after?.body.case).toBe("inline");
+    // Producer invariant: a reviewable (diff_complete) file carries no reason.
+    expect(change.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
+  });
+
+  it("passes through an explicit blocked_reason (doc 15)", () => {
+    const change = buildCapturedFileChange({
+      id: "fc-secret",
+      pathBefore: ".env",
+      pathAfter: ".env",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+      diffComplete: false,
+      blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
+    });
+    expect(change.diffComplete).toBe(false);
+    expect(change.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
+  });
+
+  it("keeps blocked_reason out of the enforcement digests (informational only)", () => {
+    const common = {
+      id: "fc-1",
+      pathBefore: "a",
+      pathAfter: "a",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+      before: "x",
+      after: "y",
+      diffComplete: false,
+    } as const;
+    // Two files identical except for the reason must be digest-indistinguishable —
+    // structurally guaranteed (FileDigestInput excludes it), locked here anyway.
+    const withUnspecified = buildCapturedFileChange(common);
+    const withSize = buildCapturedFileChange({
+      ...common,
+      blockedReason: FileReviewBlockReason.SIZE_ELIDED,
+    });
+    expect(withSize.fileDigest).toBe(withUnspecified.fileDigest);
+
+    const aggUnspecified = buildCandidateCapturedEvent(ctx, undefined, [withUnspecified]);
+    const aggSize = buildCandidateCapturedEvent(ctx, undefined, [withSize]);
+    if (
+      aggUnspecified.payload.case === "candidateCaptured" &&
+      aggSize.payload.case === "candidateCaptured"
+    ) {
+      expect(aggSize.payload.value.aggregateDigest).toBe(
+        aggUnspecified.payload.value.aggregateDigest,
+      );
+    }
   });
 
   it("omits the before side for an ADD and the after side for a DELETE", () => {

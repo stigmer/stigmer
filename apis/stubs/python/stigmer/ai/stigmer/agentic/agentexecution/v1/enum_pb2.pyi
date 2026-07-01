@@ -215,6 +215,13 @@ class FileReviewFailureKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE: _ClassVar[FileReviewFailureKind]
     FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED: _ClassVar[FileReviewFailureKind]
     FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH: _ClassVar[FileReviewFailureKind]
+
+class FileReviewBlockReason(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FILE_REVIEW_BLOCK_REASON_UNSPECIFIED: _ClassVar[FileReviewBlockReason]
+    FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD: _ClassVar[FileReviewBlockReason]
+    FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED: _ClassVar[FileReviewBlockReason]
+    FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE: _ClassVar[FileReviewBlockReason]
 EXECUTION_PHASE_UNSPECIFIED: ExecutionPhase
 EXECUTION_PENDING: ExecutionPhase
 EXECUTION_IN_PROGRESS: ExecutionPhase
@@ -349,3 +356,7 @@ FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED: FileReviewFailureKind
 FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE: FileReviewFailureKind
 FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED: FileReviewFailureKind
 FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH: FileReviewFailureKind
+FILE_REVIEW_BLOCK_REASON_UNSPECIFIED: FileReviewBlockReason
+FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD: FileReviewBlockReason
+FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED: FileReviewBlockReason
+FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE: FileReviewBlockReason

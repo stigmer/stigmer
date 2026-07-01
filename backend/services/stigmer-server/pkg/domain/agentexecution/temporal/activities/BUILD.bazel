@@ -34,7 +34,10 @@ go_library(
 
 go_test(
     name = "activities_test",
-    srcs = ["update_status_impl_test.go"],
+    srcs = [
+        "execute_input_test.go",
+        "update_status_impl_test.go",
+    ],
     embed = [":activities"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",

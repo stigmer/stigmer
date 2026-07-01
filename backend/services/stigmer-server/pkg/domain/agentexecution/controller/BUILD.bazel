@@ -81,9 +81,11 @@ go_test(
     name = "controller_test",
     srcs = [
         "agentexecution_controller_test.go",
+        "get_artifact_content_test.go",
         "lifecycle_cancel_cascade_test.go",
         "lifecycle_concurrency_test.go",
         "submit_approval_contract_test.go",
+        "submit_file_decision_test.go",
         "subscribe_test.go",
         "update_status_concurrency_test.go",
         "update_status_guard_test.go",
@@ -100,8 +102,11 @@ go_test(
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/approval",
+        "//backend/services/stigmer-server/pkg/domain/artifact/storage",
         "@com_github_stretchr_testify//assert",
+        "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//metadata",
+        "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
     ],
 )

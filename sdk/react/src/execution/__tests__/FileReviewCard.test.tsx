@@ -14,6 +14,7 @@ import {
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionScope,
+  FileReviewBlockReason,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { UseFileChangeContentReturn } from "../useFileChangeContent";
 
@@ -92,13 +93,15 @@ function capturedBinaryChange(opts: {
 
 /**
  * A diff-unavailable change (real wire shape): content-less + incomplete — the
- * shape both the secret gate and the size backstop produce.
+ * shape both the secret gate and the size backstop produce. `blockedReason`
+ * carries the honest cause (doc 15); omit it to model a pre-doc-15/unknown row.
  */
 function capturedUnavailableChange(opts: {
   id: string;
   path: string;
   fileDigest: string;
   captureClass?: FileCaptureClass;
+  blockedReason?: FileReviewBlockReason;
 }) {
   return create(CapturedFileChangeSchema, {
     id: opts.id,
@@ -108,6 +111,7 @@ function capturedUnavailableChange(opts: {
     captureClass: opts.captureClass ?? FileCaptureClass.GIT_IGNORED_CAPTURED,
     fileDigest: opts.fileDigest,
     diffComplete: false,
+    blockedReason: opts.blockedReason ?? FileReviewBlockReason.UNSPECIFIED,
   });
 }
 
@@ -507,6 +511,45 @@ describe("FileReviewCard", () => {
       // The reviewable sibling's group carries no such description.
       const okGroup = screen.getByRole("radiogroup", { name: "Decision for src/a.ts" });
       expect(okGroup.getAttribute("aria-describedby")).toBeFalsy();
+    });
+
+    it("gives a secret-withheld file its own honest copy (doc 15)", () => {
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({
+            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            fc2: capturedUnavailableChange({
+              id: "fc2",
+              path: ".env",
+              fileDigest: "d-fc2",
+              blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
+            }),
+          })}
+          onSubmit={noop}
+        />,
+      );
+      expect(screen.getByText(/looks like a secret/i)).toBeTruthy();
+      // It is NOT the generic copy — the cause is now honest, not agnostic.
+      expect(screen.queryByText(/full diff isn.t available to review/i)).toBeNull();
+    });
+
+    it("gives a size-elided file its own honest copy, distinct from secret (doc 15)", () => {
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({
+            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            fc2: capturedUnavailableChange({
+              id: "fc2",
+              path: "src/huge.ts",
+              fileDigest: "d-fc2",
+              blockedReason: FileReviewBlockReason.SIZE_ELIDED,
+            }),
+          })}
+          onSubmit={noop}
+        />,
+      );
+      expect(screen.getByText(/too large to display/i)).toBeTruthy();
+      expect(screen.queryByText(/looks like a secret/i)).toBeNull();
     });
 
     it("shows a provenance badge for a gitignored capture", () => {

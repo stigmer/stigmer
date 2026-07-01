@@ -36,6 +36,7 @@ import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
+  FileReviewBlockReason,
   FileReviewEventType,
   FileReviewFailureKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -118,6 +119,14 @@ export interface CapturedChangeInput {
    * with any incomplete file cannot be approved as complete.
    */
   readonly diffComplete?: boolean;
+  /**
+   * The honest cause the diff is not fully reviewable, set only alongside
+   * `diffComplete === false` (defaults to UNSPECIFIED). Informational provenance
+   * for the review UI — never an enforcement input and never folded into the
+   * digests. Binary is conveyed by FileContent.is_binary, so binary files leave
+   * this UNSPECIFIED. See {@link FileReviewBlockReason}.
+   */
+  readonly blockedReason?: FileReviewBlockReason;
 }
 
 /** Normalize the string-shorthand to a {@link CapturedContent}. */
@@ -179,6 +188,7 @@ export function buildCapturedFileChange(input: CapturedChangeInput): CapturedFil
     beforeSha256,
     afterSha256,
     diffComplete: input.diffComplete ?? true,
+    blockedReason: input.blockedReason ?? FileReviewBlockReason.UNSPECIFIED,
     fileDigest: fileDigest({
       pathBefore: input.pathBefore,
       pathAfter: input.pathAfter,

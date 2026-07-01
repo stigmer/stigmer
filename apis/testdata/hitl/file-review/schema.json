@@ -26,6 +26,11 @@
           "id": { "type": "string" },
           "status": { "type": "string", "description": "FileChangeSetStatus enum value name." },
           "change_ids": { "type": "array", "items": { "type": "string" } },
+          "blocked_reasons": {
+            "type": "array",
+            "description": "Optional: expected FileReviewBlockReason enum value name per change, aligned with change_ids order (doc 15). Asserted only when present, so it never forces every fixture to declare it.",
+            "items": { "type": "string" }
+          },
           "decision_count": { "type": "integer" },
           "aggregate_digest": { "type": "string" },
           "has_approved_snapshot": { "type": "boolean" }

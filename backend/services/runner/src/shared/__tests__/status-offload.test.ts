@@ -6,8 +6,12 @@ import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/ag
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import {
+  DiffCompleteness,
+  FileCaptureClass,
+  FileChangeKind,
   FileChangeType,
   FileChangeCaptureLevel,
+  FileReviewBlockReason,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   offloadOversizedToolOutputs,
@@ -15,6 +19,12 @@ import {
   detectImagePayload,
 } from "../status-offload.js";
 import { buildFileChange } from "../file-change.js";
+import {
+  appendFileReviewEvents,
+  buildCandidateCapturedEvent,
+  buildCapturedFileChange,
+  type ChangeSetContext,
+} from "../filereview/events.js";
 
 function makeFakeStorage() {
   // Canonical double, with the metadata-tracking `uploads` shim these tests assert
@@ -438,6 +448,87 @@ describe("enforceStatusSizeLimit", () => {
     expect(fc.before?.body.case).toBe("inline");
     if (fc.before?.body.case === "inline") {
       expect(fc.before.body.value.length).toBeLessThan(big.length);
+    }
+  });
+
+  it("marks a size-elided file-review change SIZE_ELIDED and PARTIAL_BLOCKED (doc 15)", () => {
+    const big = "Z".repeat(50_000);
+    const ctx: ChangeSetContext = {
+      changeSetId: "exec-1:0",
+      turnId: "turn-0",
+      harnessId: "deep-agent",
+      timestamp: "2026-07-01T00:00:00Z",
+    };
+    const change = buildCapturedFileChange({
+      id: "fc-big",
+      pathBefore: "src/big.ts",
+      pathAfter: "src/big.ts",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      before: big,
+      after: big,
+    });
+    // Reviewable at capture time: no reason, complete.
+    expect(change.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
+    expect(change.diffComplete).toBe(true);
+
+    const status = create(AgentExecutionStatusSchema, {});
+    appendFileReviewEvents(status, "exec-1", [
+      buildCandidateCapturedEvent(ctx, undefined, [change]),
+    ]);
+    expect(encodedSize(status)).toBeGreaterThan(90_000);
+
+    const elided = enforceStatusSizeLimit(status, 4_000);
+    expect(elided).toBe(true);
+
+    const ev = status.fileReviewEventStream?.events.find(
+      (e) => e.payload.case === "candidateCaptured",
+    );
+    expect(ev?.payload.case).toBe("candidateCaptured");
+    if (ev?.payload.case === "candidateCaptured") {
+      const dropped = ev.payload.value.changes[0];
+      // Bodies dropped, marked incomplete, and the honest cause recorded.
+      expect(dropped.before).toBeUndefined();
+      expect(dropped.after).toBeUndefined();
+      expect(dropped.diffComplete).toBe(false);
+      expect(dropped.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
+      expect(ev.payload.value.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+    }
+  });
+
+  it("does not overwrite a more specific reason (SECRET_WITHHELD survives size elision)", () => {
+    // A secret entry is content-less, so it can't be size-elided; but guard the
+    // precedence explicitly: if a reason is already set, the size backstop keeps it.
+    const big = "Z".repeat(50_000);
+    const ctx: ChangeSetContext = {
+      changeSetId: "exec-2:0",
+      turnId: "turn-0",
+      harnessId: "deep-agent",
+      timestamp: "2026-07-01T00:00:00Z",
+    };
+    const secretButLarge = buildCapturedFileChange({
+      id: "fc-x",
+      pathBefore: "big.env",
+      pathAfter: "big.env",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+      before: big,
+      after: big,
+      diffComplete: false,
+      blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
+    });
+    const status = create(AgentExecutionStatusSchema, {});
+    appendFileReviewEvents(status, "exec-2", [
+      buildCandidateCapturedEvent(ctx, undefined, [secretButLarge]),
+    ]);
+    enforceStatusSizeLimit(status, 4_000);
+    const ev = status.fileReviewEventStream?.events.find(
+      (e) => e.payload.case === "candidateCaptured",
+    );
+    if (ev?.payload.case === "candidateCaptured") {
+      expect(ev.payload.value.changes[0].blockedReason).toBe(
+        FileReviewBlockReason.SECRET_WITHHELD,
+      );
     }
   });
 });
