@@ -65,12 +65,10 @@ import { execFile } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import {
-  FileChangeType,
-  FileChangeCaptureLevel,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { buildFileChange, looksBinary } from "../file-change.js";
+import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { bytesLookBinary } from "../file-change.js";
+import { sha256Bytes } from "./digest.js";
+import type { CapturedContent } from "./events.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -110,14 +108,19 @@ const SNAPSHOT_IDENTITY_ENV: Record<string, string> = {
 /**
  * A single file mutation captured from the git diff between the baseline and
  * after trees. `path` is repo-relative (forward slashes); `changeType` drives
- * restore/apply; `fileChange` is the proto rendered on the review surface.
+ * restore/apply. `before`/`after` are the harness-agnostic {@link CapturedContent}
+ * for each side (absent per changeType: no `before` for a CREATE, no `after` for
+ * a DELETE) — text is carried inline, binary carries only its byte-true content
+ * address (its bytes reconcile byte-exact from the git ref, never the wire).
  */
 export interface GitSubstrateChange {
   /** Repo-relative path (the diff's path; the destination for a create/modify). */
   readonly path: string;
   readonly changeType: FileChangeType;
-  /** The proto for the review surface (WHOLE_FILE before/after). */
-  readonly fileChange: FileChange;
+  /** Pre-edit content (absent for a CREATE). */
+  readonly before?: CapturedContent;
+  /** Post-edit content (absent for a DELETE). */
+  readonly after?: CapturedContent;
 }
 
 /** Result of {@link captureChangeSet} / {@link recomputeChangeSet}. */
@@ -459,17 +462,42 @@ function parseNameStatusZ(raw: string): NameStatusEntry[] {
   return entries;
 }
 
-/** Read a blob's UTF-8 text from a tree, or `undefined` when absent. */
-async function readBlobText(
+/** Read a blob's exact BYTES from a tree, or `undefined` when absent. */
+async function readBlobBytes(
   gitRoot: string,
   tree: string,
   path: string,
-): Promise<string | undefined> {
+): Promise<Buffer | undefined> {
   try {
-    return await git(gitRoot, ["cat-file", "-p", `${tree}:${path}`]);
+    return await gitBuffer(gitRoot, ["cat-file", "-p", `${tree}:${path}`]);
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Read one side of a change as {@link CapturedContent}, computing its identity
+ * from the RAW bytes (never a lossy UTF-8 decode): a binary blob carries only its
+ * byte-true content address (no body — it reconciles from the git ref), while a
+ * text blob is carried inline. Returns `undefined` only when the blob is absent
+ * from the tree (the side does not exist for this changeType).
+ */
+async function readSide(
+  gitRoot: string,
+  tree: string,
+  path: string,
+): Promise<CapturedContent | undefined> {
+  const bytes = await readBlobBytes(gitRoot, tree, path);
+  if (bytes === undefined) return undefined;
+  // Identity is always computed over the RAW bytes at the source — never a lossy
+  // UTF-8 re-encode — so the enforcement digest is byte-true for binary and text
+  // alike. A binary blob carries no body (it reconciles from the git ref); a text
+  // blob carries its inline body for the review diff.
+  const sha256 = sha256Bytes(bytes);
+  if (bytesLookBinary(bytes)) {
+    return { kind: "binary", sha256 };
+  }
+  return { kind: "inline", text: bytes.toString("utf8"), sha256 };
 }
 
 /** Write a blob's exact bytes from a tree to `abs` (creating parent dirs). */
@@ -484,11 +512,15 @@ async function writeBlobToDisk(
   await writeFile(abs, buf);
 }
 
+/** An empty inline side — the default when a MODIFY blob is unexpectedly absent. */
+const EMPTY_INLINE: CapturedContent = { kind: "inline", text: "" };
+
 /**
  * Build a {@link GitSubstrateChange} from a diff entry. WHOLE_FILE capture: the
- * before/after bodies come from the two trees (byte-exact via git), so the review
- * shows the file's true net change regardless of how many edit tool calls
- * produced it. A binary side is still carried (the proto flags it); large bodies
+ * before/after content comes from the two trees, with identity computed over the
+ * exact bytes git holds (see {@link readSide}) — so the review shows the file's
+ * true net change and the enforcement digest is byte-true, binary or text alike.
+ * A binary side is carried as a content address only (no body); large text bodies
  * are offloaded later at the persist chokepoint.
  */
 async function buildCapturedChange(
@@ -498,57 +530,26 @@ async function buildCapturedChange(
   status: string,
   path: string,
 ): Promise<GitSubstrateChange | undefined> {
-  const absolutePath = join(gitRoot, path);
-
   if (status === "A") {
-    const after = await readBlobText(gitRoot, afterTree, path);
+    const after = await readSide(gitRoot, afterTree, path);
     if (after === undefined) return undefined;
-    return {
-      path,
-      changeType: FileChangeType.CREATE,
-      fileChange: buildFileChange({
-        path,
-        absolutePath,
-        changeType: FileChangeType.CREATE,
-        captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-        after,
-      }),
-    };
+    return { path, changeType: FileChangeType.CREATE, after };
   }
 
   if (status === "D") {
-    const before = await readBlobText(gitRoot, baselineTree, path);
+    const before = await readSide(gitRoot, baselineTree, path);
     if (before === undefined) return undefined;
-    return {
-      path,
-      changeType: FileChangeType.DELETE,
-      fileChange: buildFileChange({
-        path,
-        absolutePath,
-        changeType: FileChangeType.DELETE,
-        captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-        before,
-      }),
-    };
+    return { path, changeType: FileChangeType.DELETE, before };
   }
 
   // Modified (M) — and any other status (T type-change, etc.) treated as MODIFY.
-  const before = await readBlobText(gitRoot, baselineTree, path);
-  const after = await readBlobText(gitRoot, afterTree, path);
+  const before = await readSide(gitRoot, baselineTree, path);
+  const after = await readSide(gitRoot, afterTree, path);
   if (before === undefined && after === undefined) return undefined;
   return {
     path,
     changeType: FileChangeType.MODIFY,
-    fileChange: buildFileChange({
-      path,
-      absolutePath,
-      changeType: FileChangeType.MODIFY,
-      captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-      before: before ?? "",
-      after: after ?? "",
-    }),
+    before: before ?? EMPTY_INLINE,
+    after: after ?? EMPTY_INLINE,
   };
 }
-
-/** Re-exported for tests asserting binary handling parity with the builder. */
-export { looksBinary };

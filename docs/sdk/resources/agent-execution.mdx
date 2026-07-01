@@ -1144,19 +1144,21 @@ const agentExecution = await stigmer.agentExecution.submitFileDecision({
   action: "...",
   expectedDigest: "...",
   reason: "...",
+  acknowledgeUnreviewable: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentExecution, err := client.AgentExecution.SubmitFileDecision(ctx, &stigmer.SubmitFileDecisionInput{
-  AgentExecutionId: "...",
-  ChangeSetId:      "...",
-  Scope:            "...",
-  FileChangeId:     "...",
-  Action:           "...",
-  ExpectedDigest:   "...",
-  Reason:           "...",
+  AgentExecutionId:        "...",
+  ChangeSetId:             "...",
+  Scope:                   "...",
+  FileChangeId:            "...",
+  Action:                  "...",
+  ExpectedDigest:          "...",
+  Reason:                  "...",
+  AcknowledgeUnreviewable: false,
 })
 ```
 </Tab>
@@ -1170,6 +1172,7 @@ agent_execution = client.agent_executions.submit_file_decision(SubmitFileDecisio
     action="...",
     expected_digest="...",
     reason="...",
+    acknowledge_unreviewable=False,
 ))
 ```
 </Tab>
@@ -1183,6 +1186,7 @@ AgentExecution agentExecution = client.agentExecutions().submitFileDecision(Subm
     .action("...")
     .expectedDigest("...")
     .reason("...")
+    .acknowledgeUnreviewable(false)
     .build());
 ```
 </Tab>
@@ -1369,6 +1373,7 @@ SubmitFileDecisionInput is a user's keep/discard decision on a file change set o
     action: { type: "FileDecisionAction", description: "Keep (APPROVE) or discard (REJECT).", typeDescriptionLink: "#filedecisionaction" },
     expectedDigest: { type: "string", description: "Digest of the content the user actually saw — the enforcement gate." },
     reason: { type: "string", description: "Optional reason/comment for the decision (audit trail)." },
+    acknowledgeUnreviewable: { type: "boolean", description: "Set true on an APPROVE to consciously KEEP a change whose diff could not be fully reviewed." },
   }}
 />
 
@@ -1817,6 +1822,7 @@ One file's delta within a FileChangeSet.
     unifiedDiff: { type: "ToolCallOutputRef", description: "Offloadable unified diff artifact for this file.", typeDescriptionLink: "#toolcalloutputref" },
     diffComplete: { type: "boolean", description: "False when this file's diff is incomplete (elided, truncated, or not capturable)." },
     fileDigest: { type: "string", description: "Canonical digest of (path, kind, before, after) for this file." },
+    blockedReason: { type: "FileReviewBlockReason", description: "The honest cause this file's diff is not fully reviewable, set by the runner only when diff_complete == false (otherwise UNSPECIFIED).", typeDescriptionLink: "#filereviewblockreason" },
   }}
 />
 
@@ -1931,6 +1937,7 @@ One human decision on a change set or a single file within it.
     reviewerId: { type: "string", description: "Identity of the reviewer (principal)." },
     decidedAt: { type: "string", description: "ISO 8601 timestamp when the decision was made." },
     reason: { type: "string", description: "Optional free-text comment supplied with the decision (audit trail)." },
+    acknowledgeUnreviewable: { type: "boolean", description: "True when this APPROVE consciously kept a change whose diff could not be fully reviewed (a binary file — no text diff, but exact reconcilable bytes)." },
   }}
 />
 
@@ -2389,6 +2396,16 @@ FileCaptureClass records how a file was captured, which governs which substrate 
 | `FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED` | A git-untracked (but not ignored) file captured into the snapshot. |
 | `FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED` | A gitignored file captured via CAS (Phase 3). |
 | `FILE_CAPTURE_CLASS_NON_GIT_CAS` | A file in a non-git workspace captured via CAS (Phase 3). |
+
+### FileReviewBlockReason
+
+FileReviewBlockReason is the honest cause a captured file's diff is not fully reviewable (carried on CapturedFileChange.blocked_reason, set only when diff_complete == false).
+
+| Value | Description |
+|-------|-------------|
+| `FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD` | A secret-like path (doc 12, DD-E): the bytes were deliberately never captured, so there is nothing to review. |
+| `FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED` | Captured, then its inline bodies were dropped to keep the persisted status under its size limit. |
+| `FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE` | Generic non-capturable cause (forward-compat catch-all; e.g. a future non-git path class). |
 
 ### ExecutionArtifactKind
 

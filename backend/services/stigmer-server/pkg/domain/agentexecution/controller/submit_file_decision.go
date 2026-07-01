@@ -175,7 +175,7 @@ func validateFileDecisionTarget(execution *agentexecutionv1.AgentExecution, inpu
 	// fresh digest — and only for APPROVE, so an unreviewable change stays
 	// discardable (REJECT) and the turn can still resume.
 	if input.GetAction() == agentexecutionv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE {
-		if reason := filereview.ApproveBlockedReason(cs, input.GetScope(), input.GetFileChangeId()); reason != "" {
+		if reason := filereview.ApproveBlockedReason(cs, input.GetScope(), input.GetFileChangeId(), input.GetAcknowledgeUnreviewable()); reason != "" {
 			return grpclib.FailedPreconditionError("%s", reason)
 		}
 	}
@@ -257,6 +257,7 @@ func (s *recordFileDecisionStep) Execute(ctx *pipeline.RequestContext[*agentexec
 				reviewerID,
 				now,
 				input.GetReason(),
+				input.GetAcknowledgeUnreviewable(),
 			)
 			filereview.RecordFileDecisionEvent(updated.Status, executionID, decision)
 

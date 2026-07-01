@@ -377,6 +377,28 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int ACKNOWLEDGE_UNREVIEWABLE_FIELD_NUMBER = 8;
+  private boolean acknowledgeUnreviewable_ = false;
+  /**
+   * <pre>
+   * Set true on an APPROVE to consciously KEEP a change whose diff could not be
+   * fully reviewed. Honored only for a binary file (FileContent.is_binary) at
+   * FILE scope: a binary has no text diff, but its exact bytes are captured and
+   * reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes
+   * the expected_digest gate, and is ignored for CHANGE_SET scope and for any
+   * other incompleteness (secret-withheld / size-elided / uncapturable), which
+   * have no keepable bytes and stay discard-only (fail-closed). Ignored on
+   * REJECT.
+   * </pre>
+   *
+   * <code>bool acknowledge_unreviewable = 8 [json_name = "acknowledgeUnreviewable"];</code>
+   * @return The acknowledgeUnreviewable.
+   */
+  @java.lang.Override
+  public boolean getAcknowledgeUnreviewable() {
+    return acknowledgeUnreviewable_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -412,6 +434,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(reason_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, reason_);
     }
+    if (acknowledgeUnreviewable_ != false) {
+      output.writeBool(8, acknowledgeUnreviewable_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -444,6 +469,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(reason_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, reason_);
     }
+    if (acknowledgeUnreviewable_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(8, acknowledgeUnreviewable_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -471,6 +500,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getExpectedDigest())) return false;
     if (!getReason()
         .equals(other.getReason())) return false;
+    if (getAcknowledgeUnreviewable()
+        != other.getAcknowledgeUnreviewable()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -496,6 +527,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getExpectedDigest().hashCode();
     hash = (37 * hash) + REASON_FIELD_NUMBER;
     hash = (53 * hash) + getReason().hashCode();
+    hash = (37 * hash) + ACKNOWLEDGE_UNREVIEWABLE_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getAcknowledgeUnreviewable());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -655,6 +689,7 @@ private static final long serialVersionUID = 0L;
       action_ = 0;
       expectedDigest_ = "";
       reason_ = "";
+      acknowledgeUnreviewable_ = false;
       return this;
     }
 
@@ -709,6 +744,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.reason_ = reason_;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.acknowledgeUnreviewable_ = acknowledgeUnreviewable_;
+      }
     }
 
     @java.lang.Override
@@ -753,6 +791,9 @@ private static final long serialVersionUID = 0L;
         reason_ = other.reason_;
         bitField0_ |= 0x00000040;
         onChanged();
+      }
+      if (other.getAcknowledgeUnreviewable() != false) {
+        setAcknowledgeUnreviewable(other.getAcknowledgeUnreviewable());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -815,6 +856,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 64: {
+              acknowledgeUnreviewable_ = input.readBool();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 64
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1467,6 +1513,71 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       reason_ = value;
       bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+
+    private boolean acknowledgeUnreviewable_ ;
+    /**
+     * <pre>
+     * Set true on an APPROVE to consciously KEEP a change whose diff could not be
+     * fully reviewed. Honored only for a binary file (FileContent.is_binary) at
+     * FILE scope: a binary has no text diff, but its exact bytes are captured and
+     * reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes
+     * the expected_digest gate, and is ignored for CHANGE_SET scope and for any
+     * other incompleteness (secret-withheld / size-elided / uncapturable), which
+     * have no keepable bytes and stay discard-only (fail-closed). Ignored on
+     * REJECT.
+     * </pre>
+     *
+     * <code>bool acknowledge_unreviewable = 8 [json_name = "acknowledgeUnreviewable"];</code>
+     * @return The acknowledgeUnreviewable.
+     */
+    @java.lang.Override
+    public boolean getAcknowledgeUnreviewable() {
+      return acknowledgeUnreviewable_;
+    }
+    /**
+     * <pre>
+     * Set true on an APPROVE to consciously KEEP a change whose diff could not be
+     * fully reviewed. Honored only for a binary file (FileContent.is_binary) at
+     * FILE scope: a binary has no text diff, but its exact bytes are captured and
+     * reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes
+     * the expected_digest gate, and is ignored for CHANGE_SET scope and for any
+     * other incompleteness (secret-withheld / size-elided / uncapturable), which
+     * have no keepable bytes and stay discard-only (fail-closed). Ignored on
+     * REJECT.
+     * </pre>
+     *
+     * <code>bool acknowledge_unreviewable = 8 [json_name = "acknowledgeUnreviewable"];</code>
+     * @param value The acknowledgeUnreviewable to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAcknowledgeUnreviewable(boolean value) {
+
+      acknowledgeUnreviewable_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set true on an APPROVE to consciously KEEP a change whose diff could not be
+     * fully reviewed. Honored only for a binary file (FileContent.is_binary) at
+     * FILE scope: a binary has no text diff, but its exact bytes are captured and
+     * reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes
+     * the expected_digest gate, and is ignored for CHANGE_SET scope and for any
+     * other incompleteness (secret-withheld / size-elided / uncapturable), which
+     * have no keepable bytes and stay discard-only (fail-closed). Ignored on
+     * REJECT.
+     * </pre>
+     *
+     * <code>bool acknowledge_unreviewable = 8 [json_name = "acknowledgeUnreviewable"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAcknowledgeUnreviewable() {
+      bitField0_ = (bitField0_ & ~0x00000080);
+      acknowledgeUnreviewable_ = false;
       onChanged();
       return this;
     }

@@ -5,6 +5,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   looksBinary,
+  bytesLookBinary,
   buildFileChange,
   resolveWorkspacePath,
 } from "../file-change.js";
@@ -18,6 +19,20 @@ describe("looksBinary", () => {
     expect(looksBinary("hello world")).toBe(false);
     expect(looksBinary("héllo — 世界 \n\t")).toBe(false);
     expect(looksBinary("")).toBe(false);
+  });
+});
+
+describe("bytesLookBinary", () => {
+  it("flags raw bytes containing a NUL", () => {
+    expect(bytesLookBinary(Buffer.from([0x89, 0x50, 0x00, 0x4e]))).toBe(true);
+    expect(bytesLookBinary(new Uint8Array([0x00]))).toBe(true);
+  });
+
+  it("does not flag NUL-free bytes (text, or high bytes without a NUL)", () => {
+    expect(bytesLookBinary(Buffer.from("hello world", "utf8"))).toBe(false);
+    expect(bytesLookBinary(Buffer.from("héllo — 世界", "utf8"))).toBe(false);
+    expect(bytesLookBinary(Buffer.from([0xff, 0xfe, 0x80]))).toBe(false);
+    expect(bytesLookBinary(Buffer.alloc(0))).toBe(false);
   });
 });
 

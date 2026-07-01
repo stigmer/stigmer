@@ -130,13 +130,20 @@ export const FileReviewCard = memo(function FileReviewCard({
   );
   const decidedCount = verdictByFileId.size;
 
-  // Per-file controls only earn their space when there is more than one file: a
-  // single-file set IS the whole set, decided once via the bulk footer.
-  const showPerFile = total > 1;
-
   // A non-COMPLETE diff (elided / binary-only / partial) can never be approved
   // as a whole set — the structural guard against approving an unreviewable set.
   const incomplete = fileChangeSet.diffCompleteness !== DiffCompleteness.COMPLETE;
+
+  // Per-file controls earn their space when there is more than one file OR when a
+  // lone file is not reviewable — a single binary needs its per-file "Keep anyway"
+  // (FILE-scope, acknowledged), which the CHANGE_SET-scoped bulk footer can't
+  // offer. A single COMPLETE file stays decided once via the bulk footer.
+  const showPerFile = total > 1 || incomplete;
+  // The bulk (CHANGE_SET) footer is shown for multi-file sets and for a single
+  // complete file; it is hidden for a single incomplete file, whose only honest
+  // decision is the per-file control above (a CHANGE_SET approve is never valid
+  // for an incomplete set, and acknowledgment is FILE-scoped — DD-16).
+  const showBulkFooter = total > 1 || !incomplete;
 
   const wholeSetSubmitting = submittingDecisionKeys.has(setId);
   const wholeSetError = decisionErrors.get(setId) ?? null;
@@ -165,11 +172,18 @@ export const FileReviewCard = memo(function FileReviewCard({
     (change: CapturedFileChange, action: FileDecisionAction) => {
       // Per-file decision: FILE scope correlated by the change id, bound to that
       // file's digest (echoed verbatim — the server compares it against the same
-      // captured value, so it can never spuriously mismatch).
+      // captured value, so it can never spuriously mismatch). A "Keep anyway" on a
+      // binary file carries the acknowledgment: it has no text diff, but its exact
+      // bytes are captured and reconcilable, so the user consciously keeps it
+      // (DD-16). The server honors this only for a binary file and never relaxes
+      // the digest gate.
       onSubmit(action, {
         scope: FileDecisionScope.FILE,
         fileChangeId: change.id,
         expectedDigest: change.fileDigest,
+        acknowledgeUnreviewable:
+          action === FileDecisionAction.APPROVE &&
+          fileReviewability(change).kind === "binary",
       });
     },
     [onSubmit],
@@ -251,7 +265,7 @@ export const FileReviewCard = memo(function FileReviewCard({
 
         {showPerFile && <ReviewProgress decided={decidedCount} total={total} />}
 
-        {incomplete && (
+        {incomplete && showBulkFooter && (
           <p
             id={incompleteNoticeId}
             className="text-[11px] italic text-muted-foreground"
@@ -260,26 +274,28 @@ export const FileReviewCard = memo(function FileReviewCard({
           </p>
         )}
 
-        <div className="flex items-center gap-2 pt-1">
-          <DecisionButton
-            label={labels.approve}
-            variant="primary"
-            onClick={() => handleBulk(FileDecisionAction.APPROVE)}
-            isActive={activeAction === FileDecisionAction.APPROVE}
-            isSubmitting={wholeSetSubmitting}
-            disabled={incomplete}
-            ariaDescribedby={incomplete ? incompleteNoticeId : undefined}
-            cursorTarget="file-review-approve"
-          />
-          <DecisionButton
-            label={labels.reject}
-            variant="danger"
-            onClick={() => handleBulk(FileDecisionAction.REJECT)}
-            isActive={activeAction === FileDecisionAction.REJECT}
-            isSubmitting={wholeSetSubmitting}
-            cursorTarget="file-review-reject"
-          />
-        </div>
+        {showBulkFooter && (
+          <div className="flex items-center gap-2 pt-1">
+            <DecisionButton
+              label={labels.approve}
+              variant="primary"
+              onClick={() => handleBulk(FileDecisionAction.APPROVE)}
+              isActive={activeAction === FileDecisionAction.APPROVE}
+              isSubmitting={wholeSetSubmitting}
+              disabled={incomplete}
+              ariaDescribedby={incomplete ? incompleteNoticeId : undefined}
+              cursorTarget="file-review-approve"
+            />
+            <DecisionButton
+              label={labels.reject}
+              variant="danger"
+              onClick={() => handleBulk(FileDecisionAction.REJECT)}
+              isActive={activeAction === FileDecisionAction.REJECT}
+              isSubmitting={wholeSetSubmitting}
+              cursorTarget="file-review-reject"
+            />
+          </div>
+        )}
 
         {/* A failed whole-set decision is surfaced HERE, in-card, not via the
             session's global error banner. A review card has many decision
@@ -374,9 +390,12 @@ interface FileVerdictControlProps {
  * each file decision). The committed verdict reads as `aria-checked`; clicking
  * the other option flips it (a new last-write-wins decision).
  *
- * `Keep` is disabled for any non-reviewable file (`binary` or `unavailable`) —
- * such a change can never be approved; it can only be discarded. When disabled,
- * `describedById` associates the group with the note stating why.
+ * `Keep` behavior by reviewability: a `reviewable` file keeps normally; a
+ * `binary` file has no text diff but reconcilable bytes, so `Keep` is enabled as
+ * an explicit "Keep anyway" that carries the acknowledgment (DD-16); an
+ * `unavailable` file (secret-withheld / size-elided) has no keepable bytes, so
+ * `Keep` stays disabled — it can only be discarded. `describedById` associates
+ * the group with the note explaining the binary/unavailable case.
  */
 function FileVerdictControl({
   change,
@@ -395,7 +414,14 @@ function FileVerdictControl({
 
   const effective = pending ?? verdict;
   const path = change.pathAfter || change.pathBefore;
-  const keepUnavailable = reviewability.kind !== "reviewable";
+  // A binary file is keepable via an explicit acknowledgment; only a truly
+  // unavailable diff (no captured bytes) leaves Keep disabled.
+  const isBinary = reviewability.kind === "binary";
+  const keepDisabled = reviewability.kind === "unavailable";
+  const keepLabel = isBinary ? "Keep anyway" : "Keep";
+  const keepAccessibleLabel = isBinary
+    ? `Keep ${path} anyway (binary — no text diff)`
+    : `Keep ${path}`;
 
   const decide = useCallback(
     (action: FileDecisionAction) => {
@@ -414,12 +440,12 @@ function FileVerdictControl({
       className="flex items-center gap-1.5"
     >
       <VerdictOption
-        label="Keep"
-        accessibleLabel={`Keep ${path}`}
+        label={keepLabel}
+        accessibleLabel={keepAccessibleLabel}
         tone="keep"
         selected={effective === FileDecisionAction.APPROVE}
         busy={isSubmitting && pending === FileDecisionAction.APPROVE}
-        disabled={isSubmitting || keepUnavailable}
+        disabled={isSubmitting || keepDisabled}
         onClick={() => decide(FileDecisionAction.APPROVE)}
       />
       <VerdictOption
@@ -529,12 +555,12 @@ function CaptureBadge({ change }: { change: CapturedFileChange }) {
 // ---------------------------------------------------------------------------
 
 /**
- * The in-place explanation for why a non-reviewable file's `Keep` is disabled,
- * associated with the verdict control via `aria-describedby`. Honest per
- * {@link fileReviewability}: a `binary` change has no text diff; an `unavailable`
- * change's diff cannot be shown at all, with the specific cause the runner
- * recorded (secret-withheld vs size-dropped, doc 15). A reviewable file renders
- * no note.
+ * The in-place explanation for a non-reviewable file, associated with the verdict
+ * control via `aria-describedby`. Honest per {@link fileReviewability}: a `binary`
+ * change has no text diff but is keepable-as-bytes (an explicit "Keep anyway"); an
+ * `unavailable` change's diff cannot be shown at all and is discard-only, with the
+ * specific cause the runner recorded (secret-withheld vs size-dropped, doc 15). A
+ * reviewable file renders no note.
  */
 function BlockReasonNote({
   reviewability,
@@ -560,7 +586,7 @@ function BlockReasonNote({
 function blockReasonText(reviewability: FileReviewability): string | null {
   switch (reviewability.kind) {
     case "binary":
-      return "Binary file — no text diff to review, so it can only be discarded.";
+      return "Binary file — no text diff to review. Keep it as-is (its exact bytes are applied) or discard it.";
     case "unavailable":
       switch (reviewability.reason) {
         case "secret":
@@ -589,7 +615,7 @@ function incompleteNotice(
       return "Part of this change isn't available to review, so the whole set can't be approved — keep the reviewable files and discard the rest.";
     }
     if (summary.hasBinary) {
-      return "This set includes a binary change with no text diff, so it can't be approved at once — keep the reviewable files and discard the binary one.";
+      return "This set includes a binary change with no text diff, so it can't be approved at once — decide each file below (keep the reviewable ones; keep or discard the binary).";
     }
     return "Some files can't be reviewed completely, so the whole set can't be approved at once — keep the reviewable files and discard the rest.";
   }

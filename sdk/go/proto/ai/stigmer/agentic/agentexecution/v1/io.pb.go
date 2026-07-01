@@ -673,9 +673,18 @@ type SubmitFileDecisionInput struct {
 	// change captured after the user reviewed cannot be silently decided.
 	ExpectedDigest string `protobuf:"bytes,6,opt,name=expected_digest,json=expectedDigest,proto3" json:"expected_digest,omitempty"`
 	// Optional reason/comment for the decision (audit trail).
-	Reason        string `protobuf:"bytes,7,opt,name=reason,proto3" json:"reason,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Reason string `protobuf:"bytes,7,opt,name=reason,proto3" json:"reason,omitempty"`
+	// Set true on an APPROVE to consciously KEEP a change whose diff could not be
+	// fully reviewed. Honored only for a binary file (FileContent.is_binary) at
+	// FILE scope: a binary has no text diff, but its exact bytes are captured and
+	// reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes
+	// the expected_digest gate, and is ignored for CHANGE_SET scope and for any
+	// other incompleteness (secret-withheld / size-elided / uncapturable), which
+	// have no keepable bytes and stay discard-only (fail-closed). Ignored on
+	// REJECT.
+	AcknowledgeUnreviewable bool `protobuf:"varint,8,opt,name=acknowledge_unreviewable,json=acknowledgeUnreviewable,proto3" json:"acknowledge_unreviewable,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *SubmitFileDecisionInput) Reset() {
@@ -755,6 +764,13 @@ func (x *SubmitFileDecisionInput) GetReason() string {
 		return x.Reason
 	}
 	return ""
+}
+
+func (x *SubmitFileDecisionInput) GetAcknowledgeUnreviewable() bool {
+	if x != nil {
+		return x.AcknowledgeUnreviewable
+	}
+	return false
 }
 
 // CancelAgentExecutionInput requests graceful cancellation of an agent execution.
@@ -3259,7 +3275,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x06action\x12\x18\n" +
 	"\acomment\x18\x04 \x01(\tR\acomment\"o\n" +
 	"\x14ApprovalDecisionList\x12W\n" +
-	"\tdecisions\x18\x01 \x03(\v29.ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInputR\tdecisions\"\xa6\x03\n" +
+	"\tdecisions\x18\x01 \x03(\v29.ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInputR\tdecisions\"\xe1\x03\n" +
 	"\x17SubmitFileDecisionInput\x125\n" +
 	"\x12agent_execution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x10agentExecutionId\x12+\n" +
 	"\rchange_set_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vchangeSetId\x12Y\n" +
@@ -3269,7 +3285,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x06action\x18\x05 \x01(\x0e28.ai.stigmer.agentic.agentexecution.v1.FileDecisionActionB\n" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x06action\x120\n" +
 	"\x0fexpected_digest\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0eexpectedDigest\x12\x16\n" +
-	"\x06reason\x18\a \x01(\tR\x06reason\"L\n" +
+	"\x06reason\x18\a \x01(\tR\x06reason\x129\n" +
+	"\x18acknowledge_unreviewable\x18\b \x01(\bR\x17acknowledgeUnreviewable\"L\n" +
 	"\x19CancelAgentExecutionInput\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"O\n" +

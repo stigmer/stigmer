@@ -255,6 +255,13 @@ message FileDecision {
 
   // Optional free-text comment supplied with the decision (audit trail).
   string reason = 9;
+
+  // True when this APPROVE consciously kept a change whose diff could not be
+  // fully reviewed (a binary file — no text diff, but exact reconcilable bytes).
+  // Audit provenance only: it records that a human explicitly acknowledged the
+  // limitation. Never an enforcement input or a correlation key, and never
+  // folded into any digest.
+  bool acknowledge_unreviewable = 10;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

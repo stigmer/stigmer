@@ -55,6 +55,7 @@ import {
   FileChangeKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "../artifact-storage.js";
+import { bytesLookBinary } from "../file-change.js";
 import { sha256Bytes, sha256Hex } from "./digest.js";
 
 /**
@@ -343,11 +344,6 @@ async function writeVerifiedBlob(
   }
   await mkdir(dirname(abs), { recursive: true });
   await writeFile(abs, bytes);
-}
-
-/** A NUL byte never appears in valid UTF-8 text (matches file-change.looksBinary). */
-function bytesLookBinary(bytes: Buffer): boolean {
-  return bytes.includes(0);
 }
 
 /** Stable order: by after path, then before path (substrate-agnostic, doc 08 D3). */

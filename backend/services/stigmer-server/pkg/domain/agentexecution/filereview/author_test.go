@@ -10,7 +10,7 @@ func TestBuildFileDecisionDeterministicID(t *testing.T) {
 	fileScoped := BuildFileDecision("cs1", "fc1",
 		agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
 		agentexecutionv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
-		"digest", "u1", "2026-06-30T00:00:00Z", "")
+		"digest", "u1", "2026-06-30T00:00:00Z", "", false)
 	if fileScoped.GetId() != "cs1:fc1" {
 		t.Errorf("FILE-scope decision id = %q, want %q", fileScoped.GetId(), "cs1:fc1")
 	}
@@ -18,9 +18,18 @@ func TestBuildFileDecisionDeterministicID(t *testing.T) {
 	setScoped := BuildFileDecision("cs1", "",
 		agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_CHANGE_SET,
 		agentexecutionv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
-		"digest", "u1", "2026-06-30T00:00:00Z", "")
+		"digest", "u1", "2026-06-30T00:00:00Z", "", false)
 	if setScoped.GetId() != "cs1:cs1" {
 		t.Errorf("CHANGE_SET-scope decision id = %q, want %q", setScoped.GetId(), "cs1:cs1")
+	}
+
+	// The acknowledgment flag is carried onto the persisted decision (audit).
+	acked := BuildFileDecision("cs1", "fc-bin",
+		agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
+		agentexecutionv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		"digest", "u1", "2026-06-30T00:00:00Z", "", true)
+	if !acked.GetAcknowledgeUnreviewable() {
+		t.Error("acknowledge_unreviewable should be recorded on the decision")
 	}
 }
 
@@ -29,7 +38,7 @@ func TestRecordFileDecisionEventIdempotent(t *testing.T) {
 	decision := BuildFileDecision("cs1", "fc1",
 		agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
 		agentexecutionv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
-		"digest", "u1", "2026-06-30T00:00:00Z", "looks good")
+		"digest", "u1", "2026-06-30T00:00:00Z", "looks good", false)
 
 	RecordFileDecisionEvent(status, "aex_1", decision)
 	RecordFileDecisionEvent(status, "aex_1", decision) // re-author must be a no-op
@@ -86,7 +95,9 @@ func TestApproveBlockedReason(t *testing.T) {
 		fileScope = agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE
 		setScope  = agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_CHANGE_SET
 	)
-	// A set that mixes a reviewable and an unreviewable file — the per-target case.
+	// A set mixing a reviewable file, a non-binary incomplete file (e.g. secret-
+	// withheld / size-elided — no keepable bytes), and a binary file (no text
+	// diff, but exact reconcilable bytes) — the per-target + acknowledgment cases.
 	setWith := func(completeness agentexecutionv1.DiffCompleteness) *agentexecutionv1.FileChangeSet {
 		return &agentexecutionv1.FileChangeSet{
 			Id:               "cs1",
@@ -94,29 +105,37 @@ func TestApproveBlockedReason(t *testing.T) {
 			Changes: []*agentexecutionv1.CapturedFileChange{
 				{Id: "fc-complete", DiffComplete: true},
 				{Id: "fc-incomplete", DiffComplete: false},
+				{Id: "fc-binary", DiffComplete: false, After: &agentexecutionv1.FileContent{IsBinary: true}},
 			},
 		}
 	}
 
 	cases := []struct {
-		name        string
-		cs          *agentexecutionv1.FileChangeSet
-		scope       agentexecutionv1.FileDecisionScope
-		fileID      string
-		wantBlocked bool
+		name         string
+		cs           *agentexecutionv1.FileChangeSet
+		scope        agentexecutionv1.FileDecisionScope
+		fileID       string
+		acknowledged bool
+		wantBlocked  bool
 	}{
-		{"nil set is fail-closed", nil, setScope, "", true},
-		{"FILE scope, complete file in partial set is approvable", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-complete", false},
-		{"FILE scope, incomplete file is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-incomplete", true},
-		{"FILE scope, absent file is fail-closed", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE), fileScope, "nope", true},
-		{"CHANGE_SET scope, COMPLETE is approvable", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE), setScope, "", false},
-		{"CHANGE_SET scope, PARTIAL_BLOCKED is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), setScope, "", true},
-		{"CHANGE_SET scope, BINARY_SUMMARY_ONLY is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY), setScope, "", true},
-		{"CHANGE_SET scope, UNSPECIFIED is fail-closed", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_UNSPECIFIED), setScope, "", true},
+		{"nil set is fail-closed", nil, setScope, "", false, true},
+		{"FILE scope, complete file in partial set is approvable", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-complete", false, false},
+		{"FILE scope, incomplete file is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-incomplete", false, true},
+		{"FILE scope, absent file is fail-closed", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE), fileScope, "nope", false, true},
+		{"CHANGE_SET scope, COMPLETE is approvable", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE), setScope, "", false, false},
+		{"CHANGE_SET scope, PARTIAL_BLOCKED is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), setScope, "", false, true},
+		{"CHANGE_SET scope, BINARY_SUMMARY_ONLY is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY), setScope, "", false, true},
+		{"CHANGE_SET scope, UNSPECIFIED is fail-closed", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_UNSPECIFIED), setScope, "", false, true},
+
+		// Binary-acknowledgment carve-out (DD-16): FILE scope, binary only.
+		{"FILE scope, binary file without ack is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-binary", false, true},
+		{"FILE scope, binary file WITH ack is approvable", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-binary", true, false},
+		{"FILE scope, ack does NOT unblock a non-binary incomplete file", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-incomplete", true, true},
+		{"CHANGE_SET scope, ack is ignored (still blocked)", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), setScope, "", true, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			reason := ApproveBlockedReason(tc.cs, tc.scope, tc.fileID)
+			reason := ApproveBlockedReason(tc.cs, tc.scope, tc.fileID, tc.acknowledged)
 			if blocked := reason != ""; blocked != tc.wantBlocked {
 				t.Errorf("ApproveBlockedReason = %q (blocked=%v), want blocked=%v", reason, blocked, tc.wantBlocked)
 			}

@@ -74,6 +74,46 @@ describe("useFileReview", () => {
     });
   });
 
+  it("threads acknowledge_unreviewable onto the input (the binary 'Keep anyway' path)", async () => {
+    mockSubmitFileDecision.mockResolvedValueOnce({});
+
+    const { result } = renderHook(() => useFileReview(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.submitFileDecision("aex-1", "aex-1:0", FileDecisionAction.APPROVE, {
+        fileChangeId: "aex-1:0:logo.png",
+        expectedDigest: "d-bin",
+        acknowledgeUnreviewable: true,
+      });
+    });
+
+    expect(mockSubmitFileDecision.mock.calls[0][0]).toMatchObject({
+      scope: FileDecisionScope.FILE,
+      fileChangeId: "aex-1:0:logo.png",
+      action: FileDecisionAction.APPROVE,
+      expectedDigest: "d-bin",
+      acknowledgeUnreviewable: true,
+    });
+  });
+
+  it("defaults acknowledge_unreviewable to false when omitted", async () => {
+    mockSubmitFileDecision.mockResolvedValueOnce({});
+
+    const { result } = renderHook(() => useFileReview(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.submitFileDecision("aex-1", "aex-1:0", FileDecisionAction.APPROVE, {
+        expectedDigest: "agg-1",
+      });
+    });
+
+    expect(mockSubmitFileDecision.mock.calls[0][0].acknowledgeUnreviewable).toBe(false);
+  });
+
   it("tracks submitting decision keys while in flight, then clears them", async () => {
     let resolve!: () => void;
     mockSubmitFileDecision.mockReturnValueOnce(

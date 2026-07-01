@@ -466,6 +466,15 @@ func TestOffline_FileReview_ApproveBlockedOnIncompleteDiff(t *testing.T) {
 	ch := harness.FindCapturedChangeByPath(set, path)
 	require.NotNil(t, ch, "the binary file must be captured for review")
 	assert.False(t, ch.GetDiffComplete(), "the binary file must be flagged diff_complete=false")
+	// The binary side is captured as a body-less, byte-true content address (it
+	// reconciles from the git ref, never the wire) — proving the shape survives
+	// persist -> project through the real service. is_binary is the single signal
+	// consumers key off (the SDK renders "binary file changed"; the Slice-B gate
+	// reads it), and the after sha256 is the byte-true enforcement digest.
+	require.NotNil(t, ch.GetAfter(), "a binary ADD still carries an after FileContent (flagged, body-less)")
+	assert.True(t, ch.GetAfter().GetIsBinary(), "the binary side must be flagged is_binary")
+	assert.Empty(t, ch.GetAfter().GetInline(), "a binary side carries no inline body (no lossy text)")
+	assert.NotEmpty(t, ch.GetAfterSha256(), "the binary must carry a byte-true after sha256")
 
 	// APPROVE is refused: a diff that was never reviewable cannot be kept.
 	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
@@ -494,6 +503,96 @@ func TestOffline_FileReview_ApproveBlockedOnIncompleteDiff(t *testing.T) {
 	require.NoError(t, err, "rejecting the unreviewable change must complete the execution")
 	assert.False(t, harness.WorkspaceFileExists(t, gitDir, path),
 		"the rejected binary create must be snapped back (the file must not exist)")
+	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review decision must NOT re-invoke the model")
+}
+
+// TestOffline_FileReview_BinaryAcknowledgedApprove_ReconcilesBytes proves the
+// binary-acknowledgment carve-out (DD-16) end to end through the real service: a
+// binary file is discard-only until the user consciously acknowledges it, at
+// which point a FILE-scoped APPROVE with acknowledge_unreviewable=true is
+// accepted and the runner reconciles its exact bytes onto disk. It also proves
+// the carve-out never relaxes the digest gate (a stale digest still fails).
+func TestOffline_FileReview_BinaryAcknowledgedApprove_ReconcilesBytes(t *testing.T) {
+	requireOfflineService(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	gitDir := harness.NewGitWorkspace(t)
+	headBefore := harness.WorkspaceHeadSHA(t, gitDir)
+	const path = "assets/logo.bin"
+	// A NUL byte makes the captured content binary (bytesLookBinary), so the file
+	// is diff_complete=false and the set PARTIAL_BLOCKED — no text diff to review.
+	const content = "\x00PNG\x00\x01\x02keep-me\n"
+
+	mockLLM, clients, waiter, execID := startFileReviewRun(t, ctx, gitDir,
+		[]harness.RecordedLLMEntry{
+			writeFileTurn(0, "toolu_bin", path, content),
+			textTurn(1, "Wrote the binary asset."),
+		},
+		"Create the binary asset using the filesystem tools.")
+
+	waiting, err := waiter.WaitForFileReview(ctx, execID, 2*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, execID)
+		t.Fatalf("execution should reach file review: %v", err)
+	}
+	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
+	require.NotNil(t, set, "a binary create must surface an AWAITING_REVIEW change set")
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, set.GetDiffCompleteness())
+	ch := harness.FindCapturedChangeByPath(set, path)
+	require.NotNil(t, ch, "the binary file must be captured for review")
+	require.True(t, ch.GetAfter().GetIsBinary(), "the captured side must be flagged is_binary")
+
+	// A plain APPROVE (no acknowledgment) is still refused — discard-only by default.
+	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
+		AgentExecutionId: execID,
+		ChangeSetId:      set.GetId(),
+		Scope:            agentexecv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
+		FileChangeId:     ch.GetId(),
+		Action:           agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		ExpectedDigest:   ch.GetFileDigest(),
+	})
+	require.Error(t, err, "approving a binary without acknowledgment must be refused")
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+
+	// An acknowledged APPROVE with a STALE digest still fails the digest gate —
+	// the carve-out relaxes completeness only, never "what you approve is applied".
+	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
+		AgentExecutionId:        execID,
+		ChangeSetId:             set.GetId(),
+		Scope:                   agentexecv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
+		FileChangeId:            ch.GetId(),
+		Action:                  agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		ExpectedDigest:          "stale-digest-user-never-saw",
+		AcknowledgeUnreviewable: true,
+	})
+	require.Error(t, err, "an acknowledged approve with a stale digest must still fail")
+	assert.Equal(t, codes.InvalidArgument, status.Code(err),
+		"the digest gate is INVALID_ARGUMENT, proving completeness passed first")
+
+	// The acknowledged APPROVE (fresh digest) is accepted and reconciles.
+	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
+		AgentExecutionId:        execID,
+		ChangeSetId:             set.GetId(),
+		Scope:                   agentexecv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
+		FileChangeId:            ch.GetId(),
+		Action:                  agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		ExpectedDigest:          ch.GetFileDigest(),
+		AcknowledgeUnreviewable: true,
+	})
+	require.NoError(t, err, "an acknowledged binary approve must be accepted")
+
+	result, err := waiter.WaitForPhase(ctx, execID, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "the acknowledged approval must complete the execution")
+
+	// The exact binary bytes are reconciled onto disk (byte-true, from the git ref).
+	assert.Equal(t, content, harness.ReadWorkspaceFile(t, gitDir, path),
+		"the acknowledged binary must be reconciled onto disk byte-for-byte")
+	assert.True(t, harness.FileReviewStreamHasEvent(result.GetStatus().GetFileReviewEventStream(), set.GetId(),
+		agentexecv1.FileReviewEventType_FILE_REVIEW_EVENT_TYPE_RECONCILED),
+		"the ledger must carry RECONCILED after the acknowledged approval")
+	assert.Equal(t, headBefore, harness.WorkspaceHeadSHA(t, gitDir), "capture mode must never move HEAD")
 	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review decision must NOT re-invoke the model")
 }
 

@@ -204,28 +204,30 @@ describe("FileReviewCard", () => {
       });
     });
 
-    it("disables Approve (but not Reject) when the diff is incomplete", () => {
-      const onSubmit = vi.fn();
+    it("switches a single INCOMPLETE file to the per-file control (no CHANGE_SET footer)", () => {
+      // A lone binary can't be kept via a CHANGE_SET approve (acknowledgment is
+      // FILE-scoped, DD-16), so the single-incomplete case drops the bulk footer
+      // and shows the per-file "Keep anyway" / Discard control instead.
       render(
         <FileReviewCard
           fileChangeSet={changeSet({
             diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            change: capturedBinaryChange({ id: "aex-1:0:img.png", path: "img.png", fileDigest: "d" }),
           })}
-          onSubmit={onSubmit}
+          onSubmit={noop}
         />,
       );
 
-      const approve = screen.getByRole("button", { name: "Approve" });
-      expect((approve as HTMLButtonElement).disabled).toBe(true);
-      fireEvent.click(approve);
-      expect(onSubmit).not.toHaveBeenCalled();
-
-      // Rejecting an unreviewable change is always allowed (the safe action).
-      fireEvent.click(screen.getByRole("button", { name: "Reject" }));
-      expect(onSubmit).toHaveBeenCalledWith(
-        FileDecisionAction.REJECT,
-        expect.anything(),
-      );
+      // No bulk footer for a single incomplete file.
+      expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Reject" })).toBeNull();
+      // The per-file control is present, with an enabled binary "Keep anyway".
+      expect(
+        (screen.getByRole("radio", { name: /Keep img.png anyway/i }) as HTMLButtonElement).disabled,
+      ).toBe(false);
+      expect(
+        (screen.getByRole("radio", { name: "Discard img.png" }) as HTMLButtonElement).disabled,
+      ).toBe(false);
     });
   });
 
@@ -251,6 +253,7 @@ describe("FileReviewCard", () => {
         scope: FileDecisionScope.FILE,
         fileChangeId: "fc1",
         expectedDigest: "d-fc1",
+        acknowledgeUnreviewable: false,
       });
     });
 
@@ -264,6 +267,7 @@ describe("FileReviewCard", () => {
         scope: FileDecisionScope.FILE,
         fileChangeId: "fc2",
         expectedDigest: "d-fc2",
+        acknowledgeUnreviewable: false,
       });
     });
 
@@ -321,6 +325,7 @@ describe("FileReviewCard", () => {
         scope: FileDecisionScope.FILE,
         fileChangeId: "fc1",
         expectedDigest: "d-fc1",
+        acknowledgeUnreviewable: false,
       });
     });
 
@@ -466,28 +471,40 @@ describe("FileReviewCard", () => {
   });
 
   describe("blocked / partial states (Slice 6)", () => {
-    it("labels a binary file's reason and disables only its Keep", () => {
+    it("labels a binary file and offers an enabled 'Keep anyway' (DD-16)", () => {
+      const onSubmit = vi.fn();
       render(
         <FileReviewCard
           fileChangeSet={multiChangeSet({
             diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
             fc2: capturedBinaryChange({ id: "fc2", path: "img.png", fileDigest: "d-fc2" }),
           })}
-          onSubmit={noop}
+          onSubmit={onSubmit}
         />,
       );
 
       expect(screen.getByText(/Binary file.*no text diff/i)).toBeTruthy();
-      expect(
-        (screen.getByRole("radio", { name: "Keep img.png" }) as HTMLButtonElement).disabled,
-      ).toBe(true);
+      // A binary is keepable via an explicit, enabled "Keep anyway".
+      const keepAnyway = screen.getByRole("radio", {
+        name: /Keep img.png anyway/i,
+      }) as HTMLButtonElement;
+      expect(keepAnyway.disabled).toBe(false);
       expect(
         (screen.getByRole("radio", { name: "Discard img.png" }) as HTMLButtonElement).disabled,
       ).toBe(false);
-      // The reviewable sibling stays keepable.
+      // The reviewable sibling keeps its plain "Keep".
       expect(
         (screen.getByRole("radio", { name: "Keep src/a.ts" }) as HTMLButtonElement).disabled,
       ).toBe(false);
+
+      // Clicking "Keep anyway" submits an acknowledged FILE approve.
+      fireEvent.click(keepAnyway);
+      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
+        scope: FileDecisionScope.FILE,
+        fileChangeId: "fc2",
+        expectedDigest: "d-fc2",
+        acknowledgeUnreviewable: true,
+      });
     });
 
     it("labels a diff-unavailable file and associates the reason via aria-describedby", () => {
@@ -603,7 +620,7 @@ describe("FileReviewCard", () => {
       expect(screen.getByText(/includes a binary change with no text diff/i)).toBeTruthy();
     });
 
-    it("blocks Approve on a single-file binary set, allows Reject, and describes the disabled Approve", () => {
+    it("keeps a single-file binary via an acknowledged FILE approve; discard still works", () => {
       const onSubmit = vi.fn();
       render(
         <FileReviewCard
@@ -615,29 +632,39 @@ describe("FileReviewCard", () => {
         />,
       );
 
-      const approve = screen.getByRole("button", { name: "Approve" });
-      expect((approve as HTMLButtonElement).disabled).toBe(true);
-      // The disabled Approve is associated with the notice explaining why.
-      const noticeId = approve.getAttribute("aria-describedby");
-      expect(noticeId).toBeTruthy();
-      expect(document.getElementById(noticeId as string)?.textContent).toMatch(/binary change/i);
+      // No CHANGE_SET footer for a single incomplete file (acknowledgment is
+      // FILE-scoped); the per-file control carries an enabled "Keep anyway".
+      expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+      fireEvent.click(screen.getByRole("radio", { name: /Keep img.png anyway/i }));
+      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
+        scope: FileDecisionScope.FILE,
+        fileChangeId: "aex-1:0:img.png",
+        expectedDigest: "d",
+        acknowledgeUnreviewable: true,
+      });
 
-      fireEvent.click(screen.getByRole("button", { name: "Reject" }));
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.REJECT, expect.anything());
+      fireEvent.click(screen.getByRole("radio", { name: "Discard img.png" }));
+      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.REJECT, {
+        scope: FileDecisionScope.FILE,
+        fileChangeId: "aex-1:0:img.png",
+        expectedDigest: "d",
+        acknowledgeUnreviewable: false,
+      });
     });
 
-    it("defensively disables Approve for any non-COMPLETE completeness (catch-all)", () => {
-      // BINARY_SUMMARY_ONLY is not produced today, but the guard must still block.
+    it("defensively disables the whole-set Approve for any non-COMPLETE completeness (catch-all)", () => {
+      // BINARY_SUMMARY_ONLY is not produced today, but the guard must still block
+      // a whole-set approve (multi-file so the bulk footer is present).
       render(
         <FileReviewCard
-          fileChangeSet={changeSet({
+          fileChangeSet={multiChangeSet({
             diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
           })}
           onSubmit={noop}
         />,
       );
       expect(
-        (screen.getByRole("button", { name: "Approve" }) as HTMLButtonElement).disabled,
+        (screen.getByRole("button", { name: "Approve all" }) as HTMLButtonElement).disabled,
       ).toBe(true);
     });
   });

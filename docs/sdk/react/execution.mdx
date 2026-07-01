@@ -1997,6 +1997,19 @@ Props for [`ExecutionPhaseBadge`](#executionphasebadge).
 />
 
 
+### FileBlockReason
+
+Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the
+runner records on `CapturedFileChange.blocked_reason` (design doc 15).
+
+- `"secret"` — the path looks like a secret; the bytes were deliberately never
+  captured (there is nothing to review, by design).
+- `"size"` — the diff was captured but its bodies were dropped to keep the
+  persisted status under its size limit.
+- `"unknown"` — incomplete for a reason the wire does not name (a defensive
+  catch-all; historical rows and future/unmapped causes land here).
+
+
 ### fileDecisionKey
 
 The loading-state key for a file decision: the change set id for a whole-set
@@ -2043,6 +2056,57 @@ copy-to-clipboard for all paths.
 />
 
 
+### fileReviewability
+
+Classify a `CapturedFileChange` by how completely it can be reviewed,
+from the signals the runner authors onto the change (see the file-review
+producer in the runner's `shared/filereview`).
+
+The mapping is derived from three proto signals, in order:
+
+1. `diff_complete === true` → `"reviewable"`. The change set can only be
+   `COMPLETE` when every file is complete, so a complete file is always
+   reviewable.
+2. otherwise, a binary side (`before.is_binary` or `after.is_binary`) →
+   `"binary"`. The runner marks a git-tracked file incomplete precisely
+   because a side is binary (`diff_complete = !binary`); a CAS file carries
+   `is_binary` on its blob ref. `is_binary` is preserved when a large body is
+   offloaded from an inline value to a storage ref, so this holds regardless
+   of offload. Binary is therefore derived here, never duplicated onto the
+   block reason (doc 15).
+3. otherwise → `"unavailable"` with the honest cause from
+   `blocked_reason`: `SECRET_WITHHELD → "secret"`, `SIZE_ELIDED → "size"`,
+   else `"unknown"`. Before doc 15 this bucket was cause-agnostic (the wire
+   could not prove secret-withheld vs size-dropped); the runner now records
+   the cause at capture time, so the UI can say *why* rather than only *that*
+   the diff is unavailable.
+
+```tsx
+function fileReviewability(change: CapturedFileChange): FileReviewability
+```
+
+
+### FileReviewability
+
+How completely a single captured file change can be reviewed before a decision
+is made — the classification that decides whether a file can be kept. A
+discriminated union so every consumer handles each case exhaustively and reads
+the block reason from one place (no "classify, then separately look up why").
+
+- `{ kind: "reviewable" }` — the full before/after diff is available; the
+  reviewer can see exactly what changed and Keep or Discard it.
+- `{ kind: "binary" }` — a binary file changed; there is no text diff to
+  review (the bytes are captured and flagged, but a byte diff is not
+  human-reviewable). Binary is proven by `FileContent.is_binary`, not by the
+  block reason.
+- `{ kind: "unavailable"; reason }` — the diff is not available to review at
+  all, with the honest [`FileBlockReason`](#fileblockreason) the runner recorded.
+
+Both `"binary"` and `"unavailable"` are non-reviewable: the file cannot be
+approved (kept), only discarded. This mirrors the server, which blocks
+approval of any change set that is not fully complete.
+
+
 ### FileReviewCard
 
 Renders a captured `FileChangeSet` for review: a summary bar, the
@@ -2065,7 +2129,16 @@ option records a new decision (the backend reconcile is last-write-wins).
 An incomplete diff (`diff_completeness != COMPLETE`) cannot be approved as a
 whole set — the Approve button is disabled with an explanation. For a
 multi-file set the per-file path is the escape: keep the reviewable files and
-discard the binary/truncated one.
+discard the ones that cannot be reviewed.
+
+Each non-reviewable file is labeled honestly by [`fileReviewability`](#filereviewability): a
+`binary` change has no text diff to review; an `unavailable` change is one
+whose diff isn't available at all, with the honest cause the runner recorded
+(a secret path whose bytes were never captured, or a diff dropped to bound the
+status — doc 15). Both are discard-only, and their Keep affordance is disabled
+with the reason associated via `aria-describedby`. Files captured outside
+normal git tracking (gitignored / non-git CAS) carry a small provenance badge
+so the reviewer knows the change is not part of the repo's tracked history.
 
 Wrapped in `React.memo` — the streamed `FileChangeSet` reference is preserved
 by structural sharing when unchanged, so review cards skip re-renders during

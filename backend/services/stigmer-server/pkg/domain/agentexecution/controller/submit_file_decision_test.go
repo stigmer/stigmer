@@ -67,6 +67,19 @@ func fileDecisionInput(
 	}
 }
 
+// ackFileDecisionInput is fileDecisionInput with acknowledge_unreviewable set —
+// the "keep this binary anyway" path.
+func ackFileDecisionInput(
+	scope agentexecutionv1.FileDecisionScope,
+	fileID string,
+	action agentexecutionv1.FileDecisionAction,
+	expectedDigest string,
+) *agentexecutionv1.SubmitFileDecisionInput {
+	in := fileDecisionInput(scope, fileID, action, expectedDigest)
+	in.AcknowledgeUnreviewable = true
+	return in
+}
+
 // TestValidateFileDecisionTarget_CompletenessGate proves the server refuses to
 // APPROVE an unreviewable target (FAILED_PRECONDITION), always permits REJECT,
 // honors per-target granularity, and checks completeness before the digest gate.
@@ -79,10 +92,16 @@ func TestValidateFileDecisionTarget_CompletenessGate(t *testing.T) {
 
 	complete := &agentexecutionv1.CapturedFileChange{Id: "fc-complete", FileDigest: "d-complete", DiffComplete: true}
 	incomplete := &agentexecutionv1.CapturedFileChange{Id: "fc-incomplete", FileDigest: "d-incomplete", DiffComplete: false}
+	// A binary file: no text diff (diff_complete=false) but reconcilable bytes,
+	// conveyed by FileContent.is_binary — the acknowledgment carve-out target.
+	binary := &agentexecutionv1.CapturedFileChange{
+		Id: "fc-binary", FileDigest: "d-binary", DiffComplete: false,
+		After: &agentexecutionv1.FileContent{IsBinary: true},
+	}
 
 	partial := func() *agentexecutionv1.AgentExecution {
 		return fileReviewExecution(
-			agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, complete, incomplete)
+			agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, complete, incomplete, binary)
 	}
 	completeSet := func() *agentexecutionv1.AgentExecution {
 		return fileReviewExecution(
@@ -130,6 +149,40 @@ func TestValidateFileDecisionTarget_CompletenessGate(t *testing.T) {
 			exec:     completeSet(),
 			input:    fileDecisionInput(setScope, "", approve, "agg"),
 			wantCode: codes.OK,
+		},
+		// Binary-acknowledgment carve-out (DD-16).
+		{
+			name:     "approve a binary file without ack is blocked",
+			exec:     partial(),
+			input:    fileDecisionInput(fileScope, "fc-binary", approve, "d-binary"),
+			wantCode: codes.FailedPrecondition,
+		},
+		{
+			name:     "approve a binary file WITH ack is allowed",
+			exec:     partial(),
+			input:    ackFileDecisionInput(fileScope, "fc-binary", approve, "d-binary"),
+			wantCode: codes.OK,
+		},
+		{
+			name:     "ack does not unblock a non-binary incomplete file",
+			exec:     partial(),
+			input:    ackFileDecisionInput(fileScope, "fc-incomplete", approve, "d-incomplete"),
+			wantCode: codes.FailedPrecondition,
+		},
+		{
+			name:     "ack is ignored for a CHANGE_SET-scope approve of a partial set",
+			exec:     partial(),
+			input:    ackFileDecisionInput(setScope, "", approve, "agg"),
+			wantCode: codes.FailedPrecondition,
+		},
+		{
+			// The carve-out relaxes completeness ONLY — the digest gate still runs,
+			// so an acknowledged binary with a stale digest is refused (and as
+			// INVALID_ARGUMENT, proving completeness passed first).
+			name:     "ack relaxes completeness but never the digest gate",
+			exec:     partial(),
+			input:    ackFileDecisionInput(fileScope, "fc-binary", approve, "stale-digest"),
+			wantCode: codes.InvalidArgument,
 		},
 	}
 	for _, tc := range cases {

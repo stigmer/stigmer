@@ -31,6 +31,11 @@
             "description": "Optional: expected FileReviewBlockReason enum value name per change, aligned with change_ids order (doc 15). Asserted only when present, so it never forces every fixture to declare it.",
             "items": { "type": "string" }
           },
+          "acknowledged_change_ids": {
+            "type": "array",
+            "description": "Optional: file_change_ids of decisions carrying acknowledge_unreviewable=true, in decision order (DD-16). Asserted only when present, proving the audit flag survives persist->project identically in Go and Java.",
+            "items": { "type": "string" }
+          },
           "decision_count": { "type": "integer" },
           "aggregate_digest": { "type": "string" },
           "has_approved_snapshot": { "type": "boolean" }

@@ -63,6 +63,20 @@ export function looksBinary(content: string): boolean {
   return content.includes("\u0000");
 }
 
+/**
+ * Byte-level binary detection: a NUL byte never appears in valid UTF-8 text. The
+ * single definition of "binary" shared by every substrate that reads raw bytes
+ * (the git substrate's blob reads and the CAS substrate's captured bodies), so
+ * "what is binary" is decided one way across the whole file-review subsystem.
+ *
+ * Prefer this over {@link looksBinary} whenever the raw bytes are in hand: it is
+ * exact, whereas scanning a UTF-8-decoded string can miss a NUL that a lossy
+ * decode dropped.
+ */
+export function bytesLookBinary(bytes: Uint8Array): boolean {
+  return bytes.includes(0);
+}
+
 /** Build a `FileContent` carrying an inline body. */
 function inlineFileContent(content: string) {
   return create(FileContentSchema, {

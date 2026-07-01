@@ -30,6 +30,7 @@ import {
   restoreToBaseline,
   snapshotBaseline,
 } from "../git-substrate.js";
+import { sha256Bytes } from "../digest.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -119,10 +120,21 @@ describe("capture lifecycle", () => {
     expect(byPath.get("src/new.ts")?.changeType).toBe(FileChangeType.CREATE);
     expect(byPath.get("src/main.ts")?.changeType).toBe(FileChangeType.DELETE);
 
-    // The capture carries the true before/after net change.
-    const notes = byPath.get("notes.md")!.fileChange;
-    expect(notes.before?.body.value).toBe("platon notes\n");
-    expect(notes.after?.body.value).toBe("planton notes\n\n## TODO\n- ship it\n");
+    // The capture carries the true before/after net change (text, inline) with a
+    // byte-true content address (for valid UTF-8, equal to the utf-8 hash).
+    const beforeText = "platon notes\n";
+    const afterText = "planton notes\n\n## TODO\n- ship it\n";
+    const notes = byPath.get("notes.md")!;
+    expect(notes.before).toEqual({
+      kind: "inline",
+      text: beforeText,
+      sha256: sha256Bytes(Buffer.from(beforeText, "utf8")),
+    });
+    expect(notes.after).toEqual({
+      kind: "inline",
+      text: afterText,
+      sha256: sha256Bytes(Buffer.from(afterText, "utf8")),
+    });
 
     // Restore: the working tree is byte-identical to pre-turn (nothing landed).
     await restoreToBaseline(repo, baseline, changes);
@@ -156,6 +168,73 @@ describe("capture lifecycle", () => {
     await applyApprovedPaths(repo, afterTree, changes); // approve all
     expect(await read("src/new.ts")).toBe("export const y = 2;\n");
     expect(await exists("src/main.ts")).toBe(false);
+  });
+});
+
+describe("binary content identity + reconcile", () => {
+  // Non-UTF-8 bytes: a NUL (triggers binary detection) plus high bytes
+  // (0xFF/0xFE/0x80) a lossy UTF-8 decode would mangle — so a lossy hash of these
+  // would differ from the true byte hash.
+  const BIN_V1 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe, 0x80, 0x01]);
+  const BIN_V2 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0x00, 0x42, 0x99, 0x7f]);
+
+  async function writeBytes(rel: string, bytes: Buffer): Promise<void> {
+    await mkdir(join(repo, rel, ".."), { recursive: true });
+    await writeFile(join(repo, rel), bytes);
+  }
+  async function readBytes(rel: string): Promise<Buffer> {
+    return readFile(join(repo, rel));
+  }
+
+  it("captures a binary side as a body-less, byte-true content address", async () => {
+    const baseline = await snapshotBaseline(repo, EXEC_ID);
+    await writeBytes("assets/logo.png", BIN_V1); // create a binary file
+
+    const { changes } = await captureChangeSet(repo, EXEC_ID, baseline);
+    const change = changes.find((c) => c.path === "assets/logo.png")!;
+    expect(change.changeType).toBe(FileChangeType.CREATE);
+    // Body-less binary side carrying only its byte-true content address.
+    expect(change.after).toEqual({ kind: "binary", sha256: sha256Bytes(BIN_V1) });
+    expect(change.before).toBeUndefined();
+    // The digest is over the RAW bytes; a lossy UTF-8 re-encode would differ —
+    // this is the latent break the byte-true capture closes.
+    const lossy = sha256Bytes(Buffer.from(BIN_V1.toString("utf8"), "utf8"));
+    expect(sha256Bytes(BIN_V1)).not.toBe(lossy);
+  });
+
+  it("reconciles an approved binary create byte-exact from the git ref", async () => {
+    const baseline = await snapshotBaseline(repo, EXEC_ID);
+    await writeBytes("assets/logo.png", BIN_V1);
+    const { afterTree, changes } = await captureChangeSet(repo, EXEC_ID, baseline);
+
+    await restoreToBaseline(repo, baseline, changes); // discard removes the create
+    expect(await exists("assets/logo.png")).toBe(false);
+
+    await applyApprovedPaths(repo, afterTree, changes); // approve re-applies exact bytes
+    expect((await readBytes("assets/logo.png")).equals(BIN_V1)).toBe(true);
+  });
+
+  it("reconciles a binary modify: approve keeps new bytes, reject restores old (byte-exact)", async () => {
+    // Commit a binary baseline so a modify is exercised.
+    await writeBytes("assets/logo.png", BIN_V1);
+    await git(["add", "-A"]);
+    await git(["commit", "-q", "-m", "add binary"]);
+
+    const baseline = await snapshotBaseline(repo, EXEC_ID);
+    await writeBytes("assets/logo.png", BIN_V2); // modify the binary
+    const { afterTree, changes } = await captureChangeSet(repo, EXEC_ID, baseline);
+    const change = changes.find((c) => c.path === "assets/logo.png")!;
+    expect(change.changeType).toBe(FileChangeType.MODIFY);
+    expect(change.before).toEqual({ kind: "binary", sha256: sha256Bytes(BIN_V1) });
+    expect(change.after).toEqual({ kind: "binary", sha256: sha256Bytes(BIN_V2) });
+
+    // Approve -> the new bytes are kept byte-exact.
+    await applyApprovedPaths(repo, afterTree, changes);
+    expect((await readBytes("assets/logo.png")).equals(BIN_V2)).toBe(true);
+
+    // Reject -> snap back to the exact baseline bytes.
+    await restoreToBaseline(repo, baseline, changes);
+    expect((await readBytes("assets/logo.png")).equals(BIN_V1)).toBe(true);
   });
 });
 

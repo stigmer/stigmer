@@ -80,14 +80,31 @@ export function eventId(
 }
 
 /**
- * One side (before/after) of a captured file's content. Either the raw inline
- * bytes (the git substrate reads them from the tree) OR a reference to an
- * already-stored, content-addressed blob (the CAS substrate offloads ignored /
- * non-git bodies to artifact storage and carries the ref, so the body is never
- * stored twice). A plain string is accepted as shorthand for inline content.
+ * One side (before/after) of a captured file's content, in one of three shapes:
+ *
+ * - `inline` — the raw text bytes, carried on the wire (the git substrate reads
+ *   them from the tree for text files). A plain string is accepted as shorthand.
+ * - `ref` — a reference to an already-stored, content-addressed blob (the CAS
+ *   substrate offloads ignored / non-git bodies to artifact storage and carries
+ *   the ref, so the body is never stored twice).
+ * - `binary` — a git-tracked binary side: NO body is carried (a binary has no
+ *   reviewable text diff, and reconcile sources its bytes byte-exact from the
+ *   git ref, never from the wire), only the byte-true content address. This is
+ *   what keeps the enforcement digest honest for binaries — hashing a UTF-8
+ *   decode of binary bytes would be lossy.
  */
 export type CapturedContent =
-  | { readonly kind: "inline"; readonly text: string }
+  | {
+      readonly kind: "inline";
+      readonly text: string;
+      /**
+       * Byte-true SHA-256 of the RAW bytes, when the producer computed it at the
+       * source (the git substrate does). Preferred over hashing `text`, which for
+       * a non-UTF-8 blob (e.g. latin-1 with no NUL) would hash a lossy decode.
+       * Absent for the plain-string shorthand, where `text` IS the exact content.
+       */
+      readonly sha256?: string;
+    }
   | {
       readonly kind: "ref";
       /** Content address of the referenced blob (the enforcement digest). */
@@ -96,6 +113,11 @@ export type CapturedContent =
       readonly sizeBytes: number;
       readonly isBinary: boolean;
       readonly mimeType?: string;
+    }
+  | {
+      readonly kind: "binary";
+      /** Byte-true SHA-256 of the raw bytes (the enforcement digest). */
+      readonly sha256: string;
     };
 
 /** A single captured file delta, harness-agnostic (no git/CAS specifics). */
@@ -135,20 +157,37 @@ function normalizeContent(v: string | CapturedContent | undefined): CapturedCont
   return typeof v === "string" ? { kind: "inline", text: v } : v;
 }
 
-/** The enforcement digest of one content side (hash the bytes, or reuse the ref's). */
-function contentSha256(content: CapturedContent): string {
-  return content.kind === "inline"
-    ? sha256Bytes(Buffer.from(content.text, "utf8"))
-    : content.sha256;
+/**
+ * The enforcement digest of one content side. Inline text is hashed as UTF-8
+ * bytes; a `ref`/`binary` side already carries its byte-true content address, so
+ * it is reused verbatim. This single function is the sole sha authority — used
+ * both at capture (in {@link buildCapturedFileChange}) and at the resume-time
+ * reconcile check — so the two are consistent by construction across substrates.
+ */
+export function contentSha256(content: CapturedContent): string {
+  switch (content.kind) {
+    case "inline":
+      return content.sha256 ?? sha256Bytes(Buffer.from(content.text, "utf8"));
+    case "ref":
+    case "binary":
+      return content.sha256;
+  }
 }
 
-/** Build the proto {@link FileContent} for one content side (inline or ref). */
+/** Build the proto {@link FileContent} for one content side (inline, ref, or binary). */
 function toFileContent(content: CapturedContent): FileContent {
   if (content.kind === "inline") {
     return create(FileContentSchema, {
       body: { case: "inline", value: content.text },
       isBinary: looksBinary(content.text),
     });
+  }
+  // A git-tracked binary carries no body: its bytes reconcile from the git ref,
+  // and a text diff of binary content is meaningless. Consumers key off the
+  // is_binary flag (the SDK renders "binary file changed"; the backend gates
+  // approval on it), never a body.
+  if (content.kind === "binary") {
+    return create(FileContentSchema, { isBinary: true });
   }
   return create(FileContentSchema, {
     body: {

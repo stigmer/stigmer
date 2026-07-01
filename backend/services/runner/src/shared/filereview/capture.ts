@@ -30,7 +30,6 @@ import {
   FileReviewFailureKind,
   SnapshotKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   CasManifestRefSchema,
@@ -50,10 +49,10 @@ import {
   buildCapturedFileChange,
   buildFailedEvent,
   buildReconciledEvent,
+  contentSha256,
   type CapturedChangeInput,
   type ChangeSetContext,
 } from "./events.js";
-import { sha256Bytes } from "./digest.js";
 import {
   applyApprovedPaths,
   baselineRef,
@@ -401,23 +400,28 @@ function resolveDecisions(
 }
 
 /**
- * Verify the recomputed bytes still hash to the digests the reviewer approved.
- * The "after" side is checked for CREATE/MODIFY (the bytes we keep); the "before"
- * side for MODIFY/DELETE (the baseline we restore from / remove).
+ * Verify the recomputed content still hashes to the digests the reviewer
+ * approved. The "after" side is checked for CREATE/MODIFY (the bytes we keep);
+ * the "before" side for MODIFY/DELETE (the baseline we restore from / remove).
+ *
+ * The sha is taken via the shared {@link contentSha256} over the recomputed
+ * {@link CapturedContent} — the SAME function that produced the persisted
+ * `before_sha256`/`after_sha256` at capture — so it is byte-true for binary and
+ * text alike and matches by construction when the underlying bytes are unchanged.
+ * (Re-hashing an inline body string here would be lossy for binaries and would
+ * spuriously fail an approved binary, since a binary side carries no body.)
  */
 function digestMatches(
   gitChange: GitCapturedChange,
   protoChange: CapturedFileChange,
 ): boolean {
   if (gitChange.changeType !== FileChangeType.DELETE) {
-    const after = inlineBody(gitChange.fileChange.after) ?? "";
-    if (sha256Bytes(Buffer.from(after, "utf8")) !== protoChange.afterSha256) {
+    if (!gitChange.after || contentSha256(gitChange.after) !== protoChange.afterSha256) {
       return false;
     }
   }
   if (gitChange.changeType !== FileChangeType.CREATE) {
-    const before = inlineBody(gitChange.fileChange.before) ?? "";
-    if (sha256Bytes(Buffer.from(before, "utf8")) !== protoChange.beforeSha256) {
+    if (!gitChange.before || contentSha256(gitChange.before) !== protoChange.beforeSha256) {
       return false;
     }
   }
@@ -520,12 +524,6 @@ function unreviewableChangeInput(changeSetId: string, path: string): CapturedCha
   };
 }
 
-/** A FileContent's inline body, or undefined when absent (or offloaded). */
-function inlineBody(fc: FileContent | undefined): string | undefined {
-  if (!fc) return undefined;
-  return fc.body.case === "inline" ? fc.body.value : undefined;
-}
-
 /** Map the git capture kind to the file-review {@link FileChangeKind}. */
 function toFileChangeKind(changeType: FileChangeType): FileChangeKind {
   switch (changeType) {
@@ -540,9 +538,10 @@ function toFileChangeKind(changeType: FileChangeType): FileChangeKind {
 
 /**
  * Map a git-derived capture (`--no-renames`, so ADD/MODIFY/DELETE) to the
- * harness-agnostic producer input. The before/after bodies are the byte-exact
- * blobs git read; a binary side marks the file incomplete so the change set
- * cannot be approved as a complete diff.
+ * harness-agnostic producer input. The before/after content is the
+ * {@link CapturedContent} the substrate derived from the exact blob bytes; a
+ * binary side (carried as a content address, no body) marks the file incomplete
+ * so the change set cannot be approved as a complete text diff.
  */
 function toCapturedChangeInput(
   changeSetId: string,
@@ -552,17 +551,15 @@ function toCapturedChangeInput(
   const isDelete = change.changeType === FileChangeType.DELETE;
   const pathBefore = isCreate ? "" : change.path;
   const pathAfter = isDelete ? "" : change.path;
-  const binary = Boolean(
-    change.fileChange.before?.isBinary || change.fileChange.after?.isBinary,
-  );
+  const binary = change.before?.kind === "binary" || change.after?.kind === "binary";
   return {
     id: `${changeSetId}:${pathAfter || pathBefore}`,
     pathBefore,
     pathAfter,
     kind: toFileChangeKind(change.changeType),
     captureClass: FileCaptureClass.GIT_TRACKED,
-    before: inlineBody(change.fileChange.before),
-    after: inlineBody(change.fileChange.after),
+    before: change.before,
+    after: change.after,
     diffComplete: !binary,
   };
 }

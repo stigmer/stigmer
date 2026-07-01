@@ -70,7 +70,7 @@ func TestAppendRunnerEvents_DropsRunnerSentFileDecided(t *testing.T) {
 func TestAppendRunnerEvents_NeverClobbersExistingDecision(t *testing.T) {
 	// A decision authored by SubmitFileDecision is already on the stream.
 	decision := BuildFileDecision("cs-1", "", agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_CHANGE_SET,
-		agentexecutionv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE, "digest", "", "now", "")
+		agentexecutionv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE, "digest", "", "now", "", false)
 	status := &agentexecutionv1.AgentExecutionStatus{}
 	RecordFileDecisionEvent(status, "exec-1", decision)
 	before := len(status.GetFileReviewEventStream().GetEvents())

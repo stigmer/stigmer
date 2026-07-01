@@ -188,6 +188,45 @@ describe("capture orchestration — deep-agent harness", () => {
     expect(reconciled[0].actor).toBe("runner");
     expect((await git(["for-each-ref", "refs/stigmer/"])).trim()).toBe("");
   });
+
+  it("reconciles an APPROVED binary byte-exact — the digest gate accepts a byte-true binary", async () => {
+    // A binary is captured incomplete (no text diff); Slice B lets a user
+    // acknowledge-APPROVE it. This proves the runner half: the reconcile's digest
+    // gate must ACCEPT the byte-true binary (never spuriously HASH_MISMATCH on a
+    // body-less side) and re-apply the exact bytes from the git ref.
+    const BIN = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe, 0x80, 0x01]);
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await mkdir(join(repo, "assets"), { recursive: true });
+    await writeFile(join(repo, "assets/logo.png"), BIN); // binary create
+
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS,
+    });
+
+    // Captured honestly: incomplete (binary), is_binary set, no inline body.
+    const bin = candidateChanges(status).find((c) => c.pathAfter === "assets/logo.png")!;
+    expect(bin.diffComplete).toBe(false);
+    expect(bin.after?.isBinary).toBe(true);
+    expect(bin.after?.body.case).toBeUndefined(); // body-less
+
+    const changeSet = decidedChangeSet(status, {
+      "assets/logo.png": FileDecisionAction.APPROVE,
+    });
+    // Remove from disk first to prove reconcile re-applies from the ref, not disk.
+    await rm(join(repo, "assets/logo.png"), { force: true });
+
+    const result = await applyCaptureDecisions({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+    });
+
+    expect(result.failed).toBe(false);
+    expect(result.approvedPaths).toEqual(["assets/logo.png"]);
+    expect((await readFile(join(repo, "assets/logo.png"))).equals(BIN)).toBe(true);
+  });
 });
 
 // In-memory artifact store for the CAS composition tests — the canonical double.

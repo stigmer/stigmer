@@ -458,6 +458,25 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int ACKNOWLEDGE_UNREVIEWABLE_FIELD_NUMBER = 10;
+  private boolean acknowledgeUnreviewable_ = false;
+  /**
+   * <pre>
+   * True when this APPROVE consciously kept a change whose diff could not be
+   * fully reviewed (a binary file — no text diff, but exact reconcilable bytes).
+   * Audit provenance only: it records that a human explicitly acknowledged the
+   * limitation. Never an enforcement input or a correlation key, and never
+   * folded into any digest.
+   * </pre>
+   *
+   * <code>bool acknowledge_unreviewable = 10 [json_name = "acknowledgeUnreviewable"];</code>
+   * @return The acknowledgeUnreviewable.
+   */
+  @java.lang.Override
+  public boolean getAcknowledgeUnreviewable() {
+    return acknowledgeUnreviewable_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -499,6 +518,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(reason_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, reason_);
     }
+    if (acknowledgeUnreviewable_ != false) {
+      output.writeBool(10, acknowledgeUnreviewable_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -537,6 +559,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(reason_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, reason_);
     }
+    if (acknowledgeUnreviewable_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(10, acknowledgeUnreviewable_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -568,6 +594,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDecidedAt())) return false;
     if (!getReason()
         .equals(other.getReason())) return false;
+    if (getAcknowledgeUnreviewable()
+        != other.getAcknowledgeUnreviewable()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -597,6 +625,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDecidedAt().hashCode();
     hash = (37 * hash) + REASON_FIELD_NUMBER;
     hash = (53 * hash) + getReason().hashCode();
+    hash = (37 * hash) + ACKNOWLEDGE_UNREVIEWABLE_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getAcknowledgeUnreviewable());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -749,6 +780,7 @@ private static final long serialVersionUID = 0L;
       reviewerId_ = "";
       decidedAt_ = "";
       reason_ = "";
+      acknowledgeUnreviewable_ = false;
       return this;
     }
 
@@ -809,6 +841,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.reason_ = reason_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.acknowledgeUnreviewable_ = acknowledgeUnreviewable_;
+      }
     }
 
     @java.lang.Override
@@ -863,6 +898,9 @@ private static final long serialVersionUID = 0L;
         reason_ = other.reason_;
         bitField0_ |= 0x00000100;
         onChanged();
+      }
+      if (other.getAcknowledgeUnreviewable() != false) {
+        setAcknowledgeUnreviewable(other.getAcknowledgeUnreviewable());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -935,6 +973,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 80: {
+              acknowledgeUnreviewable_ = input.readBool();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 80
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1756,6 +1799,62 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       reason_ = value;
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private boolean acknowledgeUnreviewable_ ;
+    /**
+     * <pre>
+     * True when this APPROVE consciously kept a change whose diff could not be
+     * fully reviewed (a binary file — no text diff, but exact reconcilable bytes).
+     * Audit provenance only: it records that a human explicitly acknowledged the
+     * limitation. Never an enforcement input or a correlation key, and never
+     * folded into any digest.
+     * </pre>
+     *
+     * <code>bool acknowledge_unreviewable = 10 [json_name = "acknowledgeUnreviewable"];</code>
+     * @return The acknowledgeUnreviewable.
+     */
+    @java.lang.Override
+    public boolean getAcknowledgeUnreviewable() {
+      return acknowledgeUnreviewable_;
+    }
+    /**
+     * <pre>
+     * True when this APPROVE consciously kept a change whose diff could not be
+     * fully reviewed (a binary file — no text diff, but exact reconcilable bytes).
+     * Audit provenance only: it records that a human explicitly acknowledged the
+     * limitation. Never an enforcement input or a correlation key, and never
+     * folded into any digest.
+     * </pre>
+     *
+     * <code>bool acknowledge_unreviewable = 10 [json_name = "acknowledgeUnreviewable"];</code>
+     * @param value The acknowledgeUnreviewable to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAcknowledgeUnreviewable(boolean value) {
+
+      acknowledgeUnreviewable_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * True when this APPROVE consciously kept a change whose diff could not be
+     * fully reviewed (a binary file — no text diff, but exact reconcilable bytes).
+     * Audit provenance only: it records that a human explicitly acknowledged the
+     * limitation. Never an enforcement input or a correlation key, and never
+     * folded into any digest.
+     * </pre>
+     *
+     * <code>bool acknowledge_unreviewable = 10 [json_name = "acknowledgeUnreviewable"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAcknowledgeUnreviewable() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      acknowledgeUnreviewable_ = false;
       onChanged();
       return this;
     }

@@ -27,6 +27,13 @@ export interface FileDecisionOptions {
   readonly expectedDigest?: string;
   /** Optional free-text comment recorded on the decision (audit trail). */
   readonly reason?: string;
+  /**
+   * Set on an APPROVE to consciously KEEP a change whose diff could not be fully
+   * reviewed. Honored only for a binary file at `FILE` scope (a binary has no
+   * text diff, but its exact bytes are captured and reconcilable). It never
+   * relaxes the digest gate, and is ignored for other incompleteness. See DD-16.
+   */
+  readonly acknowledgeUnreviewable?: boolean;
 }
 
 /** Return value of {@link useFileReview}. */
@@ -157,6 +164,7 @@ export function useFileReview(): UseFileReviewReturn {
           action,
           expectedDigest: options?.expectedDigest ?? "",
           reason: options?.reason ?? "",
+          acknowledgeUnreviewable: options?.acknowledgeUnreviewable ?? false,
         });
         await stigmer.agentExecution.submitFileDecision(input);
       } catch (err) {

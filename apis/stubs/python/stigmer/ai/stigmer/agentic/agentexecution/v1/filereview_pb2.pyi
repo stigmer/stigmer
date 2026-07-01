@@ -92,7 +92,7 @@ class CasManifestRef(_message.Message):
     def __init__(self, manifest_digest: _Optional[str] = ..., artifact_uri: _Optional[str] = ...) -> None: ...
 
 class FileDecision(_message.Message):
-    __slots__ = ("id", "change_set_id", "scope", "file_change_id", "action", "expected_digest", "reviewer_id", "decided_at", "reason")
+    __slots__ = ("id", "change_set_id", "scope", "file_change_id", "action", "expected_digest", "reviewer_id", "decided_at", "reason", "acknowledge_unreviewable")
     ID_FIELD_NUMBER: _ClassVar[int]
     CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
     SCOPE_FIELD_NUMBER: _ClassVar[int]
@@ -102,6 +102,7 @@ class FileDecision(_message.Message):
     REVIEWER_ID_FIELD_NUMBER: _ClassVar[int]
     DECIDED_AT_FIELD_NUMBER: _ClassVar[int]
     REASON_FIELD_NUMBER: _ClassVar[int]
+    ACKNOWLEDGE_UNREVIEWABLE_FIELD_NUMBER: _ClassVar[int]
     id: str
     change_set_id: str
     scope: _enum_pb2.FileDecisionScope
@@ -111,7 +112,8 @@ class FileDecision(_message.Message):
     reviewer_id: str
     decided_at: str
     reason: str
-    def __init__(self, id: _Optional[str] = ..., change_set_id: _Optional[str] = ..., scope: _Optional[_Union[_enum_pb2.FileDecisionScope, str]] = ..., file_change_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.FileDecisionAction, str]] = ..., expected_digest: _Optional[str] = ..., reviewer_id: _Optional[str] = ..., decided_at: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+    acknowledge_unreviewable: bool
+    def __init__(self, id: _Optional[str] = ..., change_set_id: _Optional[str] = ..., scope: _Optional[_Union[_enum_pb2.FileDecisionScope, str]] = ..., file_change_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.FileDecisionAction, str]] = ..., expected_digest: _Optional[str] = ..., reviewer_id: _Optional[str] = ..., decided_at: _Optional[str] = ..., reason: _Optional[str] = ..., acknowledge_unreviewable: bool = ...) -> None: ...
 
 class FileReviewBaselineCaptured(_message.Message):
     __slots__ = ("change_set_id", "turn_id", "harness_id", "baseline_snapshot")

@@ -427,6 +427,16 @@
           },
           "description": "Optional reason/comment for the decision (audit trail).",
           "required": false
+        },
+        {
+          "name": "AcknowledgeUnreviewable",
+          "jsonName": "acknowledgeUnreviewable",
+          "protoField": "acknowledge_unreviewable",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Set true on an APPROVE to consciously KEEP a change whose diff could not be\n fully reviewed. Honored only for a binary file (FileContent.is_binary) at\n FILE scope: a binary has no text diff, but its exact bytes are captured and\n reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes\n the expected_digest gate, and is ignored for CHANGE_SET scope and for any\n other incompleteness (secret-withheld / size-elided / uncapturable), which\n have no keepable bytes and stay discard-only (fail-closed). Ignored on\n REJECT.",
+          "required": false
         }
       ]
     },
@@ -4007,6 +4017,16 @@
             "kind": "string"
           },
           "description": "Optional free-text comment supplied with the decision (audit trail).",
+          "required": false
+        },
+        {
+          "name": "AcknowledgeUnreviewable",
+          "jsonName": "acknowledgeUnreviewable",
+          "protoField": "acknowledge_unreviewable",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True when this APPROVE consciously kept a change whose diff could not be\n fully reviewed (a binary file — no text diff, but exact reconcilable bytes).\n Audit provenance only: it records that a human explicitly acknowledged the\n limitation. Never an enforcement input or a correlation key, and never\n folded into any digest.",
           "required": false
         }
       ]

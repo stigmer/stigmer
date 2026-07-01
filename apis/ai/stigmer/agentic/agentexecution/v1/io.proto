@@ -189,6 +189,16 @@ message SubmitFileDecisionInput {
 
   // Optional reason/comment for the decision (audit trail).
   string reason = 7;
+
+  // Set true on an APPROVE to consciously KEEP a change whose diff could not be
+  // fully reviewed. Honored only for a binary file (FileContent.is_binary) at
+  // FILE scope: a binary has no text diff, but its exact bytes are captured and
+  // reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes
+  // the expected_digest gate, and is ignored for CHANGE_SET scope and for any
+  // other incompleteness (secret-withheld / size-elided / uncapturable), which
+  // have no keepable bytes and stay discard-only (fail-closed). Ignored on
+  // REJECT.
+  bool acknowledge_unreviewable = 8;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

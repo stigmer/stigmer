@@ -34,16 +34,18 @@ func BuildFileDecision(
 	scope agentexecutionv1.FileDecisionScope,
 	action agentexecutionv1.FileDecisionAction,
 	expectedDigest, reviewerID, decidedAt, reason string,
+	acknowledgeUnreviewable bool,
 ) *agentexecutionv1.FileDecision {
 	decision := &agentexecutionv1.FileDecision{
-		ChangeSetId:    changeSetID,
-		FileChangeId:   fileChangeID,
-		Scope:          scope,
-		Action:         action,
-		ExpectedDigest: expectedDigest,
-		ReviewerId:     reviewerID,
-		DecidedAt:      decidedAt,
-		Reason:         reason,
+		ChangeSetId:             changeSetID,
+		FileChangeId:            fileChangeID,
+		Scope:                   scope,
+		Action:                  action,
+		ExpectedDigest:          expectedDigest,
+		ReviewerId:              reviewerID,
+		DecidedAt:               decidedAt,
+		Reason:                  reason,
+		AcknowledgeUnreviewable: acknowledgeUnreviewable,
 	}
 	decision.Id = changeSetID + ":" + decisionScopeID(decision)
 	return decision
@@ -192,7 +194,15 @@ func TargetDigest(cs *agentexecutionv1.FileChangeSet, scope agentexecutionv1.Fil
 // approvable on its own. Fail-closed: an UNSPECIFIED completeness, an absent
 // change, or a nil set are all treated as not approvable. Enforcement only,
 // never a correlation key (mirrors TargetDigest's contract).
-func ApproveBlockedReason(cs *agentexecutionv1.FileChangeSet, scope agentexecutionv1.FileDecisionScope, fileChangeID string) string {
+//
+// The binary-acknowledgment carve-out (DD-16): a BINARY file has no text diff to
+// review, but its exact bytes are captured and byte-true reconcilable, so when
+// the caller passes acknowledged==true at FILE scope the completeness gate is
+// relaxed for that one binary file — the user consciously keeps it. This is the
+// ONLY relaxation: it is FILE-scope only, binary only (is_binary — never a
+// secret-withheld / size-elided / uncapturable file, which have no keepable
+// bytes and stay discard-only), and it never touches the expected_digest gate.
+func ApproveBlockedReason(cs *agentexecutionv1.FileChangeSet, scope agentexecutionv1.FileDecisionScope, fileChangeID string, acknowledged bool) string {
 	if cs == nil {
 		return "change set is not reviewable"
 	}
@@ -202,12 +212,28 @@ func ApproveBlockedReason(cs *agentexecutionv1.FileChangeSet, scope agentexecuti
 			return "file change " + fileChangeID + " is not reviewable"
 		}
 		if !c.GetDiffComplete() {
+			// A binary file the user consciously acknowledged is keepable: no text
+			// diff, but exact reconcilable bytes. Every other incompleteness has
+			// no keepable bytes, so acknowledgment does not unblock it.
+			if acknowledged && isBinaryChange(c) {
+				return ""
+			}
 			return "file change " + fileChangeID + " cannot be approved: its diff is not fully reviewable (incomplete or binary); reject it to discard, or wait for a complete capture"
 		}
 		return ""
 	}
+	// CHANGE_SET scope: acknowledgment is FILE-scoped only. A non-COMPLETE set is
+	// resolved per file (keep complete files, acknowledge binaries individually,
+	// discard the rest), so it is never approvable in one shot.
 	if cs.GetDiffCompleteness() != agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE {
 		return "change set " + cs.GetId() + " cannot be approved: at least one file's diff is not fully reviewable (incomplete or binary); reject the affected files or the whole set, or wait for a complete capture"
 	}
 	return ""
+}
+
+// isBinaryChange reports whether either side of a captured change is binary —
+// the single signal for "reviewable as bytes but not as a text diff" (DD-15 D2:
+// binary is conveyed by FileContent.is_binary, never blocked_reason).
+func isBinaryChange(c *agentexecutionv1.CapturedFileChange) bool {
+	return c.GetBefore().GetIsBinary() || c.GetAfter().GetIsBinary()
 }

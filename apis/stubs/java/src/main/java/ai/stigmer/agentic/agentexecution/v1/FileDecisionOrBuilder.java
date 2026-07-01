@@ -195,4 +195,18 @@ public interface FileDecisionOrBuilder extends
    */
   com.google.protobuf.ByteString
       getReasonBytes();
+
+  /**
+   * <pre>
+   * True when this APPROVE consciously kept a change whose diff could not be
+   * fully reviewed (a binary file — no text diff, but exact reconcilable bytes).
+   * Audit provenance only: it records that a human explicitly acknowledged the
+   * limitation. Never an enforcement input or a correlation key, and never
+   * folded into any digest.
+   * </pre>
+   *
+   * <code>bool acknowledge_unreviewable = 10 [json_name = "acknowledgeUnreviewable"];</code>
+   * @return The acknowledgeUnreviewable.
+   */
+  boolean getAcknowledgeUnreviewable();
 }

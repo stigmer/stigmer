@@ -31,13 +31,14 @@ type fileReviewFixture struct {
 // decision count, the carried aggregate digest, and whether an approved snapshot
 // was set. Internal event_id/timestamp shapes are locked by per-edition unit tests.
 type fileChangeSetSummary struct {
-	ID                  string   `json:"id"`
-	Status              string   `json:"status"`
-	ChangeIDs           []string `json:"change_ids"`
-	BlockedReasons      []string `json:"blocked_reasons"`
-	DecisionCount       int      `json:"decision_count"`
-	AggregateDigest     string   `json:"aggregate_digest"`
-	HasApprovedSnapshot bool     `json:"has_approved_snapshot"`
+	ID                    string   `json:"id"`
+	Status                string   `json:"status"`
+	ChangeIDs             []string `json:"change_ids"`
+	BlockedReasons        []string `json:"blocked_reasons"`
+	AcknowledgedChangeIDs []string `json:"acknowledged_change_ids"`
+	DecisionCount         int      `json:"decision_count"`
+	AggregateDigest       string   `json:"aggregate_digest"`
+	HasApprovedSnapshot   bool     `json:"has_approved_snapshot"`
 }
 
 func TestFileReviewProjectionCorpus(t *testing.T) {
@@ -96,14 +97,21 @@ func summarize(cs *agentexecutionv1.FileChangeSet) fileChangeSetSummary {
 		changeIDs = append(changeIDs, c.GetId())
 		blockedReasons = append(blockedReasons, c.GetBlockedReason().String())
 	}
+	acknowledged := make([]string, 0)
+	for _, d := range cs.GetDecisions() {
+		if d.GetAcknowledgeUnreviewable() {
+			acknowledged = append(acknowledged, d.GetFileChangeId())
+		}
+	}
 	return fileChangeSetSummary{
-		ID:                  cs.GetId(),
-		Status:              cs.GetStatus().String(),
-		ChangeIDs:           changeIDs,
-		BlockedReasons:      blockedReasons,
-		DecisionCount:       len(cs.GetDecisions()),
-		AggregateDigest:     cs.GetAggregateDigest(),
-		HasApprovedSnapshot: cs.GetApprovedSnapshot() != nil,
+		ID:                    cs.GetId(),
+		Status:                cs.GetStatus().String(),
+		ChangeIDs:             changeIDs,
+		BlockedReasons:        blockedReasons,
+		AcknowledgedChangeIDs: acknowledged,
+		DecisionCount:         len(cs.GetDecisions()),
+		AggregateDigest:       cs.GetAggregateDigest(),
+		HasApprovedSnapshot:   cs.GetApprovedSnapshot() != nil,
 	}
 }
 
@@ -141,6 +149,18 @@ func assertSummary(t *testing.T, idx int, got, want fileChangeSetSummary) {
 		for i := range want.BlockedReasons {
 			if got.BlockedReasons[i] != want.BlockedReasons[i] {
 				t.Errorf("change set[%d] (%s) blocked_reasons[%d] = %q, want %q", idx, want.ID, i, got.BlockedReasons[i], want.BlockedReasons[i])
+			}
+		}
+	}
+	// acknowledged_change_ids is optional (DD-16): asserted only when declared, so
+	// only the acknowledged-binary vector enumerates it.
+	if len(want.AcknowledgedChangeIDs) > 0 {
+		if len(got.AcknowledgedChangeIDs) != len(want.AcknowledgedChangeIDs) {
+			t.Fatalf("change set[%d] (%s) acknowledged_change_ids = %v, want %v", idx, want.ID, got.AcknowledgedChangeIDs, want.AcknowledgedChangeIDs)
+		}
+		for i := range want.AcknowledgedChangeIDs {
+			if got.AcknowledgedChangeIDs[i] != want.AcknowledgedChangeIDs[i] {
+				t.Errorf("change set[%d] (%s) acknowledged_change_ids[%d] = %q, want %q", idx, want.ID, i, got.AcknowledgedChangeIDs[i], want.AcknowledgedChangeIDs[i])
 			}
 		}
 	}

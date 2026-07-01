@@ -590,9 +590,15 @@ type FileDecision struct {
 	// ISO 8601 timestamp when the decision was made.
 	DecidedAt string `protobuf:"bytes,8,opt,name=decided_at,json=decidedAt,proto3" json:"decided_at,omitempty"`
 	// Optional free-text comment supplied with the decision (audit trail).
-	Reason        string `protobuf:"bytes,9,opt,name=reason,proto3" json:"reason,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Reason string `protobuf:"bytes,9,opt,name=reason,proto3" json:"reason,omitempty"`
+	// True when this APPROVE consciously kept a change whose diff could not be
+	// fully reviewed (a binary file — no text diff, but exact reconcilable bytes).
+	// Audit provenance only: it records that a human explicitly acknowledged the
+	// limitation. Never an enforcement input or a correlation key, and never
+	// folded into any digest.
+	AcknowledgeUnreviewable bool `protobuf:"varint,10,opt,name=acknowledge_unreviewable,json=acknowledgeUnreviewable,proto3" json:"acknowledge_unreviewable,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *FileDecision) Reset() {
@@ -686,6 +692,13 @@ func (x *FileDecision) GetReason() string {
 		return x.Reason
 	}
 	return ""
+}
+
+func (x *FileDecision) GetAcknowledgeUnreviewable() bool {
+	if x != nil {
+		return x.AcknowledgeUnreviewable
+	}
+	return false
 }
 
 // The baseline workspace state captured at turn start.
@@ -1310,7 +1323,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDesc = "" +
 	"\x03ref\x18\x02 \x01(\tR\x03ref\"\\\n" +
 	"\x0eCasManifestRef\x12'\n" +
 	"\x0fmanifest_digest\x18\x01 \x01(\tR\x0emanifestDigest\x12!\n" +
-	"\fartifact_uri\x18\x02 \x01(\tR\vartifactUri\"\x9e\x03\n" +
+	"\fartifact_uri\x18\x02 \x01(\tR\vartifactUri\"\xd9\x03\n" +
 	"\fFileDecision\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\"\n" +
 	"\rchange_set_id\x18\x02 \x01(\tR\vchangeSetId\x12W\n" +
@@ -1322,7 +1335,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDesc = "" +
 	"reviewerId\x12\x1d\n" +
 	"\n" +
 	"decided_at\x18\b \x01(\tR\tdecidedAt\x12\x16\n" +
-	"\x06reason\x18\t \x01(\tR\x06reason\"\xd8\x01\n" +
+	"\x06reason\x18\t \x01(\tR\x06reason\x129\n" +
+	"\x18acknowledge_unreviewable\x18\n" +
+	" \x01(\bR\x17acknowledgeUnreviewable\"\xd8\x01\n" +
 	"\x1aFileReviewBaselineCaptured\x12\"\n" +
 	"\rchange_set_id\x18\x01 \x01(\tR\vchangeSetId\x12\x17\n" +
 	"\aturn_id\x18\x02 \x01(\tR\x06turnId\x12\x1d\n" +
