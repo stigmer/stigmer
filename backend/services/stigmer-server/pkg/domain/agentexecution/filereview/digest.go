@@ -53,3 +53,13 @@ func sha256Hex(s string) string {
 	sum := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(sum[:])
 }
+
+// sha256HexBytes is the raw-bytes form of sha256Hex: the lowercase-hex SHA-256 of
+// the given bytes. It is the content-address function CAS blobs are keyed by, so
+// the digest here must match the runner's blob addressing exactly (Node
+// createHash("sha256").digest("hex") and Go hex.EncodeToString both emit
+// lowercase hex).
+func sha256HexBytes(b []byte) string {
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
+}
