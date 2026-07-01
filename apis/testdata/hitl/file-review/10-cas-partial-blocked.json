@@ -1,0 +1,64 @@
+{
+  "name": "cas-partial-blocked",
+  "description": "A CAS-only change set (all files captured to the content-addressed store, no git substrate) that is PARTIAL_BLOCKED: one reviewable file plus one unreviewable (binary, diff_complete=false) file. A FILE-scoped decision on the reviewable file leaves the set AWAITING_REVIEW because the unreviewable file is still undecided. Locks the CAS_MANIFEST SnapshotRef round-trip and that a partial decision under CAS does not fully-decide the set.",
+  "execution_id": "aex_cas_partial",
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "events": [
+    {
+      "eventId": "cs10:cs10:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs10",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-07-01T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs10", "turnId": "t1", "harnessId": "deep-agent",
+        "baselineSnapshot": {
+          "kind": "SNAPSHOT_KIND_CAS_MANIFEST",
+          "cas": { "manifestDigest": "base-manifest", "artifactUri": "artifacts/aex_cas_partial/filereview/cas/manifests/base-manifest" }
+        }
+      }
+    },
+    {
+      "eventId": "cs10:cs10:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs10",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-07-01T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs10",
+        "candidateSnapshot": {
+          "kind": "SNAPSHOT_KIND_CAS_MANIFEST",
+          "cas": { "manifestDigest": "cand-manifest", "artifactUri": "artifacts/aex_cas_partial/filereview/cas/manifests/cand-manifest" }
+        },
+        "changes": [
+          { "id": "fc1", "pathBefore": ".env.local", "pathAfter": ".env.local", "kind": "FILE_CHANGE_KIND_MODIFY", "captureClass": "FILE_CAPTURE_CLASS_NON_GIT_CAS", "beforeSha256": "aaa", "afterSha256": "bbb", "diffComplete": true, "fileDigest": "d-fc1" },
+          { "id": "fc2", "pathAfter": ".cache/model.bin", "kind": "FILE_CHANGE_KIND_BINARY_CHANGE", "captureClass": "FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED", "afterSha256": "ccc", "diffComplete": false, "fileDigest": "d-fc2" }
+        ],
+        "aggregateDigest": "agg-cs10",
+        "diffCompleteness": "DIFF_COMPLETENESS_PARTIAL_BLOCKED"
+      }
+    },
+    {
+      "eventId": "cs10:fc1:FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "changeSetId": "cs10",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "timestamp": "2026-07-01T00:01:00Z",
+      "actor": "user",
+      "fileDecided": {
+        "id": "cs10:fc1", "changeSetId": "cs10", "fileChangeId": "fc1",
+        "scope": "FILE_DECISION_SCOPE_FILE", "action": "FILE_DECISION_ACTION_APPROVE",
+        "expectedDigest": "d-fc1", "reviewerId": "u1", "decidedAt": "2026-07-01T00:01:00Z"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs10",
+      "status": "FILE_CHANGE_SET_STATUS_AWAITING_REVIEW",
+      "change_ids": ["fc1", "fc2"],
+      "decision_count": 1,
+      "aggregate_digest": "agg-cs10",
+      "has_approved_snapshot": false
+    }
+  ]
+}

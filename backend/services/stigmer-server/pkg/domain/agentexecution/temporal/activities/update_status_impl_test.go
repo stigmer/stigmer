@@ -301,3 +301,149 @@ func countStreamEvents(execution *agentexecutionv1.AgentExecution, toolCallID st
 	}
 	return requested, approved
 }
+
+// The activity must fold runner-authored capture/reconcile events carried on the
+// status update into the server-owned file_review ledger (append-only) and drop a
+// runner-sent FILE_DECIDED — decisions are authored solely by SubmitFileDecision.
+// This is the file-review sibling of the approval fold, kept at the activity
+// chokepoint for parity with the gRPC handler; mirrors the Cloud
+// UpdateExecutionStatusActivityPersistTest defensive-fold test.
+func TestActivity_FoldsRunnerFileReviewEvents_DropsDecided(t *testing.T) {
+	cs := newTestStore(t)
+	defer cs.Close()
+	impl := NewUpdateExecutionStatusActivityImpl(cs, noopBroker{})
+
+	ctx := context.Background()
+	id := "exec-activity-filereview"
+	if err := cs.Store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, id,
+		fileReviewSeedExecution(id)); err != nil {
+		t.Fatalf("seed failed: %v", err)
+	}
+
+	if err := runActivity(t, impl, id, fileReviewHeartbeat(true)); err != nil {
+		t.Fatalf("activity failed: %v", err)
+	}
+
+	final := &agentexecutionv1.AgentExecution{}
+	if err := cs.Store.GetResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, id, final); err != nil {
+		t.Fatalf("reload failed: %v", err)
+	}
+
+	events := final.GetStatus().GetFileReviewEventStream().GetEvents()
+	if len(events) != 2 {
+		t.Fatalf("expected 2 folded events (baseline+candidate), got %d", len(events))
+	}
+	for _, ev := range events {
+		if ev.GetEventType() == agentexecutionv1.FileReviewEventType_FILE_REVIEW_EVENT_TYPE_FILE_DECIDED {
+			t.Fatalf("runner-sent FILE_DECIDED must be dropped, but it was folded into the ledger")
+		}
+	}
+
+	sets := final.GetStatus().GetFileChangeSets()
+	if len(sets) != 1 {
+		t.Fatalf("expected exactly 1 projected change set, got %d", len(sets))
+	}
+	if sets[0].GetId() != "cs1" {
+		t.Fatalf("expected change set id %q, got %q", "cs1", sets[0].GetId())
+	}
+	if got := sets[0].GetStatus(); got != agentexecutionv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW {
+		t.Fatalf("an undecided candidate should project as AWAITING_REVIEW, got %v", got)
+	}
+}
+
+func fileReviewSeedExecution(id string) *agentexecutionv1.AgentExecution {
+	return &agentexecutionv1.AgentExecution{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "AgentExecution",
+		Metadata:   &apiresource.ApiResourceMetadata{Id: id, Name: id},
+		Spec:       &agentexecutionv1.AgentExecutionSpec{},
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+		},
+	}
+}
+
+func fileReviewHeartbeat(withRunnerDecision bool) *agentexecutionv1.AgentExecutionStatus {
+	events := []*agentexecutionv1.FileReviewEvent{frBaselineEvent(), frCandidateEvent()}
+	if withRunnerDecision {
+		events = append(events, frRunnerDecidedEvent())
+	}
+	return &agentexecutionv1.AgentExecutionStatus{
+		Phase: agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+		FileReviewEventStream: &agentexecutionv1.FileReviewEventStream{
+			Events: events,
+		},
+	}
+}
+
+func frGitSnapshot(oid, ref string) *agentexecutionv1.SnapshotRef {
+	return &agentexecutionv1.SnapshotRef{
+		Kind: agentexecutionv1.SnapshotKind_SNAPSHOT_KIND_GIT_TREE_REF,
+		Git:  &agentexecutionv1.GitTreeRef{TreeOid: oid, Ref: ref},
+	}
+}
+
+func frBaselineEvent() *agentexecutionv1.FileReviewEvent {
+	return &agentexecutionv1.FileReviewEvent{
+		EventId:     "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+		ChangeSetId: "cs1",
+		EventType:   agentexecutionv1.FileReviewEventType_FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED,
+		Timestamp:   "2026-07-01T00:00:00Z",
+		Actor:       "runner",
+		Payload: &agentexecutionv1.FileReviewEvent_BaselineCaptured{
+			BaselineCaptured: &agentexecutionv1.FileReviewBaselineCaptured{
+				ChangeSetId:      "cs1",
+				TurnId:           "t1",
+				HarnessId:        "deep-agent",
+				BaselineSnapshot: frGitSnapshot("base", "refs/stigmer/x/baseline"),
+			},
+		},
+	}
+}
+
+func frCandidateEvent() *agentexecutionv1.FileReviewEvent {
+	return &agentexecutionv1.FileReviewEvent{
+		EventId:     "cs1:cs1:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+		ChangeSetId: "cs1",
+		EventType:   agentexecutionv1.FileReviewEventType_FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED,
+		Timestamp:   "2026-07-01T00:00:05Z",
+		Actor:       "runner",
+		Payload: &agentexecutionv1.FileReviewEvent_CandidateCaptured{
+			CandidateCaptured: &agentexecutionv1.FileReviewCandidateCaptured{
+				ChangeSetId:       "cs1",
+				CandidateSnapshot: frGitSnapshot("cand", "refs/stigmer/x/candidate"),
+				Changes: []*agentexecutionv1.CapturedFileChange{{
+					Id:           "fc1",
+					PathBefore:   "src/a.ts",
+					PathAfter:    "src/a.ts",
+					Kind:         agentexecutionv1.FileChangeKind_FILE_CHANGE_KIND_MODIFY,
+					BeforeSha256: "aaa",
+					AfterSha256:  "bbb",
+					DiffComplete: true,
+					FileDigest:   "d-fc1",
+				}},
+				AggregateDigest:  "agg-cs1",
+				DiffCompleteness: agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE,
+			},
+		},
+	}
+}
+
+func frRunnerDecidedEvent() *agentexecutionv1.FileReviewEvent {
+	return &agentexecutionv1.FileReviewEvent{
+		EventId:     "cs1:fc1:FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+		ChangeSetId: "cs1",
+		EventType:   agentexecutionv1.FileReviewEventType_FILE_REVIEW_EVENT_TYPE_FILE_DECIDED,
+		Timestamp:   "2026-07-01T00:01:00Z",
+		Actor:       "runner",
+		Payload: &agentexecutionv1.FileReviewEvent_FileDecided{
+			FileDecided: &agentexecutionv1.FileDecision{
+				Id:           "cs1:fc1",
+				ChangeSetId:  "cs1",
+				FileChangeId: "fc1",
+				Scope:        agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
+				Action:       agentexecutionv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+			},
+		},
+	}
+}

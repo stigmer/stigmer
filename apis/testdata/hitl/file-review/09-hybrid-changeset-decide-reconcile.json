@@ -1,0 +1,82 @@
+{
+  "name": "hybrid-changeset-decide-reconcile",
+  "description": "A HYBRID snapshot change set (git-tracked + CAS-captured files) with three changes, approved by one CHANGE_SET-scoped decision that covers all of them, then reconciled -> status RECONCILED. Locks the multi-file isFullyDecided short-circuit (one CHANGE_SET decision satisfies N>1 changes) and the cross-edition protojson round-trip of the HYBRID SnapshotRef (git + cas) and the CAS capture classes. aggregate_digest is carried opaquely (digest math is locked in ../file-digest).",
+  "execution_id": "aex_hybrid",
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "events": [
+    {
+      "eventId": "cs9:cs9:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs9",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-07-01T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs9", "turnId": "t1", "harnessId": "deep-agent",
+        "baselineSnapshot": {
+          "kind": "SNAPSHOT_KIND_HYBRID",
+          "git": { "treeOid": "base-tree", "ref": "refs/stigmer/hybrid/baseline" },
+          "cas": { "manifestDigest": "base-manifest", "artifactUri": "artifacts/aex_hybrid/filereview/cas/manifests/base-manifest" }
+        }
+      }
+    },
+    {
+      "eventId": "cs9:cs9:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs9",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-07-01T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs9",
+        "candidateSnapshot": {
+          "kind": "SNAPSHOT_KIND_HYBRID",
+          "git": { "treeOid": "cand-tree", "ref": "refs/stigmer/hybrid/candidate" },
+          "cas": { "manifestDigest": "cand-manifest", "artifactUri": "artifacts/aex_hybrid/filereview/cas/manifests/cand-manifest" }
+        },
+        "changes": [
+          { "id": "fc1", "pathBefore": "src/a.ts", "pathAfter": "src/a.ts", "kind": "FILE_CHANGE_KIND_MODIFY", "captureClass": "FILE_CAPTURE_CLASS_GIT_TRACKED", "beforeSha256": "aaa", "afterSha256": "bbb", "diffComplete": true, "fileDigest": "d-fc1" },
+          { "id": "fc2", "pathAfter": ".cache/build.out", "kind": "FILE_CHANGE_KIND_ADD", "captureClass": "FILE_CAPTURE_CLASS_NON_GIT_CAS", "afterSha256": "ccc", "diffComplete": true, "fileDigest": "d-fc2" },
+          { "id": "fc3", "pathAfter": "dist/bundle.js", "kind": "FILE_CHANGE_KIND_ADD", "captureClass": "FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED", "afterSha256": "ddd", "diffComplete": true, "fileDigest": "d-fc3" }
+        ],
+        "aggregateDigest": "agg-cs9",
+        "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE"
+      }
+    },
+    {
+      "eventId": "cs9:cs9:FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "changeSetId": "cs9",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "timestamp": "2026-07-01T00:01:00Z",
+      "actor": "user",
+      "fileDecided": {
+        "id": "cs9:cs9", "changeSetId": "cs9",
+        "scope": "FILE_DECISION_SCOPE_CHANGE_SET", "action": "FILE_DECISION_ACTION_APPROVE",
+        "expectedDigest": "agg-cs9", "reviewerId": "u1", "decidedAt": "2026-07-01T00:01:00Z"
+      }
+    },
+    {
+      "eventId": "cs9:cs9:FILE_REVIEW_EVENT_TYPE_RECONCILED",
+      "changeSetId": "cs9",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_RECONCILED",
+      "timestamp": "2026-07-01T00:02:00Z",
+      "actor": "runner",
+      "reconciled": {
+        "changeSetId": "cs9",
+        "approvedSnapshot": {
+          "kind": "SNAPSHOT_KIND_HYBRID",
+          "git": { "treeOid": "approved-tree", "ref": "refs/stigmer/hybrid/approved" },
+          "cas": { "manifestDigest": "approved-manifest", "artifactUri": "artifacts/aex_hybrid/filereview/cas/manifests/approved-manifest" }
+        }
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs9",
+      "status": "FILE_CHANGE_SET_STATUS_RECONCILED",
+      "change_ids": ["fc1", "fc2", "fc3"],
+      "decision_count": 1,
+      "aggregate_digest": "agg-cs9",
+      "has_approved_snapshot": true
+    }
+  ]
+}
