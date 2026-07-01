@@ -116,23 +116,13 @@ func TestOffline_ApprovalGate_NativeWriteThenEdit_FileChangeOnPendingApproval(t 
 	}
 	harness.AssertAgentPhase(t, gate1, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
 
-	// The projection the approver renders.
-	createPa := harness.AssertPendingApprovalFileChange(t, gate1, "write_file", filePath,
-		agentexecv1.FileChangeType_FILE_CHANGE_TYPE_CREATE,
-		agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE)
-	require.NotNil(t, createPa, "write gate must project a file change onto the pending approval")
-	assert.Nil(t, createPa.GetBefore(), "a CREATE has no before side")
-	require.NotNil(t, createPa.GetAfter(), "a CREATE must carry the proposed content as after")
-	assert.Equal(t, created, createPa.GetAfter().GetInline(), "pending approval after should be the proposed content, inline")
-	assert.False(t, createPa.GetAfter().GetIsBinary(), "text content must not be flagged binary")
-
-	// The projection's source: the same diff on the WAITING_APPROVAL ToolCall.
-	createSrc := harness.AssertFileChange(t, gate1, filePath,
-		agentexecv1.FileChangeType_FILE_CHANGE_TYPE_CREATE,
-		agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE)
-	require.NotNil(t, createSrc, "write gate must attach a file change to the WAITING_APPROVAL ToolCall")
-	assert.Equal(t, created, createSrc.GetAfter().GetInline(),
-		"pending approval file change must match its ToolCall source (the projection copies, not invents)")
+	// Under apply-then-review the deny-gate (no workspace/storage here) carries the
+	// proposed change on the tool args, not a captured file_changes list (Phase 5
+	// Slice 4, DD-22). The gate proposes the path; the write content is on the args.
+	createPa := harness.AssertPendingApprovalProposesPath(t, gate1, "write_file", filePath)
+	require.NotNil(t, createPa, "write gate must surface a pending approval for the path")
+	assert.Contains(t, createPa.GetArgsPreview(), filePath,
+		"the write gate's args_preview must carry the proposed path")
 
 	approveGate(t, ctx, clients, execID, gate1, "write_file")
 
@@ -144,18 +134,10 @@ func TestOffline_ApprovalGate_NativeWriteThenEdit_FileChangeOnPendingApproval(t 
 	}
 	harness.AssertAgentPhase(t, gate2, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
 
-	editPa := harness.AssertPendingApprovalFileChange(t, gate2, "edit_file", filePath,
-		agentexecv1.FileChangeType_FILE_CHANGE_TYPE_MODIFY,
-		agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY)
-	require.NotNil(t, editPa, "edit gate must project a hunk-only file change onto the pending approval")
-	// HUNK_ONLY carries the synthesized old->new patch, not whole-file bodies.
-	assert.Nil(t, editPa.GetBefore(), "a HUNK_ONLY edit carries no whole-file before")
-	assert.Nil(t, editPa.GetAfter(), "a HUNK_ONLY edit carries no whole-file after")
-	diff := editPa.GetUnifiedDiff()
-	assert.Containsf(t, diff, "-beta", "hunk should show the removed line; got:\n%s", diff)
-	assert.Containsf(t, diff, "+gamma", "hunk should show the added line; got:\n%s", diff)
-	assert.Equal(t, int32(1), editPa.GetLinesAdded(), "one line added (gamma)")
-	assert.Equal(t, int32(1), editPa.GetLinesRemoved(), "one line removed (beta)")
+	editPa := harness.AssertPendingApprovalProposesPath(t, gate2, "edit_file", filePath)
+	require.NotNil(t, editPa, "edit gate must surface a pending approval for the path")
+	assert.Contains(t, editPa.GetArgsPreview(), filePath,
+		"the edit gate's args_preview must carry the proposed path")
 
 	approveGate(t, ctx, clients, execID, gate2, "edit_file")
 
@@ -174,12 +156,13 @@ func TestOffline_ApprovalGate_NativeWriteThenEdit_FileChangeOnPendingApproval(t 
 	harness.AssertPendingApprovals(t, result, 0)
 }
 
-// TestOffline_ApprovalGate_LargeBody_OffloadedOnPendingApproval proves DD-002.4:
-// a gated write whose proposed body exceeds the inline cap (128 KiB) surfaces on
-// the PendingApproval as an offloaded ToolCallOutputRef, never an oversized inline
-// body. Offload runs at persistStatus BEFORE the server recomputes the
-// projection, so pending_approvals copies a small reference, not megabytes.
-func TestOffline_ApprovalGate_LargeBody_OffloadedOnPendingApproval(t *testing.T) {
+// TestOffline_ApprovalGate_LargeBody_ElidedFromArgsPreview proves the persist-size
+// safety for a gated write whose proposed body exceeds the inline cap (128 KiB):
+// the deny-gate carries the proposed change on the tool args, and a large body is
+// elided from the args_preview (the salient path is preserved) so pending_approvals
+// stays small — never megabytes. (Phase 5 Slice 4 removed the gate's file_changes
+// body; there is nothing to offload to a ref on the gate anymore.)
+func TestOffline_ApprovalGate_LargeBody_ElidedFromArgsPreview(t *testing.T) {
 	requireOfflineService(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
@@ -236,23 +219,19 @@ func TestOffline_ApprovalGate_LargeBody_OffloadedOnPendingApproval(t *testing.T)
 		t.Fatalf("execution should gate on the large write_file: %v", err)
 	}
 
-	pa := harness.AssertPendingApprovalFileChange(t, gate, "write_file", filePath,
-		agentexecv1.FileChangeType_FILE_CHANGE_TYPE_CREATE,
-		agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE)
-	require.NotNil(t, pa, "large write gate must project a file change onto the pending approval")
+	pa := harness.AssertPendingApprovalProposesPath(t, gate, "write_file", filePath)
+	require.NotNil(t, pa, "large write gate must surface a pending approval for the path")
 
-	after := pa.GetAfter()
-	require.NotNil(t, after, "a CREATE must carry the proposed content as after")
-	assert.Empty(t, after.GetInline(), "an offloaded body must not also be inline on the pending approval")
-
-	ref := after.GetRef()
-	require.NotNil(t, ref, "an oversized after body must be offloaded to a ToolCallOutputRef on the pending approval")
-	assert.Truef(t, strings.HasPrefix(ref.GetStorageKey(), "artifacts/"),
-		"offload storage key %q should live under artifacts/", ref.GetStorageKey())
-	assert.Containsf(t, ref.GetStorageKey(), execID,
-		"offload storage key %q should be scoped to the execution id %s", ref.GetStorageKey(), execID)
-	assert.Greaterf(t, ref.GetSizeBytes(), int64(128*1024),
-		"offloaded ref should report the full body size, got %d", ref.GetSizeBytes())
+	// Under apply-then-review the deny-gate carries the proposed change on the tool
+	// args, and a large body is ELIDED from the args_preview (kept small so the
+	// persisted status stays under the gRPC cap) while the salient path is
+	// preserved — the resume grant re-parses it. There is no separate file_changes
+	// body to offload on the gate anymore (Phase 5 Slice 4, DD-22).
+	assert.Contains(t, pa.GetArgsPreview(), filePath,
+		"the large write gate's args_preview must preserve the salient path")
+	assert.Lessf(t, len(pa.GetArgsPreview()), 128*1024,
+		"the large body must be elided from the args_preview (got %d bytes), not carried inline",
+		len(pa.GetArgsPreview()))
 
 	// Approve to drive the execution to a clean terminal state.
 	approveGate(t, ctx, clients, execID, gate, "write_file")

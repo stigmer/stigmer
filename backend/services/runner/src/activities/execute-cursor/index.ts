@@ -513,7 +513,6 @@ async function executeCursorInner(
       appliedToolCallIds = await applyApprovedWholeFileWrites({
         messages: status.messages,
         workspaceBackend: new LocalWorkspaceBackend(primaryWorkspaceDir),
-        artifactStorage,
         workspaceDirs: blueprint.workspaceDirs,
         executionId,
       });

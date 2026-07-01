@@ -213,22 +213,11 @@ message ToolCall {
   // Field 21: appended after tool_kind (20), the prior maximum.
   ToolCallOutputRef output_ref = 21;
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // File Changes (first-class diff review)
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // File changes produced by this tool call (create / modify / delete / rename).
-  //
-  // Populated by the runner for file-modifying tools. repeated because some
-  // tools (notably multi-file MCP edits) mutate several files in one call. This
-  // is the single source of truth for both the HITL approval-gate diff (set at
-  // approval-request time) and the post-execution Changes view; clients read it
-  // from the ToolCall directly rather than from a second copy.
-  //
-  // Field 22: appended after output_ref (21), the prior maximum.
-  //
-  // @since First-Class Diff Review (#186)
-  repeated FileChange file_changes = 22;
+  // Field 22 (file_changes) was removed in Phase 5 Slice 4: file review moved to
+  // the apply-then-review FileChangeSet ledger (AgentExecutionStatus.
+  // file_change_sets + file_review_event_stream), so the tool-call-coupled
+  // FileChange copy is obsolete. See design-decisions 21 & 22.
+  reserved 22;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Authorization Provenance (HITL)

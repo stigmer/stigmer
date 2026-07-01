@@ -33,10 +33,10 @@
 import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage, ToolCall, FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { MessageType, ToolCallStatus, SubAgentStatus, ToolKind, FileChangeType, FileChangeCaptureLevel } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { MessageType, ToolCallStatus, SubAgentStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
 import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage, SALIENT_ARG_FIELDS } from "./approval-policy.js";
@@ -49,9 +49,8 @@ import { grantToken, primaryToken, toolIdentity, type DeniedLedgerEntry } from "
 import { utcTimestamp } from "../../shared/status.js";
 import { hideToolCallRow } from "../../shared/tool-row.js";
 import { classifyTool, toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
-import { buildFileChange, resolveWorkspacePath } from "../../shared/file-change.js";
-import { buildGateFileChange } from "../../shared/gate-file-change.js";
-import { contentDigest, extractFilePath, extractWriteContent } from "../../shared/file-tools.js";
+import { resolveWorkspacePath } from "../../shared/file-change.js";
+import { contentDigest } from "../../shared/file-tools.js";
 import { buildElidedArgsPreview } from "../../shared/args-preview.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 
@@ -281,122 +280,6 @@ export interface ApprovalProvenanceContext {
 
 /** Shared empty set so a reconstruction without leases allocates nothing. */
 const NO_LEASED_CATEGORIES: ReadonlySet<ToolApprovalCategory> = new Set();
-
-/**
- * Extract the `value` object from a Cursor edit-result envelope
- * (`{ status, value: { diffString, linesAdded, linesRemoved } }`). Accepts the
- * result as a string or an already-parsed object, mirroring `normalizeEdit` in
- * the SDK's tool-view. Returns undefined when no envelope value is present (e.g.
- * a "running" event that carries no diff yet).
- */
-function editEnvelopeValue(result: unknown): Record<string, unknown> | undefined {
-  let obj: unknown = result;
-  if (typeof result === "string") {
-    try {
-      obj = JSON.parse(result);
-    } catch {
-      return undefined;
-    }
-  }
-  if (!obj || typeof obj !== "object") return undefined;
-  const value = (obj as Record<string, unknown>).value;
-  return value && typeof value === "object" ? (value as Record<string, unknown>) : undefined;
-}
-
-/**
- * Build the WHOLE_FILE CREATE for a STREAMING Cursor write tool call from its
- * args alone — no IO. This is the streaming (NOT gate) path: the tool is running
- * or has completed, so a disk read would observe the post-edit content; the args
- * carry the authoritative new body, presented as a CREATE (the established
- * streaming behavior). The gate path uses {@link buildGateFileChange}, which
- * reads `before` for a true before/after — see applyGateInput.
- *
- * Field extraction goes through the shared {@link extractFilePath} /
- * {@link extractWriteContent} so the stream and gate paths recognize the same
- * fields. Returns undefined for a missing path or absent content (an empty
- * string is a real empty file and is preserved).
- */
-function buildStreamWriteChange(
-  args: Record<string, unknown>,
-  workspaceRoot?: string,
-): FileChange | undefined {
-  const rawPath = extractFilePath(args);
-  if (!rawPath) return undefined;
-  const content = extractWriteContent(args);
-  if (content === null) return undefined;
-
-  const { path, absolutePath } = workspaceRoot
-    ? resolveWorkspacePath(rawPath, workspaceRoot, /* virtualRoot */ false)
-    : { path: rawPath, absolutePath: rawPath };
-
-  return buildFileChange({
-    path,
-    absolutePath,
-    changeType: FileChangeType.CREATE,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-    after: content,
-  });
-}
-
-/**
- * Build the `FileChange`s for a STREAMING Cursor file-edit/file-write tool call.
- *
- * A write delegates to {@link buildStreamWriteChange} (WHOLE_FILE CREATE from
- * args, no IO). An edit prefers the SDK's authoritative precomputed hunk
- * (`diffString` + line counts), which only materializes with the terminal
- * result — so during streaming (no diff yet) it returns nothing, and a denied
- * edit's preview is synthesized at the gate from the hook-captured args instead.
- *
- * Returns an empty array for non-file tools and for an edit whose diff is not
- * yet available, so callers can attach unconditionally.
- */
-export function buildCursorFileChanges(
-  event: Extract<SDKMessage, { type: "tool_call" }>,
-  workspaceRoot?: string,
-): FileChange[] {
-  // Cursor's built-in file tools are not MCP, so name alone classifies them.
-  const kind = classifyTool(event.name);
-  if (kind !== ToolKind.FILE_EDIT && kind !== ToolKind.FILE_WRITE) return [];
-
-  const args =
-    typeof event.args === "object" && event.args !== null
-      ? (event.args as Record<string, unknown>)
-      : undefined;
-  if (!args) return [];
-
-  if (kind === ToolKind.FILE_WRITE) {
-    const fileChange = buildStreamWriteChange(args, workspaceRoot);
-    return fileChange ? [fileChange] : [];
-  }
-
-  // Edit: prefer the SDK's authoritative diff from the terminal result.
-  const value = editEnvelopeValue(event.result);
-  const unifiedDiff = typeof value?.diffString === "string" ? value.diffString : undefined;
-  const linesAdded = typeof value?.linesAdded === "number" ? value.linesAdded : undefined;
-  const linesRemoved = typeof value?.linesRemoved === "number" ? value.linesRemoved : undefined;
-  // No diff yet (e.g. the initial "running" event) — nothing authoritative to attach.
-  if (unifiedDiff === undefined && linesAdded === undefined && linesRemoved === undefined) {
-    return [];
-  }
-
-  const rawPath = extractFilePath(args);
-  if (!rawPath) return [];
-  const { path, absolutePath } = workspaceRoot
-    ? resolveWorkspacePath(rawPath, workspaceRoot, /* virtualRoot */ false)
-    : { path: rawPath, absolutePath: rawPath };
-
-  return [
-    buildFileChange({
-      path,
-      absolutePath,
-      changeType: FileChangeType.MODIFY,
-      captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-      unifiedDiff,
-      linesAdded,
-      linesRemoved,
-    }),
-  ];
-}
 
 function translateTask(event: Extract<SDKMessage, { type: "task" }>): AgentMessage {
   return create(AgentMessageSchema, {
@@ -1034,60 +917,15 @@ export class MessageAccumulator {
       // lifecycle events resolve here, then merge in place. mergeToolCallEvent
       // advances WAITING_APPROVAL (non-terminal) toward the event's status.
       this.toolCallIndex.set(event.call_id, seeded);
-      this.attachExecutedFileChanges(seeded, event);
       this.mergeToolCallEvent(seeded, event);
       return;
     }
 
-    // A write carries whole-file content at creation; an edit's diff arrives
-    // with its terminal result (merged later). Both flow through the single
-    // capture-attach path (see attachExecutedFileChanges).
-    this.attachExecutedFileChanges(tc, event);
     this.findOrCreateLastAiMessage().toolCalls.push(tc);
     this.toolCallIndex.set(event.call_id, tc);
     // A new tool call is a discrete, user-visible event — force a prompt
     // flush so the live UI surfaces it the instant it starts.
     this._dirty = true;
-  }
-
-  /**
-   * Attach the SDK-sourced (executed) file change(s) for a tool_call event,
-   * letting an authoritative capture SUPERSEDE a gate proposal — the same
-   * invariant the native harness enforces via attachFileChangesToStatus
-   * (executed capture overwrites the interrupt-time proposal), adapted to
-   * Cursor's per-tool capture shape:
-   *
-   *  - HUNK_ONLY incoming = the SDK's authoritative, self-contained edit diff.
-   *    It supersedes ANY prior capture, because the only thing it can replace is
-   *    a gate PROPOSAL (an edit's diff is never set at creation) and it carries
-   *    the complete truth. This is the missing-diff fix: a stale WHOLE_FILE
-   *    proposal (built at the gate from the hook-captured input) no longer
-   *    shadows the executed diff after approval + resume.
-   *  - WHOLE_FILE incoming = a stream write CREATE (after-only). It attaches
-   *    only when nothing is captured yet, so it never DOWNGRADES a gated write's
-   *    proposal (which carries a true before/after the stream cannot reconstruct
-   *    post-execution) nor an already-captured change.
-   *  - An event with no authoritative capture (a result-less "running" re-emit)
-   *    yields [] and never wipes a captured change.
-   *
-   * Known, deliberate limitation: a gated WHOLE_FILE *write* whose content
-   * DIVERGES on resume keeps showing the proposal's before/after rather than the
-   * executed content. We prefer the richer (if rarely stale) before/after diff
-   * over a content-only CREATE; the fully-correct path is a before-preserving
-   * merge (carry the proposal's irrecoverable `before` onto the executed
-   * `after`), deferred — it is not reachable from the edit defect this fixes and
-   * would expand the change into the write path.
-   */
-  private attachExecutedFileChanges(
-    tc: ToolCall,
-    event: Extract<SDKMessage, { type: "tool_call" }>,
-  ): void {
-    const incoming = buildCursorFileChanges(event, this.workspaceRoot);
-    if (incoming.length === 0) return;
-    const supersedes =
-      tc.fileChanges.length === 0 ||
-      incoming[0].captureLevel === FileChangeCaptureLevel.HUNK_ONLY;
-    if (supersedes) tc.fileChanges = incoming;
   }
 
   /**
@@ -1154,12 +992,6 @@ export class MessageAccumulator {
     if (incomingResult) {
       existing.result = incomingResult;
     }
-
-    // A file edit's authoritative diff arrives with the terminal result; attach
-    // it, letting it SUPERSEDE a gate proposal set before the tool ran (the
-    // missing-diff fix) without downgrading a write's richer capture — the rule
-    // lives in the single capture-attach path.
-    this.attachExecutedFileChanges(existing, event);
 
     if (status === ToolCallStatus.TOOL_CALL_FAILED) {
       if (!existing.error) {
@@ -1345,11 +1177,11 @@ export class MessageAccumulator {
  * RELATIVE stream `path` (or vice versa) yields two different raw tokens for one
  * edit and the exact pass misses. The runner CAN normalize, so a second pass
  * matches any still-unmatched FILE denial to a streamed call by (category,
- * workspace-normalized path) and overlays the REAL streamed call — reusing its
- * captured `file_changes`, never appending a content-less placeholder beside it.
- * This is the difference between one honest gate (with its diff) and two cards,
- * one of which reads "No preview available". It reuses the single tool-identity
- * definition + `resolveWorkspacePath`; it introduces no parallel identity.
+ * workspace-normalized path) and overlays the REAL streamed call, never appending
+ * a content-less placeholder beside it. This is the difference between one honest
+ * gate and two cards, one of which reads "No preview available". It reuses the
+ * single tool-identity definition + `resolveWorkspacePath`; it introduces no
+ * parallel identity.
  *
  * Only after BOTH passes miss is a placeholder WAITING_APPROVAL tool call
  * synthesized (rare — Cursor normally emits a tool_call event for every
@@ -1361,10 +1193,10 @@ export class MessageAccumulator {
  *
  * Every matched/synthesized call is enriched with the hook-captured authoritative
  * input (`ledger.input`) via {@link applyGateInput}: the full proposed args, a
- * compact `args_preview`, and the proposed `file_changes` (a write's WHOLE_FILE
- * CREATE or an edit's synthesized HUNK) — so the approval card shows the change
- * before approval, for every tool. A real streamed diff is never clobbered, and
- * a missing capture (the hook's grep fallback) degrades to the prior behavior.
+ * compact `args_preview`, and the content digest — so the approval card renders
+ * the proposed write/edit content from `args` and a resume re-gates a diverging
+ * sibling edit. A missing capture (the hook's grep fallback) degrades to the
+ * prior behavior.
  *
  * Returns the tool calls now marked WAITING_APPROVAL — the single anchor gate
  * for the turn (overlaid or, rarely, synthesized).
@@ -1377,9 +1209,8 @@ export async function reconcileDeniedToolCalls(
 ): Promise<ToolCall[]> {
   if (ledger.length === 0) return [];
 
-  // The workspace the gated files live in. Its rootDir normalizes paths for the
-  // abs-vs-rel fallback; the backend itself reads each file's pre-edit `before`
-  // at the gate (the tool was DENIED, so disk still holds the true old content).
+  // The workspace the gated files live in; its rootDir normalizes paths for the
+  // abs-vs-rel correlation fallback (normalizedFileSalient).
   const workspaceRoot = workspaceBackend?.rootDir;
 
   // One gate per turn: anchor on the FIRST ledger denial. The ledger is reset
@@ -1411,7 +1242,7 @@ export async function reconcileDeniedToolCalls(
     if (anchorMatched) break;
     for (const tc of msg.toolCalls) {
       if (toolCallIdentityToken(tc) !== anchorToken) continue;
-      await overlayDeniedStreamCall(tc, anchorInput, mergedPolicies, workspaceBackend);
+      overlayDeniedStreamCall(tc, anchorInput, mergedPolicies);
       matchedCalls.add(tc);
       result.push(tc);
       anchorMatched = true;
@@ -1435,7 +1266,7 @@ export async function reconcileDeniedToolCalls(
         messages, matchedCalls, wanted, workspaceRoot,
       );
       if (tc) {
-        await overlayDeniedStreamCall(tc, anchorInput, mergedPolicies, workspaceBackend);
+        overlayDeniedStreamCall(tc, anchorInput, mergedPolicies);
         matchedCalls.add(tc);
         result.push(tc);
         anchorMatched = true;
@@ -1496,8 +1327,8 @@ export async function reconcileDeniedToolCalls(
       displayName, salient, decoded?.digest ?? "", anchorToken, mergedPolicies,
     );
     // The hook-captured input upgrades the placeholder from a bare {path} to the
-    // full proposed args + diff, so even a synthesized gate shows the change.
-    await applyGateInput(tc, anchorInput ?? anchorEntry.input, workspaceBackend);
+    // full proposed args, so even a synthesized gate shows the proposed change.
+    applyGateInput(tc, anchorInput ?? anchorEntry.input);
     appendToolCallToLastAiMessage(messages, tc);
     result.push(tc);
   }
@@ -1514,16 +1345,15 @@ export async function reconcileDeniedToolCalls(
  * diverge between them. The hook-captured `input` (when present) is the
  * authoritative, complete proposed args — the stream may have carried only
  * partial args before the first-denial cancel — so it supplies the args preview
- * and the proposed file change (see {@link applyGateInput}).
+ * and the content digest (see {@link applyGateInput}).
  */
-async function overlayDeniedStreamCall(
+function overlayDeniedStreamCall(
   tc: ToolCall,
   input: Record<string, unknown> | undefined,
   mergedPolicies: Map<string, MergedToolPolicy> | undefined,
-  workspaceBackend: WorkspaceBackend | undefined,
-): Promise<void> {
+): void {
   markWaitingApproval(tc, mergedPolicies);
-  await applyGateInput(tc, input, workspaceBackend);
+  applyGateInput(tc, input);
 }
 
 /**
@@ -1535,7 +1365,6 @@ function isAlreadyCollapsed(tc: ToolCall): boolean {
   return (
     tc.status === ToolCallStatus.TOOL_CALL_SKIPPED &&
     !tc.requiresApproval &&
-    tc.fileChanges.length === 0 &&
     !tc.result &&
     !tc.error &&
     !tc.argsPreview
@@ -1546,19 +1375,24 @@ function isAlreadyCollapsed(tc: ToolCall): boolean {
  * Whether a tool call carries a change/output of its own — the signal that it is
  * authoritative for its resource rather than a redundant denial/cancel twin.
  *
- * The notion of "change" is category-aware on purpose: a file mutation's change
- * is its proposed diff (`file_changes`) and NEVER its `result` envelope, so a
- * denied-reported-as-success edit with a degenerate empty result (`"\"\""`) is
- * correctly read as no-change. Every other gated tool (shell, MCP) has no
- * `file_changes`; its "change" is its execution output, so a genuine run carries
- * a non-empty `result` while a denied/cancelled attempt that never executed does
- * not. This keeps two distinct shell runs (each with output) both visible while
- * still collapsing a same-command denial twin.
+ * The notion of "change" is category-aware on purpose:
+ *  - A file mutation (`write`/`delete`) never carries an authoritative change on
+ *    the tool-call ROW: under apply-then-review its review lives in the
+ *    `FileChangeSet` ledger (capture mode), and under the no-storage deny-gate it
+ *    is the WAITING_APPROVAL gate itself (kept explicitly by the caller). So a
+ *    file row is authoritative only as that gate, never on its own — hence
+ *    `false` here. (Before Phase 5 Slice 4 this read `file_changes.length > 0`;
+ *    that field is gone, and the row was never the review surface.)
+ *  - Every other gated tool (shell, MCP) has no ledger; its "change" is its
+ *    execution output, so a genuine run carries a non-empty `result` while a
+ *    denied/cancelled attempt that never executed does not. This keeps two
+ *    distinct shell runs (each with output) both visible while still collapsing a
+ *    same-command denial twin.
  */
 function carriesOwnChange(tc: ToolCall): boolean {
   const category = toolApprovalCategory(tc.name);
   if (category === "write" || category === "delete") {
-    return tc.fileChanges.length > 0;
+    return false;
   }
   return !!tc.result;
 }
@@ -1587,22 +1421,17 @@ function carriesOwnChange(tc: ToolCall): boolean {
  *    read-only tools are left untouched.
  * 2. Group those calls by `toolCallIdentityToken` — the SAME `toolIdentity` used
  *    for denial correlation and resume grants, so scope and grouping cannot drift.
- * 3. In each group the keepers depend on the gate's capture level:
- *      - WITH a WHOLE_FILE gate (`WAITING_APPROVAL` carrying a WHOLE_FILE change):
- *        the gate is the SOLE keeper. After {@link applyGateInput} it holds the
- *        COMPLETE proposed content, and a whole-file write is cumulative (the last
- *        write subsumes the earlier ones), so every same-identity sibling — a
- *        denied/zombie row or a stale snapshot from a second rewrite — is
- *        redundant and would render a second, contradictory card.
- *      - OTHERWISE (a HUNK gate, or no gate): the keepers carry the authoritative
- *        state — a change/output of their own (see {@link carriesOwnChange}) or
- *        the gate itself. Two DISTINCT hunk edits to one file are independent
- *        regions (neither supersedes the other), and two genuine distinct EXECUTED
- *        edits each carry their own `file_changes`, so both are kept and both
- *        render. If NO member qualifies (every attempt produced no change), keep
- *        exactly ONE representative — preferring a terminal attempt over a stuck
- *        `RUNNING` zombie — so the resource still shows a single card.
- *    Every non-keeper is blanked in place to a hidden `SKIPPED` row (see
+ * 3. In each group the keepers carry authoritative state — a change/output of
+ *    their own (see {@link carriesOwnChange}) or the approval gate itself
+ *    (`WAITING_APPROVAL`). For a file mutation the gate is the sole authoritative
+ *    row: the row carries no diff (review lives in the `FileChangeSet` ledger, or
+ *    is the no-storage deny-gate itself), so a denied write's same-identity
+ *    siblings — a denied/zombie row or a stale snapshot from a second attempt —
+ *    collapse onto the gate. A shell/MCP twin keeps every distinct run with
+ *    output. If NO member qualifies (every attempt produced no change), keep
+ *    exactly ONE representative — preferring a terminal attempt over a stuck
+ *    `RUNNING` zombie — so the resource still shows a single card. Every
+ *    non-keeper is blanked in place to a hidden `SKIPPED` row (see
  *    {@link collapseDenialTwin}).
  *
  * It is deliberately subtractive — it only ever HIDES a row, never invents a
@@ -1631,40 +1460,24 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
   for (const group of groups.values()) {
     if (group.length < 2) continue; // a lone call is never a twin
 
-    // A pending approval gate that carries a WHOLE_FILE change is the single
-    // authoritative representation of its resource for the turn: that gate already
-    // holds the COMPLETE proposed content (via applyGateInput's authoritative-input
-    // override), and a whole-file write is cumulative — the last write subsumes the
-    // earlier ones — so every same-identity sibling is a stale snapshot and the
-    // gate is the SOLE keeper. This is deliberately NOT applied to a HUNK gate:
-    // two DISTINCT hunk edits to one file are independent regions, neither
-    // superseding the other, so a sibling carrying its own change is kept.
-    const wholeFileGate = group.find(
-      (tc) =>
-        tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL &&
-        tc.fileChanges.some((fc) => fc.captureLevel === FileChangeCaptureLevel.WHOLE_FILE),
+    // Keepers carry authoritative state: a change/output of their own
+    // (carriesOwnChange) or the approval gate itself. For a file mutation the gate
+    // is the sole authoritative row (the row carries no diff — review lives in the
+    // ledger, or the row IS the no-storage deny-gate), so a denied write's
+    // same-identity siblings collapse onto it; a shell/MCP twin keeps every
+    // distinct run with output.
+    const keepers = new Set<ToolCall>(
+      group.filter(
+        (tc) =>
+          carriesOwnChange(tc) ||
+          tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      ),
     );
-    let keepers: Set<ToolCall>;
-    if (wholeFileGate) {
-      // Keep every WAITING gate (one-gate-per-turn yields exactly one; the superset
-      // is the safe choice), collapse all other same-identity siblings.
-      keepers = new Set<ToolCall>(
-        group.filter((tc) => tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL),
-      );
-    } else {
-      keepers = new Set<ToolCall>(
-        group.filter(
-          (tc) =>
-            carriesOwnChange(tc) ||
-            tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-        ),
-      );
-      // All attempts produced no change (e.g. denied-reported-as-success): keep one
-      // representative, preferring a settled outcome over a stuck RUNNING zombie.
-      if (keepers.size === 0) {
-        const terminal = [...group].reverse().find((tc) => isTerminalToolStatus(tc.status));
-        keepers.add(terminal ?? group[0]);
-      }
+    // All attempts produced no change (e.g. denied-reported-as-success): keep one
+    // representative, preferring a settled outcome over a stuck RUNNING zombie.
+    if (keepers.size === 0) {
+      const terminal = [...group].reverse().find((tc) => isTerminalToolStatus(tc.status));
+      keepers.add(terminal ?? group[0]);
     }
 
     for (const tc of group) {
@@ -1737,71 +1550,35 @@ function collapseDenialTwin(tc: ToolCall): void {
  * the approval card can show the proposed change before the user approves.
  *
  * When `input` is present it becomes the single source for the preview: the full
- * structured `args`, a compact-but-always-valid `args_preview` (the field a
- * resumed turn parses to rebuild the grant salient — so salient fields are never
- * elided, and the heavy content stays only on `file_changes`/`args`), and the
- * proposed `file_changes` — via the shared {@link buildGateFileChange}, which
- * reads the file's pre-edit `before` from the workspace so a whole-file rewrite
- * renders a true before/after diff (the same builder, and the same
- * WHOLE_FILE/HUNK rules, the native gate uses).
+ * structured `args` (the approval card renders the proposed write/edit content
+ * from these), a compact-but-always-valid `args_preview` (the field a resumed
+ * turn parses to rebuild the grant salient — so salient fields are never elided),
+ * and the content digest.
  *
- * Full-change fidelity for whole-file writes. For a whole-file write the
- * authoritative hook input is the COMPLETE intended content, so it SUPERSEDES any
- * streamed `file_changes` snapshot. This matters because the streaming capture
- * sets a write's `file_changes` from its FIRST event and never refreshes them for
- * later WHOLE_FILE captures ({@link MessageTranslator.attachExecutedFileChanges}),
- * so a body still streaming — or a file rewritten twice in one turn — would
- * otherwise leave a partial `after` on the gate. The runner then exact-applies
- * that `after` verbatim (see exact-apply.ts), silently dropping the rest of the
- * change the user requested. Sourcing the gate from the input keeps
- * shown == approved == applied == the complete content.
+ * The digest is the resume identity: it binds the grant to (category, path,
+ * content) so a sibling edit to the same file re-gates rather than riding an
+ * earlier approval through. It is also the identity the Cursor deny-gate's
+ * exact-apply reads on resume — together with the whole-file bytes in `args` — to
+ * write exactly what was approved (see exact-apply.ts). There is no separate
+ * captured `file_changes` mirror; `args` is the single source for both the
+ * preview and the applied bytes.
  *
- * Scope and graceful degradation. The override is whole-file-only and only when
- * the builder yields a change (it never wipes `file_changes` to empty). An edit
- * fragment (`old_string`/`new_string`) keeps the SDK's authoritative hunk via the
- * fallback below; with no `input` (the hook's grep fallback) it falls back to the
- * call's existing args and never clobbers a streamed diff; with no workspace
- * backend it still produces a (before-less) change, matching prior behavior.
+ * With no `input` (the hook's grep fallback) there is nothing authoritative to
+ * stamp and the call keeps its existing args.
  */
-async function applyGateInput(
+function applyGateInput(
   tc: ToolCall,
   input: Record<string, unknown> | undefined,
-  workspaceBackend: WorkspaceBackend | undefined,
-): Promise<void> {
-  if (input) {
-    tc.args = input as JsonObject;
-    tc.argsPreview = buildElidedArgsPreview(input, SALIENT_ARG_FIELDS);
-    // Stamp the content digest from the AUTHORITATIVE captured input, so the
-    // approved edit's exact content survives to resume on a small, never-elided
-    // field — the grant then binds to (category, path, content) and a sibling
-    // edit to the same file re-gates. Empty for a non-content tool. This is the
-    // one place the digest is authored; everything downstream reads the field.
-    tc.approvalContentDigest = contentDigest(input);
-    // Whole-file input is authoritative and complete → it supersedes any streamed
-    // snapshot (which can lag the final args). Override only when the builder
-    // yields a change, so a defensive miss never wipes a real diff.
-    if (extractWriteContent(input) !== null) {
-      const gateChange = await buildGateFileChange(tc.name, input, workspaceBackend, {
-        virtualRoot: false,
-      });
-      if (gateChange) {
-        tc.fileChanges = [gateChange];
-        return;
-      }
-    }
-  }
-  // Fallback: no authoritative whole-file input to supersede with (a hunk edit,
-  // or the grep-fallback denial with no captured input). Synthesize the proposal
-  // only when the call carries no streamed change, so a real streamed diff is kept.
-  if (tc.fileChanges.length === 0) {
-    const fileChange = await buildGateFileChange(
-      tc.name,
-      input ?? toolCallArgs(tc),
-      workspaceBackend,
-      { virtualRoot: false },
-    );
-    if (fileChange) tc.fileChanges = [fileChange];
-  }
+): void {
+  if (!input) return;
+  tc.args = input as JsonObject;
+  tc.argsPreview = buildElidedArgsPreview(input, SALIENT_ARG_FIELDS);
+  // Stamp the content digest from the AUTHORITATIVE captured input, so the
+  // approved edit's exact content survives to resume on a small, never-elided
+  // field — the grant then binds to (category, path, content) and a sibling
+  // edit to the same file re-gates. Empty for a non-content tool. This is the
+  // one place the digest is authored; everything downstream reads the field.
+  tc.approvalContentDigest = contentDigest(input);
 }
 
 /**

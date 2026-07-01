@@ -527,17 +527,25 @@ const { executions } = useSessionExecutions(sessionId ?? null);
 
 ### useSessionFileChanges
 
-Pure derivation hook that aggregates the runner's authoritative
-`FileChange` captures (`ToolCall.file_changes`, #186) across every
+Pure derivation hook that aggregates an agent's file changes across every
 execution in a session into one net change per file — the data behind the
 local-workspace "Changes" view.
 
-**Traversal.** Unlike [`useSessionWriteBacks`](#usesessionwritebacks)/`useSessionArtifacts`,
-which read flat `status.*` arrays, file changes live nested inside tool
-calls. This walks the same surfaces the server-side approval recompute and
+**Source (ledger-first).** Under apply-then-review the changes live in the
+file-review ledger; [`displayFileChangeSets`](/docs/sdk/react/execution#displayfilechangesets) reads the server's live
+projection or folds the durable ledger for a terminal execution (whose
+projection is nil), and each captured change is projected onto the display
+`FileChange` via [`toDisplayFileChange`](/docs/sdk/react/execution#todisplayfilechange). A pre-capture
+(legacy) execution has no ledger, so it falls back to the tool-call-coupled
+`ToolCall.file_changes` (#186; removed in a later slice with that field). The
+two sources are mutually exclusive per execution, so there is no double count.
+
+**Traversal.** The ledger is execution-scoped and already includes sub-agent
+captures (DD-19), so the primary path is one pass per execution. The legacy
+fallback walks the same surfaces the server-side approval recompute and
 `MessageThread` walk: `status.messages[].toolCalls` **and**
-`status.subAgentExecutions[].messages[].toolCalls`. Executions are visited
-in chronological order, so each path's change list is chronological.
+`status.subAgentExecutions[].messages[].toolCalls`. Executions are visited in
+chronological order, so each path's change list is chronological.
 
 **Net-diff (not latest-wins).** `useSessionWriteBacks`/`useSessionArtifacts`
 dedup by "latest wins" because each entry is a *snapshot* (a PR; a file's

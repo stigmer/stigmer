@@ -9,7 +9,6 @@
 import type { V3ProtocolEvent } from "./v3-event-recorder.js";
 import type { InlinePublisher } from "./inline-publisher.js";
 import type { WriteBackCoordinator } from "./writeback-coordinator.js";
-import type { FileChangeCoordinator } from "./file-change-coordinator.js";
 import { extractFilePath, isFileModifyingTool } from "../../shared/file-tools.js";
 
 interface CachedToolInput {
@@ -21,23 +20,20 @@ export class StreamingSideEffects {
   private readonly inputCache = new Map<string, CachedToolInput>();
   private readonly inlinePublisher: InlinePublisher | undefined;
   private readonly writebackCoordinator: WriteBackCoordinator | undefined;
-  private readonly fileChangeCoordinator: FileChangeCoordinator | undefined;
   readonly pendingPublishPromises: Promise<void>[] = [];
   readonly pendingWritebackPromises: Promise<void>[] = [];
 
   constructor(opts: {
     inlinePublisher?: InlinePublisher;
     writebackCoordinator?: WriteBackCoordinator;
-    fileChangeCoordinator?: FileChangeCoordinator;
   }) {
     this.inlinePublisher = opts.inlinePublisher;
     this.writebackCoordinator = opts.writebackCoordinator;
-    this.fileChangeCoordinator = opts.fileChangeCoordinator;
   }
 
   onProtocolEvent(event: V3ProtocolEvent): void {
     if (event.method !== "tools") return;
-    if (!this.inlinePublisher && !this.writebackCoordinator && !this.fileChangeCoordinator) return;
+    if (!this.inlinePublisher && !this.writebackCoordinator) return;
 
     const data = event.params.data as Record<string, unknown> | undefined;
     if (!data) return;
@@ -68,12 +64,6 @@ export class StreamingSideEffects {
       const filePath = extractFilePath(cached.input);
       if (!filePath) return;
 
-      // Synchronous and first: the before/after were already captured at the
-      // mutation point, so attaching now lands the file changes in the same
-      // persist as this tool-finish (no IO, no lag).
-      if (this.fileChangeCoordinator) {
-        this.fileChangeCoordinator.attach(callId, filePath);
-      }
       if (this.inlinePublisher) {
         this.pendingPublishPromises.push(this.inlinePublisher.publish(filePath));
       }

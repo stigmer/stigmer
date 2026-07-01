@@ -1,12 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  FileChangeType,
-  FileChangeCaptureLevel,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import {
   looksBinary,
   bytesLookBinary,
-  buildFileChange,
   resolveWorkspacePath,
 } from "../file-change.js";
 
@@ -33,58 +28,6 @@ describe("bytesLookBinary", () => {
     expect(bytesLookBinary(Buffer.from("héllo — 世界", "utf8"))).toBe(false);
     expect(bytesLookBinary(Buffer.from([0xff, 0xfe, 0x80]))).toBe(false);
     expect(bytesLookBinary(Buffer.alloc(0))).toBe(false);
-  });
-});
-
-describe("buildFileChange", () => {
-  it("wraps inline before/after and marks a binary side", () => {
-    const fc = buildFileChange({
-      path: "assets/logo.bin",
-      absolutePath: "/root/assets/logo.bin",
-      changeType: FileChangeType.MODIFY,
-      captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-      before: "text",
-      after: "bin\u0000ary",
-    });
-
-    expect(fc.path).toBe("assets/logo.bin");
-    expect(fc.absolutePath).toBe("/root/assets/logo.bin");
-    expect(fc.changeType).toBe(FileChangeType.MODIFY);
-    expect(fc.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
-    expect(fc.before?.body.case).toBe("inline");
-    expect(fc.before?.isBinary).toBe(false);
-    expect(fc.after?.body.case).toBe("inline");
-    expect(fc.after?.isBinary).toBe(true);
-  });
-
-  it("omits an undefined side but preserves an empty string as a real value", () => {
-    // CREATE: no before; an empty after is a real (empty) file, not absent.
-    const created = buildFileChange({
-      path: "new.ts",
-      absolutePath: "/root/new.ts",
-      changeType: FileChangeType.CREATE,
-      captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-      after: "",
-    });
-    expect(created.before).toBeUndefined();
-    expect(created.after?.body.case).toBe("inline");
-    expect(created.after?.body.value).toBe("");
-  });
-
-  it("defaults the hunk-only / derivable fields to their zero values", () => {
-    const fc = buildFileChange({
-      path: "x.ts",
-      absolutePath: "/root/x.ts",
-      changeType: FileChangeType.MODIFY,
-      captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-      before: "a",
-      after: "b",
-    });
-    // Native leaves these for the presentation layer to derive.
-    expect(fc.unifiedDiff).toBe("");
-    expect(fc.linesAdded).toBe(0);
-    expect(fc.linesRemoved).toBe(0);
-    expect(fc.renameFrom).toBe("");
   });
 });
 

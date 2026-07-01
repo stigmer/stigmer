@@ -200,11 +200,10 @@ describe("captureTurnToLedger (producer)", () => {
     expect(await read("notes.md")).toBe("planton notes\n\n## TODO\n- ship\n");
     expect(await exists("src/new.ts")).toBe(true);
 
-    // The streamed edit rows are hidden (collapsed SKIPPED, no fileChanges): the
-    // ledger is the single review surface.
+    // The streamed edit rows are hidden (collapsed SKIPPED): the ledger is the
+    // single review surface.
     for (const tc of messages.flatMap((m) => m.toolCalls)) {
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
-      expect(tc.fileChanges).toHaveLength(0);
     }
 
     // CANDIDATE_CAPTURED authored with one change per file + the byte-exact

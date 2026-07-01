@@ -118,11 +118,5 @@ func projectToolCall(tc *agentexecutionv1.ToolCall, fromSubAgent bool, subAgentN
 		// compute_from_events.go) so ProjectPendingApprovals fromEvents == fromScan
 		// holds (this scan is the retained cross-check).
 		ApprovalPolicySource: tc.GetApprovalPolicySource(),
-		// Denormalized so the gate can render an inline before/after diff without
-		// correlating back to the originating ToolCall (which, for workflow-parent
-		// approvals, is not co-located with the approval). The runner captures
-		// these at approval-request time; large bodies are already offloaded to
-		// FileContent.ref before this projection runs.
-		FileChanges: tc.GetFileChanges(),
 	}
 }

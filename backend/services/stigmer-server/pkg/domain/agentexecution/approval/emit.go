@@ -130,7 +130,6 @@ func buildRequestedEvent(
 			// same PendingApproval the message-scan cross-check does (compute.go) —
 			// keeps ProjectPendingApprovals fromEvents == fromScan.
 			ApprovalPolicySource: tc.GetApprovalPolicySource(),
-			FileChanges:          tc.GetFileChanges(),
 		}},
 	}
 }

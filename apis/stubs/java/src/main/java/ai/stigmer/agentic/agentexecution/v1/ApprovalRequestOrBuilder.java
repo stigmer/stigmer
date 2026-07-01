@@ -235,60 +235,6 @@ public interface ApprovalRequestOrBuilder extends
 
   /**
    * <pre>
-   * File changes the gated call would produce. Copied from
-   * ToolCall.file_changes; large bodies are already offloaded to
-   * FileContent.ref before projection.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 12 [json_name = "fileChanges"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChange> 
-      getFileChangesList();
-  /**
-   * <pre>
-   * File changes the gated call would produce. Copied from
-   * ToolCall.file_changes; large bodies are already offloaded to
-   * FileContent.ref before projection.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 12 [json_name = "fileChanges"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.FileChange getFileChanges(int index);
-  /**
-   * <pre>
-   * File changes the gated call would produce. Copied from
-   * ToolCall.file_changes; large bodies are already offloaded to
-   * FileContent.ref before projection.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 12 [json_name = "fileChanges"];</code>
-   */
-  int getFileChangesCount();
-  /**
-   * <pre>
-   * File changes the gated call would produce. Copied from
-   * ToolCall.file_changes; large bodies are already offloaded to
-   * FileContent.ref before projection.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 12 [json_name = "fileChanges"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder> 
-      getFileChangesOrBuilderList();
-  /**
-   * <pre>
-   * File changes the gated call would produce. Copied from
-   * ToolCall.file_changes; large bodies are already offloaded to
-   * FileContent.ref before projection.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 12 [json_name = "fileChanges"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder getFileChangesOrBuilder(
-      int index);
-
-  /**
-   * <pre>
    * Policy layer that gated this call. Copied from
    * ToolCall.approval_policy_source so the event-stream projection reconstructs
    * the same PendingApproval as the message scan. See ApprovalPolicySource.

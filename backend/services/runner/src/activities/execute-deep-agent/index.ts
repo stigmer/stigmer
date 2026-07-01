@@ -37,7 +37,6 @@ import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { StatusBuilder } from "./status-builder.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { WriteBackCoordinator } from "./writeback-coordinator.js";
-import { FileChangeCoordinator } from "./file-change-coordinator.js";
 import { processPostStream } from "./post-stream.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { captureApprovalArtifacts } from "./approval-file-change.js";
@@ -158,16 +157,6 @@ export function createDeepAgentActivities(config: Config) {
             })
           : null;
 
-        // Capture mode reviews file edits via the git-diff change set, so the
-        // per-tool-call before/after coordinator is not used (no dead machinery).
-        const fileChangeCoordinator = setup.captureMode
-          ? undefined
-          : new FileChangeCoordinator({
-              statusWriter: statusBuilder,
-              buffer: setup.fileChangeBuffer,
-              workspaceBackend: setup.workspaceBackend,
-            });
-
         // Apply-then-review capture identity + substrate root for this turn.
         const gitRoot = setup.workspaceBackend.rootDir;
         const changeSetId = `${executionId}:${turnSeq}`;
@@ -282,7 +271,6 @@ export function createDeepAgentActivities(config: Config) {
           // Capture mode: never push speculative edits during the turn. Writeback
           // is deferred until the approved tree is reconciled (post-decision).
           writebackCoordinator: setup.captureMode ? undefined : (writebackCoordinator ?? undefined),
-          fileChangeCoordinator,
           heartbeatFn: (details) => Context.current().heartbeat(details),
           isCancelledFn: () => cancellationSignal.aborted,
           approvalProvider: {
@@ -407,19 +395,15 @@ export function createDeepAgentActivities(config: Config) {
                 policyEngineVersion: intr.policySource ? POLICY_ENGINE_VERSION : "",
               });
 
-              // Capture the proposed edit (and a sanitized args preview) while the
-              // graph is paused, so the approval UI renders a real before/after
-              // diff before the tool runs. Args are correlated from the AI-message
-              // tool call in graph state (the single source of truth); oversized
-              // before/after bodies are offloaded by persistStatus below.
-              const { argsPreview, fileChange } = await captureApprovalArtifacts({
-                toolName: intr.toolName,
+              // Capture a sanitized args preview while the graph is paused, so the
+              // approval UI renders the proposed change before the tool runs. Args
+              // are correlated from the AI-message tool call in graph state (the
+              // single source of truth).
+              const { argsPreview } = captureApprovalArtifacts({
                 toolCallId: intr.toolCallId,
                 messages: aiMessages,
-                workspaceBackend: setup.workspaceBackend,
               });
               if (argsPreview) toolCall.argsPreview = argsPreview;
-              if (fileChange) toolCall.fileChanges = [fileChange];
 
               aiMsg.toolCalls.push(toolCall);
             }

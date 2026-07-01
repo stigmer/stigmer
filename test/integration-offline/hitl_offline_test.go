@@ -361,13 +361,11 @@ func TestOffline_HITL_PendingApprovalDetails(t *testing.T) {
 	assert.Equal(t, "echo", approval.GetToolName())
 	assert.Equal(t, mcpSlug, approval.GetMcpServerSlug(),
 		"mcp_server_slug should match the MCP server used")
-	// Negative half of the approval-gate diff (#186): a non-file tool projects no
-	// file changes, so the gate render falls back to the args preview. The
-	// projection only carries file_changes for file-modifying tools.
-	assert.Empty(t, approval.GetFileChanges(),
-		"a non-file tool (echo) must project an empty file_changes list")
+	// A gated tool renders from its args preview (the deny-gate carries the
+	// proposed change on the args; there is no captured file_changes list — Phase 5
+	// Slice 4 removed it).
 	assert.NotEmpty(t, approval.GetArgsPreview(),
-		"a gated tool without a diff must still carry an args preview to render")
+		"a gated tool must carry an args preview to render")
 
 	t.Logf("approval details: tool_call_id=%s, tool_name=%s, mcp_slug=%s, args_preview=%s",
 		approval.GetToolCallId(), approval.GetToolName(),

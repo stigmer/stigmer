@@ -1787,7 +1787,6 @@ A tool call requesting approval — the "ask" recorded when a gated tool call en
     subAgentSubject: { type: "string", description: "Concise subject of the sub-agent's task when from_sub_agent is true; empty otherwise." },
     mcpServerSlug: { type: "string", description: "Slug of the MCP server providing this tool; empty for built-in tools." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic tool category.", typeDescriptionLink: "#toolkind" },
-    fileChanges: { type: "FileChange[]", description: "File changes the gated call would produce.", typeDescriptionLink: "#filechange" },
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this call.", typeDescriptionLink: "#approvalpolicysource" },
   }}
 />
@@ -1871,25 +1870,6 @@ ExecutionArtifact represents a file or directory published by an agent.
   }}
 />
 
-### FileChange
-
-A single file mutation produced by a tool call.
-
-<TypeTable
-  type={{
-    path: { type: "string", description: "Workspace-root-relative path for display, e.g. \"src/app/main.ts\"." },
-    absolutePath: { type: "string", description: "Absolute on-disk path, retained for \"open in editor\" and diagnostics." },
-    changeType: { type: "FileChangeType", description: "The per-file outcome of this change.", typeDescriptionLink: "#filechangetype" },
-    captureLevel: { type: "FileChangeCaptureLevel", description: "How complete the captured content is.", typeDescriptionLink: "#filechangecapturelevel" },
-    before: { type: "FileContent", description: "Pre-edit content.", typeDescriptionLink: "#filecontent" },
-    after: { type: "FileContent", description: "Post-edit content.", typeDescriptionLink: "#filecontent" },
-    unifiedDiff: { type: "string", description: "Unified hunk-level diff." },
-    linesAdded: { type: "number", description: "Lines added by this change." },
-    linesRemoved: { type: "number", description: "Lines removed by this change." },
-    renameFrom: { type: "string", description: "Source path for RENAME; path holds the destination." },
-  }}
-/>
-
 ### FileChangeSet
 
 The set of file deltas produced by one agent turn, reviewed and reconciled as a unit.
@@ -1905,7 +1885,7 @@ The set of file deltas produced by one agent turn, reviewed and reconciled as a 
     approvedSnapshot: { type: "SnapshotRef", description: "Workspace state derived after decisions (the exact bytes to reconcile to).", typeDescriptionLink: "#snapshotref" },
     changes: { type: "CapturedFileChange[]", description: "The per-file deltas in this change set (the rendered review surface).", typeDescriptionLink: "#capturedfilechange" },
     aggregateDigest: { type: "string", description: "Canonical digest over the ordered change manifest." },
-    diffCompleteness: { type: "DiffCompleteness", description: "Whether the rendered diff is complete enough to approve safely.", typeDescriptionLink: "#diffcompleteness" },
+    diffCompleteness: { type: "DiffCompleteness", description: "Whether the rendered diff is complete enough to approve safely, a rollup over the per-file changes.", typeDescriptionLink: "#diffcompleteness" },
     decisions: { type: "FileDecision[]", description: "Human decisions on this change set, a DERIVED fold over the FILE_DECIDED events in the ledger (never stored-mutable).", typeDescriptionLink: "#filedecision" },
   }}
 />
@@ -1964,7 +1944,7 @@ The candidate workspace state captured at the turn boundary, carrying the comput
     candidateSnapshot: { type: "SnapshotRef", description: "The captured candidate state.", typeDescriptionLink: "#snapshotref" },
     changes: { type: "CapturedFileChange[]", description: "The authoritative per-file diff (diff of baseline → candidate).", typeDescriptionLink: "#capturedfilechange" },
     aggregateDigest: { type: "string", description: "Canonical digest over the ordered manifest (enforcement)." },
-    diffCompleteness: { type: "DiffCompleteness", description: "Whether the diff is complete enough to approve.", typeDescriptionLink: "#diffcompleteness" },
+    diffCompleteness: { type: "DiffCompleteness", description: "The runner-derived completeness rollup for this candidate: COMPLETE when every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only blocker, else PARTIAL_BLOCKED.", typeDescriptionLink: "#diffcompleteness" },
   }}
 />
 
@@ -2063,7 +2043,6 @@ A pending approval request for a tool call that requires user consent before exe
     branchAtDeny: { type: "string", description: "Git branch name at the time the tool was denied." },
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
-    fileChanges: { type: "FileChange[]", description: "File changes the gated tool call would produce (create / modify / delete / rename), captured by the runner at approval-request time: `before` is read from the workspace when the approval is raised, `after` is derived from the tool args.", typeDescriptionLink: "#filechange" },
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this tool call, copied from ToolCall.approval_policy_source by the server-side projection (exactly as tool_kind above is).", typeDescriptionLink: "#approvalpolicysource" },
   }}
 />
@@ -2203,7 +2182,6 @@ Represents a tool call made by the agent during execution.
     argsPreview: { type: "string", description: "Sanitized preview of tool arguments for UI display." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of this tool, set by the runner so clients render the tool identically regardless of which engine produced it.", typeDescriptionLink: "#toolkind" },
     outputRef: { type: "ToolCallOutputRef", description: "───────────────────────────────────────────────────────────────────────────── Offloaded Output (large tool results).", typeDescriptionLink: "#toolcalloutputref" },
-    fileChanges: { type: "FileChange[]", description: "File changes produced by this tool call (create / modify / delete / rename).", typeDescriptionLink: "#filechange" },
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that decided this tool call's approval requirement, set by the runner's approval gate so clients can explain \"why was this gated or auto-approved?\".", typeDescriptionLink: "#approvalpolicysource" },
     policyEngineVersion: { type: "string", description: "Identifier of the policy-engine logic that produced approval_policy_source, bumped when the merge/classification semantics change so decisions made by different engine versions stay distinguishable in audits." },
     approvalContentDigest: { type: "string", description: "Stable digest of the authoritative edit content (the hook-captured tool input) for a gated file-mutating tool call, set by the runner's approval gate." },
@@ -2416,26 +2394,6 @@ ExecutionArtifactKind defines the type of artifact published by an agent.
 | `EXECUTION_ARTIFACT_KIND_FILE` | A single file published by the agent. |
 | `EXECUTION_ARTIFACT_KIND_DIRECTORY` | A directory published by the agent, archived as a ZIP file for download. |
 
-### FileChangeType
-
-FileChangeType is the per-file outcome of a file mutation in a tool call.
-
-| Value | Description |
-|-------|-------------|
-| `FILE_CHANGE_TYPE_CREATE` | A new file was created. |
-| `FILE_CHANGE_TYPE_MODIFY` | An existing file's contents were modified. |
-| `FILE_CHANGE_TYPE_DELETE` | A file was deleted. |
-| `FILE_CHANGE_TYPE_RENAME` | A file was renamed or moved; FileChange.rename_from holds the source path. |
-
-### FileChangeCaptureLevel
-
-FileChangeCaptureLevel describes how complete a FileChange's captured content is, so clients render whole-file vs hunk-only diffs honestly per harness.
-
-| Value | Description |
-|-------|-------------|
-| `FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE` | Full before+after content captured (native edit/write; future Cursor pre-read). |
-| `FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY` | Only a hunk-level unified_diff is available (Cursor today). |
-
 ### FileChangeSetStatus
 
 FileChangeSetStatus is the state of a FileChangeSet, DERIVED by folding its file-review events (never stored-mutable).
@@ -2455,8 +2413,8 @@ DiffCompleteness describes whether a change set's rendered diff is complete enou
 | Value | Description |
 |-------|-------------|
 | `DIFF_COMPLETENESS_COMPLETE` | Every file's full diff is available; safe to approve. |
-| `DIFF_COMPLETENESS_PARTIAL_BLOCKED` | At least one file's diff is elided/truncated/uncapturable; approval is blocked until the full diff is available. |
-| `DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY` | Only a binary-change summary is available (no text diff); approval requires the explicit binary-change UX, not a text-diff review. |
+| `DIFF_COMPLETENESS_PARTIAL_BLOCKED` | At least one file has a non-binary incompleteness (elided/truncated/ secret-withheld/uncapturable) with no keepable bytes. |
+| `DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY` | The set's ONLY incompleteness is binary files: every non-binary file is fully reviewable, and the remaining files are binary (a byte-true summary, no text diff). |
 
 ### FileReviewEventType
 

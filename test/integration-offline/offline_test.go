@@ -4,6 +4,7 @@ package offline
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,24 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// requireOfflineService is the file-review tests' prerequisite. Unlike
+// requireOfflinePrereqs it does NOT gate on the MCP test-server binary, because
+// the native filesystem tools are always present without any MCP server.
+func requireOfflineService(t *testing.T) {
+	t.Helper()
+	require.NotNil(t, testHarness.Service, "java service must be running")
+	require.NotNil(t, grpcConn, "gRPC connection required")
+}
+
+// uniqueWorkspacePath returns a workspace-relative file path unique to this run.
+// The path is deliberately relative (the deepagents FilesystemBackend resolves it
+// under the workspace root); the offline runner shares one WORKSPACE_ROOT_DIR
+// across the suite and write_file is create-only, so a per-run nonce keeps tests
+// isolated and re-runnable.
+func uniqueWorkspacePath(label string) string {
+	return fmt.Sprintf("phase5-%s-%d.txt", label, time.Now().UnixNano())
+}
 
 // startOfflineRunner creates a MockLLMProxyServer from the given entries,
 // starts a UnifiedRunnerManager pointed at it, and returns both. The runner

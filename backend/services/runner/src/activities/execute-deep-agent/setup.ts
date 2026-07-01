@@ -29,10 +29,8 @@ import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
-import { CapturingFilesystemBackend } from "./capturing-filesystem-backend.js";
 import { CasCaptureFilesystemBackend } from "./cas-capture-backend.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
-import { FileChangeCaptureBuffer } from "./file-change-buffer.js";
 import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-substrate.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
@@ -106,12 +104,6 @@ export interface SetupResult {
   readonly globalBypass: boolean;
   readonly hasStructuredOutput: boolean;
   readonly streamVersion: "v2" | "v3";
-  /**
-   * Race-free before/after captures from the wrapped FilesystemBackend. Used only
-   * in the legacy (non-capture) path; in capture mode the git diff is
-   * authoritative, so the wrapper is not installed and this buffer stays empty.
-   */
-  readonly fileChangeBuffer: FileChangeCaptureBuffer;
   /**
    * The single owner of this turn's CAS-capture state (design docs 08/11/12):
    * the pre-turn bytes of first-touched gitignored paths (recorded
@@ -522,27 +514,15 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     ];
 
     // File capture point. Apply-then-review is universal (Slice 2b), so the
-    // CAS-observing backend is always installed: git-tracked edits flow to disk
-    // (the turn-boundary git diff is authoritative), and the shared CAS observer
-    // records the pre-turn bytes of every CAS-owned path — .gitignored paths in a
-    // git work tree, all touched paths in a non-git one — so the boundary can
-    // capture them into CAS. It is gate-independent, so it holds even under the
-    // global bypass.
-    //
-    // The legacy FileChangeCaptureBuffer + CapturingFilesystemBackend below are
-    // now unreachable at runtime (the ternary always takes the capture arm); they
-    // survive only for their standalone unit surface and are removed together with
-    // `ToolCall.file_changes` in Slice 4 (DD-21 D1).
-    const fileChangeBuffer = new FileChangeCaptureBuffer();
-    const fileBackend = captureMode
-      ? new CasCaptureFilesystemBackend(
-          { rootDir: workspaceBackend.rootDir },
-          { observer: casObserver },
-        )
-      : new CapturingFilesystemBackend(
-          { rootDir: workspaceBackend.rootDir },
-          { buffer: fileChangeBuffer, reader: workspaceBackend },
-        );
+    // CAS-observing backend: git-tracked edits flow to disk (the turn-boundary
+    // git diff is authoritative), and the shared CAS observer records the pre-turn
+    // bytes of every CAS-owned path — .gitignored paths in a git work tree, all
+    // touched paths in a non-git one — so the boundary can capture them into CAS.
+    // It is gate-independent, so it holds even under the global bypass.
+    const fileBackend = new CasCaptureFilesystemBackend(
+      { rootDir: workspaceBackend.rootDir },
+      { observer: casObserver },
+    );
     const agentGraph = await createDeepAgent({
       model,
       checkpointer: checkpointer as any,
@@ -598,7 +578,6 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       globalBypass,
       hasStructuredOutput: !!outputSchema,
       streamVersion,
-      fileChangeBuffer,
       casObserver,
       captureMode,
       gitWorkspace,

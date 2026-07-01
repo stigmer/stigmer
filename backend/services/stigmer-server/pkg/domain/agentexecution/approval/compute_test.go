@@ -313,61 +313,14 @@ func TestProjectToolCallCopiesToolKind(t *testing.T) {
 	}
 }
 
-// TestProjectToolCallCopiesFileChanges verifies the runner's approval-time
-// before/after capture (ToolCall.file_changes) is denormalized onto the
-// pending-approval projection, so the HITL gate renders an inline diff without
-// correlating back to the originating ToolCall (which, for workflow-parent
-// approvals, is not co-located with the approval). Mirrors the tool_kind test.
-func TestProjectToolCallCopiesFileChanges(t *testing.T) {
-	tc := makeToolCall("tc1", "edit_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
-	tc.FileChanges = []*agentexecutionv1.FileChange{
-		{
-			Path:         "src/app/main.ts",
-			ChangeType:   agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_MODIFY,
-			CaptureLevel: agentexecutionv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE,
-			Before:       &agentexecutionv1.FileContent{Body: &agentexecutionv1.FileContent_Inline{Inline: "old"}},
-			After:        &agentexecutionv1.FileContent{Body: &agentexecutionv1.FileContent_Inline{Inline: "new"}},
-		},
-	}
-
-	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(tc)}, nil)
-	if len(got) != 1 {
-		t.Fatalf("got %d pending approvals, want 1", len(got))
-	}
-	changes := got[0].GetFileChanges()
-	if len(changes) != 1 {
-		t.Fatalf("got %d file changes, want 1", len(changes))
-	}
-	if changes[0].GetPath() != "src/app/main.ts" {
-		t.Errorf("FileChange.Path = %q, want %q", changes[0].GetPath(), "src/app/main.ts")
-	}
-	if changes[0].GetChangeType() != agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_MODIFY {
-		t.Errorf("FileChange.ChangeType = %v, want FILE_CHANGE_TYPE_MODIFY", changes[0].GetChangeType())
-	}
-	if changes[0].GetBefore().GetInline() != "old" || changes[0].GetAfter().GetInline() != "new" {
-		t.Errorf("FileChange before/after = %q/%q, want old/new",
-			changes[0].GetBefore().GetInline(), changes[0].GetAfter().GetInline())
-	}
-}
-
-// TestProjectToolCallSingleGatePerCreateCarriesContent verifies the projection
-// shape the Cursor runner persists after its denial-correlation fix: ONE
-// WAITING_APPROVAL create carrying its WHOLE_FILE CREATE content. A settled
-// (FAILED) tool call for the same file — a leftover the append-only-at-identity
-// transcript guard forbids removing — must NOT project a second approval (it is
-// not WAITING_APPROVAL), and the create's content must reach the gate so the UI
-// renders the new-file diff rather than "No preview available". Mirrors the Java
+// TestProjectToolCallSingleGatePerCreate verifies the projection shape the Cursor
+// runner persists after its denial-correlation fix: ONE WAITING_APPROVAL create
+// projects a pending approval. A settled (FAILED) tool call for the same file — a
+// leftover the append-only-at-identity transcript guard forbids removing — must
+// NOT project a second approval (it is not WAITING_APPROVAL). Mirrors the Java
 // PendingApprovalComputerTest case of the same name.
-func TestProjectToolCallSingleGatePerCreateCarriesContent(t *testing.T) {
+func TestProjectToolCallSingleGatePerCreate(t *testing.T) {
 	gated := makeToolCall("tc-create", "write_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
-	gated.FileChanges = []*agentexecutionv1.FileChange{
-		{
-			Path:         "notes.md",
-			ChangeType:   agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_CREATE,
-			CaptureLevel: agentexecutionv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE,
-			After:        &agentexecutionv1.FileContent{Body: &agentexecutionv1.FileContent_Inline{Inline: "# Notes\n"}},
-		},
-	}
 	settledDuplicate := makeToolCall("tc-create-dup", "write_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_FAILED, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
 
 	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(gated, settledDuplicate)}, nil)
@@ -377,40 +330,15 @@ func TestProjectToolCallSingleGatePerCreateCarriesContent(t *testing.T) {
 	if got[0].GetToolCallId() != "tc-create" {
 		t.Errorf("ToolCallId = %q, want %q", got[0].GetToolCallId(), "tc-create")
 	}
-	changes := got[0].GetFileChanges()
-	if len(changes) != 1 {
-		t.Fatalf("got %d file changes, want 1", len(changes))
-	}
-	if changes[0].GetChangeType() != agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_CREATE {
-		t.Errorf("FileChange.ChangeType = %v, want FILE_CHANGE_TYPE_CREATE", changes[0].GetChangeType())
-	}
-	if changes[0].GetAfter().GetInline() != "# Notes\n" {
-		t.Errorf("FileChange.After = %q, want %q", changes[0].GetAfter().GetInline(), "# Notes\n")
-	}
-	if changes[0].GetBefore() != nil {
-		t.Errorf("FileChange.Before = %v, want nil for a create", changes[0].GetBefore())
-	}
 }
 
-// TestProjectToolCallCollapsedTwinProjectsSingleGateWithBeforeAfter locks the
-// projection shape the Cursor runner persists after its duplicate-collapse fix:
-// one WAITING_APPROVAL edit carrying a WHOLE_FILE before/after MODIFY (the
-// reported whole-file-rewrite case), beside a same-resource twin the runner
-// collapsed IN PLACE to a content-less SKIPPED row (it cannot drop the committed
-// id). The SKIPPED twin must NOT project a second approval, and the gate's real
-// before/after must reach the card. Mirrors the Java PendingApprovalComputerTest
-// case of the same name.
-func TestProjectToolCallCollapsedTwinProjectsSingleGateWithBeforeAfter(t *testing.T) {
+// TestProjectToolCallCollapsedTwinProjectsSingleGate locks the projection shape
+// the Cursor runner persists after its duplicate-collapse fix: one
+// WAITING_APPROVAL edit beside a same-resource twin the runner collapsed IN PLACE
+// to a SKIPPED row (it cannot drop the committed id). The SKIPPED twin must NOT
+// project a second approval. Mirrors the Java PendingApprovalComputerTest case.
+func TestProjectToolCallCollapsedTwinProjectsSingleGate(t *testing.T) {
 	gated := makeToolCall("tc-edit", "edit", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
-	gated.FileChanges = []*agentexecutionv1.FileChange{
-		{
-			Path:         "notes.md",
-			ChangeType:   agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_MODIFY,
-			CaptureLevel: agentexecutionv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE,
-			Before:       &agentexecutionv1.FileContent{Body: &agentexecutionv1.FileContent_Inline{Inline: "one\ntwo\n"}},
-			After:        &agentexecutionv1.FileContent{Body: &agentexecutionv1.FileContent_Inline{Inline: "alpha\nbeta\n"}},
-		},
-	}
 	// The collapsed twin: SKIPPED, no longer requires approval.
 	collapsedTwin := makeToolCall("tc-edit-dup", "edit", agentexecutionv1.ToolCallStatus_TOOL_CALL_SKIPPED, false, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
 
@@ -420,33 +348,6 @@ func TestProjectToolCallCollapsedTwinProjectsSingleGateWithBeforeAfter(t *testin
 	}
 	if got[0].GetToolCallId() != "tc-edit" {
 		t.Errorf("ToolCallId = %q, want %q", got[0].GetToolCallId(), "tc-edit")
-	}
-	changes := got[0].GetFileChanges()
-	if len(changes) != 1 {
-		t.Fatalf("got %d file changes, want 1", len(changes))
-	}
-	if changes[0].GetChangeType() != agentexecutionv1.FileChangeType_FILE_CHANGE_TYPE_MODIFY {
-		t.Errorf("FileChange.ChangeType = %v, want FILE_CHANGE_TYPE_MODIFY", changes[0].GetChangeType())
-	}
-	if changes[0].GetBefore().GetInline() != "one\ntwo\n" {
-		t.Errorf("FileChange.Before = %q, want %q", changes[0].GetBefore().GetInline(), "one\ntwo\n")
-	}
-	if changes[0].GetAfter().GetInline() != "alpha\nbeta\n" {
-		t.Errorf("FileChange.After = %q, want %q", changes[0].GetAfter().GetInline(), "alpha\nbeta\n")
-	}
-}
-
-// TestProjectToolCallNoFileChangesStaysEmpty verifies a non-file tool projects an
-// empty file_changes list (the gate falls back to the args preview).
-func TestProjectToolCallNoFileChangesStaysEmpty(t *testing.T) {
-	tc := makeToolCall("tc1", "execute_sql", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
-
-	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(tc)}, nil)
-	if len(got) != 1 {
-		t.Fatalf("got %d pending approvals, want 1", len(got))
-	}
-	if len(got[0].GetFileChanges()) != 0 {
-		t.Errorf("FileChanges = %d, want 0 for a non-file tool", len(got[0].GetFileChanges()))
 	}
 }
 

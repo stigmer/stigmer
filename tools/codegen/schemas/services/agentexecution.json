@@ -1982,50 +1982,6 @@
       ]
     },
     {
-      "name": "FileChangeType",
-      "description": "FileChangeType is the per-file outcome of a file mutation in a tool call.\n\n Distinct from ToolKind, which classifies the tool: a single tool call may\n produce several FileChanges of different types (multi-file edits).\n\n @since First-Class Diff Review (#186)",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeType",
-      "values": [
-        {
-          "name": "FILE_CHANGE_TYPE_CREATE",
-          "number": 1,
-          "description": "A new file was created."
-        },
-        {
-          "name": "FILE_CHANGE_TYPE_MODIFY",
-          "number": 2,
-          "description": "An existing file's contents were modified."
-        },
-        {
-          "name": "FILE_CHANGE_TYPE_DELETE",
-          "number": 3,
-          "description": "A file was deleted."
-        },
-        {
-          "name": "FILE_CHANGE_TYPE_RENAME",
-          "number": 4,
-          "description": "A file was renamed or moved; FileChange.rename_from holds the source path."
-        }
-      ]
-    },
-    {
-      "name": "FileChangeCaptureLevel",
-      "description": "FileChangeCaptureLevel describes how complete a FileChange's captured content\n is, so clients render whole-file vs hunk-only diffs honestly per harness.\n\n @since First-Class Diff Review (#186)",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel",
-      "values": [
-        {
-          "name": "FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE",
-          "number": 1,
-          "description": "Full before+after content captured (native edit/write; future Cursor\n pre-read). Clients render a true two-pane diff."
-        },
-        {
-          "name": "FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY",
-          "number": 2,
-          "description": "Only a hunk-level unified_diff is available (Cursor today). Clients render\n the hunk diff; before/after whole-file content is absent."
-        }
-      ]
-    },
-    {
       "name": "FileChangeSetStatus",
       "description": "FileChangeSetStatus is the state of a FileChangeSet, DERIVED by folding its\n file-review events (never stored-mutable).\n\n @since File-Change HITL Redesign (Phase 1)",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus",
@@ -3151,20 +3107,6 @@
           "required": false
         },
         {
-          "name": "FileChanges",
-          "jsonName": "fileChanges",
-          "protoField": "file_changes",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "FileChange"
-            }
-          },
-          "description": "File changes the gated call would produce. Copied from\n ToolCall.file_changes; large bodies are already offloaded to\n FileContent.ref before projection.",
-          "required": false
-        },
-        {
           "name": "ApprovalPolicySource",
           "jsonName": "approvalPolicySource",
           "protoField": "approval_policy_source",
@@ -3603,128 +3545,6 @@
             "kind": "string"
           },
           "description": "SHA-256 hex digest of the uploaded artifact bytes.\n\n Used as a cache-invalidation signal by UI clients: when the same file\n is overwritten (e.g., written then edited in the same execution), the\n storage_key remains stable but the content_hash changes. Clients\n include this value in their fetch-effect dependencies so that content\n is re-fetched whenever the underlying bytes change.\n\n Empty for older artifacts created before this field was added.\n Example: \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "FileChange",
-      "description": "A single file mutation produced by a tool call.\n\n Large before/after bodies are offloaded to artifact storage via the existing\n ToolCallOutputRef envelope; small bodies stay inline. capture_level tells\n clients how complete the content is so they render whole-file vs hunk-only\n diffs honestly per harness.\n\n @since First-Class Diff Review (#186)",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChange",
-      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/message.proto",
-      "fields": [
-        {
-          "name": "Path",
-          "jsonName": "path",
-          "protoField": "path",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Workspace-root-relative path for display, e.g. \"src/app/main.ts\".\n Falls back to absolute_path when the workspace root is unknown.",
-          "required": false
-        },
-        {
-          "name": "AbsolutePath",
-          "jsonName": "absolutePath",
-          "protoField": "absolute_path",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Absolute on-disk path, retained for \"open in editor\" and diagnostics.",
-          "required": false
-        },
-        {
-          "name": "ChangeType",
-          "jsonName": "changeType",
-          "protoField": "change_type",
-          "type": {
-            "kind": "string",
-            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileChangeType",
-            "enumValues": [
-              "FILE_CHANGE_TYPE_CREATE",
-              "FILE_CHANGE_TYPE_MODIFY",
-              "FILE_CHANGE_TYPE_DELETE",
-              "FILE_CHANGE_TYPE_RENAME"
-            ]
-          },
-          "description": "The per-file outcome of this change.\n\n Distinct from ToolCall.tool_kind, which classifies the tool: one tool call\n may yield several FileChanges of different types (multi-file edits), and a\n FILE_WRITE tool yields CREATE for a new file or MODIFY when it overwrites\n an existing one.",
-          "required": false
-        },
-        {
-          "name": "CaptureLevel",
-          "jsonName": "captureLevel",
-          "protoField": "capture_level",
-          "type": {
-            "kind": "string",
-            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel",
-            "enumValues": [
-              "FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE",
-              "FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY"
-            ]
-          },
-          "description": "How complete the captured content is.\n\n WHOLE_FILE: before/after carry full content. HUNK_ONLY: only unified_diff\n is available (Cursor today).",
-          "required": false
-        },
-        {
-          "name": "Before",
-          "jsonName": "before",
-          "protoField": "before",
-          "type": {
-            "kind": "message",
-            "messageType": "FileContent"
-          },
-          "description": "Pre-edit content. Empty for CREATE, or when capture_level is HUNK_ONLY.",
-          "required": false
-        },
-        {
-          "name": "After",
-          "jsonName": "after",
-          "protoField": "after",
-          "type": {
-            "kind": "message",
-            "messageType": "FileContent"
-          },
-          "description": "Post-edit content. Empty for DELETE, or when capture_level is HUNK_ONLY.",
-          "required": false
-        },
-        {
-          "name": "UnifiedDiff",
-          "jsonName": "unifiedDiff",
-          "protoField": "unified_diff",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Unified hunk-level diff. The primary payload for HUNK_ONLY captures\n (Cursor's diffString); small and always safe to render even when\n before/after are absent. Derivable from before/after for WHOLE_FILE.",
-          "required": false
-        },
-        {
-          "name": "LinesAdded",
-          "jsonName": "linesAdded",
-          "protoField": "lines_added",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Lines added by this change.",
-          "required": false
-        },
-        {
-          "name": "LinesRemoved",
-          "jsonName": "linesRemoved",
-          "protoField": "lines_removed",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Lines removed by this change.",
-          "required": false
-        },
-        {
-          "name": "RenameFrom",
-          "jsonName": "renameFrom",
-          "protoField": "rename_from",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Source path for RENAME; path holds the destination. Empty otherwise.",
           "required": false
         }
       ]
@@ -4600,20 +4420,6 @@
           "required": false
         },
         {
-          "name": "FileChanges",
-          "jsonName": "fileChanges",
-          "protoField": "file_changes",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "FileChange"
-            }
-          },
-          "description": "File changes the gated tool call would produce (create / modify / delete /\n rename), captured by the runner at approval-request time: `before` is read\n from the workspace when the approval is raised, `after` is derived from the\n tool args. Copied from ToolCall.file_changes by the server-side projection\n (exactly as tool_kind above is), so approval surfaces — including\n workflow-parent approvals, where the originating ToolCall is not co-located\n with the approval — can render an inline before/after diff in the gate\n without a client-side lookup.\n\n Large before/after bodies are offloaded to object storage (FileContent.ref)\n at persist time before this projection runs, so this list carries references,\n not megabytes. Empty for non-file-modifying tools. See FileChange.",
-          "required": false
-        },
-        {
           "name": "ApprovalPolicySource",
           "jsonName": "approvalPolicySource",
           "protoField": "approval_policy_source",
@@ -5448,20 +5254,6 @@
             "messageType": "ToolCallOutputRef"
           },
           "description": "─────────────────────────────────────────────────────────────────────────────\n Offloaded Output (large tool results)\n\n When a tool's output exceeds a size threshold, the runner spills the full\n bytes to artifact storage and records a reference here instead of inlining\n megabytes into `result` on every status update. Without this, a single\n large result (e.g. a base64 screenshot or a multi-MB accessibility tree)\n pushes AgentExecutionStatus past the gRPC message-size limit, so status\n persistence fails silently and the live UI freezes mid-execution.\n\n When set, `result` holds only a short human-readable head/preview (so\n consumers that read `result` still render something sensible) and\n output_ref points at the full content. Empty for the overwhelming majority\n of tool calls — only populated when output crosses the offload threshold.\n See ToolCallOutputRef.\n\n Field 21: appended after tool_kind (20), the prior maximum.",
-          "required": false
-        },
-        {
-          "name": "FileChanges",
-          "jsonName": "fileChanges",
-          "protoField": "file_changes",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "FileChange"
-            }
-          },
-          "description": "File changes produced by this tool call (create / modify / delete / rename).\n\n Populated by the runner for file-modifying tools. repeated because some\n tools (notably multi-file MCP edits) mutate several files in one call. This\n is the single source of truth for both the HITL approval-gate diff (set at\n approval-request time) and the post-execution Changes view; clients read it\n from the ToolCall directly rather than from a second copy.\n\n Field 22: appended after output_ref (21), the prior maximum.\n\n @since First-Class Diff Review (#186)",
           "required": false
         },
         {

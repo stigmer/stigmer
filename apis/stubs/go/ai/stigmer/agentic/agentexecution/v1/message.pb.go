@@ -249,18 +249,6 @@ type ToolCall struct {
 	//
 	// Field 21: appended after tool_kind (20), the prior maximum.
 	OutputRef *ToolCallOutputRef `protobuf:"bytes,21,opt,name=output_ref,json=outputRef,proto3" json:"output_ref,omitempty"`
-	// File changes produced by this tool call (create / modify / delete / rename).
-	//
-	// Populated by the runner for file-modifying tools. repeated because some
-	// tools (notably multi-file MCP edits) mutate several files in one call. This
-	// is the single source of truth for both the HITL approval-gate diff (set at
-	// approval-request time) and the post-execution Changes view; clients read it
-	// from the ToolCall directly rather than from a second copy.
-	//
-	// Field 22: appended after output_ref (21), the prior maximum.
-	//
-	// @since First-Class Diff Review (#186)
-	FileChanges []*FileChange `protobuf:"bytes,22,rep,name=file_changes,json=fileChanges,proto3" json:"file_changes,omitempty"`
 	// Policy layer that decided this tool call's approval requirement, set by the
 	// runner's approval gate so clients can explain "why was this gated or
 	// auto-approved?".
@@ -472,13 +460,6 @@ func (x *ToolCall) GetToolKind() ToolKind {
 func (x *ToolCall) GetOutputRef() *ToolCallOutputRef {
 	if x != nil {
 		return x.OutputRef
-	}
-	return nil
-}
-
-func (x *ToolCall) GetFileChanges() []*FileChange {
-	if x != nil {
-		return x.FileChanges
 	}
 	return nil
 }
@@ -878,8 +859,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"tool_calls\x18\x04 \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x123\n" +
 	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
-	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\x8f\n" +
-	"\n" +
+	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\xc0\t\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -904,11 +884,10 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\fargs_preview\x18\x12 \x01(\tR\vargsPreview\x12K\n" +
 	"\ttool_kind\x18\x14 \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\x12V\n" +
 	"\n" +
-	"output_ref\x18\x15 \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefR\toutputRef\x12S\n" +
-	"\ffile_changes\x18\x16 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.FileChangeR\vfileChanges\x12p\n" +
+	"output_ref\x18\x15 \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefR\toutputRef\x12p\n" +
 	"\x16approval_policy_source\x18\x17 \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\x122\n" +
 	"\x15policy_engine_version\x18\x18 \x01(\tR\x13policyEngineVersion\x126\n" +
-	"\x17approval_content_digest\x18\x19 \x01(\tR\x15approvalContentDigest\"\xdb\x01\n" +
+	"\x17approval_content_digest\x18\x19 \x01(\tR\x15approvalContentDigestJ\x04\b\x16\x10\x17\"\xdb\x01\n" +
 	"\x11ToolCallOutputRef\x12\x1f\n" +
 	"\vstorage_key\x18\x01 \x01(\tR\n" +
 	"storageKey\x12\x1d\n" +
@@ -980,18 +959,17 @@ var file_ai_stigmer_agentic_agentexecution_v1_message_proto_depIdxs = []int32{
 	9,  // 6: ai.stigmer.agentic.agentexecution.v1.ToolCall.streaming_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
 	10, // 7: ai.stigmer.agentic.agentexecution.v1.ToolCall.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
 	2,  // 8: ai.stigmer.agentic.agentexecution.v1.ToolCall.output_ref:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
-	3,  // 9: ai.stigmer.agentic.agentexecution.v1.ToolCall.file_changes:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChange
-	11, // 10: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_policy_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
-	12, // 11: ai.stigmer.agentic.agentexecution.v1.FileChange.change_type:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeType
-	13, // 12: ai.stigmer.agentic.agentexecution.v1.FileChange.capture_level:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
-	4,  // 13: ai.stigmer.agentic.agentexecution.v1.FileChange.before:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
-	4,  // 14: ai.stigmer.agentic.agentexecution.v1.FileChange.after:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
-	2,  // 15: ai.stigmer.agentic.agentexecution.v1.FileContent.ref:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	11, // 9: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_policy_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	12, // 10: ai.stigmer.agentic.agentexecution.v1.FileChange.change_type:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeType
+	13, // 11: ai.stigmer.agentic.agentexecution.v1.FileChange.capture_level:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
+	4,  // 12: ai.stigmer.agentic.agentexecution.v1.FileChange.before:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
+	4,  // 13: ai.stigmer.agentic.agentexecution.v1.FileChange.after:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
+	2,  // 14: ai.stigmer.agentic.agentexecution.v1.FileContent.ref:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_message_proto_init() }

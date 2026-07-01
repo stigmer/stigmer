@@ -1,42 +1,26 @@
 /**
- * Pre-execution file-change capture for the HITL approval gate (native harness).
+ * Pre-execution args capture for the HITL approval gate (native harness).
  *
- * The sibling of {@link FileChangeCoordinator}, which captures the *post*-edit
- * before/after at the file-mutation point. This module captures the *proposed*
- * change at the moment the graph pauses for approval — before the tool runs — so
- * the gate can render a real diff instead of a bare args preview.
+ * When the graph pauses for approval — before the tool runs — this captures a
+ * sanitized args preview so the gate can show the proposed change. It owns only
+ * the native-specific seam: correlating a gated `tool_call_id` to its arguments
+ * from graph state (the authoritative single source of truth at the interrupt,
+ * since the streamed input cache is empty and the interrupt value carries only a
+ * few fields). The approval card renders the proposed write/edit content from
+ * these args; there is no separate captured `file_changes` (removed in Phase 5
+ * Slice 4 — the args are the single source, and the Cursor deny-gate's
+ * exact-apply reads the same args on resume; see execute-cursor/exact-apply.ts).
  *
- * This module owns only the native-specific seam: correlating a gated
- * `tool_call_id` to its arguments from graph state (the authoritative
- * single source of truth at the interrupt, since the streamed input cache is
- * empty and the interrupt value carries only four fields). The actual capture —
- * shape detection, the workspace before-read, and the CREATE/MODIFY/HUNK
- * decision — lives in the harness-agnostic {@link buildGateFileChange}, shared
- * with the Cursor gate so the two harnesses cannot drift. The graph is genuinely
- * paused at the interrupt, so the shared before-read observes the true pre-edit
- * content race-free.
- *
- * @since First-Class Diff Review (#186), approval-gate phase;
- *        cross-harness gate unification (HITL diff)
+ * @since First-Class Diff Review (#186), approval-gate phase
  */
-
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { buildGateFileChange } from "../../shared/gate-file-change.js";
-import { synthesizeHunkDiff } from "../../shared/hunk-diff.js";
-import type { WorkspaceBackend } from "../../shared/workspace/types.js";
-import { sanitizeArgsPreview } from "./status-builder-shared.js";
-
-// Re-exported so existing importers (and tests) of the native module keep their
-// path; the implementation now lives in the harness-agnostic shared/hunk-diff.
-export { synthesizeHunkDiff };
 
 /** What the gate capture contributes to a `WAITING_APPROVAL` `ToolCall`. */
 export interface ApprovalCaptureResult {
   /** Sanitized JSON args preview, omitted when there are no args to show. */
   readonly argsPreview?: string;
-  /** The proposed file change, omitted for non-file tools or a missing path. */
-  readonly fileChange?: FileChange;
 }
+
+import { sanitizeArgsPreview } from "./status-builder-shared.js";
 
 /**
  * Correlate a gated `tool_call_id` to its arguments by scanning graph-state
@@ -78,40 +62,19 @@ export function findAiMessageToolCallArgs(
 }
 
 /**
- * Build the proposed `FileChange` for a gated native (deepagents) tool call.
- *
- * Thin wrapper over the shared {@link buildGateFileChange} that pins the native
- * path convention (`virtualRoot: true` — a leading "/" denotes the workspace
- * root). All capture logic — shape detection, the workspace before-read, and the
- * CREATE/MODIFY/HUNK decision — lives in the one shared builder both harnesses
- * use, so the two can never drift. Output is unchanged from the prior native-only
- * implementation (the field set is a superset; native args are a subset).
- */
-export function buildApprovalFileChange(
-  toolName: string,
-  args: Record<string, unknown>,
-  workspaceBackend: WorkspaceBackend,
-): Promise<FileChange | undefined> {
-  return buildGateFileChange(toolName, args, workspaceBackend, { virtualRoot: true });
-}
-
-/**
- * Capture both gate artifacts — the sanitized args preview and the proposed file
- * change — from a single correlation lookup, keeping the call site thin.
+ * Capture the gate's args preview from a single correlation lookup, keeping the
+ * call site thin.
  *
  * Returns an empty result when the tool call cannot be correlated or took no
  * arguments, so the gate falls back to today's behavior for that interrupt.
  */
-export async function captureApprovalArtifacts(opts: {
-  readonly toolName: string;
+export function captureApprovalArtifacts(opts: {
   readonly toolCallId: string;
   readonly messages: readonly unknown[];
-  readonly workspaceBackend: WorkspaceBackend;
-}): Promise<ApprovalCaptureResult> {
+}): ApprovalCaptureResult {
   const args = findAiMessageToolCallArgs(opts.messages, opts.toolCallId);
   if (!args || Object.keys(args).length === 0) return {};
 
   const argsPreview = sanitizeArgsPreview(args) || undefined;
-  const fileChange = await buildApprovalFileChange(opts.toolName, args, opts.workspaceBackend);
-  return { argsPreview, fileChange };
+  return { argsPreview };
 }

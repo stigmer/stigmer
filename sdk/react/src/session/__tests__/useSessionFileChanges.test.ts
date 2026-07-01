@@ -7,15 +7,7 @@ import {
   type AgentExecution,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-  FileChangeSchema,
-  FileContentSchema,
-  type FileChange,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
@@ -37,94 +29,32 @@ import { useSessionFileChanges } from "../useSessionFileChanges";
 
 // ---------------------------------------------------------------------------
 // Fixtures
+//
+// Under apply-then-review the hook sources exclusively from the file-review
+// ledger (the live `file_change_sets` projection, or the folded
+// `file_review_event_stream` for a terminal execution). The tool-call-coupled
+// `ToolCall.file_changes` (message.proto field 22) was removed in Phase 5
+// Slice 4, so every fixture here is a CapturedFileChange.
 // ---------------------------------------------------------------------------
 
 function inlineSide(value: string) {
   return create(FileContentSchema, { body: { case: "inline", value } });
 }
 
-function wholeFile(opts: {
-  path: string;
-  before?: string;
-  after?: string;
-  changeType?: FileChangeType;
-  renameFrom?: string;
-}): FileChange {
-  return create(FileChangeSchema, {
-    path: opts.path,
-    changeType: opts.changeType ?? FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-    before: opts.before !== undefined ? inlineSide(opts.before) : undefined,
-    after: opts.after !== undefined ? inlineSide(opts.after) : undefined,
-    renameFrom: opts.renameFrom ?? "",
-  });
-}
-
-function hunkOnly(opts: {
-  path: string;
-  unifiedDiff: string;
-  linesAdded: number;
-  linesRemoved: number;
-  changeType?: FileChangeType;
-}): FileChange {
-  return create(FileChangeSchema, {
-    path: opts.path,
-    changeType: opts.changeType ?? FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-    unifiedDiff: opts.unifiedDiff,
-    linesAdded: opts.linesAdded,
-    linesRemoved: opts.linesRemoved,
-  });
-}
-
-function toolCallWith(id: string, changes: FileChange[]): ToolCall {
-  return create(ToolCallSchema, { id, name: "edit_file", fileChanges: changes });
-}
-
-function execWith(opts: {
+function captured(opts: {
   id: string;
-  toolCalls?: ToolCall[];
-  subAgentToolCalls?: ToolCall[];
-}): AgentExecution {
-  const exec = create(AgentExecutionSchema);
-  exec.metadata = create(ApiResourceMetadataSchema, { id: opts.id });
-  const status = create(AgentExecutionStatusSchema);
-  if (opts.toolCalls) {
-    status.messages = [
-      create(AgentMessageSchema, { toolCalls: opts.toolCalls }),
-    ];
-  }
-  if (opts.subAgentToolCalls) {
-    status.subAgentExecutions = [
-      create(SubAgentExecutionSchema, {
-        id: "sub-1",
-        messages: [
-          create(AgentMessageSchema, { toolCalls: opts.subAgentToolCalls }),
-        ],
-      }),
-    ];
-  }
-  exec.status = status;
-  return exec;
-}
-
-function run(executions: readonly AgentExecution[]) {
-  return renderHook(() => useSessionFileChanges(executions)).result.current;
-}
-
-// --- File-review ledger fixtures (the primary, capture-mode source) ----------
-
-function capturedWhole(opts: {
-  id: string;
-  path: string;
+  pathBefore?: string;
+  pathAfter?: string;
   before?: string;
   after?: string;
   kind?: FileChangeKind;
 }): CapturedFileChange {
+  const pathBefore = opts.pathBefore ?? opts.pathAfter ?? "";
+  const pathAfter = opts.pathAfter ?? opts.pathBefore ?? "";
   return create(CapturedFileChangeSchema, {
     id: opts.id,
-    pathBefore: opts.path,
-    pathAfter: opts.path,
+    pathBefore,
+    pathAfter,
     kind: opts.kind ?? FileChangeKind.MODIFY,
     before: opts.before !== undefined ? inlineSide(opts.before) : undefined,
     after: opts.after !== undefined ? inlineSide(opts.after) : undefined,
@@ -132,9 +62,16 @@ function capturedWhole(opts: {
   });
 }
 
+function execWith(id: string): AgentExecution {
+  const exec = create(AgentExecutionSchema);
+  exec.metadata = create(ApiResourceMetadataSchema, { id });
+  exec.status = create(AgentExecutionStatusSchema);
+  return exec;
+}
+
 /** An execution carrying a live server projection of one change set. */
 function execWithProjection(id: string, changes: CapturedFileChange[]): AgentExecution {
-  const exec = execWith({ id });
+  const exec = execWith(id);
   exec.status!.fileChangeSets = [
     create(FileChangeSetSchema, {
       id: `${id}:0`,
@@ -147,7 +84,7 @@ function execWithProjection(id: string, changes: CapturedFileChange[]): AgentExe
 
 /** A terminal execution: empty projection, changes only in the durable ledger. */
 function execWithLedger(id: string, changes: CapturedFileChange[]): AgentExecution {
-  const exec = execWith({ id });
+  const exec = execWith(id);
   exec.status!.phase = ExecutionPhase.EXECUTION_COMPLETED;
   exec.status!.fileChangeSets = [];
   const changeSetId = `${id}:0`;
@@ -175,6 +112,10 @@ function execWithLedger(id: string, changes: CapturedFileChange[]): AgentExecuti
   return exec;
 }
 
+function run(executions: readonly AgentExecution[]) {
+  return renderHook(() => useSessionFileChanges(executions)).result.current;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -187,46 +128,38 @@ describe("useSessionFileChanges", () => {
     expect(r.fileChanges).toEqual([]);
   });
 
-  it("returns empty when executions have no file changes", () => {
-    const r = run([execWith({ id: "e1", toolCalls: [toolCallWith("tc1", [])] })]);
+  it("returns empty when an execution has no file-review changes", () => {
+    const r = run([execWith("e1")]);
     expect(r.hasFileChanges).toBe(false);
   });
 
-  it("collects a single change from a main-thread tool call", () => {
+  it("collects a single change from the live projection", () => {
     const r = run([
-      execWith({
-        id: "e1",
-        toolCalls: [
-          toolCallWith("tc1", [wholeFile({ path: "src/a.ts", before: "a", after: "b" })]),
-        ],
-      }),
+      execWithProjection("e1", [
+        captured({ id: "fc1", pathAfter: "src/a.ts", before: "a", after: "b" }),
+      ]),
     ]);
     expect(r.fileChangeCount).toBe(1);
     expect(r.fileChanges[0].path).toBe("src/a.ts");
+    expect(r.fileChanges[0].captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
   });
 
-  it("collects changes nested in sub-agent tool calls", () => {
+  it("collects changes from the durable ledger for a terminal execution", () => {
     const r = run([
-      execWith({
-        id: "e1",
-        subAgentToolCalls: [
-          toolCallWith("tc1", [wholeFile({ path: "src/sub.ts", before: "x", after: "y" })]),
-        ],
-      }),
+      execWithLedger("e1", [
+        captured({ id: "fc1", pathAfter: "src/term.ts", before: "a", after: "b" }),
+      ]),
     ]);
     expect(r.fileChangeCount).toBe(1);
-    expect(r.fileChanges[0].path).toBe("src/sub.ts");
+    expect(r.fileChanges[0].path).toBe("src/term.ts");
   });
 
   it("net-diffs multiple edits to the same path: first.before -> last.after", () => {
     const r = run([
-      execWith({
-        id: "e1",
-        toolCalls: [
-          toolCallWith("tc1", [wholeFile({ path: "src/a.ts", before: "v0", after: "v1" })]),
-          toolCallWith("tc2", [wholeFile({ path: "src/a.ts", before: "v1", after: "v2" })]),
-        ],
-      }),
+      execWithProjection("e1", [
+        captured({ id: "fc1", pathAfter: "src/a.ts", before: "v0", after: "v1" }),
+        captured({ id: "fc2", pathAfter: "src/a.ts", before: "v1", after: "v2" }),
+      ]),
     ]);
     expect(r.fileChangeCount).toBe(1);
     const net = r.fileChanges[0];
@@ -236,17 +169,10 @@ describe("useSessionFileChanges", () => {
 
   it("reconciles create-then-modify on the same path to CREATE", () => {
     const r = run([
-      execWith({
-        id: "e1",
-        toolCalls: [
-          toolCallWith("tc1", [
-            wholeFile({ path: "src/new.ts", after: "first", changeType: FileChangeType.CREATE }),
-          ]),
-          toolCallWith("tc2", [
-            wholeFile({ path: "src/new.ts", before: "first", after: "second", changeType: FileChangeType.MODIFY }),
-          ]),
-        ],
-      }),
+      execWithProjection("e1", [
+        captured({ id: "fc1", pathAfter: "src/new.ts", after: "first", kind: FileChangeKind.ADD }),
+        captured({ id: "fc2", pathAfter: "src/new.ts", before: "first", after: "second", kind: FileChangeKind.MODIFY }),
+      ]),
     ]);
     expect(r.fileChanges[0].changeType).toBe(FileChangeType.CREATE);
     expect(r.fileChanges[0].after?.body.case === "inline" && r.fileChanges[0].after.body.value).toBe("second");
@@ -254,32 +180,20 @@ describe("useSessionFileChanges", () => {
 
   it("reconciles modify-then-delete on the same path to DELETE", () => {
     const r = run([
-      execWith({
-        id: "e1",
-        toolCalls: [
-          toolCallWith("tc1", [wholeFile({ path: "src/x.ts", before: "a", after: "b" })]),
-          toolCallWith("tc2", [
-            wholeFile({ path: "src/x.ts", before: "b", changeType: FileChangeType.DELETE }),
-          ]),
-        ],
-      }),
+      execWithProjection("e1", [
+        captured({ id: "fc1", pathAfter: "src/x.ts", before: "a", after: "b" }),
+        captured({ id: "fc2", pathBefore: "src/x.ts", pathAfter: "src/x.ts", before: "b", kind: FileChangeKind.DELETE }),
+      ]),
     ]);
     expect(r.fileChanges[0].changeType).toBe(FileChangeType.DELETE);
   });
 
   it("reconciles create-then-delete on the same path to DELETE (path is not hidden)", () => {
     const r = run([
-      execWith({
-        id: "e1",
-        toolCalls: [
-          toolCallWith("tc1", [
-            wholeFile({ path: "src/tmp.ts", after: "scratch", changeType: FileChangeType.CREATE }),
-          ]),
-          toolCallWith("tc2", [
-            wholeFile({ path: "src/tmp.ts", before: "scratch", changeType: FileChangeType.DELETE }),
-          ]),
-        ],
-      }),
+      execWithProjection("e1", [
+        captured({ id: "fc1", pathAfter: "src/tmp.ts", after: "scratch", kind: FileChangeKind.ADD }),
+        captured({ id: "fc2", pathBefore: "src/tmp.ts", pathAfter: "src/tmp.ts", before: "scratch", kind: FileChangeKind.DELETE }),
+      ]),
     ]);
     // A file created and removed within one session still surfaces, as a DELETE
     // anchored on the first change's (empty) before — it is not silently dropped.
@@ -289,82 +203,58 @@ describe("useSessionFileChanges", () => {
 
   it("reconciles rename-then-modify on the same path to RENAME, preserving rename_from", () => {
     const r = run([
-      execWith({
-        id: "e1",
-        toolCalls: [
-          toolCallWith("tc1", [
-            wholeFile({ path: "src/new-name.ts", before: "a", after: "a", changeType: FileChangeType.RENAME, renameFrom: "src/old-name.ts" }),
-          ]),
-          toolCallWith("tc2", [
-            wholeFile({ path: "src/new-name.ts", before: "a", after: "b", changeType: FileChangeType.MODIFY }),
-          ]),
-        ],
-      }),
+      execWithProjection("e1", [
+        captured({ id: "fc1", pathBefore: "src/old-name.ts", pathAfter: "src/new-name.ts", before: "a", after: "a", kind: FileChangeKind.RENAME }),
+        captured({ id: "fc2", pathAfter: "src/new-name.ts", before: "a", after: "b", kind: FileChangeKind.MODIFY }),
+      ]),
     ]);
     expect(r.fileChanges[0].changeType).toBe(FileChangeType.RENAME);
     expect(r.fileChanges[0].renameFrom).toBe("src/old-name.ts");
     expect(r.fileChanges[0].after?.body.case === "inline" && r.fileChanges[0].after.body.value).toBe("b");
   });
 
-  it("groups across main thread and sub-agents by path", () => {
-    const r = run([
-      execWith({
-        id: "e1",
-        toolCalls: [
-          toolCallWith("tc1", [wholeFile({ path: "src/shared.ts", before: "v0", after: "v1" })]),
-        ],
-        subAgentToolCalls: [
-          toolCallWith("tc2", [wholeFile({ path: "src/shared.ts", before: "v1", after: "v2" })]),
-        ],
+  it("groups changes across change sets by path (the execution-scoped ledger covers sub-agents)", () => {
+    const exec = execWith("e1");
+    exec.status!.fileChangeSets = [
+      create(FileChangeSetSchema, {
+        id: "e1:0",
+        status: FileChangeSetStatus.RECONCILED,
+        changes: [captured({ id: "fc1", pathAfter: "src/shared.ts", before: "v0", after: "v1" })],
       }),
-    ]);
+      create(FileChangeSetSchema, {
+        id: "e1:1",
+        status: FileChangeSetStatus.AWAITING_REVIEW,
+        changes: [captured({ id: "fc2", pathAfter: "src/shared.ts", before: "v1", after: "v2" })],
+      }),
+    ];
+    const r = run([exec]);
     expect(r.fileChangeCount).toBe(1);
     const net = r.fileChanges[0];
     expect(net.before?.body.case === "inline" && net.before.body.value).toBe("v0");
     expect(net.after?.body.case === "inline" && net.after.body.value).toBe("v2");
   });
 
-  it("falls back to HUNK_ONLY when net sides are not both whole-file", () => {
+  it("passes a single change through with its bytes intact (no synthesis)", () => {
     const r = run([
-      execWith({
-        id: "e1",
-        toolCalls: [
-          toolCallWith("tc1", [
-            hunkOnly({ path: "src/h.ts", unifiedDiff: "@@ -1 +1 @@\n-a\n+b", linesAdded: 1, linesRemoved: 1 }),
-          ]),
-          toolCallWith("tc2", [
-            hunkOnly({ path: "src/h.ts", unifiedDiff: "@@ -1 +1 @@\n-b\n+c", linesAdded: 2, linesRemoved: 1 }),
-          ]),
-        ],
-      }),
+      execWithProjection("e1", [
+        captured({ id: "fc1", pathAfter: "src/a.ts", before: "a", after: "b" }),
+      ]),
     ]);
-    const net = r.fileChanges[0];
-    expect(net.captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
-    expect(net.unifiedDiff).toBe("@@ -1 +1 @@\n-b\n+c");
-    expect(net.linesAdded).toBe(2);
-  });
-
-  it("passes through a single change untouched (no synthesis)", () => {
-    const original = wholeFile({ path: "src/a.ts", before: "a", after: "b" });
-    const r = run([
-      execWith({ id: "e1", toolCalls: [toolCallWith("tc1", [original])] }),
-    ]);
-    expect(r.fileChanges[0]).toBe(original);
+    expect(r.fileChangeCount).toBe(1);
+    const only = r.fileChanges[0];
+    expect(only.path).toBe("src/a.ts");
+    expect(only.before?.body.case === "inline" && only.before.body.value).toBe("a");
+    expect(only.after?.body.case === "inline" && only.after.body.value).toBe("b");
   });
 
   it("sorts modified before created/renamed before deleted, then alpha", () => {
     const r = run([
-      execWith({
-        id: "e1",
-        toolCalls: [
-          toolCallWith("tc1", [
-            wholeFile({ path: "z-del.ts", before: "x", changeType: FileChangeType.DELETE }),
-            wholeFile({ path: "a-new.ts", after: "x", changeType: FileChangeType.CREATE }),
-            wholeFile({ path: "m-mod.ts", before: "x", after: "y", changeType: FileChangeType.MODIFY }),
-            wholeFile({ path: "b-mod.ts", before: "x", after: "y", changeType: FileChangeType.MODIFY }),
-          ]),
-        ],
-      }),
+      execWithProjection("e1", [
+        captured({ id: "fc1", pathBefore: "z-del.ts", pathAfter: "z-del.ts", before: "x", kind: FileChangeKind.DELETE }),
+        captured({ id: "fc2", pathAfter: "a-new.ts", after: "x", kind: FileChangeKind.ADD }),
+        captured({ id: "fc3", pathAfter: "m-mod.ts", before: "x", after: "y", kind: FileChangeKind.MODIFY }),
+        captured({ id: "fc4", pathAfter: "b-mod.ts", before: "x", after: "y", kind: FileChangeKind.MODIFY }),
+      ]),
     ]);
     expect(r.fileChanges.map((c) => c.path)).toEqual([
       "b-mod.ts",
@@ -374,40 +264,19 @@ describe("useSessionFileChanges", () => {
     ]);
   });
 
-  it("sources changes from the live file-review projection (CapturedFileChange)", () => {
-    const r = run([
-      execWithProjection("e1", [
-        capturedWhole({ id: "fc1", path: "src/led.ts", before: "a", after: "b" }),
-      ]),
-    ]);
-    expect(r.fileChangeCount).toBe(1);
-    expect(r.fileChanges[0].path).toBe("src/led.ts");
-    expect(r.fileChanges[0].captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
-  });
-
-  it("folds the durable ledger for a terminal execution (empty projection)", () => {
-    const r = run([
-      execWithLedger("e1", [
-        capturedWhole({ id: "fc1", path: "src/term.ts", before: "a", after: "b" }),
-      ]),
-    ]);
-    expect(r.fileChangeCount).toBe(1);
-    expect(r.fileChanges[0].path).toBe("src/term.ts");
-  });
-
-  it("net-diffs captures across turns from the ledger just like legacy edits", () => {
+  it("net-diffs captures across turns from the ledger", () => {
     // Two change sets touching the same path: first.before -> last.after.
-    const exec = execWith({ id: "e1" });
+    const exec = execWith("e1");
     exec.status!.fileChangeSets = [
       create(FileChangeSetSchema, {
         id: "e1:0",
         status: FileChangeSetStatus.RECONCILED,
-        changes: [capturedWhole({ id: "fc1", path: "src/a.ts", before: "v0", after: "v1" })],
+        changes: [captured({ id: "fc1", pathAfter: "src/a.ts", before: "v0", after: "v1" })],
       }),
       create(FileChangeSetSchema, {
         id: "e1:1",
         status: FileChangeSetStatus.AWAITING_REVIEW,
-        changes: [capturedWhole({ id: "fc2", path: "src/a.ts", before: "v1", after: "v2" })],
+        changes: [captured({ id: "fc2", pathAfter: "src/a.ts", before: "v1", after: "v2" })],
       }),
     ];
     const r = run([exec]);
@@ -417,28 +286,11 @@ describe("useSessionFileChanges", () => {
     expect(net.after?.body.case === "inline" && net.after.body.value).toBe("v2");
   });
 
-  it("prefers the ledger and ignores stray legacy field-22 for a capture-mode execution", () => {
-    const exec = execWithProjection("e1", [
-      capturedWhole({ id: "fc1", path: "src/led.ts", before: "a", after: "b" }),
-    ]);
-    // A stray legacy tool-call change must NOT be double-counted alongside the ledger.
-    exec.status!.messages = [
-      create(AgentMessageSchema, {
-        toolCalls: [
-          toolCallWith("tc1", [wholeFile({ path: "src/legacy.ts", before: "a", after: "b" })]),
-        ],
-      }),
-    ];
-    const r = run([exec]);
-    expect(r.fileChanges.map((c) => c.path)).toEqual(["src/led.ts"]);
-  });
-
   it("preserves referential stability across re-renders for the same executions", () => {
     const executions = [
-      execWith({
-        id: "e1",
-        toolCalls: [toolCallWith("tc1", [wholeFile({ path: "src/a.ts", before: "a", after: "b" })])],
-      }),
+      execWithProjection("e1", [
+        captured({ id: "fc1", pathAfter: "src/a.ts", before: "a", after: "b" }),
+      ]),
     ];
     const { result, rerender } = renderHook(
       (e: readonly AgentExecution[]) => useSessionFileChanges(e),

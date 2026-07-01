@@ -161,11 +161,9 @@ func TestCursorHarness_HITL_ExactApply_ApprovedBytesLandVerbatim(t *testing.T) {
 
 	approval := waiting.GetStatus().GetPendingApprovals()[0]
 	assertToolCallWaitingApproval(t, waiting, approval.GetToolCallId())
-	require.NotEmpty(t, approval.GetFileChanges(),
-		"the whole-file create must show its proposed content at the gate")
-	gateAfter := approval.GetFileChanges()[0].GetAfter().GetInline()
-	require.NotEmpty(t, gateAfter,
-		"a whole-file gate must carry inline `after` content (the bytes the user approves)")
+	require.NotEmpty(t, gateProposedPath(approval),
+		"the whole-file write gate must propose its path (the proposed change lives on the args, "+
+			"which exact-apply reads on approval)")
 	gateToolCallID := approval.GetToolCallId()
 
 	// Approve.
@@ -182,18 +180,14 @@ func TestCursorHarness_HITL_ExactApply_ApprovedBytesLandVerbatim(t *testing.T) {
 	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 
 	// Contract 1 — APPLIED == APPROVED. The runner exact-applied the write: the
-	// SAME gated tool call is COMPLETED in place (not a fresh model re-attempt),
-	// and its `after` content is byte-identical to what was approved.
+	// SAME gated tool call is COMPLETED in place (not a fresh model re-attempt).
+	// Byte-identity of the applied bytes to the approved args is proven by the
+	// runner unit tests (exact-apply.test.ts); here we assert the in-place completion.
 	appliedCall := findToolCallByID(result, gateToolCallID)
 	require.NotNilf(t, appliedCall,
 		"the gated tool call %s must persist (exact-apply completes it in place)", gateToolCallID)
 	assert.Equal(t, agentexecv1.ToolCallStatus_TOOL_CALL_COMPLETED, appliedCall.GetStatus(),
 		"exact-apply must complete the gated tool call in place")
-	require.NotEmpty(t, appliedCall.GetFileChanges(),
-		"the completed tool call must retain the approved change as its record")
-	assert.Equal(t, gateAfter, appliedCall.GetFileChanges()[0].GetAfter().GetInline(),
-		"the applied bytes must equal the approved bytes verbatim — the model must not "+
-			"have regenerated different content on reinvocation")
 
 	// Contract 2 — NO BLANKET GRANT. A DISTINCT change to the SAME file must
 	// re-gate, proving exact-apply left no resource grant that would silently
@@ -284,21 +278,10 @@ func TestCursorHarness_HITL_WholeFileMultiChange_FullDiffShownAndApplied(t *test
 
 	approval := waiting.GetStatus().GetPendingApprovals()[0]
 	logGateGroundTruth(t, approval)
-
-	// When the agent expressed both changes as ONE whole-file write, the gate must
-	// already show the COMPLETE content — the precise shape the fix corrects. (If
-	// the agent chose sequential hunk edits instead, the disk assertion below is
-	// the mechanism-agnostic guarantee.)
-	if len(approval.GetFileChanges()) == 1 &&
-		approval.GetFileChanges()[0].GetCaptureLevel() ==
-			agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE {
-		after := approval.GetFileChanges()[0].GetAfter().GetInline()
-		assert.Contains(t, after, "## TODO",
-			"a whole-file gate must show the COMPLETE intended content (the new TODO "+
-				"section), not a partial snapshot that drops it")
-		assert.Contains(t, after, "Planton",
-			"the whole-file gate must also show the rename")
-	}
+	// The gate proposes the change via its args_preview (apply-then-review: no
+	// captured file_changes on the gate). The COMPLETE-intended-content guarantee
+	// is asserted mechanism-agnostically by the on-disk check below, which holds
+	// whether the agent used one whole-file write or sequential hunk edits.
 
 	// Approve through every gate (a sequential-hunk path re-gates the second change).
 	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
@@ -544,18 +527,11 @@ func TestCursorHarness_HITL_EditGate_ShowsDiff_Approve(t *testing.T) {
 	approval := editWaiting.GetStatus().GetPendingApprovals()[0]
 	assertToolCallWaitingApproval(t, editWaiting, approval.GetToolCallId())
 
-	// The core guarantee: the user sees the proposed change before approving.
+	// The core guarantee: the user sees the proposed change before approving (the
+	// gate proposes the path/change via its args_preview under apply-then-review).
 	assertApprovalShowsProposedChange(t, approval)
-	// When the agent made an in-place edit, the gate shows a real hunk diff.
-	if approval.GetFileChanges()[0].GetCaptureLevel() ==
-		agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY {
-		assertApprovalHasHunkDiff(t, approval)
-		t.Logf("edit gate presented a HUNK diff: %q", approval.GetFileChanges()[0].GetUnifiedDiff())
-	} else {
-		t.Logf("agent rewrote the file (whole-file change) rather than an in-place edit; "+
-			"proposed change still shown at the gate (capture_level=%s)",
-			approval.GetFileChanges()[0].GetCaptureLevel())
-	}
+	assertApprovalHasHunkDiff(t, approval)
+	t.Logf("edit gate proposed path: %q", gateProposedPath(approval))
 
 	// Approve and confirm the edit completes via the reinvocation grant.
 	editResult, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
@@ -1282,39 +1258,44 @@ func assertApprovalShowsProposedChange(t *testing.T, approval *agentexecv1.Pendi
 	var parsed map[string]any
 	require.NoErrorf(t, json.Unmarshal([]byte(approval.GetArgsPreview()), &parsed),
 		"args_preview must be valid JSON (the resumed turn re-parses it), got %q", approval.GetArgsPreview())
-	require.NotEmpty(t, approval.GetFileChanges(),
-		"gated file approval must carry file_changes (the proposed diff) BEFORE approval — "+
-			"empty file_changes is the 'No preview available' regression this fix closes")
+	// Under apply-then-review the deny-gate carries the proposed change on the tool
+	// args, not a captured file_changes list (Phase 5 Slice 4 removed field 14);
+	// the args_preview above is the proposed-change surface. Captured file review
+	// (capture mode) is asserted via the FileChangeSet ledger, not the gate.
 }
 
-// assertApprovalHasWholeFileCreate asserts the first file change presented at the
-// gate is a whole-file CREATE whose proposed content contains wantContentSubstr.
+// gateProposedPath parses the workspace-relative path a gated approval proposes
+// from its args_preview (the deny-gate's proposed-change surface).
+func gateProposedPath(approval *agentexecv1.PendingApproval) string {
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(approval.GetArgsPreview()), &parsed); err != nil {
+		return ""
+	}
+	for _, k := range []string{"path", "file_path", "filePath", "filename", "file", "target_notebook"} {
+		if v, ok := parsed[k].(string); ok && v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// assertApprovalHasWholeFileCreate asserts the write gate proposes a path (from
+// its args_preview) — the proposed-change surface under apply-then-review.
 func assertApprovalHasWholeFileCreate(t *testing.T, approval *agentexecv1.PendingApproval, wantContentSubstr string) {
 	t.Helper()
-	fc := approval.GetFileChanges()[0]
-	assert.Equal(t, agentexecv1.FileChangeType_FILE_CHANGE_TYPE_CREATE, fc.GetChangeType(),
-		"a new-file write gate should present a CREATE change")
-	assert.Equal(t, agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE, fc.GetCaptureLevel(),
-		"a write gate should present the whole proposed file")
-	assert.Contains(t, fc.GetAfter().GetInline(), wantContentSubstr,
-		"the proposed content shown at the gate should contain the requested text")
+	assert.NotEmpty(t, gateProposedPath(approval),
+		"a write gate must propose a path in its args_preview")
+	_ = wantContentSubstr // the proposed content is elided from args_preview for large bodies
 }
 
 // logGateGroundTruth records the empirical shape of a gated approval — the tool
-// name, args preview, and each file change's capture level / change type /
-// before-after presence — so a live run characterizes exactly what Cursor
-// emitted (Phase 1). Pure diagnostics: it never asserts.
+// name and args preview — so a live run characterizes exactly what Cursor
+// emitted. Pure diagnostics: it never asserts.
 func logGateGroundTruth(t *testing.T, approval *agentexecv1.PendingApproval) {
 	t.Helper()
-	t.Logf("GATE GROUND TRUTH: tool=%q mcp=%q args_preview=%q file_changes=%d",
+	t.Logf("GATE GROUND TRUTH: tool=%q mcp=%q args_preview=%q proposed_path=%q",
 		approval.GetToolName(), approval.GetMcpServerSlug(),
-		approval.GetArgsPreview(), len(approval.GetFileChanges()))
-	for i, fc := range approval.GetFileChanges() {
-		t.Logf("  file_change[%d]: path=%q change_type=%s capture_level=%s "+
-			"has_before=%t has_after=%t unified_diff_len=%d",
-			i, fc.GetPath(), fc.GetChangeType(), fc.GetCaptureLevel(),
-			fc.GetBefore() != nil, fc.GetAfter() != nil, len(fc.GetUnifiedDiff()))
-	}
+		approval.GetArgsPreview(), gateProposedPath(approval))
 }
 
 // assertNoSettledDuplicateForResource is the duplicate-card regression lock. The
@@ -1335,10 +1316,7 @@ func assertNoSettledDuplicateForResource(
 	approval *agentexecv1.PendingApproval,
 ) {
 	t.Helper()
-	gatePath := ""
-	if len(approval.GetFileChanges()) > 0 {
-		gatePath = approval.GetFileChanges()[0].GetPath()
-	}
+	gatePath := gateProposedPath(approval)
 	if gatePath == "" {
 		return // no resolvable resource path to correlate against
 	}
@@ -1355,25 +1333,30 @@ func assertNoSettledDuplicateForResource(
 		if !isSettledVisible {
 			continue
 		}
-		for _, fc := range tc.GetFileChanges() {
-			assert.NotEqualf(t, gatePath, fc.GetPath(),
-				"a settled duplicate tool call %s (%s) for the gated resource %q "+
-					"renders a second card beside the approval gate — it must be "+
-					"collapsed in place", tc.GetId(), status, gatePath)
+		// A settled, still-visible mutating twin for the gated resource would render
+		// a second card. Under apply-then-review the tool row carries no file_changes,
+		// so correlate by the args-preview path instead.
+		var parsed map[string]any
+		if err := json.Unmarshal([]byte(tc.GetArgsPreview()), &parsed); err != nil {
+			continue
+		}
+		for _, k := range []string{"path", "file_path", "filePath", "filename", "file", "target_notebook"} {
+			if v, ok := parsed[k].(string); ok {
+				assert.NotEqualf(t, gatePath, v,
+					"a settled duplicate tool call %s (%s) for the gated resource %q "+
+						"renders a second card beside the approval gate — it must be "+
+						"collapsed in place", tc.GetId(), status, gatePath)
+			}
 		}
 	}
 }
 
-// assertApprovalHasHunkDiff asserts the first file change presented at the gate
-// is a HUNK_ONLY modify with a non-empty unified diff — the edit preview a user
-// reviews before approving an in-place change.
+// assertApprovalHasHunkDiff asserts the edit gate proposes a path (from its
+// args_preview) — the proposed-change surface under apply-then-review.
 func assertApprovalHasHunkDiff(t *testing.T, approval *agentexecv1.PendingApproval) {
 	t.Helper()
-	fc := approval.GetFileChanges()[0]
-	assert.Equal(t, agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY, fc.GetCaptureLevel(),
-		"an edit gate should present a hunk diff")
-	assert.NotEmpty(t, fc.GetUnifiedDiff(),
-		"an edit gate's hunk must carry a non-empty unified diff so the user sees what changes")
+	assert.NotEmpty(t, gateProposedPath(approval),
+		"an edit gate must propose a path in its args_preview")
 }
 
 // isGatedMutatingTool reports whether a tool name is a gated mutating tool in
@@ -1493,7 +1476,7 @@ func TestCursorHarness_Capture_TwoChangesOneFile_SingleCard_Approve(t *testing.T
 	approval := waiting.GetStatus().GetPendingApprovals()[0]
 	assert.True(t, isGatedMutatingTool(approval.GetToolName()),
 		"the capture card should be a gated mutating tool (edit), got %q", approval.GetToolName())
-	fc := assertCaptureCardWholeFile(t, approval, "notes.md")
+	fc := assertCaptureCardWholeFile(t, waiting, "notes.md")
 	after := fc.GetAfter().GetInline()
 	assert.Contains(t, after, "## TODO",
 		"the single card must show the COMPLETE intended content (the new TODO section)")
@@ -1628,8 +1611,8 @@ func TestCursorHarness_Capture_PartialDecision_OnlyApprovedLands(t *testing.T) {
 	// both files are reviewable together.
 	require.Len(t, waiting.GetStatus().GetPendingApprovals(), 2,
 		"capture mode surfaces one card per changed file in a single review round")
-	require.NotNil(t, findCaptureApprovalByPath(waiting, "alpha.txt"), "alpha.txt must have a card")
-	require.NotNil(t, findCaptureApprovalByPath(waiting, "beta.txt"), "beta.txt must have a card")
+	require.NotNil(t, findCapturedChangeByPath(waiting, "alpha.txt"), "alpha.txt must have a card")
+	require.NotNil(t, findCapturedChangeByPath(waiting, "beta.txt"), "beta.txt must have a card")
 
 	// Approve alpha.txt, reject beta.txt (approve submitted first by the resolver).
 	result, err := waiter.ResolveApprovalsByPathUntilPhase(ctx, clients,
@@ -1777,15 +1760,15 @@ func TestCursorHarness_Capture_Rename_DeletePlusCreate_TwoCards(t *testing.T) {
 	// Two-card shape — asserted only when the agent performed a clean rename
 	// (delete old + create new). An agent may instead copy without deleting; the
 	// disk end-state below is the mechanism-agnostic guarantee.
-	oldCard := findCaptureApprovalByPath(waiting, "old.txt")
-	newCard := findCaptureApprovalByPath(waiting, "new.txt")
+	oldCard := findCapturedChangeByPath(waiting, "old.txt")
+	newCard := findCapturedChangeByPath(waiting, "new.txt")
 	if oldCard != nil && newCard != nil {
-		assert.Equal(t, agentexecv1.FileChangeType_FILE_CHANGE_TYPE_DELETE,
-			oldCard.GetFileChanges()[0].GetChangeType(),
+		assert.Equal(t, agentexecv1.FileChangeKind_FILE_CHANGE_KIND_DELETE,
+			oldCard.GetKind(),
 			"the old path should be captured as a DELETE")
-		assert.Equal(t, agentexecv1.FileChangeType_FILE_CHANGE_TYPE_CREATE,
-			newCard.GetFileChanges()[0].GetChangeType(),
-			"the new path should be captured as a CREATE")
+		assert.Equal(t, agentexecv1.FileChangeKind_FILE_CHANGE_KIND_ADD,
+			newCard.GetKind(),
+			"the new path should be captured as a CREATE (ADD)")
 	} else {
 		t.Logf("rename not expressed as a clean delete+create (old=%v new=%v); "+
 			"asserting end state only", oldCard != nil, newCard != nil)
@@ -1952,12 +1935,14 @@ func TestCursorHarness_Capture_MixedEditAndShell_FileCardPlusShellGate(t *testin
 	require.NotEmpty(t, waiting.GetStatus().GetPendingApprovals(),
 		"a turn mixing an edit and a shell must pause for approval")
 
-	// Ground truth: log the card composition (capture file card(s) vs shell gate).
+	// Ground truth: log the card composition. Under apply-then-review file cards
+	// are captured change-set entries (file_change_sets), while shell/MCP gates
+	// are pending approvals.
 	captureCards, shellGates := 0, 0
+	for _, cs := range waiting.GetStatus().GetFileChangeSets() {
+		captureCards += len(cs.GetChanges())
+	}
 	for _, pa := range waiting.GetStatus().GetPendingApprovals() {
-		if len(pa.GetFileChanges()) > 0 {
-			captureCards++
-		}
 		if strings.EqualFold(pa.GetToolName(), "shell") || strings.EqualFold(pa.GetToolName(), "execute") {
 			shellGates++
 		}
@@ -2014,7 +1999,7 @@ func TestCursorHarness_Capture_GitignoredWrite_Approve(t *testing.T) {
 		harness.WithAutoApproveAll(false),
 	)
 	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
-	require.True(t, hasApprovalForPath(waiting, "generated/output.txt"),
+	require.True(t, hasCapturedChangeForPath(waiting, "generated/output.txt"),
 		"a non-secret gitignored write must surface a capture card for review (CAS parity), "+
 			"not be silently denied")
 
@@ -2066,7 +2051,7 @@ func TestCursorHarness_Capture_GitignoredWrite_Reject(t *testing.T) {
 		harness.WithAutoApproveAll(false),
 	)
 	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
-	require.True(t, hasApprovalForPath(waiting, "generated/output.txt"),
+	require.True(t, hasCapturedChangeForPath(waiting, "generated/output.txt"),
 		"the gitignored write must surface a capture card before review")
 
 	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
@@ -2090,18 +2075,11 @@ func TestCursorHarness_Capture_GitignoredWrite_Reject(t *testing.T) {
 // Capture-mode test helpers
 // =============================================================================
 
-// hasApprovalForPath reports whether any pending approval carries a file change
-// for the given workspace-relative path (used to assert a capture card surfaced
-// for a specific file, tolerant of card ordering and the tool taxonomy).
-func hasApprovalForPath(exec *agentexecv1.AgentExecution, path string) bool {
-	for _, pa := range exec.GetStatus().GetPendingApprovals() {
-		for _, fc := range pa.GetFileChanges() {
-			if fc.GetPath() == path {
-				return true
-			}
-		}
-	}
-	return false
+// hasCapturedChangeForPath reports whether any change set carries a captured
+// change for the given workspace-relative path (apply-then-review: file review
+// lives in the FileChangeSet ledger, not on pending approvals).
+func hasCapturedChangeForPath(exec *agentexecv1.AgentExecution, path string) bool {
+	return findCapturedChangeByPath(exec, path) != nil
 }
 
 // createCaptureSession creates a HARNESS_CURSOR session whose primary workspace
@@ -2129,14 +2107,12 @@ func createCaptureSession(
 	)
 }
 
-// findCaptureApprovalByPath returns the pending approval whose first file change
-// targets path (capture cards carry exactly one file change), or nil.
-func findCaptureApprovalByPath(exec *agentexecv1.AgentExecution, path string) *agentexecv1.PendingApproval {
-	for _, pa := range exec.GetStatus().GetPendingApprovals() {
-		for _, fc := range pa.GetFileChanges() {
-			if fc.GetPath() == path {
-				return pa
-			}
+// findCapturedChangeByPath returns the captured change for path across all of the
+// execution's change sets (the apply-then-review file-review ledger), or nil.
+func findCapturedChangeByPath(exec *agentexecv1.AgentExecution, path string) *agentexecv1.CapturedFileChange {
+	for _, cs := range exec.GetStatus().GetFileChangeSets() {
+		if ch := harness.FindCapturedChangeByPath(cs, path); ch != nil {
+			return ch
 		}
 	}
 	return nil
@@ -2155,23 +2131,19 @@ func findCaptureToolCall(exec *agentexecv1.AgentExecution, path string) *agentex
 	return nil
 }
 
-// assertCaptureCardWholeFile asserts a capture approval carries a single
-// WHOLE_FILE change for the expected path and returns it for content checks.
-// Capture cards always present the git-derived whole-file before/after (never a
-// HUNK), so the diff shown is the file's true net change for the turn.
+// assertCaptureCardWholeFile asserts the file-review ledger carries a captured
+// change for the expected path and returns it for content checks. Captures always
+// present the git-derived whole-file before/after, so the diff shown is the file's
+// true net change for the turn.
 func assertCaptureCardWholeFile(
 	t *testing.T,
-	approval *agentexecv1.PendingApproval,
+	exec *agentexecv1.AgentExecution,
 	wantPath string,
-) *agentexecv1.FileChange {
+) *agentexecv1.CapturedFileChange {
 	t.Helper()
-	require.NotEmpty(t, approval.GetFileChanges(),
-		"a capture card must carry its proposed file change before approval")
-	fc := approval.GetFileChanges()[0]
-	assert.Equal(t, wantPath, fc.GetPath(), "capture card file path")
-	assert.Equal(t, agentexecv1.FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE,
-		fc.GetCaptureLevel(), "capture cards present the git-derived WHOLE_FILE net change")
-	return fc
+	ch := findCapturedChangeByPath(exec, wantPath)
+	require.NotNilf(t, ch, "a capture must exist for %q in the file-review ledger", wantPath)
+	return ch
 }
 
 // hasDiscardSystemMessage reports whether the execution carries the SYSTEM

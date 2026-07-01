@@ -48,7 +48,6 @@ private static final long serialVersionUID = 0L;
     mcpServerSlug_ = "";
     argsPreview_ = "";
     toolKind_ = 0;
-    fileChanges_ = java.util.Collections.emptyList();
     approvalPolicySource_ = 0;
     policyEngineVersion_ = "";
     approvalContentDigest_ = "";
@@ -1018,117 +1017,6 @@ private static final long serialVersionUID = 0L;
     return outputRef_ == null ? ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.getDefaultInstance() : outputRef_;
   }
 
-  public static final int FILE_CHANGES_FIELD_NUMBER = 22;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChange> fileChanges_;
-  /**
-   * <pre>
-   * File changes produced by this tool call (create / modify / delete / rename).
-   *
-   * Populated by the runner for file-modifying tools. repeated because some
-   * tools (notably multi-file MCP edits) mutate several files in one call. This
-   * is the single source of truth for both the HITL approval-gate diff (set at
-   * approval-request time) and the post-execution Changes view; clients read it
-   * from the ToolCall directly rather than from a second copy.
-   *
-   * Field 22: appended after output_ref (21), the prior maximum.
-   *
-   * &#64;since First-Class Diff Review (#186)
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChange> getFileChangesList() {
-    return fileChanges_;
-  }
-  /**
-   * <pre>
-   * File changes produced by this tool call (create / modify / delete / rename).
-   *
-   * Populated by the runner for file-modifying tools. repeated because some
-   * tools (notably multi-file MCP edits) mutate several files in one call. This
-   * is the single source of truth for both the HITL approval-gate diff (set at
-   * approval-request time) and the post-execution Changes view; clients read it
-   * from the ToolCall directly rather than from a second copy.
-   *
-   * Field 22: appended after output_ref (21), the prior maximum.
-   *
-   * &#64;since First-Class Diff Review (#186)
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder> 
-      getFileChangesOrBuilderList() {
-    return fileChanges_;
-  }
-  /**
-   * <pre>
-   * File changes produced by this tool call (create / modify / delete / rename).
-   *
-   * Populated by the runner for file-modifying tools. repeated because some
-   * tools (notably multi-file MCP edits) mutate several files in one call. This
-   * is the single source of truth for both the HITL approval-gate diff (set at
-   * approval-request time) and the post-execution Changes view; clients read it
-   * from the ToolCall directly rather than from a second copy.
-   *
-   * Field 22: appended after output_ref (21), the prior maximum.
-   *
-   * &#64;since First-Class Diff Review (#186)
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-   */
-  @java.lang.Override
-  public int getFileChangesCount() {
-    return fileChanges_.size();
-  }
-  /**
-   * <pre>
-   * File changes produced by this tool call (create / modify / delete / rename).
-   *
-   * Populated by the runner for file-modifying tools. repeated because some
-   * tools (notably multi-file MCP edits) mutate several files in one call. This
-   * is the single source of truth for both the HITL approval-gate diff (set at
-   * approval-request time) and the post-execution Changes view; clients read it
-   * from the ToolCall directly rather than from a second copy.
-   *
-   * Field 22: appended after output_ref (21), the prior maximum.
-   *
-   * &#64;since First-Class Diff Review (#186)
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.FileChange getFileChanges(int index) {
-    return fileChanges_.get(index);
-  }
-  /**
-   * <pre>
-   * File changes produced by this tool call (create / modify / delete / rename).
-   *
-   * Populated by the runner for file-modifying tools. repeated because some
-   * tools (notably multi-file MCP edits) mutate several files in one call. This
-   * is the single source of truth for both the HITL approval-gate diff (set at
-   * approval-request time) and the post-execution Changes view; clients read it
-   * from the ToolCall directly rather than from a second copy.
-   *
-   * Field 22: appended after output_ref (21), the prior maximum.
-   *
-   * &#64;since First-Class Diff Review (#186)
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder getFileChangesOrBuilder(
-      int index) {
-    return fileChanges_.get(index);
-  }
-
   public static final int APPROVAL_POLICY_SOURCE_FIELD_NUMBER = 23;
   private int approvalPolicySource_ = 0;
   /**
@@ -1393,9 +1281,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(21, getOutputRef());
     }
-    for (int i = 0; i < fileChanges_.size(); i++) {
-      output.writeMessage(22, fileChanges_.get(i));
-    }
     if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
       output.writeEnum(23, approvalPolicySource_);
     }
@@ -1482,15 +1367,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(21, getOutputRef());
     }
-
-        {
-          final int count = fileChanges_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(fileChanges_.get(i));
-          }
-          size += 2 * count;
-        }
     if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(23, approvalPolicySource_);
@@ -1558,8 +1434,6 @@ private static final long serialVersionUID = 0L;
       if (!getOutputRef()
           .equals(other.getOutputRef())) return false;
     }
-    if (!getFileChangesList()
-        .equals(other.getFileChangesList())) return false;
     if (approvalPolicySource_ != other.approvalPolicySource_) return false;
     if (!getPolicyEngineVersion()
         .equals(other.getPolicyEngineVersion())) return false;
@@ -1621,10 +1495,6 @@ private static final long serialVersionUID = 0L;
     if (hasOutputRef()) {
       hash = (37 * hash) + OUTPUT_REF_FIELD_NUMBER;
       hash = (53 * hash) + getOutputRef().hashCode();
-    }
-    if (getFileChangesCount() > 0) {
-      hash = (37 * hash) + FILE_CHANGES_FIELD_NUMBER;
-      hash = (53 * hash) + getFileChangesList().hashCode();
     }
     hash = (37 * hash) + APPROVAL_POLICY_SOURCE_FIELD_NUMBER;
     hash = (53 * hash) + approvalPolicySource_;
@@ -1768,7 +1638,6 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetArgsFieldBuilder();
         internalGetOutputRefFieldBuilder();
-        internalGetFileChangesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1803,13 +1672,6 @@ private static final long serialVersionUID = 0L;
         outputRefBuilder_.dispose();
         outputRefBuilder_ = null;
       }
-      if (fileChangesBuilder_ == null) {
-        fileChanges_ = java.util.Collections.emptyList();
-      } else {
-        fileChanges_ = null;
-        fileChangesBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00100000);
       approvalPolicySource_ = 0;
       policyEngineVersion_ = "";
       approvalContentDigest_ = "";
@@ -1839,22 +1701,9 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.agentexecution.v1.ToolCall buildPartial() {
       ai.stigmer.agentic.agentexecution.v1.ToolCall result = new ai.stigmer.agentic.agentexecution.v1.ToolCall(this);
-      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
-    }
-
-    private void buildPartialRepeatedFields(ai.stigmer.agentic.agentexecution.v1.ToolCall result) {
-      if (fileChangesBuilder_ == null) {
-        if (((bitField0_ & 0x00100000) != 0)) {
-          fileChanges_ = java.util.Collections.unmodifiableList(fileChanges_);
-          bitField0_ = (bitField0_ & ~0x00100000);
-        }
-        result.fileChanges_ = fileChanges_;
-      } else {
-        result.fileChanges_ = fileChangesBuilder_.build();
-      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.agentexecution.v1.ToolCall result) {
@@ -1926,13 +1775,13 @@ private static final long serialVersionUID = 0L;
             : outputRefBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00200000) != 0)) {
+      if (((from_bitField0_ & 0x00100000) != 0)) {
         result.approvalPolicySource_ = approvalPolicySource_;
       }
-      if (((from_bitField0_ & 0x00400000) != 0)) {
+      if (((from_bitField0_ & 0x00200000) != 0)) {
         result.policyEngineVersion_ = policyEngineVersion_;
       }
-      if (((from_bitField0_ & 0x00800000) != 0)) {
+      if (((from_bitField0_ & 0x00400000) != 0)) {
         result.approvalContentDigest_ = approvalContentDigest_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -2034,43 +1883,17 @@ private static final long serialVersionUID = 0L;
       if (other.hasOutputRef()) {
         mergeOutputRef(other.getOutputRef());
       }
-      if (fileChangesBuilder_ == null) {
-        if (!other.fileChanges_.isEmpty()) {
-          if (fileChanges_.isEmpty()) {
-            fileChanges_ = other.fileChanges_;
-            bitField0_ = (bitField0_ & ~0x00100000);
-          } else {
-            ensureFileChangesIsMutable();
-            fileChanges_.addAll(other.fileChanges_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.fileChanges_.isEmpty()) {
-          if (fileChangesBuilder_.isEmpty()) {
-            fileChangesBuilder_.dispose();
-            fileChangesBuilder_ = null;
-            fileChanges_ = other.fileChanges_;
-            bitField0_ = (bitField0_ & ~0x00100000);
-            fileChangesBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetFileChangesFieldBuilder() : null;
-          } else {
-            fileChangesBuilder_.addAllMessages(other.fileChanges_);
-          }
-        }
-      }
       if (other.approvalPolicySource_ != 0) {
         setApprovalPolicySourceValue(other.getApprovalPolicySourceValue());
       }
       if (!other.getPolicyEngineVersion().isEmpty()) {
         policyEngineVersion_ = other.policyEngineVersion_;
-        bitField0_ |= 0x00400000;
+        bitField0_ |= 0x00200000;
         onChanged();
       }
       if (!other.getApprovalContentDigest().isEmpty()) {
         approvalContentDigest_ = other.approvalContentDigest_;
-        bitField0_ |= 0x00800000;
+        bitField0_ |= 0x00400000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -2203,32 +2026,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00080000;
               break;
             } // case 170
-            case 178: {
-              ai.stigmer.agentic.agentexecution.v1.FileChange m =
-                  input.readMessage(
-                      ai.stigmer.agentic.agentexecution.v1.FileChange.parser(),
-                      extensionRegistry);
-              if (fileChangesBuilder_ == null) {
-                ensureFileChangesIsMutable();
-                fileChanges_.add(m);
-              } else {
-                fileChangesBuilder_.addMessage(m);
-              }
-              break;
-            } // case 178
             case 184: {
               approvalPolicySource_ = input.readEnum();
-              bitField0_ |= 0x00200000;
+              bitField0_ |= 0x00100000;
               break;
             } // case 184
             case 194: {
               policyEngineVersion_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00400000;
+              bitField0_ |= 0x00200000;
               break;
             } // case 194
             case 202: {
               approvalContentDigest_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00800000;
+              bitField0_ |= 0x00400000;
               break;
             } // case 202
             default: {
@@ -4501,498 +4311,6 @@ private static final long serialVersionUID = 0L;
       return outputRefBuilder_;
     }
 
-    private java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChange> fileChanges_ =
-      java.util.Collections.emptyList();
-    private void ensureFileChangesIsMutable() {
-      if (!((bitField0_ & 0x00100000) != 0)) {
-        fileChanges_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.FileChange>(fileChanges_);
-        bitField0_ |= 0x00100000;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.FileChange, ai.stigmer.agentic.agentexecution.v1.FileChange.Builder, ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder> fileChangesBuilder_;
-
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChange> getFileChangesList() {
-      if (fileChangesBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(fileChanges_);
-      } else {
-        return fileChangesBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public int getFileChangesCount() {
-      if (fileChangesBuilder_ == null) {
-        return fileChanges_.size();
-      } else {
-        return fileChangesBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.FileChange getFileChanges(int index) {
-      if (fileChangesBuilder_ == null) {
-        return fileChanges_.get(index);
-      } else {
-        return fileChangesBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public Builder setFileChanges(
-        int index, ai.stigmer.agentic.agentexecution.v1.FileChange value) {
-      if (fileChangesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureFileChangesIsMutable();
-        fileChanges_.set(index, value);
-        onChanged();
-      } else {
-        fileChangesBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public Builder setFileChanges(
-        int index, ai.stigmer.agentic.agentexecution.v1.FileChange.Builder builderForValue) {
-      if (fileChangesBuilder_ == null) {
-        ensureFileChangesIsMutable();
-        fileChanges_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        fileChangesBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public Builder addFileChanges(ai.stigmer.agentic.agentexecution.v1.FileChange value) {
-      if (fileChangesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureFileChangesIsMutable();
-        fileChanges_.add(value);
-        onChanged();
-      } else {
-        fileChangesBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public Builder addFileChanges(
-        int index, ai.stigmer.agentic.agentexecution.v1.FileChange value) {
-      if (fileChangesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureFileChangesIsMutable();
-        fileChanges_.add(index, value);
-        onChanged();
-      } else {
-        fileChangesBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public Builder addFileChanges(
-        ai.stigmer.agentic.agentexecution.v1.FileChange.Builder builderForValue) {
-      if (fileChangesBuilder_ == null) {
-        ensureFileChangesIsMutable();
-        fileChanges_.add(builderForValue.build());
-        onChanged();
-      } else {
-        fileChangesBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public Builder addFileChanges(
-        int index, ai.stigmer.agentic.agentexecution.v1.FileChange.Builder builderForValue) {
-      if (fileChangesBuilder_ == null) {
-        ensureFileChangesIsMutable();
-        fileChanges_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        fileChangesBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public Builder addAllFileChanges(
-        java.lang.Iterable<? extends ai.stigmer.agentic.agentexecution.v1.FileChange> values) {
-      if (fileChangesBuilder_ == null) {
-        ensureFileChangesIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, fileChanges_);
-        onChanged();
-      } else {
-        fileChangesBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public Builder clearFileChanges() {
-      if (fileChangesBuilder_ == null) {
-        fileChanges_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00100000);
-        onChanged();
-      } else {
-        fileChangesBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public Builder removeFileChanges(int index) {
-      if (fileChangesBuilder_ == null) {
-        ensureFileChangesIsMutable();
-        fileChanges_.remove(index);
-        onChanged();
-      } else {
-        fileChangesBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.FileChange.Builder getFileChangesBuilder(
-        int index) {
-      return internalGetFileChangesFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder getFileChangesOrBuilder(
-        int index) {
-      if (fileChangesBuilder_ == null) {
-        return fileChanges_.get(index);  } else {
-        return fileChangesBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder> 
-         getFileChangesOrBuilderList() {
-      if (fileChangesBuilder_ != null) {
-        return fileChangesBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(fileChanges_);
-      }
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.FileChange.Builder addFileChangesBuilder() {
-      return internalGetFileChangesFieldBuilder().addBuilder(
-          ai.stigmer.agentic.agentexecution.v1.FileChange.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.FileChange.Builder addFileChangesBuilder(
-        int index) {
-      return internalGetFileChangesFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.agentexecution.v1.FileChange.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * File changes produced by this tool call (create / modify / delete / rename).
-     *
-     * Populated by the runner for file-modifying tools. repeated because some
-     * tools (notably multi-file MCP edits) mutate several files in one call. This
-     * is the single source of truth for both the HITL approval-gate diff (set at
-     * approval-request time) and the post-execution Changes view; clients read it
-     * from the ToolCall directly rather than from a second copy.
-     *
-     * Field 22: appended after output_ref (21), the prior maximum.
-     *
-     * &#64;since First-Class Diff Review (#186)
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChange file_changes = 22 [json_name = "fileChanges"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChange.Builder> 
-         getFileChangesBuilderList() {
-      return internalGetFileChangesFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.FileChange, ai.stigmer.agentic.agentexecution.v1.FileChange.Builder, ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder> 
-        internalGetFileChangesFieldBuilder() {
-      if (fileChangesBuilder_ == null) {
-        fileChangesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.FileChange, ai.stigmer.agentic.agentexecution.v1.FileChange.Builder, ai.stigmer.agentic.agentexecution.v1.FileChangeOrBuilder>(
-                fileChanges_,
-                ((bitField0_ & 0x00100000) != 0),
-                getParentForChildren(),
-                isClean());
-        fileChanges_ = null;
-      }
-      return fileChangesBuilder_;
-    }
-
     private int approvalPolicySource_ = 0;
     /**
      * <pre>
@@ -5033,7 +4351,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setApprovalPolicySourceValue(int value) {
       approvalPolicySource_ = value;
-      bitField0_ |= 0x00200000;
+      bitField0_ |= 0x00100000;
       onChanged();
       return this;
     }
@@ -5077,7 +4395,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setApprovalPolicySource(ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00200000;
+      bitField0_ |= 0x00100000;
       approvalPolicySource_ = value.getNumber();
       onChanged();
       return this;
@@ -5099,7 +4417,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearApprovalPolicySource() {
-      bitField0_ = (bitField0_ & ~0x00200000);
+      bitField0_ = (bitField0_ & ~0x00100000);
       approvalPolicySource_ = 0;
       onChanged();
       return this;
@@ -5181,7 +4499,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       policyEngineVersion_ = value;
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00200000;
       onChanged();
       return this;
     }
@@ -5202,7 +4520,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearPolicyEngineVersion() {
       policyEngineVersion_ = getDefaultInstance().getPolicyEngineVersion();
-      bitField0_ = (bitField0_ & ~0x00400000);
+      bitField0_ = (bitField0_ & ~0x00200000);
       onChanged();
       return this;
     }
@@ -5227,7 +4545,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       policyEngineVersion_ = value;
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00200000;
       onChanged();
       return this;
     }
@@ -5347,7 +4665,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       approvalContentDigest_ = value;
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x00400000;
       onChanged();
       return this;
     }
@@ -5381,7 +4699,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearApprovalContentDigest() {
       approvalContentDigest_ = getDefaultInstance().getApprovalContentDigest();
-      bitField0_ = (bitField0_ & ~0x00800000);
+      bitField0_ = (bitField0_ & ~0x00400000);
       onChanged();
       return this;
     }
@@ -5419,7 +4737,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       approvalContentDigest_ = value;
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x00400000;
       onChanged();
       return this;
     }

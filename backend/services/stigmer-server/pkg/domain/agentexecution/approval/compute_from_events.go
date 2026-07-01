@@ -78,6 +78,5 @@ func pendingApprovalFromRequest(req *agentexecutionv1.ApprovalRequest) *agentexe
 		McpServerSlug:        req.GetMcpServerSlug(),
 		ToolKind:             req.GetToolKind(),
 		ApprovalPolicySource: req.GetApprovalPolicySource(),
-		FileChanges:          req.GetFileChanges(),
 	}
 }

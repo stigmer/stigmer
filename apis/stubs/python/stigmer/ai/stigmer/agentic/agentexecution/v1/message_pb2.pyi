@@ -26,7 +26,7 @@ class AgentMessage(_message.Message):
     def __init__(self, type: _Optional[_Union[_enum_pb2.MessageType, str]] = ..., content: _Optional[str] = ..., timestamp: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., is_streaming: bool = ...) -> None: ...
 
 class ToolCall(_message.Message):
-    __slots__ = ("id", "name", "args", "result", "status", "started_at", "completed_at", "error", "requires_approval", "approval_message", "approval_requested_at", "approval_decided_at", "approved_by", "approval_action", "is_streaming", "streaming_source", "mcp_server_slug", "args_preview", "tool_kind", "output_ref", "file_changes", "approval_policy_source", "policy_engine_version", "approval_content_digest")
+    __slots__ = ("id", "name", "args", "result", "status", "started_at", "completed_at", "error", "requires_approval", "approval_message", "approval_requested_at", "approval_decided_at", "approved_by", "approval_action", "is_streaming", "streaming_source", "mcp_server_slug", "args_preview", "tool_kind", "output_ref", "approval_policy_source", "policy_engine_version", "approval_content_digest")
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     ARGS_FIELD_NUMBER: _ClassVar[int]
@@ -47,7 +47,6 @@ class ToolCall(_message.Message):
     ARGS_PREVIEW_FIELD_NUMBER: _ClassVar[int]
     TOOL_KIND_FIELD_NUMBER: _ClassVar[int]
     OUTPUT_REF_FIELD_NUMBER: _ClassVar[int]
-    FILE_CHANGES_FIELD_NUMBER: _ClassVar[int]
     APPROVAL_POLICY_SOURCE_FIELD_NUMBER: _ClassVar[int]
     POLICY_ENGINE_VERSION_FIELD_NUMBER: _ClassVar[int]
     APPROVAL_CONTENT_DIGEST_FIELD_NUMBER: _ClassVar[int]
@@ -71,11 +70,10 @@ class ToolCall(_message.Message):
     args_preview: str
     tool_kind: _enum_pb2.ToolKind
     output_ref: ToolCallOutputRef
-    file_changes: _containers.RepeatedCompositeFieldContainer[FileChange]
     approval_policy_source: _enum_pb2.ApprovalPolicySource
     policy_engine_version: str
     approval_content_digest: str
-    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., args: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., result: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.ToolCallStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., requires_approval: bool = ..., approval_message: _Optional[str] = ..., approval_requested_at: _Optional[str] = ..., approval_decided_at: _Optional[str] = ..., approved_by: _Optional[str] = ..., approval_action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., is_streaming: bool = ..., streaming_source: _Optional[_Union[_enum_pb2.ToolCallStreamingSource, str]] = ..., mcp_server_slug: _Optional[str] = ..., args_preview: _Optional[str] = ..., tool_kind: _Optional[_Union[_enum_pb2.ToolKind, str]] = ..., output_ref: _Optional[_Union[ToolCallOutputRef, _Mapping]] = ..., file_changes: _Optional[_Iterable[_Union[FileChange, _Mapping]]] = ..., approval_policy_source: _Optional[_Union[_enum_pb2.ApprovalPolicySource, str]] = ..., policy_engine_version: _Optional[str] = ..., approval_content_digest: _Optional[str] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., args: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., result: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.ToolCallStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., requires_approval: bool = ..., approval_message: _Optional[str] = ..., approval_requested_at: _Optional[str] = ..., approval_decided_at: _Optional[str] = ..., approved_by: _Optional[str] = ..., approval_action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., is_streaming: bool = ..., streaming_source: _Optional[_Union[_enum_pb2.ToolCallStreamingSource, str]] = ..., mcp_server_slug: _Optional[str] = ..., args_preview: _Optional[str] = ..., tool_kind: _Optional[_Union[_enum_pb2.ToolKind, str]] = ..., output_ref: _Optional[_Union[ToolCallOutputRef, _Mapping]] = ..., approval_policy_source: _Optional[_Union[_enum_pb2.ApprovalPolicySource, str]] = ..., policy_engine_version: _Optional[str] = ..., approval_content_digest: _Optional[str] = ...) -> None: ...
 
 class ToolCallOutputRef(_message.Message):
     __slots__ = ("storage_key", "size_bytes", "content_hash", "mime_type", "is_image", "truncated_preview")

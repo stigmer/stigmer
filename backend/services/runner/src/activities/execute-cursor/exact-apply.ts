@@ -22,8 +22,16 @@
  * SCOPE — whole-file writes only. A hunk edit (`old_string`/`new_string`) is left
  * on the grant + reinvocation path: applying a hunk would require locating the
  * fragment in the file, which would make the runner a second source of truth for
- * the edit result (see shared/gate-file-change.ts). Shell/MCP grants are already
- * command-/name-specific, so their approved==applied property is already tight.
+ * the edit result. Shell/MCP grants are already command-/name-specific, so their
+ * approved==applied property is already tight.
+ *
+ * SOURCE OF TRUTH — the approved whole-file bytes and target path are read from
+ * the gated tool call's `args` (the authoritative proposed content the deny-gate
+ * stamped from the hook input; see execute-cursor/message-translator.ts
+ * `applyGateInput`). This is the single copy — there is no separate captured
+ * `file_changes` mirror — so "what was shown == what is applied" holds by
+ * construction. (Phase 5 Slice 4 removed the redundant `ToolCall.file_changes`
+ * copy; `args` was always its source.)
  *
  * SAFETY — exact-apply writes ONLY a fully-resolved body. It never writes a
  * truncated preview or the elision marker (which would silently corrupt the
@@ -35,17 +43,15 @@
 import { isAbsolute, relative, resolve } from "node:path";
 import {
   ApprovalAction,
-  FileChangeCaptureLevel,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type {
   AgentMessage,
-  FileChange,
   ToolCall,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { ELISION_MARKER } from "../../shared/status-offload.js";
-import { extractWriteContent } from "../../shared/file-tools.js";
+import { extractFilePath, extractWriteContent } from "../../shared/file-tools.js";
+import { resolveWorkspacePath } from "../../shared/file-change.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import { utcTimestamp } from "../../shared/status.js";
 
@@ -55,8 +61,6 @@ export interface ExactApplyOptions {
   readonly messages: AgentMessage[];
   /** Workspace the files live in (local FS for OSS, sandbox in cloud). */
   readonly workspaceBackend: WorkspaceBackend;
-  /** Resolves offloaded `after` bodies; absent disables ref resolution. */
-  readonly artifactStorage: ArtifactStorage | undefined;
   /** Configured workspace roots; a write is refused outside all of them. */
   readonly workspaceDirs: readonly string[];
   /** For structured logs. */
@@ -87,24 +91,28 @@ export async function applyApprovedWholeFileWrites(
     for (const tc of msg.toolCalls) {
       if (!isApprovedWholeFileWrite(tc)) continue;
 
-      const fc = tc.fileChanges[0];
-      const target = fc.absolutePath;
-      if (!target) {
-        // The gate always records an absolutePath for a whole-file capture; a
-        // missing one is unexpected — do not guess a path, fall back.
-        logSkip(opts.executionId, tc, "no absolute path on the file change");
+      const args = argsRecord(tc);
+      const rawPath = extractFilePath(args);
+      if (!rawPath) {
+        // A whole-file write always carries a path arg; a missing one is
+        // unexpected — do not guess a path, fall back.
+        logSkip(opts.executionId, tc, "no file path in tool args");
         continue;
       }
+      // Resolve against the workspace root with the same convention the gate used
+      // (Cursor: real paths, not virtual), so the applied path matches the one the
+      // user approved.
+      const { absolutePath: target } = resolveWorkspacePath(
+        rawPath,
+        opts.workspaceBackend.rootDir,
+        /* virtualRoot */ false,
+      );
       if (!isWithinWorkspace(target, opts.workspaceDirs)) {
         logSkip(opts.executionId, tc, `target outside workspace: ${target}`);
         continue;
       }
 
-      const content = await resolveApprovedWholeFileContent(
-        tc,
-        fc,
-        opts.artifactStorage,
-      );
+      const content = resolveApprovedWholeFileContent(tc);
       if (content === null) {
         logSkip(opts.executionId, tc, "exact approved bytes unresolvable");
         continue;
@@ -122,11 +130,11 @@ export async function applyApprovedWholeFileWrites(
       }
 
       // The tool is now genuinely done: the runner applied exactly what the user
-      // approved. Mark COMPLETED in place (same id — the backend's append-only-
-      // at-identity guard accepts a status change) and keep its file_changes as
-      // the authoritative record (applied == approved). The approval_action is
-      // preserved as the audit trail; the status flip removes it from the
-      // server's pending_approvals projection (which keys on WAITING_APPROVAL).
+      // approved (the same `args` bytes the gate showed). Mark COMPLETED in place
+      // (same id — the backend's append-only-at-identity guard accepts a status
+      // change). The approval_action is preserved as the audit trail; the status
+      // flip removes it from the server's pending_approvals projection (which
+      // keys on WAITING_APPROVAL).
       tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
       if (!tc.completedAt) tc.completedAt = utcTimestamp();
       tc.error = "";
@@ -146,59 +154,33 @@ export async function applyApprovedWholeFileWrites(
  * The exact approved bytes for a whole-file write, or `null` when they cannot be
  * recovered (in which case the caller must fall back, never write).
  *
- * Resolution order, by reliability of "this is exactly what the user saw":
- *  1. inline `after` body — the rendered diff's after side (files under the
- *     128 KiB offload cap; the overwhelming common case);
- *  2. inline whole-file `args` content — present when `after` was offloaded but
- *     the structured args were not yet elided;
- *  3. offloaded `after` ref — fetched from artifact storage via a presigned URL,
- *     the same body the UI fetches to render the diff;
- *  4. otherwise `null`.
+ * The bytes come from the gated call's `args` whole-file content — the single
+ * authoritative copy of the proposed body (the deny-gate stamped it from the
+ * hook input; see {@link isApprovedWholeFileWrite}). `args` is never offloaded to
+ * a ref (only dropped wholesale by the aggregate size backstop), so when present
+ * it is intact.
  *
- * It NEVER returns a truncated preview or the elision marker: those are lossy
- * stand-ins, and writing them would corrupt the file. The marker is only ever
- * found inline (placed by enforceStatusSizeLimit), so an inline value equal to
- * it is treated as unresolved; a ref's `truncatedPreview` is never read at all
- * (the ref branch fetches the full body).
+ * It NEVER returns the elision marker: that is a lossy stand-in and writing it
+ * would corrupt the file. An `args` body equal to the marker is treated as
+ * unresolved, and the caller degrades to grant + reinvocation.
  */
-export async function resolveApprovedWholeFileContent(
-  tc: ToolCall,
-  fc: FileChange,
-  artifactStorage: ArtifactStorage | undefined,
-): Promise<string | null> {
-  // 1. Inline after — the canonical "what was shown", unless it was elided.
-  if (fc.after?.body.case === "inline") {
-    const value = fc.after.body.value;
-    if (value !== ELISION_MARKER) return value;
-  }
-
-  // 2. Inline whole-file args content (args is not offloaded; it is only dropped
-  //    wholesale by the aggregate backstop, so when present it is intact).
-  if (tc.args) {
-    const argsContent = extractWriteContent(tc.args as Record<string, unknown>);
-    if (argsContent !== null && argsContent !== ELISION_MARKER) return argsContent;
-  }
-
-  // 3. Offloaded after — fetch the full body from artifact storage. This is the
-  //    same path the UI uses to render the diff, so it is exactly what was shown.
-  if (fc.after?.body.case === "ref" && artifactStorage) {
-    const ref = fc.after.body.value;
-    try {
-      return (await artifactStorage.download(ref.storageKey)).toString("utf8");
-    } catch {
-      // Fall through to null — the caller degrades to grant + reinvocation.
-    }
-  }
-
+export function resolveApprovedWholeFileContent(tc: ToolCall): string | null {
+  const content = extractWriteContent(argsRecord(tc));
+  if (content !== null && content !== ELISION_MARKER) return content;
   return null;
 }
 
 /**
  * Whether `tc` is an approved, still-pending WHOLE-FILE write eligible for
  * exact-apply. APPROVE and APPROVE_ALL both approve the clicked tool (the latter
- * also leases the class, handled separately by the caller). A SKIP/REJECT, a
- * non-whole-file capture (a hunk edit), and an already-applied (COMPLETED) call
- * are all excluded.
+ * also leases the class, handled separately by the caller). A SKIP/REJECT, an
+ * edit-family call (`old_string`/`new_string`, which carries no whole-file body),
+ * and an already-applied (COMPLETED) call are all excluded.
+ *
+ * The whole-file predicate is `extractWriteContent(args) !== null` — the exact
+ * condition the removed field-22 capture used to classify a change WHOLE_FILE
+ * (a whole-file body present) vs HUNK_ONLY (an edit fragment). Reading it from
+ * `args` keeps eligibility on the single source of truth.
  */
 function isApprovedWholeFileWrite(tc: ToolCall): boolean {
   if (tc.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) return false;
@@ -208,11 +190,14 @@ function isApprovedWholeFileWrite(tc: ToolCall): boolean {
   ) {
     return false;
   }
-  const fc = tc.fileChanges[0];
-  return (
-    fc !== undefined &&
-    fc.captureLevel === FileChangeCaptureLevel.WHOLE_FILE
-  );
+  return extractWriteContent(argsRecord(tc)) !== null;
+}
+
+/** The gated tool call's structured args as a plain record (empty when absent). */
+function argsRecord(tc: ToolCall): Record<string, unknown> {
+  return tc.args && typeof tc.args === "object"
+    ? (tc.args as Record<string, unknown>)
+    : {};
 }
 
 /** Whether `absTarget` resolves inside one of the configured workspace roots. */

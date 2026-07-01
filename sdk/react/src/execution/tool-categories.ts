@@ -174,15 +174,14 @@ export function isInternalTool(toolName: string): boolean {
  * predicate recognizes that blanked twin so the thread renders one card, not two.
  *
  * The signature is precise: a SKIPPED row with no approval flag, no result, no
- * error, no proposed `file_changes`, and no args preview. A genuinely
- * user-skipped tool always retains the preview/args the user reviewed before
- * skipping, so it is never blank and is never hidden by this.
+ * error, and no args preview. A genuinely user-skipped tool always retains the
+ * preview/args the user reviewed before skipping, so it is never blank and is
+ * never hidden by this.
  */
 export function isCollapsedToolCall(toolCall: ToolCall): boolean {
   return (
     toolCall.status === ToolCallStatus.TOOL_CALL_SKIPPED &&
     !toolCall.requiresApproval &&
-    toolCall.fileChanges.length === 0 &&
     !toolCall.result &&
     !toolCall.error &&
     !toolCall.argsPreview

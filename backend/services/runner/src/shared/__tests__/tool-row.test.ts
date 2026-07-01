@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { ToolCallSchema, FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { hideToolCallRow, isToolCallRowHidden } from "../tool-row.js";
 
@@ -20,7 +20,6 @@ describe("hideToolCallRow", () => {
       args: { file_path: "src/app.ts", content: "console.log('hi')" },
       requiresApproval: true,
       approvalMessage: "Write file",
-      fileChanges: [create(FileChangeSchema, { path: "src/app.ts" })],
     });
 
     hideToolCallRow(tc);
@@ -31,7 +30,6 @@ describe("hideToolCallRow", () => {
     expect(tc.error).toBe("");
     expect(tc.argsPreview).toBe("");
     expect(tc.approvalMessage).toBe("");
-    expect(tc.fileChanges).toHaveLength(0);
     expect(tc.completedAt).not.toBe("");
     // Identity is preserved (append-only): id + name survive the collapse.
     expect(tc.id).toBe("tc-1");

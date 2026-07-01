@@ -1,35 +1,20 @@
-// Covers the #186 (Phase 3) upgrade: normalizeToolResult sources a file edit's
-// diff from the runner's authoritative ToolCall.file_changes capture, falling
-// back to the args/Cursor-envelope reconstruction for legacy executions.
-//
-// These cases construct ToolCall protos directly (with structured file_changes)
-// rather than going through the shared cross-language JSON fixtures in
-// test/fixtures/tool-view/, which only model the args/result strings and are
-// mirrored by the Go CLI (no file_changes support yet).
+// Covers normalizeToolResult's file-edit / file-write views, reconstructed from
+// the tool args (and the Cursor result envelope). Phase 5 Slice 4 removed the
+// ToolCall.file_changes capture (message.proto field 22), so the args are the
+// single source for the inline transcript diff; captured file review renders via
+// FileReviewCard / the FileChangeSet ledger, tested separately.
 
 import { describe, it, expect } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import {
-  ToolCallSchema,
-  FileChangeSchema,
-  FileContentSchema,
-  ToolCallOutputRefSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   ToolCallStatus,
   ToolKind,
-  FileChangeType,
-  FileChangeCaptureLevel,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { normalizeToolResult } from "../tool-view";
 
-/** Builds a completed FILE_EDIT tool call carrying the given changes/args/result. */
-function editToolCall(opts: {
-  fileChanges?: FileChange[];
-  args?: Record<string, unknown>;
-  result?: string;
-}) {
+/** A completed FILE_EDIT tool call carrying the given args/result. */
+function editToolCall(opts: { args?: Record<string, unknown>; result?: string }) {
   return create(ToolCallSchema, {
     id: "tc-1",
     name: "edit_file",
@@ -37,318 +22,22 @@ function editToolCall(opts: {
     status: ToolCallStatus.TOOL_CALL_COMPLETED,
     args: (opts.args ?? {}) as JsonObject,
     result: opts.result ?? "",
-    fileChanges: opts.fileChanges ?? [],
   });
 }
 
-function inlineSide(value: string, isBinary = false) {
-  return create(FileContentSchema, { body: { case: "inline", value }, isBinary });
-}
-
-function offloadedSide(storageKey: string, sizeBytes: bigint, preview = "") {
-  return create(FileContentSchema, {
-    body: {
-      case: "ref",
-      value: create(ToolCallOutputRefSchema, { storageKey, sizeBytes, truncatedPreview: preview }),
-    },
-    isBinary: false,
+/** A completed FILE_WRITE tool call carrying the given args. */
+function writeToolCall(opts: { args?: Record<string, unknown> }) {
+  return create(ToolCallSchema, {
+    id: "tc-w",
+    name: "write_file",
+    toolKind: ToolKind.FILE_WRITE,
+    status: ToolCallStatus.TOOL_CALL_COMPLETED,
+    args: (opts.args ?? {}) as JsonObject,
   });
 }
 
-describe("normalizeEdit — whole-file capture (native)", () => {
-  // The args carry only the small old_string/new_string fragments, but the
-  // capture carries the full file. The view must reflect the WHOLE FILE.
-  const FULL_BEFORE = "line 1\nline 2\nline 3\n";
-  const FULL_AFTER = "line 1\nline 2 changed\nline 3\nline 4\n";
-
-  const view = normalizeToolResult(
-    editToolCall({
-      args: { path: "src/app/main.ts", old_string: "line 2", new_string: "line 2 changed" },
-      fileChanges: [
-        create(FileChangeSchema, {
-          path: "src/app/main.ts",
-          absolutePath: "/work/src/app/main.ts",
-          changeType: FileChangeType.MODIFY,
-          captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-          before: inlineSide(FULL_BEFORE),
-          after: inlineSide(FULL_AFTER),
-          // Native harness emits 0/"" sentinels for these (derivable downstream).
-          linesAdded: 0,
-          linesRemoved: 0,
-          unifiedDiff: "",
-        }),
-      ],
-    }),
-  );
-
-  it("is a diff view sourced from the whole-file capture, not the args fragments", () => {
-    expect(view.type).toBe("diff");
-    if (view.type !== "diff") return;
-    expect(view.oldText).toBe(FULL_BEFORE);
-    expect(view.newText).toBe(FULL_AFTER);
-    expect(view.path).toBe("src/app/main.ts");
-  });
-
-  it("marks the capture WHOLE_FILE and leaves counts for the renderer to derive", () => {
-    if (view.type !== "diff") return;
-    expect(view.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
-    // The 0/"" sentinels must NOT leak through as +0 -0; they stay undefined so
-    // the presentation layer computes stats from oldText/newText.
-    expect(view.linesAdded).toBeUndefined();
-    expect(view.linesRemoved).toBeUndefined();
-    expect(view.unifiedDiff).toBeUndefined();
-  });
-});
-
-describe("normalizeEdit — hunk-only capture (Cursor)", () => {
-  const DIFF = "@@ -1,2 +1,2 @@\n-old\n+new\n";
-  const view = normalizeToolResult(
-    editToolCall({
-      args: { path: "src/x.ts" },
-      fileChanges: [
-        create(FileChangeSchema, {
-          path: "src/x.ts",
-          changeType: FileChangeType.MODIFY,
-          captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-          unifiedDiff: DIFF,
-          linesAdded: 1,
-          linesRemoved: 1,
-        }),
-      ],
-    }),
-  );
-
-  it("renders the authoritative hunk diff and counts, with no whole-file bodies", () => {
-    expect(view.type).toBe("diff");
-    if (view.type !== "diff") return;
-    expect(view.captureLevel).toBe(FileChangeCaptureLevel.HUNK_ONLY);
-    expect(view.unifiedDiff).toBe(DIFF);
-    expect(view.linesAdded).toBe(1);
-    expect(view.linesRemoved).toBe(1);
-    expect(view.oldText).toBeUndefined();
-    expect(view.newText).toBeUndefined();
-  });
-
-  it("normalizes an empty unified diff to undefined", () => {
-    const empty = normalizeToolResult(
-      editToolCall({
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "src/x.ts",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-            unifiedDiff: "",
-          }),
-        ],
-      }),
-    );
-    expect(empty.type).toBe("diff");
-    if (empty.type !== "diff") return;
-    expect(empty.unifiedDiff).toBeUndefined();
-  });
-});
-
-describe("normalizeEdit — whole-file with unavailable sides", () => {
-  it("leaves an offloaded side unset while keeping the inline side", () => {
-    const AFTER = "new whole file\n";
-    const view = normalizeToolResult(
-      editToolCall({
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "big.ts",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            before: offloadedSide("artifacts/exec/big.before.txt", 200_000n, "head…"),
-            after: inlineSide(AFTER),
-          }),
-        ],
-      }),
-    );
-    expect(view.type).toBe("diff");
-    if (view.type !== "diff") return;
-    expect(view.oldText).toBeUndefined();
-    expect(view.newText).toBe(AFTER);
-    expect(view.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
-  });
-
-  it("leaves both sides unset when both are offloaded", () => {
-    const view = normalizeToolResult(
-      editToolCall({
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "big.ts",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            before: offloadedSide("artifacts/exec/b.before.txt", 200_000n),
-            after: offloadedSide("artifacts/exec/a.after.txt", 210_000n),
-          }),
-        ],
-      }),
-    );
-    if (view.type !== "diff") return;
-    expect(view.oldText).toBeUndefined();
-    expect(view.newText).toBeUndefined();
-    expect(view.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
-  });
-
-  it("skips a binary side rather than text-diffing it", () => {
-    const view = normalizeToolResult(
-      editToolCall({
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "logo.bin",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            before: inlineSide("\u0000\u0001binary", true),
-            after: inlineSide("after text"),
-          }),
-        ],
-      }),
-    );
-    if (view.type !== "diff") return;
-    expect(view.oldText).toBeUndefined();
-    expect(view.newText).toBe("after text");
-  });
-
-  it("preserves an empty-file side (\"\") as distinct from an absent side", () => {
-    const view = normalizeToolResult(
-      editToolCall({
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "fresh.ts",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            before: inlineSide(""),
-            after: inlineSide("content\n"),
-          }),
-        ],
-      }),
-    );
-    if (view.type !== "diff") return;
-    expect(view.oldText).toBe("");
-    expect(view.newText).toBe("content\n");
-  });
-});
-
-describe("normalizeEdit — whole-file CREATE (new file)", () => {
-  // The screenshot regression: a gated whole-file CREATE-via-edit carries an
-  // absent before (a new file) and the new content as `after`. The settled card
-  // must render an all-additions diff, NOT "No preview available" — so the absent
-  // before resolves to "" (matching the approval gate's useFileChangeContent),
-  // which only happens because the change type is CREATE.
-  it("treats an absent before on a CREATE as the empty file (all-additions diff)", () => {
-    const CONTENT = "# Notes\n\n- first\n- second\n";
-    const view = normalizeToolResult(
-      editToolCall({
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "notes.md",
-            changeType: FileChangeType.CREATE,
-            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            // before omitted -> absent (a new file has no prior content)
-            after: inlineSide(CONTENT),
-          }),
-        ],
-      }),
-    );
-    expect(view.type).toBe("diff");
-    if (view.type !== "diff") return;
-    expect(view.oldText).toBe("");
-    expect(view.newText).toBe(CONTENT);
-    expect(view.captureLevel).toBe(FileChangeCaptureLevel.WHOLE_FILE);
-  });
-
-  // CREATE-specificity guard: the "" default is gated on CREATE, never a blanket
-  // `?? ""`. An absent before on a MODIFY is genuinely unknown (a capture miss),
-  // so it must stay undefined rather than fabricate an all-additions diff that
-  // would imply the file was previously empty.
-  it("leaves an absent before on a MODIFY undefined (no fabricated empty diff)", () => {
-    const view = normalizeToolResult(
-      editToolCall({
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "existing.md",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            // before omitted on a MODIFY -> unknown, not empty
-            after: inlineSide("new content\n"),
-          }),
-        ],
-      }),
-    );
-    if (view.type !== "diff") return;
-    expect(view.oldText).toBeUndefined();
-    expect(view.newText).toBe("new content\n");
-  });
-});
-
-describe("normalizeEdit — path resolution", () => {
-  it("prefers the change's repo-relative path, then absolute, then args", () => {
-    const relative = normalizeToolResult(
-      editToolCall({
-        args: { path: "/abs/from/args.ts" },
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "rel/path.ts",
-            absolutePath: "/abs/rel/path.ts",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            before: inlineSide("a"),
-            after: inlineSide("b"),
-          }),
-        ],
-      }),
-    );
-    if (relative.type !== "diff") return;
-    expect(relative.path).toBe("rel/path.ts");
-
-    const absoluteFallback = normalizeToolResult(
-      editToolCall({
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "",
-            absolutePath: "/abs/only.ts",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            before: inlineSide("a"),
-            after: inlineSide("b"),
-          }),
-        ],
-      }),
-    );
-    if (absoluteFallback.type !== "diff") return;
-    expect(absoluteFallback.path).toBe("/abs/only.ts");
-  });
-
-  it("uses only the first change when several are present", () => {
-    const view = normalizeToolResult(
-      editToolCall({
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "first.ts",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            before: inlineSide("first before"),
-            after: inlineSide("first after"),
-          }),
-          create(FileChangeSchema, {
-            path: "second.ts",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-            before: inlineSide("second before"),
-            after: inlineSide("second after"),
-          }),
-        ],
-      }),
-    );
-    if (view.type !== "diff") return;
-    expect(view.path).toBe("first.ts");
-    expect(view.oldText).toBe("first before");
-  });
-});
-
-describe("normalizeEdit — fallback to args (legacy / unspecified)", () => {
-  it("falls back to args when there are no file_changes (pre-#186)", () => {
+describe("normalizeEdit — from args", () => {
+  it("reconstructs a diff from old_string / new_string", () => {
     const view = normalizeToolResult(
       editToolCall({
         args: { path: "legacy.ts", old_string: "foo", new_string: "bar" },
@@ -360,33 +49,17 @@ describe("normalizeEdit — fallback to args (legacy / unspecified)", () => {
     expect(view.oldText).toBe("foo");
     expect(view.newText).toBe("bar");
     expect(view.path).toBe("legacy.ts");
+    // The row carries no whole-file capture; captureLevel is left unset.
     expect(view.captureLevel).toBeUndefined();
   });
 
-  it("falls back to args when capture_level is UNSPECIFIED", () => {
-    const view = normalizeToolResult(
-      editToolCall({
-        args: { path: "x.ts", old_string: "foo", new_string: "bar" },
-        fileChanges: [
-          create(FileChangeSchema, {
-            path: "x.ts",
-            changeType: FileChangeType.MODIFY,
-            captureLevel: FileChangeCaptureLevel.UNSPECIFIED,
-          }),
-        ],
-      }),
-    );
-    if (view.type !== "diff") return;
-    expect(view.oldText).toBe("foo");
-    expect(view.newText).toBe("bar");
-    expect(view.captureLevel).toBeUndefined();
-  });
-
-  it("still parses the Cursor envelope stats on the legacy path", () => {
+  it("parses the Cursor result envelope stats when present", () => {
     const view = normalizeToolResult(
       editToolCall({
         args: { path: "x.ts" },
-        result: JSON.stringify({ value: { linesAdded: 3, linesRemoved: 2, diffString: "@@ patch @@" } }),
+        result: JSON.stringify({
+          value: { linesAdded: 3, linesRemoved: 2, diffString: "@@ patch @@" },
+        }),
       }),
     );
     if (view.type !== "diff") return;
@@ -394,5 +67,34 @@ describe("normalizeEdit — fallback to args (legacy / unspecified)", () => {
     expect(view.linesRemoved).toBe(2);
     expect(view.unifiedDiff).toBe("@@ patch @@");
     expect(view.captureLevel).toBeUndefined();
+  });
+
+  it("resolves the path from the args (path / file_path / file / filename)", () => {
+    expect(
+      (() => {
+        const v = normalizeToolResult(editToolCall({ args: { file_path: "src/app/main.ts", old_string: "a", new_string: "b" } }));
+        return v.type === "diff" ? v.path : "";
+      })(),
+    ).toBe("src/app/main.ts");
+  });
+});
+
+describe("normalizeWrite — from args", () => {
+  it("renders the proposed whole-file content from the args (contents)", () => {
+    const CONTENT = "# Notes\n\n- first\n- second\n";
+    const view = normalizeToolResult(
+      writeToolCall({ args: { path: "notes.md", contents: CONTENT } }),
+    );
+    expect(view.type).toBe("file");
+    if (view.type !== "file") return;
+    expect(view.path).toBe("notes.md");
+    expect(view.content).toBe(CONTENT);
+  });
+
+  it("defaults to empty content when the args carry none", () => {
+    const view = normalizeToolResult(writeToolCall({ args: { path: "empty.ts" } }));
+    if (view.type !== "file") return;
+    expect(view.content).toBe("");
+    expect(view.path).toBe("empty.ts");
   });
 });

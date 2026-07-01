@@ -46,7 +46,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { FileChange, FileContent, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { FileContent, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
@@ -397,20 +397,6 @@ async function maybeOffloadFileContent(
   };
 }
 
-/** Offload oversized before/after bodies of every file change on a tool call. */
-async function maybeOffloadFileChanges(
-  tc: ToolCall,
-  ctx: ToolOutputOffloadContext,
-  maxBytes: number,
-): Promise<void> {
-  for (let idx = 0; idx < tc.fileChanges.length; idx++) {
-    const fc = tc.fileChanges[idx];
-    const base = `artifacts/${ctx.executionId}/toolcalls/${tc.id}.${idx}`;
-    await maybeOffloadFileContent(fc.before, `${base}.before.txt`, ctx, maxBytes);
-    await maybeOffloadFileContent(fc.after, `${base}.after.txt`, ctx, maxBytes);
-  }
-}
-
 /**
  * Every captured file change carried on a CANDIDATE_CAPTURED event in the
  * file_review ledger. The before/after bodies live HERE (not on tool calls)
@@ -448,10 +434,10 @@ async function maybeOffloadCandidateChanges(
  * failures fall back to an inline truncation (a bounded result beats a failed
  * persist) and never throw, so a storage hiccup cannot fail the execution.
  *
- * File-change before/after bodies are offloaded in the same pass, independently
- * of the result: a tool can produce a small result yet a large file diff. A
- * file-change offload failure is non-fatal — the body stays inline and the
- * aggregate backstop (enforceStatusSizeLimit) elides it if needed.
+ * File-review before/after bodies (on the CANDIDATE_CAPTURED ledger events) are
+ * offloaded in the same pass — a tool can produce a small result yet a large
+ * captured diff. A file-review offload failure is non-fatal — the body stays
+ * inline and the aggregate backstop (enforceStatusSizeLimit) drops it if needed.
  */
 export async function offloadOversizedToolOutputs(
   status: AgentExecutionStatus,
@@ -471,15 +457,6 @@ export async function offloadOversizedToolOutputs(
         console.warn(
           `[status-offload] execution=${ctx.executionId} tool=${tc.name} ` +
           `offload failed (non-fatal); truncated inline`,
-        );
-      }
-
-      try {
-        await maybeOffloadFileChanges(tc, ctx, maxFileBytes);
-      } catch {
-        console.warn(
-          `[status-offload] execution=${ctx.executionId} tool=${tc.name} ` +
-          `file-change offload failed (non-fatal); left inline for the size backstop`,
         );
       }
     }
@@ -580,35 +557,6 @@ function encodedSize(status: AgentExecutionStatus): number {
   return toBinary(AgentExecutionStatusSchema, status).length;
 }
 
-/** Inline byte footprint a tool call contributes via its file changes. */
-function fileChangeInlineBytes(tc: ToolCall): number {
-  let total = 0;
-  for (const fc of tc.fileChanges) {
-    total += byteLen(fc.unifiedDiff);
-    if (fc.before?.body.case === "inline") total += byteLen(fc.before.body.value);
-    if (fc.after?.body.case === "inline") total += byteLen(fc.after.body.value);
-  }
-  return total;
-}
-
-/** Elide a file change's oversized inline fields in place; returns true if any. */
-function elideFileChange(fc: FileChange): boolean {
-  let elided = false;
-  if (byteLen(fc.unifiedDiff) > ELISION_MIN_BYTES) {
-    fc.unifiedDiff = ELISION_MARKER;
-    elided = true;
-  }
-  if (fc.before?.body.case === "inline" && byteLen(fc.before.body.value) > ELISION_MIN_BYTES) {
-    fc.before.body = { case: "inline", value: ELISION_MARKER };
-    elided = true;
-  }
-  if (fc.after?.body.case === "inline" && byteLen(fc.after.body.value) > ELISION_MIN_BYTES) {
-    fc.after.body = { case: "inline", value: ELISION_MARKER };
-    elided = true;
-  }
-  return elided;
-}
-
 /**
  * Drop a captured change's oversized inline before/after bodies (replacing them
  * with nothing), returning true if either side was large enough to drop. Used by
@@ -649,8 +597,8 @@ export function enforceStatusSizeLimit(
   // Largest inline footprint first so we shed the most bytes per elision.
   toolCalls.sort(
     (a, b) =>
-      byteLen(b.result) + byteLen(b.argsPreview) + fileChangeInlineBytes(b) -
-      (byteLen(a.result) + byteLen(a.argsPreview) + fileChangeInlineBytes(a)),
+      byteLen(b.result) + byteLen(b.argsPreview) -
+      (byteLen(a.result) + byteLen(a.argsPreview)),
   );
 
   let elidedAny = false;
@@ -667,12 +615,6 @@ export function enforceStatusSizeLimit(
     if (tc.args !== undefined) {
       tc.args = undefined;
       elidedAny = true;
-    }
-    // File-change before/after and unified_diff can dominate the payload; elide
-    // them too, preserving path/change_type/capture_level for the UI shell.
-    for (const fc of tc.fileChanges) {
-      if (encodedSize(status) <= softLimitBytes) return elidedAny;
-      if (elideFileChange(fc)) elidedAny = true;
     }
   }
 

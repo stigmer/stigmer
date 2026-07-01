@@ -18,7 +18,6 @@ import {
 } from "./tool-categories";
 import { CATEGORY_ICON } from "./ToolCallItem";
 import { ToolArgsView } from "./ToolArgsView";
-import { FileChangeDiff } from "./FileChangesView";
 import { EmptyChangeNotice } from "./EmptyChangeNotice";
 import { FilePathLink } from "./FilePathLink";
 import { DecisionButton } from "../internal/DecisionButton";
@@ -56,11 +55,11 @@ export interface ApprovalCardProps {
  * The compact header row matches the ToolCallItem layout:
  *   [CategoryIcon] Label  primaryArg  [⏳ waiting Xm]
  *
- * The body shows the most decision-relevant preview: when the
- * approval carries the runner's `file_changes` capture, a real
- * before/after {@link FileChangeDiff} (one per changed file);
- * otherwise the shared {@link ToolArgsView} dispatch, keeping
- * pixel-level parity with the post-execution detail view.
+ * The body shows the proposed change from the tool args (the
+ * pre-execution deny-gate has no captured `FileChangeSet` yet): the
+ * write/edit content when present, an {@link EmptyChangeNotice} when
+ * only a path is known, otherwise the shared {@link ToolArgsView}
+ * dispatch, keeping pixel-level parity with the detail view.
  *
  * Wrapped in `React.memo` — structural sharing (T04) preserves the
  * `PendingApproval` reference when unchanged, so approval cards
@@ -313,36 +312,22 @@ export function ApprovalCardBody({
     [pendingApproval.argsPreview],
   );
 
-  // The decision-relevant preview. A file-modifying approval carries the
-  // runner's before/after capture on file_changes; render that diff as the
-  // primary preview — the card header already names the file, so the per-file
-  // header is suppressed for a single change to avoid restating the path. When
-  // no capture is present, fall back honestly: show the proposed write/edit
-  // content if the args carry it (path suppressed — the header has it); show a
-  // neutral "no preview" notice when only a path is known (the resume
-  // placeholder case); otherwise the shared args view for non-file tools.
-  const fileChanges = pendingApproval.fileChanges;
+  // The decision-relevant preview. The pre-execution deny-gate is an
+  // apply-then-review exception: the change has not been captured yet (the tool
+  // is DENIED, awaiting approval), so there is no `FileChangeSet` to render.
+  // Instead the gate shows the PROPOSED change from the tool args: the write/edit
+  // content when the args carry it (path suppressed — the header has it); a
+  // neutral "no preview" notice when only a path is known (the resume placeholder
+  // case); otherwise the shared args view for non-file tools. (Captured
+  // file-review — the apply-then-review path — renders via FileReviewCard, not
+  // here.)
   let preview: ReactNode = null;
-  if (fileChanges.length > 0) {
-    const single = fileChanges.length === 1;
-    preview = fileChanges.map((fileChange) => (
-      <FileChangeDiff
-        key={fileChange.path}
-        change={fileChange}
-        showFileName={!single}
-        // The gate is a decision moment, not a full editor — bound the diff to
-        // the shared preview budget (same as the settled card) so a large change
-        // cannot push the action buttons off-screen, with an in-place "Show more"
-        // to review the whole change before deciding.
-        bounded
-      />
-    ));
-  } else if (isWriteEdit && writeContent === null) {
-    // No capture and no proposed content. A whole-file write is modeled as a
-    // create throughout the runner (FILE_WRITE -> CREATE), so the authoritative
-    // toolKind lets the gate say plainly that a new file is being written rather
-    // than the misleading non-committal "no preview". An edit (modify) cannot be
-    // proven a create, so it keeps the non-committal notice.
+  if (isWriteEdit && writeContent === null) {
+    // No proposed content in the args. A whole-file write is modeled as a create
+    // throughout the runner (FILE_WRITE -> CREATE), so the authoritative toolKind
+    // lets the gate say plainly that a new file is being written rather than the
+    // misleading non-committal "no preview". An edit (modify) cannot be proven a
+    // create, so it keeps the non-committal notice.
     const kind =
       pendingApproval.toolKind === ToolKind.FILE_WRITE ? "create" : "no-preview";
     preview = <EmptyChangeNotice kind={kind} />;

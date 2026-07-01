@@ -55,7 +55,6 @@ export async function streamExecutionV3(
     gracefulStop,
     inlinePublisher,
     writebackCoordinator,
-    fileChangeCoordinator,
     approvalProvider,
   } = deps;
 
@@ -71,7 +70,6 @@ export async function streamExecutionV3(
   const sideEffects = new StreamingSideEffects({
     inlinePublisher,
     writebackCoordinator,
-    fileChangeCoordinator,
   });
 
   // Pre-loop heartbeat to cover the initial await

@@ -73,92 +73,86 @@ public final class ApprovalProto extends com.google.protobuf.GeneratedFile {
       "\n3ai/stigmer/agentic/agentexecution/v1/a" +
       "pproval.proto\022$ai.stigmer.agentic.agente" +
       "xecution.v1\032/ai/stigmer/agentic/agentexe" +
-      "cution/v1/enum.proto\0322ai/stigmer/agentic" +
-      "/agentexecution/v1/message.proto\"\334\005\n\017Pen" +
-      "dingApproval\022 \n\014tool_call_id\030\001 \001(\tR\ntool" +
-      "CallId\022\033\n\ttool_name\030\002 \001(\tR\010toolName\022\030\n\007m" +
-      "essage\030\003 \001(\tR\007message\022!\n\014args_preview\030\004 " +
-      "\001(\tR\013argsPreview\022!\n\014requested_at\030\005 \001(\tR\013" +
-      "requestedAt\022$\n\016from_sub_agent\030\006 \001(\010R\014fro" +
-      "mSubAgent\022$\n\016sub_agent_name\030\007 \001(\tR\014subAg" +
-      "entName\022&\n\017mcp_server_slug\030\010 \001(\tR\rmcpSer" +
-      "verSlug\022*\n\021sub_agent_subject\030\t \001(\tR\017subA" +
-      "gentSubject\022\'\n\017agent_rationale\030\n \001(\tR\016ag" +
-      "entRationale\022$\n\016branch_at_deny\030\013 \001(\tR\014br" +
-      "anchAtDeny\022\'\n\020head_sha_at_deny\030\014 \001(\tR\rhe" +
-      "adShaAtDeny\022K\n\ttool_kind\030\r \001(\0162..ai.stig" +
-      "mer.agentic.agentexecution.v1.ToolKindR\010" +
-      "toolKind\022S\n\014file_changes\030\016 \003(\01320.ai.stig" +
-      "mer.agentic.agentexecution.v1.FileChange" +
-      "R\013fileChanges\022p\n\026approval_policy_source\030" +
-      "\017 \001(\0162:.ai.stigmer.agentic.agentexecutio" +
-      "n.v1.ApprovalPolicySourceR\024approvalPolic" +
-      "ySource\"\242\001\n\031ChildApprovalNotification\022!\n" +
-      "\014execution_id\030\001 \001(\tR\013executionId\022b\n\021pend" +
-      "ing_approvals\030\002 \003(\01325.ai.stigmer.agentic" +
-      ".agentexecution.v1.PendingApprovalR\020pend" +
-      "ingApprovals\"\224\005\n\017ApprovalRequest\022.\n\023appr" +
-      "oval_request_id\030\001 \001(\tR\021approvalRequestId" +
-      "\022 \n\014tool_call_id\030\002 \001(\tR\ntoolCallId\022!\n\014re" +
-      "quested_at\030\003 \001(\tR\013requestedAt\022\033\n\ttool_na" +
-      "me\030\004 \001(\tR\010toolName\022\030\n\007message\030\005 \001(\tR\007mes" +
-      "sage\022!\n\014args_preview\030\006 \001(\tR\013argsPreview\022" +
-      "$\n\016from_sub_agent\030\007 \001(\010R\014fromSubAgent\022$\n" +
-      "\016sub_agent_name\030\010 \001(\tR\014subAgentName\022*\n\021s" +
+      "cution/v1/enum.proto\"\215\005\n\017PendingApproval" +
+      "\022 \n\014tool_call_id\030\001 \001(\tR\ntoolCallId\022\033\n\tto" +
+      "ol_name\030\002 \001(\tR\010toolName\022\030\n\007message\030\003 \001(\t" +
+      "R\007message\022!\n\014args_preview\030\004 \001(\tR\013argsPre" +
+      "view\022!\n\014requested_at\030\005 \001(\tR\013requestedAt\022" +
+      "$\n\016from_sub_agent\030\006 \001(\010R\014fromSubAgent\022$\n" +
+      "\016sub_agent_name\030\007 \001(\tR\014subAgentName\022&\n\017m" +
+      "cp_server_slug\030\010 \001(\tR\rmcpServerSlug\022*\n\021s" +
       "ub_agent_subject\030\t \001(\tR\017subAgentSubject\022" +
-      "&\n\017mcp_server_slug\030\n \001(\tR\rmcpServerSlug\022" +
-      "K\n\ttool_kind\030\013 \001(\0162..ai.stigmer.agentic." +
-      "agentexecution.v1.ToolKindR\010toolKind\022S\n\014" +
-      "file_changes\030\014 \003(\01320.ai.stigmer.agentic." +
-      "agentexecution.v1.FileChangeR\013fileChange" +
-      "s\022p\n\026approval_policy_source\030\r \001(\0162:.ai.s" +
-      "tigmer.agentic.agentexecution.v1.Approva" +
-      "lPolicySourceR\024approvalPolicySource\"\277\001\n\022" +
-      "ApprovalRetraction\022.\n\023approval_request_i" +
-      "d\030\001 \001(\tR\021approvalRequestId\022V\n\006reason\030\002 \001" +
-      "(\0162>.ai.stigmer.agentic.agentexecution.v" +
-      "1.ApprovalRetractionReasonR\006reason\022!\n\014re" +
-      "tracted_at\030\003 \001(\tR\013retractedAt\"\350\001\n\020Approv" +
-      "alDecision\022.\n\023approval_request_id\030\001 \001(\tR" +
-      "\021approvalRequestId\022L\n\006action\030\002 \001(\01624.ai." +
+      "\'\n\017agent_rationale\030\n \001(\tR\016agentRationale" +
+      "\022$\n\016branch_at_deny\030\013 \001(\tR\014branchAtDeny\022\'" +
+      "\n\020head_sha_at_deny\030\014 \001(\tR\rheadShaAtDeny\022" +
+      "K\n\ttool_kind\030\r \001(\0162..ai.stigmer.agentic." +
+      "agentexecution.v1.ToolKindR\010toolKind\022p\n\026" +
+      "approval_policy_source\030\017 \001(\0162:.ai.stigme" +
+      "r.agentic.agentexecution.v1.ApprovalPoli" +
+      "cySourceR\024approvalPolicySourceJ\004\010\016\020\017\"\242\001\n" +
+      "\031ChildApprovalNotification\022!\n\014execution_" +
+      "id\030\001 \001(\tR\013executionId\022b\n\021pending_approva" +
+      "ls\030\002 \003(\01325.ai.stigmer.agentic.agentexecu" +
+      "tion.v1.PendingApprovalR\020pendingApproval" +
+      "s\"\305\004\n\017ApprovalRequest\022.\n\023approval_reques" +
+      "t_id\030\001 \001(\tR\021approvalRequestId\022 \n\014tool_ca" +
+      "ll_id\030\002 \001(\tR\ntoolCallId\022!\n\014requested_at\030" +
+      "\003 \001(\tR\013requestedAt\022\033\n\ttool_name\030\004 \001(\tR\010t" +
+      "oolName\022\030\n\007message\030\005 \001(\tR\007message\022!\n\014arg" +
+      "s_preview\030\006 \001(\tR\013argsPreview\022$\n\016from_sub" +
+      "_agent\030\007 \001(\010R\014fromSubAgent\022$\n\016sub_agent_" +
+      "name\030\010 \001(\tR\014subAgentName\022*\n\021sub_agent_su" +
+      "bject\030\t \001(\tR\017subAgentSubject\022&\n\017mcp_serv" +
+      "er_slug\030\n \001(\tR\rmcpServerSlug\022K\n\ttool_kin" +
+      "d\030\013 \001(\0162..ai.stigmer.agentic.agentexecut" +
+      "ion.v1.ToolKindR\010toolKind\022p\n\026approval_po" +
+      "licy_source\030\r \001(\0162:.ai.stigmer.agentic.a" +
+      "gentexecution.v1.ApprovalPolicySourceR\024a" +
+      "pprovalPolicySourceJ\004\010\014\020\r\"\277\001\n\022ApprovalRe" +
+      "traction\022.\n\023approval_request_id\030\001 \001(\tR\021a" +
+      "pprovalRequestId\022V\n\006reason\030\002 \001(\0162>.ai.st" +
+      "igmer.agentic.agentexecution.v1.Approval" +
+      "RetractionReasonR\006reason\022!\n\014retracted_at" +
+      "\030\003 \001(\tR\013retractedAt\"\350\001\n\020ApprovalDecision" +
+      "\022.\n\023approval_request_id\030\001 \001(\tR\021approvalR" +
+      "equestId\022L\n\006action\030\002 \001(\01624.ai.stigmer.ag" +
+      "entic.agentexecution.v1.ApprovalActionR\006" +
+      "action\022\035\n\ndecided_at\030\003 \001(\tR\tdecidedAt\022\035\n" +
+      "\ndecided_by\030\004 \001(\tR\tdecidedBy\022\030\n\007comment\030" +
+      "\005 \001(\tR\007comment\"\366\003\n\rApprovalEvent\022\031\n\010even" +
+      "t_id\030\001 \001(\tR\007eventId\022.\n\023approval_request_" +
+      "id\030\002 \001(\tR\021approvalRequestId\022V\n\nevent_typ" +
+      "e\030\003 \001(\01627.ai.stigmer.agentic.agentexecut" +
+      "ion.v1.ApprovalEventTypeR\teventType\022\034\n\tt" +
+      "imestamp\030\004 \001(\tR\ttimestamp\022\024\n\005actor\030\005 \001(\t" +
+      "R\005actor\022U\n\trequested\030\006 \001(\01325.ai.stigmer." +
+      "agentic.agentexecution.v1.ApprovalReques" +
+      "tH\000R\trequested\022R\n\007decided\030\007 \001(\01326.ai.sti" +
+      "gmer.agentic.agentexecution.v1.ApprovalD" +
+      "ecisionH\000R\007decided\022X\n\tretracted\030\010 \001(\01328." +
+      "ai.stigmer.agentic.agentexecution.v1.App" +
+      "rovalRetractionH\000R\tretractedB\t\n\007payload\"" +
+      "\205\001\n\023ApprovalEventStream\022!\n\014execution_id\030" +
+      "\001 \001(\tR\013executionId\022K\n\006events\030\002 \003(\01323.ai." +
       "stigmer.agentic.agentexecution.v1.Approv" +
-      "alActionR\006action\022\035\n\ndecided_at\030\003 \001(\tR\tde" +
-      "cidedAt\022\035\n\ndecided_by\030\004 \001(\tR\tdecidedBy\022\030" +
-      "\n\007comment\030\005 \001(\tR\007comment\"\366\003\n\rApprovalEve" +
-      "nt\022\031\n\010event_id\030\001 \001(\tR\007eventId\022.\n\023approva" +
-      "l_request_id\030\002 \001(\tR\021approvalRequestId\022V\n" +
-      "\nevent_type\030\003 \001(\01627.ai.stigmer.agentic.a" +
-      "gentexecution.v1.ApprovalEventTypeR\teven" +
-      "tType\022\034\n\ttimestamp\030\004 \001(\tR\ttimestamp\022\024\n\005a" +
-      "ctor\030\005 \001(\tR\005actor\022U\n\trequested\030\006 \001(\01325.a" +
-      "i.stigmer.agentic.agentexecution.v1.Appr" +
-      "ovalRequestH\000R\trequested\022R\n\007decided\030\007 \001(" +
-      "\01326.ai.stigmer.agentic.agentexecution.v1" +
-      ".ApprovalDecisionH\000R\007decided\022X\n\tretracte" +
-      "d\030\010 \001(\01328.ai.stigmer.agentic.agentexecut" +
-      "ion.v1.ApprovalRetractionH\000R\tretractedB\t" +
-      "\n\007payload\"\205\001\n\023ApprovalEventStream\022!\n\014exe" +
-      "cution_id\030\001 \001(\tR\013executionId\022K\n\006events\030\002" +
-      " \003(\01323.ai.stigmer.agentic.agentexecution" +
-      ".v1.ApprovalEventR\006eventsB\304\001B\rApprovalPr" +
-      "otoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agente" +
-      "xecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agentex" +
-      "ecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexe" +
-      "cution\\V1\\GPBMetadata\352\002(Ai::Stigmer::Age" +
-      "ntic::Agentexecution::V1b\006proto3"
+      "alEventR\006eventsB\304\001B\rApprovalProtoP\001\242\002\004AS" +
+      "AA\252\002$Ai.Stigmer.Agentic.Agentexecution.V" +
+      "1\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V1" +
+      "\342\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\" +
+      "GPBMetadata\352\002(Ai::Stigmer::Agentic::Agen" +
+      "texecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor(),
-          ai.stigmer.agentic.agentexecution.v1.MessageProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_agentexecution_v1_PendingApproval_descriptor =
       getDescriptor().getMessageType(0);
     internal_static_ai_stigmer_agentic_agentexecution_v1_PendingApproval_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_PendingApproval_descriptor,
-        new java.lang.String[] { "ToolCallId", "ToolName", "Message", "ArgsPreview", "RequestedAt", "FromSubAgent", "SubAgentName", "McpServerSlug", "SubAgentSubject", "AgentRationale", "BranchAtDeny", "HeadShaAtDeny", "ToolKind", "FileChanges", "ApprovalPolicySource", });
+        new java.lang.String[] { "ToolCallId", "ToolName", "Message", "ArgsPreview", "RequestedAt", "FromSubAgent", "SubAgentName", "McpServerSlug", "SubAgentSubject", "AgentRationale", "BranchAtDeny", "HeadShaAtDeny", "ToolKind", "ApprovalPolicySource", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ChildApprovalNotification_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ChildApprovalNotification_fieldAccessorTable = new
@@ -170,7 +164,7 @@ public final class ApprovalProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRequest_descriptor,
-        new java.lang.String[] { "ApprovalRequestId", "ToolCallId", "RequestedAt", "ToolName", "Message", "ArgsPreview", "FromSubAgent", "SubAgentName", "SubAgentSubject", "McpServerSlug", "ToolKind", "FileChanges", "ApprovalPolicySource", });
+        new java.lang.String[] { "ApprovalRequestId", "ToolCallId", "RequestedAt", "ToolName", "Message", "ArgsPreview", "FromSubAgent", "SubAgentName", "SubAgentSubject", "McpServerSlug", "ToolKind", "ApprovalPolicySource", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRetraction_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalRetraction_fieldAccessorTable = new
@@ -197,7 +191,6 @@ public final class ApprovalProto extends com.google.protobuf.GeneratedFile {
         new java.lang.String[] { "ExecutionId", "Events", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
-    ai.stigmer.agentic.agentexecution.v1.MessageProto.getDescriptor();
   }
 
   // @@protoc_insertion_point(outer_class_scope)

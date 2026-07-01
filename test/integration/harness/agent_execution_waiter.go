@@ -2,6 +2,7 @@ package harness
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"testing"
@@ -392,11 +393,18 @@ func (w *AgentExecutionWaiter) ResolveApprovalsByPathUntilPhase(
 	)
 }
 
-// approvalFilePath returns the repo-relative path of a pending approval's first
-// file change (capture cards carry exactly one), or "" when none is present.
+// approvalFilePath returns the repo-relative path a pending approval proposes,
+// parsed from its args_preview (the deny-gate carries the proposed change on the
+// args, not a captured file_changes list), or "" when none is present.
 func approvalFilePath(approval *agentexecv1.PendingApproval) string {
-	if fcs := approval.GetFileChanges(); len(fcs) > 0 {
-		return fcs[0].GetPath()
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(approval.GetArgsPreview()), &parsed); err != nil {
+		return ""
+	}
+	for _, k := range []string{"path", "file_path", "filePath", "filename", "file", "target_notebook"} {
+		if v, ok := parsed[k].(string); ok && v != "" {
+			return v
+		}
 	}
 	return ""
 }
@@ -512,54 +520,10 @@ func FindToolCall(exec *agentexecv1.AgentExecution, toolName string) *agentexecv
 	return nil
 }
 
-// FindFileChange returns the first FileChange with the given workspace-relative
-// path across all of an execution's tool calls, or nil if none exists.
-//
-// The path matched is the display path the runner records — workspace-root
-// relative with the leading slash stripped (see resolveWorkspacePath in the
-// runner's shared/file-change.ts) — not the absolute on-disk path. When a single
-// file is touched by more than one tool in a turn (e.g. write then edit), this
-// returns the earliest capture; assert via FindToolCall(...).GetFileChanges()
-// when a specific tool's change is needed.
-func FindFileChange(exec *agentexecv1.AgentExecution, path string) *agentexecv1.FileChange {
-	for _, msg := range exec.GetStatus().GetMessages() {
-		for _, tc := range msg.GetToolCalls() {
-			for _, fc := range tc.GetFileChanges() {
-				if fc.GetPath() == path {
-					return fc
-				}
-			}
-		}
-	}
-	return nil
-}
-
-// AssertFileChange asserts that a FileChange exists for the given workspace
-// relative path and that its change type and capture level match. It returns the
-// matched FileChange so callers can make further, change-specific assertions
-// (inline before/after bodies, offloaded refs). On absence it fails the test
-// (non-fatally) and returns nil.
-func AssertFileChange(
-	t *testing.T,
-	exec *agentexecv1.AgentExecution,
-	path string,
-	expectedType agentexecv1.FileChangeType,
-	expectedCapture agentexecv1.FileChangeCaptureLevel,
-) *agentexecv1.FileChange {
-	t.Helper()
-	fc := FindFileChange(exec, path)
-	if fc == nil {
-		t.Errorf("expected a file change for path %q, found none", path)
-		return nil
-	}
-	assert.Equalf(t, expectedType, fc.GetChangeType(),
-		"file change %q: expected change type %s, got %s",
-		path, expectedType.String(), fc.GetChangeType().String())
-	assert.Equalf(t, expectedCapture, fc.GetCaptureLevel(),
-		"file change %q: expected capture level %s, got %s",
-		path, expectedCapture.String(), fc.GetCaptureLevel().String())
-	return fc
-}
+// Note: file-review captures are asserted via the FileChangeSet ledger helpers in
+// file_review.go (FindFileChangeSet / FindCapturedChangeByPath / AssertCapturedChange).
+// The tool-call-coupled FileChange (message.proto field 22) was removed in Phase 5
+// Slice 4, so the old FindFileChange/AssertFileChange helpers were retired with it.
 
 // AssertUniqueToolCallIds verifies the core accumulator invariant: a tool
 // call id maps to at most one ToolCall across all of an execution's messages.
@@ -784,48 +748,30 @@ func FindPendingApproval(exec *agentexecv1.AgentExecution, toolName string) *age
 	return nil
 }
 
-// AssertPendingApprovalFileChange asserts that the pending approval for the named
-// gated tool carries a FileChange for the given workspace-relative path, with the
-// expected change type and capture level, and returns it for further
-// change-specific assertions (inline before/after bodies, offloaded refs).
+// AssertPendingApprovalProposesPath asserts that the pending approval for the
+// named gated tool proposes the given workspace-relative path, parsed from its
+// args_preview, and returns the pending approval for further assertions.
 //
-// This is the mirror of AssertFileChange on the PendingApproval projection: it
-// proves the gate diff reached the approver (ToolCall.file_changes copied onto
-// PendingApproval by the server projection), not merely that the post-execution
-// ToolCall carries it. On absence it fails the test (non-fatally) and returns nil.
-func AssertPendingApprovalFileChange(
+// Under apply-then-review the deny-gate no longer carries a captured file_changes
+// list (message.proto field 14 was removed in Phase 5 Slice 4); the proposed
+// change lives on the tool args. On absence it fails the test (non-fatally) and
+// returns nil.
+func AssertPendingApprovalProposesPath(
 	t *testing.T,
 	exec *agentexecv1.AgentExecution,
 	toolName string,
 	path string,
-	expectedType agentexecv1.FileChangeType,
-	expectedCapture agentexecv1.FileChangeCaptureLevel,
-) *agentexecv1.FileChange {
+) *agentexecv1.PendingApproval {
 	t.Helper()
 	pa := FindPendingApproval(exec, toolName)
 	if pa == nil {
 		t.Errorf("expected a pending approval for tool %q, found none", toolName)
 		return nil
 	}
-	var fc *agentexecv1.FileChange
-	for _, c := range pa.GetFileChanges() {
-		if c.GetPath() == path {
-			fc = c
-			break
-		}
-	}
-	if fc == nil {
-		t.Errorf("pending approval for tool %q: expected a file change for path %q, found none (%d file change(s) present)",
-			toolName, path, len(pa.GetFileChanges()))
-		return nil
-	}
-	assert.Equalf(t, expectedType, fc.GetChangeType(),
-		"pending approval %q file change %q: expected change type %s, got %s",
-		toolName, path, expectedType.String(), fc.GetChangeType().String())
-	assert.Equalf(t, expectedCapture, fc.GetCaptureLevel(),
-		"pending approval %q file change %q: expected capture level %s, got %s",
-		toolName, path, expectedCapture.String(), fc.GetCaptureLevel().String())
-	return fc
+	assert.Equalf(t, path, approvalFilePath(pa),
+		"pending approval %q: expected proposed path %q (from args_preview %q)",
+		toolName, path, pa.GetArgsPreview())
+	return pa
 }
 
 // LogExecutionMessages fetches the current execution state and logs all

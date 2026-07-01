@@ -1,91 +1,25 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import {
-  FileChangeSchema,
-  FileContentSchema,
-  type FileChange,
-  type FileContent,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import {
   ApprovalAction,
   ApprovalPolicySource,
-  FileChangeCaptureLevel,
-  FileChangeType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolKind } from "@stigmer/sdk";
-import type { UseFileChangeContentReturn } from "../useFileChangeContent";
+import { ApprovalCard } from "../ApprovalCard";
 
-// ---------------------------------------------------------------------------
-// ApprovalCard renders FileChangeDiff for file-modifying approvals, which pulls
-// in the offload-resolving content hook transitively. Mock that hook so the
-// diff path renders without artifact-fetch context, exactly as FileChangesView's
-// tests do, and dynamically import the component after the mock is registered.
-// ---------------------------------------------------------------------------
+// Under apply-then-review the deny-gate carries no captured `file_changes`
+// (message.proto field 14 was removed in Phase 5 Slice 4); the gate renders the
+// proposed change from the tool args. Captured file review renders via
+// FileReviewCard, tested separately.
 
-let mockReturn: UseFileChangeContentReturn;
-
-vi.mock("../useFileChangeContent", () => ({
-  useFileChangeContent: () => mockReturn,
-}));
-
-const { ApprovalCard } = await import("../ApprovalCard");
-
-function setContent(overrides?: Partial<UseFileChangeContentReturn>) {
-  mockReturn = {
-    beforeText: "",
-    afterText: "",
-    isBinary: false,
-    isLoading: false,
-    error: null,
-    isTruncated: false,
-    downloadUrl: null,
-    ...overrides,
-  };
-}
-
-beforeEach(() => setContent());
 afterEach(cleanup);
 
 const noop = () => {};
 
 // ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
-
-function inlineSide(value: string): FileContent {
-  return create(FileContentSchema, { body: { case: "inline", value } });
-}
-
-function wholeFileChange(
-  path: string,
-  before: string,
-  after: string,
-  changeType: FileChangeType = FileChangeType.MODIFY,
-): FileChange {
-  return create(FileChangeSchema, {
-    path,
-    changeType,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-    before: before ? inlineSide(before) : undefined,
-    after: after ? inlineSide(after) : undefined,
-  });
-}
-
-function hunkOnlyChange(path: string): FileChange {
-  return create(FileChangeSchema, {
-    path,
-    changeType: FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-    unifiedDiff: "@@ -1 +1 @@\n-alpha\n+beta",
-    linesAdded: 1,
-    linesRemoved: 1,
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Tool classification (ToolArgsView fallback path — no file_changes)
+// Tool classification (ToolArgsView fallback path)
 // ---------------------------------------------------------------------------
 
 describe("ApprovalCard chrome", () => {
@@ -425,177 +359,11 @@ describe("ApprovalCard approve-all action", () => {
 });
 
 // ---------------------------------------------------------------------------
-// File-change diff rendering (the Phase E surface)
+// Deny-gate preview from tool args (apply-then-review: no captured file_changes)
 // ---------------------------------------------------------------------------
 
-describe("ApprovalCard file-change diff", () => {
-  it("renders a hunk-only unified diff when the approval carries a hunk capture", () => {
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-hunk",
-      toolName: "str_replace",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"src/h.ts"}',
-      fileChanges: [hunkOnlyChange("src/h.ts")],
-    });
-
-    const { container } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
-    );
-
-    // De-duplicated: for a single change the filename appears exactly once — in
-    // the header — never restated by the diff body.
-    expect(screen.getAllByText("h.ts")).toHaveLength(1);
-    // The hunk-only patch renders through the accessible DiffViewer table (the
-    // +/- prefixes live in a gutter cell), not a raw unified-diff dump.
-    expect(container.querySelector("table")).not.toBeNull();
-    expect(screen.getByText("beta")).toBeTruthy();
-    expect(screen.getByText("alpha")).toBeTruthy();
-    expect(container.textContent).not.toContain("@@");
-  });
-
-  it("renders a whole-file before/after diff with +/- stats", () => {
-    setContent({ beforeText: "alpha\n", afterText: "beta\n" });
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-whole",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"src/a.ts"}',
-      fileChanges: [wholeFileChange("src/a.ts", "alpha\n", "beta\n")],
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
-    // De-duplicated: the filename is in the header only; the body keeps the stats.
-    expect(screen.getAllByText("a.ts")).toHaveLength(1);
-    expect(screen.getByText("+1")).toBeTruthy();
-    expect(screen.getByText("-1")).toBeTruthy();
-  });
-
-  it("bounds the gate diff to the shared preview budget so the decision buttons stay reachable", () => {
-    setContent({ beforeText: "alpha\n", afterText: "beta\n" });
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-bounded",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"src/big.ts"}',
-      fileChanges: [wholeFileChange("src/big.ts", "alpha\n", "beta\n")],
-    });
-
-    const { container } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
-    );
-
-    // The diff body sits inside the shared BoundedContent clamp (overflow-hidden
-    // + the standard max-height budget) — the same primitive the settled card and
-    // the expanded edit detail use — so a large change can never push the actions
-    // off-screen. The rendered clamp/reveal is exercised in the e2e layer.
-    const diff = container.querySelector('[data-cursor-target="file-diff"]');
-    expect(diff).not.toBeNull();
-    expect(diff!.querySelector(".overflow-hidden.max-h-48")).not.toBeNull();
-    // The diff still renders inside that clamp...
-    expect(diff!.querySelector("table")).not.toBeNull();
-    // ...and the decision actions remain present alongside it.
-    expect(screen.getByLabelText("Approve")).toBeTruthy();
-  });
-
-  it("leads with the diff (never the raw Content args box) when file_changes is populated, even if args carry content", () => {
-    // The reported bug: an edit-classified whole-file rewrite whose args carry the
-    // proposed `contents`. Once the runner populates file_changes, the gate must
-    // lead with the before/after diff — NOT fall back to the "Content [N chars]"
-    // args view that an EMPTY file_changes produced.
-    setContent({ beforeText: "one\ntwo\n", afterText: "alpha\nbeta\n" });
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-diff-wins",
-      toolName: "edit",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"notes.md","contents":"alpha\\nbeta\\n"}',
-      fileChanges: [wholeFileChange("notes.md", "one\ntwo\n", "alpha\nbeta\n")],
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
-    // The diff renders (stats present)...
-    expect(screen.getByText("+2")).toBeTruthy();
-    expect(screen.getByText("-2")).toBeTruthy();
-    // ...and the raw args "Content" collapsible (a <span> label over a <pre>)
-    // never appears beside it. The DiffViewer table legitimately has a "Content"
-    // column header (<th>), so the guard is that NO non-table "Content" label
-    // exists — i.e. the args fallback branch was not taken.
-    const contentLabels = screen.queryAllByText("Content");
-    expect(contentLabels.every((el) => el.tagName === "TH")).toBe(true);
-  });
-
-  it("renders an all-additions diff for a CREATE (no before side)", () => {
-    setContent({ beforeText: "", afterText: "hello\nworld\n" });
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-create",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"src/new.ts"}',
-      fileChanges: [
-        wholeFileChange("src/new.ts", "", "hello\nworld\n", FileChangeType.CREATE),
-      ],
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
-    expect(screen.getAllByText("new.ts")).toHaveLength(1);
-    // Two added lines, none removed.
-    expect(screen.getByText("+2")).toBeTruthy();
-    expect(screen.getByText("-0")).toBeTruthy();
-  });
-
-  it("shows a binary notice instead of a diff when a side is binary", () => {
-    setContent({ isBinary: true });
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-bin",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"src/logo.png"}',
-      fileChanges: [wholeFileChange("src/logo.png", "", "")],
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
-    expect(screen.getByText(/binary file changed/i)).toBeTruthy();
-  });
-
-  it("shows a loading state while an offloaded side is fetched", () => {
-    setContent({ beforeText: null, afterText: null, isLoading: true });
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-loading",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"src/big.ts"}',
-      fileChanges: [wholeFileChange("src/big.ts", "", "")],
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
-    expect(screen.getByText(/loading diff/i)).toBeTruthy();
-  });
-
-  it("renders one diff per file when an approval carries multiple changes", () => {
-    setContent({ beforeText: "a\n", afterText: "b\n" });
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-multi",
-      toolName: "apply_patch",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: "{}",
-      fileChanges: [
-        wholeFileChange("src/one.ts", "a\n", "b\n"),
-        wholeFileChange("src/two.ts", "a\n", "b\n"),
-      ],
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
-    // One FileChangeDiff per file, each header filename-first.
-    expect(screen.getByText("one.ts")).toBeTruthy();
-    expect(screen.getByText("two.ts")).toBeTruthy();
-  });
-
-  it("shows the proposed content (filename only in the header) when there are no file changes but args carry content", () => {
+describe("ApprovalCard file-change preview", () => {
+  it("shows the proposed content (filename only in the header) when the args carry content", () => {
     const approval = create(PendingApprovalSchema, {
       toolCallId: "tc-fallback",
       toolName: "write_file",

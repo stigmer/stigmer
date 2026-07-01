@@ -26,8 +26,7 @@
 import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { FileChangeCaptureLevel } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ToolCall, FileChange, FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
 export { ToolKind, FileChangeCaptureLevel };
 
@@ -275,9 +274,9 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
 
   switch (kind) {
     case ToolKind.FILE_EDIT:
-      return normalizeEdit(toolCall.fileChanges, args, result);
+      return normalizeEdit(args, result);
     case ToolKind.FILE_WRITE:
-      return normalizeWrite(toolCall.fileChanges, args);
+      return normalizeWrite(args);
     case ToolKind.FILE_READ:
       return normalizeRead(args, result);
     case ToolKind.FILE_DELETE:
@@ -297,24 +296,13 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
   }
 }
 
-function normalizeEdit(
-  fileChanges: readonly FileChange[],
-  args: Args,
-  result: string,
-): ToolResultView {
-  // Prefer the runner's authoritative capture (ToolCall.file_changes) over
-  // reconstructing the diff from args. A FILE_EDIT touches a single file, so the
-  // first change is the relevant one; multi-file changes (some MCP tools) are not
-  // routed here and are consumed wholesale from the proto by higher layers.
-  const captured = fileChanges[0] && normalizeEditFromFileChange(fileChanges[0], args);
-  if (captured) {
-    return captured;
-  }
-
-  // Legacy fallback: no file_changes (executions persisted before #186) or an
-  // unrecognized capture level. The native engine returns prose with no diff, so
-  // the presentation layer computes the visual diff from the args fragments; the
-  // Cursor SDK returns a stringified envelope with precomputed diff stats.
+function normalizeEdit(args: Args, result: string): ToolResultView {
+  // The inline transcript diff for a file edit is reconstructed from the tool
+  // args (there is no captured `file_changes` mirror — apply-then-review renders
+  // captured diffs via FileReviewCard/FileChangeDiff, not here). The native
+  // engine returns prose with no diff, so the presentation layer computes the
+  // visual diff from the args fragments; the Cursor SDK returns a stringified
+  // envelope with precomputed diff stats.
   const path = firstString(args, PATH_FIELDS) ?? "";
   const oldText = firstString(args, OLD_TEXT_FIELDS);
   const newText = firstString(args, NEW_TEXT_FIELDS);
@@ -335,107 +323,12 @@ function normalizeEdit(
   };
 }
 
-// Projects an authoritative FileChange into the diff view. Returns undefined for
-// an UNSPECIFIED capture level so the caller falls back to the args path.
-function normalizeEditFromFileChange(change: FileChange, args: Args): ToolResultView | undefined {
-  const path = change.path || change.absolutePath || firstString(args, PATH_FIELDS) || "";
-
-  switch (change.captureLevel) {
-    case FileChangeCaptureLevel.WHOLE_FILE:
-      // True whole-file before/after. linesAdded/linesRemoved and unified_diff are
-      // intentionally NOT copied: for a whole-file capture the native harness
-      // leaves them as 0/"" sentinels (backend shared/file-change.ts), so the
-      // presentation layer derives the stats and hunks from oldText/newText, as it
-      // already does. A side that was offloaded or is binary has no inline text and
-      // is left unset rather than fabricated (see inlineFileBody).
-      return {
-        type: "diff",
-        path,
-        // A whole-file CREATE has no before-side: an absent before is the empty
-        // file (""), so a new file renders as an all-additions diff — matching the
-        // approval gate (useFileChangeContent.sideText) and normalizeWrite's
-        // create-only default. An absent/unavailable before on a MODIFY (offloaded
-        // or binary) stays undefined so the renderer fetches it or degrades
-        // honestly, never fabricating a misleading all-additions diff.
-        oldText:
-          inlineFileBody(change.before)
-          ?? (change.changeType === FileChangeType.CREATE ? "" : undefined),
-        newText: inlineFileBody(change.after),
-        captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-      };
-    case FileChangeCaptureLevel.HUNK_ONLY:
-      // Cursor today: a hunk-level unified diff plus authoritative line counts,
-      // with no whole-file content. The diff string is the renderable payload.
-      return {
-        type: "diff",
-        path,
-        unifiedDiff: change.unifiedDiff || undefined,
-        linesAdded: change.linesAdded,
-        linesRemoved: change.linesRemoved,
-        captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-      };
-    default:
-      return undefined;
-  }
-}
-
-// Returns the inline UTF-8 body of one side of a file change, or undefined when
-// the side is absent, was offloaded to artifact storage (body.case === "ref"), or
-// is binary — none of which can be shown as inline diff text. An empty file is a
-// real inline value ("") and is preserved, distinct from an absent side.
-function inlineFileBody(side: FileContent | undefined): string | undefined {
-  if (!side || side.isBinary) {
-    return undefined;
-  }
-  return side.body.case === "inline" ? side.body.value : undefined;
-}
-
-function normalizeWrite(
-  fileChanges: readonly FileChange[],
-  args: Args,
-): ToolResultView {
-  // Prefer the runner's authoritative WHOLE_FILE capture so a write reads as an
-  // additive diff (the new file's content) — consistent with the approval gate
-  // and with edits. Falls back to inline content for legacy executions, or when
-  // the captured body was offloaded/binary (the args still carry it inline).
-  const captured =
-    fileChanges[0] && normalizeWriteFromFileChange(fileChanges[0], args);
-  if (captured) {
-    return captured;
-  }
-
+function normalizeWrite(args: Args): ToolResultView {
+  // The inline transcript view for a file write is the proposed content from the
+  // tool args (captured diffs render via FileReviewCard, not here).
   const path = firstString(args, PATH_FIELDS) ?? "";
   const content = firstString(args, WRITE_CONTENT_FIELDS) ?? "";
   return { type: "file", path, content, language: languageFromPath(path), truncated: false };
-}
-
-// Projects a write's WHOLE_FILE capture into an additive diff. Returns undefined
-// when the after body is unavailable (offloaded/binary) or the capture is not
-// whole-file, so the caller falls back to the inline args content (which the
-// post-execution diff renderer cannot lazily fetch the way the gate can).
-function normalizeWriteFromFileChange(
-  change: FileChange,
-  args: Args,
-): ToolResultView | undefined {
-  if (change.captureLevel !== FileChangeCaptureLevel.WHOLE_FILE) {
-    return undefined;
-  }
-  const after = inlineFileBody(change.after);
-  if (after === undefined) {
-    return undefined;
-  }
-  const path =
-    change.path || change.absolutePath || firstString(args, PATH_FIELDS) || "";
-  // A write is create-only, so an absent before is an empty file — the diff is
-  // all-additions. A present inline before (an overwrite) is honored.
-  const before = inlineFileBody(change.before) ?? "";
-  return {
-    type: "diff",
-    path,
-    oldText: before,
-    newText: after,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-  };
 }
 
 function normalizeRead(args: Args, result: string): ToolResultView {
