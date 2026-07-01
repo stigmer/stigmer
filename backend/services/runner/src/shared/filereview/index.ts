@@ -33,3 +33,25 @@ export {
 } from "./capture.js";
 
 export { isGitWorkTree } from "./git-substrate.js";
+
+export {
+  applyCasApproved,
+  casBlobKey,
+  casBlobReader,
+  casManifestKey,
+  loadCasManifest,
+  restoreCasToBaseline,
+  snapshotCasChangeSet,
+  type BlobReader,
+  type CasBlobRef,
+  type CasCapturedFile,
+  type CasManifest,
+  type CasPathCapture,
+  type CasSnapshotRef,
+} from "./cas-substrate.js";
+
+export {
+  isSecretLikePath,
+  SECRET_BASENAME_PATTERNS,
+  SECRET_PATH_PATTERNS,
+} from "./secret-paths.js";

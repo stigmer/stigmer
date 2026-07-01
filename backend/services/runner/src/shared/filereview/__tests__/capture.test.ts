@@ -24,11 +24,16 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
+  DiffCompleteness,
+  FileCaptureClass,
+  FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionScope,
   FileReviewEventType,
+  SnapshotKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { ArtifactStorage } from "../../artifact-storage.js";
 import {
   applyCaptureDecisions,
   captureBaselineToLedger,
@@ -180,5 +185,187 @@ describe("capture orchestration — deep-agent harness", () => {
     expect(reconciled).toHaveLength(1);
     expect(reconciled[0].actor).toBe("runner");
     expect((await git(["for-each-ref", "refs/stigmer/"])).trim()).toBe("");
+  });
+});
+
+// In-memory artifact store for the CAS composition tests.
+function makeStorage(): ArtifactStorage & { blobs: Map<string, Buffer> } {
+  const blobs = new Map<string, Buffer>();
+  return {
+    blobs,
+    async upload(key, content) {
+      blobs.set(key, Buffer.from(content));
+      return key;
+    },
+    async getDownloadUrl(key) {
+      return `mem://${key}`;
+    },
+    async exists(key) {
+      return blobs.has(key);
+    },
+  };
+}
+
+function candidateSnapshotKind(status: AgentExecutionStatus): SnapshotKind | undefined {
+  const ev = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
+  return ev?.payload.case === "candidateCaptured"
+    ? ev.payload.value.candidateSnapshot?.kind
+    : undefined;
+}
+function candidateCompleteness(status: AgentExecutionStatus): DiffCompleteness | undefined {
+  const ev = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
+  return ev?.payload.case === "candidateCaptured"
+    ? ev.payload.value.diffCompleteness
+    : undefined;
+}
+
+describe("capture orchestration — hybrid git + CAS (Phase 3)", () => {
+  it("composes git-tracked and CAS captures into one HYBRID change set", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+
+    // A git-tracked edit AND an ignored file the harness captured out-of-band.
+    await write("notes.md", "planton notes\n");
+    const gitChanges = await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, storage,
+      casCaptures: [
+        { path: ".env", before: null, after: new TextEncoder().encode("SECRET=2"), captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED },
+      ],
+    });
+
+    // The return is still the git-tracked changes (adapter presentation concern).
+    expect(gitChanges.map((c) => c.path)).toEqual(["notes.md"]);
+
+    const cand = candidateChanges(status);
+    const byPath = new Map(cand.map((c) => [c.pathAfter || c.pathBefore, c]));
+    expect([...byPath.keys()].sort()).toEqual([".env", "notes.md"]);
+
+    // The git file is inline; the CAS file is a blob ref (stored once, not inlined).
+    const gitFile = byPath.get("notes.md")!;
+    expect(gitFile.captureClass).toBe(FileCaptureClass.GIT_TRACKED);
+    expect(gitFile.after?.body.case).toBe("inline");
+
+    const casFile = byPath.get(".env")!;
+    expect(casFile.captureClass).toBe(FileCaptureClass.GIT_IGNORED_CAPTURED);
+    expect(casFile.kind).toBe(FileChangeKind.ADD);
+    expect(casFile.after?.body.case).toBe("ref");
+    // The referenced blob physically exists in the store.
+    if (casFile.after?.body.case === "ref") {
+      expect(storage.blobs.has(casFile.after.body.value.storageKey)).toBe(true);
+    }
+
+    // The snapshot spans both substrates; the aggregate digest folds both files.
+    expect(candidateSnapshotKind(status)).toBe(SnapshotKind.HYBRID);
+    const ev = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
+    if (ev.payload.case === "candidateCaptured") {
+      expect(ev.payload.value.aggregateDigest).not.toBe("");
+    }
+  });
+
+  it("stays git-only (no CAS) when no ignored paths are captured", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await write("notes.md", "planton notes\n");
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, storage, casCaptures: [],
+    });
+    expect(candidateSnapshotKind(status)).toBe(SnapshotKind.GIT_TREE_REF);
+    expect(storage.blobs.size).toBe(0);
+  });
+
+  it("marks the change set PARTIAL_BLOCKED when a CAS file is binary", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, storage,
+      casCaptures: [
+        { path: "cache.bin", before: null, after: new Uint8Array([1, 0, 2]), captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED },
+      ],
+    });
+    const cand = candidateChanges(status);
+    expect(cand[0].diffComplete).toBe(false);
+    expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+  });
+
+  it("reconciles hybrid decisions on resume: approved CAS kept, rejected CAS reverted", async () => {
+    const status = newStatus();
+    const storage = makeStorage();
+    const readBlob = async (key: string): Promise<Buffer> => {
+      const b = storage.blobs.get(key);
+      if (!b) throw new Error(`missing ${key}`);
+      return b;
+    };
+    const enc = (s: string) => new TextEncoder().encode(s);
+
+    // Ignore dist/ and build/ so git does not also capture these paths.
+    await write(".gitignore", "dist/\nbuild/\n");
+    await git(["add", ".gitignore"]);
+    await git(["commit", "-q", "-m", "ignore"]);
+
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+
+    // Apply the turn's edits to disk (the "after" state the review window shows).
+    await write("notes.md", "planton\n"); // git-tracked
+    await write("dist/out.txt", "X"); // ignored ADD
+    await write("build/cache.txt", "NEW"); // ignored MODIFY (baseline was OLD)
+
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, storage,
+      casCaptures: [
+        { path: "dist/out.txt", before: null, after: enc("X"), captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED },
+        { path: "build/cache.txt", before: enc("OLD"), after: enc("NEW"), captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED },
+      ],
+    });
+
+    const changeSet = decidedChangeSet(status, {
+      "notes.md": FileDecisionAction.APPROVE,
+      "dist/out.txt": FileDecisionAction.APPROVE,
+      "build/cache.txt": FileDecisionAction.REJECT,
+    });
+
+    const result = await applyCaptureDecisions({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+      storage, readBlob,
+    });
+
+    expect(result.failed).toBe(false);
+    expect(result.approvedPaths.sort()).toEqual(["dist/out.txt", "notes.md"]);
+    expect(result.rejectedPaths).toEqual(["build/cache.txt"]);
+
+    // Approved git + approved CAS kept; rejected CAS reverted to baseline bytes.
+    expect(await read("notes.md")).toBe("planton\n");
+    expect(await read("dist/out.txt")).toBe("X");
+    expect(await read("build/cache.txt")).toBe("OLD");
+  });
+
+  it("throws if CAS captures are supplied without a storage backend", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await expect(
+      captureCandidateToLedger({
+        status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+        baselineTree: baseline, harnessId: HARNESS,
+        casCaptures: [
+          { path: ".env", before: null, after: new TextEncoder().encode("X=1"), captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED },
+        ],
+      }),
+    ).rejects.toThrow(/requires an ArtifactStorage/);
   });
 });

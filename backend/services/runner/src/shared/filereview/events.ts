@@ -27,7 +27,11 @@ import type {
   FileReviewEvent,
   SnapshotRef,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import {
+  FileContentSchema,
+  ToolCallOutputRefSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   DiffCompleteness,
   FileCaptureClass,
@@ -74,6 +78,25 @@ export function eventId(
   return `${changeSetId}:${scopeId}:${FILE_REVIEW_EVENT_TYPE_NAME[type]}`;
 }
 
+/**
+ * One side (before/after) of a captured file's content. Either the raw inline
+ * bytes (the git substrate reads them from the tree) OR a reference to an
+ * already-stored, content-addressed blob (the CAS substrate offloads ignored /
+ * non-git bodies to artifact storage and carries the ref, so the body is never
+ * stored twice). A plain string is accepted as shorthand for inline content.
+ */
+export type CapturedContent =
+  | { readonly kind: "inline"; readonly text: string }
+  | {
+      readonly kind: "ref";
+      /** Content address of the referenced blob (the enforcement digest). */
+      readonly sha256: string;
+      readonly storageKey: string;
+      readonly sizeBytes: number;
+      readonly isBinary: boolean;
+      readonly mimeType?: string;
+    };
+
 /** A single captured file delta, harness-agnostic (no git/CAS specifics). */
 export interface CapturedChangeInput {
   /** Stable id of this file change within its set (correlation key, never a hash). */
@@ -85,10 +108,10 @@ export interface CapturedChangeInput {
   readonly kind: FileChangeKind;
   /** Which substrate captured this file (git-tracked, ignored, CAS, ...). */
   readonly captureClass: FileCaptureClass;
-  /** Pre-edit content. Omit for ADD. */
-  readonly before?: string;
-  /** Post-edit content. Omit for DELETE. */
-  readonly after?: string;
+  /** Pre-edit content (inline string, or a blob ref). Omit for ADD. */
+  readonly before?: string | CapturedContent;
+  /** Post-edit content (inline string, or a blob ref). Omit for DELETE. */
+  readonly after?: string | CapturedContent;
   /**
    * False when this file's diff could not be captured completely (too large to
    * persist inline before CAS exists, truncated, or binary-only). A change set
@@ -97,24 +120,55 @@ export interface CapturedChangeInput {
   readonly diffComplete?: boolean;
 }
 
-/** Build an inline FileContent body (offloaded later at the persist chokepoint). */
-function inlineFileContent(content: string) {
+/** Normalize the string-shorthand to a {@link CapturedContent}. */
+function normalizeContent(v: string | CapturedContent | undefined): CapturedContent | undefined {
+  if (v === undefined) return undefined;
+  return typeof v === "string" ? { kind: "inline", text: v } : v;
+}
+
+/** The enforcement digest of one content side (hash the bytes, or reuse the ref's). */
+function contentSha256(content: CapturedContent): string {
+  return content.kind === "inline"
+    ? sha256Bytes(Buffer.from(content.text, "utf8"))
+    : content.sha256;
+}
+
+/** Build the proto {@link FileContent} for one content side (inline or ref). */
+function toFileContent(content: CapturedContent): FileContent {
+  if (content.kind === "inline") {
+    return create(FileContentSchema, {
+      body: { case: "inline", value: content.text },
+      isBinary: looksBinary(content.text),
+    });
+  }
   return create(FileContentSchema, {
-    body: { case: "inline", value: content },
-    isBinary: looksBinary(content),
+    body: {
+      case: "ref",
+      value: create(ToolCallOutputRefSchema, {
+        storageKey: content.storageKey,
+        sizeBytes: BigInt(content.sizeBytes),
+        contentHash: content.sha256,
+        mimeType: content.mimeType ?? "application/octet-stream",
+        isImage: false,
+        truncatedPreview: "",
+      }),
+    },
+    isBinary: content.isBinary,
   });
 }
 
 /**
  * Build a proto {@link CapturedFileChange} from harness-agnostic input,
  * computing the enforcement digests (`before_sha256`, `after_sha256`,
- * `file_digest`) over the captured bytes.
+ * `file_digest`) over the captured bytes. Content may be inline (git) or a blob
+ * ref (CAS) — the digests are identical either way, so the aggregate digest and
+ * the reconcile enforcement compose across both substrates.
  */
 export function buildCapturedFileChange(input: CapturedChangeInput): CapturedFileChange {
-  const beforeSha256 =
-    input.before !== undefined ? sha256Bytes(Buffer.from(input.before, "utf8")) : "";
-  const afterSha256 =
-    input.after !== undefined ? sha256Bytes(Buffer.from(input.after, "utf8")) : "";
+  const before = normalizeContent(input.before);
+  const after = normalizeContent(input.after);
+  const beforeSha256 = before ? contentSha256(before) : "";
+  const afterSha256 = after ? contentSha256(after) : "";
 
   const fc = create(CapturedFileChangeSchema, {
     id: input.id,
@@ -133,11 +187,11 @@ export function buildCapturedFileChange(input: CapturedChangeInput): CapturedFil
       afterSha256,
     }),
   });
-  if (input.before !== undefined) {
-    fc.before = inlineFileContent(input.before);
+  if (before) {
+    fc.before = toFileContent(before);
   }
-  if (input.after !== undefined) {
-    fc.after = inlineFileContent(input.after);
+  if (after) {
+    fc.after = toFileContent(after);
   }
   return fc;
 }

@@ -112,7 +112,7 @@ const SNAPSHOT_IDENTITY_ENV: Record<string, string> = {
  * after trees. `path` is repo-relative (forward slashes); `changeType` drives
  * restore/apply; `fileChange` is the proto rendered on the review surface.
  */
-export interface CapturedFileChange {
+export interface GitSubstrateChange {
   /** Repo-relative path (the diff's path; the destination for a create/modify). */
   readonly path: string;
   readonly changeType: FileChangeType;
@@ -130,7 +130,7 @@ export interface CaptureResult {
   /** The post-turn tree sha, also pinned behind the capture ref. */
   readonly afterTree: string;
   /** One entry per changed file (excluding the passed runner-owned paths). */
-  readonly changes: readonly CapturedFileChange[];
+  readonly changes: readonly GitSubstrateChange[];
 }
 
 /**
@@ -272,7 +272,7 @@ export async function snapshotBaseline(
 /**
  * Capture the change set the turn produced: write the post-turn working tree,
  * pin it behind the capture ref (so it survives the approval wait), and diff it
- * against `baselineTree` into a per-file {@link CapturedFileChange} list.
+ * against `baselineTree` into a per-file {@link GitSubstrateChange} list.
  *
  * Renames are intentionally NOT detected (`--no-renames`): a rename surfaces as
  * a delete + create, which restores and applies exactly and matches the per-file
@@ -297,7 +297,7 @@ export async function captureChangeSet(
     afterTree,
   ]);
 
-  const changes: CapturedFileChange[] = [];
+  const changes: GitSubstrateChange[] = [];
   for (const { status, path } of parseNameStatusZ(raw)) {
     const change = await buildCapturedChange(gitRoot, baselineTree, afterTree, status, path);
     if (change) changes.push(change);
@@ -317,7 +317,7 @@ export async function captureChangeSet(
 export async function restoreToBaseline(
   gitRoot: string,
   baselineTree: string,
-  changes: readonly CapturedFileChange[],
+  changes: readonly GitSubstrateChange[],
 ): Promise<void> {
   for (const change of changes) {
     const abs = join(gitRoot, change.path);
@@ -343,7 +343,7 @@ export async function restoreToBaseline(
 export async function applyApprovedPaths(
   gitRoot: string,
   afterTree: string,
-  approved: readonly CapturedFileChange[],
+  approved: readonly GitSubstrateChange[],
 ): Promise<void> {
   for (const change of approved) {
     const abs = join(gitRoot, change.path);
@@ -379,7 +379,7 @@ export async function recomputeChangeSet(
     baselineTree,
     afterTree,
   ]);
-  const changes: CapturedFileChange[] = [];
+  const changes: GitSubstrateChange[] = [];
   for (const { status, path } of parseNameStatusZ(raw)) {
     const change = await buildCapturedChange(gitRoot, baselineTree, afterTree, status, path);
     if (change) changes.push(change);
@@ -485,7 +485,7 @@ async function writeBlobToDisk(
 }
 
 /**
- * Build a {@link CapturedFileChange} from a diff entry. WHOLE_FILE capture: the
+ * Build a {@link GitSubstrateChange} from a diff entry. WHOLE_FILE capture: the
  * before/after bodies come from the two trees (byte-exact via git), so the review
  * shows the file's true net change regardless of how many edit tool calls
  * produced it. A binary side is still carried (the proto flags it); large bodies
@@ -497,7 +497,7 @@ async function buildCapturedChange(
   afterTree: string,
   status: string,
   path: string,
-): Promise<CapturedFileChange | undefined> {
+): Promise<GitSubstrateChange | undefined> {
   const absolutePath = join(gitRoot, path);
 
   if (status === "A") {

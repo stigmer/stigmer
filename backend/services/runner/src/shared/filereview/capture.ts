@@ -32,6 +32,7 @@ import {
 import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
+  CasManifestRefSchema,
   GitTreeRefSchema,
   SnapshotRefSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
@@ -62,8 +63,19 @@ import {
   restoreToBaseline,
   snapshotApproved,
   snapshotBaseline,
-  type CapturedFileChange as GitCapturedChange,
+  type GitSubstrateChange as GitCapturedChange,
 } from "./git-substrate.js";
+import type { ArtifactStorage } from "../artifact-storage.js";
+import {
+  applyCasApproved,
+  loadCasManifest,
+  restoreCasToBaseline,
+  snapshotCasChangeSet,
+  type BlobReader,
+  type CasCapturedFile,
+  type CasPathCapture,
+  type CasSnapshotRef,
+} from "./cas-substrate.js";
 
 /**
  * Turn start: pin the pre-turn working tree behind the baseline ref and author
@@ -110,27 +122,62 @@ export async function captureCandidateToLedger(opts: {
   readonly baselineTree: string;
   readonly harnessId: string;
   readonly excludePaths?: readonly string[];
+  /**
+   * Ignored / non-git paths captured this turn (before/after bytes the harness
+   * recorded at mutation time). When present, they are stored as content-
+   * addressed CAS blobs and composed with the git-tracked changes into ONE
+   * hybrid change set (design doc 11). Omit for a git-only turn — existing
+   * callers are unaffected.
+   */
+  readonly casCaptures?: readonly CasPathCapture[];
+  /** The CAS blob store; required when {@link casCaptures} is non-empty. */
+  readonly storage?: ArtifactStorage;
 }): Promise<readonly GitCapturedChange[]> {
-  const { status, gitRoot, executionId, changeSetId, baselineTree, harnessId, excludePaths } = opts;
+  const {
+    status, gitRoot, executionId, changeSetId, baselineTree, harnessId, excludePaths,
+    casCaptures, storage,
+  } = opts;
 
-  const { afterTree, changes } = await captureChangeSet(
+  const { afterTree, changes: gitChanges } = await captureChangeSet(
     gitRoot,
     executionId,
     baselineTree,
     excludePaths,
   );
-  if (changes.length === 0) return changes;
 
-  const captured = changes.map((change) =>
-    buildCapturedFileChange(toCapturedChangeInput(changeSetId, change)),
-  );
+  // Capture the ignored / non-git deltas into CAS (content-addressed, deduped,
+  // offloaded), if the harness supplied any this turn.
+  let casFiles: readonly CasCapturedFile[] = [];
+  let casRef: CasSnapshotRef | undefined;
+  if (casCaptures && casCaptures.length > 0) {
+    if (!storage) {
+      throw new Error("captureCandidateToLedger: casCaptures requires an ArtifactStorage");
+    }
+    const snap = await snapshotCasChangeSet({ storage, executionId, changeSetId, captures: casCaptures });
+    casFiles = snap.manifest.files;
+    if (casFiles.length > 0) casRef = snap.ref;
+  }
+
+  // A turn that changed nothing (neither tracked nor ignored) authors no event.
+  if (gitChanges.length === 0 && casFiles.length === 0) return gitChanges;
+
+  // One combined change set: git-tracked (inline bodies) + CAS (blob refs). The
+  // aggregate digest folds both (buildCandidateCapturedEvent sorts by file
+  // digest), so the reviewed diff and its identity span both substrates.
+  const captured = [
+    ...gitChanges.map((c) => buildCapturedFileChange(toCapturedChangeInput(changeSetId, c))),
+    ...casFiles.map((f) => buildCapturedFileChange(casToCapturedChangeInput(changeSetId, f))),
+  ];
+  const snapshot = casRef
+    ? hybridSnapshotRef(afterTree, captureRef(executionId), casRef)
+    : gitTreeSnapshotRef(afterTree, captureRef(executionId));
   const event = buildCandidateCapturedEvent(
     changeSetContext(changeSetId, harnessId),
-    gitTreeSnapshotRef(afterTree, captureRef(executionId)),
+    snapshot,
     captured,
   );
   appendFileReviewEvents(status, executionId, [event]);
-  return changes;
+  return gitChanges;
 }
 
 /** Outcome of reconciling a DECIDED change set's decisions on resume. */
@@ -179,8 +226,15 @@ export async function applyCaptureDecisions(opts: {
   readonly changeSet: FileChangeSet;
   readonly harnessId: string;
   readonly excludePaths?: readonly string[];
+  /**
+   * The CAS blob store + reader, required to reconcile ignored / non-git files
+   * captured this turn. Omit for a git-only harness/turn — the CAS branch is
+   * then skipped entirely.
+   */
+  readonly storage?: ArtifactStorage;
+  readonly readBlob?: BlobReader;
 }): Promise<CaptureResumeResult> {
-  const { status, gitRoot, executionId, changeSet, harnessId, excludePaths } = opts;
+  const { status, gitRoot, executionId, changeSet, harnessId, excludePaths, storage, readBlob } = opts;
 
   const recomputed = await recomputeChangeSet(gitRoot, executionId);
   if (!recomputed) {
@@ -247,12 +301,40 @@ export async function applyCaptureDecisions(opts: {
     };
   }
 
-  // Reconcile from the authoritative refs: approved files keep (re-assert) their
-  // "after" bytes; rejected/undecided files snap back to baseline.
+  // Reconcile git-tracked files from the authoritative refs: approved files keep
+  // (re-assert) their "after" bytes; rejected/undecided files snap back to baseline.
   await applyApprovedPaths(gitRoot, recomputed.afterTree, approved);
   await restoreToBaseline(gitRoot, recomputed.baselineTree, rejected);
 
-  // Author RECONCILED carrying the exact post-reconcile (approved) snapshot.
+  // Reconcile CAS-captured (ignored / non-git) files from the durable manifest,
+  // sourced entirely from artifact storage (the CAS analogue of the git refs).
+  // Same decision map, keyed by the per-file change id, so the resolution rule is
+  // identical across substrates. Absent manifest -> git-only turn -> no-op.
+  if (storage && readBlob) {
+    const manifest = await loadCasManifest({
+      storage, readBlob, executionId, changeSetId: changeSet.id,
+    });
+    if (manifest) {
+      const casApproved: CasCapturedFile[] = [];
+      const casRejected: CasCapturedFile[] = [];
+      for (const file of manifest.files) {
+        const path = file.pathAfter || file.pathBefore;
+        const action = actionByChangeId.get(`${changeSet.id}:${path}`) ?? FileDecisionAction.UNSPECIFIED;
+        if (action === FileDecisionAction.APPROVE) {
+          casApproved.push(file);
+          approvedPaths.push(path);
+        } else {
+          if (action === FileDecisionAction.REJECT) hadReject = true;
+          casRejected.push(file);
+          rejectedPaths.push(path);
+        }
+      }
+      await applyCasApproved({ readBlob, workspaceRoot: gitRoot, files: casApproved });
+      await restoreCasToBaseline({ readBlob, workspaceRoot: gitRoot, files: casRejected });
+    }
+  }
+
+  // Author RECONCILED carrying the exact post-reconcile (approved) git snapshot.
   const approvedSnapshot = await snapshotApproved(gitRoot, executionId, excludePaths);
   appendFileReviewEvents(status, executionId, [
     buildReconciledEvent(
@@ -341,6 +423,61 @@ function gitTreeSnapshotRef(treeOid: string, ref: string): SnapshotRef {
     kind: SnapshotKind.GIT_TREE_REF,
     git: create(GitTreeRefSchema, { treeOid, ref }),
   });
+}
+
+/**
+ * Build a HYBRID {@link SnapshotRef} composing the git after-tree with the CAS
+ * manifest — the shape for a turn that touched both git-tracked and ignored /
+ * non-git paths (design doc 06 D3).
+ */
+function hybridSnapshotRef(treeOid: string, ref: string, cas: CasSnapshotRef): SnapshotRef {
+  return create(SnapshotRefSchema, {
+    kind: SnapshotKind.HYBRID,
+    git: create(GitTreeRefSchema, { treeOid, ref }),
+    cas: create(CasManifestRefSchema, {
+      manifestDigest: cas.manifestDigest,
+      artifactUri: cas.artifactUri,
+    }),
+  });
+}
+
+/**
+ * Map a CAS-captured file to the harness-agnostic producer input. The before/
+ * after bodies are carried as blob REFS (already offloaded to artifact storage
+ * by the CAS substrate), never re-inlined — so the CANDIDATE event stays small
+ * and the bytes are stored exactly once. Enforcement digests come from the blob
+ * content addresses, identical in form to the git path.
+ */
+function casToCapturedChangeInput(
+  changeSetId: string,
+  file: CasCapturedFile,
+): CapturedChangeInput {
+  return {
+    id: `${changeSetId}:${file.pathAfter || file.pathBefore}`,
+    pathBefore: file.pathBefore,
+    pathAfter: file.pathAfter,
+    kind: file.kind,
+    captureClass: file.captureClass,
+    before: file.before
+      ? {
+          kind: "ref",
+          sha256: file.before.sha256,
+          storageKey: file.before.storageKey,
+          sizeBytes: file.before.sizeBytes,
+          isBinary: file.before.isBinary,
+        }
+      : undefined,
+    after: file.after
+      ? {
+          kind: "ref",
+          sha256: file.after.sha256,
+          storageKey: file.after.storageKey,
+          sizeBytes: file.after.sizeBytes,
+          isBinary: file.after.isBinary,
+        }
+      : undefined,
+    diffComplete: file.diffComplete,
+  };
 }
 
 /** A FileContent's inline body, or undefined when absent (or offloaded). */

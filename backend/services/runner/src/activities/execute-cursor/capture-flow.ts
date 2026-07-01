@@ -29,7 +29,7 @@ import {
   captureCandidateToLedger as sharedCaptureCandidateToLedger,
   type CaptureResumeResult,
 } from "../../shared/filereview/capture.js";
-import type { CapturedFileChange as GitCapturedChange } from "../../shared/filereview/git-substrate.js";
+import type { GitSubstrateChange as GitCapturedChange } from "../../shared/filereview/git-substrate.js";
 
 export type { CaptureResumeResult };
 
