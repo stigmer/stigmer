@@ -65,6 +65,38 @@ describe("LocalArtifactStorage", () => {
     const written = await readFile(join(tempDir, key));
     expect(written.toString()).toBe("v2");
   });
+
+  it("downloads uploaded text bytes byte-exact (inverse of upload)", async () => {
+    const key = "artifacts/exec-1/report.txt";
+    await storage.upload(key, Buffer.from("hello world"));
+    const got = await storage.download(key);
+    expect(got.toString()).toBe("hello world");
+  });
+
+  it("downloads binary bytes (incl. NUL) byte-exact", async () => {
+    const key = "artifacts/exec-1/blob.bin";
+    const bytes = Buffer.from([0x00, 0x01, 0xff, 0xfe, 0x00, 0x89, 0x50]);
+    await storage.upload(key, bytes);
+    const got = await storage.download(key);
+    expect(Buffer.compare(got, bytes)).toBe(0);
+  });
+
+  it("throws a key-scoped error when downloading a missing key", async () => {
+    await expect(storage.download("artifacts/exec-1/missing.bin")).rejects.toThrow(
+      /Artifact not found for key 'artifacts\/exec-1\/missing\.bin'/,
+    );
+  });
+
+  it("reads directly off disk even with an unreachable serve URL (no HTTP dependency)", async () => {
+    // A bogus, unroutable serve base: if `download` fetched over HTTP this would
+    // hang/throw. Reading straight off disk proves the runner's read-back does
+    // not depend on the serve URL being set or reachable.
+    const s = new LocalArtifactStorage(tempDir, "http://127.0.0.1:0");
+    const key = "artifacts/exec-1/offline.txt";
+    await s.upload(key, Buffer.from("served-from-disk"));
+    const got = await s.download(key);
+    expect(got.toString()).toBe("served-from-disk");
+  });
 });
 
 // ── ProxyArtifactStorage ─────────────────────────────────────────────
@@ -217,6 +249,38 @@ describe("ProxyArtifactStorage", () => {
     const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
     const url = await storage.getDownloadUrl("key");
     expect(url).toBe("https://r2.example.com/dl");
+  });
+
+  it("downloads by resolving a presigned URL then fetching it", async () => {
+    globalThis.fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("presigned-download-url")) {
+        return new Response(JSON.stringify({ url: "https://r2.example.com/dl" }), { status: 200 });
+      }
+      if (url === "https://r2.example.com/dl") {
+        return new Response(Buffer.from("payload-bytes"), { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    }) as typeof fetch;
+
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    const got = await storage.download("artifacts/exec-1/f.txt");
+    expect(got.toString()).toBe("payload-bytes");
+  });
+
+  it("throws with the HTTP status and key when the download fetch fails", async () => {
+    globalThis.fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("presigned-download-url")) {
+        return new Response(JSON.stringify({ url: "https://r2.example.com/dl" }), { status: 200 });
+      }
+      return new Response("gone", { status: 404 });
+    }) as typeof fetch;
+
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    await expect(storage.download("artifacts/exec-1/missing.txt")).rejects.toThrow(
+      /Artifact download failed \(HTTP 404\) for key 'artifacts\/exec-1\/missing\.txt'/,
+    );
   });
 
   it("exists returns true on 200", async () => {

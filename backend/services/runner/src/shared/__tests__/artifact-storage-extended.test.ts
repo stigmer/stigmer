@@ -67,6 +67,20 @@ describe("LocalArtifactStorage", () => {
     });
   });
 
+  describe("download", () => {
+    it("round-trips uploaded content byte-exact", async () => {
+      await storage.upload("exec-1/file.txt", Buffer.from("round-trip"));
+      const got = await storage.download("exec-1/file.txt");
+      expect(got.toString("utf-8")).toBe("round-trip");
+    });
+
+    it("throws a key-scoped error for a missing key", async () => {
+      await expect(storage.download("missing.txt")).rejects.toThrow(
+        /Artifact not found for key 'missing\.txt'/,
+      );
+    });
+  });
+
   describe("exists", () => {
     it("returns true after upload", async () => {
       await storage.upload("present.txt", Buffer.from("data"));
@@ -138,6 +152,42 @@ describe("ProxyArtifactStorage", () => {
 
     const url = await storage.getDownloadUrl("key.txt");
     expect(url).toBe("https://r2.example.com/download/key.txt");
+  });
+
+  it("download resolves a presigned URL then fetches the bytes", async () => {
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ url: "https://r2.example.com/dl/key.txt" }),
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new TextEncoder().encode("proxy-bytes").buffer,
+      } as any);
+
+    const got = await storage.download("key.txt");
+    expect(got.toString("utf-8")).toBe("proxy-bytes");
+  });
+
+  it("download throws with HTTP status and key on a failed fetch", async () => {
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ url: "https://r2.example.com/dl/missing.txt" }),
+      } as any)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: async () => "not found",
+      } as any);
+
+    await expect(storage.download("missing.txt")).rejects.toThrow(
+      /Artifact download failed \(HTTP 404\) for key 'missing\.txt'/,
+    );
   });
 
   it("exists returns true when presign succeeds", async () => {

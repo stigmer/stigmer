@@ -184,9 +184,7 @@ export async function resolveApprovedWholeFileContent(
   if (fc.after?.body.case === "ref" && artifactStorage) {
     const ref = fc.after.body.value;
     try {
-      const url = await artifactStorage.getDownloadUrl(ref.storageKey);
-      const resp = await fetch(url);
-      if (resp.ok) return await resp.text();
+      return (await artifactStorage.download(ref.storageKey)).toString("utf8");
     } catch {
       // Fall through to null — the caller degrades to grant + reinvocation.
     }

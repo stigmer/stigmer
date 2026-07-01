@@ -352,15 +352,7 @@ async function downloadAttachment(
   }
 
   try {
-    const url = await storage.getDownloadUrl(attachment.storageKey);
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+    return await storage.download(attachment.storageKey);
   } catch (err) {
     if (err instanceof AttachmentInjectionError) throw err;
     throw new AttachmentInjectionError(

@@ -28,7 +28,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SDKMessage } from "@cursor/sdk";
-import type { ArtifactStorage } from "../../../shared/artifact-storage.js";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import {
   offloadOversizedToolOutputs,
   detectImagePayload,
@@ -170,14 +170,12 @@ describe("buildToolCallProto image normalization", () => {
 describe("cursor image flows through the persist-time offload", () => {
   it("offloads the screenshot as an image ref with no inline bytes", async () => {
     const uploads: { key: string; contentType?: string }[] = [];
-    const storage: ArtifactStorage = {
-      upload: vi.fn(async (key: string, _content: Buffer, contentType?: string) => {
-        uploads.push({ key, contentType });
-        return key;
-      }),
-      getDownloadUrl: vi.fn(async (key: string) => `https://artifacts.local/${key}`),
-      exists: vi.fn(async () => true),
-    };
+    const { storage, blobs } = makeInMemoryArtifactStorage({ urlBase: "https://artifacts.local/" });
+    storage.upload.mockImplementation(async (key: string, content: Buffer, contentType?: string) => {
+      uploads.push({ key, contentType });
+      blobs.set(key, Buffer.from(content));
+      return key;
+    });
 
     const event = {
       type: "tool_call",

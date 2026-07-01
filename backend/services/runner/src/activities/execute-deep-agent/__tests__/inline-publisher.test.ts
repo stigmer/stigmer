@@ -10,6 +10,7 @@ import { InlinePublisher } from "../inline-publisher.js";
 import { StatusBuilder } from "../status-builder.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
 import type { ArtifactStorage } from "../../../shared/artifact-storage.js";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 
 function makeStatusBuilder(): StatusBuilder {
@@ -35,19 +36,16 @@ function mockArtifactStorage(): ArtifactStorage & {
   uploadedKeys: string[];
   uploadedContent: Map<string, Buffer>;
 } {
+  // Canonical double; `uploadedKeys`/`uploadedContent` mirror the backing store
+  // so the existing assertions keep working and `download` reads back uploads.
+  const { storage, blobs } = makeInMemoryArtifactStorage({ urlBase: "http://localhost:7235/" });
   const uploadedKeys: string[] = [];
-  const uploadedContent = new Map<string, Buffer>();
-  return {
-    uploadedKeys,
-    uploadedContent,
-    upload: vi.fn(async (key: string, content: Buffer) => {
-      uploadedKeys.push(key);
-      uploadedContent.set(key, content);
-      return key;
-    }),
-    getDownloadUrl: vi.fn(async (key: string) => `http://localhost:7235/${key}`),
-    exists: vi.fn(async () => false),
-  };
+  storage.upload.mockImplementation(async (key: string, content: Buffer) => {
+    uploadedKeys.push(key);
+    blobs.set(key, Buffer.from(content));
+    return key;
+  });
+  return Object.assign(storage, { uploadedKeys, uploadedContent: blobs });
 }
 
 function sha256(content: string): string {

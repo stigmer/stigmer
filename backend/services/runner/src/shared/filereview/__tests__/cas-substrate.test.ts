@@ -10,14 +10,14 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
-import { createServer } from "node:http";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   FileCaptureClass,
   FileChangeKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { LocalArtifactStorage, type ArtifactStorage } from "../../artifact-storage.js";
+import { LocalArtifactStorage, ProxyArtifactStorage, type ArtifactStorage } from "../../artifact-storage.js";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import { sha256Bytes } from "../digest.js";
 import {
   applyCasApproved,
@@ -41,27 +41,14 @@ function makeFakeStorage(): {
   blobs: Map<string, Buffer>;
   uploadCount: () => number;
 } {
-  const blobs = new Map<string, Buffer>();
-  let uploads = 0;
-  const storage: ArtifactStorage = {
-    async upload(key, content) {
-      uploads++;
-      blobs.set(key, Buffer.from(content));
-      return key;
-    },
-    async getDownloadUrl(key) {
-      return `mem://${key}`;
-    },
-    async exists(key) {
-      return blobs.has(key);
-    },
+  const { storage, blobs } = makeInMemoryArtifactStorage();
+  const readBlob: BlobReader = (key) => storage.download(key);
+  return {
+    storage,
+    readBlob,
+    blobs,
+    uploadCount: () => storage.upload.mock.calls.length,
   };
-  const readBlob: BlobReader = async (key) => {
-    const b = blobs.get(key);
-    if (!b) throw new Error(`missing blob ${key}`);
-    return b;
-  };
-  return { storage, readBlob, blobs, uploadCount: () => uploads };
 }
 
 function bytes(s: string): Uint8Array {
@@ -314,51 +301,29 @@ describe("reconcile — restoreCasToBaseline", () => {
 });
 
 describe("casBlobReader", () => {
-  it("fetches bytes from the storage download URL", async () => {
-    const { storage, blobs } = makeFakeStorage();
+  it("adapts the storage port's download into a BlobReader", async () => {
+    const { storage } = makeFakeStorage();
     await snapshotCasChangeSet({
       storage, executionId: EXEC, changeSetId: CHANGE_SET,
       captures: [{ path: "a", before: null, after: bytes("hello"), captureClass: IGNORED }],
     });
     const key = casBlobKey(EXEC, sha256Bytes(bytes("hello")));
 
-    const fetchMock = vi.fn(async (url: string) => {
-      const k = url.replace(/^mem:\/\//, "");
-      // Return an isolated ArrayBuffer (a Node Buffer's .buffer is the shared pool).
-      const copy = new Uint8Array(blobs.get(k)!);
-      return { ok: true, arrayBuffer: async () => copy.buffer } as unknown as Response;
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
     const reader = casBlobReader(storage);
     const got = await reader(key);
     expect(got.toString("utf8")).toBe("hello");
-
-    vi.unstubAllGlobals();
+    expect(storage.download).toHaveBeenCalledWith(key);
   });
 });
 
 describe("casBlobReader — real LocalArtifactStorage serve path (OSS-local)", () => {
-  it("uploads, resolves the download URL, fetches over HTTP, and returns exact bytes", async () => {
+  it("reads uploaded bytes byte-exact straight off disk (no HTTP server running)", async () => {
     const basePath = mkdtempSync(join(tmpdir(), "cas-serve-"));
-    // A minimal static server over the artifact base path — the OSS-local serve
-    // endpoint the reconcile fetches from. Uses the REAL global fetch (no mock),
-    // exercising the path unit tests with an injected reader never touch.
-    const server = createServer((req, res) => {
-      try {
-        const key = decodeURIComponent((req.url ?? "").replace(/^\/+/, ""));
-        res.writeHead(200);
-        res.end(readFileSync(join(basePath, key)));
-      } catch {
-        res.writeHead(404);
-        res.end();
-      }
-    });
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     try {
-      const addr = server.address();
-      const port = typeof addr === "object" && addr ? addr.port : 0;
-      const storage = new LocalArtifactStorage(basePath, `http://127.0.0.1:${port}`);
+      // Deliberately point the serve URL at an unroutable base: if the reader
+      // fetched over HTTP this would fail. Reading directly off disk proves the
+      // OSS-local reconcile read-back needs no serve endpoint at all.
+      const storage = new LocalArtifactStorage(basePath, "http://127.0.0.1:0");
 
       const payload = Buffer.from("SECRET_TREASURE=42\n", "utf8");
       const key = casBlobKey(EXEC, sha256Bytes(payload));
@@ -368,8 +333,33 @@ describe("casBlobReader — real LocalArtifactStorage serve path (OSS-local)", (
       const got = await reader(key);
       expect(got.equals(payload)).toBe(true);
     } finally {
-      await new Promise<void>((resolve) => server.close(() => resolve()));
       rmSync(basePath, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("casBlobReader — ProxyArtifactStorage presigned+fetch path (cloud)", () => {
+  it("resolves a presigned URL then fetches the exact bytes over HTTP", async () => {
+    const payload = Buffer.from("CLOUD_BLOB=1\n", "utf8");
+    const key = casBlobKey(EXEC, sha256Bytes(payload));
+
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("presigned-download-url")) {
+        return new Response(JSON.stringify({ url: "https://r2.example.com/dl" }), { status: 200 });
+      }
+      // Isolate the ArrayBuffer (a Node Buffer's .buffer is a shared pool).
+      const copy = new Uint8Array(payload);
+      return new Response(copy, { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+      const reader = casBlobReader(storage);
+      const got = await reader(key);
+      expect(got.equals(payload)).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 });

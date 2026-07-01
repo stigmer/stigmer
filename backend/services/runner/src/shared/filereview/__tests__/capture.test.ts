@@ -34,6 +34,7 @@ import {
   SnapshotKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "../../artifact-storage.js";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import {
   applyCaptureDecisions,
   captureBaselineToLedger,
@@ -188,22 +189,10 @@ describe("capture orchestration — deep-agent harness", () => {
   });
 });
 
-// In-memory artifact store for the CAS composition tests.
+// In-memory artifact store for the CAS composition tests — the canonical double.
 function makeStorage(): ArtifactStorage & { blobs: Map<string, Buffer> } {
-  const blobs = new Map<string, Buffer>();
-  return {
-    blobs,
-    async upload(key, content) {
-      blobs.set(key, Buffer.from(content));
-      return key;
-    },
-    async getDownloadUrl(key) {
-      return `mem://${key}`;
-    },
-    async exists(key) {
-      return blobs.has(key);
-    },
-  };
+  const { storage, blobs } = makeInMemoryArtifactStorage();
+  return Object.assign(storage, { blobs });
 }
 
 function candidateSnapshotKind(status: AgentExecutionStatus): SnapshotKind | undefined {

@@ -18,6 +18,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import { create, clone } from "@bufbuild/protobuf";
 import {
   AgentExecutionStatusSchema,
@@ -218,11 +219,7 @@ function fakeDurableResumeSetup(): SetupResult {
     secretKeys: new Set<string>(),
     modelName: "claude-sonnet",
     gracefulStop: undefined,
-    artifactStorage: {
-      upload: vi.fn(async (key: string) => key),
-      getDownloadUrl: vi.fn(async (key: string) => `https://artifacts.local/${key}`),
-      exists: vi.fn(async () => false),
-    },
+    artifactStorage: makeInMemoryArtifactStorage({ urlBase: "https://artifacts.local/" }).storage,
     provisionResults: [],
     approvalPolicies,
     toolServerMap: new Map([["echo", "test-mcp"]]),

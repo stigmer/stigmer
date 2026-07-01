@@ -50,7 +50,7 @@ import {
 import { buildFileChange } from "../../../shared/file-change.js";
 import { ELISION_MARKER } from "../../../shared/status-offload.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
-import type { ArtifactStorage } from "../../../shared/artifact-storage.js";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 
 const ROOT = "/root";
@@ -123,14 +123,6 @@ function recordingBackend(): { backend: WorkspaceBackend; writes: Array<{ path: 
   return { backend, writes };
 }
 
-function fakeArtifactStorage(downloadUrl: string): ArtifactStorage {
-  return {
-    upload: vi.fn(async () => ""),
-    getDownloadUrl: vi.fn(async () => downloadUrl),
-    exists: vi.fn(async () => true),
-  };
-}
-
 const baseOpts = {
   workspaceDirs: [ROOT],
   executionId: "exec-test",
@@ -188,13 +180,10 @@ describe("applyApprovedWholeFileWrites", () => {
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 
-  it("resolves an offloaded `after` ref via getDownloadUrl + fetch, then applies it", async () => {
+  it("resolves an offloaded `after` ref via storage.download, then applies it", async () => {
     const fullBody = "FULL OFFLOADED CONTENT\n".repeat(10_000);
-    const store = fakeArtifactStorage("https://artifacts.example/big.md");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({ ok: true, text: async () => fullBody })),
-    );
+    const { storage } = makeInMemoryArtifactStorage();
+    await storage.upload("artifacts/exec/x.after.txt", Buffer.from(fullBody, "utf8"));
     const tc = approvedEdit({ fileChanges: [offloadedChange("artifacts/exec/x.after.txt", "PREVIEW HEAD")] });
     const { backend, writes } = recordingBackend();
 
@@ -202,10 +191,10 @@ describe("applyApprovedWholeFileWrites", () => {
       ...baseOpts,
       messages: messagesOf(tc),
       workspaceBackend: backend,
-      artifactStorage: store,
+      artifactStorage: storage,
     });
 
-    expect(store.getDownloadUrl).toHaveBeenCalledWith("artifacts/exec/x.after.txt");
+    expect(storage.download).toHaveBeenCalledWith("artifacts/exec/x.after.txt");
     expect(applied).toEqual(new Set(["tc-1"]));
     expect(writes).toHaveLength(1);
     expect(writes[0].content).toBe(fullBody);
@@ -214,8 +203,8 @@ describe("applyApprovedWholeFileWrites", () => {
   });
 
   it("falls back (no write) when an offloaded ref cannot be fetched", async () => {
-    const store = fakeArtifactStorage("https://artifacts.example/x");
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, text: async () => "" })));
+    const { storage } = makeInMemoryArtifactStorage();
+    storage.download.mockRejectedValue(new Error("Artifact download failed (HTTP 500) for key 'k'"));
     const tc = approvedEdit({ fileChanges: [offloadedChange("k", "PREVIEW")] });
     const { backend, writes } = recordingBackend();
 
@@ -223,7 +212,7 @@ describe("applyApprovedWholeFileWrites", () => {
       ...baseOpts,
       messages: messagesOf(tc),
       workspaceBackend: backend,
-      artifactStorage: store,
+      artifactStorage: storage,
     });
 
     expect(applied.size).toBe(0);
@@ -489,5 +478,26 @@ describe("resolveApprovedWholeFileContent", () => {
     const tc = approvedEdit();
     const fc = wholeFileChange("", { before: "had content" });
     expect(await resolveApprovedWholeFileContent(tc, fc, undefined)).toBe("");
+  });
+
+  it("returns an offloaded ref's exact bytes, preserving a leading UTF-8 BOM", async () => {
+    // The unified download() returns raw bytes; toString('utf8') keeps the BOM,
+    // so exact-apply writes byte-for-byte what was approved (more faithful than
+    // the old resp.text(), which stripped it).
+    const withBom = "\uFEFFexport const x = 1\n";
+    const key = "artifacts/exec/bom.after.txt";
+    const { storage } = makeInMemoryArtifactStorage();
+    await storage.upload(key, Buffer.from(withBom, "utf8"));
+    const tc = approvedEdit();
+    const fc = offloadedChange(key, "PREVIEW");
+    expect(await resolveApprovedWholeFileContent(tc, fc, storage)).toBe(withBom);
+  });
+
+  it("degrades to null when the offloaded ref download fails", async () => {
+    const { storage } = makeInMemoryArtifactStorage();
+    storage.download.mockRejectedValueOnce(new Error("Artifact not found for key 'gone'"));
+    const tc = approvedEdit();
+    const fc = offloadedChange("gone", "PREVIEW");
+    expect(await resolveApprovedWholeFileContent(tc, fc, storage)).toBeNull();
   });
 });

@@ -4,7 +4,7 @@ import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { ArtifactStorage } from "../artifact-storage.js";
+import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import {
   FileChangeType,
   FileChangeCaptureLevel,
@@ -17,15 +17,15 @@ import {
 import { buildFileChange } from "../file-change.js";
 
 function makeFakeStorage() {
+  // Canonical double, with the metadata-tracking `uploads` shim these tests assert
+  // on and the serve-URL base they expect. `download` reads back what was uploaded.
+  const { storage, blobs } = makeInMemoryArtifactStorage({ urlBase: "https://artifacts.local/" });
   const uploads: { key: string; size: number; contentType?: string }[] = [];
-  const storage: ArtifactStorage = {
-    upload: vi.fn(async (key: string, content: Buffer, contentType?: string) => {
-      uploads.push({ key, size: content.length, contentType });
-      return key;
-    }),
-    getDownloadUrl: vi.fn(async (key: string) => `https://artifacts.local/${key}`),
-    exists: vi.fn(async () => true),
-  };
+  storage.upload.mockImplementation(async (key: string, content: Buffer, contentType?: string) => {
+    uploads.push({ key, size: content.length, contentType });
+    blobs.set(key, Buffer.from(content));
+    return key;
+  });
   return { storage, uploads };
 }
 
@@ -357,11 +357,8 @@ describe("offloadOversizedToolOutputs", () => {
   });
 
   it("falls back to inline truncation when the upload fails (never throws)", async () => {
-    const storage: ArtifactStorage = {
-      upload: vi.fn(async () => { throw new Error("storage down"); }),
-      getDownloadUrl: vi.fn(async (k: string) => k),
-      exists: vi.fn(async () => false),
-    };
+    const { storage } = makeInMemoryArtifactStorage();
+    storage.upload.mockImplementation(async () => { throw new Error("storage down"); });
     const result = "LOG ".repeat(2000);
     const tc = create(ToolCallSchema, { id: "tc-6", name: "Shell", result });
     const status = statusWithToolCall(tc);
@@ -520,11 +517,8 @@ describe("offloadOversizedToolOutputs — file changes", () => {
   });
 
   it("does not fail the persist when a file-change upload throws", async () => {
-    const storage: ArtifactStorage = {
-      upload: vi.fn(async () => { throw new Error("storage down"); }),
-      getDownloadUrl: vi.fn(async (k: string) => k),
-      exists: vi.fn(async () => false),
-    };
+    const { storage } = makeInMemoryArtifactStorage();
+    storage.upload.mockImplementation(async () => { throw new Error("storage down"); });
     const big = "A".repeat(2000);
     const status = statusWithToolCall(fileChangeToolCall("b", big));
     vi.spyOn(console, "warn").mockImplementation(() => {});

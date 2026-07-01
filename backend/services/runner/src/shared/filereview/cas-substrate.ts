@@ -311,18 +311,16 @@ export async function restoreCasToBaseline(opts: {
   }
 }
 
-/** Build the production blob reader from the artifact storage port. */
+/**
+ * Adapt the artifact storage port's {@link ArtifactStorage.download} into a
+ * {@link BlobReader}. The seam is retained so the reconcile functions
+ * ({@link loadCasManifest}, {@link applyCasApproved}, {@link restoreCasToBaseline})
+ * depend only on "read one blob by key", not on the whole storage interface.
+ * `download` already throws a descriptive, key-scoped error on a missing blob or
+ * transport failure, so no extra wrapping is needed here.
+ */
 export function casBlobReader(storage: ArtifactStorage): BlobReader {
-  return async (storageKey: string): Promise<Buffer> => {
-    const url = await storage.getDownloadUrl(storageKey);
-    const resp = await fetch(url);
-    if (!resp.ok) {
-      throw new Error(
-        `CAS blob download failed (HTTP ${resp.status}) for key '${storageKey}'`,
-      );
-    }
-    return Buffer.from(await resp.arrayBuffer());
-  };
+  return (storageKey: string): Promise<Buffer> => storage.download(storageKey);
 }
 
 // ---------------------------------------------------------------------------

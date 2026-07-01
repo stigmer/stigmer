@@ -7,6 +7,7 @@ import {
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "../artifact-storage.js";
+import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import {
   extractFinalPlanText,
   publishPlanArtifact,
@@ -14,22 +15,16 @@ import {
   PLAN_ARTIFACT_SANDBOX_PATH,
 } from "../plan-artifact.js";
 
-/** Records uploads and returns deterministic download URLs. */
+/** Records uploads and returns deterministic download URLs (canonical double + shim). */
 function fakeStorage(): ArtifactStorage & { uploads: { key: string; content: Buffer; contentType?: string }[] } {
+  const { storage, blobs } = makeInMemoryArtifactStorage({ urlBase: "https://example.test/download/" });
   const uploads: { key: string; content: Buffer; contentType?: string }[] = [];
-  return {
-    uploads,
-    async upload(key, content, contentType) {
-      uploads.push({ key, content, contentType });
-      return key;
-    },
-    async getDownloadUrl(key) {
-      return `https://example.test/download/${key}`;
-    },
-    async exists() {
-      return true;
-    },
-  };
+  storage.upload.mockImplementation(async (key: string, content: Buffer, contentType?: string) => {
+    uploads.push({ key, content, contentType });
+    blobs.set(key, Buffer.from(content));
+    return key;
+  });
+  return Object.assign(storage, { uploads });
 }
 
 function statusWith(...messages: { type: MessageType; content: string }[]) {
@@ -121,17 +116,8 @@ describe("publishPlanArtifact", () => {
 
   it("never throws when the upload fails (publish is non-fatal)", async () => {
     const status = create(AgentExecutionStatusSchema, {});
-    const failing: ArtifactStorage = {
-      async upload() {
-        throw new Error("network down");
-      },
-      async getDownloadUrl() {
-        return "";
-      },
-      async exists() {
-        return false;
-      },
-    };
+    const { storage: failing } = makeInMemoryArtifactStorage();
+    failing.upload.mockImplementation(async () => { throw new Error("network down"); });
 
     await expect(
       publishPlanArtifact({ status, executionId: "aex_fail", planText: "plan", artifactStorage: failing }),
