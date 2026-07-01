@@ -19,6 +19,7 @@ import {
   buildBaselineCapturedEvent,
   buildCandidateCapturedEvent,
   buildCapturedFileChange,
+  deriveDiffCompleteness,
   eventId,
   type ChangeSetContext,
 } from "../events.js";
@@ -30,6 +31,31 @@ const ctx: ChangeSetContext = {
   harnessId: "cursor",
   timestamp: "2026-06-30T00:00:00Z",
 };
+
+// Completeness-derivation fixtures: a fully-reviewable text change, a binary
+// change (no text diff, is_binary on its byte-true side), and a content-less
+// unavailable change (secret-withheld — non-binary, no keepable bytes).
+function reviewableChange(id: string) {
+  return buildCapturedFileChange({
+    id, pathBefore: id, pathAfter: id, kind: FileChangeKind.MODIFY,
+    captureClass: FileCaptureClass.GIT_TRACKED, before: "old\n", after: "new\n",
+  });
+}
+function binaryChange(id: string) {
+  return buildCapturedFileChange({
+    id, pathBefore: "", pathAfter: `${id}.png`, kind: FileChangeKind.ADD,
+    captureClass: FileCaptureClass.GIT_TRACKED,
+    after: { kind: "binary", sha256: `sha-${id}` },
+    diffComplete: false,
+  });
+}
+function unavailableChange(id: string) {
+  return buildCapturedFileChange({
+    id, pathBefore: "", pathAfter: id, kind: FileChangeKind.MODIFY,
+    captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+    diffComplete: false, blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
+  });
+}
 
 describe("eventId", () => {
   it("matches the Go/Java deterministic format (changeSetId:scopeId:ENUM_NAME)", () => {
@@ -154,7 +180,7 @@ describe("buildCandidateCapturedEvent", () => {
     }
   });
 
-  it("derives PARTIAL_BLOCKED when any file is incomplete", () => {
+  it("derives PARTIAL_BLOCKED when a non-binary file is incomplete", () => {
     const changes = [
       buildCapturedFileChange({
         id: "fc-1", pathBefore: "a", pathAfter: "a", kind: FileChangeKind.MODIFY,
@@ -166,6 +192,39 @@ describe("buildCandidateCapturedEvent", () => {
     if (ev.payload.case === "candidateCaptured") {
       expect(ev.payload.value.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
     }
+  });
+
+  it("derives BINARY_SUMMARY_ONLY when the only incomplete file is binary", () => {
+    const changes = [reviewableChange("fc-text"), binaryChange("fc-bin")];
+    const ev = buildCandidateCapturedEvent(ctx, undefined, changes);
+    if (ev.payload.case === "candidateCaptured") {
+      expect(ev.payload.value.diffCompleteness).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
+    }
+  });
+});
+
+describe("deriveDiffCompleteness", () => {
+  it("is COMPLETE when every file is complete (and for an empty set)", () => {
+    expect(deriveDiffCompleteness([])).toBe(DiffCompleteness.COMPLETE);
+    expect(deriveDiffCompleteness([reviewableChange("a"), reviewableChange("b")])).toBe(
+      DiffCompleteness.COMPLETE,
+    );
+  });
+
+  it("is BINARY_SUMMARY_ONLY when binary is the set's only blocker", () => {
+    // Binary-only single file, and a mixed reviewable-text + binary set.
+    expect(deriveDiffCompleteness([binaryChange("bin")])).toBe(
+      DiffCompleteness.BINARY_SUMMARY_ONLY,
+    );
+    expect(
+      deriveDiffCompleteness([reviewableChange("t1"), reviewableChange("t2"), binaryChange("b")]),
+    ).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
+  });
+
+  it("is PARTIAL_BLOCKED when a non-binary incomplete file is present, even alongside a binary", () => {
+    expect(
+      deriveDiffCompleteness([reviewableChange("t"), binaryChange("b"), unavailableChange("secret")]),
+    ).toBe(DiffCompleteness.PARTIAL_BLOCKED);
   });
 });
 

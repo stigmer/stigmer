@@ -498,9 +498,12 @@ private static final long serialVersionUID = 0L;
   private int diffCompleteness_ = 0;
   /**
    * <pre>
-   * Whether the rendered diff is complete enough to approve safely. A
-   * non-COMPLETE value blocks normal approval (an elided/binary-only diff can
-   * never be approved as if complete). See DiffCompleteness.
+   * Whether the rendered diff is complete enough to approve safely, a rollup
+   * over the per-file changes. COMPLETE is approvable as-is; BINARY_SUMMARY_ONLY
+   * (binary is the set's only blocker) is keepable in one shot via an
+   * acknowledged CHANGE_SET approve; PARTIAL_BLOCKED must be resolved per file.
+   * An honest UI/audit signal — the backend gate re-derives keep-all from the
+   * per-file changes, never trusting this value. See DiffCompleteness.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 10 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -511,9 +514,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Whether the rendered diff is complete enough to approve safely. A
-   * non-COMPLETE value blocks normal approval (an elided/binary-only diff can
-   * never be approved as if complete). See DiffCompleteness.
+   * Whether the rendered diff is complete enough to approve safely, a rollup
+   * over the per-file changes. COMPLETE is approvable as-is; BINARY_SUMMARY_ONLY
+   * (binary is the set's only blocker) is keepable in one shot via an
+   * acknowledged CHANGE_SET approve; PARTIAL_BLOCKED must be resolved per file.
+   * An honest UI/audit signal — the backend gate re-derives keep-all from the
+   * per-file changes, never trusting this value. See DiffCompleteness.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 10 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -2592,9 +2598,12 @@ private static final long serialVersionUID = 0L;
     private int diffCompleteness_ = 0;
     /**
      * <pre>
-     * Whether the rendered diff is complete enough to approve safely. A
-     * non-COMPLETE value blocks normal approval (an elided/binary-only diff can
-     * never be approved as if complete). See DiffCompleteness.
+     * Whether the rendered diff is complete enough to approve safely, a rollup
+     * over the per-file changes. COMPLETE is approvable as-is; BINARY_SUMMARY_ONLY
+     * (binary is the set's only blocker) is keepable in one shot via an
+     * acknowledged CHANGE_SET approve; PARTIAL_BLOCKED must be resolved per file.
+     * An honest UI/audit signal — the backend gate re-derives keep-all from the
+     * per-file changes, never trusting this value. See DiffCompleteness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 10 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -2605,9 +2614,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the rendered diff is complete enough to approve safely. A
-     * non-COMPLETE value blocks normal approval (an elided/binary-only diff can
-     * never be approved as if complete). See DiffCompleteness.
+     * Whether the rendered diff is complete enough to approve safely, a rollup
+     * over the per-file changes. COMPLETE is approvable as-is; BINARY_SUMMARY_ONLY
+     * (binary is the set's only blocker) is keepable in one shot via an
+     * acknowledged CHANGE_SET approve; PARTIAL_BLOCKED must be resolved per file.
+     * An honest UI/audit signal — the backend gate re-derives keep-all from the
+     * per-file changes, never trusting this value. See DiffCompleteness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 10 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -2623,9 +2635,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the rendered diff is complete enough to approve safely. A
-     * non-COMPLETE value blocks normal approval (an elided/binary-only diff can
-     * never be approved as if complete). See DiffCompleteness.
+     * Whether the rendered diff is complete enough to approve safely, a rollup
+     * over the per-file changes. COMPLETE is approvable as-is; BINARY_SUMMARY_ONLY
+     * (binary is the set's only blocker) is keepable in one shot via an
+     * acknowledged CHANGE_SET approve; PARTIAL_BLOCKED must be resolved per file.
+     * An honest UI/audit signal — the backend gate re-derives keep-all from the
+     * per-file changes, never trusting this value. See DiffCompleteness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 10 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -2638,9 +2653,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the rendered diff is complete enough to approve safely. A
-     * non-COMPLETE value blocks normal approval (an elided/binary-only diff can
-     * never be approved as if complete). See DiffCompleteness.
+     * Whether the rendered diff is complete enough to approve safely, a rollup
+     * over the per-file changes. COMPLETE is approvable as-is; BINARY_SUMMARY_ONLY
+     * (binary is the set's only blocker) is keepable in one shot via an
+     * acknowledged CHANGE_SET approve; PARTIAL_BLOCKED must be resolved per file.
+     * An honest UI/audit signal — the backend gate re-derives keep-all from the
+     * per-file changes, never trusting this value. See DiffCompleteness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 10 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -2656,9 +2674,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the rendered diff is complete enough to approve safely. A
-     * non-COMPLETE value blocks normal approval (an elided/binary-only diff can
-     * never be approved as if complete). See DiffCompleteness.
+     * Whether the rendered diff is complete enough to approve safely, a rollup
+     * over the per-file changes. COMPLETE is approvable as-is; BINARY_SUMMARY_ONLY
+     * (binary is the set's only blocker) is keepable in one shot via an
+     * acknowledged CHANGE_SET approve; PARTIAL_BLOCKED must be resolved per file.
+     * An honest UI/audit signal — the backend gate re-derives keep-all from the
+     * per-file changes, never trusting this value. See DiffCompleteness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 10 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>

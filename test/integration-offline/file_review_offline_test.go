@@ -461,8 +461,8 @@ func TestOffline_FileReview_ApproveBlockedOnIncompleteDiff(t *testing.T) {
 	}
 	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
 	require.NotNil(t, set, "a binary create must still surface an AWAITING_REVIEW change set")
-	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, set.GetDiffCompleteness(),
-		"a binary file must mark the set PARTIAL_BLOCKED (its diff is not reviewable)")
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY, set.GetDiffCompleteness(),
+		"a binary-only set is BINARY_SUMMARY_ONLY (binary is its only blocker, DD-17)")
 	ch := harness.FindCapturedChangeByPath(set, path)
 	require.NotNil(t, ch, "the binary file must be captured for review")
 	assert.False(t, ch.GetDiffComplete(), "the binary file must be flagged diff_complete=false")
@@ -539,7 +539,7 @@ func TestOffline_FileReview_BinaryAcknowledgedApprove_ReconcilesBytes(t *testing
 	}
 	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
 	require.NotNil(t, set, "a binary create must surface an AWAITING_REVIEW change set")
-	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, set.GetDiffCompleteness())
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY, set.GetDiffCompleteness())
 	ch := harness.FindCapturedChangeByPath(set, path)
 	require.NotNil(t, ch, "the binary file must be captured for review")
 	require.True(t, ch.GetAfter().GetIsBinary(), "the captured side must be flagged is_binary")
@@ -594,6 +594,178 @@ func TestOffline_FileReview_BinaryAcknowledgedApprove_ReconcilesBytes(t *testing
 		"the ledger must carry RECONCILED after the acknowledged approval")
 	assert.Equal(t, headBefore, harness.WorkspaceHeadSHA(t, gitDir), "capture mode must never move HEAD")
 	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review decision must NOT re-invoke the model")
+}
+
+// TestOffline_FileReview_BinarySummaryOnly_KeepAll_ReconcilesBytes proves the
+// set-level "Keep all" carve-out (DD-17) end to end: a turn that edits a
+// reviewable text file AND writes a binary file surfaces as ONE
+// BINARY_SUMMARY_ONLY change set (binary is the set's only blocker). A plain
+// CHANGE_SET approve is refused, but a CHANGE_SET approve carrying
+// acknowledge_unreviewable=true keeps the whole set in one action, reconciling
+// BOTH files' exact bytes — the text from the git ref and the binary byte-true —
+// with no model re-invocation. The carve-out never relaxes the digest gate.
+func TestOffline_FileReview_BinarySummaryOnly_KeepAll_ReconcilesBytes(t *testing.T) {
+	requireOfflineService(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	gitDir := harness.NewGitWorkspace(t)
+	headBefore := harness.WorkspaceHeadSHA(t, gitDir)
+	const textPath = "README.md"
+	const textBody = "# Title\nupdated\n"
+	const binPath = "assets/logo.bin"
+	// A NUL byte makes the captured content binary (bytesLookBinary), so the file
+	// is diff_complete=false — the set's only blocker.
+	const binBody = "\x00PNG\x00\x01\x02keep-me\n"
+
+	mockLLM, clients, waiter, execID := startFileReviewRun(t, ctx, gitDir,
+		[]harness.RecordedLLMEntry{
+			writeFileTurn(0, "toolu_text", textPath, textBody),
+			writeFileTurn(1, "toolu_bin", binPath, binBody),
+			textTurn(2, "Wrote a text file and a binary asset."),
+		},
+		"Create README.md and the binary asset using the filesystem tools.")
+
+	waiting, err := waiter.WaitForFileReview(ctx, execID, 2*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, execID)
+		t.Fatalf("execution should reach file review: %v", err)
+	}
+	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
+	require.NotNil(t, set, "the mixed text+binary turn must surface one AWAITING_REVIEW change set")
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY, set.GetDiffCompleteness(),
+		"binary is the set's only blocker, so the rollup is BINARY_SUMMARY_ONLY (DD-17)")
+	// The text file is reviewable; the binary is flagged incomplete-but-keepable.
+	textCh := harness.AssertCapturedChange(t, set, textPath, agentexecv1.FileChangeKind_FILE_CHANGE_KIND_ADD)
+	require.NotNil(t, textCh)
+	assert.True(t, textCh.GetDiffComplete(), "the text file must be reviewable (diff_complete)")
+	binCh := harness.FindCapturedChangeByPath(set, binPath)
+	require.NotNil(t, binCh, "the binary file must be captured for review")
+	assert.True(t, binCh.GetAfter().GetIsBinary(), "the binary side must be flagged is_binary")
+
+	// A plain CHANGE_SET approve (no acknowledgment) is refused — the set is not
+	// fully reviewable, so it cannot be kept as if COMPLETE.
+	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
+		AgentExecutionId: execID,
+		ChangeSetId:      set.GetId(),
+		Scope:            agentexecv1.FileDecisionScope_FILE_DECISION_SCOPE_CHANGE_SET,
+		Action:           agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		ExpectedDigest:   set.GetAggregateDigest(),
+	})
+	require.Error(t, err, "a whole-set approve of a binary-only set without acknowledgment must be refused")
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err),
+		"an unacknowledged keep-all is a precondition failure")
+
+	// The acknowledged CHANGE_SET approve ("Keep all") is accepted and reconciles
+	// the whole set: text + binary bytes both land byte-exact.
+	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
+		AgentExecutionId:        execID,
+		ChangeSetId:             set.GetId(),
+		Scope:                   agentexecv1.FileDecisionScope_FILE_DECISION_SCOPE_CHANGE_SET,
+		Action:                  agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		ExpectedDigest:          set.GetAggregateDigest(),
+		AcknowledgeUnreviewable: true,
+	})
+	require.NoError(t, err, "an acknowledged CHANGE_SET keep-all of a binary-only set must be accepted")
+
+	result, err := waiter.WaitForPhase(ctx, execID, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "the acknowledged keep-all must complete the execution")
+
+	assert.Equal(t, textBody, harness.ReadWorkspaceFile(t, gitDir, textPath),
+		"the reviewable text file must be reconciled onto disk verbatim")
+	assert.Equal(t, binBody, harness.ReadWorkspaceFile(t, gitDir, binPath),
+		"the acknowledged binary must be reconciled onto disk byte-for-byte")
+	assert.True(t, harness.FileReviewStreamHasEvent(result.GetStatus().GetFileReviewEventStream(), set.GetId(),
+		agentexecv1.FileReviewEventType_FILE_REVIEW_EVENT_TYPE_RECONCILED),
+		"the ledger must carry RECONCILED after the keep-all")
+	assert.Equal(t, headBefore, harness.WorkspaceHeadSHA(t, gitDir), "capture mode must never move HEAD")
+	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review keep-all must NOT re-invoke the model")
+}
+
+// TestOffline_FileReview_BinaryPlusSecret_KeepAllStillBlocked proves the gate
+// re-derives "binary-only" from the actual changes, not the rollup label: a turn
+// with a reviewable text file, a binary file, AND a secret-like gitignored write
+// (.env, hard-blocked, content-less) is PARTIAL_BLOCKED — the secret is a
+// non-binary incompleteness. An acknowledged CHANGE_SET keep-all is REFUSED
+// (a secret must never ride along in a bulk keep); the turn is still resolved
+// per file: keep the text, keep-anyway the binary, discard the secret.
+func TestOffline_FileReview_BinaryPlusSecret_KeepAllStillBlocked(t *testing.T) {
+	requireOfflineService(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	gitDir := harness.NewGitWorkspace(t) // seeds .gitignore with .env
+	const textPath = "notes.md"
+	const textBody = "kept notes\n"
+	const binPath = "assets/pic.bin"
+	const binBody = "\x00JPG\x00keep\n"
+	const secretPath = ".env"
+
+	mockLLM, clients, waiter, execID := startFileReviewRun(t, ctx, gitDir,
+		[]harness.RecordedLLMEntry{
+			writeFileTurn(0, "toolu_text", textPath, textBody),
+			writeFileTurn(1, "toolu_bin", binPath, binBody),
+			writeFileTurn(2, "toolu_env", secretPath, "SECRET=1\n"),
+			textTurn(3, "Wrote a text file, a binary, and an env file."),
+		},
+		"Write notes.md, a binary asset, then .env using the filesystem tools.")
+
+	waiting, err := waiter.WaitForFileReview(ctx, execID, 2*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, execID)
+		t.Fatalf("the mixed turn should open a file review: %v", err)
+	}
+	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
+	require.NotNil(t, set, "the mixed turn must surface one AWAITING_REVIEW change set")
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, set.GetDiffCompleteness(),
+		"a non-binary incompleteness (the withheld secret) makes the set PARTIAL_BLOCKED, not BINARY_SUMMARY_ONLY")
+
+	// An acknowledged CHANGE_SET keep-all is REFUSED: the gate re-derives from the
+	// changes and finds a non-binary incomplete entry (the secret), so a bulk keep
+	// can never sweep it along.
+	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
+		AgentExecutionId:        execID,
+		ChangeSetId:             set.GetId(),
+		Scope:                   agentexecv1.FileDecisionScope_FILE_DECISION_SCOPE_CHANGE_SET,
+		Action:                  agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		ExpectedDigest:          set.GetAggregateDigest(),
+		AcknowledgeUnreviewable: true,
+	})
+	require.Error(t, err, "an acknowledged keep-all must be refused when a non-binary file is unreviewable")
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err),
+		"the keep-all re-derivation blocks a secret-bearing set (precondition failure)")
+
+	// The turn is still resolvable per file: keep the text, keep-anyway the binary
+	// (acknowledged FILE approve), discard the secret.
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, textPath,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE)
+	binCh := harness.FindCapturedChangeByPath(set, binPath)
+	require.NotNil(t, binCh, "the binary file must be captured for review")
+	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
+		AgentExecutionId:        execID,
+		ChangeSetId:             set.GetId(),
+		Scope:                   agentexecv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
+		FileChangeId:            binCh.GetId(),
+		Action:                  agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		ExpectedDigest:          binCh.GetFileDigest(),
+		AcknowledgeUnreviewable: true,
+	})
+	require.NoError(t, err, "an acknowledged FILE approve of the binary must be accepted")
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, secretPath,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_REJECT)
+
+	_, err = waiter.WaitForPhase(ctx, execID, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "deciding every change must complete the turn")
+
+	assert.Equal(t, textBody, harness.ReadWorkspaceFile(t, gitDir, textPath),
+		"the kept text file must reconcile to its approved bytes")
+	assert.Equal(t, binBody, harness.ReadWorkspaceFile(t, gitDir, binPath),
+		"the acknowledged binary must reconcile byte-for-byte")
+	assert.False(t, harness.WorkspaceFileExists(t, gitDir, secretPath),
+		"the discarded secret write must never exist on disk")
+	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review resolution must NOT re-invoke the model")
 }
 
 // TestOffline_FileReview_SecretGitignored_HardBlockedDiscardOnly proves the DD-E

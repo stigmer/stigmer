@@ -33,6 +33,7 @@ type fileReviewFixture struct {
 type fileChangeSetSummary struct {
 	ID                    string   `json:"id"`
 	Status                string   `json:"status"`
+	DiffCompleteness      string   `json:"diff_completeness"`
 	ChangeIDs             []string `json:"change_ids"`
 	BlockedReasons        []string `json:"blocked_reasons"`
 	AcknowledgedChangeIDs []string `json:"acknowledged_change_ids"`
@@ -106,6 +107,7 @@ func summarize(cs *agentexecutionv1.FileChangeSet) fileChangeSetSummary {
 	return fileChangeSetSummary{
 		ID:                    cs.GetId(),
 		Status:                cs.GetStatus().String(),
+		DiffCompleteness:      cs.GetDiffCompleteness().String(),
 		ChangeIDs:             changeIDs,
 		BlockedReasons:        blockedReasons,
 		AcknowledgedChangeIDs: acknowledged,
@@ -122,6 +124,11 @@ func assertSummary(t *testing.T, idx int, got, want fileChangeSetSummary) {
 	}
 	if got.Status != want.Status {
 		t.Errorf("change set[%d] (%s) status = %q, want %q", idx, want.ID, got.Status, want.Status)
+	}
+	// diff_completeness is optional: asserted only when the fixture declares it,
+	// so it never forces every vector to enumerate the (usually COMPLETE) rollup.
+	if want.DiffCompleteness != "" && got.DiffCompleteness != want.DiffCompleteness {
+		t.Errorf("change set[%d] (%s) diff_completeness = %q, want %q", idx, want.ID, got.DiffCompleteness, want.DiffCompleteness)
 	}
 	if got.DecisionCount != want.DecisionCount {
 		t.Errorf("change set[%d] (%s) decision_count = %d, want %d", idx, want.ID, got.DecisionCount, want.DecisionCount)

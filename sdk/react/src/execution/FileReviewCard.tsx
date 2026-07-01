@@ -10,7 +10,6 @@ import type {
 import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
-  DiffCompleteness,
   FileCaptureClass,
   FileChangeCaptureLevel,
   FileChangeKind,
@@ -24,7 +23,11 @@ import { DiffSummary } from "../version-history/DiffSummary";
 import { DecisionButton } from "../internal/DecisionButton";
 import { InCardDecisionError } from "../internal/InCardDecisionError";
 import { fileDecisionKey, type FileDecisionOptions } from "./useFileReview";
-import { fileReviewability, type FileReviewability } from "./file-review-status";
+import {
+  changeSetReviewability,
+  fileReviewability,
+  type FileReviewability,
+} from "./file-review-status";
 
 /** A stable empty set so the default `submittingDecisionKeys` keeps a constant ref. */
 const NO_KEYS: ReadonlySet<string> = new Set();
@@ -82,10 +85,11 @@ export interface FileReviewCardProps {
  * per-file verdict is changeable while the set is still open: clicking the other
  * option records a new decision (the backend reconcile is last-write-wins).
  *
- * An incomplete diff (`diff_completeness != COMPLETE`) cannot be approved as a
- * whole set — the Approve button is disabled with an explanation. For a
- * multi-file set the per-file path is the escape: keep the reviewable files and
- * discard the ones that cannot be reviewed.
+ * A `binary-only` set (binary files are the only blocker) can be kept in one
+ * action: the bulk button reads "Keep all" and carries the acknowledgment
+ * (DD-17). A `blocked` set (something unavailable to review) cannot be approved
+ * as a whole — the Approve button is disabled with an explanation, and the
+ * per-file path is the escape: keep the reviewable files and discard the rest.
  *
  * Each non-reviewable file is labeled honestly by {@link fileReviewability}: a
  * `binary` change has no text diff to review; an `unavailable` change is one
@@ -130,9 +134,13 @@ export const FileReviewCard = memo(function FileReviewCard({
   );
   const decidedCount = verdictByFileId.size;
 
-  // A non-COMPLETE diff (elided / binary-only / partial) can never be approved
-  // as a whole set — the structural guard against approving an unreviewable set.
-  const incomplete = fileChangeSet.diffCompleteness !== DiffCompleteness.COMPLETE;
+  // The set-level reviewability drives the bulk affordance. A "binary-only" set
+  // (binary files are the ONLY blocker) is keepable in one acknowledged action
+  // ("Keep all", DD-17); a "blocked" set (a secret/elided file with no keepable
+  // bytes) can never be approved at once and must be resolved per file.
+  const reviewability = changeSetReviewability(fileChangeSet);
+  const incomplete = reviewability !== "complete";
+  const binaryOnly = reviewability === "binary-only";
 
   // Per-file controls earn their space when there is more than one file OR when a
   // lone file is not reviewable — a single binary needs its per-file "Keep anyway"
@@ -141,8 +149,8 @@ export const FileReviewCard = memo(function FileReviewCard({
   const showPerFile = total > 1 || incomplete;
   // The bulk (CHANGE_SET) footer is shown for multi-file sets and for a single
   // complete file; it is hidden for a single incomplete file, whose only honest
-  // decision is the per-file control above (a CHANGE_SET approve is never valid
-  // for an incomplete set, and acknowledgment is FILE-scoped — DD-16).
+  // decision is the per-file control above (a single binary uses its per-file
+  // "Keep anyway" — DD-16 — and a blocked lone file can only be discarded).
   const showBulkFooter = total > 1 || !incomplete;
 
   const wholeSetSubmitting = submittingDecisionKeys.has(setId);
@@ -160,12 +168,17 @@ export const FileReviewCard = memo(function FileReviewCard({
       setActiveAction(action);
       // Whole-set decision: CHANGE_SET scope, bound to the aggregate digest the
       // reviewer saw (the enforcement gate the runner re-verifies at reconcile).
+      // A "Keep all" on a binary-only set carries the acknowledgment: the
+      // binaries have no text diff but reconcilable bytes, so the user
+      // consciously keeps the whole set (DD-17). The server honors it only when
+      // every incompleteness is binary and never relaxes the digest gate.
       onSubmit(action, {
         scope: FileDecisionScope.CHANGE_SET,
         expectedDigest: fileChangeSet.aggregateDigest,
+        acknowledgeUnreviewable: action === FileDecisionAction.APPROVE && binaryOnly,
       });
     },
-    [onSubmit, fileChangeSet.aggregateDigest],
+    [onSubmit, fileChangeSet.aggregateDigest, binaryOnly],
   );
 
   const handleFileDecide = useCallback(
@@ -217,7 +230,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   // is unavailable (a11y: a disabled action is never an unexplained dead end).
   const incompleteNoticeId = useId();
 
-  const labels = bulkLabels(total, decidedCount);
+  const labels = bulkLabels(total, decidedCount, binaryOnly);
 
   return (
     <div
@@ -270,7 +283,7 @@ export const FileReviewCard = memo(function FileReviewCard({
             id={incompleteNoticeId}
             className="text-[11px] italic text-muted-foreground"
           >
-            {incompleteNotice(showPerFile, blockSummary)}
+            {incompleteNotice(showPerFile, blockSummary, binaryOnly)}
           </p>
         )}
 
@@ -282,7 +295,7 @@ export const FileReviewCard = memo(function FileReviewCard({
               onClick={() => handleBulk(FileDecisionAction.APPROVE)}
               isActive={activeAction === FileDecisionAction.APPROVE}
               isSubmitting={wholeSetSubmitting}
-              disabled={incomplete}
+              disabled={incomplete && !binaryOnly}
               ariaDescribedby={incomplete ? incompleteNoticeId : undefined}
               cursorTarget="file-review-approve"
             />
@@ -605,11 +618,23 @@ function blockReasonText(reviewability: FileReviewability): string | null {
  * The whole-set incompleteness copy, accurate to which non-reviewable classes are
  * present (never the generic "binary or truncated"). Unavailable is reported
  * ahead of binary because it is the stronger "nothing to see" signal.
+ *
+ * A `binaryOnly` set is the keepable case (DD-17): binary files are the only
+ * blocker, so the copy explains that "Keep all" is available rather than saying
+ * the set can't be approved. A `blocked` set (something unavailable) keeps the
+ * discard-oriented copy.
  */
 function incompleteNotice(
   showPerFile: boolean,
   summary: { hasBinary: boolean; hasUnavailable: boolean },
+  binaryOnly: boolean,
 ): string {
+  if (binaryOnly) {
+    // Every non-binary file is reviewable; only binaries have no text diff.
+    return showPerFile
+      ? "This set includes binary files with no text diff. Keep all keeps every file as-is (their exact bytes are applied), or decide each file below."
+      : "This is a binary change with no text diff. Keep it as-is (its exact bytes are applied) or discard it.";
+  }
   if (showPerFile) {
     if (summary.hasUnavailable) {
       return "Part of this change isn't available to review, so the whole set can't be approved — keep the reviewable files and discard the rest.";
@@ -663,16 +688,23 @@ function deriveFileVerdicts(
   return byFileId;
 }
 
-/** The whole-set action labels, sharpened by file count and review progress. */
+/**
+ * The whole-set action labels, sharpened by file count and review progress. A
+ * `binaryOnly` set (DD-17) reads as "Keep all" rather than "Approve all": the
+ * bulk keep carries the binary acknowledgment, and "Keep" is the same verb the
+ * per-file binary control uses ("Keep anyway").
+ */
 function bulkLabels(
   total: number,
   decided: number,
+  binaryOnly: boolean,
 ): { approve: string; reject: string } {
-  if (total <= 1) return { approve: "Approve", reject: "Reject" };
+  const approveVerb = binaryOnly ? "Keep" : "Approve";
+  if (total <= 1) return { approve: approveVerb, reject: "Reject" };
   if (decided > 0 && decided < total) {
-    return { approve: "Approve remaining", reject: "Reject remaining" };
+    return { approve: `${approveVerb} remaining`, reject: "Reject remaining" };
   }
-  return { approve: "Approve all", reject: "Reject all" };
+  return { approve: `${approveVerb} all`, reject: "Reject all" };
 }
 
 // ---------------------------------------------------------------------------

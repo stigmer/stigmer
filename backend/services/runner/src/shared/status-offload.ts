@@ -38,8 +38,9 @@ import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { FileChange, FileContent, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { DiffCompleteness, FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
+import { deriveDiffCompleteness } from "./filereview/events.js";
 
 /**
  * A single tool output (result or args_preview) larger than this many bytes is
@@ -617,7 +618,12 @@ export function enforceStatusSizeLimit(
         }
       }
       if (markedAny) {
-        candidate.diffCompleteness = DiffCompleteness.PARTIAL_BLOCKED;
+        // Re-derive the rollup from the now-elided changes via the single shared
+        // rule. A dropped inline body is non-binary incomplete, so the set
+        // downgrades to PARTIAL_BLOCKED (a BINARY_SUMMARY_ONLY set that loses a
+        // text body is no longer binary-only); computing it here keeps the rule
+        // in one place instead of hardcoding the outcome.
+        candidate.diffCompleteness = deriveDiffCompleteness(candidate.changes);
       }
     }
   }

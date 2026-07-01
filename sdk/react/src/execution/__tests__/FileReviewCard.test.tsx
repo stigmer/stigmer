@@ -189,6 +189,8 @@ describe("FileReviewCard", () => {
       expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
         scope: FileDecisionScope.CHANGE_SET,
         expectedDigest: "agg-1",
+        // A COMPLETE set carries no acknowledgment (nothing unreviewable).
+        acknowledgeUnreviewable: false,
       });
     });
 
@@ -201,17 +203,18 @@ describe("FileReviewCard", () => {
       expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.REJECT, {
         scope: FileDecisionScope.CHANGE_SET,
         expectedDigest: "agg-1",
+        acknowledgeUnreviewable: false,
       });
     });
 
     it("switches a single INCOMPLETE file to the per-file control (no CHANGE_SET footer)", () => {
-      // A lone binary can't be kept via a CHANGE_SET approve (acknowledgment is
-      // FILE-scoped, DD-16), so the single-incomplete case drops the bulk footer
-      // and shows the per-file "Keep anyway" / Discard control instead.
+      // A lone binary set is BINARY_SUMMARY_ONLY, but "Keep all" is a multi-file
+      // affordance: with a single file the bulk footer is dropped and the per-file
+      // "Keep anyway" / Discard control (DD-16) is the only decision surface.
       render(
         <FileReviewCard
           fileChangeSet={changeSet({
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
             change: capturedBinaryChange({ id: "aex-1:0:img.png", path: "img.png", fileDigest: "d" }),
           })}
           onSubmit={noop}
@@ -381,6 +384,7 @@ describe("FileReviewCard", () => {
       expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
         scope: FileDecisionScope.CHANGE_SET,
         expectedDigest: "agg-1",
+        acknowledgeUnreviewable: false,
       });
     });
 
@@ -476,14 +480,16 @@ describe("FileReviewCard", () => {
       render(
         <FileReviewCard
           fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
             fc2: capturedBinaryChange({ id: "fc2", path: "img.png", fileDigest: "d-fc2" }),
           })}
           onSubmit={onSubmit}
         />,
       );
 
-      expect(screen.getByText(/Binary file.*no text diff/i)).toBeTruthy();
+      // Target the per-file note specifically ("...to review"), not the bulk
+      // keep-all notice which also mentions "no text diff".
+      expect(screen.getByText(/Binary file.*no text diff to review/i)).toBeTruthy();
       // A binary is keepable via an explicit, enabled "Keep anyway".
       const keepAnyway = screen.getByRole("radio", {
         name: /Keep img.png anyway/i,
@@ -607,17 +613,22 @@ describe("FileReviewCard", () => {
       expect(screen.getByText(/isn.t available to review, so the whole set/i)).toBeTruthy();
     });
 
-    it("uses binary-specific set copy when the only blocker is a binary file", () => {
+    it("offers per-file granular control alongside 'Keep all' in a binary-only set (DD-17)", () => {
+      // A binary-only set is keepable in one shot, but the per-file escape hatch
+      // stays: keep the reviewable text file on its own, keep-anyway or discard
+      // the binary. Bulk "Keep all" and the granular rows coexist.
       render(
         <FileReviewCard
           fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
             fc2: capturedBinaryChange({ id: "fc2", path: "img.png", fileDigest: "d-fc2" }),
           })}
           onSubmit={noop}
         />,
       );
-      expect(screen.getByText(/includes a binary change with no text diff/i)).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Keep all" })).toBeTruthy();
+      expect(screen.getByRole("radio", { name: "Keep src/a.ts" })).toBeTruthy();
+      expect(screen.getByRole("radio", { name: /Keep img.png anyway/i })).toBeTruthy();
     });
 
     it("keeps a single-file binary via an acknowledged FILE approve; discard still works", () => {
@@ -625,15 +636,15 @@ describe("FileReviewCard", () => {
       render(
         <FileReviewCard
           fileChangeSet={changeSet({
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
             change: capturedBinaryChange({ id: "aex-1:0:img.png", path: "img.png", fileDigest: "d" }),
           })}
           onSubmit={onSubmit}
         />,
       );
 
-      // No CHANGE_SET footer for a single incomplete file (acknowledgment is
-      // FILE-scoped); the per-file control carries an enabled "Keep anyway".
+      // No CHANGE_SET footer for a single incomplete file ("Keep all" is a
+      // multi-file affordance); the per-file control carries an enabled "Keep anyway".
       expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
       fireEvent.click(screen.getByRole("radio", { name: /Keep img.png anyway/i }));
       expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
@@ -652,13 +663,42 @@ describe("FileReviewCard", () => {
       });
     });
 
-    it("defensively disables the whole-set Approve for any non-COMPLETE completeness (catch-all)", () => {
-      // BINARY_SUMMARY_ONLY is not produced today, but the guard must still block
-      // a whole-set approve (multi-file so the bulk footer is present).
+    it("offers an enabled 'Keep all' for a BINARY_SUMMARY_ONLY set that acknowledges the whole set (DD-17)", () => {
+      // A set whose only blocker is binary files is keepable in one action: the
+      // bulk approve is enabled, relabeled "Keep all", and carries the whole-set
+      // acknowledgment bound to the aggregate digest.
+      const onSubmit = vi.fn();
       render(
         <FileReviewCard
           fileChangeSet={multiChangeSet({
             diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
+            fc2: capturedBinaryChange({ id: "fc2", path: "img.png", fileDigest: "d-fc2" }),
+          })}
+          onSubmit={onSubmit}
+        />,
+      );
+
+      const keepAll = screen.getByRole("button", { name: "Keep all" }) as HTMLButtonElement;
+      expect(keepAll.disabled).toBe(false);
+      // The notice explains the enabled keep-all rather than blocking it.
+      expect(screen.getByText(/Keep all keeps every file as-is/i)).toBeTruthy();
+
+      fireEvent.click(keepAll);
+      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
+        scope: FileDecisionScope.CHANGE_SET,
+        expectedDigest: "agg-1",
+        acknowledgeUnreviewable: true,
+      });
+    });
+
+    it("still disables the whole-set Approve when a file is truly unavailable (not binary-only)", () => {
+      // A PARTIAL_BLOCKED set (a secret/elided file with no keepable bytes) can
+      // never be kept in one shot — the bulk Approve stays disabled.
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({
+            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+            fc2: capturedUnavailableChange({ id: "fc2", path: "src/b.ts", fileDigest: "d-fc2" }),
           })}
           onSubmit={noop}
         />,

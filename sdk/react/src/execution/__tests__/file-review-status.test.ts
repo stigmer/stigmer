@@ -7,12 +7,14 @@ import {
 import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   CapturedFileChangeSchema,
+  FileChangeSetSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
+  DiffCompleteness,
   FileChangeKind,
   FileReviewBlockReason,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { fileReviewability } from "../file-review-status";
+import { changeSetReviewability, fileReviewability } from "../file-review-status";
 
 /** Inline text side (the git substrate's shape). */
 function inline(value: string, isBinary = false): FileContent {
@@ -158,5 +160,21 @@ describe("fileReviewability", () => {
         change({ kind: FileChangeKind.DELETE, diffComplete: false, before: inline("\u0000", true) }),
       ),
     ).toEqual({ kind: "binary" });
+  });
+});
+
+describe("changeSetReviewability", () => {
+  function set(completeness: DiffCompleteness) {
+    return create(FileChangeSetSchema, { id: "cs", diffCompleteness: completeness });
+  }
+
+  it("maps the server rollup to the set-level verdict", () => {
+    expect(changeSetReviewability(set(DiffCompleteness.COMPLETE))).toBe("complete");
+    expect(changeSetReviewability(set(DiffCompleteness.BINARY_SUMMARY_ONLY))).toBe("binary-only");
+    expect(changeSetReviewability(set(DiffCompleteness.PARTIAL_BLOCKED))).toBe("blocked");
+  });
+
+  it("treats UNSPECIFIED as blocked (fail-closed)", () => {
+    expect(changeSetReviewability(set(DiffCompleteness.UNSPECIFIED))).toBe("blocked");
   });
 });

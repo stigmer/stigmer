@@ -496,6 +496,67 @@ describe("enforceStatusSizeLimit", () => {
     }
   });
 
+  it("downgrades a BINARY_SUMMARY_ONLY set to PARTIAL_BLOCKED when size-elision drops a text body", () => {
+    // A set whose only blocker is a binary file (BINARY_SUMMARY_ONLY) plus a
+    // large-but-reviewable text file. When the text body is elided it becomes a
+    // non-binary incompleteness, so the shared re-derivation must downgrade the
+    // whole set to PARTIAL_BLOCKED (it is no longer binary-only).
+    const big = "Z".repeat(50_000);
+    const ctx: ChangeSetContext = {
+      changeSetId: "exec-3:0",
+      turnId: "turn-0",
+      harnessId: "deep-agent",
+      timestamp: "2026-07-01T00:00:00Z",
+    };
+    const binary = buildCapturedFileChange({
+      id: "fc-bin",
+      pathBefore: "",
+      pathAfter: "assets/logo.png",
+      kind: FileChangeKind.ADD,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      after: { kind: "binary", sha256: "sha-bin" },
+      diffComplete: false,
+    });
+    const bigText = buildCapturedFileChange({
+      id: "fc-text",
+      pathBefore: "src/big.ts",
+      pathAfter: "src/big.ts",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      before: big,
+      after: big,
+    });
+
+    const status = create(AgentExecutionStatusSchema, {});
+    appendFileReviewEvents(status, "exec-3", [
+      buildCandidateCapturedEvent(ctx, undefined, [binary, bigText]),
+    ]);
+    // Before elision: binary is the only blocker.
+    const before = status.fileReviewEventStream?.events.find(
+      (e) => e.payload.case === "candidateCaptured",
+    );
+    if (before?.payload.case === "candidateCaptured") {
+      expect(before.payload.value.diffCompleteness).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
+    }
+
+    expect(enforceStatusSizeLimit(status, 4_000)).toBe(true);
+
+    const after = status.fileReviewEventStream?.events.find(
+      (e) => e.payload.case === "candidateCaptured",
+    );
+    if (after?.payload.case === "candidateCaptured") {
+      const cs = after.payload.value;
+      const text = cs.changes.find((c) => c.id === "fc-text");
+      const bin = cs.changes.find((c) => c.id === "fc-bin");
+      // The text body is dropped (now a non-binary incompleteness); the binary
+      // side is body-less already, so it is untouched and keeps is_binary.
+      expect(text?.diffComplete).toBe(false);
+      expect(text?.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
+      expect(bin?.after?.isBinary).toBe(true);
+      expect(cs.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+    }
+  });
+
   it("does not overwrite a more specific reason (SECRET_WITHHELD survives size elision)", () => {
     // A secret entry is content-less, so it can't be size-elided; but guard the
     // precedence explicitly: if a reason is already set, the size backstop keeps it.

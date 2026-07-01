@@ -116,9 +116,12 @@ export type FileChangeSet = Message<"ai.stigmer.agentic.agentexecution.v1.FileCh
   aggregateDigest: string;
 
   /**
-   * Whether the rendered diff is complete enough to approve safely. A
-   * non-COMPLETE value blocks normal approval (an elided/binary-only diff can
-   * never be approved as if complete). See DiffCompleteness.
+   * Whether the rendered diff is complete enough to approve safely, a rollup
+   * over the per-file changes. COMPLETE is approvable as-is; BINARY_SUMMARY_ONLY
+   * (binary is the set's only blocker) is keepable in one shot via an
+   * acknowledged CHANGE_SET approve; PARTIAL_BLOCKED must be resolved per file.
+   * An honest UI/audit signal — the backend gate re-derives keep-all from the
+   * per-file changes, never trusting this value. See DiffCompleteness.
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 10;
    */
@@ -567,7 +570,9 @@ export type FileReviewCandidateCaptured = Message<"ai.stigmer.agentic.agentexecu
   aggregateDigest: string;
 
   /**
-   * Whether the diff is complete enough to approve. See DiffCompleteness.
+   * The runner-derived completeness rollup for this candidate: COMPLETE when
+   * every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
+   * blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 5;
    */

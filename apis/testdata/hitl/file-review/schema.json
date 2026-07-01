@@ -25,6 +25,10 @@
         "properties": {
           "id": { "type": "string" },
           "status": { "type": "string", "description": "FileChangeSetStatus enum value name." },
+          "diff_completeness": {
+            "type": "string",
+            "description": "Optional: expected DiffCompleteness enum value name (e.g. DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY). Asserted only when present, proving the runner-derived rollup projects identically in Go and Java."
+          },
           "change_ids": { "type": "array", "items": { "type": "string" } },
           "blocked_reasons": {
             "type": "array",

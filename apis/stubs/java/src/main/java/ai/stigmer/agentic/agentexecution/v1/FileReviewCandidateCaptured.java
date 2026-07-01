@@ -261,7 +261,9 @@ private static final long serialVersionUID = 0L;
   private int diffCompleteness_ = 0;
   /**
    * <pre>
-   * Whether the diff is complete enough to approve. See DiffCompleteness.
+   * The runner-derived completeness rollup for this candidate: COMPLETE when
+   * every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
+   * blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 5 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -272,7 +274,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Whether the diff is complete enough to approve. See DiffCompleteness.
+   * The runner-derived completeness rollup for this candidate: COMPLETE when
+   * every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
+   * blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 5 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -1413,7 +1417,9 @@ private static final long serialVersionUID = 0L;
     private int diffCompleteness_ = 0;
     /**
      * <pre>
-     * Whether the diff is complete enough to approve. See DiffCompleteness.
+     * The runner-derived completeness rollup for this candidate: COMPLETE when
+     * every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
+     * blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 5 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -1424,7 +1430,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the diff is complete enough to approve. See DiffCompleteness.
+     * The runner-derived completeness rollup for this candidate: COMPLETE when
+     * every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
+     * blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 5 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -1440,7 +1448,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the diff is complete enough to approve. See DiffCompleteness.
+     * The runner-derived completeness rollup for this candidate: COMPLETE when
+     * every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
+     * blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 5 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -1453,7 +1463,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the diff is complete enough to approve. See DiffCompleteness.
+     * The runner-derived completeness rollup for this candidate: COMPLETE when
+     * every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
+     * blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 5 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>
@@ -1469,7 +1481,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the diff is complete enough to approve. See DiffCompleteness.
+     * The runner-derived completeness rollup for this candidate: COMPLETE when
+     * every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
+     * blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 5 [json_name = "diffCompleteness", (.buf.validate.field) = { ... }</code>

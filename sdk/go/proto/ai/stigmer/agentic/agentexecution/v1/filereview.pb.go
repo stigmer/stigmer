@@ -72,9 +72,12 @@ type FileChangeSet struct {
 	// the reconcile refuse to apply a manifest that differs from what was
 	// reviewed. Never a correlation key.
 	AggregateDigest string `protobuf:"bytes,9,opt,name=aggregate_digest,json=aggregateDigest,proto3" json:"aggregate_digest,omitempty"`
-	// Whether the rendered diff is complete enough to approve safely. A
-	// non-COMPLETE value blocks normal approval (an elided/binary-only diff can
-	// never be approved as if complete). See DiffCompleteness.
+	// Whether the rendered diff is complete enough to approve safely, a rollup
+	// over the per-file changes. COMPLETE is approvable as-is; BINARY_SUMMARY_ONLY
+	// (binary is the set's only blocker) is keepable in one shot via an
+	// acknowledged CHANGE_SET approve; PARTIAL_BLOCKED must be resolved per file.
+	// An honest UI/audit signal — the backend gate re-derives keep-all from the
+	// per-file changes, never trusting this value. See DiffCompleteness.
 	DiffCompleteness DiffCompleteness `protobuf:"varint,10,opt,name=diff_completeness,json=diffCompleteness,proto3,enum=ai.stigmer.agentic.agentexecution.v1.DiffCompleteness" json:"diff_completeness,omitempty"`
 	// Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
 	// events in the ledger (never stored-mutable). Ordered by decision time.
@@ -799,7 +802,9 @@ type FileReviewCandidateCaptured struct {
 	Changes []*CapturedFileChange `protobuf:"bytes,3,rep,name=changes,proto3" json:"changes,omitempty"`
 	// Canonical digest over the ordered manifest (enforcement).
 	AggregateDigest string `protobuf:"bytes,4,opt,name=aggregate_digest,json=aggregateDigest,proto3" json:"aggregate_digest,omitempty"`
-	// Whether the diff is complete enough to approve. See DiffCompleteness.
+	// The runner-derived completeness rollup for this candidate: COMPLETE when
+	// every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
+	// blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
 	DiffCompleteness DiffCompleteness `protobuf:"varint,5,opt,name=diff_completeness,json=diffCompleteness,proto3,enum=ai.stigmer.agentic.agentexecution.v1.DiffCompleteness" json:"diff_completeness,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache

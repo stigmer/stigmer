@@ -283,16 +283,49 @@ export function buildBaselineCapturedEvent(
 }
 
 /**
+ * Derive a change set's {@link DiffCompleteness} rollup from its per-file
+ * signals — the single source of the three-way rule, shared by the turn-boundary
+ * capture ({@link buildCandidateCapturedEvent}) and the size backstop
+ * (status-offload), so the value can never be computed two ways:
+ *
+ * - every file complete → `COMPLETE`
+ * - else the ONLY incompleteness is binary (every incomplete file has a binary
+ *   side) → `BINARY_SUMMARY_ONLY` — keepable in one acknowledged action, its
+ *   exact bytes reconcile from the git ref / CAS blob
+ * - else (≥1 non-binary incomplete: secret-withheld / size-elided /
+ *   uncapturable — no keepable bytes) → `PARTIAL_BLOCKED`
+ *
+ * Binary is proven by `FileContent.is_binary` on either side (DD-15 D2), never
+ * by the block reason. This mirrors the backend gate's `isBinaryChange`, so the
+ * runner's rollup and the gate's per-file re-derivation agree by construction.
+ */
+export function deriveDiffCompleteness(
+  changes: readonly CapturedFileChange[],
+): DiffCompleteness {
+  let sawIncomplete = false;
+  for (const c of changes) {
+    if (c.diffComplete) continue;
+    sawIncomplete = true;
+    if (!(c.before?.isBinary || c.after?.isBinary)) {
+      // A non-binary incompleteness has no keepable bytes — it blocks the set
+      // outright, regardless of any binaries alongside it.
+      return DiffCompleteness.PARTIAL_BLOCKED;
+    }
+  }
+  if (!sawIncomplete) return DiffCompleteness.COMPLETE;
+  return DiffCompleteness.BINARY_SUMMARY_ONLY;
+}
+
+/**
  * The CANDIDATE_CAPTURED event — authored at the turn boundary, carrying the
  * authoritative per-file diff and the aggregate digest. `diff_completeness` is
- * derived: PARTIAL_BLOCKED when any file is incomplete, else COMPLETE.
+ * the {@link deriveDiffCompleteness} rollup over the changes.
  */
 export function buildCandidateCapturedEvent(
   ctx: ChangeSetContext,
   candidateSnapshot: SnapshotRef | undefined,
   changes: readonly CapturedFileChange[],
 ): FileReviewEvent {
-  const allComplete = changes.every((c) => c.diffComplete);
   return create(FileReviewEventSchema, {
     eventId: eventId(ctx.changeSetId, ctx.changeSetId, FileReviewEventType.CANDIDATE_CAPTURED),
     changeSetId: ctx.changeSetId,
@@ -314,9 +347,7 @@ export function buildCandidateCapturedEvent(
             afterSha256: c.afterSha256,
           })),
         ),
-        diffCompleteness: allComplete
-          ? DiffCompleteness.COMPLETE
-          : DiffCompleteness.PARTIAL_BLOCKED,
+        diffCompleteness: deriveDiffCompleteness(changes),
       }),
     },
   });

@@ -1,5 +1,11 @@
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type {
+  CapturedFileChange,
+  FileChangeSet,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import {
+  DiffCompleteness,
+  FileReviewBlockReason,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /**
  * Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the
@@ -77,5 +83,40 @@ function blockReasonOf(reason: FileReviewBlockReason): FileBlockReason {
       return "size";
     default:
       return "unknown";
+  }
+}
+
+/**
+ * How completely a whole {@link FileChangeSet} can be reviewed — the set-level
+ * sibling of {@link FileReviewability} that decides whether the set can be kept
+ * in one action. Drives the card's bulk affordance and keeps headless builders
+ * on the same classification.
+ *
+ * - `"complete"` — every file is reviewable; the set can be approved as-is.
+ * - `"binary-only"` — the set's ONLY blocker is binary files (every non-binary
+ *   file is fully reviewable). No text diff for the binaries, but their exact
+ *   bytes are captured and reconcilable, so the whole set can be KEPT in one
+ *   acknowledged action ("Keep all"). Includes mixed sets (text edits + images).
+ * - `"blocked"` — at least one file is unavailable to review with no keepable
+ *   bytes (secret-withheld / size-elided / uncapturable), so the set cannot be
+ *   approved at once; it must be resolved per file.
+ */
+export type ChangeSetReviewability = "complete" | "binary-only" | "blocked";
+
+/**
+ * Classify a {@link FileChangeSet} from its server-derived `diff_completeness`
+ * rollup (the field exists precisely so clients need not re-fold the per-file
+ * signals). The runner and the size backstop both derive that value from the
+ * same rule the backend gate re-checks, so this classification, the per-file
+ * {@link fileReviewability} fold, and the server gate agree by construction.
+ */
+export function changeSetReviewability(set: FileChangeSet): ChangeSetReviewability {
+  switch (set.diffCompleteness) {
+    case DiffCompleteness.COMPLETE:
+      return "complete";
+    case DiffCompleteness.BINARY_SUMMARY_ONLY:
+      return "binary-only";
+    default:
+      return "blocked";
   }
 }

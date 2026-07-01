@@ -310,7 +310,7 @@ describe("capture orchestration — hybrid git + CAS (Phase 3)", () => {
     expect(storage.blobs.size).toBe(0);
   });
 
-  it("marks the change set PARTIAL_BLOCKED when a CAS file is binary", async () => {
+  it("marks the change set BINARY_SUMMARY_ONLY when the only incomplete file is a binary CAS file", async () => {
     const status = newStatus();
     const storage = makeStorage();
     const baseline = await captureBaselineToLedger({
@@ -327,7 +327,8 @@ describe("capture orchestration — hybrid git + CAS (Phase 3)", () => {
     expect(cand[0].diffComplete).toBe(false);
     // Binary is conveyed by FileContent.is_binary, not blocked_reason (doc 15).
     expect(cand[0].blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
-    expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+    // Binary is the set's only blocker, so it is keepable in one acknowledged action.
+    expect(candidateCompleteness(status)).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
   });
 
   it("reconciles hybrid decisions on resume: approved CAS kept, rejected CAS reverted", async () => {

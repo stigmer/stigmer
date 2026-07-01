@@ -89,7 +89,10 @@ func TestTargetDigestSelectsByScope(t *testing.T) {
 // TestApproveBlockedReason locks the completeness precondition in lockstep with
 // the Java FileReviewStreamAuthorTest table: an APPROVE of an unreviewable target
 // is refused; a complete target (even inside a PARTIAL_BLOCKED set, via FILE
-// scope) is allowed; UNSPECIFIED/absent/nil are fail-closed.
+// scope) is allowed; UNSPECIFIED/absent/nil are fail-closed. The acknowledgment
+// carve-out unblocks a binary FILE (DD-16) and a binary-only CHANGE_SET
+// ("Keep all", DD-17) — but never a set holding a non-binary incomplete file,
+// because the CHANGE_SET gate re-derives "binary-only" from the actual changes.
 func TestApproveBlockedReason(t *testing.T) {
 	const (
 		fileScope = agentexecutionv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE
@@ -110,6 +113,19 @@ func TestApproveBlockedReason(t *testing.T) {
 		}
 	}
 
+	// A binary-only set (DD-17): a reviewable file plus a binary — the set's only
+	// incompleteness is binary, so an acknowledged CHANGE_SET approve keeps it all.
+	binaryOnlySet := func() *agentexecutionv1.FileChangeSet {
+		return &agentexecutionv1.FileChangeSet{
+			Id:               "cs1",
+			DiffCompleteness: agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY,
+			Changes: []*agentexecutionv1.CapturedFileChange{
+				{Id: "fc-complete", DiffComplete: true},
+				{Id: "fc-binary", DiffComplete: false, After: &agentexecutionv1.FileContent{IsBinary: true}},
+			},
+		}
+	}
+
 	cases := []struct {
 		name         string
 		cs           *agentexecutionv1.FileChangeSet
@@ -123,15 +139,19 @@ func TestApproveBlockedReason(t *testing.T) {
 		{"FILE scope, incomplete file is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-incomplete", false, true},
 		{"FILE scope, absent file is fail-closed", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE), fileScope, "nope", false, true},
 		{"CHANGE_SET scope, COMPLETE is approvable", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE), setScope, "", false, false},
-		{"CHANGE_SET scope, PARTIAL_BLOCKED is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), setScope, "", false, true},
-		{"CHANGE_SET scope, BINARY_SUMMARY_ONLY is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY), setScope, "", false, true},
+		{"CHANGE_SET scope, PARTIAL_BLOCKED without ack is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), setScope, "", false, true},
+		{"CHANGE_SET scope, BINARY_SUMMARY_ONLY without ack is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY), setScope, "", false, true},
 		{"CHANGE_SET scope, UNSPECIFIED is fail-closed", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_UNSPECIFIED), setScope, "", false, true},
 
 		// Binary-acknowledgment carve-out (DD-16): FILE scope, binary only.
 		{"FILE scope, binary file without ack is blocked", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-binary", false, true},
 		{"FILE scope, binary file WITH ack is approvable", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-binary", true, false},
 		{"FILE scope, ack does NOT unblock a non-binary incomplete file", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), fileScope, "fc-incomplete", true, true},
-		{"CHANGE_SET scope, ack is ignored (still blocked)", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), setScope, "", true, true},
+
+		// Set-level keep-all carve-out (DD-17): CHANGE_SET scope, binary-only set.
+		{"CHANGE_SET scope, ack keeps a binary-only set (keep-all)", binaryOnlySet(), setScope, "", true, false},
+		{"CHANGE_SET scope, ack does NOT keep a set with a non-binary incomplete file", setWith(agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED), setScope, "", true, true},
+		{"CHANGE_SET scope, keep-all re-derives per file: a mislabeled COMPLETE-but-binary-only set still needs ack", binaryOnlySet(), setScope, "", false, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

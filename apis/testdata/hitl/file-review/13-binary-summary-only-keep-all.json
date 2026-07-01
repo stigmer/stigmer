@@ -1,0 +1,48 @@
+{
+  "name": "binary-summary-only-keep-all",
+  "description": "A mixed set whose ONLY blocker is binary: a fully-reviewable text edit (diff_complete=true) plus a binary ADD (is_binary=true, diff_complete=false). The runner rolls this up to BINARY_SUMMARY_ONLY (DD-17), the keepable-in-one-action case. This vector pins that the BINARY_SUMMARY_ONLY rollup projects onto the FileChangeSet identically in Go and Java (protojson round-trip); the CHANGE_SET-scoped acknowledged keep-all gate behavior is proven end-to-end by the offline/unit gate tests.",
+  "execution_id": "aex_binary_summary_only",
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "events": [
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-07-01T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs1", "turnId": "t1", "harnessId": "deep-agent",
+        "baselineSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "base", "ref": "refs/stigmer/x/baseline" } }
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-07-01T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs1",
+        "candidateSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "cand", "ref": "refs/stigmer/x/candidate" } },
+        "changes": [
+          { "id": "fc-text", "pathBefore": "README.md", "pathAfter": "README.md", "kind": "FILE_CHANGE_KIND_MODIFY", "beforeSha256": "sha-before", "afterSha256": "sha-after", "fileDigest": "d-fc-text", "diffComplete": true, "before": { "inline": "old\n" }, "after": { "inline": "new\n" } },
+          { "id": "fc-bin", "pathBefore": "", "pathAfter": "assets/logo.png", "kind": "FILE_CHANGE_KIND_ADD", "afterSha256": "sha-bin", "fileDigest": "d-fc-bin", "diffComplete": false, "after": { "isBinary": true } }
+        ],
+        "aggregateDigest": "agg13",
+        "diffCompleteness": "DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs1",
+      "status": "FILE_CHANGE_SET_STATUS_AWAITING_REVIEW",
+      "diff_completeness": "DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY",
+      "change_ids": ["fc-text", "fc-bin"],
+      "blocked_reasons": ["FILE_REVIEW_BLOCK_REASON_UNSPECIFIED", "FILE_REVIEW_BLOCK_REASON_UNSPECIFIED"],
+      "decision_count": 0,
+      "aggregate_digest": "agg13",
+      "has_approved_snapshot": false
+    }
+  ]
+}

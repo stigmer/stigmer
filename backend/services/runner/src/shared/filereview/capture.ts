@@ -177,8 +177,10 @@ export async function captureCandidateToLedger(opts: {
   // One combined change set: git-tracked (inline bodies) + CAS (blob refs) +
   // secret-blocked (content-less, DIFF_UNREVIEWABLE). The aggregate digest folds
   // all (buildCandidateCapturedEvent sorts by file digest), so the reviewed diff
-  // and its identity span every substrate; any content-less entry forces
-  // PARTIAL_BLOCKED so approval is blocked until the change is reviewable.
+  // and its identity span every substrate. deriveDiffCompleteness then rolls the
+  // per-file signals up three ways: any content-less (non-binary) entry forces
+  // PARTIAL_BLOCKED; a set blocked only by binaries is BINARY_SUMMARY_ONLY
+  // (keepable in one acknowledged action); else COMPLETE.
   const captured = [
     ...gitChanges.map((c) => buildCapturedFileChange(toCapturedChangeInput(changeSetId, c))),
     ...casFiles.map((f) => buildCapturedFileChange(casToCapturedChangeInput(changeSetId, f))),
@@ -504,9 +506,10 @@ function casToCapturedChangeInput(
 /**
  * Map a secret-blocked gitignored path to a content-less producer input (design
  * doc 12, DD-E). The bytes are deliberately never captured, so both sides are
- * absent (empty enforcement digests) and `diffComplete=false` forces the change
- * set to PARTIAL_BLOCKED — approval is blocked and the path is surfaced honestly,
- * while its CONTENT never enters the ledger or storage. `blockedReason` records
+ * absent (empty enforcement digests) and `diffComplete=false`. Being non-binary
+ * incomplete with no keepable bytes, it forces the change set to PARTIAL_BLOCKED
+ * (never BINARY_SUMMARY_ONLY) — approval is blocked and the path is surfaced
+ * honestly, while its CONTENT never enters the ledger or storage. `blockedReason` records
  * the honest cause (SECRET_WITHHELD) so the review UI can say *why* rather than
  * showing a cause-agnostic "unavailable" (doc 15). Kind is MODIFY: the write was
  * blocked before it ran, so create-vs-modify is unknown and irrelevant (nothing

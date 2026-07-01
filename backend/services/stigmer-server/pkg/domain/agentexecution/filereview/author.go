@@ -195,13 +195,18 @@ func TargetDigest(cs *agentexecutionv1.FileChangeSet, scope agentexecutionv1.Fil
 // change, or a nil set are all treated as not approvable. Enforcement only,
 // never a correlation key (mirrors TargetDigest's contract).
 //
-// The binary-acknowledgment carve-out (DD-16): a BINARY file has no text diff to
-// review, but its exact bytes are captured and byte-true reconcilable, so when
-// the caller passes acknowledged==true at FILE scope the completeness gate is
-// relaxed for that one binary file — the user consciously keeps it. This is the
-// ONLY relaxation: it is FILE-scope only, binary only (is_binary — never a
-// secret-withheld / size-elided / uncapturable file, which have no keepable
-// bytes and stay discard-only), and it never touches the expected_digest gate.
+// The binary-acknowledgment carve-out (DD-16 / DD-17): a BINARY file has no text
+// diff to review, but its exact bytes are captured and byte-true reconcilable, so
+// when the caller passes acknowledged==true the completeness gate is relaxed for
+// binaries — the user consciously keeps them. At FILE scope this unblocks one
+// binary file; at CHANGE_SET scope it unblocks a whole set whose every
+// incompleteness is binary ("Keep all"). This is the ONLY relaxation: it is
+// binary only (is_binary — never a secret-withheld / size-elided / uncapturable
+// file, which have no keepable bytes and stay discard-only), and it never touches
+// the expected_digest gate. The CHANGE_SET carve-out re-derives the "binary-only"
+// condition from the actual changes (everyIncompleteChangeIsBinary), never from
+// the diff_completeness rollup, so a stale or mislabeled rollup can never widen
+// what may be kept.
 func ApproveBlockedReason(cs *agentexecutionv1.FileChangeSet, scope agentexecutionv1.FileDecisionScope, fileChangeID string, acknowledged bool) string {
 	if cs == nil {
 		return "change set is not reviewable"
@@ -222,13 +227,19 @@ func ApproveBlockedReason(cs *agentexecutionv1.FileChangeSet, scope agentexecuti
 		}
 		return ""
 	}
-	// CHANGE_SET scope: acknowledgment is FILE-scoped only. A non-COMPLETE set is
-	// resolved per file (keep complete files, acknowledge binaries individually,
-	// discard the rest), so it is never approvable in one shot.
-	if cs.GetDiffCompleteness() != agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE {
-		return "change set " + cs.GetId() + " cannot be approved: at least one file's diff is not fully reviewable (incomplete or binary); reject the affected files or the whole set, or wait for a complete capture"
+	// CHANGE_SET scope: a COMPLETE set is approvable as-is. Otherwise the only
+	// one-shot keep allowed is a set whose every incompleteness is binary, and
+	// only when the user consciously acknowledged it ("Keep all", DD-17). Every
+	// other non-COMPLETE set (a secret-withheld / size-elided / uncapturable file
+	// is present) is resolved per file. Re-derived from the actual changes, never
+	// the rollup, so a stale label cannot let a non-binary file ride along.
+	if cs.GetDiffCompleteness() == agentexecutionv1.DiffCompleteness_DIFF_COMPLETENESS_COMPLETE {
+		return ""
 	}
-	return ""
+	if acknowledged && everyIncompleteChangeIsBinary(cs) {
+		return ""
+	}
+	return "change set " + cs.GetId() + " cannot be approved: at least one file's diff is not fully reviewable (incomplete or binary); reject the affected files or the whole set, or wait for a complete capture"
 }
 
 // isBinaryChange reports whether either side of a captured change is binary —
@@ -236,4 +247,25 @@ func ApproveBlockedReason(cs *agentexecutionv1.FileChangeSet, scope agentexecuti
 // binary is conveyed by FileContent.is_binary, never blocked_reason).
 func isBinaryChange(c *agentexecutionv1.CapturedFileChange) bool {
 	return c.GetBefore().GetIsBinary() || c.GetAfter().GetIsBinary()
+}
+
+// everyIncompleteChangeIsBinary reports whether the set has at least one
+// incomplete change and every incomplete change is binary — the "keep-all is
+// safe" condition (DD-17), mirroring the runner's BINARY_SUMMARY_ONLY rollup rule
+// and the Java everyIncompleteChangeIsBinary. It is the enforcement boundary for
+// a CHANGE_SET-scoped acknowledged approve: re-deriving from the changes means a
+// secret-withheld / size-elided file (nil content -> not binary) always blocks
+// the bulk keep, whatever the diff_completeness rollup claims.
+func everyIncompleteChangeIsBinary(cs *agentexecutionv1.FileChangeSet) bool {
+	sawIncomplete := false
+	for _, c := range cs.GetChanges() {
+		if c.GetDiffComplete() {
+			continue
+		}
+		sawIncomplete = true
+		if !isBinaryChange(c) {
+			return false
+		}
+	}
+	return sawIncomplete
 }

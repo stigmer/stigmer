@@ -1839,6 +1839,36 @@ rendering logic based on file type.
 - `"text"` — monospace plain text with line numbers
 
 
+### changeSetReviewability
+
+Classify a `FileChangeSet` from its server-derived `diff_completeness`
+rollup (the field exists precisely so clients need not re-fold the per-file
+signals). The runner and the size backstop both derive that value from the
+same rule the backend gate re-checks, so this classification, the per-file
+[`fileReviewability`](#filereviewability) fold, and the server gate agree by construction.
+
+```tsx
+function changeSetReviewability(set: FileChangeSet): ChangeSetReviewability
+```
+
+
+### ChangeSetReviewability
+
+How completely a whole `FileChangeSet` can be reviewed — the set-level
+sibling of [`FileReviewability`](#filereviewability) that decides whether the set can be kept
+in one action. Drives the card's bulk affordance and keeps headless builders
+on the same classification.
+
+- `"complete"` — every file is reviewable; the set can be approved as-is.
+- `"binary-only"` — the set's ONLY blocker is binary files (every non-binary
+  file is fully reviewable). No text diff for the binaries, but their exact
+  bytes are captured and reconcilable, so the whole set can be KEPT in one
+  acknowledged action ("Keep all"). Includes mixed sets (text edits + images).
+- `"blocked"` — at least one file is unavailable to review with no keepable
+  bytes (secret-withheld / size-elided / uncapturable), so the set cannot be
+  approved at once; it must be resolved per file.
+
+
 ### classifyPath
 
 Classifies whether a path targets the virtual platform mount
@@ -2026,6 +2056,7 @@ Options narrowing a file decision to a single file and binding its digest.
 
 <TypeTable
   type={{
+    acknowledgeUnreviewable: { type: "boolean", description: "Set on an APPROVE to consciously KEEP a change whose diff could not be fully reviewed. Honored only for a binary file at `FILE` scope (a binary has no text diff, but its exact bytes are captured and reconcilable). It never relaxes the digest gate, and is ignored for other incompleteness. See DD-16." },
     expectedDigest: { type: "string", description: "The digest the reviewer saw (`aggregate_digest` for CHANGE_SET, `file_digest` for FILE). The server enforces it at decision time and the runner re-verifies it at reconcile — \"what you approve is what gets applied\"." },
     fileChangeId: { type: "string", description: "The captured file this decision targets; required for `FILE` scope." },
     reason: { type: "string", description: "Optional free-text comment recorded on the decision (audit trail)." },
@@ -2126,10 +2157,11 @@ set stays actionable and deciding the last file is what resumes the turn. A
 per-file verdict is changeable while the set is still open: clicking the other
 option records a new decision (the backend reconcile is last-write-wins).
 
-An incomplete diff (`diff_completeness != COMPLETE`) cannot be approved as a
-whole set — the Approve button is disabled with an explanation. For a
-multi-file set the per-file path is the escape: keep the reviewable files and
-discard the ones that cannot be reviewed.
+A `binary-only` set (binary files are the only blocker) can be kept in one
+action: the bulk button reads "Keep all" and carries the acknowledgment
+(DD-17). A `blocked` set (something unavailable to review) cannot be approved
+as a whole — the Approve button is disabled with an explanation, and the
+per-file path is the escape: keep the reviewable files and discard the rest.
 
 Each non-reviewable file is labeled honestly by [`fileReviewability`](#filereviewability): a
 `binary` change has no text diff to review; an `unavailable` change is one

@@ -10,7 +10,11 @@ package ai.stigmer.agentic.agentexecution.v1;
  * DiffCompleteness describes whether a change set's rendered diff is complete
  * enough to approve safely. A non-COMPLETE value blocks normal approval so an
  * elided or binary-only diff can never be approved as if it were the whole
- * change.
+ * change. The value is a rollup the runner derives from the per-file
+ * diff_complete + is_binary signals; it is an honest UI/audit signal, never the
+ * enforcement boundary — the backend gate always re-derives the keep-all
+ * condition from the per-file changes so a stale or mislabeled rollup can never
+ * widen what may be approved.
  *
  * &#64;since File-Change HITL Redesign (Phase 1)
  * </pre>
@@ -38,8 +42,10 @@ public enum DiffCompleteness
   DIFF_COMPLETENESS_COMPLETE(1),
   /**
    * <pre>
-   * At least one file's diff is elided/truncated/uncapturable; approval is
-   * blocked until the full diff is available.
+   * At least one file has a non-binary incompleteness (elided/truncated/
+   * secret-withheld/uncapturable) with no keepable bytes. The set cannot be
+   * approved in one shot; it is resolved per file (keep the reviewable files,
+   * discard the rest).
    * </pre>
    *
    * <code>DIFF_COMPLETENESS_PARTIAL_BLOCKED = 2;</code>
@@ -47,8 +53,13 @@ public enum DiffCompleteness
   DIFF_COMPLETENESS_PARTIAL_BLOCKED(2),
   /**
    * <pre>
-   * Only a binary-change summary is available (no text diff); approval requires
-   * the explicit binary-change UX, not a text-diff review.
+   * The set's ONLY incompleteness is binary files: every non-binary file is
+   * fully reviewable, and the remaining files are binary (a byte-true summary,
+   * no text diff). Includes mixed sets (e.g. text edits + generated images).
+   * Such a set can be kept in one action via a CHANGE_SET-scoped APPROVE
+   * carrying acknowledge_unreviewable=true ("Keep all"). The acknowledgment
+   * relaxes completeness only — never the expected_digest gate ("what you
+   * approve is what gets applied").
    * </pre>
    *
    * <code>DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY = 3;</code>
@@ -84,8 +95,10 @@ public enum DiffCompleteness
   public static final int DIFF_COMPLETENESS_COMPLETE_VALUE = 1;
   /**
    * <pre>
-   * At least one file's diff is elided/truncated/uncapturable; approval is
-   * blocked until the full diff is available.
+   * At least one file has a non-binary incompleteness (elided/truncated/
+   * secret-withheld/uncapturable) with no keepable bytes. The set cannot be
+   * approved in one shot; it is resolved per file (keep the reviewable files,
+   * discard the rest).
    * </pre>
    *
    * <code>DIFF_COMPLETENESS_PARTIAL_BLOCKED = 2;</code>
@@ -93,8 +106,13 @@ public enum DiffCompleteness
   public static final int DIFF_COMPLETENESS_PARTIAL_BLOCKED_VALUE = 2;
   /**
    * <pre>
-   * Only a binary-change summary is available (no text diff); approval requires
-   * the explicit binary-change UX, not a text-diff review.
+   * The set's ONLY incompleteness is binary files: every non-binary file is
+   * fully reviewable, and the remaining files are binary (a byte-true summary,
+   * no text diff). Includes mixed sets (e.g. text edits + generated images).
+   * Such a set can be kept in one action via a CHANGE_SET-scoped APPROVE
+   * carrying acknowledge_unreviewable=true ("Keep all"). The acknowledgment
+   * relaxes completeness only — never the expected_digest gate ("what you
+   * approve is what gets applied").
    * </pre>
    *
    * <code>DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY = 3;</code>
