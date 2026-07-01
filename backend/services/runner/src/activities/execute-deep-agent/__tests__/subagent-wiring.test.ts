@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { buildSubAgentMiddleware } from "../subagent-wiring.js";
 import { createCostCapMiddleware } from "../../../middleware/cost-cap.js";
+import * as approvalGateModule from "../../../middleware/approval-gate.js";
 
 describe("buildSubAgentMiddleware", () => {
   it("returns the correct middleware order without cost cap", () => {
@@ -105,5 +106,49 @@ describe("buildSubAgentMiddleware", () => {
     expect(stack).toHaveLength(5);
     expect(stack[3].name).toBe("ApprovalGateMiddleware");
     expect(stack[4].name).toBe("CostCapSubAgentView");
+  });
+
+  // captureIgnored is the structural coupling that makes sub-agent gitignored
+  // capture safe (DD-19): the gate flows gitignored writes into CAS iff a CAS
+  // observer backs the sub-agent's backend (compileSubagents passes !!casObserver).
+  describe("captureIgnored (sub-agent CAS routing)", () => {
+    it("captureIgnored:true inherits the parent gate verbatim (CAS routing + secret sink preserved)", () => {
+      const recordBlockedSecret = vi.fn();
+      const parentGate = {
+        policies: new Map(),
+        toolServerMap: new Map(),
+        captureIgnored: true,
+        recordBlockedSecret,
+      };
+      const spy = vi.spyOn(approvalGateModule, "createApprovalGateMiddleware");
+
+      buildSubAgentMiddleware({ approvalGate: parentGate, captureIgnored: true });
+
+      const cfg = spy.mock.calls[0]![0];
+      expect(cfg.captureIgnored).toBe(true);
+      expect(cfg.recordBlockedSecret).toBe(recordBlockedSecret);
+      spy.mockRestore();
+    });
+
+    it("regression lock: without captureIgnored, CAS routing is forced OFF and the secret sink dropped even if the parent gate had them", () => {
+      const recordBlockedSecret = vi.fn();
+      // A parent gate that DOES route gitignored writes into CAS — the sub-agent
+      // must not inherit that unless a CAS observer explicitly backs it, else it
+      // would apply unobserved, unreviewable bytes.
+      const parentGate = {
+        policies: new Map(),
+        toolServerMap: new Map(),
+        captureIgnored: true,
+        recordBlockedSecret,
+      };
+      const spy = vi.spyOn(approvalGateModule, "createApprovalGateMiddleware");
+
+      buildSubAgentMiddleware({ approvalGate: parentGate });
+
+      const cfg = spy.mock.calls[0]![0];
+      expect(cfg.captureIgnored).toBe(false);
+      expect(cfg.recordBlockedSecret).toBeUndefined();
+      spy.mockRestore();
+    });
   });
 });

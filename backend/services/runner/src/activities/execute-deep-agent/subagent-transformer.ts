@@ -26,6 +26,8 @@ import type { SubAgent, McpServerUsage } from "@stigmer/protos/ai/stigmer/agenti
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
+import { CasCaptureFilesystemBackend } from "./cas-capture-backend.js";
+import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import type { CostCapMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createThinkTool } from "../../middleware/index.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
@@ -138,6 +140,14 @@ export interface SubagentTransformOptions {
    * where the parent gate is inert too — sub-agents then install no gate either.
    */
   readonly approvalGate: ApprovalGateConfig | null;
+  /**
+   * The parent turn's shared CAS observer, present only in capture mode. When
+   * supplied, each sub-agent is built with a CAS-observing filesystem backend
+   * wired to THIS observer, so its gitignored writes are captured into the same
+   * change set as the parent's (Session 26, DD-19). Absent outside capture mode,
+   * where sub-agents keep the plain backend and the classic gitignored deny-gate.
+   */
+  readonly casObserver?: CasCaptureObserver;
   readonly parentModelName: string;
   readonly parentHasNativeThinking: boolean;
   readonly costCap?: CostCapMiddleware;
@@ -413,6 +423,8 @@ export async function compileSubagents(
     readonly approvalGate?: ApprovalGateConfig | null;
     readonly parentModelName: string;
     readonly workspaceRootDir: string;
+    /** Shared CAS observer (capture mode only); see {@link SubagentTransformOptions.casObserver}. */
+    readonly casObserver?: CasCaptureObserver;
     readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
   },
 ): Promise<CompiledSubAgent[]> {
@@ -423,9 +435,14 @@ export async function compileSubagents(
 
   for (const spec of transformed) {
     try {
+      // Structural coupling (DD-19): a sub-agent gate flows gitignored writes into
+      // CAS iff a CAS observer backs that sub-agent's filesystem backend. Deriving
+      // both from the same `casObserver` makes "unobserved unreviewable bytes"
+      // impossible by construction.
       const middleware = buildSubAgentMiddleware({
         costCap: opts.costCap,
         approvalGate: opts.approvalGate,
+        captureIgnored: !!opts.casObserver,
       });
 
       const modelName = spec.model ?? opts.parentModelName;
@@ -436,12 +453,22 @@ export async function compileSubagents(
       // no-proxy paths).
       const model = opts.modelFactory ? await opts.modelFactory(modelName) : modelName;
 
+      // Capture mode: a CAS-observing backend wired to the shared observer, so
+      // the sub-agent's gitignored writes are captured (same class the parent
+      // uses). Otherwise the plain backend + classic gitignored deny-gate.
+      const backend = opts.casObserver
+        ? new CasCaptureFilesystemBackend(
+            { rootDir: opts.workspaceRootDir },
+            { observer: opts.casObserver },
+          )
+        : new FilesystemBackend({ rootDir: opts.workspaceRootDir });
+
       const agentGraph = await createDeepAgent({
         model,
         systemPrompt: spec.systemPrompt,
         tools: spec.tools.length > 0 ? spec.tools : undefined,
         middleware: middleware as unknown[],
-        backend: new FilesystemBackend({ rootDir: opts.workspaceRootDir }),
+        backend,
         generalPurposeAgent: false,
       } as Parameters<typeof createDeepAgent>[0]);
 
@@ -499,6 +526,7 @@ export async function transformAndCompileSubagents(
     skillClient,
     workspaceBackend,
     approvalGate,
+    casObserver,
     parentModelName,
     parentHasNativeThinking,
     costCap,
@@ -615,6 +643,7 @@ export async function transformAndCompileSubagents(
     approvalGate,
     parentModelName,
     workspaceRootDir: workspaceBackend.rootDir,
+    casObserver,
     modelFactory,
   });
 

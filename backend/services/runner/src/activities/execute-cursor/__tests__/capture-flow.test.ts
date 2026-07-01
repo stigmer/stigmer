@@ -558,7 +558,7 @@ describe("hybrid capture (git-tracked + gitignored CAS)", () => {
 
     expect(result.isCaptureTurn).toBe(true);
     expect(result.failed).toBe(false);
-    expect(result.approvedPaths.sort()).toEqual(["build/out.log", "notes.md"]);
+    expect([...result.approvedPaths].sort()).toEqual(["build/out.log", "notes.md"]);
     expect(await read("build/out.log")).toBe("AFTER");
     expect(await read("notes.md")).toBe("changed\n");
   });

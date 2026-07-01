@@ -48,7 +48,7 @@ import {
 } from "../../shared/filereview/capture.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
-import type { CasBeforeMap } from "./cas-capture-backend.js";
+import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import { toolApprovalCategory } from "../../shared/tool-kind.js";
 import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
 
@@ -318,8 +318,7 @@ export function createDeepAgentActivities(config: Config) {
           // after-bytes re-read from disk) and the secret-blocked paths into the
           // one hybrid change set alongside the git-tracked diff.
           const { casCaptures, unreviewablePaths } = await buildCasTurnCaptures(
-            setup.casBeforeByPath,
-            setup.blockedSecretPaths,
+            setup.casObserver,
             gitRoot,
           );
           await captureCandidateToLedger({
@@ -642,8 +641,9 @@ function hasPendingToolApprovals(execution: AgentExecution): boolean {
  * the shared {@link toolApprovalCategory} oracle and {@link hideToolCallRow} shape.
  */
 /**
- * Assemble the turn's CAS captures and secret-blocked paths from the observer's
- * pre-turn bytes and the gate's blocked set.
+ * Assemble the turn's CAS captures and secret-blocked paths from the shared
+ * observer (the pre-turn bytes recorded by the parent AND every sub-agent CAS
+ * backend, plus the gate's secret-blocked set).
  *
  * For each observed gitignored path the after-bytes are re-read from disk (the
  * authoritative net result of the turn; `null` when the file is gone). A path
@@ -653,23 +653,22 @@ function hasPendingToolApprovals(execution: AgentExecution): boolean {
  * hybrid change set in {@link captureCandidateToLedger}.
  */
 async function buildCasTurnCaptures(
-  casBeforeByPath: CasBeforeMap,
-  blockedSecretPaths: ReadonlySet<string>,
+  observer: CasCaptureObserver,
   workspaceRoot: string,
 ): Promise<{ casCaptures: CasPathCapture[]; unreviewablePaths: string[] }> {
   // The secret partition (pure, corpus-lockable) decides what may be captured;
   // this shell only performs the IO for the capturable set. The backstop that
   // withholds a secret observed under the global bypass lives in the partition.
   const { capturablePaths, unreviewablePaths } = partitionIgnoredPathsBySecret(
-    casBeforeByPath.keys(),
-    blockedSecretPaths,
+    observer.before.keys(),
+    observer.blockedSecretPaths,
   );
   const casCaptures: CasPathCapture[] = [];
   for (const relPath of capturablePaths) {
     const after = await readFileOrNull(join(workspaceRoot, relPath));
     casCaptures.push({
       path: relPath,
-      before: casBeforeByPath.get(relPath) ?? null,
+      before: observer.before.get(relPath) ?? null,
       after,
       captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
     });

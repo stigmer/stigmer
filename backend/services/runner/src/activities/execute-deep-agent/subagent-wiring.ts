@@ -44,6 +44,15 @@ export interface SubAgentMiddlewareOptions {
    * all, where the parent gate is inert too) no gate is installed.
    */
   readonly approvalGate?: ApprovalGateConfig | null;
+  /**
+   * Route the sub-agent's gitignored writes into CAS capture (apply-then-review)
+   * instead of the interrupt gate. TRUE iff a CAS observer backs the sub-agent's
+   * filesystem backend (DD-19) — `compileSubagents` derives it from
+   * `!!casObserver`, keeping the gate and the backend coupled. Default false =
+   * the classic gitignored deny-gate, because flowing a gitignored edit on an
+   * unobserved backend would apply unreviewable bytes.
+   */
+  readonly captureIgnored?: boolean;
 }
 
 /**
@@ -70,18 +79,20 @@ export function buildSubAgentMiddleware(
   stack.push(createToolTruncationMiddleware(options.toolTruncation));
 
   if (options.approvalGate) {
-    // Sub-agent gates must NOT flow gitignored edits into CAS: a sub-agent runs on
-    // its own filesystem backend, which the CAS observer does not wrap, so a
-    // flowed gitignored edit would apply unobserved, unreviewable bytes. Force the
-    // CAS routing off here (and drop the parent's blocked-secret sink) so
-    // gitignored paths stay on the interrupt gate for sub-agents, exactly as
-    // before. Sub-agent git-tracked edits are still captured by the
-    // backend-agnostic turn-boundary git diff.
-    stack.push(createApprovalGateMiddleware({
-      ...options.approvalGate,
-      captureIgnored: false,
-      recordBlockedSecret: undefined,
-    }));
+    // captureIgnored (DD-19): a sub-agent flows gitignored writes into CAS iff a
+    // CAS observer backs its filesystem backend (compileSubagents passes this as
+    // `!!casObserver`). When true, inherit the parent gate verbatim so its
+    // captureIgnored + recordBlockedSecret feed the SAME shared observer that
+    // backs the sub-agent's writes. When false (default; non-capture mode, or no
+    // observer), force CAS routing off and drop the blocked-secret sink so
+    // gitignored paths stay on the interrupt gate — a flowed gitignored edit on an
+    // unobserved backend would apply unobserved, unreviewable bytes. Sub-agent
+    // git-tracked edits are always captured by the backend-agnostic boundary diff.
+    stack.push(createApprovalGateMiddleware(
+      options.captureIgnored
+        ? options.approvalGate
+        : { ...options.approvalGate, captureIgnored: false, recordBlockedSecret: undefined },
+    ));
   }
 
   if (options.costCap) {
