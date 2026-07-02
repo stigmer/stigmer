@@ -748,32 +748,6 @@ func FindPendingApproval(exec *agentexecv1.AgentExecution, toolName string) *age
 	return nil
 }
 
-// AssertPendingApprovalProposesPath asserts that the pending approval for the
-// named gated tool proposes the given workspace-relative path, parsed from its
-// args_preview, and returns the pending approval for further assertions.
-//
-// Under apply-then-review the deny-gate no longer carries a captured file_changes
-// list (message.proto field 14 was removed in Phase 5 Slice 4); the proposed
-// change lives on the tool args. On absence it fails the test (non-fatally) and
-// returns nil.
-func AssertPendingApprovalProposesPath(
-	t *testing.T,
-	exec *agentexecv1.AgentExecution,
-	toolName string,
-	path string,
-) *agentexecv1.PendingApproval {
-	t.Helper()
-	pa := FindPendingApproval(exec, toolName)
-	if pa == nil {
-		t.Errorf("expected a pending approval for tool %q, found none", toolName)
-		return nil
-	}
-	assert.Equalf(t, path, approvalFilePath(pa),
-		"pending approval %q: expected proposed path %q (from args_preview %q)",
-		toolName, path, pa.GetArgsPreview())
-	return pa
-}
-
 // LogExecutionMessages fetches the current execution state and logs all
 // messages for diagnostic purposes. Useful when a test fails unexpectedly
 // (e.g., LLM didn't call a tool) to distinguish infra bugs from LLM

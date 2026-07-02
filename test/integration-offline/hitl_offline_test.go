@@ -385,56 +385,60 @@ func TestOffline_HITL_PendingApprovalDetails(t *testing.T) {
 	t.Logf("offline HITL details test passed")
 }
 
-// TestOffline_HITL_ApproveAll_ScopedLease proves the Phase-7 scoped lease
+// TestOffline_HITL_ApproveAll_ScopedLease proves the Phase-7 run-lifetime lease
 // end-to-end against the Java service, deterministically: a single APPROVE_ALL at
-// a write_file gate leases the "write" category for the rest of the run, so a
-// LATER write_file (a separate assistant turn that would otherwise re-gate) is
-// auto-approved — while a tool in a DIFFERENT scope (an MCP echo) still gates.
+// an MCP tool gate leases that server for the rest of the run, so a LATER call to
+// the same server — a SEPARATE assistant turn that would otherwise re-gate — is
+// auto-approved.
 //
-// This is stronger than the live ApproveAll proof, which only covers same-scope
-// reuse on one MCP server: here the lease (category "write") AND the isolation
-// boundary (echo is a different scope) are both asserted in one run.
+// Why an MCP tool rather than write_file: native file writes no longer deny-gate.
+// They flow during the turn and are reviewed post-hoc as a FileChangeSet (capture
+// mode is unconditional in the deep-agent harness — see execute-deep-agent/
+// setup.ts). The genuinely-gating vehicle is therefore an MCP tool, whose
+// APPROVE_ALL leases the whole SERVER (LeaseScope: an MCP tool → its server slug;
+// a built-in → its category).
 //
-// Why separate turns rather than two writes in one turn: two co-pending writes
-// resolved by one APPROVE_ALL would pass via server-side co-pending BULK
-// resolution even if the run-lifetime lease were broken — a tautology. The lease
-// is exercised only when a later turn would re-gate and the persisted lease
-// prevents it. Offline this survives the from-scratch replay because the lease is
-// derived from server-persisted status (deriveActiveLeases), not the ephemeral
-// checkpoint; if it broke, write B would re-gate, the run would never reach
-// COMPLETED, and mockLLM.Remaining() would stay > 0.
+// What makes this non-tautological AND offline-unique: the second echo is a
+// SEPARATE turn (a separate activity invocation), not a co-pending sibling — so
+// its auto-approval cannot come from server-side co-pending BULK resolution, only
+// from the run-lifetime lease. Offline uses the ephemeral MemorySaver, so that
+// invocation replays the graph from scratch; the second echo is auto-approved
+// solely because the lease is re-derived from server-persisted status
+// (deriveActiveLeases), not from the lost in-graph checkpoint — the exact Cloud
+// orchestration property this suite exists to pin. If the lease broke, the second
+// echo would re-gate, the run would never reach COMPLETED, and
+// mockLLM.Remaining() would stay > 0.
+//
+// The COMPLEMENTARY isolation property — an APPROVE_ALL of one scope never
+// auto-approves a DIFFERENT scope — is locked deterministically on BOTH real
+// substrates by invariant 11 of the runner gateway contract
+// (backend/services/runner/src/__test-utils__/approval-contract/contract.ts) and,
+// on the Java side, by the LeaseScope corpus (hitl/lease-scope/vectors.json). It
+// is asserted there rather than re-proven here through redundant e2e machinery
+// (a second MCP server), which would add cost without new coverage.
 func TestOffline_HITL_ApproveAll_ScopedLease(t *testing.T) {
 	requireOfflinePrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 
-	fileA := uniqueWorkspacePath("approveall-a")
-	fileB := uniqueWorkspacePath("approveall-b")
-
 	entries := []harness.RecordedLLMEntry{
-		// Turn 1: native write_file A — gates (auto_approve_all=false).
+		// Turn 1: echo "first" — gates (auto_approve_all=false). We submit
+		// APPROVE_ALL here, leasing the MCP server for the rest of the run.
 		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
-			"toolu_aa_write_a", "write_file",
-			map[string]any{"file_path": fileA, "content": "alpha\n"},
+			"toolu_aa_echo_1", "echo", map[string]any{"input": "first"},
 			300, 40,
 		)),
-		// Turn 2: native write_file B — SAME "write" category; must be
-		// auto-approved by the lease established at turn 1 (must NOT gate).
+		// Turn 2: echo "second" — SAME server, a separate turn. On the resume's
+		// from-scratch replay it must be auto-approved by the persisted lease
+		// (must NOT re-gate).
 		harness.BuildLLMEntry(1, harness.AnthropicToolUseResponse(
-			"toolu_aa_write_b", "write_file",
-			map[string]any{"file_path": fileB, "content": "beta\n"},
+			"toolu_aa_echo_2", "echo", map[string]any{"input": "second"},
 			320, 40,
 		)),
-		// Turn 3: MCP echo — a DIFFERENT scope; the "write" lease must NOT cover
-		// it, so it gates.
-		harness.BuildLLMEntry(2, harness.AnthropicToolUseResponse(
-			"toolu_aa_echo", "echo", map[string]any{"input": "after-lease"},
-			340, 40,
-		)),
-		// Turn 4: finish.
-		harness.BuildLLMEntry(3, harness.AnthropicTextResponse(
-			"Wrote both files and echoed.", 360, 20,
+		// Turn 3: finish once the second echo has run un-gated.
+		harness.BuildLLMEntry(2, harness.AnthropicTextResponse(
+			"Echoed both inputs.", 340, 20,
 		)),
 	}
 
@@ -446,7 +450,7 @@ func TestOffline_HITL_ApproveAll_ScopedLease(t *testing.T) {
 	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
 
 	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-approveall",
-		"You are a test agent. Use the filesystem tools and the echo tool as instructed.",
+		"You are a test agent. Call the echo tool as instructed.",
 		harness.WithMcpServerUsageAndApproval(
 			mcpServer.GetMetadata().GetSlug(),
 			[]*agentv1.ToolApprovalOverride{
@@ -467,62 +471,43 @@ func TestOffline_HITL_ApproveAll_ScopedLease(t *testing.T) {
 
 	exec := harness.CreateTestAgentExecution(t, ctx, clients,
 		sessionID,
-		"Write file A, then write file B, then echo, using the tools.",
+		"Call the echo tool with input 'first', then call it again with input 'second'.",
 		harness.WithAutoApproveAll(false),
 	)
 	execID := exec.GetMetadata().GetId()
 
 	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
-	// --- Gate 1: write_file A -> submit APPROVE_ALL (leases "write") ---
-	gate1, err := waiter.WaitForPendingApproval(ctx, execID, "write_file", 2*time.Minute)
+	// --- Gate 1: echo "first" -> submit APPROVE_ALL (leases the MCP server) ---
+	gate1, err := waiter.WaitForPendingApproval(ctx, execID, "echo", 2*time.Minute)
 	if err != nil {
 		harness.LogExecutionMessages(t, ctx, clients, execID)
-		t.Fatalf("execution should gate on the first write_file: %v", err)
+		t.Fatalf("execution should gate on the first echo: %v", err)
 	}
 	harness.AssertAgentPhase(t, gate1, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
 	harness.AssertPendingApprovals(t, gate1, 1)
 
-	writeA := gate1.GetStatus().GetPendingApprovals()[0]
-	require.Equal(t, "write_file", writeA.GetToolName())
+	echo1 := gate1.GetStatus().GetPendingApprovals()[0]
+	require.Equal(t, "echo", echo1.GetToolName())
 
 	_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
 		AgentExecutionId: execID,
-		ToolCallId:       writeA.GetToolCallId(),
+		ToolCallId:       echo1.GetToolCallId(),
 		Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL,
 	})
 	require.NoError(t, err, "APPROVE_ALL submission should succeed")
 
-	// --- Gate 2 must be echo, NOT a second write_file ---
-	// write B (same "write" scope) is auto-approved by the lease and never gates;
-	// echo (a different scope) still requires approval. A broken lease would gate
-	// again on write_file here (or time out) instead.
-	gate2, err := waiter.WaitForPendingApproval(ctx, execID, "echo", 2*time.Minute)
-	if err != nil {
-		harness.LogExecutionMessages(t, ctx, clients, execID)
-		t.Fatalf("execution should gate on echo after the lease auto-approves write B: %v", err)
-	}
-	harness.AssertAgentPhase(t, gate2, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
-	harness.AssertPendingApprovals(t, gate2, 1)
-	echoPA := gate2.GetStatus().GetPendingApprovals()[0]
-	require.Equal(t, "echo", echoPA.GetToolName(),
-		"the write-category lease must not auto-approve a different-scope MCP tool")
-
-	// Approve the out-of-scope echo and let the run finish.
-	_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
-		AgentExecutionId: execID,
-		ToolCallId:       echoPA.GetToolCallId(),
-		Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
-	})
-	require.NoError(t, err, "approving the echo gate should succeed")
-
+	// The second echo (same server, a separate turn) must NOT re-gate: the
+	// persisted server lease survives the from-scratch replay and auto-approves
+	// it, so the run drives straight to COMPLETED. A broken lease would re-gate
+	// the second echo here (or time out), leaving entries[2] unconsumed.
 	result, err := waiter.WaitForPhase(ctx, execID,
-		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
-	require.NoError(t, err, "execution should complete after the echo approval")
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 3*time.Minute)
+	require.NoError(t, err, "execution should complete un-gated after APPROVE_ALL leases the server")
 	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 	harness.AssertPendingApprovals(t, result, 0)
 	assert.Equal(t, 0, mockLLM.Remaining(),
-		"all scripted turns consumed: write B was auto-approved (not re-gated) by the lease")
+		"all scripted turns consumed: the second echo was auto-approved (not re-gated) by the lease")
 
 	t.Logf("offline HITL approve-all scoped-lease test passed")
 }
@@ -618,32 +603,34 @@ func TestOffline_HITL_CancelAtGate(t *testing.T) {
 }
 
 // TestOffline_HITL_IdempotentApproval proves that re-submitting the same decision
-// on an OPEN gate is a benign no-op. Determinism comes from two co-pending
-// write_file calls raised by a single turn: approving the first leaves the second
-// pending (the gate stays open, so there is no resume race), which is the stable
-// window in which the duplicate submit is exercised. No MCP server is needed —
-// native write_file gates automatically when auto_approve_all is false.
+// on an OPEN gate is a benign no-op. Determinism comes from two co-pending echo
+// calls raised by a single turn: approving the first leaves the second pending
+// (the gate stays open, so there is no resume race), which is the stable window in
+// which the duplicate submit is exercised.
+//
+// Why MCP echo rather than write_file: native file writes no longer deny-gate —
+// they flow and are captured post-hoc (capture mode is unconditional in the
+// deep-agent harness). An MCP tool with an approval override is the genuinely-
+// gating vehicle; two echo blocks in a single assistant turn surface as two
+// co-pending approvals (same tool, distinct tool_call_id).
 func TestOffline_HITL_IdempotentApproval(t *testing.T) {
-	requireOfflineService(t)
+	requireOfflinePrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 
-	fileA := uniqueWorkspacePath("idem-a")
-	fileB := uniqueWorkspacePath("idem-b")
-
 	entries := []harness.RecordedLLMEntry{
-		// Turn 1: two native write_file calls in ONE turn -> two co-pending gates.
+		// Turn 1: two echo calls in ONE turn -> two co-pending gates.
 		harness.BuildLLMEntry(0, harness.AnthropicMultiToolUseResponse(
 			[]harness.ToolUseBlock{
-				{ID: "toolu_idem_a", Name: "write_file", Input: map[string]any{"file_path": fileA, "content": "alpha\n"}},
-				{ID: "toolu_idem_b", Name: "write_file", Input: map[string]any{"file_path": fileB, "content": "beta\n"}},
+				{ID: "toolu_idem_a", Name: "echo", Input: map[string]any{"input": "alpha"}},
+				{ID: "toolu_idem_b", Name: "echo", Input: map[string]any{"input": "beta"}},
 			},
 			300, 60,
 		)),
 		// Turn 2: finish once both gates are resolved.
 		harness.BuildLLMEntry(1, harness.AnthropicTextResponse(
-			"Wrote both files.", 360, 20,
+			"Echoed both inputs.", 360, 20,
 		)),
 	}
 
@@ -652,8 +639,17 @@ func TestOffline_HITL_IdempotentApproval(t *testing.T) {
 	clients := harness.NewClients(grpcConn)
 	harness.RequireServiceHealthy(t, ctx, clients)
 
+	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+
 	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-idempotent",
-		"You are a test agent. Use the filesystem tools to write files.",
+		"You are a test agent. Call the echo tool as instructed.",
+		harness.WithMcpServerUsageAndApproval(
+			mcpServer.GetMetadata().GetSlug(),
+			[]*agentv1.ToolApprovalOverride{
+				{ToolName: "echo", RequiresApproval: true, Message: "Execute echo tool"},
+			},
+			"echo",
+		),
 	)
 
 	session := harness.CreateTestSession(t, ctx, clients,
@@ -667,7 +663,7 @@ func TestOffline_HITL_IdempotentApproval(t *testing.T) {
 
 	exec := harness.CreateTestAgentExecution(t, ctx, clients,
 		sessionID,
-		"Write file A and file B using the filesystem tools.",
+		"Call the echo tool twice, with inputs 'alpha' and 'beta'.",
 		harness.WithAutoApproveAll(false),
 	)
 	execID := exec.GetMetadata().GetId()
