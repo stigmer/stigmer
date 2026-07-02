@@ -7,9 +7,10 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { hideToolCallRow, isToolCallRowHidden, stampFileEditRow } from "../tool-row.js";
+import { collectSubAgentToolCallIds, hideToolCallRow, isToolCallRowHidden, stampFileEditRow } from "../tool-row.js";
 
 describe("stampFileEditRow", () => {
   it("stamps additively: content, status, and identity all survive", () => {
@@ -177,5 +178,44 @@ describe("isToolCallRowHidden", () => {
       args: { file_path: ".env", content: "leftover" },
     });
     expect(isToolCallRowHidden(tc)).toBe(false);
+  });
+});
+
+describe("collectSubAgentToolCallIds", () => {
+  function subAgent(id: string, ...toolCallIds: string[]) {
+    return create(SubAgentExecutionSchema, {
+      id,
+      messages: [
+        create(AgentMessageSchema, {
+          type: 1, // MESSAGE_AI
+          toolCalls: toolCallIds.map((tcId) =>
+            create(ToolCallSchema, { id: tcId, name: "edit" }),
+          ),
+        }),
+      ],
+    });
+  }
+
+  it("returns an empty set for no sub-agents", () => {
+    expect(collectSubAgentToolCallIds([]).size).toBe(0);
+  });
+
+  it("flattens tool-call ids across sub-agents and messages", () => {
+    const ids = collectSubAgentToolCallIds([
+      subAgent("sa-1", "tc-a", "tc-b"),
+      subAgent("sa-2", "tc-c"),
+    ]);
+    expect([...ids].sort()).toEqual(["tc-a", "tc-b", "tc-c"]);
+  });
+
+  it("collects ids across multiple messages of one sub-agent", () => {
+    const sa = create(SubAgentExecutionSchema, {
+      id: "sa-1",
+      messages: [
+        create(AgentMessageSchema, { type: 1, toolCalls: [create(ToolCallSchema, { id: "tc-a", name: "edit" })] }),
+        create(AgentMessageSchema, { type: 1, toolCalls: [create(ToolCallSchema, { id: "tc-b", name: "write" })] }),
+      ],
+    });
+    expect([...collectSubAgentToolCallIds([sa]).values()].sort()).toEqual(["tc-a", "tc-b"]);
   });
 });

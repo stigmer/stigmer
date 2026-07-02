@@ -45,6 +45,7 @@ import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_p
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
+import { collectSubAgentToolCallIds } from "../../shared/tool-row.js";
 import { startStallWatchdog, StallTimeoutError, formatStallFailure, type StallWatchdog } from "../../shared/stall-watchdog.js";
 import { createArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
@@ -1170,6 +1171,9 @@ async function executeCursorInner(
         baselineTree,
         messages: status.messages,
         deniedTokens,
+        // Scope sub-agent row stamping to this turn: the seeded prior sub-agents
+        // (cloned in on resume) are the "before this turn" rows to skip.
+        priorSubAgentToolCallIds: collectSubAgentToolCallIds(seededSubAgents),
         // The CAS half: read the sidecar the hook staged this turn and compose it
         // into the change set. hitlDir + storage are present when captureIgnored
         // was on (a git tree's gitignored writes, or ALL writes in a non-git

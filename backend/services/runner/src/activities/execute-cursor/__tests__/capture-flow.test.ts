@@ -24,6 +24,9 @@ import {
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import { collectSubAgentToolCallIds } from "../../../shared/tool-row.js";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
@@ -92,6 +95,15 @@ function streamedEdit(id: string, path: string, content: string): AgentMessage {
         args: { path, content },
       }),
     ],
+  });
+}
+
+/** A sub-agent execution whose message carries one streamed file-edit row. */
+function subAgentWithEdit(subId: string, toolCallId: string, path: string, content: string): SubAgentExecution {
+  return create(SubAgentExecutionSchema, {
+    id: subId,
+    name: "code_editor",
+    messages: [streamedEdit(toolCallId, path, content)],
   });
 }
 
@@ -390,6 +402,107 @@ describe("captureTurnToLedger (producer)", () => {
 
     expect(deniedRow.toolCalls[0].fileChangeSetId).toBe("");
     expect(flowedRow.toolCalls[0].fileChangeSetId).toBe(CHANGE_SET_ID);
+  });
+
+  // Sub-agent edit rows fold their files into the parent turn's change set, so
+  // they carry the parent change set id. They live under subAgentExecutions
+  // (not the top-level transcript) and lack the already-stamped/hidden shields,
+  // so they are scoped to this turn by tool-call-id novelty (DD-24 follow-up).
+  describe("sub-agent rows", () => {
+    it("stamps a current-turn sub-agent's flowed edit row with the parent change set id", async () => {
+      const status = newStatus();
+      const baseline = await captureBaselineToLedger({
+        status,
+        gitRoot: repo,
+        executionId: EXEC_ID,
+        changeSetId: CHANGE_SET_ID,
+      });
+
+      // A delegated sub-agent edited a file this turn; it flowed to disk and its
+      // row lives on the sub-agent's own message list.
+      await write("src/sub.ts", "export const s = 1;\n");
+      status.subAgentExecutions = [subAgentWithEdit("sa-1", "sa-tc-1", "src/sub.ts", "export const s = 1;\n")];
+
+      await captureTurnToLedger({
+        status,
+        gitRoot: repo,
+        executionId: EXEC_ID,
+        changeSetId: CHANGE_SET_ID,
+        baselineTree: baseline,
+        messages: status.messages, // no top-level edits this turn
+        deniedTokens: new Set(),
+        priorSubAgentToolCallIds: new Set(),
+      });
+
+      expect(status.subAgentExecutions[0].messages[0].toolCalls[0].fileChangeSetId).toBe(CHANGE_SET_ID);
+    });
+
+    it("never stamps a seeded prior sub-agent's row (cross-turn scope via priorSubAgentToolCallIds)", async () => {
+      // Turn 2 of a resumed execution: Cursor seeds prior sub-agents (cloned in
+      // from the persisted status). Before sub-agent stamping existed, all their
+      // rows are unstamped — a naive walk would mis-attribute them to this turn.
+      const turn2SetId = `${EXEC_ID}:1`;
+      const status = newStatus();
+      const baseline = await captureBaselineToLedger({
+        status,
+        gitRoot: repo,
+        executionId: EXEC_ID,
+        changeSetId: turn2SetId,
+      });
+
+      const priorSub = subAgentWithEdit("sa-old", "sa-tc-old", "notes.md", "from turn 1\n");
+      await write("src/sub-new.ts", "export const n = 2;\n");
+      const currentSub = subAgentWithEdit("sa-new", "sa-tc-new", "src/sub-new.ts", "export const n = 2;\n");
+      status.subAgentExecutions = [priorSub, currentSub];
+
+      // The snapshot is taken from the SEEDED prior sub-agents (index.ts), before
+      // the current turn's sub-agents are appended.
+      const priorSubAgentToolCallIds = collectSubAgentToolCallIds([priorSub]);
+
+      await captureTurnToLedger({
+        status,
+        gitRoot: repo,
+        executionId: EXEC_ID,
+        changeSetId: turn2SetId,
+        baselineTree: baseline,
+        messages: status.messages,
+        deniedTokens: new Set(),
+        priorSubAgentToolCallIds,
+      });
+
+      expect(priorSub.messages[0].toolCalls[0].fileChangeSetId).toBe(""); // untouched
+      expect(currentSub.messages[0].toolCalls[0].fileChangeSetId).toBe(turn2SetId);
+    });
+
+    it("withholds content for a sub-agent write to a tracked secret-like path (DD-12 D4 inherited)", async () => {
+      const status = newStatus();
+      const baseline = await captureBaselineToLedger({
+        status,
+        gitRoot: repo,
+        executionId: EXEC_ID,
+        changeSetId: CHANGE_SET_ID,
+      });
+
+      await write("config/credentials.json", "TOKEN=super-secret\n");
+      const sub = subAgentWithEdit("sa-1", "sa-tc-secret", "config/credentials.json", "TOKEN=super-secret\n");
+      status.subAgentExecutions = [sub];
+
+      await captureTurnToLedger({
+        status,
+        gitRoot: repo,
+        executionId: EXEC_ID,
+        changeSetId: CHANGE_SET_ID,
+        baselineTree: baseline,
+        messages: status.messages,
+        deniedTokens: new Set(),
+        priorSubAgentToolCallIds: new Set(),
+      });
+
+      const row = sub.messages[0].toolCalls[0];
+      expect(row.fileChangeSetId).toBe(CHANGE_SET_ID); // stamped (path visible)
+      expect(row.args).toEqual({ path: "config/credentials.json" }); // body withheld
+      expect(row.result).toBe("");
+    });
   });
 });
 

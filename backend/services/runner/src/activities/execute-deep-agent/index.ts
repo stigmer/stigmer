@@ -16,7 +16,6 @@ import { create, clone, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionPhase, FileCaptureClass, FileChangeSetStatus, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
@@ -49,8 +48,8 @@ import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
-import { toolApprovalCategory } from "../../shared/tool-kind.js";
-import { isToolCallRowHidden, stampFileEditRow } from "../../shared/tool-row.js";
+import { collectSubAgentToolCallIds } from "../../shared/tool-row.js";
+import { stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "./stamp-flowed-rows.js";
 
 /** The harness id stamped on the deep-agent's file-review ledger events. */
 const DEEP_AGENT_HARNESS_ID = "deep-agent";
@@ -253,6 +252,12 @@ export function createDeepAgentActivities(config: Config) {
         // AFTER any reconcile above and AFTER performSetup's workspace writes, so
         // the baseline absorbs the reconciled state and the runner-owned files.
         let captureBaselineTree = "";
+        // Snapshot the sub-agent tool-call ids that exist BEFORE this turn's
+        // stream, so the turn-boundary stamp scopes itself to sub-agent rows
+        // created this turn (empty here by construction — this harness never
+        // seeds prior sub-agents — but computed, not assumed, so it stays correct
+        // if that ever changes; see collectSubAgentToolCallIds).
+        const priorSubAgentToolCallIds = collectSubAgentToolCallIds(initialStatus.subAgentExecutions);
         if (setup.captureMode) {
           captureBaselineTree = await captureBaselineToLedger({
             status: initialStatus,
@@ -351,6 +356,11 @@ export function createDeepAgentActivities(config: Config) {
           fileReviewPending = hasCandidateCaptured(initialStatus, changeSetId);
           if (fileReviewPending) {
             stampFlowedFileEditRows(initialStatus.messages, changeSetId);
+            stampFlowedSubAgentFileEditRows(
+              initialStatus.subAgentExecutions,
+              changeSetId,
+              priorSubAgentToolCallIds,
+            );
           }
         }
 
@@ -691,31 +701,6 @@ async function readFileOrNull(absolutePath: string): Promise<Uint8Array | null> 
     return await readFile(absolutePath);
   } catch {
     return null;
-  }
-}
-
-/**
- * Stamp every flowed file-edit row (category write/delete) with this turn's
- * change set id — the deep-agent analog of the Cursor adapter's
- * `stampFlowedFileEditRows`, minus deny-token coordination (this harness has no
- * deny gate; every write/delete flowed). Rows stay visible in place as
- * observational records; `file_change_sets` remains the single decision
- * surface. Skips already-stamped rows (a resume seeds prior turns' rows into
- * this transcript — re-stamping would mis-attribute them) and legacy hidden
- * rows from pre-stamping sessions (they belong to an earlier turn's set).
- */
-function stampFlowedFileEditRows(
-  messages: readonly AgentMessage[],
-  changeSetId: string,
-): void {
-  for (const msg of messages) {
-    for (const tc of msg.toolCalls) {
-      if (tc.fileChangeSetId) continue;
-      if (isToolCallRowHidden(tc)) continue;
-      const category = toolApprovalCategory(tc.name);
-      if (category !== "write" && category !== "delete") continue;
-      stampFileEditRow(tc, changeSetId);
-    }
   }
 }
 

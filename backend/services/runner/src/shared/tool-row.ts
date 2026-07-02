@@ -19,6 +19,7 @@
 
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { extractFilePath } from "./file-tools.js";
 import { isSecretLikePath } from "./filereview/secret-paths.js";
 import { utcTimestamp } from "./status.js";
@@ -99,4 +100,36 @@ export function isToolCallRowHidden(tc: ToolCall): boolean {
     !tc.result &&
     !tc.error
   );
+}
+
+/**
+ * Collect every tool-call id present in a set of sub-agent executions.
+ *
+ * Used by both harnesses to snapshot, BEFORE a turn's stream, the sub-agent
+ * tool-call ids that already existed — so the turn-boundary stamp can scope
+ * itself to rows CREATED this turn (a tool-call id absent from the snapshot).
+ *
+ * Why tool-call-id novelty is the current-turn signal for sub-agent rows (and
+ * not the `{unstamped}` heuristic the top-level pass uses): a top-level flowed
+ * edit row is guaranteed to be from this turn because prior turns' rows are
+ * either already stamped or hidden. Sub-agent rows have neither shield — before
+ * sub-agent stamping existed, ALL of them are unstamped and never hidden — so a
+ * naive `{unstamped}` walk would mis-attribute a resumed execution's prior
+ * sub-agent rows to the current change set. Keying on tool-call-id novelty is
+ * also correct for a sub-agent that spans invocations (an internal tool gate):
+ * its id pre-exists on resume, but its continuation edit rows carry fresh ids
+ * and stamp with the completing turn's set. It is likewise independent of how
+ * each harness seeds prior sub-agents (deep-agent replaces per-turn and holds
+ * none; Cursor clones them in) — the snapshot reflects whatever is present.
+ */
+export function collectSubAgentToolCallIds(
+  subAgents: readonly SubAgentExecution[],
+): Set<string> {
+  const ids = new Set<string>();
+  for (const sa of subAgents) {
+    for (const msg of sa.messages) {
+      for (const tc of msg.toolCalls) ids.add(tc.id);
+    }
+  }
+  return ids;
 }

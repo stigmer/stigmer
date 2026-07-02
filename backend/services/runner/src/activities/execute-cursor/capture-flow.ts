@@ -124,6 +124,14 @@ export async function captureTurnToLedger(opts: {
   readonly hitlDir?: string;
   readonly storage?: ArtifactStorage;
   /**
+   * Sub-agent tool-call ids that existed BEFORE this turn's stream (the seeded
+   * prior sub-agents). Sub-agent edit rows created this turn are stamped with the
+   * parent change set id; rows in this set are skipped so a resume never
+   * re-stamps a prior turn's sub-agent rows. Omit when there are no prior
+   * sub-agents.
+   */
+  readonly priorSubAgentToolCallIds?: ReadonlySet<string>;
+  /**
    * True (default) for a git work tree — the candidate is the git diff composed
    * with the gitignored CAS captures (`GIT_IGNORED_CAPTURED`). False for a non-git
    * workspace (Slice 2c): there is no git diff, so the whole change set is the CAS
@@ -131,7 +139,7 @@ export async function captureTurnToLedger(opts: {
    */
   readonly gitWorkspace?: boolean;
 }): Promise<readonly GitCapturedChange[]> {
-  const { status, gitRoot, executionId, changeSetId, baselineTree, messages, deniedTokens, hitlDir, storage } = opts;
+  const { status, gitRoot, executionId, changeSetId, baselineTree, messages, deniedTokens, hitlDir, storage, priorSubAgentToolCallIds } = opts;
   const gitWorkspace = opts.gitWorkspace ?? true;
 
   // The CAS substrate class for this turn's staged writes: gitignored paths in a
@@ -170,6 +178,13 @@ export async function captureTurnToLedger(opts: {
   // and a row must never reference a change set that does not exist.
   if (hasCandidateCaptured(status, changeSetId)) {
     stampFlowedFileEditRows(messages, deniedTokens, changeSetId);
+    // Sub-agent edit rows fold their files into the SAME parent turn set, so they
+    // carry the same change set id. Walked separately (they live under
+    // subAgentExecutions, not the top-level transcript) and scoped to this turn
+    // via the pre-turn snapshot of seeded sub-agent tool-call ids.
+    for (const sa of status.subAgentExecutions) {
+      stampFlowedFileEditRows(sa.messages, deniedTokens, changeSetId, priorSubAgentToolCallIds);
+    }
   }
 
   return changes;
@@ -273,16 +288,21 @@ export function applyCaptureDecisions(opts: {
  *    them with this turn's id would mis-attribute them ({@link stampFileEditRow});
  *  - legacy hidden rows (sessions persisted before stamping existed) — they
  *    belong to an earlier turn's change set, not this one;
- *  - denied identities (the deny-gate reconcile path owns those rows).
+ *  - denied identities (the deny-gate reconcile path owns those rows);
+ *  - tool-call ids in `skipToolCallIds` — used for sub-agent rows, which lack
+ *    the already-stamped/hidden shields the top-level transcript has, to scope
+ *    the stamp to rows created this turn (the seeded prior sub-agents' ids).
  */
 function stampFlowedFileEditRows(
-  messages: AgentMessage[],
+  messages: readonly AgentMessage[],
   deniedTokens: ReadonlySet<string>,
   changeSetId: string,
+  skipToolCallIds?: ReadonlySet<string>,
 ): void {
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
       if (tc.fileChangeSetId) continue;
+      if (skipToolCallIds?.has(tc.id)) continue;
       if (isToolCallRowHidden(tc)) continue;
       const category = approvalCategory(tc.name);
       if (category !== "write" && category !== "delete") continue;
