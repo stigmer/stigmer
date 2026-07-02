@@ -15,9 +15,10 @@
  * runner writes the EXACT approved bytes itself, marks the tool COMPLETED, and —
  * crucially — issues NO resource grant for it. Any FURTHER write the model makes
  * to that file on reinvocation is therefore re-gated, so the user sees and
- * approves every change. This module owns only the apply; the caller wires the
- * grant exclusion (so further writes re-gate) and the prompt split (so the model
- * is told the write is already applied and does not redo it).
+ * approves every change. This module owns the apply AND the grant-exclusion
+ * derivation ({@link excludeAppliedFromGrants}, the "issues NO grant" half); the
+ * caller wires the resulting grants and the prompt split (so the model is told
+ * the write is already applied and does not redo it).
  *
  * SCOPE — whole-file writes only. A hunk edit (`old_string`/`new_string`) is left
  * on the grant + reinvocation path: applying a hunk would require locating the
@@ -38,6 +39,12 @@
  * file); an unresolvable body or any write failure degrades to the existing
  * grant + reinvocation path. Corruption is never an option — degradation to the
  * prior behavior is.
+ *
+ * TESTING — the apply + grant-exclusion + re-gating composition is proven
+ * end-to-end (real workspace backend + the real deny-oracle hook) in
+ * `__tests__/deny-gate-exact-apply.test.ts`. That deterministic runner test is
+ * the achievable substitute for a pure-Go offline e2e, which is structurally
+ * infeasible (there is no offline Cursor agent driver — see DD-23).
  */
 
 import { isAbsolute, relative, resolve } from "node:path";
@@ -49,6 +56,7 @@ import type {
   AgentMessage,
   ToolCall,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ELISION_MARKER } from "../../shared/status-offload.js";
 import { extractFilePath, extractWriteContent } from "../../shared/file-tools.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
@@ -148,6 +156,29 @@ export async function applyApprovedWholeFileWrites(
   }
 
   return applied;
+}
+
+/**
+ * The adjudicated approvals MINUS the ones the runner already exact-applied — the
+ * set the caller turns into resource grants for the resumed agent.
+ *
+ * This is the "issues NO grant for an applied write" half of the guarantee: an
+ * exact-applied whole-file write is intentionally NOT granted, so if the
+ * reinvoked model writes to that same file again it is re-gated and the user
+ * reviews the new change (the deny-gate's "what you approve is what gets applied"
+ * property). Non-applied approvals (hunk edits, shell, MCP, and every reject /
+ * skip) pass through unchanged — they still need their grant to flow on resume.
+ *
+ * Pure and order-independent. Load-bearing because the caller computes the
+ * adjudicated set ONCE (before {@link applyApprovedWholeFileWrites} flips the
+ * applied calls to COMPLETED) and never re-derives it, so this exclusion is the
+ * only thing that keeps an applied write out of the grants.
+ */
+export function excludeAppliedFromGrants(
+  adjudicatedApprovals: readonly PendingApproval[],
+  appliedToolCallIds: ReadonlySet<string>,
+): PendingApproval[] {
+  return adjudicatedApprovals.filter((pa) => !appliedToolCallIds.has(pa.toolCallId));
 }
 
 /**

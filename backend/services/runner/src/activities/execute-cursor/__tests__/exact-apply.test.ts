@@ -37,8 +37,12 @@ import {
   ApprovalAction,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+
 import {
   applyApprovedWholeFileWrites,
+  excludeAppliedFromGrants,
   resolveApprovedWholeFileContent,
 } from "../exact-apply.js";
 import { ELISION_MARKER } from "../../../shared/status-offload.js";
@@ -301,6 +305,43 @@ describe("applyApprovedWholeFileWrites", () => {
 
     expect(applied).toEqual(new Set(["w"]));
     expect(writes).toEqual([{ path: `${ROOT}/notes.md`, content: "new\n" }]);
+  });
+});
+
+// ── excludeAppliedFromGrants ─────────────────────────────────────────────────
+
+describe("excludeAppliedFromGrants", () => {
+  function pendingApproval(toolCallId: string, toolName = "write"): PendingApproval {
+    return create(PendingApprovalSchema, { toolCallId, toolName });
+  }
+
+  it("removes an exact-applied write so it is never re-granted (a further write re-gates)", () => {
+    const approvals = [pendingApproval("w1", "write"), pendingApproval("sh", "shell")];
+    const result = excludeAppliedFromGrants(approvals, new Set(["w1"]));
+    expect(result.map((p) => p.toolCallId)).toEqual(["sh"]);
+  });
+
+  it("is an identity passthrough when nothing was applied (fresh turn / capture mode)", () => {
+    const approvals = [pendingApproval("w1", "write"), pendingApproval("e1", "edit"), pendingApproval("sh", "shell")];
+    expect(excludeAppliedFromGrants(approvals, new Set())).toEqual(approvals);
+  });
+
+  it("retains non-applied approvals (a hunk edit, a shell) beside the removed applied write", () => {
+    // Exact-apply only applies whole-file writes; a hunk edit and shell are never
+    // applied, so they must keep flowing to the grant builder.
+    const approvals = [pendingApproval("w1", "write"), pendingApproval("e1", "edit"), pendingApproval("sh", "shell")];
+    const result = excludeAppliedFromGrants(approvals, new Set(["w1"]));
+    expect(result.map((p) => p.toolCallId)).toEqual(["e1", "sh"]);
+  });
+
+  it("removes only the applied ids from a mixed batch (order preserved)", () => {
+    const approvals = ["a", "b", "c", "d"].map((id) => pendingApproval(id));
+    const result = excludeAppliedFromGrants(approvals, new Set(["b", "d"]));
+    expect(result.map((p) => p.toolCallId)).toEqual(["a", "c"]);
+  });
+
+  it("returns empty for no approvals", () => {
+    expect(excludeAppliedFromGrants([], new Set(["x"]))).toEqual([]);
   });
 });
 

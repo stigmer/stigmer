@@ -67,12 +67,13 @@ import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
-import { applyApprovedWholeFileWrites } from "./exact-apply.js";
+import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "./exact-apply.js";
 import { isGitWorkTree } from "../../shared/filereview/git-substrate.js";
 import {
   captureBaselineToLedger,
   captureTurnToLedger,
   applyCaptureDecisions,
+  deriveCaptureMode,
 } from "./capture-flow.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
@@ -256,7 +257,7 @@ async function executeCursorInner(
     const gitWorkspace = primaryWorkspaceDir
       ? await isGitWorkTree(primaryWorkspaceDir)
       : false;
-    const captureMode = !!primaryWorkspaceDir && (gitWorkspace || !!artifactStorage);
+    const captureMode = deriveCaptureMode(primaryWorkspaceDir, gitWorkspace, !!artifactStorage);
     // Pre-turn baseline tree, pinned before the agent runs (capture mode only)
     // so the turn-end capture diffs against it and the tree restores exactly.
     let baselineTree: string | undefined;
@@ -559,9 +560,7 @@ async function executeCursorInner(
     }
 
     hitlDir = await ensureHitlDir(sessionId);
-    const grantApprovals = adjudicatedApprovals.filter(
-      (pa) => !appliedToolCallIds.has(pa.toolCallId),
-    );
+    const grantApprovals = excludeAppliedFromGrants(adjudicatedApprovals, appliedToolCallIds);
     const approvalGrants = approvalDecisions
       ? buildApprovalGrants(grantApprovals, approvalDecisions, adjudicatedContentDigests)
       : undefined;
