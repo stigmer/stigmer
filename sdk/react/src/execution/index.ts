@@ -221,6 +221,9 @@ export type {
 export { FileReviewCard } from "./FileReviewCard";
 export type { FileReviewCardProps } from "./FileReviewCard";
 
+export { FileReviewDock } from "./FileReviewDock";
+export type { FileReviewDockProps } from "./FileReviewDock";
+
 export { ApprovalContext, useApproval } from "./ApprovalContext";
 export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext";
 

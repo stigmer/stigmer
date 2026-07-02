@@ -613,6 +613,26 @@ await submitFileDecision(executionId, changeSet.id, FileDecisionAction.APPROVE, 
 ```
 
 
+### useFileReviewRowState
+
+The review state a stamped tool row should badge, or `null` for no badge
+(unstamped row, unknown set, or a file absent from its set — see
+[`fileReviewRowState`](#filereviewrowstate) for the honest-degradation rules).
+
+**Signature**
+
+```tsx
+function useFileReviewRowState(fileChangeSetId: string, rowPath: string | null): FileReviewRowState | null
+```
+
+<TypeTable
+  type={{
+    fileChangeSetId: { type: "string", description: "The row's `ToolCall.file_change_set_id` (may be \"\").", required: true },
+    rowPath: { type: "string | null", description: "The row's file path (the presenter's primary arg), used to   resolve this file's verdict once the set is decided.", required: true },
+  }}
+/>
+
+
 ### useSessionVariables
 
 Behavior hook that manages an array of session variable entries for
@@ -1267,6 +1287,58 @@ Platform builders can override the default behavior via the
 ```
 
 
+### FileReviewDock
+
+The composer-docked decision surface for pending file reviews: renders each
+AWAITING_REVIEW `FileChangeSet` as an interactive [`FileReviewCard`](#filereviewcard)
+decision bar, pinned in the fixed strip above the composer.
+
+WHY DOCKED, NOT IN-THREAD. The transcript's stamped edit rows are
+observational — they show what changed, badged with the live review state —
+but a *decision* the agent is blocked on must never scroll out of view. An
+in-thread card does exactly that on a long conversation. Docking the bar to
+the composer keeps the pending decision visible regardless of scroll
+position, matching the shape of Cursor's own review bar. Once decided, the
+dock empties and the thread's read-only record (and the rows' Kept/Discarded
+badges) carry the history.
+
+This placement deliberately diverges from tool approvals, which stay inline
+on their rows (with `ApprovalPeekBar` as the scroll backstop): an approval is
+call-anchored — "run *this* command" — while a file review is a turn-scoped
+aggregate over many calls, with no single row that owns it.
+
+The expanded per-file body is height-capped with internal scroll: a set that
+needs per-file attention starts expanded (see [`FileReviewCard`](#filereviewcard)), and an
+unconstrained list in a fixed strip would swallow the viewport.
+
+Purely presentational — the data and decision routing live in
+`useSessionConversation` (headless-first, DD-003). `SessionViewer` wires it
+in by default; platform builders composing a custom layout mount it over the
+same seam.
+
+**Props** — `FileReviewDockProps`
+
+<TypeTable
+  type={{
+    changeSets: { type: "readonly FileChangeSet[]", description: "The change sets awaiting review. Renders nothing when empty. Feed this from `useSessionConversation().fileChangeSets` — the AWAITING_REVIEW sets of the active execution, the same seam whose `submitFileDecision` routes decisions to that execution, so what the dock shows and what it can decide are consistent by construction.", required: true },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed like submittingDecisionKeys — surfaced in-card beside the control that failed." },
+    onSubmit: { type: "(changeSetId: string, action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Called when the user makes a decision on one of the docked sets. Wire to `useSessionConversation().submitFileDecision` (or an equivalent useFileReview-backed handler bound to the owning execution).", required: true },
+    submittingDecisionKeys: { type: "ReadonlySet<string>", description: "Decision keys (fileDecisionKey) currently being submitted. Drives per-control loading state — see FileReviewCardProps.submittingDecisionKeys." },
+  }}
+/>
+
+```tsx
+const conv = useSessionConversation(sessionId);
+<FileReviewDock
+  changeSets={conv.fileChangeSets}
+  onSubmit={conv.submitFileDecision}
+  submittingDecisionKeys={conv.submittingFileDecisionKeys}
+  decisionErrors={conv.fileDecisionErrors}
+/>
+```
+
+
 ### FollowUpInput
 
 Embeddable input bar for continuing a conversation within a session.
@@ -1397,12 +1469,10 @@ All visual properties flow through `--stgm-*` tokens.
     centerContent: { type: "boolean", description: "Center thread content within a max-width reading column.  When `true`, items are constrained to `max-w-3xl` (768 px) and horizontally centered. The scroll container stays full-width so the scrollbar remains at the viewport edge.  Opt-in per DD-011 — existing consumers see no layout change." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     executions: { type: "readonly AgentExecution[]", description: "Completed executions in chronological order.", required: true },
-    fileDecisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed by fileDecisionKey — surfaced in-card beside the control that failed (whole-set or per-file). Supply useFileReview's `decisionErrors`. Only meaningful with `onFileDecisionSubmit`." },
     formatToolCallSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom formatter for tool call summary labels. Passed through to each ToolCallGroup." },
     onApprovalSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Callback for approval actions. When provided and the active execution has pending approvals, ApprovalCards are rendered as thread items. When omitted, no approval UI is shown (backward compatible)." },
     onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode execution's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode execution completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered. Backward compatible — existing consumers see no change." },
     onEditMessage: { type: "(text: string) => void", description: "When provided, the in-flight human turn (the active execution's prompt) shows a hover \"Edit\" affordance. Clicking it invokes this callback with the message text — the session chat stops the running execution and pre-fills the composer for an edit-and-resubmit.  Provide this only while the active execution is stoppable; the SDK marks exactly the active-stream human turn editable. When omitted, no edit control is shown (backward compatible)." },
-    onFileDecisionSubmit: { type: "(changeSetId: string, action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Callback for file-review decisions. When provided, a FileReviewCard is rendered for each captured change set the active execution projects as AWAITING_REVIEW. When omitted, no file-review UI is shown (backward compatible). Pair with useFileReview." },
     onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => void", description: "Optional override for file path click behavior. Platform builders use this to integrate their own file viewer or navigation instead of the default open-URL / copy-to-clipboard." },
     onRetryExecution: { type: "(message: string) => void", description: "Retry handler for a terminal-failed execution that exposed a server error reason. Receives the originating message; the consumer typically resends it as a new execution. When omitted, no Retry control is shown beside the surfaced failure reason." },
     onRetrySend: { type: "() => void", description: "Retry handler for a failed pending message. Wired to the inline \"Retry\" control when pendingMessageFailed is `true`." },
@@ -1411,8 +1481,8 @@ All visual properties flow through `--stgm-*` tokens.
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown at the end of the thread before the stream delivers the real message. Rendered as a human message with a sending indicator. Clear this prop once the stream delivers its first snapshot." },
     planActionsDisabled: { type: "boolean", description: "Disables the plan completion card's actions (Implement / Review). Defense in depth for the brief windows where a follow-up cannot be sent (e.g. an execution is streaming); the composer also no-ops a disabled submit." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
+    showFileReviewRecords: { type: "boolean", description: "Render each *settled* captured change set as a read-only record card at its anchor in the thread (after the set's last stamped edit row) — the durable history of what changed and how it was decided. This is the only in-thread trace for a set with no stamped rows (e.g. changes made by shell commands), so the surface that owns the session history should enable it.  The thread never renders *decision* controls: a pending (AWAITING_REVIEW) set on a live execution is deliberately NOT emitted here — its decision surface is the composer-docked FileReviewDock, which cannot scroll out of view. The stamped rows' badges carry the pending state in-thread.  Opt-in with a backward-compatible default (DD-011); `SessionViewer` enables it." },
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval. Drives per-card loading state. Only meaningful when `onApprovalSubmit` is provided." },
-    submittingFileDecisionKeys: { type: "ReadonlySet<string>", description: "Decision keys (fileDecisionKey) currently being submitted. Drives per-card loading state. Only meaningful when `onFileDecisionSubmit` is set." },
     summarizationEvents: { type: "readonly SummarizationEventView[]", description: "Summarization events from context window tracking. When provided, \"Context compacted\" cards are interleaved into the thread at the correct chronological position based on event timestamps.  Obtain from useContextWindow.summarizationEvents." },
     virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When provided, file paths in tool call rendering become interactive — git-sourced paths open on GitHub, local paths offer copy-to-clipboard.  Passed to FilePathContext for consumption by FilePathLink components deep in the tree." },
@@ -1839,6 +1909,18 @@ rendering logic based on file type.
 - `"text"` — monospace plain text with line numbers
 
 
+### changeForRowPath
+
+The captured change a transcript row's file path refers to, or `null`. The
+row's path may be absolute (harness tool args) while captured paths are
+workspace-root-relative, so the match accepts an exact match or a
+`/`-boundary suffix. Presentation-only — never a correlation key.
+
+```tsx
+function changeForRowPath(set: FileChangeSet, rowPath: string): CapturedFileChange | null
+```
+
+
 ### changeSetReviewability
 
 Classify a `FileChangeSet` from its server-derived `diff_completeness`
@@ -1972,6 +2054,24 @@ consumers can override per `ToolKind` via [`registerToolPresenter`](#registertoo
 
 ```tsx
 function defaultDisclosureForCategory(category: ToolCategory): ToolDisclosure
+```
+
+
+### deriveEffectiveVerdicts
+
+Each file's EFFECTIVE verdict for a settled set, folding the decisions the
+way the runner reconcile does (most-specific-wins): the last CHANGE_SET
+decision is the baseline for every file, and a later-or-earlier FILE decision
+overrides it for that file (FILE > CHANGE_SET regardless of ledger order;
+within a scope, last write wins).
+
+This is the fold for DISPLAYING history — a set decided via "Keep all"
+correctly reads every file as kept. The interactive per-file selected state
+deliberately uses the FILE-only fold instead (a CHANGE_SET decision cannot
+coexist with an open review, so it never pre-selects anything there).
+
+```tsx
+function deriveEffectiveVerdicts(set: FileChangeSet): ReadonlyMap<string, FileDecisionAction>
 ```
 
 
@@ -2162,12 +2262,17 @@ approval of any change set that is not fully complete.
 
 ### FileReviewCard
 
-Renders a captured `FileChangeSet` for review: a summary bar, the
-per-file before/after diffs (reusing [`FileChangeDiff`](#filechangediff)), and the
-decision controls.
+Renders a captured `FileChangeSet` as a **compact decision bar**: one
+line carrying the set summary and the whole-set decision controls, with the
+per-file detail behind an expander. What the expander holds depends on
+`FileReviewCardProps.showDiffs`: the diff-rich body (default — for
+surfaces where this card is the only review surface) or a compact file list
+(the session thread, whose stamped edit rows already show every diff in
+place). A set that needs per-file attention (binary acknowledgment, blocked
+files, mid-review) starts expanded.
 
 File edits are reviewed as a captured workspace delta, not tool calls, so this
-is a dedicated review surface distinct from the message transcript and the
+is a dedicated decision surface distinct from the message transcript and the
 tool-approval [`ApprovalCard`](#approvalcard). The reviewer can decide each file
 individually (Keep / Discard, a `FILE`-scoped decision) or act on the whole
 set at once (Approve / Reject, a `CHANGE_SET` decision). Either way the runner
@@ -2219,9 +2324,62 @@ Props for [`FileReviewCard`](#filereviewcard).
     fileChangeSet: { type: "FileChangeSet", description: "The captured change set awaiting review (status AWAITING_REVIEW).", required: true },
     interactive: { type: "boolean", description: "Whether the card presents decision controls. Defaults to `true` (the live review surface). Set to `false` to render a **settled** change set read-only: the per-file diffs and each file's committed verdict are shown, but the decision controls, bulk footer, and error affordances are omitted. Used for a decided/reconciled set, or any set on a terminal execution — a historical record of what changed and how it was decided, not an actionable gate." },
     onSubmit: { type: "(action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Called when the user makes a decision. The consumer (typically MessageThread or a platform builder's surface) handles the RPC via useFileReview. A whole-set Approve/Reject sends `CHANGE_SET` scope; a per-file Keep/Discard sends `FILE` scope with the file's id. Optional and ignored when FileReviewCardProps.interactive is `false`." },
+    showDiffs: { type: "boolean", description: "Whether the expanded body renders each file's diff. Defaults to `true` — the right default wherever this card is the *only* review surface (the workflow file-review list, standalone platform-builder embeds).  `MessageThread` passes `false`: the transcript's stamped edit rows already show every diff in place, so the expanded body collapses to a compact file list (kind letter + path + per-file controls) and the card stays purely the decision surface. Decision semantics — digests, scopes, acknowledgments — are identical in both modes; this is presentation only (opt-in with a backward-compatible default, DD-011)." },
     submittingDecisionKeys: { type: "ReadonlySet<string>", description: "The decision keys currently being submitted — exactly the set useFileReview returns as `submittingDecisionKeys`. A card has more than one decision target (the whole set plus each file), so it takes the keyed set rather than a single boolean and derives each control's in-flight state via fileDecisionKey." },
   }}
 />
+
+
+### FileReviewContext
+
+Context that supplies the session's change sets to stamped tool rows.
+
+
+### FileReviewContextValue
+
+Context value that carries the session's captured change sets to the
+transcript tool rows that reference them, so a stamped file-edit row
+(`ToolCall.file_change_set_id`) can badge itself with the set's live review
+state — pending review, kept, discarded — right where the edit happened.
+
+The sibling of [`ApprovalContext`](#approvalcontext), and the same discipline: provided by
+[`MessageThread`](#messagethread), keyed by a stable id, rebuilt only when the underlying
+change sets actually change (structural sharing keeps set references stable
+across streaming frames), and an empty default so consumers without a
+provider render no badge (backward compatible).
+
+Read-only by design: the row badge is presentation of the set's state, never
+a decision surface — decisions live exclusively on the set's decision bar
+([`FileReviewCard`](#filereviewcard)).
+
+<TypeTable
+  type={{
+    changeSetsById: { type: "ReadonlyMap<string, FileChangeSet>", description: "Every displayable change set across the session, keyed by `FileChangeSet.id`.", required: true },
+  }}
+/>
+
+
+### fileReviewRowState
+
+```tsx
+function fileReviewRowState(set: FileChangeSet | undefined, rowPath: string | null): FileReviewRowState | null
+```
+
+
+### FileReviewRowState
+
+The review state a stamped transcript row should badge — how this file edit
+stands in its change set's review lifecycle. `null` means "show no badge",
+chosen over guessing: a missing set (not yet projected), a CAPTURING set, or
+a row whose file is absent from the set (its edit was superseded or fully
+reverted within the turn) renders unbadged, never mislabeled.
+
+- `"pending"` — the set is AWAITING_REVIEW; this edit's net result is on the
+  decision surface now.
+- `"kept"` / `"discarded"` — the set is decided/reconciled and this file's
+  effective verdict is known ([`deriveEffectiveVerdicts`](#deriveeffectiveverdicts)).
+- `"failed"` — the set's reconcile failed; the workspace outcome for this
+  edit is not the reviewed one.
 
 
 ### findActiveTodo

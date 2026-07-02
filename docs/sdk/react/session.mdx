@@ -528,8 +528,11 @@ const { executions } = useSessionExecutions(sessionId ?? null);
 ### useSessionFileChanges
 
 Pure derivation hook that aggregates an agent's file changes across every
-execution in a session into one net change per file — the data behind the
-local-workspace "Changes" view.
+execution in a session into one net change per file. A headless building
+block for platform builders composing a consolidated session-changes surface
+(typically paired with [`FileChangesView`](/docs/sdk/react/execution#filechangesview)); the Console itself renders
+file changes in the transcript (stamped edit rows + the per-turn decision
+bar) and does not consume this hook.
 
 **Source (ledger-first).** Under apply-then-review the changes live in the
 file-review ledger; [`displayFileChangeSets`](/docs/sdk/react/execution#displayfilechangesets) reads the server's live
@@ -1131,12 +1134,13 @@ Tab order follows the user's mental model — context before output:
 Workspace → Config → Usage. Changes and Artifacts appear after Config
 when data exists; Inspect appears last when a thread item is selected.
 
-The Changes tab surfaces for either change source: git write-backs (PRs)
-or local-workspace file edits. Its badge prefers the write-back count
-(git mode wins the tab) and falls back to the changed-file count.
+The Changes tab surfaces only when git write-backs (PRs) exist, badged
+with their count. Local-workspace file edits never surface a tab: they
+render in the transcript (stamped edit rows + the per-turn decision bar),
+which is their single review surface.
 
 ```tsx
-function buildVisibleTabs(opts: { artifactCount: number; fileChangeCount: number; hasArtifacts: boolean; hasFileChanges: boolean; hasUsage: boolean; hasWriteBacks: boolean; selectedItem: SelectedThreadItem | null; writeBackCount: number }): TabItem[]
+function buildVisibleTabs(opts: { artifactCount: number; hasArtifacts: boolean; hasUsage: boolean; hasWriteBacks: boolean; selectedItem: SelectedThreadItem | null; writeBackCount: number }): TabItem[]
 ```
 
 
@@ -1547,9 +1551,7 @@ Return value of [`usePersistedModel`](#usepersistedmodel).
 <TypeTable
   type={{
     artifactCount: { type: "number", description: "", required: true },
-    fileChangeCount: { type: "number", description: "Number of changed files; the Changes badge in local mode.", required: true },
     hasArtifacts: { type: "boolean", description: "", required: true },
-    hasFileChanges: { type: "boolean", description: "`true` when local-workspace file changes exist (Changes tab, local mode).", required: true },
     hasUsage: { type: "boolean", description: "", required: true },
     hasWriteBacks: { type: "boolean", description: "", required: true },
     phase: { type: "ExecutionPhase | null", description: "", required: true },

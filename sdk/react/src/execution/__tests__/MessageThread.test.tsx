@@ -204,8 +204,10 @@ function makeExecutionWithInlineApproval(
 }
 
 /**
- * An active execution carrying one single-file change set AWAITING_REVIEW — the
- * input that makes {@link MessageThread} render a {@link FileReviewCard}.
+ * An active execution carrying one single-file change set AWAITING_REVIEW — a
+ * PENDING set, which {@link MessageThread} must NOT render (the composer-docked
+ * FileReviewDock owns it). Flip the set's status to a settled value to exercise
+ * the read-only record rendering.
  */
 function makeExecutionWithFileReview(id: string, setId: string): AgentExecution {
   const exec = create(AgentExecutionSchema);
@@ -246,62 +248,30 @@ function makeExecutionWithFileReview(id: string, setId: string): AgentExecution 
 // ---------------------------------------------------------------------------
 
 describe("MessageThread", () => {
-  it("threads a fileDecisionErrors entry through to the rendered FileReviewCard", () => {
-    const setId = "aex-1:0";
-    const exec = makeExecutionWithFileReview("exec-fr", setId);
-    const decisionErrors = new Map([[setId, new Error("digest mismatch")]]);
-
-    render(
-      <MessageThread
-        executions={[]}
-        activeStreamExecution={exec}
-        onFileDecisionSubmit={() => {}}
-        fileDecisionErrors={decisionErrors}
-      />,
-    );
-
-    // The whole-set failure reaches the card and surfaces in-card.
-    const err = screen.getByText(/Couldn.t submit decision — digest mismatch/);
-    expect(err.getAttribute("data-cursor-target")).toBe("file-review-error");
-  });
-
-  it("renders an interactive review card for an AWAITING set on a live execution", () => {
+  it("never renders a PENDING set — the composer-docked FileReviewDock owns the decision surface", () => {
     const exec = makeExecutionWithFileReview("exec-live", "cs-live:0");
     render(
       <MessageThread
         executions={[]}
         activeStreamExecution={exec}
-        onFileDecisionSubmit={() => {}}
+        showFileReviewRecords
       />,
     );
-    expect(screen.getByText("Review file changes")).toBeTruthy();
+    // Neither the interactive bar nor a record: the pending state lives on the
+    // stamped rows' badges, and the decision controls live in the dock.
+    expect(screen.queryByText("Review file changes")).toBeNull();
+    expect(screen.queryByText("File changes")).toBeNull();
     expect(
       document.querySelector('[data-cursor-target="file-review-approve"]'),
-    ).toBeTruthy();
-    expect(
-      document.querySelector('[data-cursor-target="file-review-reject"]'),
-    ).toBeTruthy();
-    // The thread wires showDiffs={false}: the card's expander is the file
-    // list ("Files"), never a diff — the stamped edit rows own the diffs.
-    expect(screen.getByRole("button", { name: "Files" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Files" }));
-    expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
-    expect(
-      document.querySelector('[data-cursor-target="file-review-list-row"]'),
-    ).toBeTruthy();
+    ).toBeNull();
   });
 
-  it("renders a settled set read-only (no decision controls)", () => {
+  it("renders a settled set as a read-only record (no decision controls)", () => {
     const exec = makeExecutionWithFileReview("exec-settled", "cs-settled:0");
     // A decided/reconciled set: history, not an action.
     exec.status!.fileChangeSets[0].status = FileChangeSetStatus.RECONCILED;
 
-    render(
-      <MessageThread
-        executions={[exec]}
-        onFileDecisionSubmit={() => {}}
-      />,
-    );
+    render(<MessageThread executions={[exec]} showFileReviewRecords />);
     expect(screen.getByText("File changes")).toBeTruthy();
     expect(screen.queryByText("Review file changes")).toBeNull();
     expect(
@@ -310,6 +280,21 @@ describe("MessageThread", () => {
     expect(
       document.querySelector('[data-cursor-target="file-review-reject"]'),
     ).toBeNull();
+    // Record mode is list mode: the expander reveals the file list, no diffs —
+    // the stamped edit rows own the diffs.
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-list-row"]'),
+    ).toBeTruthy();
+  });
+
+  it("renders no records at all without showFileReviewRecords (default)", () => {
+    const exec = makeExecutionWithFileReview("exec-off", "cs-off:0");
+    exec.status!.fileChangeSets[0].status = FileChangeSetStatus.RECONCILED;
+
+    render(<MessageThread executions={[exec]} />);
+    expect(screen.queryByText("File changes")).toBeNull();
   });
 
   it("folds the ledger and renders read-only for a terminal execution (empty projection)", () => {
@@ -375,11 +360,9 @@ describe("MessageThread", () => {
     });
     exec.status = status;
 
-    render(
-      <MessageThread executions={[exec]} onFileDecisionSubmit={() => {}} />,
-    );
-    // The read-only bar renders with no decision controls; expanding it shows
-    // the folded set's changed file.
+    render(<MessageThread executions={[exec]} showFileReviewRecords />);
+    // The read-only record renders with no decision controls; expanding it
+    // shows the folded set's changed file.
     expect(screen.getByText("File changes")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Show" }));
     expect(screen.getByTitle("src/a.ts")).toBeTruthy();

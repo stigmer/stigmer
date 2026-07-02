@@ -14,7 +14,6 @@ import {
   ApprovalAction,
   ExecutionPhase,
   FileChangeSetStatus,
-  FileDecisionAction,
   InteractionMode,
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -29,7 +28,6 @@ import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 import { SetupProgress } from "./SetupProgress";
 import { ApprovalCard } from "./ApprovalCard";
 import { FileReviewCard } from "./FileReviewCard";
-import type { FileDecisionOptions } from "./useFileReview";
 import { SummarizationCard } from "./SummarizationCard";
 import { PlanCompletionCard } from "./PlanCompletionCard";
 import { PlanArtifactCard } from "./PlanArtifactCard";
@@ -140,28 +138,23 @@ export interface MessageThreadProps {
    */
   readonly approvalErrors?: ReadonlyMap<string, Error>;
   /**
-   * Callback for file-review decisions. When provided, a {@link FileReviewCard}
-   * is rendered for each captured change set the active execution projects as
-   * AWAITING_REVIEW. When omitted, no file-review UI is shown (backward
-   * compatible). Pair with {@link useFileReview}.
+   * Render each *settled* captured change set as a read-only record card at
+   * its anchor in the thread (after the set's last stamped edit row) — the
+   * durable history of what changed and how it was decided. This is the only
+   * in-thread trace for a set with no stamped rows (e.g. changes made by shell
+   * commands), so the surface that owns the session history should enable it.
+   *
+   * The thread never renders *decision* controls: a pending (AWAITING_REVIEW)
+   * set on a live execution is deliberately NOT emitted here — its decision
+   * surface is the composer-docked {@link FileReviewDock}, which cannot scroll
+   * out of view. The stamped rows' badges carry the pending state in-thread.
+   *
+   * Opt-in with a backward-compatible default (DD-011); `SessionViewer`
+   * enables it.
+   *
+   * @default false
    */
-  readonly onFileDecisionSubmit?: (
-    changeSetId: string,
-    action: FileDecisionAction,
-    options?: FileDecisionOptions,
-  ) => void;
-  /**
-   * Decision keys ({@link fileDecisionKey}) currently being submitted. Drives
-   * per-card loading state. Only meaningful when `onFileDecisionSubmit` is set.
-   */
-  readonly submittingFileDecisionKeys?: ReadonlySet<string>;
-  /**
-   * Per-decision failures, keyed by {@link fileDecisionKey} — surfaced in-card
-   * beside the control that failed (whole-set or per-file). Supply
-   * {@link useFileReview}'s `decisionErrors`. Only meaningful with
-   * `onFileDecisionSubmit`.
-   */
-  readonly fileDecisionErrors?: ReadonlyMap<string, Error>;
+  readonly showFileReviewRecords?: boolean;
   /**
    * Workspace entries from the session spec. When provided, file
    * paths in tool call rendering become interactive — git-sourced
@@ -262,7 +255,7 @@ export type ThreadItem =
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
-  | { readonly kind: "file-review-request"; readonly fileChangeSet: FileChangeSet; readonly interactive: boolean; readonly key: string }
+  | { readonly kind: "file-review-record"; readonly fileChangeSet: FileChangeSet; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
   | {
@@ -337,16 +330,21 @@ function recordFileReviewAnchors(
 }
 
 /**
- * Inserts one execution's decision bars into its own thread segment: each
- * change set's `file-review-request` item is spliced immediately after the
- * set's last stamped tool row ({@link recordFileReviewAnchors}); a set with no
- * stamped row (its changes were made by shell commands, or the rows predate
- * stamping) falls back to the segment's tail — a pending review is never
- * invisible. Interactivity is gated on THIS execution's phase: only a live
- * (non-terminal) execution's AWAITING_REVIEW set is actionable; every other
- * set — decided, reconciled, failed, or on a historical execution — renders
- * read-only, a record of what changed and how it was decided. A CAPTURING set
- * (baseline only, no diff yet) has nothing to show and is skipped.
+ * Inserts one execution's settled file-review records into its own thread
+ * segment: each change set's read-only `file-review-record` item is spliced
+ * immediately after the set's last stamped tool row
+ * ({@link recordFileReviewAnchors}); a set with no stamped row (its changes
+ * were made by shell commands, or the rows predate stamping) falls back to the
+ * segment's tail — this record is that set's ONLY in-thread trace, so it is
+ * never dropped.
+ *
+ * A *pending* set — AWAITING_REVIEW on a live (non-terminal) execution — is
+ * deliberately NOT emitted: its decision surface is the composer-docked
+ * `FileReviewDock`, which cannot scroll out of view, and the stamped rows'
+ * badges carry the pending state in place. The same set re-enters here as a
+ * record the moment it settles (or its execution terminates mid-review — an
+ * honest "not reviewed" record). A CAPTURING set (baseline only, no diff yet)
+ * has nothing to show and is skipped.
  */
 function insertFileReviewItems(
   items: ThreadItem[],
@@ -358,11 +356,12 @@ function insertFileReviewItems(
   const tail: ThreadItem[] = [];
   for (const changeSet of changeSets) {
     if (changeSet.changes.length === 0) continue;
+    const pending =
+      !execTerminal && changeSet.status === FileChangeSetStatus.AWAITING_REVIEW;
+    if (pending) continue;
     const item: ThreadItem = {
-      kind: "file-review-request",
+      kind: "file-review-record",
       fileChangeSet: changeSet,
-      interactive:
-        !execTerminal && changeSet.status === FileChangeSetStatus.AWAITING_REVIEW,
       key: `file-review-${changeSet.id}`,
     };
     const index = anchorIndexBySetId.get(changeSet.id);
@@ -397,7 +396,7 @@ export function buildThreadItems(
   summarizationEvents?: readonly SummarizationEventView[],
   pendingMessageFailed = false,
   editableActiveTurn = false,
-  includeFileReview = false,
+  includeFileReviewRecords = false,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   // Tool-call ids that render as an inline-approval-capable ToolCallItem (a
@@ -459,12 +458,13 @@ export function buildThreadItems(
     const messages = exec.status?.messages ?? [];
     const subAgents = exec.status?.subAgentExecutions ?? [];
 
-    // This execution's change sets render as decision bars inside its own
-    // segment, anchored to the last stamped edit row of each set. The display
-    // seam reads the server's live projection when present and folds the
-    // durable ledger for a terminal execution (whose projection is nil), so
-    // live AND settled sets surface — for EVERY execution, not just the last.
-    const execChangeSets = includeFileReview
+    // This execution's settled change sets render as read-only records inside
+    // its own segment, anchored to the last stamped edit row of each set. The
+    // display seam reads the server's live projection when present and folds
+    // the durable ledger for a terminal execution (whose projection is nil),
+    // so records surface for EVERY execution, not just the last. Pending sets
+    // are excluded inside insertFileReviewItems — the composer dock owns them.
+    const execChangeSets = includeFileReviewRecords
       ? displayFileChangeSets(exec.status)
       : [];
     const fileReviewAnchors = new Map<string, number>();
@@ -613,7 +613,7 @@ export function buildThreadItems(
     // surfaces — never silently dropped.
     emitTodos();
 
-    // Decision bars land inside this execution's segment, at their anchors.
+    // Settled records land inside this execution's segment, at their anchors.
     if (execChangeSets.length > 0) {
       insertFileReviewItems(
         items,
@@ -724,9 +724,10 @@ export function buildThreadItems(
     }
   }
 
-  // File-review decision bars are emitted inside each execution's segment
-  // (see insertFileReviewItems in the loop above) — anchored to the last
-  // stamped edit row, never appended at the thread tail.
+  // File-review records are emitted inside each execution's segment (see
+  // insertFileReviewItems in the loop above) — anchored to the last stamped
+  // edit row, never appended at the thread tail. Pending decision bars are
+  // not thread items at all: they live in the composer-docked FileReviewDock.
 
   if (pendingUserMessage) {
     const alreadySynthesized =
@@ -786,9 +787,7 @@ export function MessageThread({
   onApprovalSubmit,
   submittingApprovalIds,
   approvalErrors,
-  onFileDecisionSubmit,
-  submittingFileDecisionKeys,
-  fileDecisionErrors,
+  showFileReviewRecords = false,
   workspaceEntries,
   onFilePathClick,
   sandboxWorkspaceRoot,
@@ -802,11 +801,10 @@ export function MessageThread({
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
   const includeApprovals = onApprovalSubmit != null;
-  const includeFileReview = onFileDecisionSubmit != null;
   const editableActiveTurn = onEditMessage != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, includeFileReview),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, includeFileReview],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords],
   );
 
   useKeyStability(items);
@@ -885,9 +883,6 @@ export function MessageThread({
             onApprovalSubmit={onApprovalSubmit}
             submittingApprovalIds={submittingApprovalIds}
             approvalErrors={approvalErrors}
-            onFileDecisionSubmit={onFileDecisionSubmit}
-            submittingFileDecisionKeys={submittingFileDecisionKeys}
-            fileDecisionErrors={fileDecisionErrors}
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
             approvalCtx={approvalCtx}
@@ -915,9 +910,6 @@ export function MessageThread({
       onApprovalSubmit={onApprovalSubmit}
       submittingApprovalIds={submittingApprovalIds}
       approvalErrors={approvalErrors}
-      onFileDecisionSubmit={onFileDecisionSubmit}
-      submittingFileDecisionKeys={submittingFileDecisionKeys}
-      fileDecisionErrors={fileDecisionErrors}
       filePathCtx={filePathCtx}
       sandboxCtx={sandboxCtx}
       approvalCtx={approvalCtx}
@@ -949,13 +941,6 @@ interface NonVirtualizedThreadProps {
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
   readonly approvalErrors?: ReadonlyMap<string, Error>;
-  readonly onFileDecisionSubmit?: (
-    changeSetId: string,
-    action: FileDecisionAction,
-    options?: FileDecisionOptions,
-  ) => void;
-  readonly submittingFileDecisionKeys?: ReadonlySet<string>;
-  readonly fileDecisionErrors?: ReadonlyMap<string, Error>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly approvalCtx: ApprovalContextValue;
@@ -977,9 +962,6 @@ function NonVirtualizedThread({
   onApprovalSubmit,
   submittingApprovalIds,
   approvalErrors,
-  onFileDecisionSubmit,
-  submittingFileDecisionKeys,
-  fileDecisionErrors,
   filePathCtx,
   sandboxCtx,
   approvalCtx,
@@ -1026,9 +1008,6 @@ function NonVirtualizedThread({
                   onApprovalSubmit={onApprovalSubmit}
                   submittingApprovalIds={submittingApprovalIds}
                   approvalErrors={approvalErrors}
-                  onFileDecisionSubmit={onFileDecisionSubmit}
-                  submittingFileDecisionKeys={submittingFileDecisionKeys}
-                  fileDecisionErrors={fileDecisionErrors}
                   onBuildFromPlan={onBuildFromPlan}
                   org={org}
                   planActionsDisabled={planActionsDisabled}
@@ -1081,13 +1060,6 @@ export interface ThreadItemRendererProps {
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
   readonly approvalErrors?: ReadonlyMap<string, Error>;
-  readonly onFileDecisionSubmit?: (
-    changeSetId: string,
-    action: FileDecisionAction,
-    options?: FileDecisionOptions,
-  ) => void;
-  readonly submittingFileDecisionKeys?: ReadonlySet<string>;
-  readonly fileDecisionErrors?: ReadonlyMap<string, Error>;
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
@@ -1113,9 +1085,6 @@ export function ThreadItemRenderer({
   onApprovalSubmit,
   submittingApprovalIds,
   approvalErrors,
-  onFileDecisionSubmit,
-  submittingFileDecisionKeys,
-  fileDecisionErrors,
   onBuildFromPlan,
   org,
   planActionsDisabled,
@@ -1180,16 +1149,8 @@ export function ThreadItemRenderer({
           error={approvalErrors?.get(item.pendingApproval.toolCallId) ?? null}
         />
       );
-    case "file-review-request":
-      return (
-        <FileReviewCardRow
-          fileChangeSet={item.fileChangeSet}
-          interactive={item.interactive}
-          onFileDecisionSubmit={onFileDecisionSubmit!}
-          submittingDecisionKeys={submittingFileDecisionKeys}
-          decisionErrors={fileDecisionErrors}
-        />
-      );
+    case "file-review-record":
+      return <FileReviewRecordRow fileChangeSet={item.fileChangeSet} />;
     case "setup-progress":
       return (
         <SetupProgress
@@ -1384,53 +1345,27 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
 });
 
 // ---------------------------------------------------------------------------
-// FileReviewCardRow — stabilizes the onSubmit callback for React.memo
+// FileReviewRecordRow — a settled change set's read-only in-thread record
 // ---------------------------------------------------------------------------
 
-interface FileReviewCardRowProps {
-  readonly fileChangeSet: FileChangeSet;
-  // Whether the set is actionable (an AWAITING_REVIEW set on a live execution).
-  // A settled or terminal set renders read-only — see the display seam in
-  // buildThreadItems.
-  readonly interactive: boolean;
-  readonly onFileDecisionSubmit: (
-    changeSetId: string,
-    action: FileDecisionAction,
-    options?: FileDecisionOptions,
-  ) => void;
-  // The full keyed set (whole-set + per-file) so the card can drive each of its
-  // controls independently; it is a stable ref from useFileReview's useMemo, so
-  // the row only re-renders when a decision actually starts or settles.
-  readonly submittingDecisionKeys?: ReadonlySet<string>;
-  // Per-decision failures, keyed like submittingDecisionKeys — also a stable ref
-  // from useFileReview, so the row re-renders only when an error appears/clears.
-  readonly decisionErrors?: ReadonlyMap<string, Error>;
-}
-
-const FileReviewCardRow = memo(function FileReviewCardRow({
+/**
+ * Renders a settled change set as a read-only record at its position in the
+ * transcript — what changed and how it was decided ("2 kept · 1 discarded").
+ * Never interactive: the pending decision surface is the composer-docked
+ * `FileReviewDock`, not a thread item (see {@link insertFileReviewItems}).
+ */
+const FileReviewRecordRow = memo(function FileReviewRecordRow({
   fileChangeSet,
-  interactive,
-  onFileDecisionSubmit,
-  submittingDecisionKeys,
-  decisionErrors,
-}: FileReviewCardRowProps) {
-  const handleSubmit = useCallback(
-    (action: FileDecisionAction, options?: FileDecisionOptions) => {
-      onFileDecisionSubmit(fileChangeSet.id, action, options);
-    },
-    [onFileDecisionSubmit, fileChangeSet.id],
-  );
-
+}: {
+  readonly fileChangeSet: FileChangeSet;
+}) {
   return (
     <FileReviewCard
       fileChangeSet={fileChangeSet}
-      interactive={interactive}
-      onSubmit={interactive ? handleSubmit : undefined}
-      submittingDecisionKeys={submittingDecisionKeys}
-      decisionErrors={decisionErrors}
+      interactive={false}
       // The thread's stamped edit rows already show every diff in place, so
-      // the card renders its compact file-list body — the decision surface
-      // never duplicates the transcript's diffs.
+      // the record renders its compact file-list body — the history never
+      // duplicates the transcript's diffs.
       showDiffs={false}
       className="mx-4"
     />

@@ -12,6 +12,7 @@ import { SelectionStore } from "../internal/store/selection-store";
 import { ThreadSelectionContext } from "../execution/ThreadSelectionContext";
 import { useSelectedThreadItem } from "../execution/useThreadSelection";
 import { MessageThread } from "../execution/MessageThread";
+import { FileReviewDock } from "../execution/FileReviewDock";
 import { ThreadSkeleton } from "../execution/ThreadSkeleton";
 import { SessionComposer } from "../composer";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error";
@@ -336,9 +337,7 @@ function ConversationColumn({
         onApprovalSubmit={flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
         approvalErrors={conv.approvalErrors}
-        onFileDecisionSubmit={conv.submitFileDecision}
-        submittingFileDecisionKeys={conv.submittingFileDecisionKeys}
-        fileDecisionErrors={conv.fileDecisionErrors}
+        showFileReviewRecords
         onEditMessage={conv.isStoppable ? handleEditMessage : undefined}
         workspaceEntries={conv.workspaceEntries}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
@@ -364,6 +363,16 @@ function ConversationColumn({
         {flow.autoApproveAll && (
           <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
         )}
+        {/* Pending file reviews dock here — pinned above the composer so the
+            decision the agent is blocked on can never scroll out of view. The
+            thread renders only observational rows (badges) and read-only
+            settled records; this is the one decision surface. */}
+        <FileReviewDock
+          changeSets={conv.fileChangeSets}
+          onSubmit={conv.submitFileDecision}
+          submittingDecisionKeys={conv.submittingFileDecisionKeys}
+          decisionErrors={conv.fileDecisionErrors}
+        />
         <SessionComposer
           ref={composerRef}
           onSubmit={flow.handleSubmit}

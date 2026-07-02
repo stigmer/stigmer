@@ -11,12 +11,11 @@ import {
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { cn } from "@stigmer/theme";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ApprovalAction, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   ThreadItemRenderer,
   type ThreadItem,
 } from "../execution/MessageThread";
-import type { FileDecisionOptions } from "../execution/useFileReview";
 import { FilePathContext, type FilePathContextValue } from "../execution/FilePathContext";
 import { SandboxContext, type SandboxContextValue } from "../execution/SandboxContext";
 import { ApprovalContext, type ApprovalContextValue } from "../execution/ApprovalContext";
@@ -40,13 +39,6 @@ export interface VirtualizedThreadProps {
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
   readonly approvalErrors?: ReadonlyMap<string, Error>;
-  readonly onFileDecisionSubmit?: (
-    changeSetId: string,
-    action: FileDecisionAction,
-    options?: FileDecisionOptions,
-  ) => void;
-  readonly submittingFileDecisionKeys?: ReadonlySet<string>;
-  readonly fileDecisionErrors?: ReadonlyMap<string, Error>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly approvalCtx: ApprovalContextValue;
@@ -114,9 +106,6 @@ export function VirtualizedThread({
   onApprovalSubmit,
   submittingApprovalIds,
   approvalErrors,
-  onFileDecisionSubmit,
-  submittingFileDecisionKeys,
-  fileDecisionErrors,
   filePathCtx,
   sandboxCtx,
   approvalCtx,
@@ -158,9 +147,6 @@ export function VirtualizedThread({
       onApprovalSubmit,
       submittingApprovalIds,
       approvalErrors,
-      onFileDecisionSubmit,
-      submittingFileDecisionKeys,
-      fileDecisionErrors,
       onBuildFromPlan,
       org,
       planActionsDisabled,
@@ -168,7 +154,7 @@ export function VirtualizedThread({
       onRetryExecution,
       onEditMessage,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onFileDecisionSubmit, submittingFileDecisionKeys, fileDecisionErrors, onBuildFromPlan, org, planActionsDisabled, onRetrySend, onRetryExecution, onEditMessage],
+    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onBuildFromPlan, org, planActionsDisabled, onRetrySend, onRetryExecution, onEditMessage],
   );
 
   return (
