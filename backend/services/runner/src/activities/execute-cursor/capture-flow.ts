@@ -57,29 +57,11 @@ const CURSOR_RUNNER_OWNED_PATHS: readonly string[] = [
   ".cursor/rules/stigmer-tool-approval.mdc",
 ];
 
-/**
- * Whether this Cursor turn runs in apply-then-review CAPTURE mode (the file edit
- * flows and is reviewed post-hoc) rather than the classic pre-write DENY-GATE.
- *
- * Capture needs a primary workspace AND a substrate to capture into:
- *  - a git work tree captures tracked edits from the git diff (no storage needed);
- *  - a NON-git workspace captures every write via the path-scoped CAS substrate,
- *    which needs artifact storage to persist blobs.
- *
- * So a non-git workspace with NO artifact storage — or no workspace at all — has
- * no capture substrate and falls back to the deny-gate. That fallback is the ONLY
- * branch that arms the resume-time exact-apply guarantee (see {@link
- * ./exact-apply.js}), so this predicate is the single decision point for "capture
- * vs. deny-gate": keeping it named and truth-table-tested pins exactly when the
- * no-storage deny-gate (and thus exact-apply) engages.
- */
-export function deriveCaptureMode(
-  primaryWorkspaceDir: string | undefined,
-  gitWorkspace: boolean,
-  hasArtifactStorage: boolean,
-): boolean {
-  return !!primaryWorkspaceDir && (gitWorkspace || hasArtifactStorage);
-}
+// `deriveCaptureMode` is the single capture-vs-deny-gate decision, now shared by
+// BOTH harnesses from `shared/filereview/capture.ts`. Re-exported here so existing
+// Cursor imports (index.ts, the deny-gate-exact-apply seam test) keep resolving
+// from this adapter.
+export { deriveCaptureMode } from "../../shared/filereview/capture.js";
 
 /**
  * Turn start: pin the pre-turn working tree behind the baseline ref and author

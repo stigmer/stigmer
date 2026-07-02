@@ -86,11 +86,13 @@ export function createDeepAgentActivities(config: Config) {
         // oversized tool outputs (e.g. computer-use screenshots) to artifact
         // storage so the UI can render them, and keep the status under the
         // gRPC cap. Threaded into the streaming loop and reused for the
-        // terminal persists below so the guard is never skipped.
-        const statusOffload: ToolOutputOffloadContext = {
-          artifactStorage: setup.artifactStorage,
-          executionId,
-        };
+        // terminal persists below so the guard is never skipped. Undefined when
+        // there is no artifact store (proxy misconfig): offload is then disabled,
+        // but persistStatus still enforces the aggregate size cap, so persistence
+        // can never silently blow past the gRPC limit.
+        const statusOffload: ToolOutputOffloadContext | undefined = setup.artifactStorage
+          ? { artifactStorage: setup.artifactStorage, executionId }
+          : undefined;
 
         // Read the graph checkpoint once, to resolve how a pending approval
         // interrupt continues (Command(resume) vs a fresh replay). Reading once
@@ -177,7 +179,13 @@ export function createDeepAgentActivities(config: Config) {
           let reconcileFailureDetail = "";
           // The CAS blob reader reconciles ignored-file decisions from the durable
           // manifest (git-only turns have no manifest, so the CAS branch no-ops).
-          const casReadBlob = casBlobReader(setup.artifactStorage);
+          // Undefined with no store: this block still runs for a git workspace
+          // whose captureMode is true without storage, but such a turn captures no
+          // CAS files (captureIgnored is off), so its change set carries no CAS ref
+          // and applyCaptureDecisions never needs the reader.
+          const casReadBlob = setup.artifactStorage
+            ? casBlobReader(setup.artifactStorage)
+            : undefined;
           for (const changeSet of decidedSets) {
             const capResult = await applyCaptureDecisions({
               status: initialStatus,
@@ -477,9 +485,13 @@ export function createDeepAgentActivities(config: Config) {
         // first-class plan.md artifact so the UI can render a reviewable Plan
         // card and a follow-up Implement run can reference it. Read-only mode
         // produces no file to auto-publish, so this is the only artifact path.
+        // Requires artifact storage; with none (proxy misconfig) the plan text
+        // still lives in the final message — only the reviewable artifact is
+        // skipped (mirrors Cursor's storage-guarded plan publish).
         if (
           setup.execution.spec?.executionConfig?.interactionMode === InteractionMode.PLAN &&
-          finalText
+          finalText &&
+          setup.artifactStorage
         ) {
           await publishPlanArtifact({
             status: initialStatus,

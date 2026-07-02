@@ -41,7 +41,14 @@ export interface InjectedFile {
 export interface InjectAttachmentsOptions {
   readonly backend: WorkspaceBackend;
   readonly attachments: readonly Attachment[];
-  readonly storage: ArtifactStorage;
+  /**
+   * Artifact storage for cloud-mode attachment download. `undefined` when the
+   * runner could not build a store (proxy misconfig). With no attachments this is
+   * never touched (the function early-returns); a cloud-mode attachment that
+   * genuinely needs storage surfaces a clear {@link AttachmentInjectionError}
+   * rather than dereferencing undefined.
+   */
+  readonly storage: ArtifactStorage | undefined;
   readonly isLocalMode: boolean;
 }
 
@@ -328,7 +335,7 @@ function deriveFilename(storageKey: string): string {
 
 async function downloadAttachment(
   attachment: Attachment,
-  storage: ArtifactStorage,
+  storage: ArtifactStorage | undefined,
   isLocalMode: boolean,
 ): Promise<Buffer> {
   // Local mode fast path: read directly from filesystem
@@ -348,6 +355,16 @@ async function downloadAttachment(
     throw new AttachmentInjectionError(
       attachment.filename,
       "missing storageKey — cannot download attachment from storage",
+    );
+  }
+
+  // The attachment must come from storage, but the runner could not build one
+  // (proxy misconfig). Fail with an actionable message rather than dereferencing
+  // undefined — consistent with the degraded posture, never a silent skip.
+  if (!storage) {
+    throw new AttachmentInjectionError(
+      attachment.filename,
+      `artifact storage is unavailable, so this attachment (key: ${attachment.storageKey}) cannot be downloaded`,
     );
   }
 

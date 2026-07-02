@@ -40,6 +40,7 @@ import {
   applyCaptureDecisions,
   captureBaselineToLedger,
   captureCandidateToLedger,
+  deriveCaptureMode,
 } from "../capture.js";
 import { casBlobReader } from "../cas-substrate.js";
 
@@ -47,6 +48,33 @@ const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-da-1";
 const CHANGE_SET_ID = `${EXEC_ID}:0`;
 const HARNESS = "deep-agent";
+
+// ── deriveCaptureMode: the shared capture-vs-deny-gate decision (both harnesses) ──
+// A non-git workspace with NO artifact storage (or no workspace) has no capture
+// substrate, so it falls back to the deny-gate — the branch this pins for BOTH the
+// Cursor (exact-apply) and deep-agent (LangGraph-replay) harnesses.
+describe("deriveCaptureMode", () => {
+  it("engages CAPTURE for a git work tree — with or without artifact storage (git needs none)", () => {
+    expect(deriveCaptureMode("/ws", true, true)).toBe(true);
+    expect(deriveCaptureMode("/ws", true, false)).toBe(true);
+  });
+
+  it("engages CAPTURE for a non-git workspace only WITH artifact storage (CAS needs it)", () => {
+    expect(deriveCaptureMode("/ws", false, true)).toBe(true);
+  });
+
+  it("falls back to the DENY-GATE for a non-git workspace with NO storage", () => {
+    // No git snapshot, no CAS blob store: no capture substrate, so file writes
+    // gate pre-execution (Cursor arms exact-apply; deep-agent replays on approve).
+    expect(deriveCaptureMode("/ws", false, false)).toBe(false);
+  });
+
+  it("falls back to the DENY-GATE when there is no primary workspace at all", () => {
+    expect(deriveCaptureMode(undefined, true, true)).toBe(false);
+    expect(deriveCaptureMode(undefined, false, false)).toBe(false);
+    expect(deriveCaptureMode("", true, true)).toBe(false);
+  });
+});
 
 let repo: string;
 

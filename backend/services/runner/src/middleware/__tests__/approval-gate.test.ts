@@ -614,6 +614,80 @@ describe("ApprovalGateMiddleware", () => {
     });
   });
 
+  describe("degraded deny-gate (no capture substrate — non-git + no storage)", () => {
+    // When deriveCaptureMode returns false (a non-git workspace with no artifact
+    // storage), setup builds the gate with fileCaptureMode/captureIgnored OFF, so
+    // file writes fall back to the classic deny-gate. This is the native harness's
+    // DD-22 parity with Cursor: the agent still runs; file writes gate.
+
+    it("gates a built-in write when capture mode is off — the deny-gate fallback", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: false,
+        captureIgnored: false,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: "scratch/notes.md" } }),
+        passthrough,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it("gates a built-in delete when capture mode is off", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: false,
+        captureIgnored: false,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "delete", args: { path: "scratch/old.md" } }),
+        passthrough,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it("GATES a secret-like write when capture mode is off — Cursor parity: gated, NOT hard-blocked", async () => {
+      // The secret hard-block lives only inside the fileCaptureMode+captureIgnored
+      // arm; with no substrate that arm is off, so a secret-like write is GATED
+      // (shown for approval) rather than hard-blocked — exactly what Cursor's
+      // no-storage hook does. It exposes no more than Cursor (secret parity, see
+      // the parity investigation in the project docs).
+      const handler = vi.fn(passthrough);
+      const recordBlockedSecret = vi.fn();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: false,
+        captureIgnored: false,
+        recordBlockedSecret,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: ".env" } }),
+        handler,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1); // gated, not hard-blocked
+      expect(recordBlockedSecret).not.toHaveBeenCalled(); // no capture arm to record it
+      expect(handler).toHaveBeenCalledTimes(1); // flows only after the user approves
+    });
+
+    it("still auto-approves read-only built-ins when capture mode is off", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: false,
+        captureIgnored: false,
+      }));
+
+      const result = await mw.wrapToolCall!(makeRequest({ name: "read", args: {} }), passthrough);
+
+      expect((result as ToolMessage).content).toBe("tool result");
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+    });
+  });
+
   it("handles unknown action as skip", async () => {
     const policies = new Map<string, MergedToolPolicy>([
       ["srv/tool_c", {

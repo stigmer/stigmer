@@ -51,7 +51,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "../exact-apply.js";
-import { deriveCaptureMode } from "../capture-flow.js";
 import { reconstructAdjudicatedApprovals, buildApprovalGrants } from "../approval-state.js";
 import type { ApprovalGrant } from "../approval-state.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
@@ -64,30 +63,8 @@ import {
 
 const EXEC_ID = "exec-deny-gate";
 
-// ── deriveCaptureMode: when the no-storage deny-gate (and thus exact-apply) engages ──
-
-describe("deriveCaptureMode", () => {
-  it("engages CAPTURE for a git work tree — with or without artifact storage (git needs none)", () => {
-    expect(deriveCaptureMode("/ws", true, true)).toBe(true);
-    expect(deriveCaptureMode("/ws", true, false)).toBe(true);
-  });
-
-  it("engages CAPTURE for a non-git workspace only WITH artifact storage (CAS needs it)", () => {
-    expect(deriveCaptureMode("/ws", false, true)).toBe(true);
-  });
-
-  it("falls back to the DENY-GATE for a non-git workspace with NO storage — the exact-apply branch", () => {
-    // The one row this whole suite exists for: no git snapshot, no CAS blob store,
-    // so there is no capture substrate and the classic deny-gate arms exact-apply.
-    expect(deriveCaptureMode("/ws", false, false)).toBe(false);
-  });
-
-  it("falls back to the DENY-GATE when there is no primary workspace at all", () => {
-    expect(deriveCaptureMode(undefined, true, true)).toBe(false);
-    expect(deriveCaptureMode(undefined, false, false)).toBe(false);
-    expect(deriveCaptureMode("", true, true)).toBe(false);
-  });
-});
+// `deriveCaptureMode` (the decision that arms this deny-gate/exact-apply path) is
+// truth-table-tested at its shared home: shared/filereview/__tests__/capture.test.ts.
 
 // ── builders ─────────────────────────────────────────────────────────────────
 

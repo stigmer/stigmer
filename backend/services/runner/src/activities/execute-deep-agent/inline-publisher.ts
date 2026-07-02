@@ -26,7 +26,13 @@ import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
 
 export class InlinePublisher {
   private readonly workspaceBackend: WorkspaceBackend;
-  private readonly artifactStorage: ArtifactStorage;
+  /**
+   * `undefined` when the runner has no artifact store (proxy misconfig). Inline
+   * publishing is a best-effort real-time UI nicety, so {@link publish} becomes a
+   * no-op — the operator was already warned once at setup, and the transcript still
+   * persists without the offloaded artifact.
+   */
+  private readonly artifactStorage: ArtifactStorage | undefined;
   private readonly statusWriter: ExecutionStatusWriter;
   private readonly executionId: string;
 
@@ -35,7 +41,7 @@ export class InlinePublisher {
 
   constructor(opts: {
     workspaceBackend: WorkspaceBackend;
-    artifactStorage: ArtifactStorage;
+    artifactStorage: ArtifactStorage | undefined;
     statusWriter: ExecutionStatusWriter;
     executionId: string;
   }) {
@@ -55,6 +61,9 @@ export class InlinePublisher {
    * status builder. Fire-and-forget: errors are logged and swallowed.
    */
   async publish(path: string): Promise<void> {
+    // No artifact store (proxy misconfig): nothing to upload to. Skip silently —
+    // this is a best-effort UI publisher and the operator was warned at setup.
+    if (!this.artifactStorage) return;
     try {
       const sandboxPath = normalizePath(path);
 

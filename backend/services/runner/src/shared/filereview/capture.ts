@@ -78,6 +78,35 @@ import {
 } from "./cas-substrate.js";
 
 /**
+ * Whether a turn runs in apply-then-review CAPTURE mode (file edits flow and are
+ * reviewed post-hoc) rather than the classic pre-write DENY-GATE. Shared by BOTH
+ * harnesses (Cursor and deep-agent) so the capture-vs-deny-gate decision is made
+ * one way everywhere — the single point where a workspace's substrate availability
+ * decides the HITL model.
+ *
+ * Capture needs a primary workspace AND a substrate to capture into:
+ *  - a git work tree captures tracked edits from the git diff (no storage needed);
+ *  - a NON-git workspace captures every write via the path-scoped CAS substrate,
+ *    which needs artifact storage to persist blobs.
+ *
+ * So a non-git workspace with NO artifact storage — or no workspace at all — has
+ * no capture substrate and falls back to the deny-gate: the agent still runs, but
+ * file writes gate pre-execution instead of flowing. In the Cursor harness that
+ * fallback is also the ONLY branch that arms the resume-time exact-apply guarantee
+ * (see execute-cursor/exact-apply.ts); the deep-agent harness re-applies an
+ * approved write via LangGraph checkpoint replay and needs no exact-apply. Keeping
+ * this the single, named, truth-table-tested decision pins exactly when the
+ * no-storage deny-gate engages in either harness.
+ */
+export function deriveCaptureMode(
+  primaryWorkspaceDir: string | undefined,
+  gitWorkspace: boolean,
+  hasArtifactStorage: boolean,
+): boolean {
+  return !!primaryWorkspaceDir && (gitWorkspace || hasArtifactStorage);
+}
+
+/**
  * Turn start: pin the pre-turn working tree behind the baseline ref and author
  * the BASELINE_CAPTURED event. The projection reads `turn_id`/`harness_id` ONLY
  * from this payload, so `turnId == changeSetId` (one turn = one change set) and

@@ -32,6 +32,7 @@ import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/t
 import { CasCaptureFilesystemBackend } from "./cas-capture-backend.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-substrate.js";
+import { deriveCaptureMode } from "../../shared/filereview/capture.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
 import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
@@ -84,7 +85,15 @@ export interface SetupResult {
   readonly secretKeys: ReadonlySet<string>;
   readonly modelName: string;
   readonly gracefulStop: GracefulStopMiddleware;
-  readonly artifactStorage: ArtifactStorage;
+  /**
+   * Artifact storage for CAS blobs, tool-output offload, and attachment/plan
+   * artifacts. `undefined` only when it cannot be built (proxy transport with a
+   * missing token/endpoint — a misconfiguration; local storage never fails). Every
+   * consumer must tolerate its absence: capture degrades to the deny-gate (see
+   * `captureMode`), offload is disabled (the aggregate size guard still applies),
+   * and attachment/plan publishing surface a clear error rather than crashing.
+   */
+  readonly artifactStorage: ArtifactStorage | undefined;
   readonly provisionResults: readonly ProvisionResult[];
   readonly approvalPolicies: ReadonlyMap<string, MergedToolPolicy>;
   readonly toolServerMap: ReadonlyMap<string, string>;
@@ -114,11 +123,15 @@ export interface SetupResult {
    */
   readonly casObserver: CasCaptureObserver;
   /**
-   * Apply-then-review capture mode. Universal in the native harness (Slice 2b):
-   * file edits flow during the turn and are reviewed post-hoc as a captured
-   * `FileChangeSet` (the activity authors the baseline/candidate ledger events and
-   * reconciles on resume), for both git and non-git workspaces. The deny-gate then
-   * covers only shell/MCP/irreversible tools, never file writes.
+   * Apply-then-review capture mode, decided by {@link deriveCaptureMode} (shared
+   * with the Cursor harness so both degrade identically): file edits flow during
+   * the turn and are reviewed post-hoc as a captured `FileChangeSet` (the activity
+   * authors the baseline/candidate ledger events and reconciles on resume). True
+   * whenever there is a capture substrate — a git work tree (needs no storage) OR
+   * artifact storage for the non-git CAS path. False for a non-git workspace with
+   * no artifact storage (proxy misconfig): capture has no substrate, so file writes
+   * fall back to the deny-gate (gated pre-execution) exactly like Cursor's DD-22
+   * fallback. When true, the deny-gate covers only shell/MCP/irreversible tools.
    */
   readonly captureMode: boolean;
   /**
@@ -188,9 +201,20 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     await reportSetupProgress(client, executionId, "Resolving environment…");
     const envResult: EnvironmentResult = await resolveEnvironment(client, executionId);
 
-    // Step 6: Create artifact storage
-    const artifactStorageConfig = loadArtifactStorageConfig(config);
-    const artifactStorage = createArtifactStorage(artifactStorageConfig);
+    // Step 6: Create artifact storage. Best-effort, mirroring the Cursor harness:
+    // `createArtifactStorage` throws only for proxy transport with a missing
+    // token/endpoint (a misconfiguration; local storage never throws). We degrade
+    // rather than crash — an absent store flips capture mode off (deny-gate
+    // fallback below) and disables offload, instead of failing the whole execution.
+    let artifactStorage: ArtifactStorage | undefined;
+    try {
+      artifactStorage = createArtifactStorage(loadArtifactStorageConfig(config));
+    } catch (storageErr) {
+      console.warn(
+        `[setup] artifact storage unavailable — capture degrades to the deny-gate ` +
+        `and tool-output offload is disabled: execution=${executionId}, error=${storageErr}`,
+      );
+    }
 
     // Step 7: Provision workspace
     await reportSetupProgress(client, executionId, "Initializing workspace…");
@@ -201,20 +225,28 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       sessionId,
     );
 
-    // Apply-then-review is the UNIVERSAL file-review model in the native harness
-    // (DD-21 D2, Slice 2b): file edits flow during the turn and are reviewed
-    // post-hoc as a captured `FileChangeSet` (reconciled byte-exactly on resume),
-    // never gated before they run. Only the capture SUBSTRATE differs, selected by
+    // Apply-then-review is the file-review model whenever there is a capture
+    // SUBSTRATE (DD-21 D2, Slice 2b): file edits flow during the turn and are
+    // reviewed post-hoc as a captured `FileChangeSet` (reconciled byte-exactly on
+    // resume), never gated before they run. The substrate is selected by
     // `gitWorkspace`:
-    //   - a git work tree diffs a pinned baseline -> candidate tree (git-substrate),
-    //     and routes its .gitignored edits into the path-scoped CAS observer;
+    //   - a git work tree diffs a pinned baseline -> candidate tree (git-substrate,
+    //     needs no artifact storage), and routes its .gitignored edits into the
+    //     path-scoped CAS observer;
     //   - a non-git workspace has no git snapshot at all, so EVERY touched path is
-    //     captured into the content-addressed CAS manifest (cas-substrate),
-    //     path-scoped to what the agent actually wrote.
-    // The deny-gate then survives only for shell/MCP/irreversible tools, never for
-    // file writes.
+    //     captured into the content-addressed CAS manifest (cas-substrate), which
+    //     needs artifact storage to persist blobs.
+    // So a non-git workspace with NO artifact storage has no substrate: capture
+    // degrades to the deny-gate (file writes gated pre-execution), exactly like the
+    // Cursor harness (DD-22). `deriveCaptureMode` is the shared decision so both
+    // harnesses degrade identically. When capture is on, the deny-gate survives only
+    // for shell/MCP/irreversible tools.
     const gitWorkspace = await isGitWorkTree(workspaceBackend.rootDir);
-    const captureMode: boolean = true;
+    const captureMode = deriveCaptureMode(
+      workspaceBackend.rootDir,
+      gitWorkspace,
+      !!artifactStorage,
+    );
 
     // Git-tracked capturability, consulted by the gate to route a file write to
     // disk-and-git-diff (tracked) vs into CAS (ignored). Only meaningful in a git
@@ -413,9 +445,16 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
           // config; buildSubAgentMiddleware sets their captureIgnored explicitly
           // from whether a CAS observer backs the sub-agent (Session 26, DD-19),
           // so their captured edits flow into the SAME observer.
+          //
+          // When captureMode is false (no substrate — non-git + no storage),
+          // fileCaptureMode is false so file writes take the plain deny-gate. The
+          // CAS arm additionally requires storage: captureIgnored gates gitignored
+          // writes onto CAS only when a store exists to persist their blobs (the
+          // git+no-storage case), matching the Cursor harness's
+          // `captureMode && !!artifactStorage`.
           fileCaptureMode: captureMode,
           isCapturablePath,
-          captureIgnored: captureMode,
+          captureIgnored: captureMode && !!artifactStorage,
           recordBlockedSecret: (rawPath: string) => casObserver.recordBlockedSecret(rawPath),
         }
       : null;
