@@ -18,7 +18,7 @@ export interface PlanCompletionCardProps {
  * Fallback CTA shown in the {@link MessageThread} after a completed Plan-mode
  * execution that did **not** publish a `plan.md` artifact (older executions, or
  * a plan whose upload failed). When a plan artifact exists, the richer
- * {@link PlanArtifactCard} is shown instead.
+ * `PlanArtifactCard` is shown instead.
  *
  * Mirrors `PlanArtifactCard`'s hierarchy — one prominent, themeable "Build from
  * plan" primary action with the same card-scoped `Cmd/Ctrl+Enter` accelerator —

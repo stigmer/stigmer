@@ -355,9 +355,9 @@ func TestApproveAllApprovesSameCategoryAcrossRootAndSubAgent(t *testing.T) {
 // "approve all deletes" must NOT auto-approve a co-pending write, and the gate
 // must stay open (pending_approvals non-empty) so the workflow keeps waiting.
 func TestApproveAllLeavesDifferentCategoryPending(t *testing.T) {
-	clicked := makeApprovalToolCall("call_001", "delete_file")    // delete
-	otherClass := makeApprovalToolCall("call_002", "write_file")  // write (different class)
-	sameClass := makeApprovalToolCall("call_003", "remove_file")  // delete (same class)
+	clicked := makeApprovalToolCall("call_001", "delete_file")   // delete
+	otherClass := makeApprovalToolCall("call_002", "write_file") // write (different class)
+	sameClass := makeApprovalToolCall("call_003", "remove_file") // delete (same class)
 
 	exec := makeExecutionWithMessages(
 		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(clicked, otherClass, sameClass)},

@@ -82,7 +82,7 @@ export interface UseWorkflowExecutionActionsReturn {
    * `AgentExecution.submitFileDecision`.
    *
    * `childAgentExecutionId` comes from the surfaced
-   * {@link WorkflowPendingFileReview} reference. `options` carries the same
+   * `WorkflowPendingFileReview` reference. `options` carries the same
    * per-decision detail as {@link FileReviewCard}'s `onSubmit` (scope,
    * `fileChangeId`, `expectedDigest`, `reason`, `acknowledgeUnreviewable`).
    */
@@ -127,7 +127,7 @@ export interface UseWorkflowExecutionActionsReturn {
   readonly taskApprovalSubmittingTaskNames: ReadonlySet<string>;
   /**
    * Per-gate human_input task approval failures, keyed by `taskName`. Consumed
-   * by {@link WorkflowTaskApprovalCard} to surface the failure in-card, beside
+   * by `WorkflowTaskApprovalCard` to surface the failure in-card, beside
    * the gate that failed. Cleared for a gate when it is retried.
    */
   readonly taskApprovalErrorsByTaskName: ReadonlyMap<string, Error>;

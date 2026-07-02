@@ -1918,6 +1918,7 @@ One human decision on a change set or a single file within it.
     decidedAt: { type: "string", description: "ISO 8601 timestamp when the decision was made." },
     reason: { type: "string", description: "Optional free-text comment supplied with the decision (audit trail)." },
     acknowledgeUnreviewable: { type: "boolean", description: "True when this APPROVE consciously kept a change whose diff could not be fully reviewed (a binary file — no text diff, but exact reconcilable bytes)." },
+    origin: { type: "FileDecisionOrigin", description: "Which authority authored this decision: a human reviewer (USER; also the reading for UNSPECIFIED pre-origin records) or the approved-command auto-keep policy (DD-28).", typeDescriptionLink: "#filedecisionorigin" },
   }}
 />
 
@@ -1945,6 +1946,7 @@ The candidate workspace state captured at the turn boundary, carrying the comput
     changes: { type: "CapturedFileChange[]", description: "The authoritative per-file diff (diff of baseline → candidate).", typeDescriptionLink: "#capturedfilechange" },
     aggregateDigest: { type: "string", description: "Canonical digest over the ordered manifest (enforcement)." },
     diffCompleteness: { type: "DiffCompleteness", description: "The runner-derived completeness rollup for this candidate: COMPLETE when every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only blocker, else PARTIAL_BLOCKED.", typeDescriptionLink: "#diffcompleteness" },
+    commandProvenance: { type: "TurnCommandProvenance", description: "The runner's approved-command turn facts (DD-28).", typeDescriptionLink: "#turncommandprovenance" },
   }}
 />
 
@@ -2185,6 +2187,7 @@ Represents a tool call made by the agent during execution.
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that decided this tool call's approval requirement, set by the runner's approval gate so clients can explain \"why was this gated or auto-approved?\".", typeDescriptionLink: "#approvalpolicysource" },
     policyEngineVersion: { type: "string", description: "Identifier of the policy-engine logic that produced approval_policy_source, bumped when the merge/classification semantics change so decisions made by different engine versions stay distinguishable in audits." },
     approvalContentDigest: { type: "string", description: "Stable digest of the authoritative edit content (the hook-captured tool input) for a gated file-mutating tool call, set by the runner's approval gate." },
+    fileChangeSetId: { type: "string", description: "Id of the FileChangeSet this flowed file-edit contributed to (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary capture." },
   }}
 />
 
@@ -2200,6 +2203,17 @@ ToolCallOutputRef points to a tool call's full output after the runner offloaded
     mimeType: { type: "string", description: "MIME type of the offloaded content." },
     isImage: { type: "boolean", description: "True when the offloaded content is an image the UI should render inline (e.g. a screenshot from a computer-use MCP server)." },
     truncatedPreview: { type: "string", description: "Short head of the original text content, kept inline for an at-a-glance preview without fetching the full artifact." },
+  }}
+/>
+
+### TurnCommandProvenance
+
+The runner's turn facts backing the approved-command auto-keep policy (DD-28): its assertion that EVERY mutation in the candidate was produced by executed shell commands the human had already authorized, with the consent evidence the backend can verify.
+
+<TypeTable
+  type={{
+    consentToolCallIds: { type: "string[]", description: "Ids of the transcript tool calls whose SERVER-AUTHORED approval_action (written only by SubmitApproval, preserved against runner writes) authorizes this turn's executed commands: the approved gate row for a per-command grant, or the APPROVE_ALL row whose category lease covered the command." },
+    authorizedByAutoApproveAll: { type: "boolean", description: "True when the commands ran ungated under the pre-armed spec.auto_approve_all global bypass (there is no per-command consent row to cite)." },
   }}
 />
 
@@ -2415,6 +2429,15 @@ DiffCompleteness describes whether a change set's rendered diff is complete enou
 | `DIFF_COMPLETENESS_COMPLETE` | Every file's full diff is available; safe to approve. |
 | `DIFF_COMPLETENESS_PARTIAL_BLOCKED` | At least one file has a non-binary incompleteness (elided/truncated/ secret-withheld/uncapturable) with no keepable bytes. |
 | `DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY` | The set's ONLY incompleteness is binary files: every non-binary file is fully reviewable, and the remaining files are binary (a byte-true summary, no text diff). |
+
+### FileDecisionOrigin
+
+FileDecisionOrigin records which authority authored a FileDecision: a human reviewer, or a platform policy acting on consent the human already gave.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_DECISION_ORIGIN_USER` | A human reviewer decided via SubmitFileDecision. |
+| `FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND` | Platform policy auto-kept the set because every mutation in its turn came from commands the human explicitly authorized (per-command approval, APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified against server-authored approval records before authoring (DD-28). |
 
 ### FileReviewEventType
 

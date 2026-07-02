@@ -41,7 +41,7 @@ export interface ToolCallItemProps {
    * Whether the row renders as its own self-contained card (a thin rounded
    * border). Defaults to `true`. Set to `false` when the row is nested inside a
    * container that already provides the border — e.g. the folded
-   * {@link ToolRunGroup} chip — where the row falls back to a divider-separated
+   * `ToolRunGroup` chip — where the row falls back to a divider-separated
    * row to avoid a card-in-a-card.
    */
   readonly bordered?: boolean;
@@ -61,7 +61,7 @@ export interface ToolCallItemProps {
  *   unknown / mcp): a plain (non-button) header above an **always-visible**
  *   {@link ToolCallDetail} body — Cursor-style "previews aren't collapsible".
  *   There is no header chevron; each content block self-bounds with its own
- *   single in-place reveal ({@link RevealToggle}), so a long diff or output
+   *   single in-place reveal (`RevealToggle`), so a long diff or output
  *   never floods the thread. The body is suppressed only for an `empty` result
  *   (e.g. a no-output shell), which stays a clean one-line row.
  * - **Summary / sub-agent** (read / list / search / delete / think, and

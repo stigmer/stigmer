@@ -28,8 +28,10 @@ import (
 //
 // ROOT CAUSE (confirmed from a real production capture): the cursor-agent DOES
 // deliver the image. A real get_app_state result is the envelope
-//   { status, value: { content: [ {text:{text}}, {image:{data:{type:"Buffer",
-//   data:[...]}}} ] } }
+//
+//	{ status, value: { content: [ {text:{text}}, {image:{data:{type:"Buffer",
+//	data:[...]}}} ] } }
+//
 // delivered to the runner as a serialized STRING — blocks nested under
 // value.content, image bytes as Node Buffer-JSON, and NO mimeType. The bug was
 // entirely runner-side: shared/status-offload.ts detectImagePayload only looked

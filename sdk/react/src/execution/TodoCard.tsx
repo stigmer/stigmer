@@ -36,7 +36,7 @@ export interface TodoCardProps {
  * while the plan is active (any item in progress), settling closed once the
  * plan is fully resolved, with a user's manual toggle always winning. This
  * keeps an in-flight plan visible and a finished one tidy, mirroring
- * {@link ToolRunGroup}/{@link SubAgentSection}.
+ * `ToolRunGroup`/{@link SubAgentSection}.
  *
  * `React.memo`'d on the by-reference `todos` map: structural sharing
  * (`shareTodos`) keeps the reference stable across stream frames, so the card
