@@ -78,6 +78,8 @@ function createMockActivities() {
     RunShell: async (): Promise<unknown> => "hello from shell",
     UpdateWorkflowTaskApprovalStatus: async (): Promise<void> => {},
     ClearWorkflowApprovalStatus: async (): Promise<void> => {},
+    UpdateWorkflowFileReviewStatus: async (): Promise<void> => {},
+    GetAwaitingFileReviewChangeSetIds: async (): Promise<string[]> => [],
   };
 }
 

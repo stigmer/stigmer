@@ -472,6 +472,11 @@ func Run() error {
 	// This enables WorkflowExecution.SubmitApproval to forward decisions to child agent executions
 	workflowExecutionController.SetAgentExecutionClient(agentExecutionController)
 
+	// Inject AgentExecution client for HITL file-review forwarding
+	// This enables WorkflowExecution.SubmitFileDecision to forward keep/discard
+	// decisions to the child agent execution that holds the file-review gate.
+	workflowExecutionController.SetAgentExecutionFileDecisionClient(agentExecutionController)
+
 	// Inject discovery dependencies into McpServerController.
 	// The connect workflow runs on the runner's activity queue. In per-session
 	// routing mode, the queue is derived from the session ID at connect time.

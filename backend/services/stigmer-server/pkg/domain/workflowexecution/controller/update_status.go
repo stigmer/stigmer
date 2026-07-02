@@ -56,6 +56,25 @@ func (c *WorkflowExecutionController) UpdateStatus(ctx context.Context, input *w
 	return execution, nil
 }
 
+// mergePendingByChild performs a per-child upsert of a workflow status list
+// (pending_approvals or pending_file_reviews): it drops the existing entries that
+// belong to scopeChildID and appends the incoming entries (which must all belong
+// to scopeChildID). Every other child's entries are preserved untouched, so
+// parallel child agents surfacing/clearing their own gates never clobber each
+// other. An empty incoming slice therefore clears just scopeChildID's entries.
+//
+// childOf extracts an entry's owning child_agent_execution_id. Kept generic so the
+// approval and file-review lists share exactly one merge semantic.
+func mergePendingByChild[T any](existing, incoming []T, childOf func(T) string, scopeChildID string) []T {
+	merged := make([]T, 0, len(existing)+len(incoming))
+	for _, e := range existing {
+		if childOf(e) != scopeChildID {
+			merged = append(merged, e)
+		}
+	}
+	return append(merged, incoming...)
+}
+
 // ValidateUpdateStatusInputStep validates the input for UpdateStatus
 type ValidateUpdateStatusInputStep struct{}
 
@@ -206,11 +225,29 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*work
 		updated.Status.TotalOutputTokens = requestStatus.TotalOutputTokens
 	}
 
-	// Guarded update: only touch pending_approvals when explicitly requested.
-	// This prevents the race condition where event emissions (which don't
-	// include approvals) clobber active approval gates set by call-agent-status.
+	// Guarded, per-child merge: only touch pending_approvals / pending_file_reviews
+	// when explicitly requested, and even then replace only the entries for the
+	// scoped child (pending_update_child_agent_execution_id), preserving every
+	// sibling child's entries. This both prevents event emissions (which don't
+	// include these lists) from clobbering active gates set by call-agent-status,
+	// and prevents parallel child agents from clobbering each other's gates. A
+	// scoped write with an empty incoming list clears just that child's entries.
+	scopeChildID := input.GetPendingUpdateChildAgentExecutionId()
 	if input.UpdatePendingApprovals {
-		updated.Status.PendingApprovals = requestStatus.PendingApprovals
+		updated.Status.PendingApprovals = mergePendingByChild(
+			updated.Status.GetPendingApprovals(),
+			requestStatus.GetPendingApprovals(),
+			func(pa *workflowexecutionv1.WorkflowPendingApproval) string { return pa.GetChildAgentExecutionId() },
+			scopeChildID,
+		)
+	}
+	if input.UpdatePendingFileReviews {
+		updated.Status.PendingFileReviews = mergePendingByChild(
+			updated.Status.GetPendingFileReviews(),
+			requestStatus.GetPendingFileReviews(),
+			func(fr *workflowexecutionv1.WorkflowPendingFileReview) string { return fr.GetChildAgentExecutionId() },
+			scopeChildID,
+		)
 	}
 
 	log.Debug().
@@ -218,6 +255,7 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*work
 		Str("phase", updated.Status.Phase.String()).
 		Int("tasks_count", len(updated.Status.Tasks)).
 		Int("pending_approvals_count", len(updated.Status.PendingApprovals)).
+		Int("pending_file_reviews_count", len(updated.Status.PendingFileReviews)).
 		Msg("Merged status fields")
 
 	// Store merged execution in context for persist step

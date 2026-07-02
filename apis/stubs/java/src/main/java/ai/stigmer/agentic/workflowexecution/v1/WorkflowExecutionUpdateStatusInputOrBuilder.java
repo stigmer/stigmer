@@ -193,24 +193,86 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
 
   /**
    * <pre>
-   * When true, status.pending_approvals will be merged into the existing
-   * execution (replacing the stored list). When false (default), existing
-   * pending_approvals are preserved unchanged.
+   * When true, status.pending_approvals is merged for the single child named by
+   * pending_update_child_agent_execution_id. When false (default), the stored
+   * list is preserved unchanged.
    *
    * &#64;internal
-   * This prevents a race condition where concurrent event emissions
-   * (which don't include pending_approvals) inadvertently clear active
-   * approval gates set by call-agent-status.
+   * Per-child merge (NOT full-replace): the write replaces the entries for the
+   * scoped child and preserves every sibling child's entries, so parallel child
+   * agents never clobber each other's approval gates. A scoped write with an
+   * empty incoming list clears just that child's entries. The guard still
+   * prevents concurrent event emissions (which don't include approvals) from
+   * disturbing active gates set by call-agent-status.
    *
-   * Only call-agent-status.ts sets this to true — both when populating
-   * approvals from a child_approval_required signal and when clearing them
-   * after the child agent completes.
+   * Only call-agent-status.ts sets this to true — both when populating approvals
+   * from a child_approval_required signal and when clearing them after the child
+   * agent completes.
    *
-   * &#64;since Agent Call Live Experience
+   * &#64;since Agent Call Live Experience (per-child merge since Workflow-Parent File Review)
    * </pre>
    *
    * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
    * @return The updatePendingApprovals.
    */
   boolean getUpdatePendingApprovals();
+
+  /**
+   * <pre>
+   * When true, status.pending_file_reviews is merged for the single child named
+   * by pending_update_child_agent_execution_id, with the same per-child merge
+   * semantics as update_pending_approvals. When false (default), the stored list
+   * is preserved unchanged.
+   *
+   * &#64;internal
+   * Only call-agent-status.ts sets this to true — when surfacing a child's
+   * AWAITING_REVIEW change sets and when clearing them.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>bool update_pending_file_reviews = 12 [json_name = "updatePendingFileReviews"];</code>
+   * @return The updatePendingFileReviews.
+   */
+  boolean getUpdatePendingFileReviews();
+
+  /**
+   * <pre>
+   * The child agent execution a per-child merge targets. Names the single child
+   * whose pending_approvals / pending_file_reviews entries this update replaces;
+   * every sibling child's entries are preserved. Required whenever
+   * update_pending_approvals or update_pending_file_reviews is true — including
+   * the clear case, where the scoped incoming list is empty (the child id is the
+   * only way to know which child to clear).
+   *
+   * &#64;internal
+   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>
+   * @return The pendingUpdateChildAgentExecutionId.
+   */
+  java.lang.String getPendingUpdateChildAgentExecutionId();
+  /**
+   * <pre>
+   * The child agent execution a per-child merge targets. Names the single child
+   * whose pending_approvals / pending_file_reviews entries this update replaces;
+   * every sibling child's entries are preserved. Required whenever
+   * update_pending_approvals or update_pending_file_reviews is true — including
+   * the clear case, where the scoped incoming list is empty (the child id is the
+   * only way to know which child to clear).
+   *
+   * &#64;internal
+   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>
+   * @return The bytes for pendingUpdateChildAgentExecutionId.
+   */
+  com.google.protobuf.ByteString
+      getPendingUpdateChildAgentExecutionIdBytes();
 }

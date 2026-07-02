@@ -38,6 +38,7 @@ private static final long serialVersionUID = 0L;
   private WorkflowExecutionUpdateStatusInput() {
     executionId_ = "";
     events_ = java.util.Collections.emptyList();
+    pendingUpdateChildAgentExecutionId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -299,20 +300,23 @@ private static final long serialVersionUID = 0L;
   private boolean updatePendingApprovals_ = false;
   /**
    * <pre>
-   * When true, status.pending_approvals will be merged into the existing
-   * execution (replacing the stored list). When false (default), existing
-   * pending_approvals are preserved unchanged.
+   * When true, status.pending_approvals is merged for the single child named by
+   * pending_update_child_agent_execution_id. When false (default), the stored
+   * list is preserved unchanged.
    *
    * &#64;internal
-   * This prevents a race condition where concurrent event emissions
-   * (which don't include pending_approvals) inadvertently clear active
-   * approval gates set by call-agent-status.
+   * Per-child merge (NOT full-replace): the write replaces the entries for the
+   * scoped child and preserves every sibling child's entries, so parallel child
+   * agents never clobber each other's approval gates. A scoped write with an
+   * empty incoming list clears just that child's entries. The guard still
+   * prevents concurrent event emissions (which don't include approvals) from
+   * disturbing active gates set by call-agent-status.
    *
-   * Only call-agent-status.ts sets this to true — both when populating
-   * approvals from a child_approval_required signal and when clearing them
-   * after the child agent completes.
+   * Only call-agent-status.ts sets this to true — both when populating approvals
+   * from a child_approval_required signal and when clearing them after the child
+   * agent completes.
    *
-   * &#64;since Agent Call Live Experience
+   * &#64;since Agent Call Live Experience (per-child merge since Workflow-Parent File Review)
    * </pre>
    *
    * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
@@ -321,6 +325,97 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public boolean getUpdatePendingApprovals() {
     return updatePendingApprovals_;
+  }
+
+  public static final int UPDATE_PENDING_FILE_REVIEWS_FIELD_NUMBER = 12;
+  private boolean updatePendingFileReviews_ = false;
+  /**
+   * <pre>
+   * When true, status.pending_file_reviews is merged for the single child named
+   * by pending_update_child_agent_execution_id, with the same per-child merge
+   * semantics as update_pending_approvals. When false (default), the stored list
+   * is preserved unchanged.
+   *
+   * &#64;internal
+   * Only call-agent-status.ts sets this to true — when surfacing a child's
+   * AWAITING_REVIEW change sets and when clearing them.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>bool update_pending_file_reviews = 12 [json_name = "updatePendingFileReviews"];</code>
+   * @return The updatePendingFileReviews.
+   */
+  @java.lang.Override
+  public boolean getUpdatePendingFileReviews() {
+    return updatePendingFileReviews_;
+  }
+
+  public static final int PENDING_UPDATE_CHILD_AGENT_EXECUTION_ID_FIELD_NUMBER = 13;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object pendingUpdateChildAgentExecutionId_ = "";
+  /**
+   * <pre>
+   * The child agent execution a per-child merge targets. Names the single child
+   * whose pending_approvals / pending_file_reviews entries this update replaces;
+   * every sibling child's entries are preserved. Required whenever
+   * update_pending_approvals or update_pending_file_reviews is true — including
+   * the clear case, where the scoped incoming list is empty (the child id is the
+   * only way to know which child to clear).
+   *
+   * &#64;internal
+   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>
+   * @return The pendingUpdateChildAgentExecutionId.
+   */
+  @java.lang.Override
+  public java.lang.String getPendingUpdateChildAgentExecutionId() {
+    java.lang.Object ref = pendingUpdateChildAgentExecutionId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      pendingUpdateChildAgentExecutionId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The child agent execution a per-child merge targets. Names the single child
+   * whose pending_approvals / pending_file_reviews entries this update replaces;
+   * every sibling child's entries are preserved. Required whenever
+   * update_pending_approvals or update_pending_file_reviews is true — including
+   * the clear case, where the scoped incoming list is empty (the child id is the
+   * only way to know which child to clear).
+   *
+   * &#64;internal
+   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>
+   * @return The bytes for pendingUpdateChildAgentExecutionId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPendingUpdateChildAgentExecutionIdBytes() {
+    java.lang.Object ref = pendingUpdateChildAgentExecutionId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      pendingUpdateChildAgentExecutionId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   private byte memoizedIsInitialized = -1;
@@ -348,6 +443,12 @@ private static final long serialVersionUID = 0L;
     }
     if (updatePendingApprovals_ != false) {
       output.writeBool(11, updatePendingApprovals_);
+    }
+    if (updatePendingFileReviews_ != false) {
+      output.writeBool(12, updatePendingFileReviews_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pendingUpdateChildAgentExecutionId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 13, pendingUpdateChildAgentExecutionId_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -378,6 +479,13 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(11, updatePendingApprovals_);
     }
+    if (updatePendingFileReviews_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(12, updatePendingFileReviews_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pendingUpdateChildAgentExecutionId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(13, pendingUpdateChildAgentExecutionId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -404,6 +512,10 @@ private static final long serialVersionUID = 0L;
         .equals(other.getEventsList())) return false;
     if (getUpdatePendingApprovals()
         != other.getUpdatePendingApprovals()) return false;
+    if (getUpdatePendingFileReviews()
+        != other.getUpdatePendingFileReviews()) return false;
+    if (!getPendingUpdateChildAgentExecutionId()
+        .equals(other.getPendingUpdateChildAgentExecutionId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -428,6 +540,11 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + UPDATE_PENDING_APPROVALS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getUpdatePendingApprovals());
+    hash = (37 * hash) + UPDATE_PENDING_FILE_REVIEWS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getUpdatePendingFileReviews());
+    hash = (37 * hash) + PENDING_UPDATE_CHILD_AGENT_EXECUTION_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getPendingUpdateChildAgentExecutionId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -588,6 +705,8 @@ private static final long serialVersionUID = 0L;
       }
       bitField0_ = (bitField0_ & ~0x00000004);
       updatePendingApprovals_ = false;
+      updatePendingFileReviews_ = false;
+      pendingUpdateChildAgentExecutionId_ = "";
       return this;
     }
 
@@ -647,6 +766,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.updatePendingApprovals_ = updatePendingApprovals_;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.updatePendingFileReviews_ = updatePendingFileReviews_;
+      }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.pendingUpdateChildAgentExecutionId_ = pendingUpdateChildAgentExecutionId_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -698,6 +823,14 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getUpdatePendingApprovals() != false) {
         setUpdatePendingApprovals(other.getUpdatePendingApprovals());
+      }
+      if (other.getUpdatePendingFileReviews() != false) {
+        setUpdatePendingFileReviews(other.getUpdatePendingFileReviews());
+      }
+      if (!other.getPendingUpdateChildAgentExecutionId().isEmpty()) {
+        pendingUpdateChildAgentExecutionId_ = other.pendingUpdateChildAgentExecutionId_;
+        bitField0_ |= 0x00000020;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -755,6 +888,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 88
+            case 96: {
+              updatePendingFileReviews_ = input.readBool();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 96
+            case 106: {
+              pendingUpdateChildAgentExecutionId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 106
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1648,20 +1791,23 @@ private static final long serialVersionUID = 0L;
     private boolean updatePendingApprovals_ ;
     /**
      * <pre>
-     * When true, status.pending_approvals will be merged into the existing
-     * execution (replacing the stored list). When false (default), existing
-     * pending_approvals are preserved unchanged.
+     * When true, status.pending_approvals is merged for the single child named by
+     * pending_update_child_agent_execution_id. When false (default), the stored
+     * list is preserved unchanged.
      *
      * &#64;internal
-     * This prevents a race condition where concurrent event emissions
-     * (which don't include pending_approvals) inadvertently clear active
-     * approval gates set by call-agent-status.
+     * Per-child merge (NOT full-replace): the write replaces the entries for the
+     * scoped child and preserves every sibling child's entries, so parallel child
+     * agents never clobber each other's approval gates. A scoped write with an
+     * empty incoming list clears just that child's entries. The guard still
+     * prevents concurrent event emissions (which don't include approvals) from
+     * disturbing active gates set by call-agent-status.
      *
-     * Only call-agent-status.ts sets this to true — both when populating
-     * approvals from a child_approval_required signal and when clearing them
-     * after the child agent completes.
+     * Only call-agent-status.ts sets this to true — both when populating approvals
+     * from a child_approval_required signal and when clearing them after the child
+     * agent completes.
      *
-     * &#64;since Agent Call Live Experience
+     * &#64;since Agent Call Live Experience (per-child merge since Workflow-Parent File Review)
      * </pre>
      *
      * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
@@ -1673,20 +1819,23 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When true, status.pending_approvals will be merged into the existing
-     * execution (replacing the stored list). When false (default), existing
-     * pending_approvals are preserved unchanged.
+     * When true, status.pending_approvals is merged for the single child named by
+     * pending_update_child_agent_execution_id. When false (default), the stored
+     * list is preserved unchanged.
      *
      * &#64;internal
-     * This prevents a race condition where concurrent event emissions
-     * (which don't include pending_approvals) inadvertently clear active
-     * approval gates set by call-agent-status.
+     * Per-child merge (NOT full-replace): the write replaces the entries for the
+     * scoped child and preserves every sibling child's entries, so parallel child
+     * agents never clobber each other's approval gates. A scoped write with an
+     * empty incoming list clears just that child's entries. The guard still
+     * prevents concurrent event emissions (which don't include approvals) from
+     * disturbing active gates set by call-agent-status.
      *
-     * Only call-agent-status.ts sets this to true — both when populating
-     * approvals from a child_approval_required signal and when clearing them
-     * after the child agent completes.
+     * Only call-agent-status.ts sets this to true — both when populating approvals
+     * from a child_approval_required signal and when clearing them after the child
+     * agent completes.
      *
-     * &#64;since Agent Call Live Experience
+     * &#64;since Agent Call Live Experience (per-child merge since Workflow-Parent File Review)
      * </pre>
      *
      * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
@@ -1702,20 +1851,23 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When true, status.pending_approvals will be merged into the existing
-     * execution (replacing the stored list). When false (default), existing
-     * pending_approvals are preserved unchanged.
+     * When true, status.pending_approvals is merged for the single child named by
+     * pending_update_child_agent_execution_id. When false (default), the stored
+     * list is preserved unchanged.
      *
      * &#64;internal
-     * This prevents a race condition where concurrent event emissions
-     * (which don't include pending_approvals) inadvertently clear active
-     * approval gates set by call-agent-status.
+     * Per-child merge (NOT full-replace): the write replaces the entries for the
+     * scoped child and preserves every sibling child's entries, so parallel child
+     * agents never clobber each other's approval gates. A scoped write with an
+     * empty incoming list clears just that child's entries. The guard still
+     * prevents concurrent event emissions (which don't include approvals) from
+     * disturbing active gates set by call-agent-status.
      *
-     * Only call-agent-status.ts sets this to true — both when populating
-     * approvals from a child_approval_required signal and when clearing them
-     * after the child agent completes.
+     * Only call-agent-status.ts sets this to true — both when populating approvals
+     * from a child_approval_required signal and when clearing them after the child
+     * agent completes.
      *
-     * &#64;since Agent Call Live Experience
+     * &#64;since Agent Call Live Experience (per-child merge since Workflow-Parent File Review)
      * </pre>
      *
      * <code>bool update_pending_approvals = 11 [json_name = "updatePendingApprovals"];</code>
@@ -1724,6 +1876,219 @@ private static final long serialVersionUID = 0L;
     public Builder clearUpdatePendingApprovals() {
       bitField0_ = (bitField0_ & ~0x00000008);
       updatePendingApprovals_ = false;
+      onChanged();
+      return this;
+    }
+
+    private boolean updatePendingFileReviews_ ;
+    /**
+     * <pre>
+     * When true, status.pending_file_reviews is merged for the single child named
+     * by pending_update_child_agent_execution_id, with the same per-child merge
+     * semantics as update_pending_approvals. When false (default), the stored list
+     * is preserved unchanged.
+     *
+     * &#64;internal
+     * Only call-agent-status.ts sets this to true — when surfacing a child's
+     * AWAITING_REVIEW change sets and when clearing them.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>bool update_pending_file_reviews = 12 [json_name = "updatePendingFileReviews"];</code>
+     * @return The updatePendingFileReviews.
+     */
+    @java.lang.Override
+    public boolean getUpdatePendingFileReviews() {
+      return updatePendingFileReviews_;
+    }
+    /**
+     * <pre>
+     * When true, status.pending_file_reviews is merged for the single child named
+     * by pending_update_child_agent_execution_id, with the same per-child merge
+     * semantics as update_pending_approvals. When false (default), the stored list
+     * is preserved unchanged.
+     *
+     * &#64;internal
+     * Only call-agent-status.ts sets this to true — when surfacing a child's
+     * AWAITING_REVIEW change sets and when clearing them.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>bool update_pending_file_reviews = 12 [json_name = "updatePendingFileReviews"];</code>
+     * @param value The updatePendingFileReviews to set.
+     * @return This builder for chaining.
+     */
+    public Builder setUpdatePendingFileReviews(boolean value) {
+
+      updatePendingFileReviews_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * When true, status.pending_file_reviews is merged for the single child named
+     * by pending_update_child_agent_execution_id, with the same per-child merge
+     * semantics as update_pending_approvals. When false (default), the stored list
+     * is preserved unchanged.
+     *
+     * &#64;internal
+     * Only call-agent-status.ts sets this to true — when surfacing a child's
+     * AWAITING_REVIEW change sets and when clearing them.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>bool update_pending_file_reviews = 12 [json_name = "updatePendingFileReviews"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearUpdatePendingFileReviews() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      updatePendingFileReviews_ = false;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object pendingUpdateChildAgentExecutionId_ = "";
+    /**
+     * <pre>
+     * The child agent execution a per-child merge targets. Names the single child
+     * whose pending_approvals / pending_file_reviews entries this update replaces;
+     * every sibling child's entries are preserved. Required whenever
+     * update_pending_approvals or update_pending_file_reviews is true — including
+     * the clear case, where the scoped incoming list is empty (the child id is the
+     * only way to know which child to clear).
+     *
+     * &#64;internal
+     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>
+     * @return The pendingUpdateChildAgentExecutionId.
+     */
+    public java.lang.String getPendingUpdateChildAgentExecutionId() {
+      java.lang.Object ref = pendingUpdateChildAgentExecutionId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        pendingUpdateChildAgentExecutionId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The child agent execution a per-child merge targets. Names the single child
+     * whose pending_approvals / pending_file_reviews entries this update replaces;
+     * every sibling child's entries are preserved. Required whenever
+     * update_pending_approvals or update_pending_file_reviews is true — including
+     * the clear case, where the scoped incoming list is empty (the child id is the
+     * only way to know which child to clear).
+     *
+     * &#64;internal
+     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>
+     * @return The bytes for pendingUpdateChildAgentExecutionId.
+     */
+    public com.google.protobuf.ByteString
+        getPendingUpdateChildAgentExecutionIdBytes() {
+      java.lang.Object ref = pendingUpdateChildAgentExecutionId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        pendingUpdateChildAgentExecutionId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The child agent execution a per-child merge targets. Names the single child
+     * whose pending_approvals / pending_file_reviews entries this update replaces;
+     * every sibling child's entries are preserved. Required whenever
+     * update_pending_approvals or update_pending_file_reviews is true — including
+     * the clear case, where the scoped incoming list is empty (the child id is the
+     * only way to know which child to clear).
+     *
+     * &#64;internal
+     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>
+     * @param value The pendingUpdateChildAgentExecutionId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPendingUpdateChildAgentExecutionId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      pendingUpdateChildAgentExecutionId_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The child agent execution a per-child merge targets. Names the single child
+     * whose pending_approvals / pending_file_reviews entries this update replaces;
+     * every sibling child's entries are preserved. Required whenever
+     * update_pending_approvals or update_pending_file_reviews is true — including
+     * the clear case, where the scoped incoming list is empty (the child id is the
+     * only way to know which child to clear).
+     *
+     * &#64;internal
+     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPendingUpdateChildAgentExecutionId() {
+      pendingUpdateChildAgentExecutionId_ = getDefaultInstance().getPendingUpdateChildAgentExecutionId();
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The child agent execution a per-child merge targets. Names the single child
+     * whose pending_approvals / pending_file_reviews entries this update replaces;
+     * every sibling child's entries are preserved. Required whenever
+     * update_pending_approvals or update_pending_file_reviews is true — including
+     * the clear case, where the scoped incoming list is empty (the child id is the
+     * only way to know which child to clear).
+     *
+     * &#64;internal
+     * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>string pending_update_child_agent_execution_id = 13 [json_name = "pendingUpdateChildAgentExecutionId"];</code>
+     * @param value The bytes for pendingUpdateChildAgentExecutionId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPendingUpdateChildAgentExecutionIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      pendingUpdateChildAgentExecutionId_ = value;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }

@@ -5,7 +5,7 @@
 
 import { WorkflowExecution } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { CancelWorkflowExecutionInput, PauseWorkflowExecutionInput, RecoverWorkflowExecutionInput, ResumeWorkflowExecutionInput, SendSignalInput, SubmitWorkflowApprovalInput, SubmitWorkflowTaskApprovalInput, TerminateWorkflowExecutionInput, WorkflowExecutionUpdateStatusInput } from "./io_pbjs";
+import { CancelWorkflowExecutionInput, PauseWorkflowExecutionInput, RecoverWorkflowExecutionInput, ResumeWorkflowExecutionInput, SendSignalInput, SubmitWorkflowApprovalInput, SubmitWorkflowFileDecisionInput, SubmitWorkflowTaskApprovalInput, TerminateWorkflowExecutionInput, WorkflowExecutionUpdateStatusInput } from "./io_pbjs";
 import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -344,6 +344,56 @@ export const WorkflowExecutionCommandController = {
     submitApproval: {
       name: "submitApproval",
       I: SubmitWorkflowApprovalInput,
+      O: WorkflowExecution,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Submit a keep/discard decision for a child agent's file review.
+     *
+     * Forwards the decision to the child AgentExecution whose file-review gate is
+     * surfaced on this workflow via status.pending_file_reviews. This is the
+     * file-review sibling of submitApproval: submitApproval forwards a tool-call
+     * approval, submitFileDecision forwards a FileChangeSet keep/discard.
+     *
+     * @internal
+     * The decision is forwarded to the child via AgentExecution.submitFileDecision
+     * (a same-thread in-process invoke), so the child's completeness/digest gates
+     * and caller attribution (reviewer_id) apply unchanged.
+     *
+     * Preconditions:
+     * - status.pending_file_reviews must contain an entry whose
+     *   child_agent_execution_id and change_set_id match the input
+     * - User must have can_edit permission on the workflow execution
+     *
+     * State Transitions
+     *
+     * After a successful decision:
+     * - Decision is forwarded to the child AgentExecution
+     * - Child reconciles the approved bytes / discards and resumes
+     * - The child's change set leaves AWAITING_REVIEW, so call-agent-status clears
+     *   the reference from WorkflowExecution.status.pending_file_reviews
+     *
+     * Error Cases
+     *
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - FAILED_PRECONDITION: No matching pending file review for (child, change_set)
+     * - INVALID_ARGUMENT: Invalid scope/action, or the child handler rejects
+     *   (e.g. digest mismatch, incomplete diff)
+     * - UNAVAILABLE: Failed to forward to child agent (transient error)
+     *
+     * Alternative: Direct Agent Decision
+     *
+     * Users can also submit the decision directly via AgentExecution.submitFileDecision
+     * using the child_agent_execution_id. Both paths are equivalent.
+     *
+     * @since Workflow-Parent File Review
+     *
+     * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.submitFileDecision
+     */
+    submitFileDecision: {
+      name: "submitFileDecision",
+      I: SubmitWorkflowFileDecisionInput,
       O: WorkflowExecution,
       kind: MethodKind.Unary,
     },

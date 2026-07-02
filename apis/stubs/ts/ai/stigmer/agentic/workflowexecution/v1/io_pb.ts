@@ -4,7 +4,7 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApprovalAction } from "../../agentexecution/v1/enum_pb.js";
+import type { ApprovalAction, FileDecisionAction, FileDecisionScope } from "../../agentexecution/v1/enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "../../agentexecution/v1/enum_pb.js";
 import type { WorkflowExecution, WorkflowExecutionStatus } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflowexecution_v1_api } from "./api_pb.js";
@@ -21,7 +21,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvaW8ucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MSIsChNXb3JrZmxvd0V4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKV29ya2Zsb3dJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInkKFVdvcmtmbG93RXhlY3V0aW9uTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJLCgdlbnRyaWVzGAIgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uItcCCh1MaXN0V29ya2Zsb3dFeGVjdXRpb25zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRJGCgVwaGFzZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZRIMCgR0YWdzGAQgAygJElAKBmZpbHRlchgFIAEoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25GaWx0ZXJDcml0ZXJpYRJPCgpzb3J0X2ZpZWxkGAYgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblNvcnRGaWVsZBIWCg5zb3J0X2FzY2VuZGluZxgHIAEoCCKoAgonTGlzdFdvcmtmbG93RXhlY3V0aW9uc0J5V29ya2Zsb3dSZXF1ZXN0EhsKC3dvcmtmbG93X2lkGAEgASgJQga6SAPIAQESEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkSUAoGZmlsdGVyGAQgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvbkZpbHRlckNyaXRlcmlhEk8KCnNvcnRfZmllbGQYBSABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuRXhlY3V0aW9uU29ydEZpZWxkEhYKDnNvcnRfYXNjZW5kaW5nGAYgASgIIpACCiJXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJYCgZzdGF0dXMYAiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TdGF0dXNCBrpIA8gBARJPCgZldmVudHMYCiADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudBIgChh1cGRhdGVfcGVuZGluZ19hcHByb3ZhbHMYCyABKAgivgEKG1N1Ym1pdFdvcmtmbG93QXBwcm92YWxJbnB1dBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHQoMdG9vbF9jYWxsX2lkGAIgASgJQge6SARyAhABElAKBmFjdGlvbhgDIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEFjdGlvbkIKukgHggEEEAEgABIPCgdjb21tZW50GAQgASgJIsUBCh9TdWJtaXRXb3JrZmxvd1Rhc2tBcHByb3ZhbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIaCgl0YXNrX25hbWUYAiABKAlCB7pIBHICEAESGAoHb3V0Y29tZRgDIAEoCUIHukgEcgIQARIqCglmb3JtX2RhdGEYBCABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhAKCHJldmlld2VyGAUgASgJEg8KB2NvbW1lbnQYBiABKAkiQQohU3Vic2NyaWJlV29ya2Zsb3dFeGVjdXRpb25SZXF1ZXN0EhwKDGV4ZWN1dGlvbl9pZBgBIAEoCUIGukgDyAEBIkMKHENhbmNlbFdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkYKH1Rlcm1pbmF0ZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkQKHVJlY292ZXJXb3JrZmxvd0V4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABEg4KBnJlYXNvbhgCIAEoCSJCChtQYXVzZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIjMKHFJlc3VtZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAEikQEKD1NlbmRTaWduYWxJbnB1dBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHAoLc2lnbmFsX25hbWUYAiABKAlCB7pIBHICEAESKAoHcGF5bG9hZBgDIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFwoPaWRlbXBvdGVuY3lfa2V5GAQgASgJIsIBChJHZXRFdmVudExvZ1JlcXVlc3QSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhYKDmFmdGVyX3NlcXVlbmNlGAIgASgEEk8KC2V2ZW50X3R5cGVzGAMgAygOMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXZlbnRUeXBlEhEKCXRhc2tfbmFtZRgEIAEoCRIRCglwYWdlX3NpemUYBSABKAUikQEKE0dldEV2ZW50TG9nUmVzcG9uc2USTwoGZXZlbnRzGAEgAygLMj8uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uRXZlbnQSEAoIaGFzX21vcmUYAiABKAgSFwoPbGF0ZXN0X3NlcXVlbmNlGAMgASgEIqABChZTdWJzY3JpYmVFdmVudHNSZXF1ZXN0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIWCg5hZnRlcl9zZXF1ZW5jZRgCIAEoBBJPCgtldmVudF90eXBlcxgDIAMoDjI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V2ZW50VHlwZSKMAwoXRXhlY3V0aW9uRmlsdGVyQ3JpdGVyaWESRwoGcGhhc2VzGAEgAygOMjcuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlEjEKDXN0YXJ0ZWRfYWZ0ZXIYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjIKDnN0YXJ0ZWRfYmVmb3JlGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgxtaW5fZHVyYXRpb24YBCABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SLwoMbWF4X2R1cmF0aW9uGAUgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEhcKD21pbl9jb3N0X21pY3JvcxgGIAEoAxIXCg9tYXhfY29zdF9taWNyb3MYByABKAMSGAoQZmFpbGVkX3Rhc2tfbmFtZRgIIAEoCRITCgtoYXNfcmV0cmllcxgJIAEoCCKYAQoaR2V0RXhlY3V0aW9uU3VtbWFyeVJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEk8KC3RpbWVfd2luZG93GAIgASgOMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLlN1bW1hcnlUaW1lV2luZG93EhMKC3dvcmtmbG93X2lkGAMgASgJIqMEChBFeGVjdXRpb25TdW1tYXJ5EhQKDGFjdGl2ZV9jb3VudBgBIAEoBRJgCgxwaGFzZV9jb3VudHMYAiADKAsySi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuRXhlY3V0aW9uU3VtbWFyeS5QaGFzZUNvdW50c0VudHJ5ElAKCnRvdGFsX2Nvc3QYAyABKAsyPC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dDb3N0U3VtbWFyeRIvCgxhdmdfZHVyYXRpb24YBCABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SWwoVdG9wX2ZhaWxpbmdfd29ya2Zsb3dzGAUgAygLMjwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RmFpbHVyZVJhbmsSWAoQY29zdF9ieV93b3JrZmxvdxgGIAMoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0Nvc3RCcmVha2Rvd24SEwoLdG90YWxfY291bnQYByABKAUSFAoMc3VjY2Vzc19yYXRlGAggASgBGjIKEFBoYXNlQ291bnRzRW50cnkSCwoDa2V5GAEgASgFEg0KBXZhbHVlGAIgASgFOgI4ASJmChNXb3JrZmxvd0Nvc3RTdW1tYXJ5EhYKDnRvdGFsX2Nvc3RfdXNkGAEgASgBEhoKEnRvdGFsX2lucHV0X3Rva2VucxgCIAEoAxIbChN0b3RhbF9vdXRwdXRfdG9rZW5zGAMgASgDIloKE1dvcmtmbG93RmFpbHVyZVJhbmsSFQoNd29ya2Zsb3dfc2x1ZxgBIAEoCRIVCg13b3JrZmxvd19uYW1lGAIgASgJEhUKDWZhaWx1cmVfY291bnQYAyABKAUidgoVV29ya2Zsb3dDb3N0QnJlYWtkb3duEhUKDXdvcmtmbG93X3NsdWcYASABKAkSFQoNd29ya2Zsb3dfbmFtZRgCIAEoCRIWCg50b3RhbF9jb3N0X3VzZBgDIAEoARIXCg9leGVjdXRpb25fY291bnQYBCABKAUiWgobTGlzdFBlbmRpbmdBcHByb3ZhbHNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARIRCglwYWdlX3NpemUYAiABKAUSEgoKcGFnZV90b2tlbhgDIAEoCSL0AQoPUGVuZGluZ0FwcHJvdmFsEhQKDGV4ZWN1dGlvbl9pZBgBIAEoCRIVCg13b3JrZmxvd19uYW1lGAIgASgJEhEKCXRhc2tfbmFtZRgDIAEoCRIRCglyZXF1ZXN0ZXIYBCABKAkSMAoMcmVxdWVzdGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp0aW1lb3V0X2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIsCgtmb3JtX3NjaGVtYRgHIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QijwEKFFBlbmRpbmdBcHByb3ZhbHNMaXN0EkkKB2VudHJpZXMYASADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsEhMKC3RvdGFsX2NvdW50GAIgASgFEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCSrCAQoSRXhlY3V0aW9uU29ydEZpZWxkEiQKIEVYRUNVVElPTl9TT1JUX0ZJRUxEX1VOU1BFQ0lGSUVEEAASIwofRVhFQ1VUSU9OX1NPUlRfRklFTERfU1RBUlRFRF9BVBABEiEKHUVYRUNVVElPTl9TT1JUX0ZJRUxEX0RVUkFUSU9OEAISHQoZRVhFQ1VUSU9OX1NPUlRfRklFTERfQ09TVBADEh8KG0VYRUNVVElPTl9TT1JUX0ZJRUxEX1NUQVRVUxAEKr8BChFTdW1tYXJ5VGltZVdpbmRvdxIjCh9TVU1NQVJZX1RJTUVfV0lORE9XX1VOU1BFQ0lGSUVEEAASIAocU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzI0SBABEh8KG1NVTU1BUllfVElNRV9XSU5ET1dfTEFTVF83RBACEiAKHFNVTU1BUllfVElNRV9XSU5ET1dfTEFTVF8zMEQQAxIgChxTVU1NQVJZX1RJTUVfV0lORE9XX0FMTF9USU1FEARiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_event, file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvaW8ucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MSIsChNXb3JrZmxvd0V4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKV29ya2Zsb3dJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInkKFVdvcmtmbG93RXhlY3V0aW9uTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJLCgdlbnRyaWVzGAIgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uItcCCh1MaXN0V29ya2Zsb3dFeGVjdXRpb25zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRJGCgVwaGFzZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZRIMCgR0YWdzGAQgAygJElAKBmZpbHRlchgFIAEoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25GaWx0ZXJDcml0ZXJpYRJPCgpzb3J0X2ZpZWxkGAYgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblNvcnRGaWVsZBIWCg5zb3J0X2FzY2VuZGluZxgHIAEoCCKoAgonTGlzdFdvcmtmbG93RXhlY3V0aW9uc0J5V29ya2Zsb3dSZXF1ZXN0EhsKC3dvcmtmbG93X2lkGAEgASgJQga6SAPIAQESEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkSUAoGZmlsdGVyGAQgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvbkZpbHRlckNyaXRlcmlhEk8KCnNvcnRfZmllbGQYBSABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuRXhlY3V0aW9uU29ydEZpZWxkEhYKDnNvcnRfYXNjZW5kaW5nGAYgASgIIuYCCiJXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJYCgZzdGF0dXMYAiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TdGF0dXNCBrpIA8gBARJPCgZldmVudHMYCiADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudBIgChh1cGRhdGVfcGVuZGluZ19hcHByb3ZhbHMYCyABKAgSIwobdXBkYXRlX3BlbmRpbmdfZmlsZV9yZXZpZXdzGAwgASgIEi8KJ3BlbmRpbmdfdXBkYXRlX2NoaWxkX2FnZW50X2V4ZWN1dGlvbl9pZBgNIAEoCSK+AQobU3VibWl0V29ya2Zsb3dBcHByb3ZhbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkioQMKH1N1Ym1pdFdvcmtmbG93RmlsZURlY2lzaW9uSW5wdXQSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEikKGGNoaWxkX2FnZW50X2V4ZWN1dGlvbl9pZBgCIAEoCUIHukgEcgIQARIeCg1jaGFuZ2Vfc2V0X2lkGAMgASgJQge6SARyAhABElIKBXNjb3BlGAQgASgOMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVEZWNpc2lvblNjb3BlQgq6SAeCAQQQASAAEhYKDmZpbGVfY2hhbmdlX2lkGAUgASgJElQKBmFjdGlvbhgGIAEoDjI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlRGVjaXNpb25BY3Rpb25CCrpIB4IBBBABIAASIAoPZXhwZWN0ZWRfZGlnZXN0GAcgASgJQge6SARyAhABEg4KBnJlYXNvbhgIIAEoCRIgChhhY2tub3dsZWRnZV91bnJldmlld2FibGUYCSABKAgixQEKH1N1Ym1pdFdvcmtmbG93VGFza0FwcHJvdmFsSW5wdXQSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhoKCXRhc2tfbmFtZRgCIAEoCUIHukgEcgIQARIYCgdvdXRjb21lGAMgASgJQge6SARyAhABEioKCWZvcm1fZGF0YRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSEAoIcmV2aWV3ZXIYBSABKAkSDwoHY29tbWVudBgGIAEoCSJBCiFTdWJzY3JpYmVXb3JrZmxvd0V4ZWN1dGlvblJlcXVlc3QSHAoMZXhlY3V0aW9uX2lkGAEgASgJQga6SAPIAQEiQwocQ2FuY2VsV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiRgofVGVybWluYXRlV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiRAodUmVjb3ZlcldvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkIKG1BhdXNlV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiMwocUmVzdW1lV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQASKRAQoPU2VuZFNpZ25hbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIcCgtzaWduYWxfbmFtZRgCIAEoCUIHukgEcgIQARIoCgdwYXlsb2FkGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIXCg9pZGVtcG90ZW5jeV9rZXkYBCABKAkiwgEKEkdldEV2ZW50TG9nUmVxdWVzdBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESFgoOYWZ0ZXJfc2VxdWVuY2UYAiABKAQSTwoLZXZlbnRfdHlwZXMYAyADKA4yOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFdmVudFR5cGUSEQoJdGFza19uYW1lGAQgASgJEhEKCXBhZ2Vfc2l6ZRgFIAEoBSKRAQoTR2V0RXZlbnRMb2dSZXNwb25zZRJPCgZldmVudHMYASADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudBIQCghoYXNfbW9yZRgCIAEoCBIXCg9sYXRlc3Rfc2VxdWVuY2UYAyABKAQioAEKFlN1YnNjcmliZUV2ZW50c1JlcXVlc3QSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhYKDmFmdGVyX3NlcXVlbmNlGAIgASgEEk8KC2V2ZW50X3R5cGVzGAMgAygOMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXZlbnRUeXBlIowDChdFeGVjdXRpb25GaWx0ZXJDcml0ZXJpYRJHCgZwaGFzZXMYASADKA4yNy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuRXhlY3V0aW9uUGhhc2USMQoNc3RhcnRlZF9hZnRlchgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMgoOc3RhcnRlZF9iZWZvcmUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KDG1pbl9kdXJhdGlvbhgEIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIvCgxtYXhfZHVyYXRpb24YBSABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SFwoPbWluX2Nvc3RfbWljcm9zGAYgASgDEhcKD21heF9jb3N0X21pY3JvcxgHIAEoAxIYChBmYWlsZWRfdGFza19uYW1lGAggASgJEhMKC2hhc19yZXRyaWVzGAkgASgIIpgBChpHZXRFeGVjdXRpb25TdW1tYXJ5UmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESTwoLdGltZV93aW5kb3cYAiABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuU3VtbWFyeVRpbWVXaW5kb3cSEwoLd29ya2Zsb3dfaWQYAyABKAkiowQKEEV4ZWN1dGlvblN1bW1hcnkSFAoMYWN0aXZlX2NvdW50GAEgASgFEmAKDHBoYXNlX2NvdW50cxgCIAMoCzJKLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25TdW1tYXJ5LlBoYXNlQ291bnRzRW50cnkSUAoKdG90YWxfY29zdBgDIAEoCzI8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0Nvc3RTdW1tYXJ5Ei8KDGF2Z19kdXJhdGlvbhgEIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhJbChV0b3BfZmFpbGluZ193b3JrZmxvd3MYBSADKAsyPC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dGYWlsdXJlUmFuaxJYChBjb3N0X2J5X3dvcmtmbG93GAYgAygLMj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93Q29zdEJyZWFrZG93bhITCgt0b3RhbF9jb3VudBgHIAEoBRIUCgxzdWNjZXNzX3JhdGUYCCABKAEaMgoQUGhhc2VDb3VudHNFbnRyeRILCgNrZXkYASABKAUSDQoFdmFsdWUYAiABKAU6AjgBImYKE1dvcmtmbG93Q29zdFN1bW1hcnkSFgoOdG90YWxfY29zdF91c2QYASABKAESGgoSdG90YWxfaW5wdXRfdG9rZW5zGAIgASgDEhsKE3RvdGFsX291dHB1dF90b2tlbnMYAyABKAMiWgoTV29ya2Zsb3dGYWlsdXJlUmFuaxIVCg13b3JrZmxvd19zbHVnGAEgASgJEhUKDXdvcmtmbG93X25hbWUYAiABKAkSFQoNZmFpbHVyZV9jb3VudBgDIAEoBSJ2ChVXb3JrZmxvd0Nvc3RCcmVha2Rvd24SFQoNd29ya2Zsb3dfc2x1ZxgBIAEoCRIVCg13b3JrZmxvd19uYW1lGAIgASgJEhYKDnRvdGFsX2Nvc3RfdXNkGAMgASgBEhcKD2V4ZWN1dGlvbl9jb3VudBgEIAEoBSJaChtMaXN0UGVuZGluZ0FwcHJvdmFsc1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIvQBCg9QZW5kaW5nQXBwcm92YWwSFAoMZXhlY3V0aW9uX2lkGAEgASgJEhUKDXdvcmtmbG93X25hbWUYAiABKAkSEQoJdGFza19uYW1lGAMgASgJEhEKCXJlcXVlc3RlchgEIAEoCRIwCgxyZXF1ZXN0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnRpbWVvdXRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiwKC2Zvcm1fc2NoZW1hGAcgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdCKPAQoUUGVuZGluZ0FwcHJvdmFsc0xpc3QSSQoHZW50cmllcxgBIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwSEwoLdG90YWxfY291bnQYAiABKAUSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJKsIBChJFeGVjdXRpb25Tb3J0RmllbGQSJAogRVhFQ1VUSU9OX1NPUlRfRklFTERfVU5TUEVDSUZJRUQQABIjCh9FWEVDVVRJT05fU09SVF9GSUVMRF9TVEFSVEVEX0FUEAESIQodRVhFQ1VUSU9OX1NPUlRfRklFTERfRFVSQVRJT04QAhIdChlFWEVDVVRJT05fU09SVF9GSUVMRF9DT1NUEAMSHwobRVhFQ1VUSU9OX1NPUlRfRklFTERfU1RBVFVTEAQqvwEKEVN1bW1hcnlUaW1lV2luZG93EiMKH1NVTU1BUllfVElNRV9XSU5ET1dfVU5TUEVDSUZJRUQQABIgChxTVU1NQVJZX1RJTUVfV0lORE9XX0xBU1RfMjRIEAESHwobU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzdEEAISIAocU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzMwRBADEiAKHFNVTU1BUllfVElNRV9XSU5ET1dfQUxMX1RJTUUQBGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_event, file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * WorkflowExecutionId wraps a workflow execution identifier.
@@ -327,24 +327,60 @@ export type WorkflowExecutionUpdateStatusInput = Message<"ai.stigmer.agentic.wor
   events: WorkflowExecutionEvent[];
 
   /**
-   * When true, status.pending_approvals will be merged into the existing
-   * execution (replacing the stored list). When false (default), existing
-   * pending_approvals are preserved unchanged.
+   * When true, status.pending_approvals is merged for the single child named by
+   * pending_update_child_agent_execution_id. When false (default), the stored
+   * list is preserved unchanged.
    *
    * @internal
-   * This prevents a race condition where concurrent event emissions
-   * (which don't include pending_approvals) inadvertently clear active
-   * approval gates set by call-agent-status.
+   * Per-child merge (NOT full-replace): the write replaces the entries for the
+   * scoped child and preserves every sibling child's entries, so parallel child
+   * agents never clobber each other's approval gates. A scoped write with an
+   * empty incoming list clears just that child's entries. The guard still
+   * prevents concurrent event emissions (which don't include approvals) from
+   * disturbing active gates set by call-agent-status.
    *
-   * Only call-agent-status.ts sets this to true — both when populating
-   * approvals from a child_approval_required signal and when clearing them
-   * after the child agent completes.
+   * Only call-agent-status.ts sets this to true — both when populating approvals
+   * from a child_approval_required signal and when clearing them after the child
+   * agent completes.
    *
-   * @since Agent Call Live Experience
+   * @since Agent Call Live Experience (per-child merge since Workflow-Parent File Review)
    *
    * @generated from field: bool update_pending_approvals = 11;
    */
   updatePendingApprovals: boolean;
+
+  /**
+   * When true, status.pending_file_reviews is merged for the single child named
+   * by pending_update_child_agent_execution_id, with the same per-child merge
+   * semantics as update_pending_approvals. When false (default), the stored list
+   * is preserved unchanged.
+   *
+   * @internal
+   * Only call-agent-status.ts sets this to true — when surfacing a child's
+   * AWAITING_REVIEW change sets and when clearing them.
+   *
+   * @since Workflow-Parent File Review
+   *
+   * @generated from field: bool update_pending_file_reviews = 12;
+   */
+  updatePendingFileReviews: boolean;
+
+  /**
+   * The child agent execution a per-child merge targets. Names the single child
+   * whose pending_approvals / pending_file_reviews entries this update replaces;
+   * every sibling child's entries are preserved. Required whenever
+   * update_pending_approvals or update_pending_file_reviews is true — including
+   * the clear case, where the scoped incoming list is empty (the child id is the
+   * only way to know which child to clear).
+   *
+   * @internal
+   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+   *
+   * @since Workflow-Parent File Review
+   *
+   * @generated from field: string pending_update_child_agent_execution_id = 13;
+   */
+  pendingUpdateChildAgentExecutionId: string;
 };
 
 /**
@@ -415,6 +451,113 @@ export type SubmitWorkflowApprovalInput = Message<"ai.stigmer.agentic.workflowex
  */
 export const SubmitWorkflowApprovalInputSchema: GenMessage<SubmitWorkflowApprovalInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 6);
+
+/**
+ * Input for the WorkflowExecution.submitFileDecision RPC.
+ *
+ * @internal
+ * Forwards a file-review keep/discard decision to a child AgentExecution whose
+ * file-review gate is surfaced on the parent via status.pending_file_reviews.
+ * Mirrors agentexecution.SubmitFileDecisionInput plus explicit routing: the UI
+ * holds child_agent_execution_id from the surfaced reference, so routing is
+ * explicit and does not depend on change_set_id being globally unique. The
+ * handler validates the (child_agent_execution_id, change_set_id) pair is present
+ * in status.pending_file_reviews before forwarding, then invokes
+ * AgentExecution.submitFileDecision on the same thread so the caller identity
+ * (reviewer_id) propagates.
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput
+ */
+export type SubmitWorkflowFileDecisionInput = Message<"ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput"> & {
+  /**
+   * ID of the workflow execution.
+   *
+   * @internal
+   * Format: "wfx_abc123xyz456"
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * ID of the child agent execution holding the file-review gate.
+   *
+   * @internal
+   * Must match a WorkflowPendingFileReview.child_agent_execution_id in
+   * status.pending_file_reviews. Format: AgentExecution.metadata.id.
+   *
+   * @generated from field: string child_agent_execution_id = 2;
+   */
+  childAgentExecutionId: string;
+
+  /**
+   * ID of the change set this decision targets.
+   *
+   * @internal
+   * Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
+   * and match a FileChangeSet.id on the child's status.file_change_sets.
+   *
+   * @generated from field: string change_set_id = 3;
+   */
+  changeSetId: string;
+
+  /**
+   * Whether the decision applies to the whole change set or one file.
+   * FILE_DECISION_SCOPE_UNSPECIFIED (0) is rejected by validation.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.FileDecisionScope scope = 4;
+   */
+  scope: FileDecisionScope;
+
+  /**
+   * ID of the file change to decide; required when scope is FILE, ignored for
+   * CHANGE_SET (the cross-field rule is enforced by the child handler). Must
+   * match a CapturedFileChange.id within the change set.
+   *
+   * @generated from field: string file_change_id = 5;
+   */
+  fileChangeId: string;
+
+  /**
+   * Keep (APPROVE) or discard (REJECT). FILE_DECISION_ACTION_UNSPECIFIED (0) is
+   * rejected by validation.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.FileDecisionAction action = 6;
+   */
+  action: FileDecisionAction;
+
+  /**
+   * Digest of the content the user actually saw — the enforcement gate,
+   * forwarded to the child unchanged.
+   *
+   * @generated from field: string expected_digest = 7;
+   */
+  expectedDigest: string;
+
+  /**
+   * Optional reason/comment for the decision (audit trail).
+   *
+   * @generated from field: string reason = 8;
+   */
+  reason: string;
+
+  /**
+   * Set true on an APPROVE to consciously KEEP a binary change whose diff could
+   * not be fully reviewed (forwarded to the child unchanged; see
+   * agentexecution.SubmitFileDecisionInput.acknowledge_unreviewable). Never
+   * relaxes the expected_digest gate.
+   *
+   * @generated from field: bool acknowledge_unreviewable = 9;
+   */
+  acknowledgeUnreviewable: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput.
+ * Use `create(SubmitWorkflowFileDecisionInputSchema)` to create a new message.
+ */
+export const SubmitWorkflowFileDecisionInputSchema: GenMessage<SubmitWorkflowFileDecisionInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 7);
 
 /**
  * SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a
@@ -508,7 +651,7 @@ export type SubmitWorkflowTaskApprovalInput = Message<"ai.stigmer.agentic.workfl
  * Use `create(SubmitWorkflowTaskApprovalInputSchema)` to create a new message.
  */
 export const SubmitWorkflowTaskApprovalInputSchema: GenMessage<SubmitWorkflowTaskApprovalInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 7);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 8);
 
 /**
  * SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
@@ -536,7 +679,7 @@ export type SubscribeWorkflowExecutionRequest = Message<"ai.stigmer.agentic.work
  * Use `create(SubscribeWorkflowExecutionRequestSchema)` to create a new message.
  */
 export const SubscribeWorkflowExecutionRequestSchema: GenMessage<SubscribeWorkflowExecutionRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 8);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 9);
 
 /**
  * CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
@@ -577,7 +720,7 @@ export type CancelWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowe
  * Use `create(CancelWorkflowExecutionInputSchema)` to create a new message.
  */
 export const CancelWorkflowExecutionInputSchema: GenMessage<CancelWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 9);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 10);
 
 /**
  * TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
@@ -618,7 +761,7 @@ export type TerminateWorkflowExecutionInput = Message<"ai.stigmer.agentic.workfl
  * Use `create(TerminateWorkflowExecutionInputSchema)` to create a new message.
  */
 export const TerminateWorkflowExecutionInputSchema: GenMessage<TerminateWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 10);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 11);
 
 /**
  * RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
@@ -668,7 +811,7 @@ export type RecoverWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflow
  * Use `create(RecoverWorkflowExecutionInputSchema)` to create a new message.
  */
 export const RecoverWorkflowExecutionInputSchema: GenMessage<RecoverWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 11);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 12);
 
 /**
  * PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.
@@ -705,7 +848,7 @@ export type PauseWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowex
  * Use `create(PauseWorkflowExecutionInputSchema)` to create a new message.
  */
 export const PauseWorkflowExecutionInputSchema: GenMessage<PauseWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 12);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 13);
 
 /**
  * ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
@@ -735,7 +878,7 @@ export type ResumeWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowe
  * Use `create(ResumeWorkflowExecutionInputSchema)` to create a new message.
  */
 export const ResumeWorkflowExecutionInputSchema: GenMessage<ResumeWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 13);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 14);
 
 /**
  * SendSignalInput delivers a named signal to a workflow execution.
@@ -800,7 +943,7 @@ export type SendSignalInput = Message<"ai.stigmer.agentic.workflowexecution.v1.S
  * Use `create(SendSignalInputSchema)` to create a new message.
  */
 export const SendSignalInputSchema: GenMessage<SendSignalInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 14);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 15);
 
 /**
  * GetEventLogRequest fetches the paginated event log for a workflow execution.
@@ -891,7 +1034,7 @@ export type GetEventLogRequest = Message<"ai.stigmer.agentic.workflowexecution.v
  * Use `create(GetEventLogRequestSchema)` to create a new message.
  */
 export const GetEventLogRequestSchema: GenMessage<GetEventLogRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 15);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 16);
 
 /**
  * GetEventLogResponse contains a page of execution events.
@@ -933,7 +1076,7 @@ export type GetEventLogResponse = Message<"ai.stigmer.agentic.workflowexecution.
  * Use `create(GetEventLogResponseSchema)` to create a new message.
  */
 export const GetEventLogResponseSchema: GenMessage<GetEventLogResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 16);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 17);
 
 /**
  * SubscribeEventsRequest opens a real-time event stream for a workflow execution.
@@ -1002,7 +1145,7 @@ export type SubscribeEventsRequest = Message<"ai.stigmer.agentic.workflowexecuti
  * Use `create(SubscribeEventsRequestSchema)` to create a new message.
  */
 export const SubscribeEventsRequestSchema: GenMessage<SubscribeEventsRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 17);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 18);
 
 /**
  * ExecutionFilterCriteria defines structured filter conditions for listing
@@ -1093,7 +1236,7 @@ export type ExecutionFilterCriteria = Message<"ai.stigmer.agentic.workflowexecut
  * Use `create(ExecutionFilterCriteriaSchema)` to create a new message.
  */
 export const ExecutionFilterCriteriaSchema: GenMessage<ExecutionFilterCriteria> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 18);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 19);
 
 /**
  * GetExecutionSummaryRequest fetches aggregated execution statistics for an organization,
@@ -1136,7 +1279,7 @@ export type GetExecutionSummaryRequest = Message<"ai.stigmer.agentic.workflowexe
  * Use `create(GetExecutionSummaryRequestSchema)` to create a new message.
  */
 export const GetExecutionSummaryRequestSchema: GenMessage<GetExecutionSummaryRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 19);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 20);
 
 /**
  * ExecutionSummary contains aggregated statistics for workflow executions.
@@ -1225,7 +1368,7 @@ export type ExecutionSummary = Message<"ai.stigmer.agentic.workflowexecution.v1.
  * Use `create(ExecutionSummarySchema)` to create a new message.
  */
 export const ExecutionSummarySchema: GenMessage<ExecutionSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 20);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 21);
 
 /**
  * WorkflowCostSummary aggregates token and dollar costs.
@@ -1256,7 +1399,7 @@ export type WorkflowCostSummary = Message<"ai.stigmer.agentic.workflowexecution.
  * Use `create(WorkflowCostSummarySchema)` to create a new message.
  */
 export const WorkflowCostSummarySchema: GenMessage<WorkflowCostSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 21);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 22);
 
 /**
  * WorkflowFailureRank represents a workflow and its failure count within a time window.
@@ -1287,7 +1430,7 @@ export type WorkflowFailureRank = Message<"ai.stigmer.agentic.workflowexecution.
  * Use `create(WorkflowFailureRankSchema)` to create a new message.
  */
 export const WorkflowFailureRankSchema: GenMessage<WorkflowFailureRank> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 22);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 23);
 
 /**
  * WorkflowCostBreakdown represents per-workflow cost aggregation.
@@ -1323,7 +1466,7 @@ export type WorkflowCostBreakdown = Message<"ai.stigmer.agentic.workflowexecutio
  * Use `create(WorkflowCostBreakdownSchema)` to create a new message.
  */
 export const WorkflowCostBreakdownSchema: GenMessage<WorkflowCostBreakdown> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 23);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 24);
 
 /**
  * ListPendingApprovalsRequest fetches workflow executions that have active
@@ -1363,7 +1506,7 @@ export type ListPendingApprovalsRequest = Message<"ai.stigmer.agentic.workflowex
  * Use `create(ListPendingApprovalsRequestSchema)` to create a new message.
  */
 export const ListPendingApprovalsRequestSchema: GenMessage<ListPendingApprovalsRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 24);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 25);
 
 /**
  * PendingApproval represents a single human_input task awaiting a reviewer decision.
@@ -1433,7 +1576,7 @@ export type PendingApproval = Message<"ai.stigmer.agentic.workflowexecution.v1.P
  * Use `create(PendingApprovalSchema)` to create a new message.
  */
 export const PendingApprovalSchema: GenMessage<PendingApproval> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 25);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 26);
 
 /**
  * PendingApprovalsList contains a paginated list of pending approvals.
@@ -1468,7 +1611,7 @@ export type PendingApprovalsList = Message<"ai.stigmer.agentic.workflowexecution
  * Use `create(PendingApprovalsListSchema)` to create a new message.
  */
 export const PendingApprovalsListSchema: GenMessage<PendingApprovalsList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 26);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 27);
 
 /**
  * ExecutionSortField defines the column to sort execution lists by.

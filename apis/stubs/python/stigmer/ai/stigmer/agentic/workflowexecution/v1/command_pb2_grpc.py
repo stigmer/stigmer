@@ -50,6 +50,11 @@ class WorkflowExecutionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowApprovalInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
                 _registered_method=True)
+        self.submitFileDecision = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitFileDecision',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowFileDecisionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+                _registered_method=True)
         self.submitWorkflowTaskApproval = channel.unary_unary(
                 '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitWorkflowTaskApproval',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowTaskApprovalInput.SerializeToString,
@@ -406,6 +411,52 @@ class WorkflowExecutionCommandControllerServicer(object):
         in the same state transitions.
 
         @since Phase 5.3 (Approval Forwarding)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def submitFileDecision(self, request, context):
+        """Submit a keep/discard decision for a child agent's file review.
+
+        Forwards the decision to the child AgentExecution whose file-review gate is
+        surfaced on this workflow via status.pending_file_reviews. This is the
+        file-review sibling of submitApproval: submitApproval forwards a tool-call
+        approval, submitFileDecision forwards a FileChangeSet keep/discard.
+
+        @internal
+        The decision is forwarded to the child via AgentExecution.submitFileDecision
+        (a same-thread in-process invoke), so the child's completeness/digest gates
+        and caller attribution (reviewer_id) apply unchanged.
+
+        Preconditions:
+        - status.pending_file_reviews must contain an entry whose
+        child_agent_execution_id and change_set_id match the input
+        - User must have can_edit permission on the workflow execution
+
+        State Transitions
+
+        After a successful decision:
+        - Decision is forwarded to the child AgentExecution
+        - Child reconciles the approved bytes / discards and resumes
+        - The child's change set leaves AWAITING_REVIEW, so call-agent-status clears
+        the reference from WorkflowExecution.status.pending_file_reviews
+
+        Error Cases
+
+        - NOT_FOUND: Workflow execution doesn't exist
+        - PERMISSION_DENIED: User doesn't have can_edit permission
+        - FAILED_PRECONDITION: No matching pending file review for (child, change_set)
+        - INVALID_ARGUMENT: Invalid scope/action, or the child handler rejects
+        (e.g. digest mismatch, incomplete diff)
+        - UNAVAILABLE: Failed to forward to child agent (transient error)
+
+        Alternative: Direct Agent Decision
+
+        Users can also submit the decision directly via AgentExecution.submitFileDecision
+        using the child_agent_execution_id. Both paths are equivalent.
+
+        @since Workflow-Parent File Review
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -972,6 +1023,11 @@ def add_WorkflowExecutionCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowApprovalInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
             ),
+            'submitFileDecision': grpc.unary_unary_rpc_method_handler(
+                    servicer.submitFileDecision,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowFileDecisionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
+            ),
             'submitWorkflowTaskApproval': grpc.unary_unary_rpc_method_handler(
                     servicer.submitWorkflowTaskApproval,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowTaskApprovalInput.FromString,
@@ -1134,6 +1190,33 @@ class WorkflowExecutionCommandController(object):
             target,
             '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitApproval',
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowApprovalInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def submitFileDecision(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitFileDecision',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowFileDecisionInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
             options,
             channel_credentials,

@@ -41,6 +41,14 @@
           "description": "Submit an approval decision for a child agent's tool execution.\n\n This RPC forwards the approval decision to the child AgentExecution that\n is waiting for approval. The child is identified by the child_agent_execution_id\n in status.pending_approval.\n\n When a workflow invokes an agent that requires tool approval, the approval\n request surfaces at the workflow level via status.pending_approval. Users can\n submit their decision through this RPC, which forwards it to the child agent.\n\n @internal\n The approval is forwarded to the child via AgentExecution.submitApproval RPC,\n ensuring consistent validation and Temporal workflow signaling.\n\n Preconditions:\n - status.pending_approval must be populated\n - tool_call_id must match status.pending_approval.tool_call_id\n - status.pending_approval.child_agent_execution_id must not be empty\n - User must have can_edit permission on the workflow execution\n\n State Transitions\n\n After successful approval:\n - Approval is forwarded to child AgentExecution\n - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)\n - Child agent clears its pending_approval, which triggers signal to parent\n - WorkflowExecution.status.pending_approval is eventually cleared\n - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS\n\n Approval Actions\n\n - APPROVE: Tool executes with the provided arguments\n - SKIP: Tool execution is skipped, agent continues with skip message\n - REJECT: Agent execution fails with rejection error\n\n Error Cases\n\n - NOT_FOUND: Workflow execution doesn't exist\n - PERMISSION_DENIED: User doesn't have can_edit permission\n - FAILED_PRECONDITION: No pending approval, or child agent not waiting\n - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED\n - UNAVAILABLE: Failed to forward to child agent (transient error)\n\n Idempotency\n\n If the same approval is submitted twice (same workflow execution, tool_call_id,\n and action), the second call is a no-op if the approval was already processed.\n\n Alternative: Direct Agent Approval\n\n Users can also submit approvals directly via AgentExecution.submitApproval\n using the child_agent_execution_id. Both paths are equivalent and result\n in the same state transitions.\n\n @since Phase 5.3 (Approval Forwarding)"
         },
         {
+          "name": "SubmitFileDecision",
+          "inputType": "SubmitWorkflowFileDecisionInput",
+          "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput",
+          "outputType": "WorkflowExecution",
+          "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
+          "description": "Submit a keep/discard decision for a child agent's file review.\n\n Forwards the decision to the child AgentExecution whose file-review gate is\n surfaced on this workflow via status.pending_file_reviews. This is the\n file-review sibling of submitApproval: submitApproval forwards a tool-call\n approval, submitFileDecision forwards a FileChangeSet keep/discard.\n\n @internal\n The decision is forwarded to the child via AgentExecution.submitFileDecision\n (a same-thread in-process invoke), so the child's completeness/digest gates\n and caller attribution (reviewer_id) apply unchanged.\n\n Preconditions:\n - status.pending_file_reviews must contain an entry whose\n   child_agent_execution_id and change_set_id match the input\n - User must have can_edit permission on the workflow execution\n\n State Transitions\n\n After a successful decision:\n - Decision is forwarded to the child AgentExecution\n - Child reconciles the approved bytes / discards and resumes\n - The child's change set leaves AWAITING_REVIEW, so call-agent-status clears\n   the reference from WorkflowExecution.status.pending_file_reviews\n\n Error Cases\n\n - NOT_FOUND: Workflow execution doesn't exist\n - PERMISSION_DENIED: User doesn't have can_edit permission\n - FAILED_PRECONDITION: No matching pending file review for (child, change_set)\n - INVALID_ARGUMENT: Invalid scope/action, or the child handler rejects\n   (e.g. digest mismatch, incomplete diff)\n - UNAVAILABLE: Failed to forward to child agent (transient error)\n\n Alternative: Direct Agent Decision\n\n Users can also submit the decision directly via AgentExecution.submitFileDecision\n using the child_agent_execution_id. Both paths are equivalent.\n\n @since Workflow-Parent File Review"
+        },
+        {
           "name": "SubmitWorkflowTaskApproval",
           "inputType": "SubmitWorkflowTaskApprovalInput",
           "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput",
@@ -235,7 +243,27 @@
           "type": {
             "kind": "bool"
           },
-          "description": "When true, status.pending_approvals will be merged into the existing\n execution (replacing the stored list). When false (default), existing\n pending_approvals are preserved unchanged.\n\n @internal\n This prevents a race condition where concurrent event emissions\n (which don't include pending_approvals) inadvertently clear active\n approval gates set by call-agent-status.\n\n Only call-agent-status.ts sets this to true — both when populating\n approvals from a child_approval_required signal and when clearing them\n after the child agent completes.\n\n @since Agent Call Live Experience",
+          "description": "When true, status.pending_approvals is merged for the single child named by\n pending_update_child_agent_execution_id. When false (default), the stored\n list is preserved unchanged.\n\n @internal\n Per-child merge (NOT full-replace): the write replaces the entries for the\n scoped child and preserves every sibling child's entries, so parallel child\n agents never clobber each other's approval gates. A scoped write with an\n empty incoming list clears just that child's entries. The guard still\n prevents concurrent event emissions (which don't include approvals) from\n disturbing active gates set by call-agent-status.\n\n Only call-agent-status.ts sets this to true — both when populating approvals\n from a child_approval_required signal and when clearing them after the child\n agent completes.\n\n @since Agent Call Live Experience (per-child merge since Workflow-Parent File Review)",
+          "required": false
+        },
+        {
+          "name": "UpdatePendingFileReviews",
+          "jsonName": "updatePendingFileReviews",
+          "protoField": "update_pending_file_reviews",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "When true, status.pending_file_reviews is merged for the single child named\n by pending_update_child_agent_execution_id, with the same per-child merge\n semantics as update_pending_approvals. When false (default), the stored list\n is preserved unchanged.\n\n @internal\n Only call-agent-status.ts sets this to true — when surfacing a child's\n AWAITING_REVIEW change sets and when clearing them.\n\n @since Workflow-Parent File Review",
+          "required": false
+        },
+        {
+          "name": "PendingUpdateChildAgentExecutionId",
+          "jsonName": "pendingUpdateChildAgentExecutionId",
+          "protoField": "pending_update_child_agent_execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The child agent execution a per-child merge targets. Names the single child\n whose pending_approvals / pending_file_reviews entries this update replaces;\n every sibling child's entries are preserved. Required whenever\n update_pending_approvals or update_pending_file_reviews is true — including\n the clear case, where the scoped incoming list is empty (the child id is the\n only way to know which child to clear).\n\n @internal\n Format: AgentExecution.metadata.id (e.g., \"aex_abc123xyz456\").\n\n @since Workflow-Parent File Review",
           "required": false
         }
       ]
@@ -297,6 +325,126 @@
             "kind": "string"
           },
           "description": "Optional reason or comment for the decision, stored in the audit trail.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SubmitWorkflowFileDecisionInput",
+      "description": "Input for the WorkflowExecution.submitFileDecision RPC.\n\n @internal\n Forwards a file-review keep/discard decision to a child AgentExecution whose\n file-review gate is surfaced on the parent via status.pending_file_reviews.\n Mirrors agentexecution.SubmitFileDecisionInput plus explicit routing: the UI\n holds child_agent_execution_id from the surfaced reference, so routing is\n explicit and does not depend on change_set_id being globally unique. The\n handler validates the (child_agent_execution_id, change_set_id) pair is present\n in status.pending_file_reviews before forwarding, then invokes\n AgentExecution.submitFileDecision on the same thread so the caller identity\n (reviewer_id) propagates.",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the workflow execution.\n\n @internal\n Format: \"wfx_abc123xyz456\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ChildAgentExecutionId",
+          "jsonName": "childAgentExecutionId",
+          "protoField": "child_agent_execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the child agent execution holding the file-review gate.\n\n @internal\n Must match a WorkflowPendingFileReview.child_agent_execution_id in\n status.pending_file_reviews. Format: AgentExecution.metadata.id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the change set this decision targets.\n\n @internal\n Must be listed under the matched child's WorkflowPendingFileReview.change_set_id\n and match a FileChangeSet.id on the child's status.file_change_sets.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Scope",
+          "jsonName": "scope",
+          "protoField": "scope",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionScope",
+            "enumValues": [
+              "FILE_DECISION_SCOPE_CHANGE_SET",
+              "FILE_DECISION_SCOPE_FILE"
+            ]
+          },
+          "description": "Whether the decision applies to the whole change set or one file.\n FILE_DECISION_SCOPE_UNSPECIFIED (0) is rejected by validation.",
+          "required": false
+        },
+        {
+          "name": "FileChangeId",
+          "jsonName": "fileChangeId",
+          "protoField": "file_change_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the file change to decide; required when scope is FILE, ignored for\n CHANGE_SET (the cross-field rule is enforced by the child handler). Must\n match a CapturedFileChange.id within the change set.",
+          "required": false
+        },
+        {
+          "name": "Action",
+          "jsonName": "action",
+          "protoField": "action",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionAction",
+            "enumValues": [
+              "FILE_DECISION_ACTION_APPROVE",
+              "FILE_DECISION_ACTION_REJECT"
+            ]
+          },
+          "description": "Keep (APPROVE) or discard (REJECT). FILE_DECISION_ACTION_UNSPECIFIED (0) is\n rejected by validation.",
+          "required": false
+        },
+        {
+          "name": "ExpectedDigest",
+          "jsonName": "expectedDigest",
+          "protoField": "expected_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Digest of the content the user actually saw — the enforcement gate,\n forwarded to the child unchanged.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional reason/comment for the decision (audit trail).",
+          "required": false
+        },
+        {
+          "name": "AcknowledgeUnreviewable",
+          "jsonName": "acknowledgeUnreviewable",
+          "protoField": "acknowledge_unreviewable",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Set true on an APPROVE to consciously KEEP a binary change whose diff could\n not be fully reviewed (forwarded to the child unchanged; see\n agentexecution.SubmitFileDecisionInput.acknowledge_unreviewable). Never\n relaxes the expected_digest gate.",
           "required": false
         }
       ]
@@ -1611,6 +1759,40 @@
       ]
     },
     {
+      "name": "FileDecisionScope",
+      "description": "FileDecisionScope is the granularity a FileDecision applies to.\n\n HUNK is intentionally deferred — per-hunk approval is a derived approved\n snapshot, not a new lease, and ships after file-level is stable.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionScope",
+      "values": [
+        {
+          "name": "FILE_DECISION_SCOPE_CHANGE_SET",
+          "number": 1,
+          "description": "The decision applies to the whole change set."
+        },
+        {
+          "name": "FILE_DECISION_SCOPE_FILE",
+          "number": 2,
+          "description": "The decision applies to one CapturedFileChange (FileDecision.file_change_id)."
+        }
+      ]
+    },
+    {
+      "name": "FileDecisionAction",
+      "description": "FileDecisionAction is a user's verdict on a change set or file.\n\n @since File-Change HITL Redesign (Phase 1)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionAction",
+      "values": [
+        {
+          "name": "FILE_DECISION_ACTION_APPROVE",
+          "number": 1,
+          "description": "Keep the change(s): reconcile the captured bytes into the workspace."
+        },
+        {
+          "name": "FILE_DECISION_ACTION_REJECT",
+          "number": 2,
+          "description": "Discard the change(s): reconcile back to baseline for the targeted scope."
+        }
+      ]
+    },
+    {
       "name": "ExecutionPhase",
       "description": "ExecutionPhase defines the lifecycle phase of a workflow execution.\n\n @internal\n Phase Transitions:\n\n Normal flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED\n\n Failure flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED\n\n Cancellation flow:\n EXECUTION_PENDING → EXECUTION_CANCELLED\n EXECUTION_IN_PROGRESS → EXECUTION_CANCELLED\n EXECUTION_PAUSED → EXECUTION_CANCELLED\n\n Termination flow (force stop):\n EXECUTION_PENDING → EXECUTION_TERMINATED\n EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED\n EXECUTION_PAUSED → EXECUTION_TERMINATED\n\n Pause/Resume flow:\n EXECUTION_PENDING → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n Terminal States: COMPLETED, FAILED, CANCELLED, TERMINATED\n Non-Terminal States: PAUSED (can be resumed)\n\n Once a workflow reaches a terminal state, it cannot transition to another phase.",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase",
@@ -2387,6 +2569,20 @@
         },
         "description": "SHA-256 hash identifying which workflow version was used for this execution.\n\n @internal\n Pinned at execution creation time from Workflow.status.version_hash.\n Immutable after creation — represents the exact workflow definition this\n execution ran (or will run, if still pending).\n\n Consumers:\n - Runner: fetches the version-specific CNCF YAML via getVersion() during\n   hydration, ensuring the execution runs the intended definition even if\n   the workflow has been updated since creation.\n - Execution viewer: fetches the version entry to render the correct graph\n   for historical executions, eliminating the version mismatch problem.\n\n Empty for executions created before workflow versioning was introduced.\n In that case, consumers fall back to fetching the current workflow\n definition (legacy behavior with mismatch warning).\n\n @since Workflow Versioning",
         "required": false
+      },
+      {
+        "name": "PendingFileReviews",
+        "jsonName": "pendingFileReviews",
+        "protoField": "pending_file_reviews",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "WorkflowPendingFileReview"
+          }
+        },
+        "description": "Pending file reviews from child agent executions, surfaced for\n workflow-level visibility and in-place keep/discard decisioning.\n\n @internal\n A reference-only sibling of pending_approvals (field 9): each entry names a\n child agent execution and the change_set ids it currently has\n AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it\n stays single-sourced on the child's\n AgentExecution.status.file_change_sets and is read on demand by the UI.\n\n Guarded, per-child merge protocol:\n Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews\n is true, scoped by pending_update_child_agent_execution_id. The write\n replaces the entry for that one child and preserves every sibling child's\n entry, so parallel child agents never clobber each other. A scoped write with\n an empty change_set list removes that child's entry. Only call-agent-status\n manages this field.\n\n @since Workflow-Parent File Review",
+        "required": false
       }
     ]
   },
@@ -2708,6 +2904,37 @@
             "kind": "string"
           },
           "description": "ID of the child agent execution to forward the approval decision to.\n\n @internal\n Set by the workflow-runner when surfacing child agent approvals\n at the workflow level. WorkflowExecution.SubmitApproval uses this\n to route the decision to the correct AgentExecution.SubmitApproval RPC.\n\n Format: AgentExecution.metadata.id (e.g., \"aex_abc123xyz456\")",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "WorkflowPendingFileReview",
+      "description": "WorkflowPendingFileReview references a child agent execution's file-review\n gate for workflow-level surfacing. Reference-only — never a copy of the diff.\n\n @internal\n FileChangeSet is an agentexecution domain concept owned by the child\n AgentExecution. WorkflowPendingFileReview adds only the workflow-level\n concern: which child holds a file-review gate, and which of its change sets\n are awaiting a decision. The UI reads the child's file_change_sets to render\n the diff; WorkflowExecution.submitFileDecision forwards the verdict to the\n child. This mirrors how WorkflowPendingApproval references a child's tool\n approval without embedding the tool call.",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/api.proto",
+      "fields": [
+        {
+          "name": "ChildAgentExecutionId",
+          "jsonName": "childAgentExecutionId",
+          "protoField": "child_agent_execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the child agent execution that holds the file-review gate.\n\n @internal\n WorkflowExecution.submitFileDecision uses this to route the decision to the\n correct AgentExecution.submitFileDecision RPC.\n Format: AgentExecution.metadata.id (e.g., \"aex_abc123xyz456\")",
+          "required": false
+        },
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "IDs of the child's change sets currently AWAITING_REVIEW.\n\n @internal\n Each matches a FileChangeSet.id on the child's\n AgentExecution.status.file_change_sets. Empty means the child has no\n outstanding review (used transiently to clear this child's entry under the\n per-child merge protocol).",
           "required": false
         }
       ]

@@ -39,16 +39,17 @@ import (
 type WorkflowExecutionController struct {
 	workflowexecutionv1.UnimplementedWorkflowExecutionCommandControllerServer
 	workflowexecutionv1.UnimplementedWorkflowExecutionQueryControllerServer
-	store                  store.Store
-	workflowInstanceClient *workflowinstance.Client
-	environmentClient      *environment.Client
-	executionContextClient *executioncontext.Client
-	workflowCreator        *workflows.InvokeWorkflowExecutionWorkflowCreator
-	streamBroker           *StreamBroker
-	agentExecutionClient   AgentExecutionApprovalClient // For forwarding approvals to child agents
-	temporalClient         client.Client                // For lifecycle operations (cancel, terminate, recover)
-	signalDedupeStore      dedupe.SignalDedupeStore     // For signal deduplication (Gap B2)
-	temporalConfig         *wftemporal.Config           // For workflow dispatch routing (sandbox affinity)
+	store                            store.Store
+	workflowInstanceClient           *workflowinstance.Client
+	environmentClient                *environment.Client
+	executionContextClient           *executioncontext.Client
+	workflowCreator                  *workflows.InvokeWorkflowExecutionWorkflowCreator
+	streamBroker                     *StreamBroker
+	agentExecutionClient             AgentExecutionApprovalClient     // For forwarding approvals to child agents
+	agentExecutionFileDecisionClient AgentExecutionFileDecisionClient // For forwarding file decisions to child agents
+	temporalClient                   client.Client                    // For lifecycle operations (cancel, terminate, recover)
+	signalDedupeStore                dedupe.SignalDedupeStore         // For signal deduplication (Gap B2)
+	temporalConfig                   *wftemporal.Config               // For workflow dispatch routing (sandbox affinity)
 }
 
 // NewWorkflowExecutionController creates a new WorkflowExecutionController
@@ -102,6 +103,13 @@ func (c *WorkflowExecutionController) GetStreamBroker() *StreamBroker {
 // If nil, approval forwarding will be skipped (graceful degradation)
 func (c *WorkflowExecutionController) SetAgentExecutionClient(client AgentExecutionApprovalClient) {
 	c.agentExecutionClient = client
+}
+
+// SetAgentExecutionFileDecisionClient sets the AgentExecution client dependency for
+// file-decision forwarding (the file-review sibling of SetAgentExecutionClient).
+// If nil, file-decision forwarding is skipped (graceful degradation).
+func (c *WorkflowExecutionController) SetAgentExecutionFileDecisionClient(client AgentExecutionFileDecisionClient) {
+	c.agentExecutionFileDecisionClient = client
 }
 
 // SetTemporalClient sets the Temporal client for lifecycle operations (cancel, terminate, recover)

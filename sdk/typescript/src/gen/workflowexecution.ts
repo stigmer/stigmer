@@ -10,7 +10,7 @@ import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/e
 import { WorkflowExecutionSchema, type WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import { WorkflowExecutionEventSchema, type WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import { WorkflowExecutionIdSchema, WorkflowExecutionUpdateStatusInputSchema, SubmitWorkflowApprovalInputSchema, SubmitWorkflowTaskApprovalInputSchema, SendSignalInputSchema, CancelWorkflowExecutionInputSchema, TerminateWorkflowExecutionInputSchema, RecoverWorkflowExecutionInputSchema, PauseWorkflowExecutionInputSchema, ResumeWorkflowExecutionInputSchema, ListWorkflowExecutionsRequestSchema, WorkflowExecutionListSchema, ListWorkflowExecutionsByWorkflowRequestSchema, SubscribeWorkflowExecutionRequestSchema, GetEventLogRequestSchema, GetEventLogResponseSchema, SubscribeEventsRequestSchema, GetExecutionSummaryRequestSchema, ExecutionSummarySchema, ListPendingApprovalsRequestSchema, PendingApprovalsListSchema, type WorkflowExecutionUpdateStatusInput, type SubmitWorkflowApprovalInput, type SubmitWorkflowTaskApprovalInput, type SendSignalInput, type CancelWorkflowExecutionInput, type TerminateWorkflowExecutionInput, type RecoverWorkflowExecutionInput, type PauseWorkflowExecutionInput, type ResumeWorkflowExecutionInput, type ListWorkflowExecutionsRequest, type WorkflowExecutionList, type ListWorkflowExecutionsByWorkflowRequest, type SubscribeWorkflowExecutionRequest, type GetEventLogRequest, type GetEventLogResponse, type SubscribeEventsRequest, type GetExecutionSummaryRequest, type ExecutionSummary, type ListPendingApprovalsRequest, type PendingApprovalsList } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { WorkflowExecutionIdSchema, WorkflowExecutionUpdateStatusInputSchema, SubmitWorkflowApprovalInputSchema, SubmitWorkflowFileDecisionInputSchema, SubmitWorkflowTaskApprovalInputSchema, SendSignalInputSchema, CancelWorkflowExecutionInputSchema, TerminateWorkflowExecutionInputSchema, RecoverWorkflowExecutionInputSchema, PauseWorkflowExecutionInputSchema, ResumeWorkflowExecutionInputSchema, ListWorkflowExecutionsRequestSchema, WorkflowExecutionListSchema, ListWorkflowExecutionsByWorkflowRequestSchema, SubscribeWorkflowExecutionRequestSchema, GetEventLogRequestSchema, GetEventLogResponseSchema, SubscribeEventsRequestSchema, GetExecutionSummaryRequestSchema, ExecutionSummarySchema, ListPendingApprovalsRequestSchema, PendingApprovalsListSchema, type WorkflowExecutionUpdateStatusInput, type SubmitWorkflowApprovalInput, type SubmitWorkflowFileDecisionInput, type SubmitWorkflowTaskApprovalInput, type SendSignalInput, type CancelWorkflowExecutionInput, type TerminateWorkflowExecutionInput, type RecoverWorkflowExecutionInput, type PauseWorkflowExecutionInput, type ResumeWorkflowExecutionInput, type ListWorkflowExecutionsRequest, type WorkflowExecutionList, type ListWorkflowExecutionsByWorkflowRequest, type SubscribeWorkflowExecutionRequest, type GetEventLogRequest, type GetEventLogResponse, type SubscribeEventsRequest, type GetExecutionSummaryRequest, type ExecutionSummary, type ListPendingApprovalsRequest, type PendingApprovalsList } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
 import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -48,6 +48,12 @@ export class WorkflowExecutionClient {
   async submitApproval(input: SubmitWorkflowApprovalInput): Promise<WorkflowExecution> {
     try {
       return await this.command.submitApproval(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async submitFileDecision(input: SubmitWorkflowFileDecisionInput): Promise<WorkflowExecution> {
+    try {
+      return await this.command.submitFileDecision(input);
     } catch (e) { throw wrapError(e); }
   }
 

@@ -15,9 +15,9 @@
 import { StigmerClient } from "../client/stigmer-client.js";
 import { loadConfig } from "../config.js";
 import { create } from "@bufbuild/protobuf";
-import { WorkflowExecutionStatusSchema, WorkflowPendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowExecutionStatusSchema, WorkflowPendingApprovalSchema, WorkflowPendingFileReviewSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ChildApprovalNotification } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ToolCallStatus, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 function buildClient(): StigmerClient {
   const config = loadConfig();
@@ -34,12 +34,13 @@ export async function updateWorkflowTaskApprovalStatus(
 ): Promise<void> {
   if (!executionId) return;
 
+  const childExecId = notification.executionId;
   const client = buildClient();
   const pendingApprovals = (notification.pendingApprovals ?? []).map(
     (approval) =>
       create(WorkflowPendingApprovalSchema, {
         approval,
-        childAgentExecutionId: notification.executionId,
+        childAgentExecutionId: childExecId,
       }),
   );
 
@@ -47,24 +48,91 @@ export async function updateWorkflowTaskApprovalStatus(
     pendingApprovals,
   });
 
+  // Per-child merge scoped to this child: the write replaces only this child's
+  // approvals and preserves every parallel sibling's entries.
   await client.updateWorkflowExecutionStatus(executionId, status, {
     updatePendingApprovals: true,
+    pendingUpdateChildAgentExecutionId: childExecId,
   });
 }
 
 export async function clearWorkflowApprovalStatus(
   executionId: string,
+  childExecutionId: string,
 ): Promise<void> {
-  if (!executionId) return;
+  if (!executionId || !childExecutionId) return;
 
   const client = buildClient();
   const status = create(WorkflowExecutionStatusSchema, {
     pendingApprovals: [],
   });
 
+  // Scoped clear: empty list for this child clears only its approvals; sibling
+  // children still awaiting approval are untouched.
   await client.updateWorkflowExecutionStatus(executionId, status, {
     updatePendingApprovals: true,
+    pendingUpdateChildAgentExecutionId: childExecutionId,
   });
+}
+
+/**
+ * Surfaces (or clears) a child agent's file-review gate on the parent workflow.
+ *
+ * Reference-only: writes a single WorkflowPendingFileReview naming the child and
+ * the change_set ids it currently has AWAITING_REVIEW — never the diffs, which
+ * stay single-sourced on the child. Passing an empty changeSetIds clears this
+ * child's entry (per-child merge, so parallel siblings are never disturbed).
+ */
+export async function updateWorkflowFileReviewStatus(
+  executionId: string,
+  childExecutionId: string,
+  changeSetIds: string[],
+): Promise<void> {
+  if (!executionId || !childExecutionId) return;
+
+  const client = buildClient();
+  const pendingFileReviews =
+    changeSetIds.length > 0
+      ? [
+          create(WorkflowPendingFileReviewSchema, {
+            childAgentExecutionId: childExecutionId,
+            changeSetId: changeSetIds,
+          }),
+        ]
+      : [];
+
+  const status = create(WorkflowExecutionStatusSchema, {
+    pendingFileReviews,
+  });
+
+  await client.updateWorkflowExecutionStatus(executionId, status, {
+    updatePendingFileReviews: true,
+    pendingUpdateChildAgentExecutionId: childExecutionId,
+  });
+}
+
+/**
+ * Reads the child agent execution and returns the ids of its change sets that
+ * are currently AWAITING_REVIEW. The gated child is non-terminal, so its last
+ * status write stored a populated file_change_sets projection; GET returns it
+ * (the same reason getAgentExecutionProgress reads status.messages).
+ */
+export async function getAwaitingFileReviewChangeSetIds(
+  childExecutionId: string,
+): Promise<string[]> {
+  if (!childExecutionId) return [];
+
+  try {
+    const client = buildClient();
+    const execution = await client.getExecution(childExecutionId);
+    const changeSets = execution?.status?.fileChangeSets ?? [];
+    return changeSets
+      .filter((cs) => cs.status === FileChangeSetStatus.AWAITING_REVIEW)
+      .map((cs) => cs.id);
+  } catch (err) {
+    console.warn("Failed to fetch child file-review state (non-fatal):", String(err));
+    return [];
+  }
 }
 
 /**
@@ -125,6 +193,8 @@ export function createCallAgentStatusActivities() {
   return {
     UpdateWorkflowTaskApprovalStatus: updateWorkflowTaskApprovalStatus,
     ClearWorkflowApprovalStatus: clearWorkflowApprovalStatus,
+    UpdateWorkflowFileReviewStatus: updateWorkflowFileReviewStatus,
+    GetAwaitingFileReviewChangeSetIds: getAwaitingFileReviewChangeSetIds,
     GetAgentExecutionProgress: getAgentExecutionProgress,
   };
 }

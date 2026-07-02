@@ -23,6 +23,7 @@ const mockResume = vi.fn();
 const mockRecover = vi.fn();
 const mockSubmitApproval = vi.fn();
 const mockSubmitWorkflowTaskApproval = vi.fn();
+const mockSubmitFileDecision = vi.fn();
 
 function makeMockClient(): Stigmer {
   return {
@@ -34,6 +35,7 @@ function makeMockClient(): Stigmer {
       recover: mockRecover,
       submitApproval: mockSubmitApproval,
       submitWorkflowTaskApproval: mockSubmitWorkflowTaskApproval,
+      submitFileDecision: mockSubmitFileDecision,
     },
   } as unknown as Stigmer;
 }
@@ -419,5 +421,136 @@ describe("per-gate approval state", () => {
     const first = result.current;
     rerender();
     expect(result.current).toBe(first);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Per-gate file-decision state (forwarding + keyed like FileReviewCard)
+// ---------------------------------------------------------------------------
+
+describe("submitFileDecision (workflow-parent file review)", () => {
+  it("forwards a CHANGE_SET decision with explicit child routing", async () => {
+    mockSubmitFileDecision.mockResolvedValueOnce(makeExecution());
+
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions("wex-001"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    await act(async () => {
+      await result.current.submitFileDecision("aex-child", "fcs-1", 1 /* APPROVE */ as any, {
+        expectedDigest: "sha256:agg",
+      });
+    });
+
+    expect(mockSubmitFileDecision).toHaveBeenCalledTimes(1);
+    const input = mockSubmitFileDecision.mock.calls[0][0];
+    expect(input.executionId).toBe("wex-001");
+    expect(input.childAgentExecutionId).toBe("aex-child");
+    expect(input.changeSetId).toBe("fcs-1");
+    expect(input.scope).toBe(1 /* CHANGE_SET */);
+    expect(input.fileChangeId).toBe("");
+    expect(input.action).toBe(1 /* APPROVE */);
+    expect(input.expectedDigest).toBe("sha256:agg");
+  });
+
+  it("derives FILE scope when a fileChangeId is supplied", async () => {
+    mockSubmitFileDecision.mockResolvedValueOnce(makeExecution());
+
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions("wex-001"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    await act(async () => {
+      await result.current.submitFileDecision("aex-child", "fcs-1", 2 /* REJECT */ as any, {
+        fileChangeId: "fc-9",
+        expectedDigest: "sha256:file",
+      });
+    });
+
+    const input = mockSubmitFileDecision.mock.calls[0][0];
+    expect(input.scope).toBe(2 /* FILE */);
+    expect(input.fileChangeId).toBe("fc-9");
+    expect(input.action).toBe(2 /* REJECT */);
+  });
+
+  it("tracks in-flight state keyed like FileReviewCard (changeSetId, then changeSetId:fileChangeId)", async () => {
+    let resolve!: (v: unknown) => void;
+    mockSubmitFileDecision.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions("wex-001"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    let pending: Promise<unknown>;
+    act(() => {
+      pending = result.current.submitFileDecision("aex-child", "fcs-1", 1 as any);
+    });
+
+    expect(result.current.fileDecisionSubmittingKeys.has("fcs-1")).toBe(true);
+    expect(result.current.isSubmitting).toBe(false); // lifecycle scalar untouched
+
+    await act(async () => {
+      resolve(makeExecution());
+      await pending;
+    });
+
+    expect(result.current.fileDecisionSubmittingKeys.size).toBe(0);
+  });
+
+  it("records a failed decision in the keyed map (not the scalar) and resolves null", async () => {
+    mockSubmitFileDecision.mockRejectedValueOnce(new Error("expected_digest mismatch"));
+
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions("wex-001"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    let returned: any;
+    await act(async () => {
+      returned = await result.current.submitFileDecision("aex-child", "fcs-1", 1 as any, {
+        fileChangeId: "fc-9",
+      });
+    });
+
+    expect(returned).toBeNull();
+    expect(result.current.fileDecisionErrorsByKey.get("fcs-1:fc-9")?.message).toBe(
+      "expected_digest mismatch",
+    );
+    expect(result.current.error).toBeNull(); // header banner unaffected
+  });
+
+  it("does not fire onSuccess", async () => {
+    mockSubmitFileDecision.mockResolvedValueOnce(makeExecution());
+    const onSuccess = vi.fn();
+
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions("wex-001", { onSuccess }),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    await act(async () => {
+      await result.current.submitFileDecision("aex-child", "fcs-1", 1 as any);
+    });
+
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("null executionId returns null without calling the SDK", async () => {
+    const { result } = renderHook(
+      () => useWorkflowExecutionActions(null),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    let returned: any;
+    await act(async () => {
+      returned = await result.current.submitFileDecision("aex-child", "fcs-1", 1 as any);
+    });
+
+    expect(returned).toBeNull();
+    expect(mockSubmitFileDecision).not.toHaveBeenCalled();
+    expect(result.current.fileDecisionSubmittingKeys.size).toBe(0);
   });
 });

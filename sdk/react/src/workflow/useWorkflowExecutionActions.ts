@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { ApprovalAction, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   CancelWorkflowExecutionInputSchema,
@@ -12,10 +13,12 @@ import {
   RecoverWorkflowExecutionInputSchema,
   SubmitWorkflowApprovalInputSchema,
   SubmitWorkflowTaskApprovalInputSchema,
+  SubmitWorkflowFileDecisionInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 import { useKeyedSubmission } from "../internal/useKeyedSubmission";
+import { fileDecisionKey, type FileDecisionOptions } from "../execution/useFileReview";
 
 /** Options for {@link useWorkflowExecutionActions}. */
 export interface UseWorkflowExecutionActionsOptions {
@@ -73,6 +76,23 @@ export interface UseWorkflowExecutionActionsReturn {
     comment?: string,
   ) => Promise<WorkflowExecution | null>;
   /**
+   * Submit a keep/discard decision for a child agent's file review, surfaced on
+   * this workflow via `status.pending_file_reviews`. The file-review sibling of
+   * {@link submitApproval}: the server forwards it to the child's
+   * `AgentExecution.submitFileDecision`.
+   *
+   * `childAgentExecutionId` comes from the surfaced
+   * {@link WorkflowPendingFileReview} reference. `options` carries the same
+   * per-decision detail as {@link FileReviewCard}'s `onSubmit` (scope,
+   * `fileChangeId`, `expectedDigest`, `reason`, `acknowledgeUnreviewable`).
+   */
+  readonly submitFileDecision: (
+    childAgentExecutionId: string,
+    changeSetId: string,
+    action: FileDecisionAction,
+    options?: FileDecisionOptions,
+  ) => Promise<WorkflowExecution | null>;
+  /**
    * `true` while a **lifecycle** action (cancel/terminate/pause/resume/recover)
    * is in flight. Approvals are excluded — they are per-gate, so read their
    * in-flight state from {@link approvalSubmittingToolCallIds} /
@@ -111,6 +131,18 @@ export interface UseWorkflowExecutionActionsReturn {
    * the gate that failed. Cleared for a gate when it is retried.
    */
   readonly taskApprovalErrorsByTaskName: ReadonlyMap<string, Error>;
+  /**
+   * Decision keys currently being submitted for file reviews, keyed exactly like
+   * {@link FileReviewCard}'s `submittingDecisionKeys` (via {@link fileDecisionKey}
+   * — the change set id for a whole-set decision, `changeSetId:fileChangeId` for a
+   * per-file one). Pass straight through to each surfaced card.
+   */
+  readonly fileDecisionSubmittingKeys: ReadonlySet<string>;
+  /**
+   * Per-decision file-review failures, keyed like {@link fileDecisionSubmittingKeys}.
+   * Pass straight through to {@link FileReviewCard}'s `decisionErrors`.
+   */
+  readonly fileDecisionErrorsByKey: ReadonlyMap<string, Error>;
 }
 
 /**
@@ -147,6 +179,7 @@ export function useWorkflowExecutionActions(
   // actions below stay on the shared scalar (they are header singletons).
   const approvals = useKeyedSubmission<WorkflowExecution>();
   const taskApprovals = useKeyedSubmission<WorkflowExecution>();
+  const fileDecisions = useKeyedSubmission<WorkflowExecution>();
 
   const executionIdRef = useRef(executionId);
   executionIdRef.current = executionId;
@@ -287,6 +320,44 @@ export function useWorkflowExecutionActions(
     [taskApprovals.run],
   );
 
+  // File decisions are per-target (a workflow can surface many change sets across
+  // parallel children), so they use the keyed primitive keyed exactly like
+  // FileReviewCard expects (fileDecisionKey). Never fires onSuccess — the effect
+  // arrives via the execution stream.
+  const submitFileDecision = useCallback(
+    (
+      childAgentExecutionId: string,
+      changeSetId: string,
+      action: FileDecisionAction,
+      options?: FileDecisionOptions,
+    ) => {
+      if (!executionIdRef.current) return Promise.resolve(null);
+      const fileChangeId = options?.fileChangeId ?? "";
+      const scope =
+        options?.scope ??
+        (fileChangeId ? FileDecisionScope.FILE : FileDecisionScope.CHANGE_SET);
+      const key = fileDecisionKey(changeSetId, fileChangeId || undefined);
+      return fileDecisions
+        .run(key, () =>
+          stigmerRef.current.workflowExecution.submitFileDecision(
+            create(SubmitWorkflowFileDecisionInputSchema, {
+              executionId: executionIdRef.current!,
+              childAgentExecutionId,
+              changeSetId,
+              scope,
+              fileChangeId,
+              action,
+              expectedDigest: options?.expectedDigest ?? "",
+              reason: options?.reason ?? "",
+              acknowledgeUnreviewable: options?.acknowledgeUnreviewable ?? false,
+            }),
+          ),
+        )
+        .catch(() => null);
+    },
+    [fileDecisions.run],
+  );
+
   return useMemo(
     () => ({
       cancel,
@@ -296,6 +367,7 @@ export function useWorkflowExecutionActions(
       recover,
       submitApproval,
       submitTaskApproval,
+      submitFileDecision,
       isSubmitting,
       error,
       clearError,
@@ -303,6 +375,8 @@ export function useWorkflowExecutionActions(
       approvalErrorsByToolCallId: approvals.errorsByKey,
       taskApprovalSubmittingTaskNames: taskApprovals.submittingKeys,
       taskApprovalErrorsByTaskName: taskApprovals.errorsByKey,
+      fileDecisionSubmittingKeys: fileDecisions.submittingKeys,
+      fileDecisionErrorsByKey: fileDecisions.errorsByKey,
     }),
     [
       cancel,
@@ -312,6 +386,7 @@ export function useWorkflowExecutionActions(
       recover,
       submitApproval,
       submitTaskApproval,
+      submitFileDecision,
       isSubmitting,
       error,
       clearError,
@@ -319,6 +394,8 @@ export function useWorkflowExecutionActions(
       approvals.errorsByKey,
       taskApprovals.submittingKeys,
       taskApprovals.errorsByKey,
+      fileDecisions.submittingKeys,
+      fileDecisions.errorsByKey,
     ],
   );
 }
