@@ -245,25 +245,38 @@ async function storeBlob(
 // ---------------------------------------------------------------------------
 
 /**
- * Load a change set's CAS manifest for the resume-time reconcile.
+ * Load a change set's CAS manifest for the resume-time reconcile, digest-verified
+ * against the ledger's {@link CasSnapshotRef}.
  *
  * Called ONLY when the caller has already determined this turn captured CAS files
  * — from the change set's CANDIDATE snapshot (the ledger's record of the
- * substrate), never by probing storage. The manifest is therefore expected to
- * exist; a download failure is a genuine integrity error surfaced by the reader,
- * not a "this was a git-only turn" signal. (Deciding the substrate from storage
- * existence was unsafe: a presigned/proxy backend cannot answer "does this key
- * exist?" reliably, and a git-only turn — which writes no manifest — would then
- * attempt a doomed download.)
+ * substrate), never by probing storage. The ref is the whole contract: the
+ * manifest is fetched from the exact `artifactUri` the CANDIDATE event recorded
+ * (not a re-derived key, so a pending change set survives any future key-scheme
+ * change), and the downloaded bytes must hash to `manifestDigest` before they are
+ * trusted. Per-blob content addresses protect blob BODIES, but only this check
+ * protects the path→blob mapping itself — a corrupted or swapped manifest could
+ * otherwise direct a valid blob to the wrong path.
+ *
+ * Fail-closed: a missing manifest (surfaced by the reader) or a digest mismatch
+ * is a genuine integrity error, never a "this was a git-only turn" signal.
+ * (Deciding the substrate from storage existence was unsafe: a presigned/proxy
+ * backend cannot answer "does this key exist?" reliably, and a git-only turn —
+ * which writes no manifest — would then attempt a doomed download.)
  */
 export async function loadCasManifest(opts: {
   readonly readBlob: BlobReader;
-  readonly executionId: string;
-  readonly changeSetId: string;
+  readonly ref: CasSnapshotRef;
 }): Promise<CasManifest> {
-  const { readBlob, executionId, changeSetId } = opts;
-  const key = casManifestKey(executionId, changeSetId);
-  const bytes = await readBlob(key);
+  const { readBlob, ref } = opts;
+  const bytes = await readBlob(ref.artifactUri);
+  const actual = sha256Bytes(bytes);
+  if (actual !== ref.manifestDigest) {
+    throw new Error(
+      `CAS manifest integrity check failed for '${ref.artifactUri}': ` +
+      `expected ${ref.manifestDigest}, got ${actual}`,
+    );
+  }
   return JSON.parse(bytes.toString("utf8")) as CasManifest;
 }
 

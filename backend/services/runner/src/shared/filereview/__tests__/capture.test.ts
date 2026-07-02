@@ -439,6 +439,74 @@ describe("capture orchestration — hybrid git + CAS (Phase 3)", () => {
     expect(await read("build/cache.txt")).toBe("OLD");
   });
 
+  it("fails closed when the candidate snapshot records CAS files but no blob reader is provided", async () => {
+    // The ledger says CAS files were captured; a caller that cannot read blobs
+    // back must not silently skip them (their decisions would go unenforced).
+    const status = newStatus();
+    const storage = makeStorage();
+    await write(".gitignore", "dist/\n");
+    await git(["add", ".gitignore"]);
+    await git(["commit", "-q", "-m", "ignore"]);
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await write("dist/out.txt", "X");
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, storage,
+      casCaptures: [
+        { path: "dist/out.txt", before: null, after: new TextEncoder().encode("X"), captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED },
+      ],
+    });
+    const changeSet = decidedChangeSet(status, { "dist/out.txt": FileDecisionAction.APPROVE });
+
+    await expect(
+      applyCaptureDecisions({
+        status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+      }),
+    ).rejects.toThrow(/captured CAS files .* but no blob reader was provided/);
+  });
+
+  it("fails closed on resume when the stored manifest no longer hashes to the ledger's manifestDigest", async () => {
+    // The reconcile must verify the manifest it downloads against the digest the
+    // CANDIDATE event pinned — per-blob content addresses protect blob bodies,
+    // but only this check protects the path→blob mapping itself.
+    const status = newStatus();
+    const storage = makeStorage();
+    const readBlob = async (key: string): Promise<Buffer> => {
+      const b = storage.blobs.get(key);
+      if (!b) throw new Error(`missing ${key}`);
+      return b;
+    };
+    await write(".gitignore", "dist/\n");
+    await git(["add", ".gitignore"]);
+    await git(["commit", "-q", "-m", "ignore"]);
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await write("dist/out.txt", "X");
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, storage,
+      casCaptures: [
+        { path: "dist/out.txt", before: null, after: new TextEncoder().encode("X"), captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED },
+      ],
+    });
+    const changeSet = decidedChangeSet(status, { "dist/out.txt": FileDecisionAction.APPROVE });
+
+    // Tamper with the stored manifest between review and resume.
+    const manifestUri = changeSet.candidateSnapshot!.cas!.artifactUri;
+    const stored = storage.blobs.get(manifestUri)!;
+    storage.blobs.set(manifestUri, Buffer.from(stored.toString("utf8").replace("dist/out.txt", "dist/evil.txt"), "utf8"));
+
+    await expect(
+      applyCaptureDecisions({
+        status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+        storage, readBlob,
+      }),
+    ).rejects.toThrow(/CAS manifest integrity check failed/);
+  });
+
   it("throws if CAS captures are supplied without a storage backend", async () => {
     const status = newStatus();
     const baseline = await captureBaselineToLedger({

@@ -192,9 +192,7 @@ describe("snapshotCasChangeSet — storage", () => {
     expect(r1.ref.manifestDigest).toBe(r2.ref.manifestDigest);
     expect(r1.ref.artifactUri).toBe(casManifestKey(EXEC, CHANGE_SET));
 
-    const loaded = await loadCasManifest({
-      readBlob: a.readBlob, executionId: EXEC, changeSetId: CHANGE_SET,
-    });
+    const loaded = await loadCasManifest({ readBlob: a.readBlob, ref: r1.ref });
     expect(loaded.files.map((f) => f.pathAfter)).toEqual(["a", "b"]);
   });
 
@@ -204,8 +202,31 @@ describe("snapshotCasChangeSet — storage", () => {
     // change set's CANDIDATE snapshot says this was a CAS turn, so a missing blob
     // is a genuine integrity error, not a "git-only turn" signal.
     await expect(
-      loadCasManifest({ readBlob, executionId: "other", changeSetId: "nope:1" }),
+      loadCasManifest({
+        readBlob,
+        ref: { manifestDigest: "0".repeat(64), artifactUri: casManifestKey("other", "nope:1") },
+      }),
     ).rejects.toThrow(/Artifact not found/);
+  });
+
+  it("loadCasManifest fails closed when the downloaded bytes do not hash to the ledger's manifestDigest", async () => {
+    // The per-blob content addresses protect blob BODIES; only this check
+    // protects the path→blob mapping. A tampered manifest must never drive a
+    // reconcile, even when every blob it references is individually intact.
+    const { storage, readBlob, blobs } = makeFakeStorage();
+    const { manifest, ref } = await snapshotCasChangeSet({
+      storage, executionId: EXEC, changeSetId: CHANGE_SET,
+      captures: [{ path: "a.env", before: null, after: bytes("A=1"), captureClass: IGNORED }],
+    });
+    // Swap the stored path→blob mapping while keeping it valid JSON: the blob
+    // refs still verify individually, but the manifest bytes no longer match
+    // the digest the CANDIDATE event pinned.
+    const tampered = { ...manifest, files: manifest.files.map((f) => ({ ...f, pathAfter: "b.env" })) };
+    blobs.set(ref.artifactUri, Buffer.from(JSON.stringify(tampered), "utf8"));
+
+    await expect(loadCasManifest({ readBlob, ref })).rejects.toThrow(
+      /CAS manifest integrity check failed/,
+    );
   });
 });
 

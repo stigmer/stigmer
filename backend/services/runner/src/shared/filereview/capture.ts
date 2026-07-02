@@ -327,10 +327,17 @@ export async function applyCaptureDecisions(opts: {
   // git-only reconcile into a doomed manifest download and a 404 crash. Single
   // source of truth: derive the substrate from the ledger, never from storage.
   const recomputed = gitWorkspace ? await recomputeChangeSet(gitRoot, executionId) : undefined;
-  const manifest =
-    candidateCasRef(changeSet) && readBlob
-      ? await loadCasManifest({ readBlob, executionId, changeSetId: changeSet.id })
-      : undefined;
+  const casRef = candidateCasRef(changeSet);
+  if (casRef && !readBlob) {
+    // The ledger says CAS files were captured, but this caller cannot read blobs
+    // back. Skipping would leave those files applied with their decisions
+    // unenforced — a silent partial reconcile — so refuse loudly instead.
+    throw new Error(
+      `applyCaptureDecisions: change set '${changeSet.id}' captured CAS files ` +
+      `(manifest '${casRef.artifactUri}') but no blob reader was provided`,
+    );
+  }
+  const manifest = casRef && readBlob ? await loadCasManifest({ readBlob, ref: casRef }) : undefined;
   if (!recomputed && !manifest) {
     return {
       isCaptureTurn: false,

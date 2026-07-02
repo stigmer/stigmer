@@ -127,10 +127,18 @@ function decidedChangeSet(
         expectedDigest: c.fileDigest,
       }),
     );
+  // Carry the CANDIDATE snapshot exactly as the server projection does
+  // (project.go copies `candidate_snapshot` onto the FileChangeSet). The resume
+  // reconcile reads it to decide whether this turn captured CAS files — a git-only
+  // turn has no CAS ref — so a faithful fixture must include it.
+  const candEv = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
+  const candidateSnapshot =
+    candEv?.payload.case === "candidateCaptured" ? candEv.payload.value.candidateSnapshot : undefined;
   return create(FileChangeSetSchema, {
     id: CHANGE_SET_ID,
     changes,
     decisions,
+    candidateSnapshot,
     status: FileChangeSetStatus.DECIDED,
   });
 }
