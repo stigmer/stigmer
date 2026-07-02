@@ -6,6 +6,11 @@ import (
 
 const actorUser = "user"
 
+// actorPolicy stamps events authored by a platform policy (the DD-28
+// approved-command auto-keep) — never attributed to the user, so the audit
+// trail always shows WHO decided.
+const actorPolicy = "policy"
+
 // EventID is the deterministic idempotency key for a file-review event:
 // changeSetId:scopeId:eventType. Authoring is append-if-absent on this key, so
 // re-deriving or retrying never duplicates an event (the Temporal-idempotency
@@ -28,7 +33,9 @@ func decisionScopeID(d *agentexecutionv1.FileDecision) string {
 // BuildFileDecision assembles a FileDecision from a validated SubmitFileDecision
 // request plus server-supplied identity. The id is deterministic
 // (changeSetId:scopeId) so a resubmit yields the same decision and the same
-// event id — idempotent by construction.
+// event id — idempotent by construction. Origin is always USER: this builder
+// exists for the human SubmitFileDecision path (the policy auto-keep has its
+// own constructor in autokeep.go).
 func BuildFileDecision(
 	changeSetID, fileChangeID string,
 	scope agentexecutionv1.FileDecisionScope,
@@ -46,6 +53,7 @@ func BuildFileDecision(
 		DecidedAt:               decidedAt,
 		Reason:                  reason,
 		AcknowledgeUnreviewable: acknowledgeUnreviewable,
+		Origin:                  agentexecutionv1.FileDecisionOrigin_FILE_DECISION_ORIGIN_USER,
 	}
 	decision.Id = changeSetID + ":" + decisionScopeID(decision)
 	return decision
@@ -60,6 +68,19 @@ func RecordFileDecisionEvent(
 	status *agentexecutionv1.AgentExecutionStatus,
 	executionID string,
 	decision *agentexecutionv1.FileDecision,
+) {
+	recordFileDecisionEventWithActor(status, executionID, decision, actorUser)
+}
+
+// recordFileDecisionEventWithActor is the single FILE_DECIDED append: the human
+// path stamps actorUser, the auto-keep policy stamps actorPolicy. Both share
+// the deterministic event id, so whichever authority decides first wins and a
+// retry/resubmit never duplicates.
+func recordFileDecisionEventWithActor(
+	status *agentexecutionv1.AgentExecutionStatus,
+	executionID string,
+	decision *agentexecutionv1.FileDecision,
+	actor string,
 ) {
 	if status == nil || decision == nil {
 		return
@@ -78,7 +99,7 @@ func RecordFileDecisionEvent(
 		ChangeSetId: decision.GetChangeSetId(),
 		EventType:   agentexecutionv1.FileReviewEventType_FILE_REVIEW_EVENT_TYPE_FILE_DECIDED,
 		Timestamp:   decision.GetDecidedAt(),
-		Actor:       actorUser,
+		Actor:       actor,
 		Payload:     &agentexecutionv1.FileReviewEvent_FileDecided{FileDecided: decision},
 	}
 	if hasEvent(stream, event.GetEventId()) {

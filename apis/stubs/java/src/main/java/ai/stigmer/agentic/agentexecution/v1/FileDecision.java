@@ -49,6 +49,7 @@ private static final long serialVersionUID = 0L;
     reviewerId_ = "";
     decidedAt_ = "";
     reason_ = "";
+    origin_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -477,6 +478,38 @@ private static final long serialVersionUID = 0L;
     return acknowledgeUnreviewable_;
   }
 
+  public static final int ORIGIN_FIELD_NUMBER = 11;
+  private int origin_ = 0;
+  /**
+   * <pre>
+   * Which authority authored this decision: a human reviewer (USER; also the
+   * reading for UNSPECIFIED pre-origin records) or the approved-command
+   * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+   * correlation, never folded into any digest. See FileDecisionOrigin.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11 [json_name = "origin", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for origin.
+   */
+  @java.lang.Override public int getOriginValue() {
+    return origin_;
+  }
+  /**
+   * <pre>
+   * Which authority authored this decision: a human reviewer (USER; also the
+   * reading for UNSPECIFIED pre-origin records) or the approved-command
+   * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+   * correlation, never folded into any digest. See FileDecisionOrigin.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11 [json_name = "origin", (.buf.validate.field) = { ... }</code>
+   * @return The origin.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin getOrigin() {
+    ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin result = ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin.forNumber(origin_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -521,6 +554,9 @@ private static final long serialVersionUID = 0L;
     if (acknowledgeUnreviewable_ != false) {
       output.writeBool(10, acknowledgeUnreviewable_);
     }
+    if (origin_ != ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin.FILE_DECISION_ORIGIN_UNSPECIFIED.getNumber()) {
+      output.writeEnum(11, origin_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -563,6 +599,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(10, acknowledgeUnreviewable_);
     }
+    if (origin_ != ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin.FILE_DECISION_ORIGIN_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(11, origin_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -596,6 +636,7 @@ private static final long serialVersionUID = 0L;
         .equals(other.getReason())) return false;
     if (getAcknowledgeUnreviewable()
         != other.getAcknowledgeUnreviewable()) return false;
+    if (origin_ != other.origin_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -628,6 +669,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + ACKNOWLEDGE_UNREVIEWABLE_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getAcknowledgeUnreviewable());
+    hash = (37 * hash) + ORIGIN_FIELD_NUMBER;
+    hash = (53 * hash) + origin_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -781,6 +824,7 @@ private static final long serialVersionUID = 0L;
       decidedAt_ = "";
       reason_ = "";
       acknowledgeUnreviewable_ = false;
+      origin_ = 0;
       return this;
     }
 
@@ -844,6 +888,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.acknowledgeUnreviewable_ = acknowledgeUnreviewable_;
       }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.origin_ = origin_;
+      }
     }
 
     @java.lang.Override
@@ -901,6 +948,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getAcknowledgeUnreviewable() != false) {
         setAcknowledgeUnreviewable(other.getAcknowledgeUnreviewable());
+      }
+      if (other.origin_ != 0) {
+        setOriginValue(other.getOriginValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -978,6 +1028,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 80
+            case 88: {
+              origin_ = input.readEnum();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 88
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1855,6 +1910,93 @@ private static final long serialVersionUID = 0L;
     public Builder clearAcknowledgeUnreviewable() {
       bitField0_ = (bitField0_ & ~0x00000200);
       acknowledgeUnreviewable_ = false;
+      onChanged();
+      return this;
+    }
+
+    private int origin_ = 0;
+    /**
+     * <pre>
+     * Which authority authored this decision: a human reviewer (USER; also the
+     * reading for UNSPECIFIED pre-origin records) or the approved-command
+     * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+     * correlation, never folded into any digest. See FileDecisionOrigin.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11 [json_name = "origin", (.buf.validate.field) = { ... }</code>
+     * @return The enum numeric value on the wire for origin.
+     */
+    @java.lang.Override public int getOriginValue() {
+      return origin_;
+    }
+    /**
+     * <pre>
+     * Which authority authored this decision: a human reviewer (USER; also the
+     * reading for UNSPECIFIED pre-origin records) or the approved-command
+     * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+     * correlation, never folded into any digest. See FileDecisionOrigin.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11 [json_name = "origin", (.buf.validate.field) = { ... }</code>
+     * @param value The enum numeric value on the wire for origin to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setOriginValue(int value) {
+      origin_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Which authority authored this decision: a human reviewer (USER; also the
+     * reading for UNSPECIFIED pre-origin records) or the approved-command
+     * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+     * correlation, never folded into any digest. See FileDecisionOrigin.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11 [json_name = "origin", (.buf.validate.field) = { ... }</code>
+     * @return The origin.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin getOrigin() {
+      ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin result = ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin.forNumber(origin_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Which authority authored this decision: a human reviewer (USER; also the
+     * reading for UNSPECIFIED pre-origin records) or the approved-command
+     * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+     * correlation, never folded into any digest. See FileDecisionOrigin.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11 [json_name = "origin", (.buf.validate.field) = { ... }</code>
+     * @param value The origin to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrigin(ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000400;
+      origin_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Which authority authored this decision: a human reviewer (USER; also the
+     * reading for UNSPECIFIED pre-origin records) or the approved-command
+     * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+     * correlation, never folded into any digest. See FileDecisionOrigin.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11 [json_name = "origin", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOrigin() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      origin_ = 0;
       onChanged();
       return this;
     }

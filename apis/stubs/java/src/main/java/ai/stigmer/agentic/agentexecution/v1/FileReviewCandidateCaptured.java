@@ -287,6 +287,53 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentexecution.v1.DiffCompleteness.UNRECOGNIZED : result;
   }
 
+  public static final int COMMAND_PROVENANCE_FIELD_NUMBER = 6;
+  private ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance commandProvenance_;
+  /**
+   * <pre>
+   * The runner's approved-command turn facts (DD-28). When present AND the
+   * backend's verification passes, the set is auto-kept by a policy-origin
+   * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+   * See TurnCommandProvenance.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+   * @return Whether the commandProvenance field is set.
+   */
+  @java.lang.Override
+  public boolean hasCommandProvenance() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * The runner's approved-command turn facts (DD-28). When present AND the
+   * backend's verification passes, the set is auto-kept by a policy-origin
+   * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+   * See TurnCommandProvenance.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+   * @return The commandProvenance.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance getCommandProvenance() {
+    return commandProvenance_ == null ? ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.getDefaultInstance() : commandProvenance_;
+  }
+  /**
+   * <pre>
+   * The runner's approved-command turn facts (DD-28). When present AND the
+   * backend's verification passes, the set is auto-kept by a policy-origin
+   * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+   * See TurnCommandProvenance.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenanceOrBuilder getCommandProvenanceOrBuilder() {
+    return commandProvenance_ == null ? ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.getDefaultInstance() : commandProvenance_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -315,6 +362,9 @@ private static final long serialVersionUID = 0L;
     }
     if (diffCompleteness_ != ai.stigmer.agentic.agentexecution.v1.DiffCompleteness.DIFF_COMPLETENESS_UNSPECIFIED.getNumber()) {
       output.writeEnum(5, diffCompleteness_);
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(6, getCommandProvenance());
     }
     getUnknownFields().writeTo(output);
   }
@@ -348,6 +398,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(5, diffCompleteness_);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(6, getCommandProvenance());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -375,6 +429,11 @@ private static final long serialVersionUID = 0L;
     if (!getAggregateDigest()
         .equals(other.getAggregateDigest())) return false;
     if (diffCompleteness_ != other.diffCompleteness_) return false;
+    if (hasCommandProvenance() != other.hasCommandProvenance()) return false;
+    if (hasCommandProvenance()) {
+      if (!getCommandProvenance()
+          .equals(other.getCommandProvenance())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -400,6 +459,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getAggregateDigest().hashCode();
     hash = (37 * hash) + DIFF_COMPLETENESS_FIELD_NUMBER;
     hash = (53 * hash) + diffCompleteness_;
+    if (hasCommandProvenance()) {
+      hash = (37 * hash) + COMMAND_PROVENANCE_FIELD_NUMBER;
+      hash = (53 * hash) + getCommandProvenance().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -543,6 +606,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetCandidateSnapshotFieldBuilder();
         internalGetChangesFieldBuilder();
+        internalGetCommandProvenanceFieldBuilder();
       }
     }
     @java.lang.Override
@@ -564,6 +628,11 @@ private static final long serialVersionUID = 0L;
       bitField0_ = (bitField0_ & ~0x00000004);
       aggregateDigest_ = "";
       diffCompleteness_ = 0;
+      commandProvenance_ = null;
+      if (commandProvenanceBuilder_ != null) {
+        commandProvenanceBuilder_.dispose();
+        commandProvenanceBuilder_ = null;
+      }
       return this;
     }
 
@@ -626,6 +695,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.diffCompleteness_ = diffCompleteness_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.commandProvenance_ = commandProvenanceBuilder_ == null
+            ? commandProvenance_
+            : commandProvenanceBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -682,6 +757,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.diffCompleteness_ != 0) {
         setDiffCompletenessValue(other.getDiffCompletenessValue());
+      }
+      if (other.hasCommandProvenance()) {
+        mergeCommandProvenance(other.getCommandProvenance());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -744,6 +822,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 40
+            case 50: {
+              input.readMessage(
+                  internalGetCommandProvenanceFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1494,6 +1579,190 @@ private static final long serialVersionUID = 0L;
       diffCompleteness_ = 0;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance commandProvenance_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance, ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.Builder, ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenanceOrBuilder> commandProvenanceBuilder_;
+    /**
+     * <pre>
+     * The runner's approved-command turn facts (DD-28). When present AND the
+     * backend's verification passes, the set is auto-kept by a policy-origin
+     * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+     * See TurnCommandProvenance.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+     * @return Whether the commandProvenance field is set.
+     */
+    public boolean hasCommandProvenance() {
+      return ((bitField0_ & 0x00000020) != 0);
+    }
+    /**
+     * <pre>
+     * The runner's approved-command turn facts (DD-28). When present AND the
+     * backend's verification passes, the set is auto-kept by a policy-origin
+     * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+     * See TurnCommandProvenance.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+     * @return The commandProvenance.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance getCommandProvenance() {
+      if (commandProvenanceBuilder_ == null) {
+        return commandProvenance_ == null ? ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.getDefaultInstance() : commandProvenance_;
+      } else {
+        return commandProvenanceBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The runner's approved-command turn facts (DD-28). When present AND the
+     * backend's verification passes, the set is auto-kept by a policy-origin
+     * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+     * See TurnCommandProvenance.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+     */
+    public Builder setCommandProvenance(ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance value) {
+      if (commandProvenanceBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        commandProvenance_ = value;
+      } else {
+        commandProvenanceBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The runner's approved-command turn facts (DD-28). When present AND the
+     * backend's verification passes, the set is auto-kept by a policy-origin
+     * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+     * See TurnCommandProvenance.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+     */
+    public Builder setCommandProvenance(
+        ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.Builder builderForValue) {
+      if (commandProvenanceBuilder_ == null) {
+        commandProvenance_ = builderForValue.build();
+      } else {
+        commandProvenanceBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The runner's approved-command turn facts (DD-28). When present AND the
+     * backend's verification passes, the set is auto-kept by a policy-origin
+     * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+     * See TurnCommandProvenance.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+     */
+    public Builder mergeCommandProvenance(ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance value) {
+      if (commandProvenanceBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0) &&
+          commandProvenance_ != null &&
+          commandProvenance_ != ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.getDefaultInstance()) {
+          getCommandProvenanceBuilder().mergeFrom(value);
+        } else {
+          commandProvenance_ = value;
+        }
+      } else {
+        commandProvenanceBuilder_.mergeFrom(value);
+      }
+      if (commandProvenance_ != null) {
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The runner's approved-command turn facts (DD-28). When present AND the
+     * backend's verification passes, the set is auto-kept by a policy-origin
+     * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+     * See TurnCommandProvenance.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+     */
+    public Builder clearCommandProvenance() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      commandProvenance_ = null;
+      if (commandProvenanceBuilder_ != null) {
+        commandProvenanceBuilder_.dispose();
+        commandProvenanceBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The runner's approved-command turn facts (DD-28). When present AND the
+     * backend's verification passes, the set is auto-kept by a policy-origin
+     * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+     * See TurnCommandProvenance.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.Builder getCommandProvenanceBuilder() {
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return internalGetCommandProvenanceFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The runner's approved-command turn facts (DD-28). When present AND the
+     * backend's verification passes, the set is auto-kept by a policy-origin
+     * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+     * See TurnCommandProvenance.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenanceOrBuilder getCommandProvenanceOrBuilder() {
+      if (commandProvenanceBuilder_ != null) {
+        return commandProvenanceBuilder_.getMessageOrBuilder();
+      } else {
+        return commandProvenance_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.getDefaultInstance() : commandProvenance_;
+      }
+    }
+    /**
+     * <pre>
+     * The runner's approved-command turn facts (DD-28). When present AND the
+     * backend's verification passes, the set is auto-kept by a policy-origin
+     * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+     * See TurnCommandProvenance.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance, ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.Builder, ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenanceOrBuilder> 
+        internalGetCommandProvenanceFieldBuilder() {
+      if (commandProvenanceBuilder_ == null) {
+        commandProvenanceBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance, ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.Builder, ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenanceOrBuilder>(
+                getCommandProvenance(),
+                getParentForChildren(),
+                isClean());
+        commandProvenance_ = null;
+      }
+      return commandProvenanceBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured)

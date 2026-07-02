@@ -22,7 +22,7 @@
  * - the generated hook script wiring (records denials in both deny branches)
  */
 
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { mkdtempSync, rmSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
@@ -51,6 +51,7 @@ import {
   reconstructAdjudicatedApprovals,
   buildApprovalGrants,
   grantToken,
+  watchDenialLedger,
 } from "../approval-state.js";
 import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, collapseRedundantToolCallTwins, toolCallIdentityToken } from "../message-translator.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
@@ -699,6 +700,114 @@ describe("reconcileDeniedToolCalls — one gate per turn (deny-only workaround)"
 // reconcileDeniedToolCalls never runs. The shared routine runs directly at the
 // terminal finalize and must collapse the duplicate-edit shapes observed in
 // production data while preserving genuine distinct work and every non-file tool.
+describe("reconcileDeniedToolCalls — interrupted non-terminal rows (raced workaround)", () => {
+  function aiText(content: string): AgentMessage {
+    return create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content });
+  }
+  function thinking(content: string): AgentMessage {
+    return create(AgentMessageSchema, { type: MessageType.MESSAGE_THINKING, content });
+  }
+
+  it("collapses a workaround stuck RUNNING whose denial never reached the ledger, and the redaction then blanks the whole reaction block (production shape aex_01kwj07f7g23c3wp9sn8496z5g)", async () => {
+    // The forensic transcript: the anchor shell was denied (ledger entry), the
+    // model reacted with thinking + narration + a python-write shell workaround,
+    // and the run.cancel() landed before the workaround's own hook denial
+    // reached the ledger read — so the token-scoped collapse could not see it.
+    // It persisted as RUNNING + requiresApproval forever, and its tool-bearing
+    // message stopped the narration redaction from blanking anything.
+    const seqCommand = "for i in $(seq 1 5000); do echo line $i; done > big.txt";
+    const anchor = toolCall({
+      id: "shell-anchor",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { command: seqCommand },
+      argsPreview: JSON.stringify({ command: seqCommand }),
+      requiresApproval: true,
+    });
+    const workaround = toolCall({
+      id: "shell-workaround",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_RUNNING,
+      args: { command: "python3 -c \"open('big.txt','w').write('...')\"" },
+      argsPreview: JSON.stringify({ command: "python3 -c ..." }),
+      requiresApproval: true,
+    });
+    const narration = aiText("Generating the file with a script since the shell command needs approval.");
+    narration.toolCalls = [workaround];
+    const messages: AgentMessage[] = [
+      aiMessageWith([anchor]),
+      thinking("Shell commands were blocked. The Write tool will be used instead."),
+      narration,
+    ];
+
+    // Only the anchor's denial is in the ledger — the workaround's raced it.
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Shell", token: toolCallIdentityToken(anchor) }],
+      undefined,
+      rootBackend(),
+    );
+
+    expect(reconciled).toHaveLength(1);
+    expect(anchor.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    // The interrupted workaround is finalized to the hidden SKIPPED shape —
+    // never an eternal spinner, never a second approval card.
+    expect(workaround.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(workaround.requiresApproval).toBe(false);
+    expect(workaround.args).toBeUndefined();
+
+    // With the workaround hidden, its message is trailing narration again and
+    // the whole reaction block blanks — thinking included.
+    const redacted = clearProvisionalPostDenialNarration(messages, reconciled);
+    expect(redacted).toHaveLength(2);
+    expect(messages[1].content).toBe("");
+    expect(messages[2].content).toBe("");
+    // Ids preserved in place (append-only finalize).
+    expect(messages[2].toolCalls.map((t) => t.id)).toEqual(["shell-workaround"]);
+  });
+
+  it("leaves terminal rows untouched: a completed tool after the gate is real activity and still stops the redaction walk", async () => {
+    const anchor = toolCall({
+      id: "shell-anchor",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { command: "rm -rf build" },
+      argsPreview: JSON.stringify({ command: "rm -rf build" }),
+    });
+    const completedRead = toolCall({
+      id: "read-1",
+      name: "read",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      result: "file contents",
+      args: { path: "a.txt" },
+    });
+    const readMsg = aiMessageWith([completedRead]);
+    const messages: AgentMessage[] = [
+      aiMessageWith([anchor]),
+      readMsg,
+      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "trailing reaction" }),
+    ];
+
+    const reconciled = await reconcileDeniedToolCalls(
+      messages,
+      [{ toolName: "Shell", token: toolCallIdentityToken(anchor) }],
+      undefined,
+      rootBackend(),
+    );
+
+    // The completed read is terminal — the interrupted-row sweep never touches it.
+    expect(completedRead.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(completedRead.result).toBe("file contents");
+
+    // And as a VISIBLE tool-bearing message it bounds the redaction: only the
+    // text after it blanks.
+    const redacted = clearProvisionalPostDenialNarration(messages, reconciled);
+    expect(redacted).toHaveLength(1);
+    expect(messages[2].content).toBe("");
+    expect(readMsg.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  });
+});
+
 describe("collapseRedundantToolCallTwins — terminal-path twin collapse", () => {
   function completedEdit(id: string, path: string): ToolCall {
     return toolCall({
@@ -1275,13 +1384,23 @@ describe("clearProvisionalPostDenialNarration", () => {
 describe("first-denial stop contract", () => {
   type SimEvent =
     | { kind: "text"; content: string }
-    | { kind: "tool"; tool: ToolCall; denyToken?: { name: string; token: string } };
+    | {
+        kind: "tool";
+        tool: ToolCall;
+        denyToken?: { name: string; token: string };
+        // When the hook's ledger append lands relative to the loop's read for
+        // THIS event. "before-read" is the common case (the hook adjudicates as
+        // the tool_call event surfaces); "after-read" reproduces the production
+        // race where the append lands just after — the watcher's dirty flag
+        // must then stop the turn on the NEXT event of any type.
+        denyTiming?: "before-read" | "after-read";
+      };
 
-  // Faithfully mirrors the index.ts loop rule: process each event, and on a
-  // tool_call event read the denial ledger — the instant it is non-empty, cancel
-  // the run and stop consuming the stream. The hook is simulated by appending the
-  // denial token to the ledger as the gated tool is evaluated (exactly when the
-  // real hook runs, before the runner reads it).
+  // Faithfully mirrors the index.ts loop rule: process each event, then read
+  // the denial ledger when the fs watcher flagged it dirty OR the event is a
+  // tool_call (the backstop) — the instant the ledger is non-empty, cancel the
+  // run and stop consuming the stream. The watcher is simulated by flipping the
+  // dirty flag as the append happens (the real fs.watch notification).
   async function runTurnWithFirstDenialStop(
     hitlDir: string,
     events: SimEvent[],
@@ -1290,27 +1409,44 @@ describe("first-denial stop contract", () => {
     const messages: AgentMessage[] = [];
     let cancelled = false;
     let consumed = 0;
+    let ledgerDirty = false;
+    let pendingAppend: { name: string; token: string } | undefined;
+
+    const appendDenial = async (deny: { name: string; token: string }) => {
+      await writeFile(
+        denialLedgerPath(hitlDir),
+        `{"toolName":"${deny.name}","token":"${deny.token}"}\n`,
+        { flag: "a" },
+      );
+      ledgerDirty = true;
+    };
 
     for (const ev of events) {
       consumed++;
+      // A raced append from the PREVIOUS event lands as this event arrives.
+      if (pendingAppend) {
+        await appendDenial(pendingAppend);
+        pendingAppend = undefined;
+      }
       if (ev.kind === "text") {
         messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: ev.content }));
-        continue;
+      } else {
+        messages.push(aiMessageWith([ev.tool]));
+        if (ev.denyToken) {
+          if ((ev.denyTiming ?? "before-read") === "before-read") {
+            await appendDenial(ev.denyToken);
+          } else {
+            pendingAppend = ev.denyToken;
+          }
+        }
       }
-      // A tool_call event: the hook has already adjudicated it, appending to the
-      // ledger if it gated the tool.
-      messages.push(aiMessageWith([ev.tool]));
-      if (ev.denyToken) {
-        await writeFile(
-          denialLedgerPath(hitlDir),
-          `{"toolName":"${ev.denyToken.name}","token":"${ev.denyToken.token}"}\n`,
-          { flag: "a" },
-        );
-      }
-      const denials = await readDenialLedger(hitlDir);
-      if (denials.length > 0) {
-        cancelled = true;
-        break;
+      if (ledgerDirty || ev.kind === "tool") {
+        ledgerDirty = false;
+        const denials = await readDenialLedger(hitlDir);
+        if (denials.length > 0) {
+          cancelled = true;
+          break;
+        }
       }
     }
 
@@ -1361,6 +1497,72 @@ describe("first-denial stop contract", () => {
 
     expect(cancelled).toBe(false);
     expect(consumed).toBe(3); // the whole turn is consumed
+  });
+
+  it("stops on the NEXT event of any type when the denial lands after the tool_call read (the watcher rule)", async () => {
+    // The production race (aex_01kwj07f7g23c3wp9sn8496z5g): the hook's ledger
+    // append landed just after the gated tool's own tool_call-event read, so the
+    // old tool_call-only rule consumed the model's ENTIRE reaction (thinking,
+    // narration, a workaround shell) before the next tool_call finally saw the
+    // ledger. The watcher flags the append the moment it lands; the very next
+    // event — a mere text delta — must end the turn.
+    const ws = makeWorkspace();
+    const shell = toolCall({ id: "c1", name: "shell", status: ToolCallStatus.TOOL_CALL_RUNNING, args: { command: "seq 1 5000 > big.txt" } });
+    const workaround = toolCall({ id: "c2", name: "shell", status: ToolCallStatus.TOOL_CALL_RUNNING, args: { command: "python3 -c ..." } });
+
+    const { messages, cancelled, consumed } = await runTurnWithFirstDenialStop(ws, [
+      { kind: "text", content: "Let me create the file." },
+      { kind: "tool", tool: shell, denyToken: { name: "Shell", token: grantToken("shell", "seq 1 5000 > big.txt") }, denyTiming: "after-read" },
+      { kind: "text", content: "Shell was blocked — generating with a script instead." },
+      { kind: "tool", tool: workaround, denyToken: { name: "Shell", token: grantToken("shell", "python3 -c ...") } },
+    ]);
+
+    expect(cancelled).toBe(true);
+    // The reaction text event triggers the dirty-flag read and is the LAST
+    // event consumed; the workaround tool is never consumed at all.
+    expect(consumed).toBe(3);
+    expect(messages).toHaveLength(3);
+    expect(messages.some((m) => m.toolCalls.includes(workaround))).toBe(false);
+
+    // Phase 12 on the stopped transcript: the anchor gates, and the one raced
+    // reaction message is blanked by the trim backstop.
+    const denied = await reconcileDeniedToolCalls(messages, await readDenialLedger(ws), undefined, rootBackend());
+    expect(denied).toHaveLength(1);
+    expect(shell.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    const redacted = clearProvisionalPostDenialNarration(messages, denied);
+    expect(redacted).toHaveLength(1);
+    expect(messages[2].content).toBe("");
+  });
+});
+
+describe("watchDenialLedger", () => {
+  it("flags dirty when the hook appends a denial to the ledger", async () => {
+    const ws = makeWorkspace();
+    await resetDenialLedger(ws);
+    let dirty = false;
+    const stop = watchDenialLedger(ws, () => {
+      dirty = true;
+    });
+    try {
+      // Give the watcher a beat to arm, then simulate the hook's append.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await writeFile(
+        denialLedgerPath(ws),
+        `{"toolName":"Shell","token":"${grantToken("shell", "echo hi")}"}\n`,
+        { flag: "a" },
+      );
+      await vi.waitFor(() => expect(dirty).toBe(true), { timeout: 3_000 });
+    } finally {
+      stop();
+    }
+  });
+
+  it("close is idempotent and safe after the directory is gone", async () => {
+    const ws = makeWorkspace();
+    await resetDenialLedger(ws);
+    const stop = watchDenialLedger(ws, () => {});
+    stop();
+    stop(); // second close must not throw
   });
 });
 

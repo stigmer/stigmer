@@ -47,7 +47,7 @@ import {
 } from "../../shared/approval-policy.js";
 import { grantToken, primaryToken, toolIdentity, type DeniedLedgerEntry } from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
-import { hideToolCallRow } from "../../shared/tool-row.js";
+import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
 import { classifyTool, toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { contentDigest } from "../../shared/file-tools.js";
@@ -1318,6 +1318,27 @@ export async function reconcileDeniedToolCalls(
     );
   }
 
+  // 2c. Finalize interrupted rows. The first-denial stop cancelled the run, so
+  //     a tool call still PENDING/RUNNING here can never complete — no event
+  //     will ever deliver its result, and left alone it persists as a spinner
+  //     forever. The canonical victim is a post-denial workaround whose own
+  //     hook denial raced (or never reached) the final ledger read, so the
+  //     token-scoped collapse in 2a could not see it (production case
+  //     aex_01kwj07f7g23c3wp9sn8496z5g: a python-write shell reaction persisted
+  //     as RUNNING with requiresApproval=true). Whatever the cause, a
+  //     non-terminal row on a turn that is pausing is an interrupted attempt
+  //     with no output: collapse it to the same hidden SKIPPED shape as every
+  //     other superseded row (in place — the append-only-at-identity guard
+  //     forbids dropping a committed id). Runs AFTER the anchor overlay, so the
+  //     gate itself (now WAITING_APPROVAL) is never touched.
+  const interrupted = finalizeInterruptedToolCalls(messages);
+  if (interrupted > 0) {
+    console.log(
+      `ExecuteCursor reconcile collapsed ${interrupted} interrupted non-terminal ` +
+        `tool call(s) that can never complete (run cancelled at first denial)`,
+    );
+  }
+
   // 3. Synthesize the anchor gate if it matched NO streamed call in either pass
   //    (rare — Cursor emits a tool_call event for every attempt), so the gate
   //    still surfaces rather than rendering as a silent success. After the
@@ -1363,6 +1384,36 @@ function overlayDeniedStreamCall(
 ): void {
   markWaitingApproval(tc, mergedPolicies);
   applyGateInput(tc, input);
+}
+
+/**
+ * Collapse every tool call still in a non-terminal state (PENDING / RUNNING)
+ * to the hidden SKIPPED row shape, returning how many were collapsed.
+ *
+ * Called only on the pause-for-approval path, after the anchor gate has been
+ * overlaid to WAITING_APPROVAL: the run was cancelled, so nothing will ever
+ * complete these calls, and a permanently-RUNNING row would render as an
+ * eternal spinner beside the approval card. This is the causality sibling of
+ * {@link collapseNonAnchorDenials}: that collapse is token-scoped (it needs the
+ * denial in the ledger), while this one catches the attempt whose hook denial
+ * raced the final ledger read or whose execution the cancel interrupted
+ * outright — either way an attempt with no output that the turn's end orphaned.
+ */
+function finalizeInterruptedToolCalls(messages: AgentMessage[]): number {
+  let finalized = 0;
+  for (const msg of messages) {
+    for (const tc of msg.toolCalls) {
+      if (
+        tc.status !== ToolCallStatus.TOOL_CALL_PENDING &&
+        tc.status !== ToolCallStatus.TOOL_CALL_RUNNING
+      ) {
+        continue;
+      }
+      hideToolCallRow(tc);
+      finalized++;
+    }
+  }
+  return finalized;
 }
 
 /**
@@ -1676,12 +1727,21 @@ function findUnmatchedStreamCallByNormalizedSalient(
  * `finalizeStreaming(run_id)` before attaching a tool call, so any assistant
  * text the model emits *after* the denied tool call always starts a NEW message
  * — post-denial narration is never merged into the message that holds the gated
- * call. We stop at the first non-narration message (one bearing tool calls), so
- * legitimately-executed tools after the gate and any text around them are never
- * touched; only the contiguous trailing reaction block is blanked. The
- * first-denial stop in index.ts is the primary mechanism that keeps this block
- * small (it ends the turn before the model produces inter-tool narration); this
- * redaction is the backstop for any token that streamed before the cancel landed.
+ * call. We stop at the first non-narration message — one bearing a VISIBLE tool
+ * call — so legitimately-executed tools after the gate and any text around them
+ * are never touched; only the contiguous trailing reaction block is blanked. A
+ * message whose every tool call was collapsed to the hidden SKIPPED row (a
+ * post-denial workaround or an interrupted attempt — see
+ * collapseNonAnchorDenials / finalizeInterruptedToolCalls, which run first) IS
+ * trailing narration: its rows render as absent, so only its text remains, and
+ * that text is precisely the reaction this redaction exists to blank. Treating
+ * it as a stop would strand every reaction message behind it (the production
+ * shape in aex_01kwj07f7g23c3wp9sn8496z5g: [gate][thinking][narration+workaround
+ * row] — the old walk stopped at the workaround message and redacted nothing).
+ * The first-denial stop in index.ts is the primary mechanism that keeps this
+ * block small (it ends the turn before the model produces inter-tool
+ * narration); this redaction is the backstop for any token that streamed before
+ * the cancel landed.
  *
  * Returns the blanked messages (for diagnostics); mutates `messages` in place.
  */
@@ -1709,14 +1769,15 @@ export function clearProvisionalPostDenialNarration(
     const msg = messages[i];
     const isProvisionalNarration =
       (msg.type === MessageType.MESSAGE_AI || msg.type === MessageType.MESSAGE_THINKING) &&
-      msg.toolCalls.length === 0;
-    // Stop at the first message that is NOT trailing narration: a tool-bearing
-    // message marks real activity we must preserve, and anything before it is no
-    // longer "trailing".
+      msg.toolCalls.every((tc) => isToolCallRowHidden(tc));
+    // Stop at the first message that is NOT trailing narration: a message
+    // bearing a visible (non-collapsed) tool call marks real activity we must
+    // preserve, and anything before it is no longer "trailing".
     if (!isProvisionalNarration) break;
     // Blank in place — keep the message so the transcript count never shrinks,
     // but drop its provisional content so no consumer renders the defeatist
-    // verdict. Empty AI/THINKING messages are hidden by the SDK already.
+    // verdict. Empty AI/THINKING messages are hidden by the SDK already; hidden
+    // SKIPPED rows already render as absent.
     msg.content = "";
     msg.isStreaming = false;
     redacted.unshift(msg);

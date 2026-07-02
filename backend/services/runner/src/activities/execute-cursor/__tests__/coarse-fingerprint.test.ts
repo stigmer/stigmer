@@ -33,7 +33,7 @@ function grantOf(toolName: string, mcpServerSlug: string, args: Record<string, u
   // These tests exercise only the COARSE identity (key/salient); the content
   // digest is not part of the coarse fingerprint or token, so use the documented
   // content-less value ("").
-  return { toolName, mcpServerSlug, key: id.key, salient: id.salient, contentDigest: "" };
+  return { toolName, mcpServerSlug, key: id.key, salient: id.salient, contentDigest: "", sourceToolCallId: "consent-1" };
 }
 
 describe("Cursor coarse fingerprint (Slice D)", () => {

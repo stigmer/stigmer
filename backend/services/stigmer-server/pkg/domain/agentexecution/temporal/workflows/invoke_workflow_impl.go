@@ -437,21 +437,34 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 			"gate_count", gateCount)
 
 		if gateCount == 0 {
-			// WAITING_FOR_APPROVAL with an empty unified gate is an inconsistency
-			// the finalize contract should make impossible. Tolerate a few
-			// consecutive occurrences (transient read race) then fail fast, rather
-			// than tight-looping the full activity to MaxApprovalCycles.
-			zeroGateCycles++
-			if zeroGateCycles > MaxZeroGateCycles {
-				logger.Error("WAITING_FOR_APPROVAL with empty HITL gate across consecutive cycles — failing fast to avoid a tight re-invocation loop",
-					"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
-				return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with an empty HITL gate after %d consecutive cycles - gate propagation is broken", zeroGateCycles)
+			if loadErr == nil && filereview.HasDecidedAwaitingReconcile(dbExecution.GetStatus()) {
+				// LEGITIMATE empty gate: a change set was decided before this check
+				// — the DD-28 approved-command auto-keep authors its decision in the
+				// same write that folds the candidate (and a fast human decision can
+				// race the check the same way). The runner is owed a reconcile;
+				// re-invoke immediately without waiting for a signal that already
+				// fired or will never come.
+				zeroGateCycles = 0
+				logger.Info("HITL gate resolved before wait (policy auto-keep or early decision) — re-invoking to reconcile",
+					"execution_id", executionID, "cycle", approvalCycle)
+			} else {
+				// WAITING_FOR_APPROVAL with an empty unified gate and NOTHING owed a
+				// reconcile is an inconsistency the finalize contract should make
+				// impossible. Tolerate a few consecutive occurrences (transient read
+				// race) then fail fast, rather than tight-looping the full activity
+				// to MaxApprovalCycles.
+				zeroGateCycles++
+				if zeroGateCycles > MaxZeroGateCycles {
+					logger.Error("WAITING_FOR_APPROVAL with empty HITL gate across consecutive cycles — failing fast to avoid a tight re-invocation loop",
+						"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
+					return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with an empty HITL gate after %d consecutive cycles - gate propagation is broken", zeroGateCycles)
+				}
+				logger.Warn("HITL gate is empty but phase is WAITING_FOR_APPROVAL — "+
+					"re-invoking (bounded) to resolve inconsistency",
+					"execution_id", executionID,
+					"cycle", approvalCycle,
+					"zero_gate_cycles", zeroGateCycles)
 			}
-			logger.Warn("HITL gate is empty but phase is WAITING_FOR_APPROVAL — "+
-				"re-invoking (bounded) to resolve inconsistency",
-				"execution_id", executionID,
-				"cycle", approvalCycle,
-				"zero_gate_cycles", zeroGateCycles)
 		} else {
 			zeroGateCycles = 0
 			signalChan := workflow.GetSignalChannel(ctx, SignalApprovalGateResolved)
@@ -697,18 +710,31 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 			"execution_id", executionID, "cycle", approvalCycle, "gate_count", gateCount)
 
 		if gateCount == 0 {
-			// WAITING_FOR_APPROVAL with an empty unified gate is an inconsistency
-			// the finalize contract should make impossible. Tolerate a few
-			// consecutive occurrences (transient read race) then fail fast, rather
-			// than tight-looping the full activity to MaxApprovalCycles.
-			zeroGateCycles++
-			if zeroGateCycles > MaxZeroGateCycles {
-				logger.Error("WAITING_FOR_APPROVAL with empty HITL gate across consecutive cycles — failing fast to avoid a tight re-invocation loop",
+			if loadErr == nil && filereview.HasDecidedAwaitingReconcile(dbExecution.GetStatus()) {
+				// LEGITIMATE empty gate: a change set was decided before this check
+				// — the DD-28 approved-command auto-keep authors its decision in the
+				// same write that folds the candidate (and a fast human decision can
+				// race the check the same way). The runner is owed a reconcile;
+				// re-invoke immediately without waiting for a signal that already
+				// fired or will never come.
+				zeroGateCycles = 0
+				logger.Info("HITL gate resolved before wait (policy auto-keep or early decision) — re-invoking to reconcile",
+					"execution_id", executionID, "cycle", approvalCycle)
+			} else {
+				// WAITING_FOR_APPROVAL with an empty unified gate and NOTHING owed a
+				// reconcile is an inconsistency the finalize contract should make
+				// impossible. Tolerate a few consecutive occurrences (transient read
+				// race) then fail fast, rather than tight-looping the full activity
+				// to MaxApprovalCycles.
+				zeroGateCycles++
+				if zeroGateCycles > MaxZeroGateCycles {
+					logger.Error("WAITING_FOR_APPROVAL with empty HITL gate across consecutive cycles — failing fast to avoid a tight re-invocation loop",
+						"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
+					return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with an empty HITL gate after %d consecutive cycles - gate propagation is broken", zeroGateCycles)
+				}
+				logger.Warn("HITL gate empty but phase is WAITING_FOR_APPROVAL — re-invoking (bounded)",
 					"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
-				return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with an empty HITL gate after %d consecutive cycles - gate propagation is broken", zeroGateCycles)
 			}
-			logger.Warn("HITL gate empty but phase is WAITING_FOR_APPROVAL — re-invoking (bounded)",
-				"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
 		} else {
 			zeroGateCycles = 0
 			signalChan := workflow.GetSignalChannel(ctx, SignalApprovalGateResolved)

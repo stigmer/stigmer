@@ -26,6 +26,7 @@ import type {
   CapturedFileChange,
   FileReviewEvent,
   SnapshotRef,
+  TurnCommandProvenance,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
   FileContentSchema,
@@ -320,11 +321,18 @@ export function deriveDiffCompleteness(
  * The CANDIDATE_CAPTURED event — authored at the turn boundary, carrying the
  * authoritative per-file diff and the aggregate digest. `diff_completeness` is
  * the {@link deriveDiffCompleteness} rollup over the changes.
+ *
+ * `commandProvenance` (optional, DD-28) is the harness's approved-command turn
+ * facts: when present, the backend verifies the cited consent rows against its
+ * server-authored approval record and — on success — auto-keeps the set with a
+ * policy-origin decision instead of arming the review gate. Never folded into
+ * the aggregate digest (provenance, not content).
  */
 export function buildCandidateCapturedEvent(
   ctx: ChangeSetContext,
   candidateSnapshot: SnapshotRef | undefined,
   changes: readonly CapturedFileChange[],
+  commandProvenance?: TurnCommandProvenance,
 ): FileReviewEvent {
   return create(FileReviewEventSchema, {
     eventId: eventId(ctx.changeSetId, ctx.changeSetId, FileReviewEventType.CANDIDATE_CAPTURED),
@@ -348,6 +356,7 @@ export function buildCandidateCapturedEvent(
           })),
         ),
         diffCompleteness: deriveDiffCompleteness(changes),
+        ...(commandProvenance ? { commandProvenance } : {}),
       }),
     },
   });

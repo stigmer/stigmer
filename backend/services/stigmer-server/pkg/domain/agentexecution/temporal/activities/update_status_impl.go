@@ -170,12 +170,18 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 			// lock so it can never clobber a concurrent decision.
 			filereview.AppendRunnerEvents(status, executionID, statusUpdates)
 
+			// Approved-command auto-keep (DD-28): a candidate whose provenance
+			// verifies against the server-authored approval record is decided by
+			// policy IN THE SAME WRITE that folded it, so the gate never arms for a
+			// set the user already consented to via the command approval.
+			filereview.AutoKeepApprovedCommandSets(status, executionID, updated.GetSpec().GetAutoApproveAll())
+
 			// Recompute file_change_sets from the append-only file_review ledger via
 			// its single projection seam. The ledger (server-owned, preserved in place
 			// across this merge like approval_event_stream) is authored by the runner's
-			// capture/reconcile activities (folded just above) and by
-			// SubmitFileDecision; this projection is always derived, never merged, so
-			// it cannot go stale.
+			// capture/reconcile activities (folded just above), the auto-keep policy,
+			// and SubmitFileDecision; this projection is always derived, never merged,
+			// so it cannot go stale.
 			status.FileChangeSets = filereview.ProjectFileChangeSets(
 				status.GetPhase(),
 				status.GetFileReviewEventStream(),

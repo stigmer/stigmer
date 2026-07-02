@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { DiffCompleteness, FileCaptureClass, FileChangeKind, FileChangeSetStatus, FileDecisionAction, FileDecisionScope, FileReviewBlockReason, FileReviewEventType, FileReviewFailureKind, SnapshotKind } from "./enum_pb.js";
+import type { DiffCompleteness, FileCaptureClass, FileChangeKind, FileChangeSetStatus, FileDecisionAction, FileDecisionOrigin, FileDecisionScope, FileReviewBlockReason, FileReviewEventType, FileReviewFailureKind, SnapshotKind } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
 import type { FileContent, ToolCallOutputRef } from "./message_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_message } from "./message_pb.js";
@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/filereview.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_filereview: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZmlsZXJldmlldy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIokFCg1GaWxlQ2hhbmdlU2V0EgoKAmlkGAEgASgJEg8KB3R1cm5faWQYAiABKAkSEgoKaGFybmVzc19pZBgDIAEoCRJTCgZzdGF0dXMYBCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNoYW5nZVNldFN0YXR1c0IIukgFggECEAESTAoRYmFzZWxpbmVfc25hcHNob3QYBSABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU25hcHNob3RSZWYSTQoSY2FuZGlkYXRlX3NuYXBzaG90GAYgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmEkwKEWFwcHJvdmVkX3NuYXBzaG90GAcgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmEkkKB2NoYW5nZXMYCCADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ2FwdHVyZWRGaWxlQ2hhbmdlEhgKEGFnZ3JlZ2F0ZV9kaWdlc3QYCSABKAkSWwoRZGlmZl9jb21wbGV0ZW5lc3MYCiABKA4yNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRGlmZkNvbXBsZXRlbmVzc0IIukgFggECEAESRQoJZGVjaXNpb25zGAsgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVEZWNpc2lvbiL8BAoSQ2FwdHVyZWRGaWxlQ2hhbmdlEgoKAmlkGAEgASgJEhMKC3BhdGhfYmVmb3JlGAIgASgJEhIKCnBhdGhfYWZ0ZXIYAyABKAkSTAoEa2luZBgEIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2hhbmdlS2luZEIIukgFggECEAESVwoNY2FwdHVyZV9jbGFzcxgFIAEoDjI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2FwdHVyZUNsYXNzQgi6SAWCAQIQARJBCgZiZWZvcmUYBiABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNvbnRlbnQSQAoFYWZ0ZXIYByABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNvbnRlbnQSFQoNYmVmb3JlX3NoYTI1NhgIIAEoCRIUCgxhZnRlcl9zaGEyNTYYCSABKAkSTQoMdW5pZmllZF9kaWZmGAogASgLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsT3V0cHV0UmVmEhUKDWRpZmZfY29tcGxldGUYCyABKAgSEwoLZmlsZV9kaWdlc3QYDCABKAkSXQoOYmxvY2tlZF9yZWFzb24YDSABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0Jsb2NrUmVhc29uQgi6SAWCAQIQASLbAQoLU25hcHNob3RSZWYSSgoEa2luZBgBIAEoDjIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TbmFwc2hvdEtpbmRCCLpIBYIBAhABEj0KA2dpdBgCIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5HaXRUcmVlUmVmEkEKA2NhcxgDIAEoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5DYXNNYW5pZmVzdFJlZiIrCgpHaXRUcmVlUmVmEhAKCHRyZWVfb2lkGAEgASgJEgsKA3JlZhgCIAEoCSI/Cg5DYXNNYW5pZmVzdFJlZhIXCg9tYW5pZmVzdF9kaWdlc3QYASABKAkSFAoMYXJ0aWZhY3RfdXJpGAIgASgJIuMCCgxGaWxlRGVjaXNpb24SCgoCaWQYASABKAkSFQoNY2hhbmdlX3NldF9pZBgCIAEoCRJQCgVzY29wZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlRGVjaXNpb25TY29wZUIIukgFggECEAESFgoOZmlsZV9jaGFuZ2VfaWQYBCABKAkSUgoGYWN0aW9uGAUgASgOMjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVEZWNpc2lvbkFjdGlvbkIIukgFggECEAESFwoPZXhwZWN0ZWRfZGlnZXN0GAYgASgJEhMKC3Jldmlld2VyX2lkGAcgASgJEhIKCmRlY2lkZWRfYXQYCCABKAkSDgoGcmVhc29uGAkgASgJEiAKGGFja25vd2xlZGdlX3VucmV2aWV3YWJsZRgKIAEoCCKmAQoaRmlsZVJldmlld0Jhc2VsaW5lQ2FwdHVyZWQSFQoNY2hhbmdlX3NldF9pZBgBIAEoCRIPCgd0dXJuX2lkGAIgASgJEhIKCmhhcm5lc3NfaWQYAyABKAkSTAoRYmFzZWxpbmVfc25hcHNob3QYBCABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU25hcHNob3RSZWYixQIKG0ZpbGVSZXZpZXdDYW5kaWRhdGVDYXB0dXJlZBIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJEk0KEmNhbmRpZGF0ZV9zbmFwc2hvdBgCIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TbmFwc2hvdFJlZhJJCgdjaGFuZ2VzGAMgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNhcHR1cmVkRmlsZUNoYW5nZRIYChBhZ2dyZWdhdGVfZGlnZXN0GAQgASgJElsKEWRpZmZfY29tcGxldGVuZXNzGAUgASgOMjYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkRpZmZDb21wbGV0ZW5lc3NCCLpIBYIBAhABInsKFEZpbGVSZXZpZXdSZWNvbmNpbGVkEhUKDWNoYW5nZV9zZXRfaWQYASABKAkSTAoRYXBwcm92ZWRfc25hcHNob3QYAiABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU25hcHNob3RSZWYijwEKEUZpbGVSZXZpZXdGYWlsdXJlEhUKDWNoYW5nZV9zZXRfaWQYASABKAkSUwoEa2luZBgCIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlUmV2aWV3RmFpbHVyZUtpbmRCCLpIBYIBAhABEg4KBmRldGFpbBgDIAEoCSLpBAoPRmlsZVJldmlld0V2ZW50EhAKCGV2ZW50X2lkGAEgASgJEhUKDWNoYW5nZV9zZXRfaWQYAiABKAkSVwoKZXZlbnRfdHlwZRgDIAEoDjI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlUmV2aWV3RXZlbnRUeXBlQgi6SAWCAQIQARIRCgl0aW1lc3RhbXAYBCABKAkSDQoFYWN0b3IYBSABKAkSXQoRYmFzZWxpbmVfY2FwdHVyZWQYBiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0Jhc2VsaW5lQ2FwdHVyZWRIABJfChJjYW5kaWRhdGVfY2FwdHVyZWQYByABKAsyQS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0NhbmRpZGF0ZUNhcHR1cmVkSAASSgoMZmlsZV9kZWNpZGVkGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVEZWNpc2lvbkgAElAKCnJlY29uY2lsZWQYCSABKAsyOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld1JlY29uY2lsZWRIABJJCgZmYWlsZWQYCiABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0ZhaWx1cmVIAEIJCgdwYXlsb2FkInQKFUZpbGVSZXZpZXdFdmVudFN0cmVhbRIUCgxleGVjdXRpb25faWQYASABKAkSRQoGZXZlbnRzGAIgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdFdmVudGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_buf_validate_validate]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZmlsZXJldmlldy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIokFCg1GaWxlQ2hhbmdlU2V0EgoKAmlkGAEgASgJEg8KB3R1cm5faWQYAiABKAkSEgoKaGFybmVzc19pZBgDIAEoCRJTCgZzdGF0dXMYBCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNoYW5nZVNldFN0YXR1c0IIukgFggECEAESTAoRYmFzZWxpbmVfc25hcHNob3QYBSABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU25hcHNob3RSZWYSTQoSY2FuZGlkYXRlX3NuYXBzaG90GAYgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmEkwKEWFwcHJvdmVkX3NuYXBzaG90GAcgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmEkkKB2NoYW5nZXMYCCADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ2FwdHVyZWRGaWxlQ2hhbmdlEhgKEGFnZ3JlZ2F0ZV9kaWdlc3QYCSABKAkSWwoRZGlmZl9jb21wbGV0ZW5lc3MYCiABKA4yNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRGlmZkNvbXBsZXRlbmVzc0IIukgFggECEAESRQoJZGVjaXNpb25zGAsgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVEZWNpc2lvbiL8BAoSQ2FwdHVyZWRGaWxlQ2hhbmdlEgoKAmlkGAEgASgJEhMKC3BhdGhfYmVmb3JlGAIgASgJEhIKCnBhdGhfYWZ0ZXIYAyABKAkSTAoEa2luZBgEIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2hhbmdlS2luZEIIukgFggECEAESVwoNY2FwdHVyZV9jbGFzcxgFIAEoDjI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2FwdHVyZUNsYXNzQgi6SAWCAQIQARJBCgZiZWZvcmUYBiABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNvbnRlbnQSQAoFYWZ0ZXIYByABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNvbnRlbnQSFQoNYmVmb3JlX3NoYTI1NhgIIAEoCRIUCgxhZnRlcl9zaGEyNTYYCSABKAkSTQoMdW5pZmllZF9kaWZmGAogASgLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsT3V0cHV0UmVmEhUKDWRpZmZfY29tcGxldGUYCyABKAgSEwoLZmlsZV9kaWdlc3QYDCABKAkSXQoOYmxvY2tlZF9yZWFzb24YDSABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0Jsb2NrUmVhc29uQgi6SAWCAQIQASLbAQoLU25hcHNob3RSZWYSSgoEa2luZBgBIAEoDjIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TbmFwc2hvdEtpbmRCCLpIBYIBAhABEj0KA2dpdBgCIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5HaXRUcmVlUmVmEkEKA2NhcxgDIAEoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5DYXNNYW5pZmVzdFJlZiIrCgpHaXRUcmVlUmVmEhAKCHRyZWVfb2lkGAEgASgJEgsKA3JlZhgCIAEoCSI/Cg5DYXNNYW5pZmVzdFJlZhIXCg9tYW5pZmVzdF9kaWdlc3QYASABKAkSFAoMYXJ0aWZhY3RfdXJpGAIgASgJIrcDCgxGaWxlRGVjaXNpb24SCgoCaWQYASABKAkSFQoNY2hhbmdlX3NldF9pZBgCIAEoCRJQCgVzY29wZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlRGVjaXNpb25TY29wZUIIukgFggECEAESFgoOZmlsZV9jaGFuZ2VfaWQYBCABKAkSUgoGYWN0aW9uGAUgASgOMjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVEZWNpc2lvbkFjdGlvbkIIukgFggECEAESFwoPZXhwZWN0ZWRfZGlnZXN0GAYgASgJEhMKC3Jldmlld2VyX2lkGAcgASgJEhIKCmRlY2lkZWRfYXQYCCABKAkSDgoGcmVhc29uGAkgASgJEiAKGGFja25vd2xlZGdlX3VucmV2aWV3YWJsZRgKIAEoCBJSCgZvcmlnaW4YCyABKA4yOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZURlY2lzaW9uT3JpZ2luQgi6SAWCAQIQASKmAQoaRmlsZVJldmlld0Jhc2VsaW5lQ2FwdHVyZWQSFQoNY2hhbmdlX3NldF9pZBgBIAEoCRIPCgd0dXJuX2lkGAIgASgJEhIKCmhhcm5lc3NfaWQYAyABKAkSTAoRYmFzZWxpbmVfc25hcHNob3QYBCABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU25hcHNob3RSZWYiXgoVVHVybkNvbW1hbmRQcm92ZW5hbmNlEh0KFWNvbnNlbnRfdG9vbF9jYWxsX2lkcxgBIAMoCRImCh5hdXRob3JpemVkX2J5X2F1dG9fYXBwcm92ZV9hbGwYAiABKAgingMKG0ZpbGVSZXZpZXdDYW5kaWRhdGVDYXB0dXJlZBIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJEk0KEmNhbmRpZGF0ZV9zbmFwc2hvdBgCIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TbmFwc2hvdFJlZhJJCgdjaGFuZ2VzGAMgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNhcHR1cmVkRmlsZUNoYW5nZRIYChBhZ2dyZWdhdGVfZGlnZXN0GAQgASgJElsKEWRpZmZfY29tcGxldGVuZXNzGAUgASgOMjYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkRpZmZDb21wbGV0ZW5lc3NCCLpIBYIBAhABElcKEmNvbW1hbmRfcHJvdmVuYW5jZRgGIAEoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5UdXJuQ29tbWFuZFByb3ZlbmFuY2UiewoURmlsZVJldmlld1JlY29uY2lsZWQSFQoNY2hhbmdlX3NldF9pZBgBIAEoCRJMChFhcHByb3ZlZF9zbmFwc2hvdBgCIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TbmFwc2hvdFJlZiKPAQoRRmlsZVJldmlld0ZhaWx1cmUSFQoNY2hhbmdlX3NldF9pZBgBIAEoCRJTCgRraW5kGAIgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdGYWlsdXJlS2luZEIIukgFggECEAESDgoGZGV0YWlsGAMgASgJIukECg9GaWxlUmV2aWV3RXZlbnQSEAoIZXZlbnRfaWQYASABKAkSFQoNY2hhbmdlX3NldF9pZBgCIAEoCRJXCgpldmVudF90eXBlGAMgASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdFdmVudFR5cGVCCLpIBYIBAhABEhEKCXRpbWVzdGFtcBgEIAEoCRINCgVhY3RvchgFIAEoCRJdChFiYXNlbGluZV9jYXB0dXJlZBgGIAEoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlUmV2aWV3QmFzZWxpbmVDYXB0dXJlZEgAEl8KEmNhbmRpZGF0ZV9jYXB0dXJlZBgHIAEoCzJBLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlUmV2aWV3Q2FuZGlkYXRlQ2FwdHVyZWRIABJKCgxmaWxlX2RlY2lkZWQYCCABKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZURlY2lzaW9uSAASUAoKcmVjb25jaWxlZBgJIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlUmV2aWV3UmVjb25jaWxlZEgAEkkKBmZhaWxlZBgKIAEoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlUmV2aWV3RmFpbHVyZUgAQgkKB3BheWxvYWQidAoVRmlsZVJldmlld0V2ZW50U3RyZWFtEhQKDGV4ZWN1dGlvbl9pZBgBIAEoCRJFCgZldmVudHMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0V2ZW50YgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_buf_validate_validate]);
 
 /**
  * The set of file deltas produced by one agent turn, reviewed and reconciled
@@ -470,6 +470,16 @@ export type FileDecision = Message<"ai.stigmer.agentic.agentexecution.v1.FileDec
    * @generated from field: bool acknowledge_unreviewable = 10;
    */
   acknowledgeUnreviewable: boolean;
+
+  /**
+   * Which authority authored this decision: a human reviewer (USER; also the
+   * reading for UNSPECIFIED pre-origin records) or the approved-command
+   * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+   * correlation, never folded into any digest. See FileDecisionOrigin.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11;
+   */
+  origin: FileDecisionOrigin;
 };
 
 /**
@@ -529,6 +539,59 @@ export const FileReviewBaselineCapturedSchema: GenMessage<FileReviewBaselineCapt
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 6);
 
 /**
+ * The runner's turn facts backing the approved-command auto-keep policy
+ * (DD-28): its assertion that EVERY mutation in the candidate was produced by
+ * executed shell commands the human had already authorized, with the consent
+ * evidence the backend can verify.
+ *
+ * @internal
+ *
+ * Presence of this message on a candidate asserts the runner-owned turn facts
+ * the server cannot derive (tool calls carry no turn marker): the turn executed
+ * zero file-tool (write/delete) calls, zero MCP tools, and delegated zero
+ * sub-agents — its only mutation source was consented commands. These facts
+ * carry the SAME trust level as the captured bytes themselves. What the runner
+ * can NEVER assert is the consent: the backend verifies every claimed row below
+ * against the server-authored approval record before authoring the policy
+ * decision, so a runner cannot mint authorization it was never given. Absent
+ * on any turn that does not qualify — the set then reviews manually, exactly
+ * as before this field existed (fail-closed).
+ *
+ * @since File-Change HITL Redesign (DD-28 approved-command auto-keep)
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance
+ */
+export type TurnCommandProvenance = Message<"ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance"> & {
+  /**
+   * Ids of the transcript tool calls whose SERVER-AUTHORED approval_action
+   * (written only by SubmitApproval, preserved against runner writes)
+   * authorizes this turn's executed commands: the approved gate row for a
+   * per-command grant, or the APPROVE_ALL row whose category lease covered the
+   * command. Exact-id lookup — never a content or fuzzy match. Empty only when
+   * authorized_by_auto_approve_all carries the consent instead.
+   *
+   * @generated from field: repeated string consent_tool_call_ids = 1;
+   */
+  consentToolCallIds: string[];
+
+  /**
+   * True when the commands ran ungated under the pre-armed
+   * spec.auto_approve_all global bypass (there is no per-command consent row to
+   * cite). The backend verifies this against the spec field it owns.
+   *
+   * @generated from field: bool authorized_by_auto_approve_all = 2;
+   */
+  authorizedByAutoApproveAll: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance.
+ * Use `create(TurnCommandProvenanceSchema)` to create a new message.
+ */
+export const TurnCommandProvenanceSchema: GenMessage<TurnCommandProvenance> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 7);
+
+/**
  * The candidate workspace state captured at the turn boundary, carrying the
  * computed authoritative diff.
  *
@@ -577,6 +640,16 @@ export type FileReviewCandidateCaptured = Message<"ai.stigmer.agentic.agentexecu
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.DiffCompleteness diff_completeness = 5;
    */
   diffCompleteness: DiffCompleteness;
+
+  /**
+   * The runner's approved-command turn facts (DD-28). When present AND the
+   * backend's verification passes, the set is auto-kept by a policy-origin
+   * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+   * See TurnCommandProvenance.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6;
+   */
+  commandProvenance?: TurnCommandProvenance;
 };
 
 /**
@@ -584,7 +657,7 @@ export type FileReviewCandidateCaptured = Message<"ai.stigmer.agentic.agentexecu
  * Use `create(FileReviewCandidateCapturedSchema)` to create a new message.
  */
 export const FileReviewCandidateCapturedSchema: GenMessage<FileReviewCandidateCaptured> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 7);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 8);
 
 /**
  * The result of reconciling approved decisions into the workspace.
@@ -619,7 +692,7 @@ export type FileReviewReconciled = Message<"ai.stigmer.agentic.agentexecution.v1
  * Use `create(FileReviewReconciledSchema)` to create a new message.
  */
 export const FileReviewReconciledSchema: GenMessage<FileReviewReconciled> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 8);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 9);
 
 /**
  * A terminal failure in the file-review lifecycle.
@@ -662,7 +735,7 @@ export type FileReviewFailure = Message<"ai.stigmer.agentic.agentexecution.v1.Fi
  * Use `create(FileReviewFailureSchema)` to create a new message.
  */
 export const FileReviewFailureSchema: GenMessage<FileReviewFailure> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 9);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 10);
 
 /**
  * An immutable event in the file-review lifecycle.
@@ -770,7 +843,7 @@ export type FileReviewEvent = Message<"ai.stigmer.agentic.agentexecution.v1.File
  * Use `create(FileReviewEventSchema)` to create a new message.
  */
 export const FileReviewEventSchema: GenMessage<FileReviewEvent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 10);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 11);
 
 /**
  * The ordered sequence of file-review events for a single agent execution.
@@ -820,5 +893,5 @@ export type FileReviewEventStream = Message<"ai.stigmer.agentic.agentexecution.v
  * Use `create(FileReviewEventStreamSchema)` to create a new message.
  */
 export const FileReviewEventStreamSchema: GenMessage<FileReviewEventStream> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 11);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 12);
 

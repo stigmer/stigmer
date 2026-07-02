@@ -10,6 +10,7 @@ import {
   FileCaptureClass,
   FileChangeKind,
   FileDecisionAction,
+  FileDecisionOrigin,
   FileDecisionScope,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { toDisplayFileChange } from "@stigmer/sdk";
@@ -279,9 +280,15 @@ export const FileReviewCard = memo(function FileReviewCard({
   const incompleteNoticeId = useId();
 
   const labels = bulkLabels(total, decidedCount, binaryOnly);
+  // A set the DD-28 policy kept (every change produced by a command the user
+  // already approved) says so explicitly: consent was given at the command
+  // gate, and the record must never read as if a human reviewed it here.
+  const autoKept = !interactive && isPolicyAutoKept(fileChangeSet);
   const summary = interactive
     ? `${total} file${total === 1 ? "" : "s"} awaiting review`
-    : settledSummary(total, changes, effectiveVerdicts);
+    : autoKept
+      ? "Kept automatically — produced by a command you approved"
+      : settledSummary(total, changes, effectiveVerdicts);
 
   return (
     <div
@@ -442,6 +449,18 @@ export const FileReviewCard = memo(function FileReviewCard({
     </div>
   );
 });
+
+/**
+ * Whether the set was kept by the approved-command auto-keep policy (DD-28):
+ * some decision carries origin POLICY_APPROVED_COMMAND. Origin is audit
+ * provenance — the record label derives from it so an automatic keep is never
+ * presented as a human review.
+ */
+function isPolicyAutoKept(fileChangeSet: FileChangeSet): boolean {
+  return fileChangeSet.decisions.some(
+    (d) => d.origin === FileDecisionOrigin.POLICY_APPROVED_COMMAND,
+  );
+}
 
 /**
  * The settled bar's one-line history: verdict counts folded from the effective

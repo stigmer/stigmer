@@ -13,6 +13,7 @@ import {
   FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
+  FileDecisionOrigin,
   FileDecisionScope,
   FileReviewBlockReason,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -793,6 +794,50 @@ describe("FileReviewCard", () => {
       expandCard();
       expect(screen.getAllByText("Kept")).toHaveLength(2);
       expect(screen.queryByText("Not reviewed")).toBeNull();
+    });
+
+    it("labels a policy auto-kept set 'Kept automatically' — never as a human review (DD-28)", () => {
+      // The approved-command auto-keep authors a CHANGE_SET approve with origin
+      // POLICY_APPROVED_COMMAND. The record must say the platform kept it
+      // because the user approved the command — not read like a human decided
+      // it here ("2 kept").
+      const policyKeep = create(FileDecisionSchema, {
+        changeSetId: "aex-1:0",
+        scope: FileDecisionScope.CHANGE_SET,
+        action: FileDecisionAction.APPROVE,
+        origin: FileDecisionOrigin.POLICY_APPROVED_COMMAND,
+      });
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({ decisions: [policyKeep] })}
+          interactive={false}
+        />,
+      );
+      expect(
+        screen.getByText("Kept automatically — produced by a command you approved"),
+      ).toBeTruthy();
+      expect(screen.queryByText("2 kept")).toBeNull();
+      // The per-file verdicts still fold as kept (the decision is a real
+      // CHANGE_SET approve), so the expanded record stays consistent.
+      expandCard();
+      expect(screen.getAllByText("Kept")).toHaveLength(2);
+    });
+
+    it("a human whole-set approve keeps the plain verdict summary (origin USER)", () => {
+      const humanKeep = create(FileDecisionSchema, {
+        changeSetId: "aex-1:0",
+        scope: FileDecisionScope.CHANGE_SET,
+        action: FileDecisionAction.APPROVE,
+        origin: FileDecisionOrigin.USER,
+      });
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({ decisions: [humanKeep] })}
+          interactive={false}
+        />,
+      );
+      expect(screen.getByText("2 kept")).toBeTruthy();
+      expect(screen.queryByText(/Kept automatically/)).toBeNull();
     });
   });
 

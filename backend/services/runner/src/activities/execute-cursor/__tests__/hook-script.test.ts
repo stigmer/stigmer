@@ -127,7 +127,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     it("allows a require-approval MCP tool once it has been granted (reinvocation)", () => {
       const h = setup({
         mcpPolicies: { click: { requiresApproval: true } },
-        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "", contentDigest: "" }],
+        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
       });
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
       expect(h.ledger()).toEqual([]);
@@ -241,7 +241,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
   it("allows the exact granted shell command even when it contains quotes", () => {
     const command = 'printf \'%s\' \'hello-resume\' > "/x/resumed-gate.txt"';
     const id = toolIdentity("shell", "", { command });
-    const h = setup({ grants: [{ toolName: "shell", mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: "" }] });
+    const h = setup({ grants: [{ toolName: "shell", mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: "", sourceToolCallId: "consent-1" }] });
 
     expect(h.decide(hookShell(command)).permission).toBe("allow");
     // A different command is NOT covered by the grant -> still gated.
@@ -302,7 +302,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
         //    buildApprovalState — the exact path index.ts takes on resume.
         const id = toolIdentity(streamName, "", streamArgs);
         const state = buildApprovalState(new Map(), false, new Set(), [
-          { toolName: streamName, mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: contentDigest(streamArgs) },
+          { toolName: streamName, mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: contentDigest(streamArgs), sourceToolCallId: "consent-1" },
         ]);
 
         // 3. The state file carries the byte-exact token the hook recomputed —
@@ -325,7 +325,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     const renameArgs = { path, content: "Planton" };
     const id = toolIdentity("edit", "", renameArgs);
     const state = buildApprovalState(new Map(), false, new Set(), [
-      { toolName: "edit", mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: contentDigest(renameArgs) },
+      { toolName: "edit", mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: contentDigest(renameArgs), sourceToolCallId: "consent-1" },
     ]);
     const h = setup({ grants: state.approvedGrants });
 

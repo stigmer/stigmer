@@ -46,3 +46,20 @@ func UnresolvedGateCount(status *agentexecutionv1.AgentExecutionStatus) int {
 func GateResolved(status *agentexecutionv1.AgentExecutionStatus) bool {
 	return UnresolvedGateCount(status) == 0
 }
+
+// HasDecidedAwaitingReconcile reports whether some change set is DECIDED —
+// verdicts recorded, runner reconcile still owed. The workflow's wait loop uses
+// this to tell a LEGITIMATE empty gate from a broken one: a set decided before
+// the gate check (the DD-28 policy auto-keep authors its decision in the same
+// write that folds the candidate, and a fast human decision can race the check
+// the same way) leaves phase WAITING_FOR_APPROVAL with a zero gate count — the
+// correct response is an immediate re-invoke to reconcile, never the
+// empty-gate anomaly path.
+func HasDecidedAwaitingReconcile(status *agentexecutionv1.AgentExecutionStatus) bool {
+	for _, cs := range status.GetFileChangeSets() {
+		if cs.GetStatus() == agentexecutionv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_DECIDED {
+			return true
+		}
+	}
+	return false
+}

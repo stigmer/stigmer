@@ -290,14 +290,21 @@ func applyUpdateStatusMerge(
 	// event_id, FILE_DECIDED dropped (server-authored by SubmitFileDecision).
 	// Runs on the freshly-loaded stream under the write lock so it can never
 	// clobber a concurrent decision. The stream itself is otherwise preserved in
-	// place — only this fold and SubmitFileDecision ever extend it.
+	// place — only this fold, the auto-keep policy just below, and
+	// SubmitFileDecision ever extend it.
 	filereview.AppendRunnerEvents(status, input.ExecutionId, requestStatus)
+
+	// Approved-command auto-keep (DD-28): a candidate whose provenance verifies
+	// against the server-authored approval record is decided by policy IN THE
+	// SAME WRITE that folded it, so the gate never arms for a set the user
+	// already consented to via the command approval.
+	filereview.AutoKeepApprovedCommandSets(status, input.ExecutionId, execution.GetSpec().GetAutoApproveAll())
 
 	// Recompute file_change_sets from the append-only file_review ledger via its
 	// single projection seam. The ledger is server-owned and authored by the
-	// runner's capture/reconcile activities (folded just above) and by
-	// SubmitFileDecision; this projection is always derived, never merged, so it
-	// cannot go stale.
+	// runner's capture/reconcile activities (folded just above), the auto-keep
+	// policy, and SubmitFileDecision; this projection is always derived, never
+	// merged, so it cannot go stale.
 	status.FileChangeSets = filereview.ProjectFileChangeSets(
 		status.GetPhase(),
 		status.GetFileReviewEventStream(),

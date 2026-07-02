@@ -22,7 +22,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import type { FileChangeSet, TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { FileCaptureClass } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { approvalCategory } from "./approval-policy.js";
 import { toolIdentity, primaryToken } from "./approval-state.js";
@@ -138,8 +138,14 @@ export async function captureTurnToLedger(opts: {
    * captures the hook staged for EVERY touched path (`NON_GIT_CAS`).
    */
   readonly gitWorkspace?: boolean;
+  /**
+   * The approved-command turn facts (DD-28), derived by the caller from the
+   * turn's tool calls ({@link ../command-provenance.js}). Present only when the
+   * turn qualifies; carried verbatim to the CANDIDATE event.
+   */
+  readonly commandProvenance?: TurnCommandProvenance;
 }): Promise<readonly GitCapturedChange[]> {
-  const { status, gitRoot, executionId, changeSetId, baselineTree, messages, deniedTokens, hitlDir, storage, priorSubAgentToolCallIds } = opts;
+  const { status, gitRoot, executionId, changeSetId, baselineTree, messages, deniedTokens, hitlDir, storage, priorSubAgentToolCallIds, commandProvenance } = opts;
   const gitWorkspace = opts.gitWorkspace ?? true;
 
   // The CAS substrate class for this turn's staged writes: gitignored paths in a
@@ -167,6 +173,7 @@ export async function captureTurnToLedger(opts: {
     unreviewablePaths,
     unreviewableCaptureClass: casCaptureClass,
     gitWorkspace,
+    commandProvenance,
   });
 
   // Observational rows: the reviewable diff lives on the file_review ledger

@@ -260,6 +260,61 @@ func TestHitlFileReviewOnlyGateWaitsForSignal(t *testing.T) {
 		"workflow must re-invoke once after the file-review gate is resolved")
 }
 
+// TestHitlPolicyDecidedGateResumesWithoutSignal pins the DD-28 policy-resolved
+// resume: the runner finalizes WAITING_FOR_APPROVAL, but by the time the
+// workflow checks the gate, the approved-command auto-keep has already DECIDED
+// the change set (authored in the same write that folded the candidate). The
+// gate is empty AND a set is owed a reconcile — the workflow must re-invoke
+// immediately (no signal will ever come), never the zero-gate anomaly path.
+func TestHitlPolicyDecidedGateResumesWithoutSignal(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-policy-decided"
+	const executionID = "exec-policy-decided"
+	registerCommonMocks(env, threadID)
+
+	// Zero pending approvals, zero AWAITING_REVIEW — but one DECIDED set
+	// awaiting the runner's reconcile: the auto-keep signature.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{
+				FileChangeSets: []*agentexecutionv1.FileChangeSet{
+					{
+						Id:     "cs-1",
+						Status: agentexecutionv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_DECIDED,
+					},
+				},
+			},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
+			callCount++
+			if callCount == 1 {
+				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+			}
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
+		})
+
+	// Deliberately NO approvalGateResolved signal: the decision was authored
+	// before the workflow ever waited, so no signal will fire.
+	input := &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+	}
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError(),
+		"a DECIDED set with an empty gate is a legitimate policy-resolved resume, not an anomaly")
+	require.Equal(t, 2, callCount,
+		"workflow must re-invoke immediately to reconcile the decided set")
+}
+
 // TestHitlZeroPendingApprovalFailsFast verifies the workflow does NOT tight-loop
 // the full agent activity when the execution is WAITING_FOR_APPROVAL but
 // pending_approvals is empty. That state is an inconsistency that should be
@@ -386,6 +441,51 @@ func TestCursorHitlApprovalLoopWithoutPause(t *testing.T) {
 	require.True(t, env.IsWorkflowCompleted())
 	require.NoError(t, env.GetWorkflowError())
 	require.Equal(t, 2, callCount, "Cursor flow must re-invoke once after the approval signal and complete")
+}
+
+// TestCursorHitlPolicyDecidedGateResumesWithoutSignal is the Cursor analog of
+// TestHitlPolicyDecidedGateResumesWithoutSignal: the DD-28 auto-keep decides the
+// set before the gate check; the Cursor flow must re-invoke immediately to
+// reconcile, with no signal and no anomaly fail-fast.
+func TestCursorHitlPolicyDecidedGateResumesWithoutSignal(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-cursor-policy"
+	const executionID = "exec-cursor-policy-decided"
+	registerCursorActivities(env)
+	registerCommonMocks(env, threadID)
+	env.OnActivity(stubReadHarnessStateId, mock.Anything).Return("harness-state-1", nil).Maybe()
+
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{
+				FileChangeSets: []*agentexecutionv1.FileChangeSet{
+					{
+						Id:     "cs-1",
+						Status: agentexecutionv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_DECIDED,
+					},
+				},
+			},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteCursor, mock.Anything).
+		Return(func(_ activities.ExecuteCursorActivityInput) (activities.RunnerActivityResult, error) {
+			callCount++
+			if callCount == 1 {
+				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+			}
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
+		})
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, cursorInput(executionID))
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError(),
+		"the Cursor flow must treat a DECIDED set with an empty gate as a legitimate resume")
+	require.Equal(t, 2, callCount,
+		"Cursor flow must re-invoke immediately to reconcile the decided set")
 }
 
 // TestCursorHitlZeroPendingApprovalFailsFast is the Cursor analog of

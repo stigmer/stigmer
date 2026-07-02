@@ -143,4 +143,40 @@ public interface FileReviewCandidateCapturedOrBuilder extends
    * @return The diffCompleteness.
    */
   ai.stigmer.agentic.agentexecution.v1.DiffCompleteness getDiffCompleteness();
+
+  /**
+   * <pre>
+   * The runner's approved-command turn facts (DD-28). When present AND the
+   * backend's verification passes, the set is auto-kept by a policy-origin
+   * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+   * See TurnCommandProvenance.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+   * @return Whether the commandProvenance field is set.
+   */
+  boolean hasCommandProvenance();
+  /**
+   * <pre>
+   * The runner's approved-command turn facts (DD-28). When present AND the
+   * backend's verification passes, the set is auto-kept by a policy-origin
+   * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+   * See TurnCommandProvenance.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+   * @return The commandProvenance.
+   */
+  ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance getCommandProvenance();
+  /**
+   * <pre>
+   * The runner's approved-command turn facts (DD-28). When present AND the
+   * backend's verification passes, the set is auto-kept by a policy-origin
+   * FILE_DECIDED instead of arming the review gate. Absent → manual review.
+   * See TurnCommandProvenance.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance command_provenance = 6 [json_name = "commandProvenance"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenanceOrBuilder getCommandProvenanceOrBuilder();
 }

@@ -265,6 +265,12 @@ message FileDecision {
   // limitation. Never an enforcement input or a correlation key, and never
   // folded into any digest.
   bool acknowledge_unreviewable = 10;
+
+  // Which authority authored this decision: a human reviewer (USER; also the
+  // reading for UNSPECIFIED pre-origin records) or the approved-command
+  // auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+  // correlation, never folded into any digest. See FileDecisionOrigin.
+  FileDecisionOrigin origin = 11 [(buf.validate.field).enum.defined_only = true];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -303,6 +309,40 @@ message FileReviewBaselineCaptured {
   SnapshotRef baseline_snapshot = 4;
 }
 
+// The runner's turn facts backing the approved-command auto-keep policy
+// (DD-28): its assertion that EVERY mutation in the candidate was produced by
+// executed shell commands the human had already authorized, with the consent
+// evidence the backend can verify.
+//
+// @internal
+//
+// Presence of this message on a candidate asserts the runner-owned turn facts
+// the server cannot derive (tool calls carry no turn marker): the turn executed
+// zero file-tool (write/delete) calls, zero MCP tools, and delegated zero
+// sub-agents — its only mutation source was consented commands. These facts
+// carry the SAME trust level as the captured bytes themselves. What the runner
+// can NEVER assert is the consent: the backend verifies every claimed row below
+// against the server-authored approval record before authoring the policy
+// decision, so a runner cannot mint authorization it was never given. Absent
+// on any turn that does not qualify — the set then reviews manually, exactly
+// as before this field existed (fail-closed).
+//
+// @since File-Change HITL Redesign (DD-28 approved-command auto-keep)
+message TurnCommandProvenance {
+  // Ids of the transcript tool calls whose SERVER-AUTHORED approval_action
+  // (written only by SubmitApproval, preserved against runner writes)
+  // authorizes this turn's executed commands: the approved gate row for a
+  // per-command grant, or the APPROVE_ALL row whose category lease covered the
+  // command. Exact-id lookup — never a content or fuzzy match. Empty only when
+  // authorized_by_auto_approve_all carries the consent instead.
+  repeated string consent_tool_call_ids = 1;
+
+  // True when the commands ran ungated under the pre-armed
+  // spec.auto_approve_all global bypass (there is no per-command consent row to
+  // cite). The backend verifies this against the spec field it owns.
+  bool authorized_by_auto_approve_all = 2;
+}
+
 // The candidate workspace state captured at the turn boundary, carrying the
 // computed authoritative diff.
 //
@@ -328,6 +368,12 @@ message FileReviewCandidateCaptured {
   // every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
   // blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
   DiffCompleteness diff_completeness = 5 [(buf.validate.field).enum.defined_only = true];
+
+  // The runner's approved-command turn facts (DD-28). When present AND the
+  // backend's verification passes, the set is auto-kept by a policy-origin
+  // FILE_DECIDED instead of arming the review gate. Absent → manual review.
+  // See TurnCommandProvenance.
+  TurnCommandProvenance command_provenance = 6;
 }
 
 // The result of reconciling approved decisions into the workspace.

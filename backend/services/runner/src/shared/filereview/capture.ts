@@ -40,6 +40,7 @@ import type {
   CapturedFileChange,
   FileChangeSet,
   SnapshotRef,
+  TurnCommandProvenance,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { utcTimestamp } from "../status.js";
 import {
@@ -206,10 +207,17 @@ export async function captureCandidateToLedger(opts: {
    * the snapshot is `CAS_MANIFEST`, not `GIT_TREE_REF`/`HYBRID`.
    */
   readonly gitWorkspace?: boolean;
+  /**
+   * The harness's approved-command turn facts (DD-28): present only when the
+   * turn's sole mutation source was consented shell commands. Carried verbatim
+   * on the CANDIDATE event for the backend to verify and — on success — author
+   * the policy auto-keep decision. Omitted → the set reviews manually.
+   */
+  readonly commandProvenance?: TurnCommandProvenance;
 }): Promise<readonly GitCapturedChange[]> {
   const {
     status, gitRoot, executionId, changeSetId, baselineTree, harnessId, excludePaths,
-    casCaptures, storage, unreviewablePaths,
+    casCaptures, storage, unreviewablePaths, commandProvenance,
   } = opts;
   const gitWorkspace = opts.gitWorkspace ?? true;
   const unreviewableCaptureClass =
@@ -266,6 +274,7 @@ export async function captureCandidateToLedger(opts: {
     changeSetContext(changeSetId, harnessId),
     snapshot,
     captured,
+    commandProvenance,
   );
   appendFileReviewEvents(status, executionId, [event]);
   return gitChanges;

@@ -209,4 +209,29 @@ public interface FileDecisionOrBuilder extends
    * @return The acknowledgeUnreviewable.
    */
   boolean getAcknowledgeUnreviewable();
+
+  /**
+   * <pre>
+   * Which authority authored this decision: a human reviewer (USER; also the
+   * reading for UNSPECIFIED pre-origin records) or the approved-command
+   * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+   * correlation, never folded into any digest. See FileDecisionOrigin.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11 [json_name = "origin", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for origin.
+   */
+  int getOriginValue();
+  /**
+   * <pre>
+   * Which authority authored this decision: a human reviewer (USER; also the
+   * reading for UNSPECIFIED pre-origin records) or the approved-command
+   * auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+   * correlation, never folded into any digest. See FileDecisionOrigin.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin origin = 11 [json_name = "origin", (.buf.validate.field) = { ... }</code>
+   * @return The origin.
+   */
+  ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin getOrigin();
 }

@@ -896,6 +896,30 @@ enum FileDecisionAction {
   FILE_DECISION_ACTION_REJECT = 2;
 }
 
+// FileDecisionOrigin records which authority authored a FileDecision: a human
+// reviewer, or a platform policy acting on consent the human already gave.
+// Audit provenance carried on the decision so the record always shows WHO
+// decided — it is never an enforcement input, never a correlation key, and
+// never folded into any digest. UNSPECIFIED (decisions authored before this
+// field existed) reads as a human decision, the only author that existed then.
+//
+// @since File-Change HITL Redesign (DD-28 approved-command auto-keep)
+enum FileDecisionOrigin {
+  // Default value: a pre-DD-28 decision with no recorded origin. Treated as
+  // USER by every consumer (the only author that existed before origins).
+  FILE_DECISION_ORIGIN_UNSPECIFIED = 0;
+
+  // A human reviewer decided via SubmitFileDecision.
+  FILE_DECISION_ORIGIN_USER = 1;
+
+  // Platform policy auto-kept the set because every mutation in its turn came
+  // from commands the human explicitly authorized (per-command approval,
+  // APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified
+  // against server-authored approval records before authoring (DD-28). The
+  // decision's actor is "policy", never the user.
+  FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND = 2;
+}
+
 // FileReviewEventType is the kind of event in the append-only file-review
 // stream (see FileReviewEvent in filereview.proto). It is the coarse lifecycle
 // bucket; failure fidelity lives on FileReviewFailure.kind.

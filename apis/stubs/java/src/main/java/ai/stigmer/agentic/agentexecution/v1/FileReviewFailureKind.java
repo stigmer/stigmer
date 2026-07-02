@@ -174,7 +174,7 @@ public enum FileReviewFailureKind
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(25);
+    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(26);
   }
 
   private static final FileReviewFailureKind[] VALUES = values();

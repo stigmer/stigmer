@@ -81,6 +81,33 @@ describe("ApprovalCard chrome", () => {
     const occurrences = (container.textContent!.match(/npm test/g) ?? []).length;
     expect(occurrences).toBe(1);
   });
+
+  it("states on a shell gate that the command's files are covered by the approval (DD-28)", () => {
+    // Consent at grant time: approving the command covers its file effects
+    // (the approved-command auto-keep), so the card says so up front — the user
+    // never discovers a second gate they weren't told about, nor gets one.
+    const shellApproval = create(PendingApprovalSchema, {
+      toolCallId: "tc-shell-note",
+      toolName: "shell",
+      toolKind: ToolKind.SHELL,
+      argsPreview: '{"command":"seq 1 5000 > big.txt"}',
+    });
+    render(<ApprovalCard pendingApproval={shellApproval} onSubmit={noop} />);
+    expect(screen.getByText(/kept automatically, with no second review/)).toBeTruthy();
+  });
+
+  it("never shows the auto-keep note on a non-shell gate", () => {
+    // A file edit's review model is the FileChangeSet, not the command consent —
+    // the note would be false there.
+    const editApproval = create(PendingApprovalSchema, {
+      toolCallId: "tc-edit-no-note",
+      toolName: "write_file",
+      toolKind: ToolKind.FILE_EDIT,
+      argsPreview: '{"path":"src/x.ts","contents":"x"}',
+    });
+    render(<ApprovalCard pendingApproval={editApproval} onSubmit={noop} />);
+    expect(screen.queryByText(/kept automatically/)).toBeNull();
+  });
 });
 
 describe("ApprovalCard quiet decision buttons", () => {

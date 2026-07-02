@@ -67,7 +67,8 @@ import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.j
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
-import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
+import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, primaryToken, readDenialLedger, reconstructAdjudicatedApprovals, watchDenialLedger } from "./approval-state.js";
+import { deriveTurnCommandProvenance } from "./command-provenance.js";
 import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "./exact-apply.js";
 import { isGitWorkTree } from "../../shared/filereview/git-substrate.js";
 import {
@@ -93,6 +94,12 @@ import { createAgent, createCloudAgent } from "./session-lifecycle.js";
 import { setMaxListeners } from "node:events";
 import { startHeartbeat } from "../../shared/heartbeat.js";
 import { getShutdownSignalForQueue } from "../../runner-manager.js";
+
+// How long Phase 12 waits for the first-denial-stop's run.cancel() to settle
+// before reading the final denial ledger and capturing the turn's tree. Long
+// enough for the SDK's normal teardown, short enough that a wedged cancel
+// cannot noticeably delay the approval pause the user is already waiting on.
+const FIRST_DENIAL_CANCEL_TIMEOUT_MS = 5_000;
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -198,6 +205,22 @@ async function executeCursorInner(
   // pauses BEFORE the model sees a denial. Phase 12 reconciles the denied tool
   // calls into WAITING_FOR_APPROVAL exactly as after a natural stream end.
   let firstDenialDetected = false;
+  // Flipped by the denial-ledger fs watcher the instant the hook writes a
+  // denial, so the NEXT stream event of ANY type triggers the ledger read —
+  // instead of waiting for the next tool_call event, during which the model's
+  // full post-denial reaction (thinking, narration, a workaround tool) would
+  // stream and persist (observed in production: aex_01kwj07f7g23c3wp9sn8496z5g).
+  // The tool_call-event read below remains the backstop where fs.watch is
+  // unreliable.
+  let denialLedgerDirty = false;
+  let stopDenialWatcher: (() => void) | undefined;
+  // The in-flight run.cancel() started by the first-denial stop. Awaited
+  // (timeboxed) before Phase 12 so the agent process has actually stopped
+  // before the final ledger read and the turn-boundary tree capture — closing
+  // the race where a post-denial workaround's ledger entry lands after the
+  // read (it would then never be collapsed) or a late tool mutates the tree
+  // mid-capture.
+  let denialCancelSettled: Promise<void> | undefined;
   let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
   // Progress-based stall watchdog (see ../../shared/stall-watchdog.ts). Stopped
   // in the finally on every exit path; complements the liveness heartbeat.
@@ -600,6 +623,12 @@ async function executeCursorInner(
       await removeHitlGate(hitlGate);
       await removeStigmerSymlink(primaryWorkspaceDir);
     };
+    // Arm the denial watcher as soon as the gate exists. The per-turn ledger
+    // reset may flip the flag once before the run starts; the loop's read then
+    // sees an empty ledger and clears it — harmless by construction.
+    stopDenialWatcher = watchDenialLedger(hitlDir, () => {
+      denialLedgerDirty = true;
+    });
 
     // Phase 5d: Ensure model pricing registry is populated before validation
     await ensurePricingLoaded();
@@ -854,6 +883,11 @@ async function executeCursorInner(
       }
     });
 
+    // Everything at an index >= this was produced by THIS turn's stream — the
+    // positional turn boundary the approved-command provenance (DD-28) scopes
+    // its qualification to. Snapshotted before the accumulator can append.
+    const turnStartMessageIndex = status.messages.length;
+
     const accumulator = new MessageAccumulator(status.messages, {
       mergedPolicies,
       provenance: { globalBypass, leasedCategories: leases.categories },
@@ -896,17 +930,22 @@ async function executeCursorInner(
       // write/delete) — file edits flow freely and are captured at the turn
       // boundary, so they never enter the ledger. In the deny-gate FALLBACK
       // (non-git workspace) it fires for every gated file edit too. Either way:
-      // the preToolUse hook appends to the
-      // denial ledger the instant it gates a tool — before Cursor surfaces the
-      // failure to the model. Polling the ledger on tool_call events (never the
-      // high-frequency token deltas, so the cost stays bounded) lets us end the
-      // turn at that first denial, so the model cannot narrate defeat or attempt
-      // a workaround between two gated tools — the inter-tool narration the
-      // Phase 12 trim cannot remove. This mirrors the native harness's
-      // pause-before-react semantics. Phase 12 below still reconciles the denied
-      // tool calls and keeps the trim as a backstop for any token that streamed
-      // before the cancel lands.
-      if (!firstDenialDetected && event.type === "tool_call" && hitlDir) {
+      // the preToolUse hook appends to the denial ledger the instant it gates a
+      // tool — before Cursor surfaces the failure to the model — and the fs
+      // watcher flips denialLedgerDirty the moment that write lands. Confirming
+      // the flag with a read on the very next event (of ANY type — thinking
+      // deltas arrive within milliseconds) ends the turn before the model's
+      // reaction can persist: waiting for the next tool_call event let the full
+      // post-denial reaction (thinking, narration, a workaround shell) stream
+      // and persist live (production case aex_01kwj07f7g23c3wp9sn8496z5g). The
+      // tool_call-event read stays as the backstop for platforms where fs.watch
+      // is unreliable; the current event was already accumulated above, so the
+      // anchor's own row is always present for the Phase 12 gate overlay. This
+      // mirrors the native harness's pause-before-react semantics; Phase 12
+      // reconciles the denied calls and its trim remains the last-resort
+      // backstop for anything that persisted before the stop.
+      if (!firstDenialDetected && hitlDir && (denialLedgerDirty || event.type === "tool_call")) {
+        denialLedgerDirty = false;
         const denials = await readDenialLedger(hitlDir);
         if (denials.length > 0) {
           firstDenialDetected = true;
@@ -916,13 +955,18 @@ async function executeCursorInner(
             `cleanly for approval: execution=${executionId}`,
           );
           if (run.supports?.("cancel")) {
-            void run.cancel().catch((cancelErr) => {
-              console.warn(
-                `ExecuteCursor run.cancel() after first denial failed (non-fatal): ` +
-                `execution=${executionId}, ` +
-                `error=${cancelErr instanceof Error ? cancelErr.message : cancelErr}`,
-              );
-            });
+            // Kept (not fire-and-forget): awaited timeboxed before Phase 12 so
+            // the ledger read and tree capture see a stopped agent.
+            denialCancelSettled = run.cancel().then(
+              () => {},
+              (cancelErr: unknown) => {
+                console.warn(
+                  `ExecuteCursor run.cancel() after first denial failed (non-fatal): ` +
+                  `execution=${executionId}, ` +
+                  `error=${cancelErr instanceof Error ? cancelErr.message : cancelErr}`,
+                );
+              },
+            );
           }
           break;
         }
@@ -1146,6 +1190,24 @@ async function executeCursorInner(
     // harness — the approval surface is driven entirely by tool-call status. We
     // deliberately do NOT set status.pendingApprovals here: any value would be
     // discarded by the backend's recompute on the next updateStatus.
+    //
+    // Before reading the ledger, wait (timeboxed) for the first-denial-stop's
+    // run.cancel() to settle. run.cancel() races the SDK's auto-execution: until
+    // it lands, the agent process may still attempt a post-denial workaround
+    // whose hook denial would land AFTER a premature ledger read — the row then
+    // never collapses and renders as RUNNING forever (production case
+    // aex_01kwj07f7g23c3wp9sn8496z5g) — or a late tool could mutate the tree
+    // mid-capture. The timebox keeps a wedged cancel from hanging the pause;
+    // the Phase 12 trims below remain the backstop for that degraded case.
+    if (firstDenialDetected && denialCancelSettled) {
+      await Promise.race([
+        denialCancelSettled,
+        new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, FIRST_DENIAL_CANCEL_TIMEOUT_MS);
+          timer.unref();
+        }),
+      ]);
+    }
     const deniedLedger = await readDenialLedger(hitlDir ?? "");
 
     // Capture mode: author the net change set to the file_review ledger as the
@@ -1163,6 +1225,30 @@ async function executeCursorInner(
     // one. A plain truthiness check would wrongly skip the non-git capture.
     if (captureMode && baselineTree !== undefined && primaryWorkspaceDir) {
       const deniedTokens = new Set(deniedLedger.map((e) => e.token));
+      // Approved-command turn facts (DD-28): when every mutation-capable call
+      // this turn was a consented shell command, attach the provenance so the
+      // backend can verify the cited consent rows and auto-keep the set instead
+      // of arming a second gate. Fail-closed: any non-qualifying turn attaches
+      // nothing and reviews manually exactly as before.
+      const commandProvenance = deriveTurnCommandProvenance({
+        messages: status.messages,
+        turnStartIndex: turnStartMessageIndex,
+        deniedTokens,
+        grantTokenToConsentId: new Map(
+          (approvalGrants ?? []).map((g) => [
+            primaryToken(g.key, g.salient, g.contentDigest),
+            g.sourceToolCallId,
+          ]),
+        ),
+        globalBypass,
+      });
+      if (commandProvenance) {
+        console.log(
+          `ExecuteCursor capture: turn qualifies for approved-command auto-keep ` +
+          `(consent rows: ${commandProvenance.consentToolCallIds.join(",") || "(auto_approve_all)"}); ` +
+          `attaching provenance to candidate (execution=${executionId})`,
+        );
+      }
       const captured = await captureTurnToLedger({
         status,
         gitRoot: primaryWorkspaceDir,
@@ -1171,6 +1257,7 @@ async function executeCursorInner(
         baselineTree,
         messages: status.messages,
         deniedTokens,
+        commandProvenance,
         // Scope sub-agent row stamping to this turn: the seeded prior sub-agents
         // (cloned in on resume) are the "before this turn" rows to skip.
         priorSubAgentToolCallIds: collectSubAgentToolCallIds(seededSubAgents),
@@ -1778,6 +1865,10 @@ async function executeCursorInner(
     // path stops it after the stream loop; this covers throws before that
     // point so no orphaned timer survives the activity.
     stallWatchdog?.stop();
+
+    // Close the denial-ledger watcher on EVERY exit path (idempotent) so no
+    // orphaned fs.watch handle survives the activity.
+    stopDenialWatcher?.();
 
     // Tear down the HITL gate on EVERY exit path (success, error, approval
     // pause, cancellation) so attaching a real repo leaves the user's

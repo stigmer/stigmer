@@ -2036,6 +2036,23 @@
       ]
     },
     {
+      "name": "FileDecisionOrigin",
+      "description": "FileDecisionOrigin records which authority authored a FileDecision: a human\n reviewer, or a platform policy acting on consent the human already gave.\n Audit provenance carried on the decision so the record always shows WHO\n decided — it is never an enforcement input, never a correlation key, and\n never folded into any digest. UNSPECIFIED (decisions authored before this\n field existed) reads as a human decision, the only author that existed then.\n\n @since File-Change HITL Redesign (DD-28 approved-command auto-keep)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin",
+      "values": [
+        {
+          "name": "FILE_DECISION_ORIGIN_USER",
+          "number": 1,
+          "description": "A human reviewer decided via SubmitFileDecision."
+        },
+        {
+          "name": "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND",
+          "number": 2,
+          "description": "Platform policy auto-kept the set because every mutation in its turn came\n from commands the human explicitly authorized (per-command approval,\n APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified\n against server-authored approval records before authoring (DD-28). The\n decision's actor is \"policy\", never the user."
+        }
+      ]
+    },
+    {
       "name": "FileReviewEventType",
       "description": "FileReviewEventType is the kind of event in the append-only file-review\n stream (see FileReviewEvent in filereview.proto). It is the coarse lifecycle\n bucket; failure fidelity lives on FileReviewFailure.kind.\n\n @since File-Change HITL Redesign (Phase 1)",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.FileReviewEventType",
@@ -3848,6 +3865,21 @@
           },
           "description": "True when this APPROVE consciously kept a change whose diff could not be\n fully reviewed (a binary file — no text diff, but exact reconcilable bytes).\n Audit provenance only: it records that a human explicitly acknowledged the\n limitation. Never an enforcement input or a correlation key, and never\n folded into any digest.",
           "required": false
+        },
+        {
+          "name": "Origin",
+          "jsonName": "origin",
+          "protoField": "origin",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin",
+            "enumValues": [
+              "FILE_DECISION_ORIGIN_USER",
+              "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND"
+            ]
+          },
+          "description": "Which authority authored this decision: a human reviewer (USER; also the\n reading for UNSPECIFIED pre-origin records) or the approved-command\n auto-keep policy (DD-28). Audit provenance only — never enforcement, never\n correlation, never folded into any digest. See FileDecisionOrigin.",
+          "required": false
         }
       ]
     },
@@ -3965,6 +3997,17 @@
             ]
           },
           "description": "The runner-derived completeness rollup for this candidate: COMPLETE when\n every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only\n blocker, else PARTIAL_BLOCKED. See DiffCompleteness.",
+          "required": false
+        },
+        {
+          "name": "CommandProvenance",
+          "jsonName": "commandProvenance",
+          "protoField": "command_provenance",
+          "type": {
+            "kind": "message",
+            "messageType": "TurnCommandProvenance"
+          },
+          "description": "The runner's approved-command turn facts (DD-28). When present AND the\n backend's verification passes, the set is auto-kept by a policy-origin\n FILE_DECIDED instead of arming the review gate. Absent → manual review.\n See TurnCommandProvenance.",
           "required": false
         }
       ]
@@ -5372,6 +5415,37 @@
             "kind": "string"
           },
           "description": "Short head of the original text content, kept inline for an at-a-glance\n preview without fetching the full artifact. Empty for image content.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "TurnCommandProvenance",
+      "description": "The runner's turn facts backing the approved-command auto-keep policy\n (DD-28): its assertion that EVERY mutation in the candidate was produced by\n executed shell commands the human had already authorized, with the consent\n evidence the backend can verify.\n\n @internal\n\n Presence of this message on a candidate asserts the runner-owned turn facts\n the server cannot derive (tool calls carry no turn marker): the turn executed\n zero file-tool (write/delete) calls, zero MCP tools, and delegated zero\n sub-agents — its only mutation source was consented commands. These facts\n carry the SAME trust level as the captured bytes themselves. What the runner\n can NEVER assert is the consent: the backend verifies every claimed row below\n against the server-authored approval record before authoring the policy\n decision, so a runner cannot mint authorization it was never given. Absent\n on any turn that does not qualify — the set then reviews manually, exactly\n as before this field existed (fail-closed).\n\n @since File-Change HITL Redesign (DD-28 approved-command auto-keep)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "ConsentToolCallIds",
+          "jsonName": "consentToolCallIds",
+          "protoField": "consent_tool_call_ids",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Ids of the transcript tool calls whose SERVER-AUTHORED approval_action\n (written only by SubmitApproval, preserved against runner writes)\n authorizes this turn's executed commands: the approved gate row for a\n per-command grant, or the APPROVE_ALL row whose category lease covered the\n command. Exact-id lookup — never a content or fuzzy match. Empty only when\n authorized_by_auto_approve_all carries the consent instead.",
+          "required": false
+        },
+        {
+          "name": "AuthorizedByAutoApproveAll",
+          "jsonName": "authorizedByAutoApproveAll",
+          "protoField": "authorized_by_auto_approve_all",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True when the commands ran ungated under the pre-armed\n spec.auto_approve_all global bypass (there is no per-command consent row to\n cite). The backend verifies this against the spec field it owns.",
           "required": false
         }
       ]

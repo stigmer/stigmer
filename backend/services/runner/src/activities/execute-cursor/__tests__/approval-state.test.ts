@@ -287,6 +287,6 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
     const msg = decidedToolCall(builtInEvent("c1", "shell", { command: "make build" }), ApprovalAction.APPROVE_ALL);
     const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals([msg]);
     const grants = buildApprovalGrants(pendingApprovals, decisions);
-    expect(grants).toEqual([{ toolName: "shell", mcpServerSlug: "", key: "shell", salient: "make build", contentDigest: "" }]);
+    expect(grants).toEqual([{ toolName: "shell", mcpServerSlug: "", key: "shell", salient: "make build", contentDigest: "", sourceToolCallId: "c1" }]);
   });
 });

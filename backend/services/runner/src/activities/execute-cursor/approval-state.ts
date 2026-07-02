@@ -66,6 +66,7 @@
  * token next turn.
  */
 
+import { watch } from "node:fs";
 import { writeFile, readFile, mkdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
@@ -143,6 +144,13 @@ export interface ApprovalGrant {
    * coarse {@link grantToken} (the documented degrade).
    */
   contentDigest: string;
+  /**
+   * Id of the adjudicated tool call this grant was minted from — the transcript
+   * row carrying the SERVER-authored approval_action. The approved-command
+   * auto-keep provenance (DD-28) cites this row as the consent the backend can
+   * verify; the hook itself never reads it.
+   */
+  sourceToolCallId: string;
 }
 
 export interface ApprovalStateFile {
@@ -327,6 +335,7 @@ export function buildApprovalGrants(
       // the grant degrades to the coarse token (a same-file sibling can ride it,
       // the documented bounded residual).
       contentDigest: contentDigests?.get(pa.toolCallId) ?? "",
+      sourceToolCallId: pa.toolCallId,
     });
   }
   return grants;
@@ -468,6 +477,46 @@ export async function resetDenialLedger(hitlDir: string): Promise<string> {
   const filePath = denialLedgerPath(hitlDir);
   await writeFile(filePath, "", "utf-8");
   return filePath;
+}
+
+/**
+ * Watch the denial ledger so the stream loop learns about a hook denial the
+ * moment it is written — not on the next tool_call event.
+ *
+ * The hook appends to denials.jsonl BEFORE Cursor surfaces the failure to the
+ * model, so a filesystem notification is the earliest possible signal that a
+ * turn must pause. The watcher deliberately does NOT read the file itself: it
+ * only flips the caller's dirty flag, and the stream loop confirms with a
+ * readDenialLedger() — a notification can fire for the per-turn reset
+ * truncation too, and only a read distinguishes "reset to empty" from "denial
+ * appended". Watching the DIRECTORY (not the file) survives the file being
+ * replaced/truncated between turns.
+ *
+ * fs.watch is best-effort by platform contract, so this is an accelerator,
+ * never the only trigger: the stream loop keeps its tool_call-event read as
+ * the backstop. On any watcher error we fall back to that backstop silently.
+ *
+ * Returns a close function, idempotent and safe to call on every exit path.
+ */
+export function watchDenialLedger(hitlDir: string, onDirty: () => void): () => void {
+  try {
+    const watcher = watch(hitlDir, (_eventType, filename) => {
+      if (!filename || filename === DENIAL_LEDGER_FILE) onDirty();
+    });
+    // Without an error listener a watcher error crashes the process; with one,
+    // the watcher just goes quiet and the tool_call backstop takes over.
+    watcher.on("error", () => {});
+    return () => {
+      try {
+        watcher.close();
+      } catch {
+        // Already closed — nothing to release.
+      }
+    };
+  } catch {
+    // Watch unsupported on this platform/filesystem — backstop only.
+    return () => {};
+  }
 }
 
 /**

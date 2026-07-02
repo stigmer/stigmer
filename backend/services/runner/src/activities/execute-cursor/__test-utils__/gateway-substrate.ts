@@ -87,6 +87,7 @@ function grantFor(action: ProposedAction): ApprovalGrant {
     // Content-exact for a write (the sibling-isolation probe), coarse otherwise —
     // matching how the runner grants from the authoritative captured args.
     contentDigest: contentDigest(args),
+    sourceToolCallId: `consent-${action.kind}`,
   };
 }
 

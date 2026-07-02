@@ -351,6 +351,18 @@ export function ApprovalCardBody({
 
       {preview}
 
+      {/* Consent stated at grant time (DD-28): approving a shell command covers
+          the files it creates or changes — when the turn's mutations all come
+          from approved commands, the file-change set is kept automatically and
+          never re-gates. A mixed turn (commands + file-tool edits) still
+          reviews everything, so this line under-promises rather than over-. */}
+      {categoryInfo.category === "shell" && (
+        <p className="text-[11px] italic text-muted-foreground">
+          Files this command creates or changes are covered by this approval —
+          they are kept automatically, with no second review.
+        </p>
+      )}
+
       {/* Decision actions — quiet, Cursor-grade hierarchy: one neutral-chip
           primary (Approve), ghost Skip, ghost-danger Reject. The broad
           run-lifetime lease (Approve all) is demoted to the far right via

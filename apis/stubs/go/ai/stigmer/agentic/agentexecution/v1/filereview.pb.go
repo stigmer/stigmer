@@ -600,8 +600,13 @@ type FileDecision struct {
 	// limitation. Never an enforcement input or a correlation key, and never
 	// folded into any digest.
 	AcknowledgeUnreviewable bool `protobuf:"varint,10,opt,name=acknowledge_unreviewable,json=acknowledgeUnreviewable,proto3" json:"acknowledge_unreviewable,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// Which authority authored this decision: a human reviewer (USER; also the
+	// reading for UNSPECIFIED pre-origin records) or the approved-command
+	// auto-keep policy (DD-28). Audit provenance only — never enforcement, never
+	// correlation, never folded into any digest. See FileDecisionOrigin.
+	Origin        FileDecisionOrigin `protobuf:"varint,11,opt,name=origin,proto3,enum=ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin" json:"origin,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *FileDecision) Reset() {
@@ -704,6 +709,13 @@ func (x *FileDecision) GetAcknowledgeUnreviewable() bool {
 	return false
 }
 
+func (x *FileDecision) GetOrigin() FileDecisionOrigin {
+	if x != nil {
+		return x.Origin
+	}
+	return FileDecisionOrigin_FILE_DECISION_ORIGIN_UNSPECIFIED
+}
+
 // The baseline workspace state captured at turn start.
 //
 // @internal
@@ -784,6 +796,86 @@ func (x *FileReviewBaselineCaptured) GetBaselineSnapshot() *SnapshotRef {
 	return nil
 }
 
+// The runner's turn facts backing the approved-command auto-keep policy
+// (DD-28): its assertion that EVERY mutation in the candidate was produced by
+// executed shell commands the human had already authorized, with the consent
+// evidence the backend can verify.
+//
+// @internal
+//
+// Presence of this message on a candidate asserts the runner-owned turn facts
+// the server cannot derive (tool calls carry no turn marker): the turn executed
+// zero file-tool (write/delete) calls, zero MCP tools, and delegated zero
+// sub-agents — its only mutation source was consented commands. These facts
+// carry the SAME trust level as the captured bytes themselves. What the runner
+// can NEVER assert is the consent: the backend verifies every claimed row below
+// against the server-authored approval record before authoring the policy
+// decision, so a runner cannot mint authorization it was never given. Absent
+// on any turn that does not qualify — the set then reviews manually, exactly
+// as before this field existed (fail-closed).
+//
+// @since File-Change HITL Redesign (DD-28 approved-command auto-keep)
+type TurnCommandProvenance struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Ids of the transcript tool calls whose SERVER-AUTHORED approval_action
+	// (written only by SubmitApproval, preserved against runner writes)
+	// authorizes this turn's executed commands: the approved gate row for a
+	// per-command grant, or the APPROVE_ALL row whose category lease covered the
+	// command. Exact-id lookup — never a content or fuzzy match. Empty only when
+	// authorized_by_auto_approve_all carries the consent instead.
+	ConsentToolCallIds []string `protobuf:"bytes,1,rep,name=consent_tool_call_ids,json=consentToolCallIds,proto3" json:"consent_tool_call_ids,omitempty"`
+	// True when the commands ran ungated under the pre-armed
+	// spec.auto_approve_all global bypass (there is no per-command consent row to
+	// cite). The backend verifies this against the spec field it owns.
+	AuthorizedByAutoApproveAll bool `protobuf:"varint,2,opt,name=authorized_by_auto_approve_all,json=authorizedByAutoApproveAll,proto3" json:"authorized_by_auto_approve_all,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+func (x *TurnCommandProvenance) Reset() {
+	*x = TurnCommandProvenance{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TurnCommandProvenance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TurnCommandProvenance) ProtoMessage() {}
+
+func (x *TurnCommandProvenance) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TurnCommandProvenance.ProtoReflect.Descriptor instead.
+func (*TurnCommandProvenance) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *TurnCommandProvenance) GetConsentToolCallIds() []string {
+	if x != nil {
+		return x.ConsentToolCallIds
+	}
+	return nil
+}
+
+func (x *TurnCommandProvenance) GetAuthorizedByAutoApproveAll() bool {
+	if x != nil {
+		return x.AuthorizedByAutoApproveAll
+	}
+	return false
+}
+
 // The candidate workspace state captured at the turn boundary, carrying the
 // computed authoritative diff.
 //
@@ -806,13 +898,18 @@ type FileReviewCandidateCaptured struct {
 	// every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
 	// blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
 	DiffCompleteness DiffCompleteness `protobuf:"varint,5,opt,name=diff_completeness,json=diffCompleteness,proto3,enum=ai.stigmer.agentic.agentexecution.v1.DiffCompleteness" json:"diff_completeness,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The runner's approved-command turn facts (DD-28). When present AND the
+	// backend's verification passes, the set is auto-kept by a policy-origin
+	// FILE_DECIDED instead of arming the review gate. Absent → manual review.
+	// See TurnCommandProvenance.
+	CommandProvenance *TurnCommandProvenance `protobuf:"bytes,6,opt,name=command_provenance,json=commandProvenance,proto3" json:"command_provenance,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *FileReviewCandidateCaptured) Reset() {
 	*x = FileReviewCandidateCaptured{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -824,7 +921,7 @@ func (x *FileReviewCandidateCaptured) String() string {
 func (*FileReviewCandidateCaptured) ProtoMessage() {}
 
 func (x *FileReviewCandidateCaptured) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -837,7 +934,7 @@ func (x *FileReviewCandidateCaptured) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileReviewCandidateCaptured.ProtoReflect.Descriptor instead.
 func (*FileReviewCandidateCaptured) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *FileReviewCandidateCaptured) GetChangeSetId() string {
@@ -875,6 +972,13 @@ func (x *FileReviewCandidateCaptured) GetDiffCompleteness() DiffCompleteness {
 	return DiffCompleteness_DIFF_COMPLETENESS_UNSPECIFIED
 }
 
+func (x *FileReviewCandidateCaptured) GetCommandProvenance() *TurnCommandProvenance {
+	if x != nil {
+		return x.CommandProvenance
+	}
+	return nil
+}
+
 // The result of reconciling approved decisions into the workspace.
 //
 // @internal
@@ -895,7 +999,7 @@ type FileReviewReconciled struct {
 
 func (x *FileReviewReconciled) Reset() {
 	*x = FileReviewReconciled{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -907,7 +1011,7 @@ func (x *FileReviewReconciled) String() string {
 func (*FileReviewReconciled) ProtoMessage() {}
 
 func (x *FileReviewReconciled) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -920,7 +1024,7 @@ func (x *FileReviewReconciled) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileReviewReconciled.ProtoReflect.Descriptor instead.
 func (*FileReviewReconciled) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *FileReviewReconciled) GetChangeSetId() string {
@@ -960,7 +1064,7 @@ type FileReviewFailure struct {
 
 func (x *FileReviewFailure) Reset() {
 	*x = FileReviewFailure{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -972,7 +1076,7 @@ func (x *FileReviewFailure) String() string {
 func (*FileReviewFailure) ProtoMessage() {}
 
 func (x *FileReviewFailure) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -985,7 +1089,7 @@ func (x *FileReviewFailure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileReviewFailure.ProtoReflect.Descriptor instead.
 func (*FileReviewFailure) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *FileReviewFailure) GetChangeSetId() string {
@@ -1050,7 +1154,7 @@ type FileReviewEvent struct {
 
 func (x *FileReviewEvent) Reset() {
 	*x = FileReviewEvent{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1062,7 +1166,7 @@ func (x *FileReviewEvent) String() string {
 func (*FileReviewEvent) ProtoMessage() {}
 
 func (x *FileReviewEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1075,7 +1179,7 @@ func (x *FileReviewEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileReviewEvent.ProtoReflect.Descriptor instead.
 func (*FileReviewEvent) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *FileReviewEvent) GetEventId() string {
@@ -1239,7 +1343,7 @@ type FileReviewEventStream struct {
 
 func (x *FileReviewEventStream) Reset() {
 	*x = FileReviewEventStream{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1251,7 +1355,7 @@ func (x *FileReviewEventStream) String() string {
 func (*FileReviewEventStream) ProtoMessage() {}
 
 func (x *FileReviewEventStream) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1264,7 +1368,7 @@ func (x *FileReviewEventStream) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileReviewEventStream.ProtoReflect.Descriptor instead.
 func (*FileReviewEventStream) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *FileReviewEventStream) GetExecutionId() string {
@@ -1328,7 +1432,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDesc = "" +
 	"\x03ref\x18\x02 \x01(\tR\x03ref\"\\\n" +
 	"\x0eCasManifestRef\x12'\n" +
 	"\x0fmanifest_digest\x18\x01 \x01(\tR\x0emanifestDigest\x12!\n" +
-	"\fartifact_uri\x18\x02 \x01(\tR\vartifactUri\"\xd9\x03\n" +
+	"\fartifact_uri\x18\x02 \x01(\tR\vartifactUri\"\xb5\x04\n" +
 	"\fFileDecision\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\"\n" +
 	"\rchange_set_id\x18\x02 \x01(\tR\vchangeSetId\x12W\n" +
@@ -1342,19 +1446,24 @@ const file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDesc = "" +
 	"decided_at\x18\b \x01(\tR\tdecidedAt\x12\x16\n" +
 	"\x06reason\x18\t \x01(\tR\x06reason\x129\n" +
 	"\x18acknowledge_unreviewable\x18\n" +
-	" \x01(\bR\x17acknowledgeUnreviewable\"\xd8\x01\n" +
+	" \x01(\bR\x17acknowledgeUnreviewable\x12Z\n" +
+	"\x06origin\x18\v \x01(\x0e28.ai.stigmer.agentic.agentexecution.v1.FileDecisionOriginB\b\xbaH\x05\x82\x01\x02\x10\x01R\x06origin\"\xd8\x01\n" +
 	"\x1aFileReviewBaselineCaptured\x12\"\n" +
 	"\rchange_set_id\x18\x01 \x01(\tR\vchangeSetId\x12\x17\n" +
 	"\aturn_id\x18\x02 \x01(\tR\x06turnId\x12\x1d\n" +
 	"\n" +
 	"harness_id\x18\x03 \x01(\tR\tharnessId\x12^\n" +
-	"\x11baseline_snapshot\x18\x04 \x01(\v21.ai.stigmer.agentic.agentexecution.v1.SnapshotRefR\x10baselineSnapshot\"\x91\x03\n" +
+	"\x11baseline_snapshot\x18\x04 \x01(\v21.ai.stigmer.agentic.agentexecution.v1.SnapshotRefR\x10baselineSnapshot\"\x8e\x01\n" +
+	"\x15TurnCommandProvenance\x121\n" +
+	"\x15consent_tool_call_ids\x18\x01 \x03(\tR\x12consentToolCallIds\x12B\n" +
+	"\x1eauthorized_by_auto_approve_all\x18\x02 \x01(\bR\x1aauthorizedByAutoApproveAll\"\xfd\x03\n" +
 	"\x1bFileReviewCandidateCaptured\x12\"\n" +
 	"\rchange_set_id\x18\x01 \x01(\tR\vchangeSetId\x12`\n" +
 	"\x12candidate_snapshot\x18\x02 \x01(\v21.ai.stigmer.agentic.agentexecution.v1.SnapshotRefR\x11candidateSnapshot\x12R\n" +
 	"\achanges\x18\x03 \x03(\v28.ai.stigmer.agentic.agentexecution.v1.CapturedFileChangeR\achanges\x12)\n" +
 	"\x10aggregate_digest\x18\x04 \x01(\tR\x0faggregateDigest\x12m\n" +
-	"\x11diff_completeness\x18\x05 \x01(\x0e26.ai.stigmer.agentic.agentexecution.v1.DiffCompletenessB\b\xbaH\x05\x82\x01\x02\x10\x01R\x10diffCompleteness\"\x9a\x01\n" +
+	"\x11diff_completeness\x18\x05 \x01(\x0e26.ai.stigmer.agentic.agentexecution.v1.DiffCompletenessB\b\xbaH\x05\x82\x01\x02\x10\x01R\x10diffCompleteness\x12j\n" +
+	"\x12command_provenance\x18\x06 \x01(\v2;.ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenanceR\x11commandProvenance\"\x9a\x01\n" +
 	"\x14FileReviewReconciled\x12\"\n" +
 	"\rchange_set_id\x18\x01 \x01(\tR\vchangeSetId\x12^\n" +
 	"\x11approved_snapshot\x18\x02 \x01(\v21.ai.stigmer.agentic.agentexecution.v1.SnapshotRefR\x10approvedSnapshot\"\xaa\x01\n" +
@@ -1395,7 +1504,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescGZIP() []
 	return file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_goTypes = []any{
 	(*FileChangeSet)(nil),               // 0: ai.stigmer.agentic.agentexecution.v1.FileChangeSet
 	(*CapturedFileChange)(nil),          // 1: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange
@@ -1404,61 +1513,65 @@ var file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_goTypes = []any{
 	(*CasManifestRef)(nil),              // 4: ai.stigmer.agentic.agentexecution.v1.CasManifestRef
 	(*FileDecision)(nil),                // 5: ai.stigmer.agentic.agentexecution.v1.FileDecision
 	(*FileReviewBaselineCaptured)(nil),  // 6: ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured
-	(*FileReviewCandidateCaptured)(nil), // 7: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured
-	(*FileReviewReconciled)(nil),        // 8: ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled
-	(*FileReviewFailure)(nil),           // 9: ai.stigmer.agentic.agentexecution.v1.FileReviewFailure
-	(*FileReviewEvent)(nil),             // 10: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent
-	(*FileReviewEventStream)(nil),       // 11: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
-	(FileChangeSetStatus)(0),            // 12: ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
-	(DiffCompleteness)(0),               // 13: ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
-	(FileChangeKind)(0),                 // 14: ai.stigmer.agentic.agentexecution.v1.FileChangeKind
-	(FileCaptureClass)(0),               // 15: ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
-	(*FileContent)(nil),                 // 16: ai.stigmer.agentic.agentexecution.v1.FileContent
-	(*ToolCallOutputRef)(nil),           // 17: ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
-	(FileReviewBlockReason)(0),          // 18: ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
-	(SnapshotKind)(0),                   // 19: ai.stigmer.agentic.agentexecution.v1.SnapshotKind
-	(FileDecisionScope)(0),              // 20: ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
-	(FileDecisionAction)(0),             // 21: ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
-	(FileReviewFailureKind)(0),          // 22: ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
-	(FileReviewEventType)(0),            // 23: ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
+	(*TurnCommandProvenance)(nil),       // 7: ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance
+	(*FileReviewCandidateCaptured)(nil), // 8: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured
+	(*FileReviewReconciled)(nil),        // 9: ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled
+	(*FileReviewFailure)(nil),           // 10: ai.stigmer.agentic.agentexecution.v1.FileReviewFailure
+	(*FileReviewEvent)(nil),             // 11: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent
+	(*FileReviewEventStream)(nil),       // 12: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
+	(FileChangeSetStatus)(0),            // 13: ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
+	(DiffCompleteness)(0),               // 14: ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
+	(FileChangeKind)(0),                 // 15: ai.stigmer.agentic.agentexecution.v1.FileChangeKind
+	(FileCaptureClass)(0),               // 16: ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
+	(*FileContent)(nil),                 // 17: ai.stigmer.agentic.agentexecution.v1.FileContent
+	(*ToolCallOutputRef)(nil),           // 18: ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
+	(FileReviewBlockReason)(0),          // 19: ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
+	(SnapshotKind)(0),                   // 20: ai.stigmer.agentic.agentexecution.v1.SnapshotKind
+	(FileDecisionScope)(0),              // 21: ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
+	(FileDecisionAction)(0),             // 22: ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
+	(FileDecisionOrigin)(0),             // 23: ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin
+	(FileReviewFailureKind)(0),          // 24: ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
+	(FileReviewEventType)(0),            // 25: ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
 }
 var file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_depIdxs = []int32{
-	12, // 0: ai.stigmer.agentic.agentexecution.v1.FileChangeSet.status:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
+	13, // 0: ai.stigmer.agentic.agentexecution.v1.FileChangeSet.status:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
 	2,  // 1: ai.stigmer.agentic.agentexecution.v1.FileChangeSet.baseline_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
 	2,  // 2: ai.stigmer.agentic.agentexecution.v1.FileChangeSet.candidate_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
 	2,  // 3: ai.stigmer.agentic.agentexecution.v1.FileChangeSet.approved_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
 	1,  // 4: ai.stigmer.agentic.agentexecution.v1.FileChangeSet.changes:type_name -> ai.stigmer.agentic.agentexecution.v1.CapturedFileChange
-	13, // 5: ai.stigmer.agentic.agentexecution.v1.FileChangeSet.diff_completeness:type_name -> ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
+	14, // 5: ai.stigmer.agentic.agentexecution.v1.FileChangeSet.diff_completeness:type_name -> ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
 	5,  // 6: ai.stigmer.agentic.agentexecution.v1.FileChangeSet.decisions:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecision
-	14, // 7: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeKind
-	15, // 8: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.capture_class:type_name -> ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
-	16, // 9: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.before:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
-	16, // 10: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.after:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
-	17, // 11: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.unified_diff:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
-	18, // 12: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.blocked_reason:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
-	19, // 13: ai.stigmer.agentic.agentexecution.v1.SnapshotRef.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotKind
+	15, // 7: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeKind
+	16, // 8: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.capture_class:type_name -> ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
+	17, // 9: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.before:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
+	17, // 10: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.after:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
+	18, // 11: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.unified_diff:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
+	19, // 12: ai.stigmer.agentic.agentexecution.v1.CapturedFileChange.blocked_reason:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
+	20, // 13: ai.stigmer.agentic.agentexecution.v1.SnapshotRef.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotKind
 	3,  // 14: ai.stigmer.agentic.agentexecution.v1.SnapshotRef.git:type_name -> ai.stigmer.agentic.agentexecution.v1.GitTreeRef
 	4,  // 15: ai.stigmer.agentic.agentexecution.v1.SnapshotRef.cas:type_name -> ai.stigmer.agentic.agentexecution.v1.CasManifestRef
-	20, // 16: ai.stigmer.agentic.agentexecution.v1.FileDecision.scope:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
-	21, // 17: ai.stigmer.agentic.agentexecution.v1.FileDecision.action:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
-	2,  // 18: ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured.baseline_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
-	2,  // 19: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.candidate_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
-	1,  // 20: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.changes:type_name -> ai.stigmer.agentic.agentexecution.v1.CapturedFileChange
-	13, // 21: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.diff_completeness:type_name -> ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
-	2,  // 22: ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled.approved_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
-	22, // 23: ai.stigmer.agentic.agentexecution.v1.FileReviewFailure.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
-	23, // 24: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.event_type:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
-	6,  // 25: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.baseline_captured:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured
-	7,  // 26: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.candidate_captured:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured
-	5,  // 27: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.file_decided:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecision
-	8,  // 28: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.reconciled:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled
-	9,  // 29: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.failed:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewFailure
-	10, // 30: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.events:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEvent
-	31, // [31:31] is the sub-list for method output_type
-	31, // [31:31] is the sub-list for method input_type
-	31, // [31:31] is the sub-list for extension type_name
-	31, // [31:31] is the sub-list for extension extendee
-	0,  // [0:31] is the sub-list for field type_name
+	21, // 16: ai.stigmer.agentic.agentexecution.v1.FileDecision.scope:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
+	22, // 17: ai.stigmer.agentic.agentexecution.v1.FileDecision.action:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
+	23, // 18: ai.stigmer.agentic.agentexecution.v1.FileDecision.origin:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin
+	2,  // 19: ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured.baseline_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
+	2,  // 20: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.candidate_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
+	1,  // 21: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.changes:type_name -> ai.stigmer.agentic.agentexecution.v1.CapturedFileChange
+	14, // 22: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.diff_completeness:type_name -> ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
+	7,  // 23: ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured.command_provenance:type_name -> ai.stigmer.agentic.agentexecution.v1.TurnCommandProvenance
+	2,  // 24: ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled.approved_snapshot:type_name -> ai.stigmer.agentic.agentexecution.v1.SnapshotRef
+	24, // 25: ai.stigmer.agentic.agentexecution.v1.FileReviewFailure.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
+	25, // 26: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.event_type:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
+	6,  // 27: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.baseline_captured:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewBaselineCaptured
+	8,  // 28: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.candidate_captured:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewCandidateCaptured
+	5,  // 29: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.file_decided:type_name -> ai.stigmer.agentic.agentexecution.v1.FileDecision
+	9,  // 30: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.reconciled:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewReconciled
+	10, // 31: ai.stigmer.agentic.agentexecution.v1.FileReviewEvent.failed:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewFailure
+	11, // 32: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.events:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEvent
+	33, // [33:33] is the sub-list for method output_type
+	33, // [33:33] is the sub-list for method input_type
+	33, // [33:33] is the sub-list for extension type_name
+	33, // [33:33] is the sub-list for extension extendee
+	0,  // [0:33] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_init() }
@@ -1468,7 +1581,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_init() {
 	}
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_message_proto_init()
-	file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[10].OneofWrappers = []any{
+	file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_msgTypes[11].OneofWrappers = []any{
 		(*FileReviewEvent_BaselineCaptured)(nil),
 		(*FileReviewEvent_CandidateCaptured)(nil),
 		(*FileReviewEvent_FileDecided)(nil),
@@ -1481,7 +1594,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
