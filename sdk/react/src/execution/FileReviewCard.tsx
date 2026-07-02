@@ -18,6 +18,7 @@ import { FileChangeDiff } from "./FileChangesView";
 import { DiffSummary } from "../version-history/DiffSummary";
 import { DecisionButton } from "../internal/DecisionButton";
 import { InCardDecisionError } from "../internal/InCardDecisionError";
+import { splitDisplayPath } from "./file-path-resolver";
 import { fileDecisionKey, type FileDecisionOptions } from "./useFileReview";
 import {
   changeSetReviewability,
@@ -54,6 +55,19 @@ export interface FileReviewCardProps {
    */
   readonly interactive?: boolean;
   /**
+   * Whether the expanded body renders each file's diff. Defaults to `true` —
+   * the right default wherever this card is the *only* review surface (the
+   * workflow file-review list, standalone platform-builder embeds).
+   *
+   * `MessageThread` passes `false`: the transcript's stamped edit rows already
+   * show every diff in place, so the expanded body collapses to a compact file
+   * list (kind letter + path + per-file controls) and the card stays purely
+   * the decision surface. Decision semantics — digests, scopes,
+   * acknowledgments — are identical in both modes; this is presentation only
+   * (opt-in with a backward-compatible default, DD-011).
+   */
+  readonly showDiffs?: boolean;
+  /**
    * The decision keys currently being submitted — exactly the set
    * {@link useFileReview} returns as `submittingDecisionKeys`. A card has more
    * than one decision target (the whole set plus each file), so it takes the
@@ -77,11 +91,12 @@ export interface FileReviewCardProps {
 /**
  * Renders a captured {@link FileChangeSet} as a **compact decision bar**: one
  * line carrying the set summary and the whole-set decision controls, with the
- * authoritative per-file diffs behind a "Review" expander. The transcript's
- * stamped edit rows already show each edit's streamed preview at its own
- * position, so the bar never duplicates diffs by default — it is the *verdict*
- * surface, expanded on demand for verification. A set that needs per-file
- * attention (binary acknowledgment, blocked files, mid-review) starts expanded.
+ * per-file detail behind an expander. What the expander holds depends on
+ * {@link FileReviewCardProps.showDiffs}: the diff-rich body (default — for
+ * surfaces where this card is the only review surface) or a compact file list
+ * (the session thread, whose stamped edit rows already show every diff in
+ * place). A set that needs per-file attention (binary acknowledgment, blocked
+ * files, mid-review) starts expanded.
  *
  * File edits are reviewed as a captured workspace delta, not tool calls, so this
  * is a dedicated decision surface distinct from the message transcript and the
@@ -131,6 +146,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   submittingDecisionKeys = NO_KEYS,
   decisionErrors = NO_ERRORS,
   interactive = true,
+  showDiffs = true,
   className,
 }: FileReviewCardProps) {
   const changes = fileChangeSet.changes;
@@ -179,7 +195,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   // the decision: an incomplete set (binary acknowledgment / blocked files need
   // their per-file context) or a review already in progress. A complete set and
   // a settled record start collapsed — the transcript's stamped rows already
-  // show what changed, and "Review" expands the authoritative diffs on demand.
+  // show what changed, and the expander reveals the per-file detail on demand.
   const [expanded, setExpanded] = useState(
     () => interactive && (incomplete || decidedCount > 0),
   );
@@ -283,7 +299,7 @@ export const FileReviewCard = memo(function FileReviewCard({
         className,
       )}
     >
-      {/* The bar: summary + whole-set verdict + the diff expander, one line. */}
+      {/* The bar: summary + whole-set verdict + the detail expander, one line. */}
       <div className="flex flex-wrap items-center gap-2 px-2.5 py-1.5 text-xs">
         <span className="shrink-0 font-medium text-foreground">
           {interactive ? "Review file changes" : "File changes"}
@@ -328,7 +344,10 @@ export const FileReviewCard = memo(function FileReviewCard({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
         >
-          {expanded ? "Hide" : interactive ? "Review" : "Show"}
+          {/* The closed label states what expanding reveals: the reviewable
+              diffs ("Review"), the file inventory ("Files"), or a settled
+              record ("Show"). */}
+          {expanded ? "Hide" : !interactive ? "Show" : showDiffs ? "Review" : "Files"}
           <ExpanderChevron expanded={expanded} />
         </button>
       </div>
@@ -364,14 +383,19 @@ export const FileReviewCard = memo(function FileReviewCard({
           id={bodyId}
           className="space-y-2 border-t border-border-muted px-3 py-2.5"
         >
-          <DiffSummary
-            fileCount={total}
-            additions={totals.additions}
-            deletions={totals.deletions}
-          />
+          {/* The list body carries no summary header: the collapsed bar's
+              file count is the summary, and per-file counts would require
+              fetching offloaded bodies just to decorate a list. */}
+          {showDiffs && (
+            <DiffSummary
+              fileCount={total}
+              additions={totals.additions}
+              deletions={totals.deletions}
+            />
+          )}
 
           {!interactive
-            ? // Settled: every file's diff paired with its committed EFFECTIVE
+            ? // Settled: every file paired with its committed EFFECTIVE
               // verdict (a bulk decision covers files without their own), no
               // controls — a record of what changed and how it was decided.
               changes.map((change) => (
@@ -379,6 +403,7 @@ export const FileReviewCard = memo(function FileReviewCard({
                   key={change.id}
                   change={change}
                   verdict={effectiveVerdicts.get(change.id) ?? null}
+                  showDiffs={showDiffs}
                 />
               ))
             : showPerFile
@@ -393,14 +418,21 @@ export const FileReviewCard = memo(function FileReviewCard({
                     }
                     error={decisionErrors.get(fileDecisionKey(setId, change.id)) ?? null}
                     onDecide={handleFileDecide}
+                    showDiffs={showDiffs}
                   />
                 ))
-              : changes.map((change) => (
-                  <div key={change.id} className="space-y-1.5">
-                    <CaptureBadge change={change} />
-                    <FileChangeDiff change={toDisplayFileChange(change)} bounded />
-                  </div>
-                ))}
+              : // A single complete file decided via the bar's bulk controls:
+                // its detail is informational, with no per-file control.
+                changes.map((change) =>
+                  showDiffs ? (
+                    <div key={change.id} className="space-y-1.5">
+                      <CaptureBadge change={change} />
+                      <CapturedChangeDiff change={change} />
+                    </div>
+                  ) : (
+                    <FileListRow key={change.id} change={change} />
+                  ),
+                )}
 
           {interactive && showPerFile && (
             <ReviewProgress decided={decidedCount} total={total} />
@@ -464,7 +496,7 @@ function ExpanderChevron({ expanded }: { expanded: boolean }) {
 }
 
 // ---------------------------------------------------------------------------
-// FileChangeReviewRow — one file's diff paired with its Keep/Discard verdict
+// FileChangeReviewRow — one file paired with its Keep/Discard verdict
 // ---------------------------------------------------------------------------
 
 interface FileChangeReviewRowProps {
@@ -476,33 +508,50 @@ interface FileChangeReviewRowProps {
   /** This file's last failed decision, or null — surfaced beside its control. */
   readonly error: Error | null;
   readonly onDecide: (change: CapturedFileChange, action: FileDecisionAction) => void;
+  /** Diff-rich body vs compact list line — see {@link FileReviewCardProps.showDiffs}. */
+  readonly showDiffs: boolean;
 }
 
+/**
+ * One reviewable file with its Keep/Discard control. The decision machinery
+ * (verdict radiogroup, block-reason note, in-card error) is identical in both
+ * body modes; only the file presentation varies — the bounded diff, or the
+ * compact {@link FileListRow} line with the control trailing it.
+ */
 const FileChangeReviewRow = memo(function FileChangeReviewRow({
   change,
   verdict,
   isSubmitting,
   error,
   onDecide,
+  showDiffs,
 }: FileChangeReviewRowProps) {
-  const adapted = useMemo(() => toDisplayFileChange(change), [change]);
   // One classification per change drives BOTH the disabled Keep and its reason,
   // so the two can never disagree (single source of truth).
   const reviewability = fileReviewability(change);
   const blocked = reviewability.kind !== "reviewable";
   const reasonId = useId();
+  const verdictControl = (
+    <FileVerdictControl
+      change={change}
+      reviewability={reviewability}
+      verdict={verdict}
+      isSubmitting={isSubmitting}
+      onDecide={onDecide}
+      describedById={blocked ? reasonId : undefined}
+    />
+  );
   return (
     <div className="space-y-1.5">
-      <CaptureBadge change={change} />
-      <FileChangeDiff change={adapted} bounded />
-      <FileVerdictControl
-        change={change}
-        reviewability={reviewability}
-        verdict={verdict}
-        isSubmitting={isSubmitting}
-        onDecide={onDecide}
-        describedById={blocked ? reasonId : undefined}
-      />
+      {showDiffs ? (
+        <>
+          <CaptureBadge change={change} />
+          <CapturedChangeDiff change={change} />
+          {verdictControl}
+        </>
+      ) : (
+        <FileListRow change={change} trailing={verdictControl} />
+      )}
       {blocked && <BlockReasonNote reviewability={reviewability} id={reasonId} />}
       {error && (
         <InCardDecisionError
@@ -516,36 +565,164 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
 });
 
 // ---------------------------------------------------------------------------
-// SettledFileRow — one file's diff paired with its committed verdict (read-only)
+// SettledFileRow — one file paired with its committed verdict (read-only)
 // ---------------------------------------------------------------------------
 
 interface SettledFileRowProps {
   readonly change: CapturedFileChange;
   /** The file's committed verdict, or null if the set was never decided. */
   readonly verdict: FileDecisionAction | null;
+  /** Diff-rich body vs compact list line — see {@link FileReviewCardProps.showDiffs}. */
+  readonly showDiffs: boolean;
 }
 
 /**
- * A read-only file row for a settled change set: the capture provenance badge,
- * a static verdict badge, and the before/after diff. No decision controls — the
- * verdict is history, not an action. Used by the read-only {@link FileReviewCard}
+ * A read-only file row for a settled change set: the capture provenance badge
+ * and a static verdict badge, with the before/after diff in diff mode or the
+ * compact list line otherwise. No decision controls — the verdict is history,
+ * not an action. Used by the read-only {@link FileReviewCard}
  * (`interactive={false}`) for decided/reconciled sets and terminal executions.
  */
 const SettledFileRow = memo(function SettledFileRow({
   change,
   verdict,
+  showDiffs,
 }: SettledFileRowProps) {
-  const adapted = useMemo(() => toDisplayFileChange(change), [change]);
+  if (!showDiffs) {
+    return <FileListRow change={change} trailing={<VerdictBadge verdict={verdict} />} />;
+  }
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
         <CaptureBadge change={change} />
         <VerdictBadge verdict={verdict} />
       </div>
-      <FileChangeDiff change={adapted} bounded />
+      <CapturedChangeDiff change={change} />
     </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// CapturedChangeDiff — a captured change's bounded diff (showDiffs mode)
+// ---------------------------------------------------------------------------
+
+/**
+ * Projects a {@link CapturedFileChange} onto the display `FileChange` and
+ * renders its bounded diff — the one place the diff body renders, shared by the
+ * interactive, settled, and single-file branches of the diff-mode body.
+ */
+function CapturedChangeDiff({ change }: { change: CapturedFileChange }) {
+  const adapted = useMemo(() => toDisplayFileChange(change), [change]);
+  return <FileChangeDiff change={adapted} bounded />;
+}
+
+// ---------------------------------------------------------------------------
+// FileListRow — one file as a compact list line (list mode)
+// ---------------------------------------------------------------------------
+
+/**
+ * One file of the change set as a compact, deliberately inert list line: kind
+ * letter, path, provenance badge, and an optional trailing slot (the verdict
+ * control while reviewing; the committed verdict once settled).
+ *
+ * The path is plain text — not `FilePathLink` — because the list is an
+ * inventory of what the decision covers, not a navigation surface: the diffs
+ * live on the transcript's stamped edit rows. The full path stays available on
+ * hover via `title`. A rename shows its source path so the move reads in one
+ * line.
+ */
+function FileListRow({
+  change,
+  trailing,
+}: {
+  readonly change: CapturedFileChange;
+  readonly trailing?: React.ReactNode;
+}) {
+  const path = change.pathAfter || change.pathBefore;
+  const { dir, base } = splitDisplayPath(path);
+  const renamedFrom =
+    change.kind === FileChangeKind.RENAME && change.pathBefore !== change.pathAfter
+      ? change.pathBefore
+      : "";
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-2 gap-y-1"
+      data-cursor-target="file-review-list-row"
+    >
+      <FileKindBadge kind={change.kind} />
+      {/* The directory truncates (context); the base never shrinks (identity) —
+          the same filename-first rule FilePathLink established. */}
+      <span
+        className="flex min-w-0 flex-1 items-center font-mono text-xs text-foreground"
+        title={path}
+      >
+        {renamedFrom && (
+          <span className="min-w-0 truncate text-muted-foreground-faint">
+            {renamedFrom}&nbsp;→&nbsp;
+          </span>
+        )}
+        {dir && (
+          <span className="min-w-0 truncate text-muted-foreground-faint">{dir}</span>
+        )}
+        <span className="shrink-0">{base}</span>
+      </span>
+      <CaptureBadge change={change} />
+      {trailing}
+    </div>
+  );
+}
+
+/** The kind letter, tone, and a11y name for each wire {@link FileChangeKind}. */
+const KIND_BADGE: Partial<
+  Record<FileChangeKind, { letter: string; colorClass: string; label: string }>
+> = {
+  [FileChangeKind.ADD]: {
+    letter: "A",
+    colorClass: "text-diff-added-fg",
+    label: "added",
+  },
+  [FileChangeKind.MODIFY]: {
+    letter: "M",
+    colorClass: "text-diff-hunk-header-fg",
+    label: "modified",
+  },
+  [FileChangeKind.DELETE]: {
+    letter: "D",
+    colorClass: "text-diff-removed-fg",
+    label: "deleted",
+  },
+  [FileChangeKind.RENAME]: {
+    letter: "R",
+    colorClass: "text-diff-hunk-header-fg",
+    label: "renamed",
+  },
+  // A binary change is a modification whose diff is not text; the letter stays
+  // M and the binary-ness is told by the row's "Keep anyway" + reason note.
+  [FileChangeKind.BINARY_CHANGE]: {
+    letter: "M",
+    colorClass: "text-diff-hunk-header-fg",
+    label: "modified (binary)",
+  },
+};
+
+/**
+ * The single-letter change-kind marker — the same M/A/D visual vocabulary as
+ * the version-history `DiffFileList`, extended with R for captured renames.
+ * The letter itself is the non-color channel; the full word is exposed to
+ * assistive tech. An UNSPECIFIED kind renders nothing rather than guessing.
+ */
+function FileKindBadge({ kind }: { kind: FileChangeKind }) {
+  const badge = KIND_BADGE[kind];
+  if (!badge) return null;
+  return (
+    <span
+      className={cn("shrink-0 font-mono text-[10px] font-bold", badge.colorClass)}
+      aria-label={badge.label}
+    >
+      {badge.letter}
+    </span>
+  );
+}
 
 /**
  * A change's committed verdict as a static badge: APPROVE reads "Kept" (the

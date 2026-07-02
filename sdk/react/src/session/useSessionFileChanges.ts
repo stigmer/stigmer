@@ -28,8 +28,11 @@ export interface UseSessionFileChangesReturn {
 
 /**
  * Pure derivation hook that aggregates an agent's file changes across every
- * execution in a session into one net change per file — the data behind the
- * local-workspace "Changes" view.
+ * execution in a session into one net change per file. A headless building
+ * block for platform builders composing a consolidated session-changes surface
+ * (typically paired with {@link FileChangesView}); the Console itself renders
+ * file changes in the transcript (stamped edit rows + the per-turn decision
+ * bar) and does not consume this hook.
  *
  * **Source (ledger-first).** Under apply-then-review the changes live in the
  * file-review ledger; {@link displayFileChangeSets} reads the server's live
@@ -74,7 +77,8 @@ export interface UseSessionFileChangesReturn {
  * const { fileChanges, hasFileChanges } = useSessionFileChanges(allExecutions);
  * ```
  *
- * @see useSessionWriteBacks — git-mode (PR) counterpart for the Changes tab
+ * @see useSessionWriteBacks — git-mode (PR) counterpart, which does drive the
+ *   inspector's Changes tab
  * @see useFileChangeContent — resolves a change's before/after text for diffing
  * @see FileChangesView — component that renders this data
  */

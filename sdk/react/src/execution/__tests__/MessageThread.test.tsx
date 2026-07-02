@@ -40,21 +40,6 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-// FileReviewCard renders FileChangeDiff, which transitively pulls the
-// offload-resolving content hook. Mock it so the diff path renders without an
-// artifact-fetch context — this suite only exercises the file-review prop seam.
-vi.mock("../useFileChangeContent", () => ({
-  useFileChangeContent: () => ({
-    beforeText: "old\n",
-    afterText: "new\n",
-    isBinary: false,
-    isLoading: false,
-    error: null,
-    isTruncated: false,
-    downloadUrl: null,
-  }),
-}));
-
 import { MessageThread } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
@@ -295,6 +280,14 @@ describe("MessageThread", () => {
     ).toBeTruthy();
     expect(
       document.querySelector('[data-cursor-target="file-review-reject"]'),
+    ).toBeTruthy();
+    // The thread wires showDiffs={false}: the card's expander is the file
+    // list ("Files"), never a diff — the stamped edit rows own the diffs.
+    expect(screen.getByRole("button", { name: "Files" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Files" }));
+    expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-list-row"]'),
     ).toBeTruthy();
   });
 

@@ -12,8 +12,6 @@ function defaultOpts(overrides?: Partial<UseSessionInspectorOptions>): UseSessio
     phase: null,
     hasWriteBacks: false,
     writeBackCount: 0,
-    hasFileChanges: false,
-    fileChangeCount: 0,
     hasArtifacts: false,
     artifactCount: 0,
     hasUsage: false,
@@ -28,8 +26,6 @@ function tabOpts(
   return {
     hasWriteBacks: false,
     writeBackCount: 0,
-    hasFileChanges: false,
-    fileChangeCount: 0,
     hasArtifacts: false,
     artifactCount: 0,
     hasUsage: false,
@@ -58,31 +54,14 @@ describe("buildVisibleTabs", () => {
     expect(configTab?.label).toBe("Config");
   });
 
-  it("includes Changes with badge when write-backs exist", () => {
+  // The Changes tab is exclusively the write-back (PR) surface: local file
+  // changes render in the transcript (edit rows + decision bar) and no longer
+  // surface — or badge — a tab.
+  it("includes Changes with badge only when write-backs exist", () => {
     const tabs = buildVisibleTabs(tabOpts({ hasWriteBacks: true, writeBackCount: 3 }));
     const changesTab = tabs.find((t) => t.id === "changes");
     expect(changesTab).toBeDefined();
     expect(changesTab?.badge).toBe(3);
-  });
-
-  it("includes Changes with file-change badge when only file changes exist", () => {
-    const tabs = buildVisibleTabs(tabOpts({ hasFileChanges: true, fileChangeCount: 5 }));
-    const changesTab = tabs.find((t) => t.id === "changes");
-    expect(changesTab).toBeDefined();
-    expect(changesTab?.badge).toBe(5);
-  });
-
-  it("prefers the write-back count for the Changes badge when both exist", () => {
-    const tabs = buildVisibleTabs(
-      tabOpts({
-        hasWriteBacks: true,
-        writeBackCount: 2,
-        hasFileChanges: true,
-        fileChangeCount: 9,
-      }),
-    );
-    const changesTab = tabs.find((t) => t.id === "changes");
-    expect(changesTab?.badge).toBe(2);
   });
 
   it("includes Artifacts with badge when artifacts exist", () => {
@@ -231,17 +210,6 @@ describe("useSessionInspector", () => {
     rerender(
       defaultOpts({ hasWriteBacks: true, writeBackCount: 1 }),
     );
-    expect(result.current.activeTab).toBe("changes");
-  });
-
-  it("auto-switches to changes when first local file change arrives", () => {
-    const { result, rerender } = renderHook(
-      (props: UseSessionInspectorOptions) => useSessionInspector(props),
-      { initialProps: defaultOpts() },
-    );
-    expect(result.current.activeTab).toBe("workspace");
-
-    rerender(defaultOpts({ hasFileChanges: true, fileChangeCount: 2 }));
     expect(result.current.activeTab).toBe("changes");
   });
 

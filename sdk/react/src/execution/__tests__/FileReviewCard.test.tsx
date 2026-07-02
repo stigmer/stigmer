@@ -795,4 +795,205 @@ describe("FileReviewCard", () => {
       expect(screen.queryByText("Not reviewed")).toBeNull();
     });
   });
+
+  // The session thread passes showDiffs={false}: its stamped edit rows already
+  // show every diff in place, so the expanded body is a compact file list and
+  // the card is purely the decision surface. Decision semantics (scopes,
+  // digests, acknowledgments) must be byte-identical to diff mode — these
+  // cases mirror the decision cases above without the diff DOM. The default
+  // (showDiffs unset) stays covered by every other suite in this file.
+  describe("list mode (showDiffs=false)", () => {
+    function expandFiles() {
+      fireEvent.click(screen.getByRole("button", { name: "Files" }));
+    }
+
+    it("labels the expander 'Files' and renders inert list rows with no diff DOM", () => {
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet()}
+          onSubmit={noop}
+          showDiffs={false}
+        />,
+      );
+      expandFiles();
+      expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
+      expect(
+        document.querySelectorAll('[data-cursor-target="file-review-list-row"]'),
+      ).toHaveLength(2);
+      // Filename-first path text, full path available on hover — and no
+      // link/copy affordance (the list is an inventory, not navigation).
+      expect(screen.getByText("a.ts")).toBeTruthy();
+      expect(screen.getByText("b.ts")).toBeTruthy();
+      expect(screen.getByTitle("src/a.ts")).toBeTruthy();
+      expect(screen.queryByRole("link")).toBeNull();
+    });
+
+    it("marks each file with its change-kind letter (A/M/D)", () => {
+      const added = create(CapturedFileChangeSchema, {
+        id: "fc-add",
+        pathAfter: "src/new.ts",
+        kind: FileChangeKind.ADD,
+        captureClass: FileCaptureClass.GIT_TRACKED,
+        after: inline("new\n"),
+        fileDigest: "d-add",
+        diffComplete: true,
+      });
+      const deleted = create(CapturedFileChangeSchema, {
+        id: "fc-del",
+        pathBefore: "src/old.ts",
+        kind: FileChangeKind.DELETE,
+        captureClass: FileCaptureClass.GIT_TRACKED,
+        before: inline("old\n"),
+        fileDigest: "d-del",
+        diffComplete: true,
+      });
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({ fc1: added, fc2: deleted })}
+          onSubmit={noop}
+          showDiffs={false}
+        />,
+      );
+      expandFiles();
+      expect(screen.getByLabelText("added").textContent).toBe("A");
+      expect(screen.getByLabelText("deleted").textContent).toBe("D");
+    });
+
+    it("shows a rename's source path in the row", () => {
+      const renamed = create(CapturedFileChangeSchema, {
+        id: "fc-ren",
+        pathBefore: "src/old-name.ts",
+        pathAfter: "src/new-name.ts",
+        kind: FileChangeKind.RENAME,
+        captureClass: FileCaptureClass.GIT_TRACKED,
+        before: inline("x\n"),
+        after: inline("x\n"),
+        fileDigest: "d-ren",
+        diffComplete: true,
+      });
+      render(
+        <FileReviewCard
+          fileChangeSet={changeSet({ change: renamed })}
+          onSubmit={noop}
+          showDiffs={false}
+        />,
+      );
+      expandFiles();
+      expect(screen.getByText(/src\/old-name\.ts/)).toBeTruthy();
+      expect(screen.getByText("new-name.ts")).toBeTruthy();
+    });
+
+    it("submits a FILE APPROVE bound to the file digest from a list row", () => {
+      const onSubmit = vi.fn();
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet()}
+          onSubmit={onSubmit}
+          showDiffs={false}
+        />,
+      );
+      expandFiles();
+      fireEvent.click(screen.getByRole("radio", { name: "Keep src/a.ts" }));
+      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
+        scope: FileDecisionScope.FILE,
+        fileChangeId: "fc1",
+        expectedDigest: "d-fc1",
+        acknowledgeUnreviewable: false,
+      });
+    });
+
+    it("submits a CHANGE_SET APPROVE bound to the aggregate digest from the bar", () => {
+      const onSubmit = vi.fn();
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet()}
+          onSubmit={onSubmit}
+          showDiffs={false}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Approve all" }));
+      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
+        scope: FileDecisionScope.CHANGE_SET,
+        expectedDigest: "agg-1",
+        acknowledgeUnreviewable: false,
+      });
+    });
+
+    it("keeps the acknowledged binary 'Keep anyway' flow, reason note intact", () => {
+      const binary = capturedBinaryChange({
+        id: "fc-bin",
+        path: "logo.png",
+        fileDigest: "d-bin",
+      });
+      const onSubmit = vi.fn();
+      render(
+        <FileReviewCard
+          fileChangeSet={changeSet({
+            change: binary,
+            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
+          })}
+          onSubmit={onSubmit}
+          showDiffs={false}
+        />,
+      );
+      // An incomplete set starts expanded in list mode too — with no diff to
+      // lean on, the reason note IS the per-file context for the decision.
+      expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
+      const note = document.querySelector(
+        '[data-cursor-target="file-review-block-reason"]',
+      );
+      expect(note?.textContent).toMatch(/binary file/i);
+      fireEvent.click(screen.getByRole("radio", { name: /keep logo\.png anyway/i }));
+      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
+        scope: FileDecisionScope.FILE,
+        fileChangeId: "fc-bin",
+        expectedDigest: "d-bin",
+        acknowledgeUnreviewable: true,
+      });
+    });
+
+    it("keeps the secret-withheld discard-only flow, honest copy intact", () => {
+      const secret = capturedUnavailableChange({
+        id: "fc-sec",
+        path: ".env",
+        fileDigest: "d-sec",
+        blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
+      });
+      render(
+        <FileReviewCard
+          fileChangeSet={changeSet({
+            change: secret,
+            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
+          })}
+          onSubmit={noop}
+          showDiffs={false}
+        />,
+      );
+      expect(
+        (screen.getByRole("radio", { name: /keep \.env/i }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(true);
+      expect(screen.getByText(/contents withheld/i)).toBeTruthy();
+    });
+
+    it("renders the settled record as verdict-badged list rows, no diffs", () => {
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({
+            decisions: [
+              fileDecision("fc1", FileDecisionAction.APPROVE),
+              fileDecision("fc2", FileDecisionAction.REJECT),
+            ],
+          })}
+          interactive={false}
+          showDiffs={false}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Show" }));
+      expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
+      expect(screen.getByText("Kept")).toBeTruthy();
+      expect(screen.getByText("Discarded")).toBeTruthy();
+      expect(screen.queryByRole("radio")).toBeNull();
+    });
+  });
 });

@@ -2,27 +2,25 @@
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { useSessionWriteBacks } from "../useSessionWriteBacks";
-import { useSessionFileChanges } from "../useSessionFileChanges";
 import { WriteBackCard } from "../../execution/WriteBackCard";
-import { FileChangesView } from "../../execution/FileChangesView";
 
 export interface ChangesTabProps {
   readonly executions: readonly AgentExecution[];
 }
 
 /**
- * Changes facet for the SessionInspector — mode-aware by workspace type.
+ * Changes facet for the SessionInspector — the session's git write-backs
+ * (branch/commit/PR), one `WriteBackCard` per entry.
  *
- * Git-backed workspaces produce automatic branch/commit/PR write-backs, so
- * those render as `WriteBackCard`s (the PR is the unit of change). Local-folder
- * workspaces have no write-back; their edits render as a consolidated per-file
- * diff via `FileChangesView`. Write-backs only ever populate for git, so their
- * presence cleanly selects the mode; a git run mid-execution may briefly show
- * file diffs before its write-back lands, then upgrade to PR cards.
+ * Local file changes deliberately do NOT render here: they live in the
+ * transcript, where each stamped edit row shows its diff in place and the
+ * per-turn decision bar carries the review controls and file list
+ * (`FileReviewCard`). Duplicating them in a side panel gave the same change a
+ * third rendering with no added authority. The tab therefore only surfaces
+ * once a write-back exists (see `buildVisibleTabs`).
  */
 export function ChangesTab({ executions }: ChangesTabProps) {
   const { writeBacks, hasWriteBacks } = useSessionWriteBacks(executions);
-  const { fileChanges, hasFileChanges } = useSessionFileChanges(executions);
 
   if (hasWriteBacks) {
     return (
@@ -36,15 +34,11 @@ export function ChangesTab({ executions }: ChangesTabProps) {
     );
   }
 
-  if (hasFileChanges) {
-    return <FileChangesView changes={fileChanges} />;
-  }
-
   return (
     <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
       <p className="text-xs text-muted-foreground">
-        No changes yet. File edits and pull requests will appear here once the
-        agent modifies your workspace.
+        No changes yet. Pull requests will appear here once the agent pushes
+        its work back to your repository.
       </p>
     </div>
   );

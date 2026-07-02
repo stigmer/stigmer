@@ -1428,6 +1428,10 @@ const FileReviewCardRow = memo(function FileReviewCardRow({
       onSubmit={interactive ? handleSubmit : undefined}
       submittingDecisionKeys={submittingDecisionKeys}
       decisionErrors={decisionErrors}
+      // The thread's stamped edit rows already show every diff in place, so
+      // the card renders its compact file-list body — the decision surface
+      // never duplicates the transcript's diffs.
+      showDiffs={false}
       className="mx-4"
     />
   );
