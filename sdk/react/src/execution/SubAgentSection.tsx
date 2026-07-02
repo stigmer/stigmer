@@ -10,6 +10,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useRenderTracer } from "../internal/dev";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure";
+import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince";
 import { cn } from "@stigmer/theme";
 import { formatDuration } from "./ToolCallDetail";
 import { MessageEntry } from "./MessageEntry";
@@ -225,10 +226,14 @@ function CollapsibleCard({
         >
           {statusInfo.label}
         </span>
-        {duration && (
-          <span className="shrink-0 tabular-nums text-muted-foreground">
-            {duration}
-          </span>
+        {isRunning ? (
+          <RunningDuration startedAt={sub.startedAt} />
+        ) : (
+          duration && (
+            <span className="shrink-0 tabular-nums text-muted-foreground">
+              {duration}
+            </span>
+          )
         )}
         {selection && (
           <button
@@ -286,6 +291,30 @@ function CollapsibleCard({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Ticking elapsed time for an IN_PROGRESS sub-agent's header, where the
+ * static duration (which needs `completedAt`) is still null.
+ *
+ * This is the honest live affordance for a running sub-agent: the Cursor
+ * SDK returns sub-agent internals only as a blob when the task tool
+ * completes (verified against SDK 1.0.13 and 1.0.22 — zero events reach the
+ * parent stream while the sub-agent runs), so there are no nested tool calls
+ * to stream here. A counter that visibly advances tells the user work is
+ * progressing without fabricating intermediate state. The native harness
+ * streams nested messages as they happen; this counter simply accompanies
+ * them.
+ */
+function RunningDuration({ startedAt }: { readonly startedAt: string }) {
+  const elapsed = useElapsedSince(startedAt);
+  if (elapsed === null) return null;
+
+  return (
+    <span className="shrink-0 tabular-nums text-muted-foreground">
+      {formatElapsed(elapsed)}
+    </span>
   );
 }
 

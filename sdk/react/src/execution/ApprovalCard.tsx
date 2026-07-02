@@ -22,6 +22,7 @@ import { EmptyChangeNotice } from "./EmptyChangeNotice";
 import { FilePathLink } from "./FilePathLink";
 import { DecisionButton } from "../internal/DecisionButton";
 import { InCardDecisionError } from "../internal/InCardDecisionError";
+import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince";
 
 /** Props for {@link ApprovalCard}. */
 export interface ApprovalCardProps {
@@ -462,26 +463,7 @@ function buildApproveAllLabel(
 // ---------------------------------------------------------------------------
 
 function WaitingDuration({ requestedAt }: { requestedAt: string }) {
-  const startMs = useMemo(() => {
-    if (!requestedAt) return null;
-    const t = new Date(requestedAt).getTime();
-    return Number.isNaN(t) ? null : t;
-  }, [requestedAt]);
-
-  const [elapsed, setElapsed] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (startMs === null) {
-      setElapsed(null);
-      return;
-    }
-    setElapsed(Math.max(0, Date.now() - startMs));
-    const id = setInterval(() => {
-      setElapsed(Math.max(0, Date.now() - startMs));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [startMs]);
-
+  const elapsed = useElapsedSince(requestedAt);
   if (elapsed === null) return null;
 
   return (
@@ -489,24 +471,6 @@ function WaitingDuration({ requestedAt }: { requestedAt: string }) {
       {formatElapsed(elapsed)}
     </span>
   );
-}
-
-function formatElapsed(ms: number): string {
-  if (ms < 1000) return "just now";
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  if (minutes < 60) {
-    return remainingSeconds > 0
-      ? `${minutes}m ${remainingSeconds}s`
-      : `${minutes}m`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return remainingMinutes > 0
-    ? `${hours}h ${remainingMinutes}m`
-    : `${hours}h`;
 }
 
 // ---------------------------------------------------------------------------
