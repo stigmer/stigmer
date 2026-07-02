@@ -281,6 +281,10 @@ test: ## Run all unit tests
 		echo "testing  $$mod"; \
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
+	@$(MAKE) test-runner
+
+.PHONY: test-runner
+test-runner: $(RUNNER_DIR)/node_modules ## Run the unified runner vitest suite (CI env caps fork concurrency)
 	@echo "testing  $(RUNNER_DIR)"
 	@cd $(RUNNER_DIR) && npm test
 

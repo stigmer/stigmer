@@ -1,0 +1,85 @@
+# =============================================================================
+# Unified Runner — Vitest Suite
+# =============================================================================
+# Runs the standalone TypeScript runner's (`@stigmer/runner`) full vitest suite.
+#
+# The runner is NOT part of the root npm workspaces — it has its own
+# package-lock.json and is installed/built separately (see the Makefile's
+# build-runner). Its ~3,100-test vitest suite ran in NO automated gate before
+# this workflow: ci.conformance-execution only BUILDS + TYPECHECKS the runner,
+# and `make check` (check-node) runs its typecheck/build/check-deps but not
+# `npm test`. So compile-time contracts were guarded while runtime behavior
+# across the whole suite could rot silently. This workflow closes that gap.
+#
+# This is a SEPARATE job from ci.conformance-execution (its closest sibling)
+# rather than an added step, so it has an independent signal, its own path
+# filter, and its own concurrency group.
+#
+# No Temporal CLI step: the one Temporal-backed suite (golden-e2e) uses
+# @temporalio/testing's TestWorkflowEnvironment.createLocal(), which downloads
+# and manages its OWN test-server binary — it never consults a system `temporal`
+# on PATH — and self-skips if that fails, so it can never hard-fail this job.
+#
+# Path filter is intentionally narrow (the runner's own tree + the proto stubs
+# it imports). Root package.json/package-lock.json are deliberately omitted: the
+# runner's deps live in its own lockfile, and a root-dep change that broke the
+# proto build is already caught by ci.conformance-execution.
+#
+# Fork concurrency is capped in CI via vitest.config.ts (it keys off the CI env
+# GitHub sets) to avoid oversubscribing the runner with bash/git subprocess
+# tests; see that file for the rationale.
+# =============================================================================
+
+name: ci.runner
+
+on:
+  pull_request:
+    paths:
+      - "backend/services/runner/**"
+      - "apis/stubs/ts/**"
+      - "Makefile"
+      - ".github/workflows/ci.runner.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/services/runner/**"
+      - "apis/stubs/ts/**"
+      - "Makefile"
+      - ".github/workflows/ci.runner.yaml"
+
+concurrency:
+  group: runner-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  runner-vitest:
+    name: Runner Vitest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # The runner imports the built proto stubs (dist), not source.
+      - name: Build proto stubs
+        run: npm run build -w @stigmer/protos
+
+      # The runner is a standalone package with its own lockfile, so it needs
+      # its own install (mirrors ci.integration-offline).
+      - name: Install unified runner dependencies
+        working-directory: backend/services/runner
+        run: npm ci
+
+      # GitHub sets CI=true, so vitest.config.ts caps fork concurrency here.
+      - name: Run runner vitest suite
+        run: make test-runner
