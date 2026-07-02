@@ -60,6 +60,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The SDK consumes @stigmer/protos through its built `dist/` output (the
+      # package `exports` map points only at ./dist/*.js). Playwright loads the
+      # SDK from source via global-setup, so the protos dist must be built first
+      # or module resolution fails with "Cannot find module .../dist/...query_pb.js".
+      - name: Build SDK libraries
+        run: npm run build:libs
+
       - name: Install Playwright browsers
         working-directory: test/e2e
         run: npx playwright install --with-deps chromium

@@ -13,7 +13,7 @@
     "paths": {
       "@stigmer/sdk": ["../../sdk/typescript/src/index.ts"],
       "@stigmer/sdk/node": ["../../sdk/typescript/src/node.ts"],
-      "@stigmer/protos/*": ["../../apis/stubs/ts/src/*"]
+      "@stigmer/protos/*": ["../../apis/stubs/ts/*"]
     }
   },
   "include": [
