@@ -11,13 +11,35 @@ import {
   ExecutionConfigSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import {
+  AgentMessageSchema,
+  ToolCallSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import {
+  CapturedFileChangeSchema,
+  FileChangeSetSchema,
+  FileReviewBaselineCapturedSchema,
+  FileReviewCandidateCapturedSchema,
+  FileReviewEventSchema,
+  FileReviewEventStreamSchema,
+  FileReviewReconciledSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import {
+  DiffCompleteness,
   ExecutionPhase,
+  FileChangeKind,
+  FileChangeSetStatus,
+  FileDecisionAction,
+  FileReviewEventType,
   InteractionMode,
   MessageType,
+  TodoStatus,
+  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+
 import { MessageThread } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
@@ -141,11 +163,266 @@ function makeExecutionWithApproval(
   return exec;
 }
 
+/**
+ * An active execution whose AI turn carries a gated tool call, with a matching
+ * pending approval — the case that should render the gate INLINE on the tool
+ * row rather than as a detached bottom card.
+ */
+function makeExecutionWithInlineApproval(
+  id: string,
+  toolCallId: string,
+  toolName: string,
+): AgentExecution {
+  const exec = create(AgentExecutionSchema);
+  exec.metadata = create(ApiResourceMetadataSchema, { id });
+  exec.spec = create(AgentExecutionSpecSchema, { message: "Do something" });
+
+  const status = create(AgentExecutionStatusSchema);
+  status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+
+  const aiMsg = create(AgentMessageSchema, {
+    type: MessageType.MESSAGE_AI,
+    content: "",
+    toolCalls: [
+      create(ToolCallSchema, {
+        id: toolCallId,
+        name: toolName,
+        status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      }),
+    ],
+  });
+  status.messages = [aiMsg];
+  status.pendingApprovals = [
+    create(PendingApprovalSchema, {
+      toolCallId,
+      toolName,
+      argsPreview: '{"path":"/tmp/x"}',
+    }),
+  ];
+  exec.status = status;
+  return exec;
+}
+
+/**
+ * An active execution carrying one single-file change set AWAITING_REVIEW — a
+ * PENDING set, which {@link MessageThread} must NOT render (the composer-docked
+ * FileReviewDock owns it). Flip the set's status to a settled value to exercise
+ * the read-only record rendering.
+ */
+function makeExecutionWithFileReview(id: string, setId: string): AgentExecution {
+  const exec = create(AgentExecutionSchema);
+  exec.metadata = create(ApiResourceMetadataSchema, { id });
+  exec.spec = create(AgentExecutionSpecSchema, { message: "Edit a file" });
+
+  const status = create(AgentExecutionStatusSchema);
+  status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
+  status.messages = [
+    create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),
+  ];
+  status.fileChangeSets = [
+    create(FileChangeSetSchema, {
+      id: setId,
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      aggregateDigest: "agg-1",
+      diffCompleteness: DiffCompleteness.COMPLETE,
+      changes: [
+        create(CapturedFileChangeSchema, {
+          id: `${setId}:src/a.ts`,
+          pathBefore: "src/a.ts",
+          pathAfter: "src/a.ts",
+          kind: FileChangeKind.MODIFY,
+          before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
+          after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
+          fileDigest: "d-a",
+          diffComplete: true,
+        }),
+      ],
+    }),
+  ];
+  exec.status = status;
+  return exec;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe("MessageThread", () => {
+  it("never renders a PENDING set — the composer-docked FileReviewDock owns the decision surface", () => {
+    const exec = makeExecutionWithFileReview("exec-live", "cs-live:0");
+    render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={exec}
+        showFileReviewRecords
+      />,
+    );
+    // Neither the interactive bar nor a record: the pending state lives on the
+    // stamped rows' badges, and the decision controls live in the dock.
+    expect(screen.queryByText("Review file changes")).toBeNull();
+    expect(screen.queryByText("File changes")).toBeNull();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-approve"]'),
+    ).toBeNull();
+  });
+
+  it("renders a settled set as a read-only record (no decision controls)", () => {
+    const exec = makeExecutionWithFileReview("exec-settled", "cs-settled:0");
+    // A decided/reconciled set: history, not an action.
+    exec.status!.fileChangeSets[0].status = FileChangeSetStatus.RECONCILED;
+
+    render(<MessageThread executions={[exec]} showFileReviewRecords />);
+    expect(screen.getByText("File changes")).toBeTruthy();
+    expect(screen.queryByText("Review file changes")).toBeNull();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-approve"]'),
+    ).toBeNull();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-reject"]'),
+    ).toBeNull();
+    // Record mode is list mode: the expander reveals the file list, no diffs —
+    // the stamped edit rows own the diffs.
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-list-row"]'),
+    ).toBeTruthy();
+  });
+
+  it("renders no records at all without showFileReviewRecords (default)", () => {
+    const exec = makeExecutionWithFileReview("exec-off", "cs-off:0");
+    exec.status!.fileChangeSets[0].status = FileChangeSetStatus.RECONCILED;
+
+    render(<MessageThread executions={[exec]} />);
+    expect(screen.queryByText("File changes")).toBeNull();
+  });
+
+  it("folds the ledger and renders read-only for a terminal execution (empty projection)", () => {
+    // A terminal execution: the server projects no actionable file_change_sets,
+    // so MessageThread must fold the durable ledger to show what changed.
+    const exec = create(AgentExecutionSchema);
+    exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-terminal" });
+    exec.spec = create(AgentExecutionSpecSchema, { message: "Edit a file" });
+    const status = create(AgentExecutionStatusSchema);
+    status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+    status.messages = [
+      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),
+    ];
+    status.fileChangeSets = []; // terminal: server projects nil
+    const changeSetId = "cs-term:0";
+    status.fileReviewEventStream = create(FileReviewEventStreamSchema, {
+      executionId: "exec-terminal",
+      events: [
+        create(FileReviewEventSchema, {
+          changeSetId,
+          eventType: FileReviewEventType.BASELINE_CAPTURED,
+          payload: {
+            case: "baselineCaptured",
+            value: create(FileReviewBaselineCapturedSchema, {
+              changeSetId,
+              turnId: "t1",
+              harnessId: "deep-agent",
+            }),
+          },
+        }),
+        create(FileReviewEventSchema, {
+          changeSetId,
+          eventType: FileReviewEventType.CANDIDATE_CAPTURED,
+          payload: {
+            case: "candidateCaptured",
+            value: create(FileReviewCandidateCapturedSchema, {
+              changeSetId,
+              aggregateDigest: "agg-1",
+              changes: [
+                create(CapturedFileChangeSchema, {
+                  id: `${changeSetId}:src/a.ts`,
+                  pathBefore: "src/a.ts",
+                  pathAfter: "src/a.ts",
+                  kind: FileChangeKind.MODIFY,
+                  before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
+                  after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
+                  fileDigest: "d-a",
+                  diffComplete: true,
+                }),
+              ],
+            }),
+          },
+        }),
+        create(FileReviewEventSchema, {
+          changeSetId,
+          eventType: FileReviewEventType.RECONCILED,
+          payload: {
+            case: "reconciled",
+            value: create(FileReviewReconciledSchema, { changeSetId }),
+          },
+        }),
+      ],
+    });
+    exec.status = status;
+
+    render(<MessageThread executions={[exec]} showFileReviewRecords />);
+    // The read-only record renders with no decision controls; expanding it
+    // shows the folded set's changed file.
+    expect(screen.getByText("File changes")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    expect(screen.getByTitle("src/a.ts")).toBeTruthy();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-approve"]'),
+    ).toBeNull();
+  });
+
+  it("threads an approvalErrors entry to an inline gate (the primary route)", () => {
+    const exec = makeExecutionWithInlineApproval("exec-ia", "tc-1", "delete_file");
+    const approvalErrors = new Map([["tc-1", new Error("gate already resolved")]]);
+
+    const { container } = render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={exec}
+        onApprovalSubmit={() => {}}
+        approvalErrors={approvalErrors}
+      />,
+    );
+
+    const alert = container.querySelector('[data-cursor-target="approval-error"]');
+    expect(alert).toBeTruthy();
+    expect(alert!.textContent).toContain("gate already resolved");
+  });
+
+  it("threads an approvalErrors entry to a bottom backstop card (orphan approval)", () => {
+    // An approval whose tool call has no inline row renders as the bottom
+    // backstop ApprovalCard; the keyed error must reach it too.
+    const exec = create(AgentExecutionSchema);
+    exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-orphan" });
+    exec.spec = create(AgentExecutionSpecSchema, { message: "Do something" });
+    const status = create(AgentExecutionStatusSchema);
+    status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+    status.messages = [];
+    status.pendingApprovals = [
+      create(PendingApprovalSchema, {
+        toolCallId: "tc-orphan",
+        toolName: "delete_file",
+        argsPreview: '{"path":"/tmp/x"}',
+      }),
+    ];
+    exec.status = status;
+
+    const approvalErrors = new Map([["tc-orphan", new Error("network down")]]);
+
+    const { container } = render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={exec}
+        onApprovalSubmit={() => {}}
+        approvalErrors={approvalErrors}
+      />,
+    );
+
+    const alert = container.querySelector('[data-cursor-target="approval-error"]');
+    expect(alert).toBeTruthy();
+    expect(alert!.textContent).toContain("network down");
+  });
+
   it("renders role=log container when executions array is empty", () => {
     render(<MessageThread executions={[]} />);
 
@@ -170,6 +447,35 @@ describe("MessageThread", () => {
     expect(
       screen.getByText("Stigmer is a platform for platforms."),
     ).toBeTruthy();
+  });
+
+  it("renders the agent's todos as an inline card in the thread", () => {
+    const exec = makeExecution({
+      id: "exec-todos",
+      specMessage: "Build the feature",
+      aiContent: "Here is my plan",
+    });
+    // Attach a live plan to the execution status (as the runner would).
+    exec.status!.todos = {
+      t1: create(TodoItemSchema, {
+        id: "t1",
+        content: "Scaffold the component",
+        status: TodoStatus.TODO_IN_PROGRESS,
+      }),
+      t2: create(TodoItemSchema, {
+        id: "t2",
+        content: "Wire the thread",
+        status: TodoStatus.TODO_PENDING,
+      }),
+    };
+
+    render(<MessageThread executions={[exec]} />);
+
+    const region = screen.getByRole("region", { name: "Agent to-dos" });
+    expect(region).toBeTruthy();
+    // Active plan → expanded → tasks visible inline.
+    expect(region.textContent).toContain("Scaffold the component");
+    expect(region.textContent).toContain("0/2 completed");
   });
 
   it("renders pending user message with opacity indicator", () => {
@@ -237,6 +543,28 @@ describe("MessageThread", () => {
     );
     // First arg is toolCallId, second is ApprovalAction.APPROVE (enum value)
     expect(onApproval.mock.calls[0][0]).toBe("tc-approve");
+  });
+
+  it("renders a matching approval INLINE on its tool row, not as a bottom card, and routes the decision", () => {
+    const exec = makeExecutionWithInlineApproval("exec-inline", "tc-inline", "delete_file");
+    const onApproval = vi.fn();
+
+    render(
+      <MessageThread
+        executions={[]}
+        activeStreamExecution={exec}
+        onApprovalSubmit={onApproval}
+      />,
+    );
+
+    // No detached bottom card (role=alert is the standalone ApprovalCard only).
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    // The gate's actions are present inline, and approving routes the decision
+    // with the gated tool's id.
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    expect(onApproval).toHaveBeenCalledOnce();
+    expect(onApproval.mock.calls[0][0]).toBe("tc-inline");
   });
 
   it("renders ExecutionPhaseBadge for non-completed terminal phase", () => {
@@ -376,6 +704,86 @@ describe("MessageThread", () => {
     expect(onEditMessage).toHaveBeenCalledWith("new turn");
   });
 
+  // Issue #179: while a turn streams, the synthetic "Thinking…" setup
+  // placeholder must yield the moment real content (streamed reasoning or a tool
+  // call) arrives — otherwise it renders *alongside* the real cards.
+  describe("streaming trace replaces the synthetic placeholder (issue #179)", () => {
+    function makeStreamingExecution(
+      messages: ReturnType<typeof create<typeof AgentMessageSchema>>[],
+    ): AgentExecution {
+      const exec = create(AgentExecutionSchema);
+      const meta = create(ApiResourceMetadataSchema);
+      meta.id = "exec-streaming";
+      exec.metadata = meta;
+      const spec = create(AgentExecutionSpecSchema);
+      spec.message = "Do the thing";
+      exec.spec = spec;
+      const status = create(AgentExecutionStatusSchema);
+      status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
+      status.messages = messages;
+      exec.status = status;
+      return exec;
+    }
+
+    function humanMessage(text: string) {
+      const m = create(AgentMessageSchema);
+      m.type = MessageType.MESSAGE_HUMAN;
+      m.content = text;
+      return m;
+    }
+
+    function thinkingMessage(text: string) {
+      const m = create(AgentMessageSchema);
+      m.type = MessageType.MESSAGE_THINKING;
+      m.content = text;
+      m.isStreaming = true;
+      return m;
+    }
+
+    it("streamed reasoning (no AI text yet) hides the synthetic 'Thinking…' placeholder", () => {
+      const active = makeStreamingExecution([
+        humanMessage("Do the thing"),
+        thinkingMessage("Let me reason about the request"),
+      ]);
+
+      render(<MessageThread executions={[]} activeStreamExecution={active} />);
+
+      // The real reasoning card is shown...
+      expect(
+        screen.getByRole("article", { name: "Model thinking" }),
+      ).toBeTruthy();
+      // ...and the synthetic placeholder (ellipsis "Thinking…") is gone. Before
+      // the fix, hasAiMessages ignored MESSAGE_THINKING and both rendered.
+      expect(screen.queryByText("Thinking\u2026")).toBeNull();
+    });
+
+    it("renders thinking + a running tool call mid-turn without the placeholder", () => {
+      const aiWithTool = create(AgentMessageSchema);
+      aiWithTool.type = MessageType.MESSAGE_AI;
+      aiWithTool.content = "";
+      aiWithTool.toolCalls = [
+        create(ToolCallSchema, {
+          id: "tc-1",
+          name: "read",
+          status: ToolCallStatus.TOOL_CALL_RUNNING,
+        }),
+      ];
+
+      const active = makeStreamingExecution([
+        humanMessage("Do the thing"),
+        thinkingMessage("Planning the edit"),
+        aiWithTool,
+      ]);
+
+      render(<MessageThread executions={[]} activeStreamExecution={active} />);
+
+      expect(
+        screen.getByRole("article", { name: "Model thinking" }),
+      ).toBeTruthy();
+      expect(screen.queryByText("Thinking\u2026")).toBeNull();
+    });
+  });
+
   it("renders plan-completion card when last execution is completed Plan mode", () => {
     const exec = makeExecution({
       id: "exec-plan",
@@ -392,10 +800,10 @@ describe("MessageThread", () => {
       />,
     );
 
-    const implementBtn = screen.getByRole("button", { name: /implement/i });
-    expect(implementBtn).toBeTruthy();
+    const buildBtn = screen.getByRole("button", { name: /build from plan/i });
+    expect(buildBtn).toBeTruthy();
 
-    fireEvent.click(implementBtn);
+    fireEvent.click(buildBtn);
     expect(onBuildFromPlan).toHaveBeenCalledOnce();
   });
 });

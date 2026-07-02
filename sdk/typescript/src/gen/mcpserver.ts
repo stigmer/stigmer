@@ -189,6 +189,7 @@ export interface EnvVarDeclarationInput {
 export interface ToolApprovalPolicyInput {
   toolName?: string;
   message?: string;
+  fromDestructiveHint?: boolean;
 }
 
 /** SDK input type for McpServerAuth. */
@@ -229,6 +230,7 @@ function buildToolApprovalPolicyProto(input: ToolApprovalPolicyInput) {
   return Object.assign(create(ToolApprovalPolicySchema), stripUndefined({
     toolName: input.toolName,
     message: input.message,
+    fromDestructiveHint: input.fromDestructiveHint,
   }));
 }
 

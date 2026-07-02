@@ -72,6 +72,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalDecisionList_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_SubmitFileDecisionInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_SubmitFileDecisionInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agentexecution_v1_CancelAgentExecutionInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -258,154 +263,166 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "omment\"o\n\024ApprovalDecisionList\022W\n\tdecisi" +
       "ons\030\001 \003(\01329.ai.stigmer.agentic.agentexec" +
       "ution.v1.SubmitApprovalInputR\tdecisions\"" +
-      "L\n\031CancelAgentExecutionInput\022\027\n\002id\030\001 \001(\t" +
-      "B\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006reason\"O\n" +
-      "\034TerminateAgentExecutionInput\022\027\n\002id\030\001 \001(" +
-      "\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006reason\"5" +
-      "\n\032RecoverAgentExecutionInput\022\027\n\002id\030\001 \001(\t" +
-      "B\007\272H\004r\002\020\001R\002id\"K\n\030PauseAgentExecutionInpu" +
-      "t\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001" +
-      "(\tR\006reason\"4\n\031ResumeAgentExecutionInput\022" +
-      "\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\"\203\001\n\027UploadAttac" +
-      "hmentRequest\022#\n\010filename\030\001 \001(\tB\007\272H\004r\002\020\001R" +
-      "\010filename\022 \n\007content\030\002 \001(\014B\006\272H\003\310\001\001R\007cont" +
-      "ent\022!\n\014content_type\030\003 \001(\tR\013contentType\";" +
-      "\n\030UploadAttachmentResponse\022\037\n\013storage_ke" +
-      "y\030\001 \001(\tR\nstorageKey\"u\n\035GetArtifactDownlo" +
-      "adUrlRequest\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r" +
-      "\002\020\001R\013executionId\022(\n\013storage_key\030\002 \001(\tB\007\272" +
-      "H\004r\002\020\001R\nstorageKey\"b\n\036GetArtifactDownloa" +
-      "dUrlResponse\022!\n\014download_url\030\001 \001(\tR\013down" +
-      "loadUrl\022\035\n\nexpires_at\030\002 \001(\tR\texpiresAt\"\255" +
-      "\001\n\031GetArtifactContentRequest\022*\n\014executio" +
-      "n_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013executionId\022(\n\013stor" +
-      "age_key\030\002 \001(\tB\007\272H\004r\002\020\001R\nstorageKey\022\033\n\tma" +
-      "x_bytes\030\003 \001(\003R\010maxBytes\022\035\n\nentry_path\030\004 " +
-      "\001(\tR\tentryPath\"\241\001\n\032GetArtifactContentRes" +
-      "ponse\022\030\n\007content\030\001 \001(\014R\007content\022!\n\014conte" +
-      "nt_type\030\002 \001(\tR\013contentType\022(\n\020total_size" +
-      "_bytes\030\003 \001(\003R\016totalSizeBytes\022\034\n\ttruncate" +
-      "d\030\004 \001(\010R\ttruncated\"J\n\034GetExecutionUsageR" +
-      "eportInput\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002\020" +
-      "\001R\013executionId\"\324\001\n\035GetExecutionUsageRepo" +
-      "rtOutput\022X\n\taggregate\030\001 \001(\0132:.ai.stigmer" +
-      ".agentic.agentexecution.v1.UsageReportAg" +
-      "gregateR\taggregate\022Y\n\017model_breakdown\030\002 " +
-      "\003(\01320.ai.stigmer.agentic.agentexecution." +
-      "v1.ModelUsageR\016modelBreakdown\"D\n\032GetSess" +
-      "ionUsageReportInput\022&\n\nsession_id\030\001 \001(\tB" +
-      "\007\272H\004r\002\020\001R\tsessionId\"\367\003\n\033GetSessionUsageR" +
-      "eportOutput\022\035\n\nsession_id\030\001 \001(\tR\tsession" +
-      "Id\022\'\n\017execution_count\030\002 \001(\005R\016executionCo" +
-      "unt\022[\n\013total_usage\030\003 \001(\0132:.ai.stigmer.ag" +
-      "entic.agentexecution.v1.UsageReportAggre" +
-      "gateR\ntotalUsage\022[\n\nexecutions\030\004 \003(\0132;.a" +
-      "i.stigmer.agentic.agentexecution.v1.Exec" +
-      "utionUsageSummaryR\nexecutions\022Y\n\017model_b" +
-      "reakdown\030\005 \003(\01320.ai.stigmer.agentic.agen" +
-      "texecution.v1.ModelUsageR\016modelBreakdown" +
-      "\022,\n\022first_execution_at\030\006 \001(\tR\020firstExecu" +
-      "tionAt\022*\n\021last_execution_at\030\007 \001(\tR\017lastE" +
-      "xecutionAt\022!\n\014is_estimated\030\010 \001(\010R\013isEsti" +
-      "mated\"\260\001\n\030GetAgentUsageReportInput\022\"\n\010ag" +
-      "ent_id\030\001 \001(\tB\007\272H\004r\002\020\001R\007agentId\022\033\n\tfrom_d" +
-      "ate\030\002 \001(\tR\010fromDate\022\027\n\007to_date\030\003 \001(\tR\006to" +
-      "Date\022\033\n\tpage_size\030\004 \001(\005R\010pageSize\022\035\n\npag" +
-      "e_token\030\005 \001(\tR\tpageToken\"\233\004\n\031GetAgentUsa" +
-      "geReportOutput\022\031\n\010agent_id\030\001 \001(\tR\007agentI" +
-      "d\022\035\n\nagent_name\030\002 \001(\tR\tagentName\022[\n\013tota" +
-      "l_usage\030\003 \001(\0132:.ai.stigmer.agentic.agent" +
-      "execution.v1.UsageReportAggregateR\ntotal" +
-      "Usage\022Y\n\017model_breakdown\030\004 \003(\01320.ai.stig" +
-      "mer.agentic.agentexecution.v1.ModelUsage" +
-      "R\016modelBreakdown\022U\n\010sessions\030\005 \003(\01329.ai." +
-      "stigmer.agentic.agentexecution.v1.Sessio" +
-      "nUsageSummaryR\010sessions\022%\n\016total_session" +
-      "s\030\006 \001(\005R\rtotalSessions\022)\n\020total_executio" +
-      "ns\030\007 \001(\005R\017totalExecutions\022;\n\032total_billa" +
-      "ble_cost_micros\030\010 \001(\003R\027totalBillableCost" +
-      "Micros\022&\n\017next_page_token\030\t \001(\tR\rnextPag" +
-      "eToken\"\200\001\n\026GetOrgUsageReportInput\022\036\n\006org" +
-      "_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005orgId\022$\n\tfrom_date\030\002" +
-      " \001(\tB\007\272H\004r\002\020\001R\010fromDate\022 \n\007to_date\030\003 \001(\t" +
-      "B\007\272H\004r\002\020\001R\006toDate\"\341\004\n\027GetOrgUsageReportO" +
-      "utput\022\025\n\006org_id\030\001 \001(\tR\005orgId\022!\n\014total_ag" +
-      "ents\030\002 \001(\005R\013totalAgents\022%\n\016total_session" +
-      "s\030\003 \001(\005R\rtotalSessions\022)\n\020total_executio" +
-      "ns\030\004 \001(\005R\017totalExecutions\022;\n\032total_billa" +
-      "ble_cost_micros\030\005 \001(\003R\027totalBillableCost" +
-      "Micros\022Y\n\017model_breakdown\030\006 \003(\01320.ai.sti" +
-      "gmer.agentic.agentexecution.v1.ModelUsag" +
-      "eR\016modelBreakdown\022d\n\022top_agents_by_cost\030" +
-      "\007 \003(\01327.ai.stigmer.agentic.agentexecutio" +
-      "n.v1.AgentUsageSummaryR\017topAgentsByCost\022" +
-      "U\n\013daily_costs\030\010 \003(\01324.ai.stigmer.agenti" +
-      "c.agentexecution.v1.DailyCostEntryR\ndail" +
-      "yCosts\022e\n\021harness_breakdown\030\t \003(\01328.ai.s" +
-      "tigmer.agentic.agentexecution.v1.Harness" +
-      "CostSummaryR\020harnessBreakdown\"\351\003\n\025Execut" +
-      "ionUsageSummary\022!\n\014execution_id\030\001 \001(\tR\013e" +
-      "xecutionId\022\035\n\nstarted_at\030\002 \001(\tR\tstartedA" +
-      "t\022!\n\014completed_at\030\003 \001(\tR\013completedAt\022!\n\014" +
-      "input_tokens\030\004 \001(\003R\013inputTokens\022#\n\routpu" +
-      "t_tokens\030\005 \001(\003R\014outputTokens\0225\n\027cache_re" +
-      "ad_input_tokens\030\006 \001(\003R\024cacheReadInputTok" +
-      "ens\0220\n\024billable_cost_micros\030\007 \001(\003R\022billa" +
-      "bleCostMicros\022#\n\rprimary_model\030\010 \001(\tR\014pr" +
-      "imaryModel\022&\n\017sub_agent_count\030\t \001(\005R\rsub" +
-      "AgentCount\022J\n\005phase\030\n \001(\01624.ai.stigmer.a" +
-      "gentic.agentexecution.v1.ExecutionPhaseR" +
-      "\005phase\022!\n\014is_estimated\030\013 \001(\010R\013isEstimate" +
-      "d\"\214\002\n\023SessionUsageSummary\022\035\n\nsession_id\030" +
-      "\001 \001(\tR\tsessionId\022\'\n\017execution_count\030\002 \001(" +
-      "\005R\016executionCount\022!\n\014total_tokens\030\003 \001(\003R" +
-      "\013totalTokens\0220\n\024billable_cost_micros\030\004 \001" +
-      "(\003R\022billableCostMicros\022,\n\022first_executio" +
-      "n_at\030\005 \001(\tR\020firstExecutionAt\022*\n\021last_exe" +
-      "cution_at\030\006 \001(\tR\017lastExecutionAt\"\313\001\n\021Age" +
-      "ntUsageSummary\022\031\n\010agent_id\030\001 \001(\tR\007agentI" +
-      "d\022\035\n\nagent_name\030\002 \001(\tR\tagentName\022\'\n\017exec" +
-      "ution_count\030\003 \001(\005R\016executionCount\022!\n\014tot" +
-      "al_tokens\030\004 \001(\003R\013totalTokens\0220\n\024billable" +
-      "_cost_micros\030\005 \001(\003R\022billableCostMicros\"\242" +
-      "\001\n\016DailyCostEntry\022\022\n\004date\030\001 \001(\tR\004date\022\'\n" +
-      "\017execution_count\030\002 \001(\005R\016executionCount\022!" +
-      "\n\014total_tokens\030\003 \001(\003R\013totalTokens\0220\n\024bil" +
-      "lable_cost_micros\030\004 \001(\003R\022billableCostMic" +
-      "ros\"\250\001\n\022HarnessCostSummary\022\030\n\007harness\030\001 " +
-      "\001(\tR\007harness\0220\n\024billable_cost_micros\030\002 \001" +
-      "(\003R\022billableCostMicros\022\035\n\ncall_count\030\003 \001" +
-      "(\005R\tcallCount\022\'\n\017execution_count\030\004 \001(\005R\016" +
-      "executionCount\"\244\001\n\037GetAgentExecutionSumm" +
-      "aryRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022f\n" +
-      "\013time_window\030\002 \001(\0162E.ai.stigmer.agentic." +
-      "agentexecution.v1.AgentExecutionSummaryT" +
-      "imeWindowR\ntimeWindow\"\217\003\n\025AgentExecution" +
-      "Summary\022!\n\014active_count\030\001 \001(\005R\013activeCou" +
-      "nt\022o\n\014phase_counts\030\002 \003(\0132L.ai.stigmer.ag" +
-      "entic.agentexecution.v1.AgentExecutionSu" +
-      "mmary.PhaseCountsEntryR\013phaseCounts\022<\n\014a" +
-      "vg_duration\030\003 \001(\0132\031.google.protobuf.Dura" +
-      "tionR\013avgDuration\022d\n\022top_failing_agents\030" +
-      "\004 \003(\01326.ai.stigmer.agentic.agentexecutio" +
-      "n.v1.AgentFailureRankR\020topFailingAgents\032" +
-      ">\n\020PhaseCountsEntry\022\020\n\003key\030\001 \001(\005R\003key\022\024\n" +
-      "\005value\030\002 \001(\005R\005value:\0028\001\"u\n\020AgentFailureR" +
-      "ank\022\035\n\nagent_slug\030\001 \001(\tR\tagentSlug\022\035\n\nag" +
-      "ent_name\030\002 \001(\tR\tagentName\022#\n\rfailure_cou" +
-      "nt\030\003 \001(\005R\014failureCount*\235\002\n\037AgentExecutio" +
-      "nSummaryTimeWindow\0223\n/AGENT_EXECUTION_SU" +
-      "MMARY_TIME_WINDOW_UNSPECIFIED\020\000\0220\n,AGENT" +
-      "_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H\020" +
-      "\001\022/\n+AGENT_EXECUTION_SUMMARY_TIME_WINDOW" +
-      "_LAST_7D\020\002\0220\n,AGENT_EXECUTION_SUMMARY_TI" +
-      "ME_WINDOW_LAST_30D\020\003\0220\n,AGENT_EXECUTION_" +
-      "SUMMARY_TIME_WINDOW_ALL_TIME\020\004B\276\001B\007IoPro" +
-      "toP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agentex" +
-      "ecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agentexe" +
-      "cution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexec" +
-      "ution\\V1\\GPBMetadata\352\002(Ai::Stigmer::Agen" +
-      "tic::Agentexecution::V1b\006proto3"
+      "\341\003\n\027SubmitFileDecisionInput\0225\n\022agent_exe" +
+      "cution_id\030\001 \001(\tB\007\272H\004r\002\020\001R\020agentExecution" +
+      "Id\022+\n\rchange_set_id\030\002 \001(\tB\007\272H\004r\002\020\001R\013chan" +
+      "geSetId\022Y\n\005scope\030\003 \001(\01627.ai.stigmer.agen" +
+      "tic.agentexecution.v1.FileDecisionScopeB" +
+      "\n\272H\007\202\001\004\020\001 \000R\005scope\022$\n\016file_change_id\030\004 \001" +
+      "(\tR\014fileChangeId\022\\\n\006action\030\005 \001(\01628.ai.st" +
+      "igmer.agentic.agentexecution.v1.FileDeci" +
+      "sionActionB\n\272H\007\202\001\004\020\001 \000R\006action\0220\n\017expect" +
+      "ed_digest\030\006 \001(\tB\007\272H\004r\002\020\001R\016expectedDigest" +
+      "\022\026\n\006reason\030\007 \001(\tR\006reason\0229\n\030acknowledge_" +
+      "unreviewable\030\010 \001(\010R\027acknowledgeUnreviewa" +
+      "ble\"L\n\031CancelAgentExecutionInput\022\027\n\002id\030\001" +
+      " \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006reaso" +
+      "n\"O\n\034TerminateAgentExecutionInput\022\027\n\002id\030" +
+      "\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006reas" +
+      "on\"5\n\032RecoverAgentExecutionInput\022\027\n\002id\030\001" +
+      " \001(\tB\007\272H\004r\002\020\001R\002id\"K\n\030PauseAgentExecution" +
+      "Input\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason" +
+      "\030\002 \001(\tR\006reason\"4\n\031ResumeAgentExecutionIn" +
+      "put\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\"\203\001\n\027UploadA" +
+      "ttachmentRequest\022#\n\010filename\030\001 \001(\tB\007\272H\004r" +
+      "\002\020\001R\010filename\022 \n\007content\030\002 \001(\014B\006\272H\003\310\001\001R\007" +
+      "content\022!\n\014content_type\030\003 \001(\tR\013contentTy" +
+      "pe\";\n\030UploadAttachmentResponse\022\037\n\013storag" +
+      "e_key\030\001 \001(\tR\nstorageKey\"u\n\035GetArtifactDo" +
+      "wnloadUrlRequest\022*\n\014execution_id\030\001 \001(\tB\007" +
+      "\272H\004r\002\020\001R\013executionId\022(\n\013storage_key\030\002 \001(" +
+      "\tB\007\272H\004r\002\020\001R\nstorageKey\"b\n\036GetArtifactDow" +
+      "nloadUrlResponse\022!\n\014download_url\030\001 \001(\tR\013" +
+      "downloadUrl\022\035\n\nexpires_at\030\002 \001(\tR\texpires" +
+      "At\"\255\001\n\031GetArtifactContentRequest\022*\n\014exec" +
+      "ution_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013executionId\022(\n\013" +
+      "storage_key\030\002 \001(\tB\007\272H\004r\002\020\001R\nstorageKey\022\033" +
+      "\n\tmax_bytes\030\003 \001(\003R\010maxBytes\022\035\n\nentry_pat" +
+      "h\030\004 \001(\tR\tentryPath\"\241\001\n\032GetArtifactConten" +
+      "tResponse\022\030\n\007content\030\001 \001(\014R\007content\022!\n\014c" +
+      "ontent_type\030\002 \001(\tR\013contentType\022(\n\020total_" +
+      "size_bytes\030\003 \001(\003R\016totalSizeBytes\022\034\n\ttrun" +
+      "cated\030\004 \001(\010R\ttruncated\"J\n\034GetExecutionUs" +
+      "ageReportInput\022*\n\014execution_id\030\001 \001(\tB\007\272H" +
+      "\004r\002\020\001R\013executionId\"\324\001\n\035GetExecutionUsage" +
+      "ReportOutput\022X\n\taggregate\030\001 \001(\0132:.ai.sti" +
+      "gmer.agentic.agentexecution.v1.UsageRepo" +
+      "rtAggregateR\taggregate\022Y\n\017model_breakdow" +
+      "n\030\002 \003(\01320.ai.stigmer.agentic.agentexecut" +
+      "ion.v1.ModelUsageR\016modelBreakdown\"D\n\032Get" +
+      "SessionUsageReportInput\022&\n\nsession_id\030\001 " +
+      "\001(\tB\007\272H\004r\002\020\001R\tsessionId\"\367\003\n\033GetSessionUs" +
+      "ageReportOutput\022\035\n\nsession_id\030\001 \001(\tR\tses" +
+      "sionId\022\'\n\017execution_count\030\002 \001(\005R\016executi" +
+      "onCount\022[\n\013total_usage\030\003 \001(\0132:.ai.stigme" +
+      "r.agentic.agentexecution.v1.UsageReportA" +
+      "ggregateR\ntotalUsage\022[\n\nexecutions\030\004 \003(\013" +
+      "2;.ai.stigmer.agentic.agentexecution.v1." +
+      "ExecutionUsageSummaryR\nexecutions\022Y\n\017mod" +
+      "el_breakdown\030\005 \003(\01320.ai.stigmer.agentic." +
+      "agentexecution.v1.ModelUsageR\016modelBreak" +
+      "down\022,\n\022first_execution_at\030\006 \001(\tR\020firstE" +
+      "xecutionAt\022*\n\021last_execution_at\030\007 \001(\tR\017l" +
+      "astExecutionAt\022!\n\014is_estimated\030\010 \001(\010R\013is" +
+      "Estimated\"\260\001\n\030GetAgentUsageReportInput\022\"" +
+      "\n\010agent_id\030\001 \001(\tB\007\272H\004r\002\020\001R\007agentId\022\033\n\tfr" +
+      "om_date\030\002 \001(\tR\010fromDate\022\027\n\007to_date\030\003 \001(\t" +
+      "R\006toDate\022\033\n\tpage_size\030\004 \001(\005R\010pageSize\022\035\n" +
+      "\npage_token\030\005 \001(\tR\tpageToken\"\233\004\n\031GetAgen" +
+      "tUsageReportOutput\022\031\n\010agent_id\030\001 \001(\tR\007ag" +
+      "entId\022\035\n\nagent_name\030\002 \001(\tR\tagentName\022[\n\013" +
+      "total_usage\030\003 \001(\0132:.ai.stigmer.agentic.a" +
+      "gentexecution.v1.UsageReportAggregateR\nt" +
+      "otalUsage\022Y\n\017model_breakdown\030\004 \003(\01320.ai." +
+      "stigmer.agentic.agentexecution.v1.ModelU" +
+      "sageR\016modelBreakdown\022U\n\010sessions\030\005 \003(\01329" +
+      ".ai.stigmer.agentic.agentexecution.v1.Se" +
+      "ssionUsageSummaryR\010sessions\022%\n\016total_ses" +
+      "sions\030\006 \001(\005R\rtotalSessions\022)\n\020total_exec" +
+      "utions\030\007 \001(\005R\017totalExecutions\022;\n\032total_b" +
+      "illable_cost_micros\030\010 \001(\003R\027totalBillable" +
+      "CostMicros\022&\n\017next_page_token\030\t \001(\tR\rnex" +
+      "tPageToken\"\200\001\n\026GetOrgUsageReportInput\022\036\n" +
+      "\006org_id\030\001 \001(\tB\007\272H\004r\002\020\001R\005orgId\022$\n\tfrom_da" +
+      "te\030\002 \001(\tB\007\272H\004r\002\020\001R\010fromDate\022 \n\007to_date\030\003" +
+      " \001(\tB\007\272H\004r\002\020\001R\006toDate\"\341\004\n\027GetOrgUsageRep" +
+      "ortOutput\022\025\n\006org_id\030\001 \001(\tR\005orgId\022!\n\014tota" +
+      "l_agents\030\002 \001(\005R\013totalAgents\022%\n\016total_ses" +
+      "sions\030\003 \001(\005R\rtotalSessions\022)\n\020total_exec" +
+      "utions\030\004 \001(\005R\017totalExecutions\022;\n\032total_b" +
+      "illable_cost_micros\030\005 \001(\003R\027totalBillable" +
+      "CostMicros\022Y\n\017model_breakdown\030\006 \003(\01320.ai" +
+      ".stigmer.agentic.agentexecution.v1.Model" +
+      "UsageR\016modelBreakdown\022d\n\022top_agents_by_c" +
+      "ost\030\007 \003(\01327.ai.stigmer.agentic.agentexec" +
+      "ution.v1.AgentUsageSummaryR\017topAgentsByC" +
+      "ost\022U\n\013daily_costs\030\010 \003(\01324.ai.stigmer.ag" +
+      "entic.agentexecution.v1.DailyCostEntryR\n" +
+      "dailyCosts\022e\n\021harness_breakdown\030\t \003(\01328." +
+      "ai.stigmer.agentic.agentexecution.v1.Har" +
+      "nessCostSummaryR\020harnessBreakdown\"\351\003\n\025Ex" +
+      "ecutionUsageSummary\022!\n\014execution_id\030\001 \001(" +
+      "\tR\013executionId\022\035\n\nstarted_at\030\002 \001(\tR\tstar" +
+      "tedAt\022!\n\014completed_at\030\003 \001(\tR\013completedAt" +
+      "\022!\n\014input_tokens\030\004 \001(\003R\013inputTokens\022#\n\ro" +
+      "utput_tokens\030\005 \001(\003R\014outputTokens\0225\n\027cach" +
+      "e_read_input_tokens\030\006 \001(\003R\024cacheReadInpu" +
+      "tTokens\0220\n\024billable_cost_micros\030\007 \001(\003R\022b" +
+      "illableCostMicros\022#\n\rprimary_model\030\010 \001(\t" +
+      "R\014primaryModel\022&\n\017sub_agent_count\030\t \001(\005R" +
+      "\rsubAgentCount\022J\n\005phase\030\n \001(\01624.ai.stigm" +
+      "er.agentic.agentexecution.v1.ExecutionPh" +
+      "aseR\005phase\022!\n\014is_estimated\030\013 \001(\010R\013isEsti" +
+      "mated\"\214\002\n\023SessionUsageSummary\022\035\n\nsession" +
+      "_id\030\001 \001(\tR\tsessionId\022\'\n\017execution_count\030" +
+      "\002 \001(\005R\016executionCount\022!\n\014total_tokens\030\003 " +
+      "\001(\003R\013totalTokens\0220\n\024billable_cost_micros" +
+      "\030\004 \001(\003R\022billableCostMicros\022,\n\022first_exec" +
+      "ution_at\030\005 \001(\tR\020firstExecutionAt\022*\n\021last" +
+      "_execution_at\030\006 \001(\tR\017lastExecutionAt\"\313\001\n" +
+      "\021AgentUsageSummary\022\031\n\010agent_id\030\001 \001(\tR\007ag" +
+      "entId\022\035\n\nagent_name\030\002 \001(\tR\tagentName\022\'\n\017" +
+      "execution_count\030\003 \001(\005R\016executionCount\022!\n" +
+      "\014total_tokens\030\004 \001(\003R\013totalTokens\0220\n\024bill" +
+      "able_cost_micros\030\005 \001(\003R\022billableCostMicr" +
+      "os\"\242\001\n\016DailyCostEntry\022\022\n\004date\030\001 \001(\tR\004dat" +
+      "e\022\'\n\017execution_count\030\002 \001(\005R\016executionCou" +
+      "nt\022!\n\014total_tokens\030\003 \001(\003R\013totalTokens\0220\n" +
+      "\024billable_cost_micros\030\004 \001(\003R\022billableCos" +
+      "tMicros\"\250\001\n\022HarnessCostSummary\022\030\n\007harnes" +
+      "s\030\001 \001(\tR\007harness\0220\n\024billable_cost_micros" +
+      "\030\002 \001(\003R\022billableCostMicros\022\035\n\ncall_count" +
+      "\030\003 \001(\005R\tcallCount\022\'\n\017execution_count\030\004 \001" +
+      "(\005R\016executionCount\"\244\001\n\037GetAgentExecution" +
+      "SummaryRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003or" +
+      "g\022f\n\013time_window\030\002 \001(\0162E.ai.stigmer.agen" +
+      "tic.agentexecution.v1.AgentExecutionSumm" +
+      "aryTimeWindowR\ntimeWindow\"\217\003\n\025AgentExecu" +
+      "tionSummary\022!\n\014active_count\030\001 \001(\005R\013activ" +
+      "eCount\022o\n\014phase_counts\030\002 \003(\0132L.ai.stigme" +
+      "r.agentic.agentexecution.v1.AgentExecuti" +
+      "onSummary.PhaseCountsEntryR\013phaseCounts\022" +
+      "<\n\014avg_duration\030\003 \001(\0132\031.google.protobuf." +
+      "DurationR\013avgDuration\022d\n\022top_failing_age" +
+      "nts\030\004 \003(\01326.ai.stigmer.agentic.agentexec" +
+      "ution.v1.AgentFailureRankR\020topFailingAge" +
+      "nts\032>\n\020PhaseCountsEntry\022\020\n\003key\030\001 \001(\005R\003ke" +
+      "y\022\024\n\005value\030\002 \001(\005R\005value:\0028\001\"u\n\020AgentFail" +
+      "ureRank\022\035\n\nagent_slug\030\001 \001(\tR\tagentSlug\022\035" +
+      "\n\nagent_name\030\002 \001(\tR\tagentName\022#\n\rfailure" +
+      "_count\030\003 \001(\005R\014failureCount*\235\002\n\037AgentExec" +
+      "utionSummaryTimeWindow\0223\n/AGENT_EXECUTIO" +
+      "N_SUMMARY_TIME_WINDOW_UNSPECIFIED\020\000\0220\n,A" +
+      "GENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_" +
+      "24H\020\001\022/\n+AGENT_EXECUTION_SUMMARY_TIME_WI" +
+      "NDOW_LAST_7D\020\002\0220\n,AGENT_EXECUTION_SUMMAR" +
+      "Y_TIME_WINDOW_LAST_30D\020\003\0220\n,AGENT_EXECUT" +
+      "ION_SUMMARY_TIME_WINDOW_ALL_TIME\020\004B\276\001B\007I" +
+      "oProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Age" +
+      "ntexecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agen" +
+      "texecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agent" +
+      "execution\\V1\\GPBMetadata\352\002(Ai::Stigmer::" +
+      "Agentic::Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -470,158 +487,164 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ApprovalDecisionList_descriptor,
         new java.lang.String[] { "Decisions", });
-    internal_static_ai_stigmer_agentic_agentexecution_v1_CancelAgentExecutionInput_descriptor =
+    internal_static_ai_stigmer_agentic_agentexecution_v1_SubmitFileDecisionInput_descriptor =
       getDescriptor().getMessageType(9);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_SubmitFileDecisionInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_SubmitFileDecisionInput_descriptor,
+        new java.lang.String[] { "AgentExecutionId", "ChangeSetId", "Scope", "FileChangeId", "Action", "ExpectedDigest", "Reason", "AcknowledgeUnreviewable", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_CancelAgentExecutionInput_descriptor =
+      getDescriptor().getMessageType(10);
     internal_static_ai_stigmer_agentic_agentexecution_v1_CancelAgentExecutionInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_CancelAgentExecutionInput_descriptor,
         new java.lang.String[] { "Id", "Reason", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_TerminateAgentExecutionInput_descriptor =
-      getDescriptor().getMessageType(10);
+      getDescriptor().getMessageType(11);
     internal_static_ai_stigmer_agentic_agentexecution_v1_TerminateAgentExecutionInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_TerminateAgentExecutionInput_descriptor,
         new java.lang.String[] { "Id", "Reason", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_RecoverAgentExecutionInput_descriptor =
-      getDescriptor().getMessageType(11);
+      getDescriptor().getMessageType(12);
     internal_static_ai_stigmer_agentic_agentexecution_v1_RecoverAgentExecutionInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_RecoverAgentExecutionInput_descriptor,
         new java.lang.String[] { "Id", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_PauseAgentExecutionInput_descriptor =
-      getDescriptor().getMessageType(12);
+      getDescriptor().getMessageType(13);
     internal_static_ai_stigmer_agentic_agentexecution_v1_PauseAgentExecutionInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_PauseAgentExecutionInput_descriptor,
         new java.lang.String[] { "Id", "Reason", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ResumeAgentExecutionInput_descriptor =
-      getDescriptor().getMessageType(13);
+      getDescriptor().getMessageType(14);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ResumeAgentExecutionInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ResumeAgentExecutionInput_descriptor,
         new java.lang.String[] { "Id", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_UploadAttachmentRequest_descriptor =
-      getDescriptor().getMessageType(14);
+      getDescriptor().getMessageType(15);
     internal_static_ai_stigmer_agentic_agentexecution_v1_UploadAttachmentRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_UploadAttachmentRequest_descriptor,
         new java.lang.String[] { "Filename", "Content", "ContentType", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_UploadAttachmentResponse_descriptor =
-      getDescriptor().getMessageType(15);
+      getDescriptor().getMessageType(16);
     internal_static_ai_stigmer_agentic_agentexecution_v1_UploadAttachmentResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_UploadAttachmentResponse_descriptor,
         new java.lang.String[] { "StorageKey", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactDownloadUrlRequest_descriptor =
-      getDescriptor().getMessageType(16);
+      getDescriptor().getMessageType(17);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactDownloadUrlRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactDownloadUrlRequest_descriptor,
         new java.lang.String[] { "ExecutionId", "StorageKey", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactDownloadUrlResponse_descriptor =
-      getDescriptor().getMessageType(17);
+      getDescriptor().getMessageType(18);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactDownloadUrlResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactDownloadUrlResponse_descriptor,
         new java.lang.String[] { "DownloadUrl", "ExpiresAt", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactContentRequest_descriptor =
-      getDescriptor().getMessageType(18);
+      getDescriptor().getMessageType(19);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactContentRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactContentRequest_descriptor,
         new java.lang.String[] { "ExecutionId", "StorageKey", "MaxBytes", "EntryPath", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactContentResponse_descriptor =
-      getDescriptor().getMessageType(19);
+      getDescriptor().getMessageType(20);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactContentResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetArtifactContentResponse_descriptor,
         new java.lang.String[] { "Content", "ContentType", "TotalSizeBytes", "Truncated", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetExecutionUsageReportInput_descriptor =
-      getDescriptor().getMessageType(20);
+      getDescriptor().getMessageType(21);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetExecutionUsageReportInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetExecutionUsageReportInput_descriptor,
         new java.lang.String[] { "ExecutionId", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetExecutionUsageReportOutput_descriptor =
-      getDescriptor().getMessageType(21);
+      getDescriptor().getMessageType(22);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetExecutionUsageReportOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetExecutionUsageReportOutput_descriptor,
         new java.lang.String[] { "Aggregate", "ModelBreakdown", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetSessionUsageReportInput_descriptor =
-      getDescriptor().getMessageType(22);
+      getDescriptor().getMessageType(23);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetSessionUsageReportInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetSessionUsageReportInput_descriptor,
         new java.lang.String[] { "SessionId", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetSessionUsageReportOutput_descriptor =
-      getDescriptor().getMessageType(23);
+      getDescriptor().getMessageType(24);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetSessionUsageReportOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetSessionUsageReportOutput_descriptor,
         new java.lang.String[] { "SessionId", "ExecutionCount", "TotalUsage", "Executions", "ModelBreakdown", "FirstExecutionAt", "LastExecutionAt", "IsEstimated", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetAgentUsageReportInput_descriptor =
-      getDescriptor().getMessageType(24);
+      getDescriptor().getMessageType(25);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetAgentUsageReportInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetAgentUsageReportInput_descriptor,
         new java.lang.String[] { "AgentId", "FromDate", "ToDate", "PageSize", "PageToken", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetAgentUsageReportOutput_descriptor =
-      getDescriptor().getMessageType(25);
+      getDescriptor().getMessageType(26);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetAgentUsageReportOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetAgentUsageReportOutput_descriptor,
         new java.lang.String[] { "AgentId", "AgentName", "TotalUsage", "ModelBreakdown", "Sessions", "TotalSessions", "TotalExecutions", "TotalBillableCostMicros", "NextPageToken", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetOrgUsageReportInput_descriptor =
-      getDescriptor().getMessageType(26);
+      getDescriptor().getMessageType(27);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetOrgUsageReportInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetOrgUsageReportInput_descriptor,
         new java.lang.String[] { "OrgId", "FromDate", "ToDate", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetOrgUsageReportOutput_descriptor =
-      getDescriptor().getMessageType(27);
+      getDescriptor().getMessageType(28);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetOrgUsageReportOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetOrgUsageReportOutput_descriptor,
         new java.lang.String[] { "OrgId", "TotalAgents", "TotalSessions", "TotalExecutions", "TotalBillableCostMicros", "ModelBreakdown", "TopAgentsByCost", "DailyCosts", "HarnessBreakdown", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionUsageSummary_descriptor =
-      getDescriptor().getMessageType(28);
+      getDescriptor().getMessageType(29);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionUsageSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionUsageSummary_descriptor,
         new java.lang.String[] { "ExecutionId", "StartedAt", "CompletedAt", "InputTokens", "OutputTokens", "CacheReadInputTokens", "BillableCostMicros", "PrimaryModel", "SubAgentCount", "Phase", "IsEstimated", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_SessionUsageSummary_descriptor =
-      getDescriptor().getMessageType(29);
+      getDescriptor().getMessageType(30);
     internal_static_ai_stigmer_agentic_agentexecution_v1_SessionUsageSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_SessionUsageSummary_descriptor,
         new java.lang.String[] { "SessionId", "ExecutionCount", "TotalTokens", "BillableCostMicros", "FirstExecutionAt", "LastExecutionAt", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentUsageSummary_descriptor =
-      getDescriptor().getMessageType(30);
+      getDescriptor().getMessageType(31);
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentUsageSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_AgentUsageSummary_descriptor,
         new java.lang.String[] { "AgentId", "AgentName", "ExecutionCount", "TotalTokens", "BillableCostMicros", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_DailyCostEntry_descriptor =
-      getDescriptor().getMessageType(31);
+      getDescriptor().getMessageType(32);
     internal_static_ai_stigmer_agentic_agentexecution_v1_DailyCostEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_DailyCostEntry_descriptor,
         new java.lang.String[] { "Date", "ExecutionCount", "TotalTokens", "BillableCostMicros", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_HarnessCostSummary_descriptor =
-      getDescriptor().getMessageType(32);
+      getDescriptor().getMessageType(33);
     internal_static_ai_stigmer_agentic_agentexecution_v1_HarnessCostSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_HarnessCostSummary_descriptor,
         new java.lang.String[] { "Harness", "BillableCostMicros", "CallCount", "ExecutionCount", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetAgentExecutionSummaryRequest_descriptor =
-      getDescriptor().getMessageType(33);
+      getDescriptor().getMessageType(34);
     internal_static_ai_stigmer_agentic_agentexecution_v1_GetAgentExecutionSummaryRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_GetAgentExecutionSummaryRequest_descriptor,
         new java.lang.String[] { "Org", "TimeWindow", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSummary_descriptor =
-      getDescriptor().getMessageType(34);
+      getDescriptor().getMessageType(35);
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSummary_descriptor,
@@ -633,7 +656,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSummary_PhaseCountsEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentFailureRank_descriptor =
-      getDescriptor().getMessageType(35);
+      getDescriptor().getMessageType(36);
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentFailureRank_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_AgentFailureRank_descriptor,

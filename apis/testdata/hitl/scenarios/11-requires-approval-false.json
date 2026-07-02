@@ -1,0 +1,23 @@
+{
+  "name": "requires-approval-false",
+  "description": "A WAITING_APPROVAL tool call that does not require approval is not a pending approval (guards the requires_approval predicate).",
+  "input": {
+    "messages": [
+      {
+        "type": "MESSAGE_AI",
+        "tool_calls": [
+          {
+            "id": "tc1",
+            "name": "read_file",
+            "status": "TOOL_CALL_WAITING_APPROVAL",
+            "requires_approval": false,
+            "approval_action": "APPROVAL_ACTION_UNSPECIFIED"
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "pending_approvals": []
+  }
+}

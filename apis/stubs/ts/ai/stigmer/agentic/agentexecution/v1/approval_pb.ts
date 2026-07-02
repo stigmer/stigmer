@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ToolKind } from "./enum_pb.js";
+import type { ApprovalAction, ApprovalEventType, ApprovalPolicySource, ApprovalRetractionReason, ToolKind } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/approval.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_approval: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSLpAgoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRJBCgl0b29sX2tpbmQYDSABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbEtpbmQigwEKGUNoaWxkQXBwcm92YWxOb3RpZmljYXRpb24SFAoMZXhlY3V0aW9uX2lkGAEgASgJElAKEXBlbmRpbmdfYXBwcm92YWxzGAIgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlBlbmRpbmdBcHByb3ZhbGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSLLAwoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRJBCgl0b29sX2tpbmQYDSABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbEtpbmQSWgoWYXBwcm92YWxfcG9saWN5X3NvdXJjZRgPIAEoDjI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZUoECA4QDyKDAQoZQ2hpbGRBcHByb3ZhbE5vdGlmaWNhdGlvbhIUCgxleGVjdXRpb25faWQYASABKAkSUAoRcGVuZGluZ19hcHByb3ZhbHMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsIp0DCg9BcHByb3ZhbFJlcXVlc3QSGwoTYXBwcm92YWxfcmVxdWVzdF9pZBgBIAEoCRIUCgx0b29sX2NhbGxfaWQYAiABKAkSFAoMcmVxdWVzdGVkX2F0GAMgASgJEhEKCXRvb2xfbmFtZRgEIAEoCRIPCgdtZXNzYWdlGAUgASgJEhQKDGFyZ3NfcHJldmlldxgGIAEoCRIWCg5mcm9tX3N1Yl9hZ2VudBgHIAEoCBIWCg5zdWJfYWdlbnRfbmFtZRgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9tY3Bfc2VydmVyX3NsdWcYCiABKAkSQQoJdG9vbF9raW5kGAsgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xLaW5kEloKFmFwcHJvdmFsX3BvbGljeV9zb3VyY2UYDSABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXBwcm92YWxQb2xpY3lTb3VyY2VKBAgMEA0ilwEKEkFwcHJvdmFsUmV0cmFjdGlvbhIbChNhcHByb3ZhbF9yZXF1ZXN0X2lkGAEgASgJEk4KBnJlYXNvbhgCIAEoDjI+LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbFJldHJhY3Rpb25SZWFzb24SFAoMcmV0cmFjdGVkX2F0GAMgASgJIq4BChBBcHByb3ZhbERlY2lzaW9uEhsKE2FwcHJvdmFsX3JlcXVlc3RfaWQYASABKAkSRAoGYWN0aW9uGAIgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uEhIKCmRlY2lkZWRfYXQYAyABKAkSEgoKZGVjaWRlZF9ieRgEIAEoCRIPCgdjb21tZW50GAUgASgJIp4DCg1BcHByb3ZhbEV2ZW50EhAKCGV2ZW50X2lkGAEgASgJEhsKE2FwcHJvdmFsX3JlcXVlc3RfaWQYAiABKAkSSwoKZXZlbnRfdHlwZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEV2ZW50VHlwZRIRCgl0aW1lc3RhbXAYBCABKAkSDQoFYWN0b3IYBSABKAkSSgoJcmVxdWVzdGVkGAYgASgLMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsUmVxdWVzdEgAEkkKB2RlY2lkZWQYByABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXBwcm92YWxEZWNpc2lvbkgAEk0KCXJldHJhY3RlZBgIIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbFJldHJhY3Rpb25IAEIJCgdwYXlsb2FkInAKE0FwcHJvdmFsRXZlbnRTdHJlYW0SFAoMZXhlY3V0aW9uX2lkGAEgASgJEkMKBmV2ZW50cxgCIAMoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEV2ZW50YgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum]);
 
 /**
  * A pending approval request for a tool call that requires user consent before execution.
@@ -189,6 +189,17 @@ export type PendingApproval = Message<"ai.stigmer.agentic.agentexecution.v1.Pend
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 13;
    */
   toolKind: ToolKind;
+
+  /**
+   * Policy layer that gated this tool call, copied from
+   * ToolCall.approval_policy_source by the server-side projection (exactly as
+   * tool_kind above is). Lets the approval surface explain WHY the tool requires
+   * approval (e.g. "required by agent override") without a client-side lookup.
+   * See ApprovalPolicySource.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 15;
+   */
+  approvalPolicySource: ApprovalPolicySource;
 };
 
 /**
@@ -257,4 +268,353 @@ export type ChildApprovalNotification = Message<"ai.stigmer.agentic.agentexecuti
  */
 export const ChildApprovalNotificationSchema: GenMessage<ChildApprovalNotification> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 1);
+
+/**
+ * A tool call requesting approval — the "ask" recorded when a gated tool call
+ * enters WAITING_APPROVAL.
+ *
+ * Carries the same display-facing field set as PendingApproval so a REQUESTED
+ * event can fully reconstruct the pending-approval projection without joining
+ * back to the originating ToolCall (which, for workflow-parent approvals, is not
+ * co-located with the approval).
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalRequest
+ */
+export type ApprovalRequest = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalRequest"> & {
+  /**
+   * Correlation id shared by every event for this approval. Equal to
+   * tool_call_id by a deliberate decision (see the file header); the reserved
+   * seam for a future independent id, not a temporary placeholder.
+   *
+   * @generated from field: string approval_request_id = 1;
+   */
+  approvalRequestId: string;
+
+  /**
+   * Harness tool-call id of the gated call. Matches ToolCall.id; the bridge
+   * between today's message scan and the event stream.
+   *
+   * @generated from field: string tool_call_id = 2;
+   */
+  toolCallId: string;
+
+  /**
+   * ISO 8601 timestamp when approval was requested. Copied from
+   * ToolCall.approval_requested_at.
+   *
+   * @generated from field: string requested_at = 3;
+   */
+  requestedAt: string;
+
+  /**
+   * Name of the tool requiring approval. Matches ToolCall.name.
+   *
+   * @generated from field: string tool_name = 4;
+   */
+  toolName: string;
+
+  /**
+   * Human-readable approval message for display. Copied from
+   * ToolCall.approval_message (placeholders already resolved).
+   *
+   * @generated from field: string message = 5;
+   */
+  message: string;
+
+  /**
+   * Sanitized preview of tool arguments. Copied from ToolCall.args_preview.
+   *
+   * @generated from field: string args_preview = 6;
+   */
+  argsPreview: string;
+
+  /**
+   * True if this approval originates from a sub-agent.
+   *
+   * @generated from field: bool from_sub_agent = 7;
+   */
+  fromSubAgent: boolean;
+
+  /**
+   * Name of the sub-agent when from_sub_agent is true; empty otherwise.
+   *
+   * @generated from field: string sub_agent_name = 8;
+   */
+  subAgentName: string;
+
+  /**
+   * Concise subject of the sub-agent's task when from_sub_agent is true; empty
+   * otherwise. Copied from SubAgentExecution.subject.
+   *
+   * @generated from field: string sub_agent_subject = 9;
+   */
+  subAgentSubject: string;
+
+  /**
+   * Slug of the MCP server providing this tool; empty for built-in tools.
+   * Copied from ToolCall.mcp_server_slug.
+   *
+   * @generated from field: string mcp_server_slug = 10;
+   */
+  mcpServerSlug: string;
+
+  /**
+   * Harness-agnostic tool category. Copied from ToolCall.tool_kind.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ToolKind tool_kind = 11;
+   */
+  toolKind: ToolKind;
+
+  /**
+   * Policy layer that gated this call. Copied from
+   * ToolCall.approval_policy_source so the event-stream projection reconstructs
+   * the same PendingApproval as the message scan. See ApprovalPolicySource.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 13;
+   */
+  approvalPolicySource: ApprovalPolicySource;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ApprovalRequest.
+ * Use `create(ApprovalRequestSchema)` to create a new message.
+ */
+export const ApprovalRequestSchema: GenMessage<ApprovalRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 2);
+
+/**
+ * The platform's withdrawal of an in-flight approval request — the system-actored
+ * terminal transition of the approval lifecycle, authored when a gated call
+ * becomes unreachable before any user decision (its sub-agent went terminal, or
+ * it was superseded on resume) while the execution is still live.
+ *
+ * It is distinct from ApprovalDecision (the three user actions). Terminal-execution
+ * gate-exits (cancel / fail / terminate) are NOT modeled here — a terminal
+ * execution simply has zero pending approvals by projection — so this event is
+ * reserved for the in-flight, per-call orphan case. See APPROVAL_EVENT_TYPE_RETRACTED.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction
+ */
+export type ApprovalRetraction = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction"> & {
+  /**
+   * Correlates this retraction to its ApprovalRequest.
+   *
+   * @generated from field: string approval_request_id = 1;
+   */
+  approvalRequestId: string;
+
+  /**
+   * Why the platform withdrew the request. Audit-trail metadata only; never
+   * affects control flow. See ApprovalRetractionReason.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReason reason = 2;
+   */
+  reason: ApprovalRetractionReason;
+
+  /**
+   * ISO 8601 timestamp when the request was retracted.
+   *
+   * @generated from field: string retracted_at = 3;
+   */
+  retractedAt: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction.
+ * Use `create(ApprovalRetractionSchema)` to create a new message.
+ */
+export const ApprovalRetractionSchema: GenMessage<ApprovalRetraction> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 3);
+
+/**
+ * A user's decision on an approval request.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalDecision
+ */
+export type ApprovalDecision = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalDecision"> & {
+  /**
+   * Correlates this decision to its ApprovalRequest.
+   *
+   * @generated from field: string approval_request_id = 1;
+   */
+  approvalRequestId: string;
+
+  /**
+   * The precise user action (APPROVE / SKIP / REJECT / APPROVE_ALL).
+   * ApprovalEvent.event_type carries the coarse bucket; this carries fidelity.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 2;
+   */
+  action: ApprovalAction;
+
+  /**
+   * ISO 8601 timestamp when the decision was made.
+   *
+   * @generated from field: string decided_at = 3;
+   */
+  decidedAt: string;
+
+  /**
+   * Identity of the decider (principal). Empty when not attributed.
+   *
+   * @generated from field: string decided_by = 4;
+   */
+  decidedBy: string;
+
+  /**
+   * Optional free-text comment supplied with the decision (e.g. a rejection
+   * reason).
+   *
+   * @generated from field: string comment = 5;
+   */
+  comment: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ApprovalDecision.
+ * Use `create(ApprovalDecisionSchema)` to create a new message.
+ */
+export const ApprovalDecisionSchema: GenMessage<ApprovalDecision> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 4);
+
+/**
+ * An immutable event in the approval lifecycle.
+ *
+ * The payload is a closed oneof so each event type is type-safe and
+ * self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /
+ * SKIPPED carry an ApprovalDecision; RETRACTED carries an ApprovalRetraction.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalEvent
+ */
+export type ApprovalEvent = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalEvent"> & {
+  /**
+   * Unique id of this event, deterministic by design: derived from
+   * tool_call_id + event_type. This is the permanent idempotency key for
+   * append-only authoring (a single approval has at most one event per type), so
+   * re-deriving or re-authoring the stream never duplicates an event.
+   *
+   * @generated from field: string event_id = 1;
+   */
+  eventId: string;
+
+  /**
+   * Correlation id shared by every event for one approval (request + decision).
+   *
+   * @generated from field: string approval_request_id = 2;
+   */
+  approvalRequestId: string;
+
+  /**
+   * Coarse lifecycle bucket of this event. See ApprovalEventType.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalEventType event_type = 3;
+   */
+  eventType: ApprovalEventType;
+
+  /**
+   * ISO 8601 timestamp of the event.
+   *
+   * @generated from field: string timestamp = 4;
+   */
+  timestamp: string;
+
+  /**
+   * Who produced the event: "system" for REQUESTED, "user" for decisions.
+   *
+   * @generated from field: string actor = 5;
+   */
+  actor: string;
+
+  /**
+   * Typed payload, selected by event_type.
+   *
+   * @generated from oneof ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.payload
+   */
+  payload: {
+    /**
+     * Set when event_type == REQUESTED.
+     *
+     * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalRequest requested = 6;
+     */
+    value: ApprovalRequest;
+    case: "requested";
+  } | {
+    /**
+     * Set for decision events (APPROVED / REJECTED / SKIPPED).
+     *
+     * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalDecision decided = 7;
+     */
+    value: ApprovalDecision;
+    case: "decided";
+  } | {
+    /**
+     * Set when event_type == RETRACTED — the platform withdrew the request
+     * before any user decision. See ApprovalRetraction.
+     *
+     * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalRetraction retracted = 8;
+     */
+    value: ApprovalRetraction;
+    case: "retracted";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ApprovalEvent.
+ * Use `create(ApprovalEventSchema)` to create a new message.
+ */
+export const ApprovalEventSchema: GenMessage<ApprovalEvent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 5);
+
+/**
+ * The ordered sequence of approval events for a single agent execution.
+ *
+ * Persisted on AgentExecutionStatus.approval_event_stream as a server-authored,
+ * append-only record that coexists with the authoritative message scan. The
+ * scan still feeds pending_approvals and the UI; this stream is the parallel,
+ * independently-written ledger that (1) turns the projection parity check into a
+ * real cross-writer guard and (2) holds the approval audit trail (decided_by +
+ * comment) the flat ToolCall fields cannot.
+ *
+ * The lifecycle is total: every REQUESTED is eventually resolved by a decision
+ * (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
+ * when an in-flight gated call becomes unreachable without a decision. Combined
+ * with the projection treating a terminal execution as zero pending approvals,
+ * this makes ComputePendingApprovalsFromEvents over this stream agree with the
+ * message scan after every write — the equality property the eventual
+ * source-of-truth flip rides on. The source of truth does not flip in this
+ * phase; the scan remains authoritative and is retained as the permanent
+ * cross-writer guard.
+ *
+ * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
+ * RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
+ * (REQUESTED seeded once from the scan for executions predating the field),
+ * decision events by SubmitApproval (with decided_by and comment). Authoring the
+ * rich decision event in the same operation that records the decision on the
+ * scan guarantees it can never be duplicated or clobbered by a coarse
+ * re-derivation.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream
+ */
+export type ApprovalEventStream = Message<"ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream"> & {
+  /**
+   * AgentExecution.metadata.id this stream belongs to.
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Events in lifecycle order.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.ApprovalEvent events = 2;
+   */
+  events: ApprovalEvent[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.
+ * Use `create(ApprovalEventStreamSchema)` to create a new message.
+ */
+export const ApprovalEventStreamSchema: GenMessage<ApprovalEventStream> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 6);
 

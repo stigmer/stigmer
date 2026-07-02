@@ -1,0 +1,44 @@
+{
+  "name": "sub-agent-pending",
+  "description": "A gated tool call inside an active sub-agent surfaces with from_sub_agent, name, and subject populated.",
+  "input": {
+    "sub_agent_executions": [
+      {
+        "name": "code-reviewer",
+        "subject": "Explore CLI rendering code",
+        "status": "SUB_AGENT_IN_PROGRESS",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc-sub1",
+                "name": "run_tests",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve run_tests",
+                "args_preview": "{}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "pending_approvals": [
+      {
+        "tool_call_id": "tc-sub1",
+        "tool_name": "run_tests",
+        "message": "Approve run_tests",
+        "args_preview": "{}",
+        "requested_at": "2026-03-27T10:00:00Z",
+        "from_sub_agent": true,
+        "sub_agent_name": "code-reviewer",
+        "sub_agent_subject": "Explore CLI rendering code"
+      }
+    ]
+  }
+}

@@ -22,10 +22,17 @@ import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ExecutionStatusWriter } from "./execution-status-writer.js";
 import { utcTimestamp } from "../../shared/status.js";
+import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
 
 export class InlinePublisher {
   private readonly workspaceBackend: WorkspaceBackend;
-  private readonly artifactStorage: ArtifactStorage;
+  /**
+   * `undefined` when the runner has no artifact store (proxy misconfig). Inline
+   * publishing is a best-effort real-time UI nicety, so {@link publish} becomes a
+   * no-op — the operator was already warned once at setup, and the transcript still
+   * persists without the offloaded artifact.
+   */
+  private readonly artifactStorage: ArtifactStorage | undefined;
   private readonly statusWriter: ExecutionStatusWriter;
   private readonly executionId: string;
 
@@ -34,7 +41,7 @@ export class InlinePublisher {
 
   constructor(opts: {
     workspaceBackend: WorkspaceBackend;
-    artifactStorage: ArtifactStorage;
+    artifactStorage: ArtifactStorage | undefined;
     statusWriter: ExecutionStatusWriter;
     executionId: string;
   }) {
@@ -54,8 +61,26 @@ export class InlinePublisher {
    * status builder. Fire-and-forget: errors are logged and swallowed.
    */
   async publish(path: string): Promise<void> {
+    // No artifact store (proxy misconfig): nothing to upload to. Skip silently —
+    // this is a best-effort UI publisher and the operator was warned at setup.
+    if (!this.artifactStorage) return;
     try {
       const sandboxPath = normalizePath(path);
+
+      // Never publish a secret-like file to durable artifact storage (design
+      // doc 12, D4). This is the third secret-withholding choke point beside the
+      // CAS capture gate and the transcript args scrub: under the global bypass
+      // (spec.auto_approve_all) a secret write is not blocked up front, so it
+      // would otherwise be uploaded here (keyed by basename) and registered as an
+      // ExecutionArtifact. Fail-closed and unconditional — the same name-based
+      // gate the capture path uses, so the decision has one source of truth.
+      if (isSecretLikePath(sandboxPath)) {
+        console.log(
+          `[InlinePublisher] execution=${this.executionId} — withheld '${sandboxPath}' ` +
+          `(secret-like; never published to artifact storage)`,
+        );
+        return;
+      }
 
       const content = await this.workspaceBackend.readFile(sandboxPath);
       const contentBuffer = Buffer.from(content, "utf-8");
@@ -69,7 +94,6 @@ export class InlinePublisher {
       const storageKey = `artifacts/${this.executionId}/${fileName}`;
 
       await this.artifactStorage.upload(storageKey, contentBuffer, guessContentType(fileName));
-      const downloadUrl = await this.artifactStorage.getDownloadUrl(storageKey);
 
       const artifact = create(ExecutionArtifactSchema, {
         name: fileName,
@@ -77,7 +101,6 @@ export class InlinePublisher {
         kind: ExecutionArtifactKind.FILE,
         sizeBytes: BigInt(contentBuffer.length),
         storageKey,
-        downloadUrl,
         createdAt: utcTimestamp(),
         contentHash,
       });

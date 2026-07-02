@@ -25,7 +25,7 @@ import {
   MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { type MergedToolPolicy, resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
+import { resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
@@ -34,6 +34,8 @@ import {
   UsageAccumulator,
   extractToolResult,
   sanitizeArgsPreview,
+  stampApprovalProvenance,
+  type ApprovalProvenanceInputs,
 } from "./status-builder-shared.js";
 
 /** Minimal LangGraph streamEvents v2 event shape. */
@@ -48,11 +50,16 @@ export interface StreamEvent {
 
 type EventHandler = (event: StreamEvent, namespace: string) => void;
 
-export interface ApprovalPolicyProvider {
-  readonly policies: ReadonlyMap<string, MergedToolPolicy>;
-  readonly toolServerMap: ReadonlyMap<string, string>;
-  readonly autoApproveAll: boolean;
-}
+/**
+ * The approval inputs the StatusBuilder reads to set requires-approval and to
+ * attribute each tool call's authorization provenance.
+ *
+ * Extends {@link ApprovalProvenanceInputs} so the provenance stamper and the
+ * builder share one shape. `globalBypass` is the pre-armed spec.auto_approve_all
+ * (the one whole-run global bypass); `leasedCategories` lets a leased built-in be
+ * attributed to its run-lifetime lease rather than the plain category gate.
+ */
+export interface ApprovalPolicyProvider extends ApprovalProvenanceInputs {}
 
 export class StatusBuilder {
   readonly executionId: string;
@@ -66,6 +73,14 @@ export class StatusBuilder {
   constructor(executionId: string, initialStatus: AgentExecutionStatus) {
     this.executionId = executionId;
     this.state = new ExecutionState(initialStatus);
+
+    // Resume path: when constructed from a persisted transcript (status seeded
+    // in index.ts on a durable-checkpoint resume), rebuild the tool-call index
+    // so resumed tool events reconcile to the existing calls instead of
+    // duplicating them. A first run carries no messages, so this is a no-op.
+    if (initialStatus.messages.length > 0) {
+      this.state.rebuildToolCallIndex();
+    }
 
     initialStatus.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
     if (!initialStatus.startedAt) {
@@ -198,11 +213,29 @@ export class StatusBuilder {
   }
 
   private handleToolStart(event: StreamEvent, namespace: string): void {
+    const toolName = event.name ?? "unknown_tool";
+
+    // Resume reconciliation (v2): the seeded WAITING_APPROVAL tool call was
+    // indexed by its tool_call_id, but a resumed on_tool_start carries a fresh
+    // LangGraph run_id and exposes no tool_call_id. Match by tool name +
+    // pending-approval status so the existing call is resolved in place rather
+    // than duplicated, then re-key it under run_id so handleToolEnd resolves the
+    // same object. This name match is a v2-only fallback — v3 (the default) keys
+    // by the exact tool_call_id; it resolves the first pending call of that
+    // name, which is unambiguous for the single-gate resume the workflow drives.
+    const seeded = this.findResumableSeededToolCall(toolName);
+    if (seeded) {
+      seeded.status = ToolCallStatus.TOOL_CALL_RUNNING;
+      this.state.toolCalls.set(event.run_id, seeded);
+      this.state.toolStartTimes.set(event.run_id, performance.now());
+      this._forceNextUpdate = true;
+      return;
+    }
+
     const parentMsg = this.state.currentAiMessage.get(namespace)
       ?? this.ensureAiMessageForToolCall(event.run_id, namespace);
     if (!parentMsg) return;
 
-    const toolName = event.name ?? "unknown_tool";
     const rawArgs = event.data?.input as Record<string, unknown> | undefined;
     const args = rawArgs ?? {};
 
@@ -228,6 +261,11 @@ export class StatusBuilder {
     // Classify after mcpServerSlug is set so MCP tools resolve correctly.
     tc.toolKind = classifyTool(tc.name, tc.mcpServerSlug);
 
+    // Stamp authorization provenance in the same spot as tool_kind, for every
+    // observed tool call (gated or auto-approved). A gated call is re-seeded on
+    // reinvocation (index.ts) with the same source carried through the interrupt.
+    stampApprovalProvenance(tc, this.approvalProvider);
+
     if (approvalReq.requiresApproval) {
       tc.requiresApproval = true;
       tc.approvalMessage = approvalReq.message;
@@ -248,6 +286,23 @@ export class StatusBuilder {
     this._forceNextUpdate = true;
   }
 
+  /**
+   * Find a seeded tool call awaiting approval for the given name, for v2 resume
+   * reconciliation. Returns the first WAITING_APPROVAL call of that name in the
+   * rebuilt index, or undefined when none is pending (the normal first-run path).
+   */
+  private findResumableSeededToolCall(toolName: string): ToolCall | undefined {
+    for (const tc of this.state.toolCalls.values()) {
+      if (
+        tc.name === toolName &&
+        tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+      ) {
+        return tc;
+      }
+    }
+    return undefined;
+  }
+
   private checkApprovalRequirement(
     toolName: string,
     args: Record<string, unknown>,
@@ -258,7 +313,7 @@ export class StatusBuilder {
 
     const serverSlug = this.approvalProvider.toolServerMap.get(toolName) ?? "";
 
-    if (this.approvalProvider.autoApproveAll) {
+    if (this.approvalProvider.globalBypass) {
       return { requiresApproval: false, message: "", serverSlug };
     }
 

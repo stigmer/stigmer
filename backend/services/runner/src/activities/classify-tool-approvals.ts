@@ -19,11 +19,10 @@
  */
 
 import { z } from "zod";
-import { ChatOpenAI } from "@langchain/openai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { getSummarizationModel } from "../shared/model-registry.js";
-import { resolveProxyBaseUrl, buildProxyHeaders } from "../shared/llm-proxy.js";
+import { buildChatModel } from "../shared/model-client.js";
 import type { Config } from "../config.js";
 
 const BATCH_SIZE = 40;
@@ -51,6 +50,15 @@ export interface ToolApprovalResult {
   tool_name: string;
   requires_approval: boolean;
   message: string;
+  /**
+   * True when the connect-time fail-closed tightener force-gated this tool from
+   * its destructiveHint annotation (see applyDestructiveHintTightener), not the
+   * classifier. Persisted on ToolApprovalPolicy.from_destructive_hint so the
+   * runner attributes the gate to the annotation
+   * (ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN) instead of the
+   * classifier default. Absent/false on classifier and human-pinned entries.
+   */
+  from_destructive_hint?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -89,9 +97,12 @@ safe (auto-approve) or sensitive (requires human approval before execution).
 
 Classification rules:
 
-1. READ-ONLY operations → requires_approval: false
-   Examples: search, list, get, query, read, fetch, describe, count
-   These only retrieve data and have no side effects.
+1. READ-ONLY / OBSERVATION operations → requires_approval: false
+   Examples: search, list, get, query, read, fetch, describe, count, view,
+   inspect, status, screenshot, snapshot, and "get state" style tools.
+   These only retrieve or observe data and have no side effects. When a tool
+   name begins with one of these verbs (e.g. get_app_state, list_apps), prefer
+   requires_approval: false unless its description clearly says it mutates.
 
 2. CREATE or MODIFY operations → requires_approval: true
    Examples: create, update, put, set, add, edit, modify, write, post, send
@@ -119,6 +130,19 @@ Message guidelines:
 For tools that do NOT require approval, leave message empty.
 
 Output one classification per tool, maintaining the input order.`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Read-only authority
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Read-only auto-approval is owned SOLELY by the trusted LLM classifier above.
+// There is deliberately no deterministic name-based relax here: a tool name is
+// an untrusted, server-supplied signal, and relaxing a gate on it is the unsafe
+// direction (e.g. `get_and_delete_stale_records` leads with `get` yet deletes).
+// A prior name-prefix heuristic was removed for exactly this reason. Annotations
+// are likewise never trusted to relax — the connect workflow uses `destructiveHint`
+// only to TIGHTEN (see applyDestructiveHintTightener). Anything the classifier
+// does not affirmatively clear stays gated (fail closed).
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Core Classification Logic (no Temporal coupling)
@@ -168,7 +192,17 @@ export async function classifyTools(
         batchIdx,
         totalBatches: batches.length,
       });
-      allApprovals.push(...batchResult);
+      // Reconcile against the input batch: a tool the model omitted must fail
+      // closed, never slip through un-gated. Partial output is as dangerous as
+      // an outage for the missing tools.
+      const { reconciled, failedClosedCount } = reconcileBatchClassifications(batch, batchResult);
+      if (failedClosedCount > 0) {
+        console.warn(
+          `[ClassifyToolApprovals] Batch ${batchIdx + 1}/${batches.length} for '${serverName}': ` +
+          `${failedClosedCount} tool(s) missing from classifier output — failing closed (requires_approval=true)`,
+        );
+      }
+      allApprovals.push(...reconciled);
     } catch (err) {
       console.error(
         `[ClassifyToolApprovals] Batch ${batchIdx + 1}/${batches.length} failed ` +
@@ -179,6 +213,10 @@ export async function classifyTools(
     }
   }
 
+  // The LLM classifier is the sole read-only authority: only tools it
+  // affirmatively cleared (requires_approval=false) are auto-approved. Tools it
+  // gated, omitted (reconciled to fail-closed), or that fell back on an outage
+  // all remain gated. No name-based relax runs here by design.
   const approved = allApprovals.filter((a) => a.requires_approval);
 
   console.log(
@@ -214,22 +252,22 @@ async function classifyBatch(params: ClassifyBatchParams): Promise<ToolApprovalR
 
   const maxTokens = Math.max(MIN_MAX_TOKENS, batch.length * MAX_TOKENS_PER_TOOL);
 
-  const resolvedBaseUrl = resolveProxyBaseUrl(proxyEndpoint, "openai");
-  const headers = stigmerToken
-    ? buildProxyHeaders(stigmerToken, { mcpServerId: mcpServerId ?? undefined })
-    : {};
-
-  const llm = new ChatOpenAI({
-    model,
-    temperature: 0,
+  // Provider is inferred from the resolved economy model — for an Anthropic
+  // primary this routes to Claude, not the hardcoded OpenAI path it used to.
+  const { model: llm } = await buildChatModel({
+    modelName: model,
+    proxyEndpoint,
+    stigmerToken: stigmerToken ?? undefined,
+    headerScope: { mcpServerId: mcpServerId ?? undefined },
     maxTokens,
-    configuration: {
-      baseURL: resolvedBaseUrl,
-      defaultHeaders: headers,
-    },
   });
 
-  const structuredLlm = llm.withStructuredOutput(ClassifyToolApprovalsOutputSchema);
+  // Explicit type param: BaseChatModel.withStructuredOutput widens to
+  // Record<string, any>, unlike the concrete SDK overloads, so pin the schema's
+  // output type here.
+  const structuredLlm = llm.withStructuredOutput<ClassifyToolApprovalsOutput>(
+    ClassifyToolApprovalsOutputSchema,
+  );
 
   const toolsPayload = buildToolsPayload(batch);
   const userPrompt =
@@ -264,7 +302,51 @@ async function classifyBatch(params: ClassifyBatchParams): Promise<ToolApprovalR
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Reconcile a batch's LLM classifications against the tools that were actually
+ * sent. The canonical result is built from the INPUT batch, never the raw model
+ * output, so the classifier can never silently disarm a gate by omission:
+ *
+ * - A tool the model classified is kept as-is (its requires_approval + message).
+ * - A tool the model OMITTED fails closed (requires_approval=true) — a missing
+ *   decision is treated exactly like an outage for that one tool.
+ * - A name the model returned that was never in the batch (a hallucinated or
+ *   duplicated entry) is dropped — only real tools earn a policy.
+ */
+export function reconcileBatchClassifications(
+  batch: ToolDescriptor[],
+  llmResults: ToolApprovalResult[],
+): { reconciled: ToolApprovalResult[]; failedClosedCount: number } {
+  const byName = new Map<string, ToolApprovalResult>();
+  for (const r of llmResults) {
+    if (r.tool_name) byName.set(r.tool_name, r);
+  }
+
+  const reconciled: ToolApprovalResult[] = [];
+  let failedClosedCount = 0;
+  for (const tool of batch) {
+    const classified = byName.get(tool.name);
+    if (classified) {
+      reconciled.push(classified);
+      continue;
+    }
+    reconciled.push({
+      tool_name: tool.name,
+      requires_approval: true,
+      message: `Execute ${tool.name}`,
+    });
+    failedClosedCount++;
+  }
+
+  return { reconciled, failedClosedCount };
+}
+
 export function fallbackApprovals(tools: ToolDescriptor[]): ToolApprovalResult[] {
+  // Full fail-closed: when the classifier batch throws, every tool in it is
+  // gated. With no trusted classification we cannot safely auto-approve anything
+  // — a name is an untrusted signal — so the entire batch requires approval
+  // until a reconnect re-classifies it. The accepted tradeoff is that, during a
+  // rare classifier outage, benign read tools briefly prompt for approval.
   return tools.map((tool) => ({
     tool_name: tool.name,
     requires_approval: true,

@@ -3,17 +3,31 @@
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { ToolResultView } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
+import { BoundedContent } from "../internal/BoundedContent";
 import { McpToolDetail } from "./McpToolDetail";
 import { ToolArgsView } from "./ToolArgsView";
 import { ResultView } from "./ResultView";
 import { useToolPresentation } from "./tool-presenter";
 import type { ToolCategory } from "./tool-categories";
 import { CollapsiblePre } from "./tool-rendering-primitives";
+import {
+  describeApprovalPolicySource,
+  isInformativePolicySource,
+} from "./approval-provenance";
 
 /** Props for {@link ToolCallDetail}. */
 export interface ToolCallDetailProps {
   /** The tool call to render in detail. */
   readonly toolCall: ToolCall;
+  /**
+   * Whether the owning row's header truncated the primary argument (the search
+   * query / list path). A header-owned layout fact: when `true`, the search/list
+   * body restates the full, wrapping value so a long query is reachable without
+   * relying on the hover tooltip; when `false` (the default) the header already
+   * shows the value in full, so the body does not repeat it. Only the
+   * search/list branch consumes it.
+   */
+  readonly primaryArgTruncated?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -39,12 +53,22 @@ export interface ToolCallDetailProps {
  * <ToolCallDetail toolCall={toolCall} />
  * ```
  */
-export function ToolCallDetail({ toolCall, className }: ToolCallDetailProps) {
-  const { category, result } = useToolPresentation(toolCall);
+export function ToolCallDetail({
+  toolCall,
+  primaryArgTruncated = false,
+  className,
+}: ToolCallDetailProps) {
+  const { category, result, primaryArg } = useToolPresentation(toolCall);
 
   return (
     <div className={cn("space-y-2 text-xs", className)}>
-      <CategoryDetail toolCall={toolCall} category={category} result={result} />
+      <CategoryDetail
+        toolCall={toolCall}
+        category={category}
+        result={result}
+        primaryArg={primaryArg}
+        primaryArgTruncated={primaryArgTruncated}
+      />
     </div>
   );
 }
@@ -52,19 +76,26 @@ export function ToolCallDetail({ toolCall, className }: ToolCallDetailProps) {
 // ---------------------------------------------------------------------------
 // Category composition
 //
-// Each category composes from three parts: MetadataRow (duration, slug),
-// ToolArgsView (the input), and ResultView (the effect). The combination is
-// chosen to be informative without duplication.
+// Invariant: the owning row header owns the METADATA (icon, label, file name,
+// ± stats, MCP slug, status, duration); the detail body owns the CONTENT — the
+// ToolArgsView input and the ResultView effect — plus, at most, a
+// ProvenanceNote when the authorization provenance is genuinely informative.
+// The body never restates header metadata. Each category picks the input/effect
+// combination that is informative without duplication.
 // ---------------------------------------------------------------------------
 
 function CategoryDetail({
   toolCall,
   category,
   result,
+  primaryArg,
+  primaryArgTruncated,
 }: {
   toolCall: ToolCall;
   category: ToolCategory;
   result: ToolResultView;
+  primaryArg: string | null;
+  primaryArgTruncated: boolean;
 }) {
   const args = <ArgsSection toolCall={toolCall} />;
 
@@ -75,39 +106,113 @@ function CategoryDetail({
     case "mcp":
       return <McpToolDetail toolCall={toolCall} />;
 
-    case "edit":
-      // The diff already names the file and quantifies the change, so it stands
-      // alone — showing the new content as an argument would duplicate it.
+    case "search":
+    case "list":
+      // The query/path is the input; the matches are the effect. The owning row
+      // header already shows the query (truncated, with a hover tooltip), so the
+      // body does NOT restate it as a redundant "Pattern:" row — it shows the
+      // full, wrapping value only when the header truncated it (a long query),
+      // then the result. This is the search/list analog of the edit branch's
+      // "the diff already names the file" de-duplication.
       return (
         <>
-          <MetadataRow toolCall={toolCall} />
-          <ResultView view={result} />
+          <ProvenanceNote toolCall={toolCall} />
+          {primaryArgTruncated && primaryArg && (
+            <SearchQueryBlock category={category} value={primaryArg} />
+          )}
+          {/* The owning row header shows the count (summarizeResultView), so the
+              body suppresses it (showStats={false}) and shows only the matches
+              plus, when capped, a truncation note. */}
+          <ResultView view={result} showStats={false} />
+        </>
+      );
+
+    case "edit":
+    case "write":
+      // The diff already names the file and quantifies the change, so it stands
+      // alone — showing the written content as an argument would duplicate it. A
+      // write whose capture is unavailable degrades to a `file` result here
+      // (ResultView shows the content), so the input is never lost. The owning
+      // row already names the file, so the body suppresses the path.
+      //
+      // The diff is the one tool body with no internal truncation of its own, so
+      // it is bounded by the shared BoundedContent budget (the same clamp the
+      // approval gate diff uses) — a large or still-streaming edit shows a
+      // consistent, scannable window with one in-place reveal, never the whole
+      // file. Every other category's body self-truncates (terminal / text via
+      // CollapsiblePre), so only edit/write wrap here — never double-bound.
+      return (
+        <>
+          <ProvenanceNote toolCall={toolCall} />
+          <BoundedContent cursorTarget="tool-detail-expand">
+            <ResultView view={result} showFileName={false} showStats={false} />
+          </BoundedContent>
         </>
       );
 
     case "read":
-    case "write":
     case "delete":
-      // The input is the point (path, or path + written content). Only surface a
+      // The input is the point (path, or path for a delete). Only surface a
       // result body when it carries new information — i.e. an error.
       return (
         <>
-          <MetadataRow toolCall={toolCall} />
+          <ProvenanceNote toolCall={toolCall} />
           {args}
           {result.type === "error" && <ResultView view={result} />}
         </>
       );
 
-    default:
-      // shell, search, list, fetch, web-search, unknown: input + effect.
+    case "shell":
+      // The result IS a terminal session (command + output in one block via
+      // ResultView's terminal view), so a separate args box would just restate
+      // the command line the session already leads with. The exception is a
+      // hard tool failure (TOOL_CALL_FAILED → error view, which has no command):
+      // show the command (args) alongside the error so it is never lost.
       return (
         <>
-          <MetadataRow toolCall={toolCall} />
+          <ProvenanceNote toolCall={toolCall} />
+          {result.type === "error" ? (
+            <>
+              {args}
+              <ResultView view={result} />
+            </>
+          ) : (
+            <ResultView view={result} />
+          )}
+        </>
+      );
+
+    default:
+      // fetch, web-search, unknown: input + effect.
+      return (
+        <>
+          <ProvenanceNote toolCall={toolCall} />
           {args}
           <ResultView view={result} />
         </>
       );
   }
+}
+
+// The full, wrapping query (search) or path (list), shown in the body only when
+// the owning row's header truncated it — so a long value is reachable without
+// hovering, without restating a short value the header already shows in full.
+function SearchQueryBlock({
+  category,
+  value,
+}: {
+  category: ToolCategory;
+  value: string;
+}) {
+  const label = category === "list" ? "Path" : "Query";
+  return (
+    <div className="space-y-1">
+      <span className="font-medium text-muted-foreground">{label}</span>
+      <code className="block whitespace-pre-wrap break-words rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+        {value}
+      </code>
+    </div>
+  );
 }
 
 function ArgsSection({ toolCall }: { toolCall: ToolCall }) {
@@ -140,20 +245,26 @@ function ThinkToolDetail({ toolCall }: { toolCall: ToolCall }) {
 // Shared sub-components
 // ---------------------------------------------------------------------------
 
-function MetadataRow({ toolCall }: { toolCall: ToolCall }) {
-  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
-  const hasMetadata = toolCall.mcpServerSlug || duration;
-  if (!hasMetadata) return null;
+// The detail body's only metadata. Duration and the MCP slug live in the owning
+// row header (ToolCallItem / ApprovalCardHeader), so the body never restates
+// them; it surfaces the authorization provenance the runner stamped onto the
+// call (approval_policy_source) ONLY when it is genuinely informative — an
+// explicit override, a server-marked destructive tighten, or a post-hoc
+// lease/bypass that cleared it. The everyday "this category just needs approval"
+// default and legacy UNSPECIFIED are noise, so they render nothing, mirroring
+// the approval gate's smart-suppress (isInformativePolicySource).
+function ProvenanceNote({ toolCall }: { toolCall: ToolCall }) {
+  if (!isInformativePolicySource(toolCall.approvalPolicySource)) return null;
+  const provenance = describeApprovalPolicySource(toolCall.approvalPolicySource);
+  if (!provenance) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
-      {toolCall.mcpServerSlug && (
-        <span className="rounded bg-muted px-1.5 py-0.5 font-mono">
-          {toolCall.mcpServerSlug}
-        </span>
-      )}
-      {duration && <span>{duration}</span>}
-    </div>
+    <p
+      className="text-[11px] italic text-muted-foreground"
+      title={provenance}
+    >
+      {provenance}
+    </p>
   );
 }
 

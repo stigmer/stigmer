@@ -4,7 +4,7 @@ import { render } from "ink-testing-library";
 import { Text, Box } from "ink";
 import { create } from "@bufbuild/protobuf";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { MessageType, ExecutionPhase, ToolCallStatus, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { MessageType, ExecutionPhase, ToolCallStatus, ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { MessageEntry } from "../components/MessageEntry.js";
@@ -164,7 +164,7 @@ describe("ToolCallItem", () => {
 });
 
 describe("ApprovalPrompt", () => {
-  it("offers Approve, Approve & don't ask again, Reject, and Skip", () => {
+  it("offers Approve, scope-truthful approve-all, Reject, and Skip", () => {
     const pending = create(PendingApprovalSchema);
     pending.toolCallId = "tc-1";
     pending.toolName = "write_file";
@@ -174,9 +174,24 @@ describe("ApprovalPrompt", () => {
     );
     const output = lastFrame() ?? "";
     expect(output).toContain("[y] Approve");
-    expect(output).toContain("[a] Approve & don't ask again");
+    // write_file leases the "file edits" class — the label names that class.
+    expect(output).toContain("[a] Approve all file edits");
     expect(output).toContain("[n] Reject");
     expect(output).toContain("[s] Skip");
+  });
+
+  it("renders the why-gated line from the projected approval_policy_source", () => {
+    const pending = create(PendingApprovalSchema);
+    pending.toolCallId = "tc-1";
+    pending.toolName = "write_file";
+    pending.approvalPolicySource = ApprovalPolicySource.AGENT_OVERRIDE;
+
+    const { lastFrame } = render(
+      <ApprovalPrompt pendingApproval={pending} onSubmit={() => {}} />,
+    );
+    const output = lastFrame() ?? "";
+    expect(output).toContain("Why:");
+    expect(output).toContain("required by agent override");
   });
 
   it("submits APPROVE_ALL when the 'a' shortcut is pressed", () => {

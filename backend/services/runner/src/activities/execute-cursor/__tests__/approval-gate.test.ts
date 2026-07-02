@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fix #6 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Unit tests for the Cursor-harness HITL approval gate logic.
  *
  * The crux this suite guards: the Cursor preToolUse hook and the SDK event
@@ -13,7 +15,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -35,7 +37,7 @@ import {
 } from "../approval-state.js";
 import { buildReinvocationPrompt } from "../prompt-builder.js";
 
-function pending(overrides: Partial<PendingApproval>): PendingApproval {
+function pending(overrides: MessageInitShape<typeof PendingApprovalSchema>): PendingApproval {
   return create(PendingApprovalSchema, {
     toolCallId: "call-1",
     toolName: "edit",
@@ -163,7 +165,17 @@ describe("buildApprovalGrants", () => {
       [pending({ toolCallId: "c1", toolName: "edit", argsPreview: JSON.stringify({ path: "/x/gated.txt" }) })],
       new Map([["c1", ApprovalAction.APPROVE]]),
     );
-    expect(grants).toEqual([{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt" }]);
+    expect(grants).toEqual([{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: "", sourceToolCallId: "c1" }]);
+  });
+
+  it("binds an approved edit's grant to its content digest (sibling-isolation)", () => {
+    const digest = "abc123";
+    const grants = buildApprovalGrants(
+      [pending({ toolCallId: "c1", toolName: "edit", argsPreview: JSON.stringify({ path: "/x/gated.txt" }) })],
+      new Map([["c1", ApprovalAction.APPROVE]]),
+      new Map([["c1", digest]]),
+    );
+    expect(grants).toEqual([{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: digest, sourceToolCallId: "c1" }]);
   });
 
   it("creates a name-only grant for an approved MCP tool", () => {
@@ -171,7 +183,7 @@ describe("buildApprovalGrants", () => {
       [pending({ toolCallId: "c1", toolName: "apply_x", mcpServerSlug: "planton", argsPreview: JSON.stringify({ path: "ignored" }) })],
       new Map([["c1", ApprovalAction.APPROVE]]),
     );
-    expect(grants).toEqual([{ toolName: "apply_x", mcpServerSlug: "planton", key: "apply_x", salient: "" }]);
+    expect(grants).toEqual([{ toolName: "apply_x", mcpServerSlug: "planton", key: "apply_x", salient: "", contentDigest: "", sourceToolCallId: "c1" }]);
   });
 
   it("ignores skipped and rejected approvals", () => {
@@ -191,23 +203,43 @@ describe("buildApprovalGrants", () => {
 
 describe("buildApprovalState", () => {
   const mcpPolicies = new Map<string, MergedToolPolicy>([
-    ["planton/apply_x", { toolName: "apply_x", mcpServerSlug: "planton", requiresApproval: true, approvalMessage: "Apply X" }],
+    ["planton/apply_x", { toolName: "apply_x", mcpServerSlug: "planton", requiresApproval: true, approvalMessage: "Apply X", source: "classifier_default" }],
   ]);
 
   it("carries MCP policies and exact-resource grant tokens (gated set is baked into the hook, not the state)", () => {
-    const grants = [{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt" }];
-    const state = buildApprovalState(mcpPolicies, false, grants);
+    const grants = [{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: "", sourceToolCallId: "consent-1" }];
+    const state = buildApprovalState(mcpPolicies, false, new Set(), grants);
 
     expect(state.autoApproveAll).toBe(false);
+    expect(state.leasedCategories).toEqual([]);
     expect(state.mcpToolPolicies.apply_x).toEqual({ requiresApproval: true, message: "Apply X" });
+    // No digest -> the primary token degrades to the coarse grant token.
     expect(state.approvedGrantTokens).toEqual([grantToken("write", "/x/gated.txt")]);
     // builtInGatedList is no longer part of the state file (baked into the hook).
-    expect((state as Record<string, unknown>).builtInGatedList).toBeUndefined();
+    expect((state as unknown as Record<string, unknown>).builtInGatedList).toBeUndefined();
+  });
+
+  it("emits the CONTENT token when a grant carries a content digest", () => {
+    const grants = [{ toolName: "edit", mcpServerSlug: "", key: "write", salient: "/x/gated.txt", contentDigest: "deadbeef", sourceToolCallId: "consent-1" }];
+    const state = buildApprovalState(mcpPolicies, false, new Set(), grants);
+    // A content-identified grant authorizes base64(key\nsalient\ndigest), so a
+    // DIFFERENT edit to the same path (different digest) does not match.
+    expect(state.approvedGrantTokens).toEqual([
+      Buffer.from("write\n/x/gated.txt\ndeadbeef", "utf-8").toString("base64"),
+    ]);
+    expect(state.approvedGrantTokens[0]).not.toBe(grantToken("write", "/x/gated.txt"));
+  });
+
+  it("writes leasedCategories for run-lifetime scoped leases", () => {
+    const state = buildApprovalState(mcpPolicies, false, new Set(["shell", "write"]));
+    expect(state.autoApproveAll).toBe(false);
+    expect(state.leasedCategories.sort()).toEqual(["shell", "write"]);
   });
 
   it("defaults grants to empty when none provided", () => {
-    const state = buildApprovalState(mcpPolicies, true);
+    const state = buildApprovalState(mcpPolicies, true, new Set());
     expect(state.autoApproveAll).toBe(true);
+    expect(state.leasedCategories).toEqual([]);
     expect(state.approvedGrants).toEqual([]);
     expect(state.approvedGrantTokens).toEqual([]);
   });

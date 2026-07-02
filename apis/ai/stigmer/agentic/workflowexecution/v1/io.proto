@@ -175,21 +175,49 @@ message WorkflowExecutionUpdateStatusInput {
   // @since T06 (Execution Event Stream Model)
   repeated WorkflowExecutionEvent events = 10;
 
-  // When true, status.pending_approvals will be merged into the existing
-  // execution (replacing the stored list). When false (default), existing
-  // pending_approvals are preserved unchanged.
+  // When true, status.pending_approvals is merged for the single child named by
+  // pending_update_child_agent_execution_id. When false (default), the stored
+  // list is preserved unchanged.
   //
   // @internal
-  // This prevents a race condition where concurrent event emissions
-  // (which don't include pending_approvals) inadvertently clear active
-  // approval gates set by call-agent-status.
+  // Per-child merge (NOT full-replace): the write replaces the entries for the
+  // scoped child and preserves every sibling child's entries, so parallel child
+  // agents never clobber each other's approval gates. A scoped write with an
+  // empty incoming list clears just that child's entries. The guard still
+  // prevents concurrent event emissions (which don't include approvals) from
+  // disturbing active gates set by call-agent-status.
   //
-  // Only call-agent-status.ts sets this to true — both when populating
-  // approvals from a child_approval_required signal and when clearing them
-  // after the child agent completes.
+  // Only call-agent-status.ts sets this to true — both when populating approvals
+  // from a child_approval_required signal and when clearing them after the child
+  // agent completes.
   //
-  // @since Agent Call Live Experience
+  // @since Agent Call Live Experience (per-child merge since Workflow-Parent File Review)
   bool update_pending_approvals = 11;
+
+  // When true, status.pending_file_reviews is merged for the single child named
+  // by pending_update_child_agent_execution_id, with the same per-child merge
+  // semantics as update_pending_approvals. When false (default), the stored list
+  // is preserved unchanged.
+  //
+  // @internal
+  // Only call-agent-status.ts sets this to true — when surfacing a child's
+  // AWAITING_REVIEW change sets and when clearing them.
+  //
+  // @since Workflow-Parent File Review
+  bool update_pending_file_reviews = 12;
+
+  // The child agent execution a per-child merge targets. Names the single child
+  // whose pending_approvals / pending_file_reviews entries this update replaces;
+  // every sibling child's entries are preserved. Required whenever
+  // update_pending_approvals or update_pending_file_reviews is true — including
+  // the clear case, where the scoped incoming list is empty (the child id is the
+  // only way to know which child to clear).
+  //
+  // @internal
+  // Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456").
+  //
+  // @since Workflow-Parent File Review
+  string pending_update_child_agent_execution_id = 13;
 }
 
 // Input for the submitApproval RPC.
@@ -228,6 +256,72 @@ message SubmitWorkflowApprovalInput {
 
   // Optional reason or comment for the decision, stored in the audit trail.
   string comment = 4;
+}
+
+// Input for the WorkflowExecution.submitFileDecision RPC.
+//
+// @internal
+// Forwards a file-review keep/discard decision to a child AgentExecution whose
+// file-review gate is surfaced on the parent via status.pending_file_reviews.
+// Mirrors agentexecution.SubmitFileDecisionInput plus explicit routing: the UI
+// holds child_agent_execution_id from the surfaced reference, so routing is
+// explicit and does not depend on change_set_id being globally unique. The
+// handler validates the (child_agent_execution_id, change_set_id) pair is present
+// in status.pending_file_reviews before forwarding, then invokes
+// AgentExecution.submitFileDecision on the same thread so the caller identity
+// (reviewer_id) propagates.
+message SubmitWorkflowFileDecisionInput {
+  // ID of the workflow execution.
+  //
+  // @internal
+  // Format: "wfx_abc123xyz456"
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // ID of the child agent execution holding the file-review gate.
+  //
+  // @internal
+  // Must match a WorkflowPendingFileReview.child_agent_execution_id in
+  // status.pending_file_reviews. Format: AgentExecution.metadata.id.
+  string child_agent_execution_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // ID of the change set this decision targets.
+  //
+  // @internal
+  // Must be listed under the matched child's WorkflowPendingFileReview.change_set_id
+  // and match a FileChangeSet.id on the child's status.file_change_sets.
+  string change_set_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Whether the decision applies to the whole change set or one file.
+  // FILE_DECISION_SCOPE_UNSPECIFIED (0) is rejected by validation.
+  ai.stigmer.agentic.agentexecution.v1.FileDecisionScope scope = 4 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+
+  // ID of the file change to decide; required when scope is FILE, ignored for
+  // CHANGE_SET (the cross-field rule is enforced by the child handler). Must
+  // match a CapturedFileChange.id within the change set.
+  string file_change_id = 5;
+
+  // Keep (APPROVE) or discard (REJECT). FILE_DECISION_ACTION_UNSPECIFIED (0) is
+  // rejected by validation.
+  ai.stigmer.agentic.agentexecution.v1.FileDecisionAction action = 6 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+
+  // Digest of the content the user actually saw — the enforcement gate,
+  // forwarded to the child unchanged.
+  string expected_digest = 7 [(buf.validate.field).string.min_len = 1];
+
+  // Optional reason/comment for the decision (audit trail).
+  string reason = 8;
+
+  // Set true on an APPROVE to consciously KEEP a binary change whose diff could
+  // not be fully reviewed (forwarded to the child unchanged; see
+  // agentexecution.SubmitFileDecisionInput.acknowledge_unreviewable). Never
+  // relaxes the expected_digest gate.
+  bool acknowledge_unreviewable = 9;
 }
 
 // SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a

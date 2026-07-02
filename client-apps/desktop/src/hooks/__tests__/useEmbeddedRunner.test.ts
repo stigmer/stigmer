@@ -353,6 +353,42 @@ describe("runnerEntry resolution", () => {
     expect(capturedConfig).not.toBeNull();
     expect(capturedConfig!.runnerEntry).toBe("/abs/resource/resources/runner/dist/main.js");
   });
+
+  it("prefers VITE_STIGMER_RUNNER_ENTRY in dev and bypasses the staged copy", async () => {
+    // Regression guard for stigmer/stigmer#181: Tauri's staged resource copy
+    // drifts (fresh dist/ over stale src/) and trips the runner freshness guard.
+    // In dev, setup-runner-dev.sh injects the live in-repo runner entry, which the
+    // hook must use verbatim instead of resolving the drift-prone staged copy.
+    vi.stubEnv("VITE_STIGMER_RUNNER_ENTRY", "/repo/backend/services/runner/dist/main.js");
+    mockedLoadTokens.mockReturnValue(null);
+
+    let capturedConfig: Record<string, unknown> | null = null;
+    mockedInvoke.mockImplementation(async (cmd: string, args?: any) => {
+      if (cmd === "runner_status") {
+        return { running: false, activeSessions: [], activeWorkflowExecutions: [] };
+      }
+      if (cmd === "start_runner") {
+        capturedConfig = args.config;
+        return undefined;
+      }
+      if (cmd === "add_session") {
+        return `session:${args.sessionId}`;
+      }
+      throw new Error(`unexpected invoke: ${cmd}`);
+    });
+
+    const { renderHook, act } = await import("@testing-library/react");
+    const { useEmbeddedRunner } = await import("../useEmbeddedRunner");
+
+    const { result } = renderHook(() => useEmbeddedRunner());
+    await act(async () => {
+      await result.current.addSession("test-session");
+    });
+
+    expect(mockedResolveResource).not.toHaveBeenCalled();
+    expect(capturedConfig).not.toBeNull();
+    expect(capturedConfig!.runnerEntry).toBe("/repo/backend/services/runner/dist/main.js");
+  });
 });
 
 describe("updateRunnerToken", () => {

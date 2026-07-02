@@ -65,8 +65,30 @@ func GetErrorFromResult(result RunnerActivityResult) string {
 // Returns RunnerActivityResult (map[string]interface{}) to preserve both
 // proto fields (phase, pendingApprovals) and non-proto fields
 // (structured_output, final_text) from the TS runner.
+// ExecuteDeepAgentActivityInput is the typed input for the ExecuteDeepAgent
+// activity.
+//
+// Same one-wire-shape contract as ExecuteCursorActivityInput: a single
+// serializable object with snake_case JSON keys shared by the Go and Java
+// control planes and the TypeScript runner. The JSON keys MUST stay
+// byte-identical across all three editions.
+type ExecuteDeepAgentActivityInput struct {
+	// ExecutionID is the agent execution being run.
+	ExecutionID string `json:"execution_id"`
+	// ThreadID is the LangGraph thread id; empty on first run.
+	ThreadID string `json:"thread_id"`
+	// InvokerIdentityAccountID is carried for parity with the Java edition; the
+	// runner hydrates the invoker from the DB and does not read this field.
+	InvokerIdentityAccountID string `json:"invoker_identity_account_id"`
+	// TurnSeq is the monotonic HITL-cycle index within this execution: 0 on the
+	// first invocation, then the workflow's approvalCycle on each reinvocation.
+	// Additive parity with the Cursor input; the deep-agent harness producer
+	// consumes it in a later phase. See the file-change HITL redesign.
+	TurnSeq int64 `json:"turn_seq"`
+}
+
 type ExecuteDeepAgentActivity interface {
-	ExecuteDeepAgent(executionID string, threadID string) (RunnerActivityResult, error)
+	ExecuteDeepAgent(input ExecuteDeepAgentActivityInput) (RunnerActivityResult, error)
 }
 
 // ExecuteDeepAgentActivityName is the activity name used for Temporal registration.
@@ -96,8 +118,8 @@ type executeDeepAgentActivityStub struct {
 	ctx workflow.Context
 }
 
-func (s *executeDeepAgentActivityStub) ExecuteDeepAgent(executionID string, threadID string) (RunnerActivityResult, error) {
+func (s *executeDeepAgentActivityStub) ExecuteDeepAgent(input ExecuteDeepAgentActivityInput) (RunnerActivityResult, error) {
 	var result RunnerActivityResult
-	err := workflow.ExecuteActivity(s.ctx, ExecuteDeepAgentActivityName, executionID, threadID).Get(s.ctx, &result)
+	err := workflow.ExecuteActivity(s.ctx, ExecuteDeepAgentActivityName, input).Get(s.ctx, &result)
 	return result, err
 }

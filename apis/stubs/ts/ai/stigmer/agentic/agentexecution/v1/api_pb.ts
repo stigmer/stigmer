@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { PendingApproval } from "./approval_pb.js";
+import type { ApprovalEventStream, PendingApproval } from "./approval_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_approval } from "./approval_pb.js";
 import type { ExecutionArtifact } from "./artifact_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_artifact } from "./artifact_pb.js";
@@ -12,6 +12,8 @@ import type { ContextInfo, ResolvedExecutionContext } from "./context_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_context } from "./context_pb.js";
 import type { ExecutionPhase } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
+import type { FileChangeSet, FileReviewEventStream } from "./filereview_pb.js";
+import { file_ai_stigmer_agentic_agentexecution_v1_filereview } from "./filereview_pb.js";
 import type { AgentMessage } from "./message_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_message } from "./message_pb.js";
 import type { AgentExecutionSpec } from "./spec_pb.js";
@@ -36,7 +38,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBpLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEiywIKDkFnZW50RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiMKBGtpbmQYAiABKAlCFbpIEnIQCg5BZ2VudEV4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESRgoEc3BlYxgEIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEV4ZWN1dGlvblNwZWMSSgoGc3RhdHVzGAUgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3RhdHVzIrkJChRBZ2VudEV4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EkQKCG1lc3NhZ2VzGAEgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50TWVzc2FnZRJNCgVwaGFzZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZUIIukgFggECEAESVQoUc3ViX2FnZW50X2V4ZWN1dGlvbnMYBCADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU3ViQWdlbnRFeGVjdXRpb24SDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSVAoFdG9kb3MYCSADKAsyRS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXMuVG9kb3NFbnRyeRIWCg5jYWxsYmFja190b2tlbhgKIAEoDBJYChByZXNvbHZlZF9jb250ZXh0GAwgASgLMj4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlJlc29sdmVkRXhlY3V0aW9uQ29udGV4dBJQChFwZW5kaW5nX2FwcHJvdmFscxgQIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwSRwoMY29udGV4dF9pbmZvGA4gASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRJbmZvEkoKCWFydGlmYWN0cxgPIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdBJXChV3b3Jrc3BhY2Vfd3JpdGVfYmFja3MYESADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuV29ya3NwYWNlV3JpdGVCYWNrEksKDnNldHVwX3Byb2dyZXNzGBIgASgLMjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNldHVwUHJvZ3Jlc3MSVAoPc3RyZWFtaW5nX3VzYWdlGBQgASgLMjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlN0cmVhbWluZ1VzYWdlU3VtbWFyeRIyChFzdHJ1Y3R1cmVkX291dHB1dBgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QaXAoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSPQoFdmFsdWUYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9kb0l0ZW06AjgBIiYKDVNldHVwUHJvZ3Jlc3MSFQoNY3VycmVudF9waGFzZRgBIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_agentexecution_v1_artifact, file_ai_stigmer_agentic_agentexecution_v1_context, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_agentexecution_v1_subagent, file_ai_stigmer_agentic_agentexecution_v1_todo, file_ai_stigmer_agentic_agentexecution_v1_usage, file_ai_stigmer_agentic_agentexecution_v1_writeback, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBpLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEiywIKDkFnZW50RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiMKBGtpbmQYAiABKAlCFbpIEnIQCg5BZ2VudEV4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESRgoEc3BlYxgEIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEV4ZWN1dGlvblNwZWMSSgoGc3RhdHVzGAUgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3RhdHVzIsELChRBZ2VudEV4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EkQKCG1lc3NhZ2VzGAEgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50TWVzc2FnZRJNCgVwaGFzZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZUIIukgFggECEAESVQoUc3ViX2FnZW50X2V4ZWN1dGlvbnMYBCADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU3ViQWdlbnRFeGVjdXRpb24SDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSVAoFdG9kb3MYCSADKAsyRS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXMuVG9kb3NFbnRyeRIWCg5jYWxsYmFja190b2tlbhgKIAEoDBJYChByZXNvbHZlZF9jb250ZXh0GAwgASgLMj4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlJlc29sdmVkRXhlY3V0aW9uQ29udGV4dBJQChFwZW5kaW5nX2FwcHJvdmFscxgQIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwSWAoVYXBwcm92YWxfZXZlbnRfc3RyZWFtGBYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsRXZlbnRTdHJlYW0SRwoMY29udGV4dF9pbmZvGA4gASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRJbmZvEkoKCWFydGlmYWN0cxgPIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdBJXChV3b3Jrc3BhY2Vfd3JpdGVfYmFja3MYESADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuV29ya3NwYWNlV3JpdGVCYWNrEksKDnNldHVwX3Byb2dyZXNzGBIgASgLMjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNldHVwUHJvZ3Jlc3MSVAoPc3RyZWFtaW5nX3VzYWdlGBQgASgLMjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlN0cmVhbWluZ1VzYWdlU3VtbWFyeRIyChFzdHJ1Y3R1cmVkX291dHB1dBgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSTQoQZmlsZV9jaGFuZ2Vfc2V0cxgXIAMoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2hhbmdlU2V0El0KGGZpbGVfcmV2aWV3X2V2ZW50X3N0cmVhbRgYIAEoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlUmV2aWV3RXZlbnRTdHJlYW0aXAoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSPQoFdmFsdWUYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9kb0l0ZW06AjgBIiYKDVNldHVwUHJvZ3Jlc3MSFQoNY3VycmVudF9waGFzZRgBIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_agentexecution_v1_artifact, file_ai_stigmer_agentic_agentexecution_v1_context, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_filereview, file_ai_stigmer_agentic_agentexecution_v1_message, file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_agentexecution_v1_subagent, file_ai_stigmer_agentic_agentexecution_v1_todo, file_ai_stigmer_agentic_agentexecution_v1_usage, file_ai_stigmer_agentic_agentexecution_v1_writeback, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * AgentExecution represents a single agent execution instance (conversational).
@@ -237,6 +239,42 @@ export type AgentExecutionStatus = Message<"ai.stigmer.agentic.agentexecution.v1
   pendingApprovals: PendingApproval[];
 
   /**
+   * Server-authored, append-only record of every approval request and decision.
+   *
+   * @internal
+   *
+   * This is the persisted form of the append-only stream that is the target
+   * single source of truth for approvals (see ApprovalEventStream in
+   * approval.proto). It is NOT yet read by any surface: pending_approvals is
+   * still projected from the authoritative message scan, and the UI/SDK read
+   * that. The stream coexists as a parallel, independently-authored record so
+   * that (1) the message-scan vs event-stream projection parity check becomes a
+   * real cross-writer regression guard rather than a tautology, and (2) the
+   * approval audit trail — who decided, when, with what comment — has a home,
+   * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+   * capture a decision comment at all.
+   *
+   * Field ownership (one writer per event type):
+   *   - REQUESTED events are authored by the UpdateStatus handlers when a tool
+   *     call enters WAITING_APPROVAL (seeded once from the message scan for
+   *     executions that predate this field).
+   *   - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+   *     SubmitApproval handler, carrying decided_by and the user's comment.
+   *
+   * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+   * stream is idempotent under retries and the rich decision event (authored in
+   * the same operation that records the decision on the message scan) can never
+   * be duplicated or overwritten by a coarse re-derivation.
+   *
+   * Because it is server-only, the agent-runner never sends it; it is preserved
+   * across UpdateStatus writes automatically (the merge starts from the loaded
+   * execution and only replaces runner-owned fields).
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22;
+   */
+  approvalEventStream?: ApprovalEventStream;
+
+  /**
    * Context window utilization and summarization tracking.
    *
    * Provides visibility into how the agent is using its context window and
@@ -329,6 +367,52 @@ export type AgentExecutionStatus = Message<"ai.stigmer.agentic.agentexecution.v1
    * @generated from field: google.protobuf.Struct structured_output = 21;
    */
   structuredOutput?: JsonObject;
+
+  /**
+   * Server-computed projection of file change sets awaiting or completing
+   * review for this execution.
+   *
+   * @internal
+   *
+   * Recomputed on every status write from file_review_event_stream (never
+   * merged), so it is always consistent with the authoritative ledger — exactly
+   * as pending_approvals is recomputed from the message scan / approval stream.
+   * Empty until the runner's capture activity authors events (Phase 2). A
+   * terminal execution projects no actionable review. See FileChangeSet.
+   *
+   * Field 23: appended after approval_event_stream (22), the prior maximum.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23;
+   */
+  fileChangeSets: FileChangeSet[];
+
+  /**
+   * Server-owned, append-only record of every file-review event (baseline /
+   * candidate capture, file decisions, reconcile, failures).
+   *
+   * @internal
+   *
+   * The persisted source of truth that file_change_sets is projected from — a
+   * sibling of approval_event_stream for the file-review lifecycle (the
+   * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+   * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+   * idempotent under retries.
+   *
+   * Write contract (one writer per event type): the runner CONTRIBUTES its
+   * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+   * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+   * them into the stored stream append-only, by event_id, on the freshly-loaded
+   * execution under the write lock. The runner can never replace an existing
+   * event and never authors FILE_DECIDED (the server drops a runner-sent
+   * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+   * stream is otherwise preserved in place across writes. See
+   * FileReviewEventStream.
+   *
+   * Field 24: appended after file_change_sets (23), the prior maximum.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24;
+   */
+  fileReviewEventStream?: FileReviewEventStream;
 };
 
 /**

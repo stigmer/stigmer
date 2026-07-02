@@ -60,6 +60,7 @@ private static final long serialVersionUID = 0L;
     temporalWorkflowId_ = "";
     pendingApprovals_ = java.util.Collections.emptyList();
     workflowVersionHash_ = "";
+    pendingFileReviews_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -999,6 +1000,157 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int PENDING_FILE_REVIEWS_FIELD_NUMBER = 14;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview> pendingFileReviews_;
+  /**
+   * <pre>
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * &#64;internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview> getPendingFileReviewsList() {
+    return pendingFileReviews_;
+  }
+  /**
+   * <pre>
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * &#64;internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReviewOrBuilder> 
+      getPendingFileReviewsOrBuilderList() {
+    return pendingFileReviews_;
+  }
+  /**
+   * <pre>
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * &#64;internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+   */
+  @java.lang.Override
+  public int getPendingFileReviewsCount() {
+    return pendingFileReviews_.size();
+  }
+  /**
+   * <pre>
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * &#64;internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview getPendingFileReviews(int index) {
+    return pendingFileReviews_.get(index);
+  }
+  /**
+   * <pre>
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * &#64;internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReviewOrBuilder getPendingFileReviewsOrBuilder(
+      int index) {
+    return pendingFileReviews_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1048,6 +1200,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowVersionHash_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 13, workflowVersionHash_);
+    }
+    for (int i = 0; i < pendingFileReviews_.size(); i++) {
+      output.writeMessage(14, pendingFileReviews_.get(i));
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1114,6 +1269,15 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(workflowVersionHash_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(13, workflowVersionHash_);
     }
+
+        {
+          final int count = pendingFileReviews_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(pendingFileReviews_.get(i));
+          }
+          size += 1 * count;
+        }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1164,6 +1328,8 @@ private static final long serialVersionUID = 0L;
         != other.getTotalOutputTokens()) return false;
     if (!getWorkflowVersionHash()
         .equals(other.getWorkflowVersionHash())) return false;
+    if (!getPendingFileReviewsList()
+        .equals(other.getPendingFileReviewsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1212,6 +1378,10 @@ private static final long serialVersionUID = 0L;
         getTotalOutputTokens());
     hash = (37 * hash) + WORKFLOW_VERSION_HASH_FIELD_NUMBER;
     hash = (53 * hash) + getWorkflowVersionHash().hashCode();
+    if (getPendingFileReviewsCount() > 0) {
+      hash = (37 * hash) + PENDING_FILE_REVIEWS_FIELD_NUMBER;
+      hash = (53 * hash) + getPendingFileReviewsList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1370,6 +1540,7 @@ private static final long serialVersionUID = 0L;
         internalGetTasksFieldBuilder();
         internalGetOutputFieldBuilder();
         internalGetPendingApprovalsFieldBuilder();
+        internalGetPendingFileReviewsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1409,6 +1580,13 @@ private static final long serialVersionUID = 0L;
       totalInputTokens_ = 0L;
       totalOutputTokens_ = 0L;
       workflowVersionHash_ = "";
+      if (pendingFileReviewsBuilder_ == null) {
+        pendingFileReviews_ = java.util.Collections.emptyList();
+      } else {
+        pendingFileReviews_ = null;
+        pendingFileReviewsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00002000);
       return this;
     }
 
@@ -1459,6 +1637,15 @@ private static final long serialVersionUID = 0L;
         result.pendingApprovals_ = pendingApprovals_;
       } else {
         result.pendingApprovals_ = pendingApprovalsBuilder_.build();
+      }
+      if (pendingFileReviewsBuilder_ == null) {
+        if (((bitField0_ & 0x00002000) != 0)) {
+          pendingFileReviews_ = java.util.Collections.unmodifiableList(pendingFileReviews_);
+          bitField0_ = (bitField0_ & ~0x00002000);
+        }
+        result.pendingFileReviews_ = pendingFileReviews_;
+      } else {
+        result.pendingFileReviews_ = pendingFileReviewsBuilder_.build();
       }
     }
 
@@ -1614,6 +1801,32 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00001000;
         onChanged();
       }
+      if (pendingFileReviewsBuilder_ == null) {
+        if (!other.pendingFileReviews_.isEmpty()) {
+          if (pendingFileReviews_.isEmpty()) {
+            pendingFileReviews_ = other.pendingFileReviews_;
+            bitField0_ = (bitField0_ & ~0x00002000);
+          } else {
+            ensurePendingFileReviewsIsMutable();
+            pendingFileReviews_.addAll(other.pendingFileReviews_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.pendingFileReviews_.isEmpty()) {
+          if (pendingFileReviewsBuilder_.isEmpty()) {
+            pendingFileReviewsBuilder_.dispose();
+            pendingFileReviewsBuilder_ = null;
+            pendingFileReviews_ = other.pendingFileReviews_;
+            bitField0_ = (bitField0_ & ~0x00002000);
+            pendingFileReviewsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetPendingFileReviewsFieldBuilder() : null;
+          } else {
+            pendingFileReviewsBuilder_.addAllMessages(other.pendingFileReviews_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1718,6 +1931,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00001000;
               break;
             } // case 106
+            case 114: {
+              ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview m =
+                  input.readMessage(
+                      ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.parser(),
+                      extensionRegistry);
+              if (pendingFileReviewsBuilder_ == null) {
+                ensurePendingFileReviewsIsMutable();
+                pendingFileReviews_.add(m);
+              } else {
+                pendingFileReviewsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 114
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -4643,6 +4869,642 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00001000;
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview> pendingFileReviews_ =
+      java.util.Collections.emptyList();
+    private void ensurePendingFileReviewsIsMutable() {
+      if (!((bitField0_ & 0x00002000) != 0)) {
+        pendingFileReviews_ = new java.util.ArrayList<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview>(pendingFileReviews_);
+        bitField0_ |= 0x00002000;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReviewOrBuilder> pendingFileReviewsBuilder_;
+
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview> getPendingFileReviewsList() {
+      if (pendingFileReviewsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(pendingFileReviews_);
+      } else {
+        return pendingFileReviewsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public int getPendingFileReviewsCount() {
+      if (pendingFileReviewsBuilder_ == null) {
+        return pendingFileReviews_.size();
+      } else {
+        return pendingFileReviewsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview getPendingFileReviews(int index) {
+      if (pendingFileReviewsBuilder_ == null) {
+        return pendingFileReviews_.get(index);
+      } else {
+        return pendingFileReviewsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public Builder setPendingFileReviews(
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview value) {
+      if (pendingFileReviewsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePendingFileReviewsIsMutable();
+        pendingFileReviews_.set(index, value);
+        onChanged();
+      } else {
+        pendingFileReviewsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public Builder setPendingFileReviews(
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.Builder builderForValue) {
+      if (pendingFileReviewsBuilder_ == null) {
+        ensurePendingFileReviewsIsMutable();
+        pendingFileReviews_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        pendingFileReviewsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public Builder addPendingFileReviews(ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview value) {
+      if (pendingFileReviewsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePendingFileReviewsIsMutable();
+        pendingFileReviews_.add(value);
+        onChanged();
+      } else {
+        pendingFileReviewsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public Builder addPendingFileReviews(
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview value) {
+      if (pendingFileReviewsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePendingFileReviewsIsMutable();
+        pendingFileReviews_.add(index, value);
+        onChanged();
+      } else {
+        pendingFileReviewsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public Builder addPendingFileReviews(
+        ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.Builder builderForValue) {
+      if (pendingFileReviewsBuilder_ == null) {
+        ensurePendingFileReviewsIsMutable();
+        pendingFileReviews_.add(builderForValue.build());
+        onChanged();
+      } else {
+        pendingFileReviewsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public Builder addPendingFileReviews(
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.Builder builderForValue) {
+      if (pendingFileReviewsBuilder_ == null) {
+        ensurePendingFileReviewsIsMutable();
+        pendingFileReviews_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        pendingFileReviewsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public Builder addAllPendingFileReviews(
+        java.lang.Iterable<? extends ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview> values) {
+      if (pendingFileReviewsBuilder_ == null) {
+        ensurePendingFileReviewsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, pendingFileReviews_);
+        onChanged();
+      } else {
+        pendingFileReviewsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public Builder clearPendingFileReviews() {
+      if (pendingFileReviewsBuilder_ == null) {
+        pendingFileReviews_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00002000);
+        onChanged();
+      } else {
+        pendingFileReviewsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public Builder removePendingFileReviews(int index) {
+      if (pendingFileReviewsBuilder_ == null) {
+        ensurePendingFileReviewsIsMutable();
+        pendingFileReviews_.remove(index);
+        onChanged();
+      } else {
+        pendingFileReviewsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.Builder getPendingFileReviewsBuilder(
+        int index) {
+      return internalGetPendingFileReviewsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReviewOrBuilder getPendingFileReviewsOrBuilder(
+        int index) {
+      if (pendingFileReviewsBuilder_ == null) {
+        return pendingFileReviews_.get(index);  } else {
+        return pendingFileReviewsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReviewOrBuilder> 
+         getPendingFileReviewsOrBuilderList() {
+      if (pendingFileReviewsBuilder_ != null) {
+        return pendingFileReviewsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(pendingFileReviews_);
+      }
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.Builder addPendingFileReviewsBuilder() {
+      return internalGetPendingFileReviewsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.Builder addPendingFileReviewsBuilder(
+        int index) {
+      return internalGetPendingFileReviewsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Pending file reviews from child agent executions, surfaced for
+     * workflow-level visibility and in-place keep/discard decisioning.
+     *
+     * &#64;internal
+     * A reference-only sibling of pending_approvals (field 9): each entry names a
+     * child agent execution and the change_set ids it currently has
+     * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+     * stays single-sourced on the child's
+     * AgentExecution.status.file_change_sets and is read on demand by the UI.
+     *
+     * Guarded, per-child merge protocol:
+     * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+     * is true, scoped by pending_update_child_agent_execution_id. The write
+     * replaces the entry for that one child and preserves every sibling child's
+     * entry, so parallel child agents never clobber each other. A scoped write with
+     * an empty change_set list removes that child's entry. Only call-agent-status
+     * manages this field.
+     *
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.Builder> 
+         getPendingFileReviewsBuilderList() {
+      return internalGetPendingFileReviewsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReviewOrBuilder> 
+        internalGetPendingFileReviewsFieldBuilder() {
+      if (pendingFileReviewsBuilder_ == null) {
+        pendingFileReviewsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReviewOrBuilder>(
+                pendingFileReviews_,
+                ((bitField0_ & 0x00002000) != 0),
+                getParentForChildren(),
+                isClean());
+        pendingFileReviews_ = null;
+      }
+      return pendingFileReviewsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus)

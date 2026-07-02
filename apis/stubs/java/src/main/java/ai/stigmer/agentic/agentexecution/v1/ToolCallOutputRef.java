@@ -43,7 +43,6 @@ private static final long serialVersionUID = 0L;
   }
   private ToolCallOutputRef() {
     storageKey_ = "";
-    downloadUrl_ = "";
     contentHash_ = "";
     mimeType_ = "";
     truncatedPreview_ = "";
@@ -74,6 +73,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Storage location of the full output bytes.
    * Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+   *
+   * Clients resolve the bytes/URL on demand from this stable key (via
+   * getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+   * persisted URL, since a pre-signed URL would expire while the reference does
+   * not.
    * </pre>
    *
    * <code>string storage_key = 1 [json_name = "storageKey"];</code>
@@ -96,6 +100,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Storage location of the full output bytes.
    * Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+   *
+   * Clients resolve the bytes/URL on demand from this stable key (via
+   * getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+   * persisted URL, since a pre-signed URL would expire while the reference does
+   * not.
    * </pre>
    *
    * <code>string storage_key = 1 [json_name = "storageKey"];</code>
@@ -110,55 +119,6 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
       storageKey_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int DOWNLOAD_URL_FIELD_NUMBER = 2;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object downloadUrl_ = "";
-  /**
-   * <pre>
-   * URL for fetching the full output — pre-signed in the cloud, locally served
-   * in dev. May be refreshed via the artifact download endpoint if expired.
-   * </pre>
-   *
-   * <code>string download_url = 2 [json_name = "downloadUrl"];</code>
-   * @return The downloadUrl.
-   */
-  @java.lang.Override
-  public java.lang.String getDownloadUrl() {
-    java.lang.Object ref = downloadUrl_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      downloadUrl_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * URL for fetching the full output — pre-signed in the cloud, locally served
-   * in dev. May be refreshed via the artifact download endpoint if expired.
-   * </pre>
-   *
-   * <code>string download_url = 2 [json_name = "downloadUrl"];</code>
-   * @return The bytes for downloadUrl.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getDownloadUrlBytes() {
-    java.lang.Object ref = downloadUrl_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      downloadUrl_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -362,9 +322,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(storageKey_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, storageKey_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(downloadUrl_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, downloadUrl_);
-    }
     if (sizeBytes_ != 0L) {
       output.writeInt64(3, sizeBytes_);
     }
@@ -391,9 +348,6 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(storageKey_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, storageKey_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(downloadUrl_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, downloadUrl_);
     }
     if (sizeBytes_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
@@ -429,8 +383,6 @@ private static final long serialVersionUID = 0L;
 
     if (!getStorageKey()
         .equals(other.getStorageKey())) return false;
-    if (!getDownloadUrl()
-        .equals(other.getDownloadUrl())) return false;
     if (getSizeBytes()
         != other.getSizeBytes()) return false;
     if (!getContentHash()
@@ -454,8 +406,6 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + STORAGE_KEY_FIELD_NUMBER;
     hash = (53 * hash) + getStorageKey().hashCode();
-    hash = (37 * hash) + DOWNLOAD_URL_FIELD_NUMBER;
-    hash = (53 * hash) + getDownloadUrl().hashCode();
     hash = (37 * hash) + SIZE_BYTES_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getSizeBytes());
@@ -614,7 +564,6 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       storageKey_ = "";
-      downloadUrl_ = "";
       sizeBytes_ = 0L;
       contentHash_ = "";
       mimeType_ = "";
@@ -657,21 +606,18 @@ private static final long serialVersionUID = 0L;
         result.storageKey_ = storageKey_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.downloadUrl_ = downloadUrl_;
-      }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.sizeBytes_ = sizeBytes_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
+      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.contentHash_ = contentHash_;
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.mimeType_ = mimeType_;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.isImage_ = isImage_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.truncatedPreview_ = truncatedPreview_;
       }
     }
@@ -693,22 +639,17 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (!other.getDownloadUrl().isEmpty()) {
-        downloadUrl_ = other.downloadUrl_;
-        bitField0_ |= 0x00000002;
-        onChanged();
-      }
       if (other.getSizeBytes() != 0L) {
         setSizeBytes(other.getSizeBytes());
       }
       if (!other.getContentHash().isEmpty()) {
         contentHash_ = other.contentHash_;
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       if (!other.getMimeType().isEmpty()) {
         mimeType_ = other.mimeType_;
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       if (other.getIsImage() != false) {
@@ -716,7 +657,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getTruncatedPreview().isEmpty()) {
         truncatedPreview_ = other.truncatedPreview_;
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -750,34 +691,29 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
-            case 18: {
-              downloadUrl_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000002;
-              break;
-            } // case 18
             case 24: {
               sizeBytes_ = input.readInt64();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 24
             case 34: {
               contentHash_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000004;
               break;
             } // case 34
             case 42: {
               mimeType_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 42
             case 48: {
               isImage_ = input.readBool();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 48
             case 58: {
               truncatedPreview_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 58
             default: {
@@ -802,6 +738,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Storage location of the full output bytes.
      * Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+     *
+     * Clients resolve the bytes/URL on demand from this stable key (via
+     * getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+     * persisted URL, since a pre-signed URL would expire while the reference does
+     * not.
      * </pre>
      *
      * <code>string storage_key = 1 [json_name = "storageKey"];</code>
@@ -823,6 +764,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Storage location of the full output bytes.
      * Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+     *
+     * Clients resolve the bytes/URL on demand from this stable key (via
+     * getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+     * persisted URL, since a pre-signed URL would expire while the reference does
+     * not.
      * </pre>
      *
      * <code>string storage_key = 1 [json_name = "storageKey"];</code>
@@ -845,6 +791,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Storage location of the full output bytes.
      * Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+     *
+     * Clients resolve the bytes/URL on demand from this stable key (via
+     * getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+     * persisted URL, since a pre-signed URL would expire while the reference does
+     * not.
      * </pre>
      *
      * <code>string storage_key = 1 [json_name = "storageKey"];</code>
@@ -863,6 +814,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Storage location of the full output bytes.
      * Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+     *
+     * Clients resolve the bytes/URL on demand from this stable key (via
+     * getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+     * persisted URL, since a pre-signed URL would expire while the reference does
+     * not.
      * </pre>
      *
      * <code>string storage_key = 1 [json_name = "storageKey"];</code>
@@ -878,6 +834,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Storage location of the full output bytes.
      * Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+     *
+     * Clients resolve the bytes/URL on demand from this stable key (via
+     * getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+     * persisted URL, since a pre-signed URL would expire while the reference does
+     * not.
      * </pre>
      *
      * <code>string storage_key = 1 [json_name = "storageKey"];</code>
@@ -890,103 +851,6 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       storageKey_ = value;
       bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object downloadUrl_ = "";
-    /**
-     * <pre>
-     * URL for fetching the full output — pre-signed in the cloud, locally served
-     * in dev. May be refreshed via the artifact download endpoint if expired.
-     * </pre>
-     *
-     * <code>string download_url = 2 [json_name = "downloadUrl"];</code>
-     * @return The downloadUrl.
-     */
-    public java.lang.String getDownloadUrl() {
-      java.lang.Object ref = downloadUrl_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        downloadUrl_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * URL for fetching the full output — pre-signed in the cloud, locally served
-     * in dev. May be refreshed via the artifact download endpoint if expired.
-     * </pre>
-     *
-     * <code>string download_url = 2 [json_name = "downloadUrl"];</code>
-     * @return The bytes for downloadUrl.
-     */
-    public com.google.protobuf.ByteString
-        getDownloadUrlBytes() {
-      java.lang.Object ref = downloadUrl_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        downloadUrl_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * URL for fetching the full output — pre-signed in the cloud, locally served
-     * in dev. May be refreshed via the artifact download endpoint if expired.
-     * </pre>
-     *
-     * <code>string download_url = 2 [json_name = "downloadUrl"];</code>
-     * @param value The downloadUrl to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDownloadUrl(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      downloadUrl_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * URL for fetching the full output — pre-signed in the cloud, locally served
-     * in dev. May be refreshed via the artifact download endpoint if expired.
-     * </pre>
-     *
-     * <code>string download_url = 2 [json_name = "downloadUrl"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearDownloadUrl() {
-      downloadUrl_ = getDefaultInstance().getDownloadUrl();
-      bitField0_ = (bitField0_ & ~0x00000002);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * URL for fetching the full output — pre-signed in the cloud, locally served
-     * in dev. May be refreshed via the artifact download endpoint if expired.
-     * </pre>
-     *
-     * <code>string download_url = 2 [json_name = "downloadUrl"];</code>
-     * @param value The bytes for downloadUrl to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDownloadUrlBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      downloadUrl_ = value;
-      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -1016,7 +880,7 @@ private static final long serialVersionUID = 0L;
     public Builder setSizeBytes(long value) {
 
       sizeBytes_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -1029,7 +893,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearSizeBytes() {
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       sizeBytes_ = 0L;
       onChanged();
       return this;
@@ -1096,7 +960,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       contentHash_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -1112,7 +976,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearContentHash() {
       contentHash_ = getDefaultInstance().getContentHash();
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
@@ -1132,7 +996,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       contentHash_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -1195,7 +1059,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       mimeType_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1210,7 +1074,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearMimeType() {
       mimeType_ = getDefaultInstance().getMimeType();
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       onChanged();
       return this;
     }
@@ -1229,7 +1093,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       mimeType_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1261,7 +1125,7 @@ private static final long serialVersionUID = 0L;
     public Builder setIsImage(boolean value) {
 
       isImage_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1275,7 +1139,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearIsImage() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       isImage_ = false;
       onChanged();
       return this;
@@ -1339,7 +1203,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       truncatedPreview_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1354,7 +1218,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearTruncatedPreview() {
       truncatedPreview_ = getDefaultInstance().getTruncatedPreview();
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
@@ -1373,7 +1237,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       truncatedPreview_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }

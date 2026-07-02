@@ -1,0 +1,62 @@
+{
+  "name": "policy-auto-keep",
+  "description": "DD-28 approved-command auto-keep: the candidate carries command provenance and the backend authored a policy-origin CHANGE_SET approve (actor 'policy') in the same write -> DECIDED without the gate ever arming. The fold treats a policy decision identically to a human one; origin/actor are audit provenance.",
+  "execution_id": "aex_policy_auto_keep",
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "events": [
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-07-03T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs1", "turnId": "t2", "harnessId": "cursor",
+        "baselineSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "base", "ref": "refs/stigmer/x/baseline" } }
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-07-03T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs1",
+        "candidateSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "cand", "ref": "refs/stigmer/x/candidate" } },
+        "changes": [
+          { "id": "fc1", "pathAfter": "big.txt", "kind": "FILE_CHANGE_KIND_ADD", "captureClass": "FILE_CAPTURE_CLASS_GIT_TRACKED", "afterSha256": "bbb", "fileDigest": "d-fc1", "diffComplete": true }
+        ],
+        "aggregateDigest": "agg-cs1",
+        "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE",
+        "commandProvenance": {
+          "consentToolCallIds": ["tool_gate_row_1"]
+        }
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "timestamp": "2026-07-03T00:00:05Z",
+      "actor": "policy",
+      "fileDecided": {
+        "id": "cs1:cs1", "changeSetId": "cs1",
+        "scope": "FILE_DECISION_SCOPE_CHANGE_SET", "action": "FILE_DECISION_ACTION_APPROVE",
+        "expectedDigest": "agg-cs1", "decidedAt": "2026-07-03T00:00:05Z",
+        "reason": "Kept automatically: every change in this turn was produced by a command the user approved",
+        "origin": "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs1",
+      "status": "FILE_CHANGE_SET_STATUS_DECIDED",
+      "change_ids": ["fc1"],
+      "decision_count": 1,
+      "aggregate_digest": "agg-cs1",
+      "has_approved_snapshot": false
+    }
+  ]
+}

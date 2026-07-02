@@ -1,9 +1,23 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { render, cleanup } from "@testing-library/react";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { create, type JsonObject } from "@bufbuild/protobuf";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import {
+  ToolCallStatus,
+  ToolKind,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { normalizeToolResult } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/sdk";
+import { StigmerContext } from "../../context";
 import { ResultView, summarizeResultView } from "../ResultView";
 
 afterEach(cleanup);
+
+function withStigmer(children: ReactNode, stigmer: Stigmer) {
+  return <StigmerContext.Provider value={stigmer}>{children}</StigmerContext.Provider>;
+}
 
 describe("ResultView", () => {
   it("renders an edit diff with add/remove counts from the envelope", () => {
@@ -30,6 +44,39 @@ describe("ResultView", () => {
     expect(container.textContent).toContain("hello world");
   });
 
+  it("renders a Cursor unifiedDiff through the DiffViewer table, not a raw patch dump", () => {
+    const view: ToolResultView = {
+      type: "diff",
+      path: "/workspace/notes.md",
+      unifiedDiff: "--- /dev/null\n+++ b/notes.md\n@@ -0,0 +1,2 @@\n+# Title\n+body\n",
+      linesAdded: 2,
+      linesRemoved: 0,
+    };
+    const { container } = render(<ResultView view={view} />);
+    // The accessible table renders the content...
+    expect(container.querySelector("table")).not.toBeNull();
+    expect(container.textContent).toContain("# Title");
+    // ...and the raw patch preamble never reaches the screen.
+    expect(container.textContent).not.toContain("/dev/null");
+    expect(container.textContent).not.toContain("@@");
+  });
+
+  it("suppresses the +N -M stats when showStats is false (owning row shows them)", () => {
+    const view: ToolResultView = {
+      type: "diff",
+      path: "/workspace/x.md",
+      oldText: "a",
+      newText: "a b",
+    };
+    const { container } = render(
+      <ResultView view={view} showFileName={false} showStats={false} />,
+    );
+    // The diff content still renders, but the duplicate counts do not.
+    expect(container.textContent).toContain("a b");
+    expect(container.textContent).not.toContain("+1");
+    expect(container.textContent).not.toContain("-0");
+  });
+
   it("renders a terminal with a non-zero exit badge", () => {
     const view: ToolResultView = {
       type: "terminal",
@@ -42,6 +89,26 @@ describe("ResultView", () => {
     expect(container.textContent).toContain("boom");
   });
 
+  it("renders a terminal as one session: $ command then output, no badge on success", () => {
+    const view: ToolResultView = {
+      type: "terminal",
+      command: "echo hello",
+      stdout: "hello",
+      stderr: "",
+      exitCode: 0,
+    };
+    const { container } = render(<ResultView view={view} />);
+    // The command leads the session as a prompt line, with its output below.
+    expect(container.textContent).toContain("$ echo hello");
+    expect(container.textContent).toContain("hello");
+    // Success carries no exit badge — the row's status icon confirms the run.
+    expect(container.textContent).not.toContain("exit 0");
+    // One block, not a command box + a separate output box.
+    expect(
+      container.querySelectorAll('[data-cursor-target="terminal-session"]'),
+    ).toHaveLength(1);
+  });
+
   it("renders a search match list", () => {
     const view: ToolResultView = {
       type: "search",
@@ -50,6 +117,95 @@ describe("ResultView", () => {
     };
     const { container } = render(<ResultView view={view} />);
     expect(container.textContent).toContain("2 matches");
+  });
+
+  it("renders a file-name search as a clickable file list with a 'files' count", () => {
+    const view: ToolResultView = {
+      type: "search",
+      kind: "files",
+      matches: [{ file: "src/a.ts", text: "src/a.ts" }],
+      count: 1,
+    };
+    const { container } = render(<ResultView view={view} />);
+    expect(container.textContent).toContain("1 file");
+    // The path renders filename-first through FilePathLink (an interactive control).
+    expect(container.textContent).toContain("a.ts");
+    expect(container.querySelector("button, a")).not.toBeNull();
+  });
+
+  it("renders content matches grouped under their file with line numbers", () => {
+    const view: ToolResultView = {
+      type: "search",
+      kind: "content",
+      matches: [
+        { file: "a.ts", line: 12, text: "// TODO: fix" },
+        { file: "a.ts", line: 30, text: "// TODO: later" },
+      ],
+      count: 2,
+    };
+    const { container } = render(<ResultView view={view} />);
+    expect(container.textContent).toContain("2 matches");
+    expect(container.textContent).toContain("12:");
+    expect(container.textContent).toContain("// TODO: fix");
+  });
+
+  it("names the subtype in the empty state (files vs matches), query-free", () => {
+    const files = render(
+      <ResultView view={{ type: "search", kind: "files", matches: [], count: 0 }} />,
+    );
+    expect(files.container.textContent).toContain("No files found");
+
+    const content = render(
+      <ResultView view={{ type: "search", kind: "content", matches: [], count: 0 }} />,
+    );
+    expect(content.container.textContent).toContain("No matches");
+  });
+
+  it("shows a 'showing first N' note when the engine truncated the results", () => {
+    const view: ToolResultView = {
+      type: "search",
+      kind: "files",
+      matches: [
+        { file: "a.ts", text: "a.ts" },
+        { file: "b.ts", text: "b.ts" },
+      ],
+      count: 200,
+      truncated: true,
+    };
+    const { container } = render(<ResultView view={view} />);
+    expect(container.textContent).toContain("200 files");
+    expect(container.textContent).toContain("showing first 2");
+  });
+
+  it("suppresses the search count when showStats is false (owning row shows it)", () => {
+    const view: ToolResultView = {
+      type: "search",
+      kind: "files",
+      matches: [{ file: "Dockerfile", text: "Dockerfile" }],
+      count: 1,
+    };
+    const { container } = render(<ResultView view={view} showStats={false} />);
+    // The file still renders, but the redundant "1 file" count does not.
+    expect(container.textContent).toContain("Dockerfile");
+    expect(container.textContent).not.toContain("1 file");
+  });
+
+  it("keeps the truncation note even when the count is suppressed", () => {
+    const view: ToolResultView = {
+      type: "search",
+      kind: "files",
+      matches: [
+        { file: "a.ts", text: "a.ts" },
+        { file: "b.ts", text: "b.ts" },
+      ],
+      count: 200,
+      truncated: true,
+    };
+    const { container } = render(<ResultView view={view} showStats={false} />);
+    // The count header is gone, but the "showing first N of M" note remains —
+    // it is information the row header does not carry.
+    expect(container.textContent).not.toContain("200 files");
+    expect(container.textContent).toContain("Showing first 2 of 200");
   });
 
   it("renders unknown JSON results as a labeled code block, not a raw dump", () => {
@@ -70,6 +226,119 @@ describe("ResultView", () => {
     const { container } = render(<ResultView view={{ type: "empty" }} />);
     expect(container.textContent).toBe("");
   });
+
+  it("suppresses the diff filename when showFileName is false (owning row names it)", () => {
+    const view: ToolResultView = {
+      type: "diff",
+      path: "/workspace/secret.md",
+      oldText: "a",
+      newText: "a b",
+    };
+    const { container } = render(<ResultView view={view} showFileName={false} />);
+    // The path is not restated in the body; the diff content still renders.
+    expect(container.textContent).not.toContain("secret.md");
+    expect(container.textContent).toContain("a b");
+  });
+
+  it("renders a neutral 'no preview' notice for a contentless diff", () => {
+    const view: ToolResultView = { type: "diff", path: "/workspace/x.md" };
+    const { container } = render(<ResultView view={view} showFileName={false} />);
+    expect(container.textContent).toContain("No preview available for this change");
+    expect(container.textContent).not.toContain("x.md");
+  });
+
+  // Integration lock through the full normalizeToolResult -> ResultView pipeline:
+  // a whole-file write's proposed content is reconstructed from the tool args
+  // (Phase 5 Slice 4 removed the ToolCall.file_changes capture) and renders as
+  // the file body — never the "No preview available" notice.
+  it("renders a whole-file write's proposed content from args, not 'No preview available'", () => {
+    const CONTENT = "# Notes\n\n- first bullet\n- second bullet\n";
+    const toolCall = create(ToolCallSchema, {
+      id: "tool_create",
+      name: "write_file",
+      toolKind: ToolKind.FILE_WRITE,
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { path: "notes.md", contents: CONTENT } as JsonObject,
+    });
+
+    const { container } = render(<ResultView view={normalizeToolResult(toolCall)} />);
+    expect(container.textContent).toContain("first bullet");
+    expect(container.textContent).not.toContain("No preview available");
+  });
+
+  it("suppresses the file path in a write fallback when showFileName is false", () => {
+    const view: ToolResultView = {
+      type: "file",
+      path: "/workspace/created.md",
+      content: "the body",
+      truncated: false,
+    };
+    const { container } = render(<ResultView view={view} showFileName={false} />);
+    expect(container.textContent).toContain("the body");
+    expect(container.textContent).not.toContain("created.md");
+  });
+});
+
+describe("ResultView — offloaded outputRef (on-demand resolution)", () => {
+  const imageView: ToolResultView = {
+    type: "outputRef",
+    storageKey: "artifacts/aex_1/toolcalls/tc.png",
+    contentHash: "h",
+    isImage: true,
+    mimeType: "image/png",
+    sizeBytes: 1234,
+    preview: "",
+  };
+
+  const textView: ToolResultView = {
+    type: "outputRef",
+    storageKey: "artifacts/aex_1/toolcalls/tc.txt",
+    contentHash: "h",
+    isImage: false,
+    mimeType: "text/plain",
+    sizeBytes: 900_000,
+    preview: "short head…",
+  };
+
+  it("renders an offloaded image from a freshly minted URL (never a baked one)", async () => {
+    const getArtifactDownloadUrl = vi
+      .fn()
+      .mockResolvedValue({ downloadUrl: "https://fresh/url.png" });
+    const stigmer = {
+      agentExecution: { getArtifactDownloadUrl, getArtifactContent: vi.fn() },
+    } as unknown as Stigmer;
+
+    render(withStigmer(<ResultView view={imageView} />, stigmer));
+
+    const img = await screen.findByRole("img");
+    expect(img.getAttribute("src")).toBe("https://fresh/url.png");
+    // URL was resolved on demand from the stable storage key.
+    const req = getArtifactDownloadUrl.mock.calls[0][0];
+    expect(req.storageKey).toBe("artifacts/aex_1/toolcalls/tc.png");
+    expect(req.executionId).toBe("aex_1");
+  });
+
+  it("shows the preview head and defers the full fetch until 'View full output'", async () => {
+    const getArtifactContent = vi.fn().mockResolvedValue({
+      content: new TextEncoder().encode("THE FULL OUTPUT"),
+      contentType: "text/plain",
+      truncated: false,
+    });
+    const stigmer = {
+      agentExecution: { getArtifactContent, getArtifactDownloadUrl: vi.fn() },
+    } as unknown as Stigmer;
+
+    render(withStigmer(<ResultView view={textView} />, stigmer));
+
+    // Lazy: nothing fetched until the user expands.
+    expect(screen.getByText("short head…")).toBeTruthy();
+    expect(getArtifactContent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText(/View full output/));
+
+    await waitFor(() => expect(screen.getByText("THE FULL OUTPUT")).toBeTruthy());
+    expect(getArtifactContent).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("summarizeResultView", () => {
@@ -87,6 +356,15 @@ describe("summarizeResultView", () => {
   it("summarizes search and list counts", () => {
     expect(summarizeResultView({ type: "search", matches: [], count: 3 })).toBe("3 matches");
     expect(summarizeResultView({ type: "list", entries: [], count: 1 })).toBe("1 item");
+  });
+
+  it("uses the file noun for a file-name search summary", () => {
+    expect(
+      summarizeResultView({ type: "search", kind: "files", matches: [], count: 3 }),
+    ).toBe("3 files");
+    expect(
+      summarizeResultView({ type: "search", kind: "files", matches: [], count: 1 }),
+    ).toBe("1 file");
   });
 
   it("returns null when there is nothing to summarize", () => {

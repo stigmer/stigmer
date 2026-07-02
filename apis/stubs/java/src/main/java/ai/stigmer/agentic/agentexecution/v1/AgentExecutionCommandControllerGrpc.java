@@ -171,6 +171,37 @@ public final class AgentExecutionCommandControllerGrpc {
     return getSubmitApprovalMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecution> getSubmitFileDecisionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "submitFileDecision",
+      requestType = ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.AgentExecution.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecution> getSubmitFileDecisionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput, ai.stigmer.agentic.agentexecution.v1.AgentExecution> getSubmitFileDecisionMethod;
+    if ((getSubmitFileDecisionMethod = AgentExecutionCommandControllerGrpc.getSubmitFileDecisionMethod) == null) {
+      synchronized (AgentExecutionCommandControllerGrpc.class) {
+        if ((getSubmitFileDecisionMethod = AgentExecutionCommandControllerGrpc.getSubmitFileDecisionMethod) == null) {
+          AgentExecutionCommandControllerGrpc.getSubmitFileDecisionMethod = getSubmitFileDecisionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput, ai.stigmer.agentic.agentexecution.v1.AgentExecution>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "submitFileDecision"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.AgentExecution.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionCommandControllerMethodDescriptorSupplier("submitFileDecision"))
+              .build();
+        }
+      }
+    }
+    return getSubmitFileDecisionMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput,
       ai.stigmer.agentic.agentexecution.v1.AgentExecution> getCancelMethod;
 
@@ -510,6 +541,36 @@ public final class AgentExecutionCommandControllerGrpc {
     default void submitApproval(ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubmitApprovalMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Submit a keep/discard decision on a file change set (or a single file).
+     * Records a FILE_DECIDED event in the append-only file_review stream;
+     * FileChangeSet.decisions is the derived projection. The runner reconciles
+     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * that expected_digest still matches the captured content the user reviewed.
+     * ## Preconditions
+     * - Execution must exist and be non-terminal
+     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
+     *   file_change_id must match a CapturedFileChange.id within it
+     * - expected_digest must match the target's current digest
+     * - User must have can_edit permission on the execution
+     * &#64;internal
+     * ## Error Conditions
+     * - NOT_FOUND: Execution doesn't exist
+     * - FAILED_PRECONDITION: Execution terminal, or change set/file not found
+     * - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
+     *   FILE scope, or expected_digest mismatch
+     * - PERMISSION_DENIED: User lacks can_edit permission
+     * ## Idempotency
+     * Re-submitting the same decision (same change set, scope, target) is a no-op
+     * and returns the current state — appends are keyed by FileReviewEvent.event_id.
+     * </pre>
+     */
+    default void submitFileDecision(ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubmitFileDecisionMethod(), responseObserver);
     }
 
     /**
@@ -872,6 +933,37 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Submit a keep/discard decision on a file change set (or a single file).
+     * Records a FILE_DECIDED event in the append-only file_review stream;
+     * FileChangeSet.decisions is the derived projection. The runner reconciles
+     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * that expected_digest still matches the captured content the user reviewed.
+     * ## Preconditions
+     * - Execution must exist and be non-terminal
+     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
+     *   file_change_id must match a CapturedFileChange.id within it
+     * - expected_digest must match the target's current digest
+     * - User must have can_edit permission on the execution
+     * &#64;internal
+     * ## Error Conditions
+     * - NOT_FOUND: Execution doesn't exist
+     * - FAILED_PRECONDITION: Execution terminal, or change set/file not found
+     * - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
+     *   FILE scope, or expected_digest mismatch
+     * - PERMISSION_DENIED: User lacks can_edit permission
+     * ## Idempotency
+     * Re-submitting the same decision (same change set, scope, target) is a no-op
+     * and returns the current state — appends are keyed by FileReviewEvent.event_id.
+     * </pre>
+     */
+    public void submitFileDecision(ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getSubmitFileDecisionMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Cancel a running agent execution gracefully.
      * Sends a cancellation signal to the agent execution. The agent can handle
      * the cancellation signal to save checkpoint and clean up before
@@ -1216,6 +1308,36 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Submit a keep/discard decision on a file change set (or a single file).
+     * Records a FILE_DECIDED event in the append-only file_review stream;
+     * FileChangeSet.decisions is the derived projection. The runner reconciles
+     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * that expected_digest still matches the captured content the user reviewed.
+     * ## Preconditions
+     * - Execution must exist and be non-terminal
+     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
+     *   file_change_id must match a CapturedFileChange.id within it
+     * - expected_digest must match the target's current digest
+     * - User must have can_edit permission on the execution
+     * &#64;internal
+     * ## Error Conditions
+     * - NOT_FOUND: Execution doesn't exist
+     * - FAILED_PRECONDITION: Execution terminal, or change set/file not found
+     * - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
+     *   FILE scope, or expected_digest mismatch
+     * - PERMISSION_DENIED: User lacks can_edit permission
+     * ## Idempotency
+     * Re-submitting the same decision (same change set, scope, target) is a no-op
+     * and returns the current state — appends are keyed by FileReviewEvent.event_id.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.AgentExecution submitFileDecision(ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getSubmitFileDecisionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Cancel a running agent execution gracefully.
      * Sends a cancellation signal to the agent execution. The agent can handle
      * the cancellation signal to save checkpoint and clean up before
@@ -1550,6 +1672,36 @@ public final class AgentExecutionCommandControllerGrpc {
     public ai.stigmer.agentic.agentexecution.v1.AgentExecution submitApproval(ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getSubmitApprovalMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Submit a keep/discard decision on a file change set (or a single file).
+     * Records a FILE_DECIDED event in the append-only file_review stream;
+     * FileChangeSet.decisions is the derived projection. The runner reconciles
+     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * that expected_digest still matches the captured content the user reviewed.
+     * ## Preconditions
+     * - Execution must exist and be non-terminal
+     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
+     *   file_change_id must match a CapturedFileChange.id within it
+     * - expected_digest must match the target's current digest
+     * - User must have can_edit permission on the execution
+     * &#64;internal
+     * ## Error Conditions
+     * - NOT_FOUND: Execution doesn't exist
+     * - FAILED_PRECONDITION: Execution terminal, or change set/file not found
+     * - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
+     *   FILE scope, or expected_digest mismatch
+     * - PERMISSION_DENIED: User lacks can_edit permission
+     * ## Idempotency
+     * Re-submitting the same decision (same change set, scope, target) is a no-op
+     * and returns the current state — appends are keyed by FileReviewEvent.event_id.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.AgentExecution submitFileDecision(ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getSubmitFileDecisionMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1897,6 +2049,37 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Submit a keep/discard decision on a file change set (or a single file).
+     * Records a FILE_DECIDED event in the append-only file_review stream;
+     * FileChangeSet.decisions is the derived projection. The runner reconciles
+     * the approved bytes (Phase 2) — this RPC records the decision and enforces
+     * that expected_digest still matches the captured content the user reviewed.
+     * ## Preconditions
+     * - Execution must exist and be non-terminal
+     * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
+     *   file_change_id must match a CapturedFileChange.id within it
+     * - expected_digest must match the target's current digest
+     * - User must have can_edit permission on the execution
+     * &#64;internal
+     * ## Error Conditions
+     * - NOT_FOUND: Execution doesn't exist
+     * - FAILED_PRECONDITION: Execution terminal, or change set/file not found
+     * - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
+     *   FILE scope, or expected_digest mismatch
+     * - PERMISSION_DENIED: User lacks can_edit permission
+     * ## Idempotency
+     * Re-submitting the same decision (same change set, scope, target) is a no-op
+     * and returns the current state — appends are keyed by FileReviewEvent.event_id.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.AgentExecution> submitFileDecision(
+        ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getSubmitFileDecisionMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Cancel a running agent execution gracefully.
      * Sends a cancellation signal to the agent execution. The agent can handle
      * the cancellation signal to save checkpoint and clean up before
@@ -2136,12 +2319,13 @@ public final class AgentExecutionCommandControllerGrpc {
   private static final int METHODID_UPDATE_STATUS = 2;
   private static final int METHODID_DELETE = 3;
   private static final int METHODID_SUBMIT_APPROVAL = 4;
-  private static final int METHODID_CANCEL = 5;
-  private static final int METHODID_TERMINATE = 6;
-  private static final int METHODID_RECOVER = 7;
-  private static final int METHODID_PAUSE = 8;
-  private static final int METHODID_RESUME = 9;
-  private static final int METHODID_UPLOAD_ATTACHMENT = 10;
+  private static final int METHODID_SUBMIT_FILE_DECISION = 5;
+  private static final int METHODID_CANCEL = 6;
+  private static final int METHODID_TERMINATE = 7;
+  private static final int METHODID_RECOVER = 8;
+  private static final int METHODID_PAUSE = 9;
+  private static final int METHODID_RESUME = 10;
+  private static final int METHODID_UPLOAD_ATTACHMENT = 11;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -2178,6 +2362,10 @@ public final class AgentExecutionCommandControllerGrpc {
           break;
         case METHODID_SUBMIT_APPROVAL:
           serviceImpl.submitApproval((ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution>) responseObserver);
+          break;
+        case METHODID_SUBMIT_FILE_DECISION:
+          serviceImpl.submitFileDecision((ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution>) responseObserver);
           break;
         case METHODID_CANCEL:
@@ -2257,6 +2445,13 @@ public final class AgentExecutionCommandControllerGrpc {
               ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput,
               ai.stigmer.agentic.agentexecution.v1.AgentExecution>(
                 service, METHODID_SUBMIT_APPROVAL)))
+        .addMethod(
+          getSubmitFileDecisionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput,
+              ai.stigmer.agentic.agentexecution.v1.AgentExecution>(
+                service, METHODID_SUBMIT_FILE_DECISION)))
         .addMethod(
           getCancelMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -2352,6 +2547,7 @@ public final class AgentExecutionCommandControllerGrpc {
               .addMethod(getUpdateStatusMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getSubmitApprovalMethod())
+              .addMethod(getSubmitFileDecisionMethod())
               .addMethod(getCancelMethod())
               .addMethod(getTerminateMethod())
               .addMethod(getRecoverMethod())

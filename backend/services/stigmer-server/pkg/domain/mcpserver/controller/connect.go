@@ -16,6 +16,7 @@ import (
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	oauthappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/oauthapp/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
@@ -31,6 +32,13 @@ const (
 	connectWorkflowName = "stigmer/mcp-server/connect"
 	connectTimeout      = 45 * time.Second
 	personalEnvLabel    = "stigmer.ai/personal"
+
+	// bestEffortConnectGetBuffer is added to connectTimeout to bound the
+	// background goroutine's wait on the connect workflow result. The workflow's
+	// own WorkflowRunTimeout (connectTimeout) is the deadline that should fire
+	// first; this slightly longer context is only a backstop so the goroutine
+	// can never leak if Temporal becomes unreachable.
+	bestEffortConnectGetBuffer = 15 * time.Second
 )
 
 // connectWorkflowInput matches the Python DiscoverMcpServerInput dataclass
@@ -46,10 +54,19 @@ type connectWorkflowInput struct {
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
 }
 
-// connectWorkflowOutput matches the Python DiscoverMcpServerOutput dataclass.
+// connectWorkflowOutput mirrors the connect workflow's result
+// (ConnectMcpServerWorkflowOutput in the runner). Every field the runner
+// emits must have a home here: a missing field is silently dropped during
+// JSON deserialization, which is exactly how tool_approvals used to be lost.
 type connectWorkflowOutput struct {
 	Tools             []discoveredToolResult             `json:"tools"`
 	ResourceTemplates []discoveredResourceTemplateResult `json:"resource_templates"`
+	// Per-tool approval policies produced by the connect-time classifier.
+	// These feed McpServerStatus.tool_approvals — layer 1 of the approval
+	// policy chain. The classifier returns only the gated tools, but each
+	// entry still carries requires_approval so a future runner that emits
+	// non-gated entries is handled defensively at conversion time.
+	ToolApprovals []toolApprovalResult `json:"tool_approvals"`
 }
 
 type discoveredToolResult struct {
@@ -63,6 +80,17 @@ type discoveredResourceTemplateResult struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	MimeType    string `json:"mime_type"`
+}
+
+type toolApprovalResult struct {
+	ToolName         string `json:"tool_name"`
+	RequiresApproval bool   `json:"requires_approval"`
+	Message          string `json:"message"`
+	// FromDestructiveHint is true when the connect-time tightener force-gated this
+	// tool from its destructiveHint annotation (not the classifier). Persisted to
+	// ToolApprovalPolicy.from_destructive_hint so the runner attributes the gate to
+	// the annotation rather than the classifier default.
+	FromDestructiveHint bool `json:"from_destructive_hint"`
 }
 
 // Connect triggers server-side MCP discovery and tool approval classification
@@ -133,23 +161,23 @@ func (c *McpServerController) Connect(
 		return nil, err
 	}
 
-	capabilities := convertToDiscoveredCapabilities(result)
-	if mcpServer.Status == nil {
-		mcpServer.Status = &mcpserverv1.McpServerStatus{}
-	}
-	mcpServer.Status.DiscoveredCapabilities = capabilities
-
-	if err := c.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_mcp_server, mcpServerID, mcpServer); err != nil {
+	// Persist discovered capabilities + the connect-time classifier output
+	// (layer 1 of the approval policy chain) atomically. The freshly-read,
+	// updated resource is returned to the caller.
+	persisted, toolApprovalCount, err := c.persistConnectResult(ctx, mcpServerID, result)
+	if err != nil {
 		return nil, grpclib.InternalError(err, "failed to save mcp server after connect")
 	}
 
+	capabilities := persisted.GetStatus().GetDiscoveredCapabilities()
 	log.Info().
 		Str("mcp_server_id", mcpServerID).
 		Int("tools", len(capabilities.GetTools())).
 		Int("resource_templates", len(capabilities.GetResourceTemplates())).
+		Int("tool_approvals", toolApprovalCount).
 		Msg("MCP server connect completed and stored")
 
-	return mcpServer, nil
+	return persisted, nil
 }
 
 // createConnectExecutionContext builds and persists an ephemeral ExecutionContext
@@ -421,6 +449,43 @@ func (c *McpServerController) deleteConnectExecutionContext(
 		Msg("Deleted ephemeral connect ExecutionContext")
 }
 
+// startConnectWorkflow launches the connect workflow on the runner queue and
+// returns the run handle without waiting for completion.
+//
+// The synchronous Connect path and the fire-and-forget best-effort path share
+// this launch so the workflow ID scheme, task queue, run timeout, and the
+// "Started MCP connect workflow" log line stay identical across both. The two
+// callers diverge only afterwards, in how they await the result (run.Get) and
+// surface failures (gRPC status vs. background log) — which is a legitimate
+// difference, not duplication.
+func (c *McpServerController) startConnectWorkflow(
+	ctx context.Context,
+	mcpServerID string,
+	input connectWorkflowInput,
+) (client.WorkflowRun, error) {
+	workflowID := fmt.Sprintf("%s/%s/%s", connectWorkflowName, mcpServerID, uuid.New().String()[:8])
+
+	runnerQueue := c.temporalConfig.RunnerQueue
+	options := client.StartWorkflowOptions{
+		ID:                 workflowID,
+		TaskQueue:          runnerQueue,
+		WorkflowRunTimeout: connectTimeout,
+	}
+
+	run, err := c.temporalClient.ExecuteWorkflow(ctx, options, connectWorkflowName, input)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info().
+		Str("workflow_id", workflowID).
+		Str("mcp_server_id", mcpServerID).
+		Str("runner_queue", runnerQueue).
+		Msg("Started MCP connect workflow")
+
+	return run, nil
+}
+
 // executeConnectWorkflow starts the Python DiscoverMcpServerWorkflow on
 // the runner queue and blocks until it completes or times out.
 //
@@ -433,34 +498,18 @@ func (c *McpServerController) executeConnectWorkflow(
 	mcpServerID string,
 	input connectWorkflowInput,
 ) (*connectWorkflowOutput, error) {
-	workflowID := fmt.Sprintf("%s/%s/%s", connectWorkflowName, mcpServerID, uuid.New().String()[:8])
-
-	runnerQueue := c.temporalConfig.RunnerQueue
-	options := client.StartWorkflowOptions{
-		ID:                 workflowID,
-		TaskQueue:          runnerQueue,
-		WorkflowRunTimeout: connectTimeout,
-	}
-
-	run, err := c.temporalClient.ExecuteWorkflow(ctx, options, connectWorkflowName, input)
+	run, err := c.startConnectWorkflow(ctx, mcpServerID, input)
 	if err != nil {
 		log.Error().Err(err).
-			Str("workflow_id", workflowID).
 			Str("mcp_server_id", mcpServerID).
 			Msg("Failed to start MCP connect workflow")
 		return nil, grpclib.InternalError(err, "failed to start connect workflow")
 	}
 
-	log.Info().
-		Str("workflow_id", workflowID).
-		Str("mcp_server_id", mcpServerID).
-		Str("runner_queue", runnerQueue).
-		Msg("Started MCP connect workflow")
-
 	var result connectWorkflowOutput
 	if err := run.Get(ctx, &result); err != nil {
 		log.Error().Err(err).
-			Str("workflow_id", workflowID).
+			Str("workflow_id", run.GetID()).
 			Str("mcp_server_id", mcpServerID).
 			Msg("MCP connect workflow failed")
 
@@ -517,6 +566,94 @@ func convertToDiscoveredCapabilities(output *connectWorkflowOutput) *mcpserverv1
 	}
 
 	return capabilities
+}
+
+// convertToToolApprovals converts the connect workflow's classifier output to
+// the proto ToolApprovalPolicy list stored on McpServerStatus.tool_approvals.
+//
+// Presence in the list means "requires approval" — there is no boolean on the
+// proto — so any entry explicitly marked requires_approval=false is dropped.
+// Mirrors the Cloud (Java) StoreConnectResults converter so both editions
+// persist identical classifier output (the historical OSS gap was that this
+// list was never written at all, leaving layer 1 of the policy chain empty).
+func convertToToolApprovals(output *connectWorkflowOutput) []*mcpserverv1.ToolApprovalPolicy {
+	var approvals []*mcpserverv1.ToolApprovalPolicy
+	for _, a := range output.ToolApprovals {
+		if !a.RequiresApproval || a.ToolName == "" {
+			continue
+		}
+		approvals = append(approvals, &mcpserverv1.ToolApprovalPolicy{
+			ToolName:            a.ToolName,
+			Message:             a.Message,
+			FromDestructiveHint: a.FromDestructiveHint,
+		})
+	}
+	return approvals
+}
+
+// setToolApprovalsFromConnect writes the freshly classified tool approvals onto
+// the status, returning how many were applied.
+//
+// Overwrite-on-reconnect: a new non-empty result replaces the prior list so a
+// reclassification takes effect. Preserve-on-empty: an empty result leaves the
+// existing list untouched, so a degraded or older runner that returns nothing
+// can never silently disarm previously persisted approval gates.
+func setToolApprovalsFromConnect(status *mcpserverv1.McpServerStatus, output *connectWorkflowOutput) int {
+	approvals := convertToToolApprovals(output)
+	if len(approvals) > 0 {
+		status.ToolApprovals = approvals
+	}
+	return len(approvals)
+}
+
+// persistConnectResult writes the connect workflow's output onto the McpServer
+// status as a single atomic read-modify-write, returning the updated resource
+// and the number of tool-approval gates applied.
+//
+// This is the one place connect output lands on the resource — both the
+// synchronous Connect path and the best-effort auto-connect path route through
+// it. The atomic UpdateResource is deliberate: the best-effort write can land
+// up to connectTimeout after Apply returned, so a plain read-modify-write would
+// risk clobbering a concurrent update (a manual reconnect or an edit) made in
+// that window.
+//
+// The two status fields follow the deliberate Phase-6 asymmetry, unchanged:
+//   - discovered_capabilities is a point-in-time snapshot, overwritten on every
+//     connect.
+//   - tool_approvals are safety-critical gates, so setToolApprovalsFromConnect
+//     overwrites them only on a non-empty result and preserves them on an empty
+//     one — a degraded or older runner can never silently disarm them.
+//
+// Returns store.ErrNotFound if the resource was deleted between the connect
+// trigger and its completion (a real case for the background path); callers
+// decide how to react.
+func (c *McpServerController) persistConnectResult(
+	ctx context.Context,
+	mcpServerID string,
+	output *connectWorkflowOutput,
+) (*mcpserverv1.McpServer, int, error) {
+	mcpServer := &mcpserverv1.McpServer{}
+	var toolApprovalCount int
+
+	err := c.store.UpdateResource(
+		ctx,
+		apiresourcekind.ApiResourceKind_mcp_server,
+		mcpServerID,
+		mcpServer,
+		func() error {
+			if mcpServer.Status == nil {
+				mcpServer.Status = &mcpserverv1.McpServerStatus{}
+			}
+			mcpServer.Status.DiscoveredCapabilities = convertToDiscoveredCapabilities(output)
+			toolApprovalCount = setToolApprovalsFromConnect(mcpServer.Status, output)
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return mcpServer, toolApprovalCount, nil
 }
 
 // refreshOAuthTokenIfNeeded checks whether the MCP server has an auth block
@@ -650,17 +787,22 @@ func (c *McpServerController) loadOAuthAppClientSecret(
 	return "", fmt.Errorf("OAuthApp '%s' not found", ref.GetSlug())
 }
 
-// StartBestEffortConnect starts the connect workflow asynchronously
-// without blocking. Used by the apply handler for auto-discovery on create.
-// Failures are logged but do not propagate.
+// StartBestEffortConnect runs the connect workflow for a freshly applied MCP
+// server and persists its discovered capabilities + classifier tool-approvals.
+//
+// Apply launches it in a goroutine, so it is fire-and-forget from the caller's
+// view: it awaits the workflow result on its own bounded background context and
+// every failure is logged, never propagated. Persistence is shared with the
+// synchronous Connect path via persistConnectResult, so auto-connect and manual
+// connect store byte-identical results.
 //
 // Skips when the MCP server declares env vars, because creating an
-// ExecutionContext requires the caller's gRPC context (for personal
-// environment resolution), which is unavailable in a fire-and-forget
-// goroutine. Users must trigger manual connect for these servers.
+// ExecutionContext requires the caller's gRPC context (for personal environment
+// resolution), which is unavailable in a background goroutine. Users must
+// trigger a manual connect for those servers.
 //
-// Uses context.Background() because this runs in a fire-and-forget goroutine
-// after the originating gRPC request has already returned.
+// If the server is deleted before the workflow completes, persistence is
+// skipped (store.ErrNotFound) — expected for best-effort.
 func (c *McpServerController) StartBestEffortConnect(
 	mcpServer *mcpserverv1.McpServer,
 ) {
@@ -678,20 +820,10 @@ func (c *McpServerController) StartBestEffortConnect(
 
 	mcpServerID := mcpServer.GetMetadata().GetId()
 
-	wfInput := connectWorkflowInput{
-		McpServerID: mcpServerID,
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout+bestEffortConnectGetBuffer)
+	defer cancel()
 
-	workflowID := fmt.Sprintf("%s/%s/%s", connectWorkflowName, mcpServerID, uuid.New().String()[:8])
-
-	runnerQueue := c.temporalConfig.RunnerQueue
-	options := client.StartWorkflowOptions{
-		ID:                 workflowID,
-		TaskQueue:          runnerQueue,
-		WorkflowRunTimeout: connectTimeout,
-	}
-
-	_, err := c.temporalClient.ExecuteWorkflow(context.Background(), options, connectWorkflowName, wfInput)
+	run, err := c.startConnectWorkflow(ctx, mcpServerID, connectWorkflowInput{McpServerID: mcpServerID})
 	if err != nil {
 		log.Warn().Err(err).
 			Str("mcp_server_id", mcpServerID).
@@ -699,8 +831,35 @@ func (c *McpServerController) StartBestEffortConnect(
 		return
 	}
 
+	var result connectWorkflowOutput
+	if err := run.Get(ctx, &result); err != nil {
+		log.Warn().Err(err).
+			Str("workflow_id", run.GetID()).
+			Str("mcp_server_id", mcpServerID).
+			Msg("Best-effort connect workflow did not complete (non-fatal)")
+		return
+	}
+
+	persisted, toolApprovalCount, err := c.persistConnectResult(ctx, mcpServerID, &result)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			log.Info().
+				Str("mcp_server_id", mcpServerID).
+				Msg("Skipping best-effort connect persistence: MCP server deleted before connect completed")
+			return
+		}
+		log.Warn().Err(err).
+			Str("mcp_server_id", mcpServerID).
+			Msg("Failed to persist best-effort connect result (non-fatal)")
+		return
+	}
+
+	capabilities := persisted.GetStatus().GetDiscoveredCapabilities()
 	log.Info().
-		Str("workflow_id", workflowID).
+		Str("workflow_id", run.GetID()).
 		Str("mcp_server_id", mcpServerID).
-		Msg("Started best-effort auto-connect workflow (fire-and-forget)")
+		Int("tools", len(capabilities.GetTools())).
+		Int("resource_templates", len(capabilities.GetResourceTemplates())).
+		Int("tool_approvals", toolApprovalCount).
+		Msg("Best-effort auto-connect completed and stored")
 }

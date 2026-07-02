@@ -9,6 +9,7 @@ export type { DiffSummaryProps } from "./DiffSummary";
 export { MultiFileDiffView } from "./MultiFileDiffView";
 export type { MultiFileDiffViewProps } from "./MultiFileDiffView";
 export { computeDiff } from "./computeDiff";
+export { parseUnifiedDiff } from "./parseUnifiedDiff";
 export { computeMultiFileDiff } from "./computeMultiFileDiff";
 export type {
   VersionEntry,

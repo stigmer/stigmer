@@ -7,14 +7,18 @@ import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import {
   ApprovalAction,
   ExecutionPhase,
+  FileChangeSetStatus,
   InteractionMode,
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import { displayFileChangeSets } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { isTerminalPhase } from "./execution-phases";
 import { MessageEntry } from "./MessageEntry";
@@ -23,18 +27,23 @@ import { SubAgentSection } from "./SubAgentSection";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 import { SetupProgress } from "./SetupProgress";
 import { ApprovalCard } from "./ApprovalCard";
+import { FileReviewCard } from "./FileReviewCard";
 import { SummarizationCard } from "./SummarizationCard";
 import { PlanCompletionCard } from "./PlanCompletionCard";
 import { PlanArtifactCard } from "./PlanArtifactCard";
+import { TodoCard } from "./TodoCard";
 import { findPlanArtifact } from "../library/detect-plan-artifact";
 import type { SummarizationEventView } from "./useContextWindow";
-import { isInternalTool } from "./tool-categories";
+import { isInternalTool, isCollapsedToolCall } from "./tool-categories";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
+import { ApprovalContext, type ApprovalContextValue } from "./ApprovalContext";
+import { FileReviewContext, type FileReviewContextValue } from "./FileReviewContext";
 import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev";
 import { useAutoScroll } from "../internal/useAutoScroll";
 import { JumpToLatestButton } from "../internal/JumpToLatestButton";
+import { ApprovalPeekBar } from "../internal/ApprovalPeekBar";
 import { ThreadItemWrapper } from "../internal/ThreadItemWrapper";
 
 const LazyVirtualizedThread = lazy(() =>
@@ -42,6 +51,11 @@ const LazyVirtualizedThread = lazy(() =>
     default: m.VirtualizedThread,
   })),
 );
+
+/** Stable empty collections so an approval-free thread keeps referential identity. */
+const EMPTY_APPROVALS: readonly PendingApproval[] = [];
+const EMPTY_SUBMITTING_IDS: ReadonlySet<string> = new Set();
+const EMPTY_APPROVAL_ERRORS: ReadonlyMap<string, Error> = new Map();
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
@@ -116,6 +130,31 @@ export interface MessageThreadProps {
    * `onApprovalSubmit` is provided.
    */
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  /**
+   * Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card
+   * beside the gate that failed (an inline tool row or the bottom backstop
+   * card). Supply {@link useSubmitApproval}'s `errorsByToolCallId`. Only
+   * meaningful when `onApprovalSubmit` is provided.
+   */
+  readonly approvalErrors?: ReadonlyMap<string, Error>;
+  /**
+   * Render each *settled* captured change set as a read-only record card at
+   * its anchor in the thread (after the set's last stamped edit row) — the
+   * durable history of what changed and how it was decided. This is the only
+   * in-thread trace for a set with no stamped rows (e.g. changes made by shell
+   * commands), so the surface that owns the session history should enable it.
+   *
+   * The thread never renders *decision* controls: a pending (AWAITING_REVIEW)
+   * set on a live execution is deliberately NOT emitted here — its decision
+   * surface is the composer-docked {@link FileReviewDock}, which cannot scroll
+   * out of view. The stamped rows' badges carry the pending state in-thread.
+   *
+   * Opt-in with a backward-compatible default (DD-011); `SessionViewer`
+   * enables it.
+   *
+   * @default false
+   */
+  readonly showFileReviewRecords?: boolean;
   /**
    * Workspace entries from the session spec. When provided, file
    * paths in tool call rendering become interactive — git-sourced
@@ -216,8 +255,15 @@ export type ThreadItem =
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
+  | { readonly kind: "file-review-record"; readonly fileChangeSet: FileChangeSet; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
+  | {
+      readonly kind: "todos";
+      readonly key: string;
+      readonly executionId: string;
+      readonly todos: { readonly [id: string]: TodoItem };
+    }
   | {
       readonly kind: "plan-completion";
       readonly key: string;
@@ -225,13 +271,112 @@ export type ThreadItem =
       readonly planArtifact?: ExecutionArtifact;
     };
 
-function hasAiMessages(execution: AgentExecution): boolean {
+/**
+ * True once the agent has produced any real, renderable response for this turn —
+ * assistant text, a tool call (running or terminal), or streamed model thinking.
+ *
+ * Gates the synthetic "Thinking…" setup placeholder (see usage below): the
+ * placeholder is only for the genuine pre-first-content window and must yield the
+ * moment any of these stream in, otherwise it would render *alongside* the real
+ * ThinkingMessage / ToolCallGroup cards (the GitHub #179 duplicate-spinner).
+ */
+function hasStartedResponding(execution: AgentExecution): boolean {
   const messages = execution.status?.messages;
   if (!messages || messages.length === 0) return false;
-  return messages.some(
-    (m) =>
-      m.type === MessageType.MESSAGE_AI && (m.content.trim() || m.toolCalls.length > 0),
-  );
+  return messages.some((m) => {
+    // Any tool call — RUNNING or terminal — is visible activity, regardless of
+    // which message type hosts it.
+    if (m.toolCalls.length > 0) return true;
+    if (m.type === MessageType.MESSAGE_AI && m.content.trim().length > 0) return true;
+    // Streamed reasoning renders in its own collapsible ThinkingMessage card, so
+    // it counts as "responding" even before the first assistant token arrives.
+    if (m.type === MessageType.MESSAGE_THINKING && m.content.trim().length > 0) return true;
+    return false;
+  });
+}
+
+/**
+ * Adds the tool-call ids that a sub-agent renders as nested rows (the same
+ * non-internal AI tool calls {@link SubAgentSection} surfaces) to `target`,
+ * so their approvals are treated as inline and skip the bottom backstop.
+ */
+function collectSubAgentInlineToolCallIds(
+  sub: SubAgentExecution,
+  target: Set<string>,
+): void {
+  for (const msg of sub.messages) {
+    if (msg.type !== MessageType.MESSAGE_AI) continue;
+    for (const tc of msg.toolCalls) {
+      if (tc.id && !isInternalTool(tc.name)) target.add(tc.id);
+    }
+  }
+}
+
+/**
+ * Records, for each change set referenced by a just-pushed tool-group item, the
+ * item's index — later groups overwrite, so the map converges on each set's
+ * LAST stamped row. That index is where the set's decision bar anchors: the
+ * review surface appears where the turn's editing activity ended, not at the
+ * thread tail.
+ */
+function recordFileReviewAnchors(
+  toolCalls: readonly ToolCall[],
+  itemIndex: number,
+  anchorIndexBySetId: Map<string, number>,
+): void {
+  for (const tc of toolCalls) {
+    if (tc.fileChangeSetId) anchorIndexBySetId.set(tc.fileChangeSetId, itemIndex);
+  }
+}
+
+/**
+ * Inserts one execution's settled file-review records into its own thread
+ * segment: each change set's read-only `file-review-record` item is spliced
+ * immediately after the set's last stamped tool row
+ * ({@link recordFileReviewAnchors}); a set with no stamped row (its changes
+ * were made by shell commands, or the rows predate stamping) falls back to the
+ * segment's tail — this record is that set's ONLY in-thread trace, so it is
+ * never dropped.
+ *
+ * A *pending* set — AWAITING_REVIEW on a live (non-terminal) execution — is
+ * deliberately NOT emitted: its decision surface is the composer-docked
+ * `FileReviewDock`, which cannot scroll out of view, and the stamped rows'
+ * badges carry the pending state in place. The same set re-enters here as a
+ * record the moment it settles (or its execution terminates mid-review — an
+ * honest "not reviewed" record). A CAPTURING set (baseline only, no diff yet)
+ * has nothing to show and is skipped.
+ */
+function insertFileReviewItems(
+  items: ThreadItem[],
+  changeSets: readonly FileChangeSet[],
+  anchorIndexBySetId: ReadonlyMap<string, number>,
+  execTerminal: boolean,
+): void {
+  const anchored: { index: number; item: ThreadItem }[] = [];
+  const tail: ThreadItem[] = [];
+  for (const changeSet of changeSets) {
+    if (changeSet.changes.length === 0) continue;
+    const pending =
+      !execTerminal && changeSet.status === FileChangeSetStatus.AWAITING_REVIEW;
+    if (pending) continue;
+    const item: ThreadItem = {
+      kind: "file-review-record",
+      fileChangeSet: changeSet,
+      key: `file-review-${changeSet.id}`,
+    };
+    const index = anchorIndexBySetId.get(changeSet.id);
+    if (index !== undefined) anchored.push({ index, item });
+    else tail.push(item);
+  }
+  // Splice in ascending anchor order with a running offset so earlier inserts
+  // do not displace later anchors.
+  anchored.sort((a, b) => a.index - b.index);
+  let offset = 0;
+  for (const { index, item } of anchored) {
+    items.splice(index + 1 + offset, 0, item);
+    offset++;
+  }
+  items.push(...tail);
 }
 
 /**
@@ -251,10 +396,32 @@ export function buildThreadItems(
   summarizationEvents?: readonly SummarizationEventView[],
   pendingMessageFailed = false,
   editableActiveTurn = false,
+  includeFileReviewRecords = false,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
+  // Tool-call ids that render as an inline-approval-capable ToolCallItem (a
+  // regular parent tool, or a sub-agent's nested tool). Their approvals show
+  // inline on the row, so they are excluded from the bottom backstop below —
+  // a task-spawn call (rendered as a SubAgentSection, not a tool row) is NOT
+  // collected, so its spawn-gate approval still surfaces at the bottom.
+  const inlineToolCallIds = new Set<string>();
+  // Dedupe by execution id, with activeStreamExecution authoritative for its own
+  // id. The hook passes `completedExecutions` (filtered on activeExecutionId),
+  // but that filter and activeStreamExecution (stream.execution ??
+  // fetchedActiveExecution) derive from different sources, so a transient skew
+  // can leave the active execution in BOTH lists. Concatenating blindly then
+  // emits the same execution twice → duplicate React keys → React silently drops
+  // one subtree, intermittently the one carrying a live ApprovalCard (the gate
+  // buttons vanish). Dropping any prior entry sharing the active id keeps the
+  // streamed copy as the single source of truth and the append-at-end invariant
+  // (activeStreamIndex === last) intact.
   const allExecutions = activeStreamExecution
-    ? [...executions, activeStreamExecution]
+    ? [
+        ...executions.filter(
+          (e) => e.metadata?.id !== activeStreamExecution.metadata?.id,
+        ),
+        activeStreamExecution,
+      ]
     : executions;
   const activeStreamIndex = activeStreamExecution
     ? allExecutions.length - 1
@@ -290,6 +457,36 @@ export function buildThreadItems(
     const isActiveStreamExec = ei === activeStreamIndex;
     const messages = exec.status?.messages ?? [];
     const subAgents = exec.status?.subAgentExecutions ?? [];
+
+    // This execution's settled change sets render as read-only records inside
+    // its own segment, anchored to the last stamped edit row of each set. The
+    // display seam reads the server's live projection when present and folds
+    // the durable ledger for a terminal execution (whose projection is nil),
+    // so records surface for EVERY execution, not just the last. Pending sets
+    // are excluded inside insertFileReviewItems — the composer dock owns them.
+    const execChangeSets = includeFileReviewRecords
+      ? displayFileChangeSets(exec.status)
+      : [];
+    const fileReviewAnchors = new Map<string, number>();
+
+    // The agent's plan renders as one inline card per turn, anchored to the
+    // first of: the opening AI/thinking message, the first unit of work
+    // (tool-group / sub-agent), or — as a backstop — the turn's tail. We carry
+    // the live `status.todos` reference (structural sharing keeps it stable),
+    // so the card updates in place and a settled card skips re-renders.
+    const execTodos = exec.status?.todos;
+    const hasTodos = execTodos != null && Object.keys(execTodos).length > 0;
+    let todosEmitted = false;
+    function emitTodos(): void {
+      if (todosEmitted || !hasTodos) return;
+      todosEmitted = true;
+      items.push({
+        kind: "todos",
+        executionId: execId,
+        todos: execTodos!,
+        key: `${execId}-todos`,
+      });
+    }
 
     const specMessage = exec.spec?.message;
     if (specMessage && specMessage !== "execute") {
@@ -333,20 +530,43 @@ export function buildThreadItems(
           message: msg,
           key: `${execId}-m${mi}`,
         });
+        // Anchor (1): the plan sits right under the agent's opening narration.
+        if (
+          msg.type === MessageType.MESSAGE_AI ||
+          msg.type === MessageType.MESSAGE_THINKING
+        ) {
+          emitTodos();
+        }
       }
+
+      // Runner-collapsed duplicates (a superseded same-turn denial twin of an
+      // approval gate) are not rendered — they are kept in the transcript only to
+      // satisfy the backend's append-only guard. Filtering them here keeps a
+      // message whose tool calls are ALL collapsed from emitting an empty group.
+      // Preserve the original array reference when nothing is collapsed (the
+      // common case) so structural sharing / memoization (T04) is not defeated by
+      // a fresh array on every build.
+      const renderableToolCalls =
+        msg.type === MessageType.MESSAGE_AI && msg.toolCalls.some(isCollapsedToolCall)
+          ? msg.toolCalls.filter((tc) => !isCollapsedToolCall(tc))
+          : msg.toolCalls;
 
       if (
         msg.type === MessageType.MESSAGE_AI &&
-        msg.toolCalls.length > 0
+        renderableToolCalls.length > 0
       ) {
-        const needsSplit = msg.toolCalls.some(
+        // Anchor (2): if work begins before any rendered narration, the plan
+        // still leads it.
+        emitTodos();
+
+        const needsSplit = renderableToolCalls.some(
           (tc) => tc.name === "task" || isInternalTool(tc.name),
         );
 
         if (needsSplit) {
           const regularTools: ToolCall[] = [];
           const matchedSubAgents: SubAgentExecution[] = [];
-          for (const tc of msg.toolCalls) {
+          for (const tc of renderableToolCalls) {
             if (tc.name === "task") {
               const matched = subAgents.find((sa) => sa.id === tc.id);
               if (matched) matchedSubAgents.push(matched);
@@ -361,6 +581,10 @@ export function buildThreadItems(
               subAgentExecutions: subAgents,
               key: `${execId}-m${mi}-tc`,
             });
+            recordFileReviewAnchors(regularTools, items.length - 1, fileReviewAnchors);
+            for (const tc of regularTools) {
+              if (tc.id) inlineToolCallIds.add(tc.id);
+            }
           }
           for (const sa of matchedSubAgents) {
             items.push({
@@ -368,16 +592,35 @@ export function buildThreadItems(
               subAgentExecution: sa,
               key: `sa-${sa.id}`,
             });
+            collectSubAgentInlineToolCallIds(sa, inlineToolCallIds);
           }
         } else {
           items.push({
             kind: "tool-group",
-            toolCalls: msg.toolCalls,
+            toolCalls: renderableToolCalls,
             subAgentExecutions: subAgents,
             key: `${execId}-m${mi}-tc`,
           });
+          recordFileReviewAnchors(renderableToolCalls, items.length - 1, fileReviewAnchors);
+          for (const tc of renderableToolCalls) {
+            if (tc.id) inlineToolCallIds.add(tc.id);
+          }
         }
       }
+    }
+
+    // Anchor (3): a plan that produced no rendered narration or work item still
+    // surfaces — never silently dropped.
+    emitTodos();
+
+    // Settled records land inside this execution's segment, at their anchors.
+    if (execChangeSets.length > 0) {
+      insertFileReviewItems(
+        items,
+        execChangeSets,
+        fileReviewAnchors,
+        isTerminalPhase(exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED),
+      );
     }
   }
 
@@ -396,7 +639,7 @@ export function buildThreadItems(
   const lastPhase =
     lastExec?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 
-  if (activeStreamExecution && !hasAiMessages(activeStreamExecution)) {
+  if (activeStreamExecution && !hasStartedResponding(activeStreamExecution)) {
     const isPending =
       lastPhase === ExecutionPhase.EXECUTION_PENDING ||
       lastPhase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
@@ -462,9 +705,17 @@ export function buildThreadItems(
   }
 
   if (includeApprovals) {
+    // Backstop only: an approval whose tool call renders inline shows its gate
+    // on that row (see ApprovalContext / ToolCallItem). We emit a bottom card
+    // ONLY for an approval with no inline home — a true orphan, or a task-spawn
+    // approval that precedes its SubAgentExecution — so a pending gate is never
+    // invisible, and never duplicated.
     const allApprovals = lastExec?.status?.pendingApprovals ?? [];
     for (let ai = 0; ai < allApprovals.length; ai++) {
       const approval = allApprovals[ai];
+      if (approval.toolCallId && inlineToolCallIds.has(approval.toolCallId)) {
+        continue;
+      }
       items.push({
         kind: "approval-request",
         pendingApproval: approval,
@@ -472,6 +723,11 @@ export function buildThreadItems(
       });
     }
   }
+
+  // File-review records are emitted inside each execution's segment (see
+  // insertFileReviewItems in the loop above) — anchored to the last stamped
+  // edit row, never appended at the thread tail. Pending decision bars are
+  // not thread items at all: they live in the composer-docked FileReviewDock.
 
   if (pendingUserMessage) {
     const alreadySynthesized =
@@ -530,6 +786,8 @@ export function MessageThread({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  approvalErrors,
+  showFileReviewRecords = false,
   workspaceEntries,
   onFilePathClick,
   sandboxWorkspaceRoot,
@@ -545,8 +803,8 @@ export function MessageThread({
   const includeApprovals = onApprovalSubmit != null;
   const editableActiveTurn = onEditMessage != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords],
   );
 
   useKeyStability(items);
@@ -564,6 +822,57 @@ export function MessageThread({
     [sandboxWorkspaceRoot],
   );
 
+  // Pending approvals live on the latest execution. We project them into a
+  // tool-call-id-keyed map so each gated tool row can render its own approval
+  // inline (see ApprovalContext); buildThreadItems still emits a bottom card
+  // for any approval with no matching inline row (orphan backstop).
+  const lastExec = activeStreamExecution ?? executions[executions.length - 1];
+  const pendingApprovals = includeApprovals
+    ? lastExec?.status?.pendingApprovals ?? EMPTY_APPROVALS
+    : EMPTY_APPROVALS;
+
+  const approvalsByToolCallId = useMemo(() => {
+    const map = new Map<string, PendingApproval>();
+    for (const approval of pendingApprovals) {
+      if (approval.toolCallId) map.set(approval.toolCallId, approval);
+    }
+    return map;
+  }, [pendingApprovals]);
+
+  const approvalCtx = useMemo<ApprovalContextValue>(
+    () => ({
+      approvalsByToolCallId,
+      onSubmit: onApprovalSubmit,
+      submittingIds: submittingApprovalIds ?? EMPTY_SUBMITTING_IDS,
+      errorsByToolCallId: approvalErrors ?? EMPTY_APPROVAL_ERRORS,
+    }),
+    [approvalsByToolCallId, onApprovalSubmit, submittingApprovalIds, approvalErrors],
+  );
+
+  // Every displayable change set across the session, keyed by id, so a stamped
+  // edit row (ToolCall.file_change_set_id) can badge its set's live review
+  // state wherever it renders (parent thread or nested groups). The map is
+  // rebuilt only when the execution list reference changes; structural sharing
+  // keeps each FileChangeSet reference stable across streaming frames, so
+  // subscribing rows re-render on review events, not every snapshot.
+  const fileReviewCtx = useMemo<FileReviewContextValue>(() => {
+    const map = new Map<string, FileChangeSet>();
+    const all = activeStreamExecution
+      ? [...executions, activeStreamExecution]
+      : executions;
+    for (const exec of all) {
+      for (const changeSet of displayFileChangeSets(exec.status)) {
+        // Later wins: the active stream's copy supersedes a stale fetched one.
+        map.set(changeSet.id, changeSet);
+      }
+    }
+    return { changeSetsById: map };
+  }, [executions, activeStreamExecution]);
+
+  // Drives the global "approval needed" peek affordance — a count, not the
+  // cards, so the bar reuses the existing scroll machine without a new observer.
+  const unresolvedApprovalCount = pendingApprovals.length;
+
   if (virtualized) {
     return (
       <div className={cn("relative min-h-0", className)}>
@@ -573,8 +882,12 @@ export function MessageThread({
             formatToolCallSummary={formatToolCallSummary}
             onApprovalSubmit={onApprovalSubmit}
             submittingApprovalIds={submittingApprovalIds}
+            approvalErrors={approvalErrors}
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
+            approvalCtx={approvalCtx}
+            fileReviewCtx={fileReviewCtx}
+            unresolvedApprovalCount={unresolvedApprovalCount}
             onBuildFromPlan={onBuildFromPlan}
             org={org}
             planActionsDisabled={planActionsDisabled}
@@ -596,8 +909,12 @@ export function MessageThread({
       formatToolCallSummary={formatToolCallSummary}
       onApprovalSubmit={onApprovalSubmit}
       submittingApprovalIds={submittingApprovalIds}
+      approvalErrors={approvalErrors}
       filePathCtx={filePathCtx}
       sandboxCtx={sandboxCtx}
+      approvalCtx={approvalCtx}
+      fileReviewCtx={fileReviewCtx}
+      unresolvedApprovalCount={unresolvedApprovalCount}
       onBuildFromPlan={onBuildFromPlan}
       org={org}
       planActionsDisabled={planActionsDisabled}
@@ -623,8 +940,12 @@ interface NonVirtualizedThreadProps {
     comment?: string,
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly approvalErrors?: ReadonlyMap<string, Error>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
+  readonly approvalCtx: ApprovalContextValue;
+  readonly fileReviewCtx: FileReviewContextValue;
+  readonly unresolvedApprovalCount: number;
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
@@ -640,8 +961,12 @@ function NonVirtualizedThread({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  approvalErrors,
   filePathCtx,
   sandboxCtx,
+  approvalCtx,
+  fileReviewCtx,
+  unresolvedApprovalCount,
   onBuildFromPlan,
   org,
   planActionsDisabled,
@@ -671,6 +996,8 @@ function NonVirtualizedThread({
       >
         <SandboxContext.Provider value={sandboxCtx}>
         <FilePathContext.Provider value={filePathCtx}>
+        <ApprovalContext.Provider value={approvalCtx}>
+        <FileReviewContext.Provider value={fileReviewCtx}>
         <DevProfiler id="MessageThread">
           <div ref={contentRef} className={cn("flex flex-col gap-4", centerContent && "mx-auto w-full max-w-3xl px-4")}>
             {items.map((item) => (
@@ -680,6 +1007,7 @@ function NonVirtualizedThread({
                   formatToolCallSummary={formatToolCallSummary}
                   onApprovalSubmit={onApprovalSubmit}
                   submittingApprovalIds={submittingApprovalIds}
+                  approvalErrors={approvalErrors}
                   onBuildFromPlan={onBuildFromPlan}
                   org={org}
                   planActionsDisabled={planActionsDisabled}
@@ -691,11 +1019,23 @@ function NonVirtualizedThread({
             ))}
           </div>
         </DevProfiler>
+        </FileReviewContext.Provider>
+        </ApprovalContext.Provider>
         </FilePathContext.Provider>
         </SandboxContext.Provider>
         <div ref={sentinelRef} aria-hidden="true" />
       </div>
-      <JumpToLatestButton onClick={jumpToLatest} visible={!isFollowing} />
+      {/* The peek bar takes the jump button's slot while approvals are pending,
+          so the two never overlap — a gate is the louder of the two signals. */}
+      <JumpToLatestButton
+        onClick={jumpToLatest}
+        visible={!isFollowing && unresolvedApprovalCount === 0}
+      />
+      <ApprovalPeekBar
+        visible={!isFollowing && unresolvedApprovalCount > 0}
+        count={unresolvedApprovalCount}
+        onClick={jumpToLatest}
+      />
     </div>
   );
 }
@@ -719,6 +1059,7 @@ export interface ThreadItemRendererProps {
     comment?: string,
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly approvalErrors?: ReadonlyMap<string, Error>;
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
@@ -743,6 +1084,7 @@ export function ThreadItemRenderer({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  approvalErrors,
   onBuildFromPlan,
   org,
   planActionsDisabled,
@@ -804,8 +1146,11 @@ export function ThreadItemRenderer({
           pendingApproval={item.pendingApproval}
           onApprovalSubmit={onApprovalSubmit!}
           isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
+          error={approvalErrors?.get(item.pendingApproval.toolCallId) ?? null}
         />
       );
+    case "file-review-record":
+      return <FileReviewRecordRow fileChangeSet={item.fileChangeSet} />;
     case "setup-progress":
       return (
         <SetupProgress
@@ -816,6 +1161,8 @@ export function ThreadItemRenderer({
       );
     case "context-compacted":
       return <SummarizationCard event={item.event} />;
+    case "todos":
+      return <TodoCard todos={item.todos} className="mx-4" />;
     case "plan-completion":
       // When the plan was published as an artifact, show the richer reviewable
       // card (preview / copy / download / implement). Otherwise fall back to the
@@ -968,12 +1315,16 @@ interface ApprovalCardRowProps {
     comment?: string,
   ) => void;
   readonly isSubmitting: boolean;
+  // This gate's last failed decision, or null — a stable ref from the
+  // approvalErrors map, so the row re-renders only when its error appears/clears.
+  readonly error?: Error | null;
 }
 
 const ApprovalCardRow = memo(function ApprovalCardRow({
   pendingApproval,
   onApprovalSubmit,
   isSubmitting,
+  error = null,
 }: ApprovalCardRowProps) {
   const handleSubmit = useCallback(
     (action: ApprovalAction, comment?: string) => {
@@ -987,6 +1338,35 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
       pendingApproval={pendingApproval}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
+      error={error}
+      className="mx-4"
+    />
+  );
+});
+
+// ---------------------------------------------------------------------------
+// FileReviewRecordRow — a settled change set's read-only in-thread record
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders a settled change set as a read-only record at its position in the
+ * transcript — what changed and how it was decided ("2 kept · 1 discarded").
+ * Never interactive: the pending decision surface is the composer-docked
+ * `FileReviewDock`, not a thread item (see {@link insertFileReviewItems}).
+ */
+const FileReviewRecordRow = memo(function FileReviewRecordRow({
+  fileChangeSet,
+}: {
+  readonly fileChangeSet: FileChangeSet;
+}) {
+  return (
+    <FileReviewCard
+      fileChangeSet={fileChangeSet}
+      interactive={false}
+      // The thread's stamped edit rows already show every diff in place, so
+      // the record renders its compact file-list body — the history never
+      // duplicates the transcript's diffs.
+      showDiffs={false}
       className="mx-4"
     />
   );

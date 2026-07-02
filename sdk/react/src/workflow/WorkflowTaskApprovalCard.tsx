@@ -4,6 +4,8 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components";
+import { DecisionButton, type DecisionVariant } from "../internal/DecisionButton";
+import { InCardDecisionError } from "../internal/InCardDecisionError";
 
 /** Outcome descriptor for UI rendering. */
 export interface TaskOutcome {
@@ -44,8 +46,15 @@ export interface WorkflowTaskApprovalCardProps {
     formData?: Record<string, unknown>,
     comment?: string,
   ) => Promise<unknown>;
-  /** True while the submission RPC is in flight. */
+  /** True while this gate's submission RPC is in flight. */
   readonly isSubmitting: boolean;
+  /**
+   * This gate's last failed decision, or `null`. Surfaced in-card beside the
+   * outcome buttons (via the shared {@link InCardDecisionError}) — supply
+   * {@link useWorkflowExecutionActions}'s `taskApprovalErrorsByTaskName` for
+   * this `taskName`.
+   */
+  readonly error?: Error | null;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -92,6 +101,7 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
   formSchema,
   onSubmit,
   isSubmitting,
+  error,
   className,
 }: WorkflowTaskApprovalCardProps) {
   const outcomes = outcomesProp.length > 0 ? outcomesProp : DEFAULT_OUTCOMES;
@@ -134,8 +144,10 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
       role="form"
       aria-label={`Approval decision for ${taskName}`}
       aria-busy={isSubmitting}
+      // Neutral card + 2px warning left accent — the quiet Cursor-grade chrome
+      // shared with ApprovalCard. (Replaces the old amber `bg-warning/5` fill.)
       className={cn(
-        "mt-2 rounded-lg border border-warning/30 bg-warning/5 p-3",
+        "mt-2 rounded-lg border border-border-prominent border-l-2 border-l-warning p-3",
         className,
       )}
     >
@@ -198,75 +210,34 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
 
       <div className="flex flex-wrap gap-2">
         {outcomes.map((outcome, index) => (
-          <OutcomeButton
+          <DecisionButton
             key={outcome.name}
             label={outcome.label || capitalize(outcome.name)}
-            outcomeName={outcome.name}
             variant={resolveVariant(outcome.name, index, outcomes.length)}
+            onClick={() => handleSubmit(outcome.name)}
             isActive={activeOutcome === outcome.name}
             isSubmitting={isSubmitting}
-            onClick={handleSubmit}
           />
         ))}
       </div>
+
+      {/* A failed decision surfaces HERE, beside this gate's outcome buttons —
+          not in the viewer's lifecycle banner. A workflow can hold many gates at
+          once, so a failure must name the one it belongs to; the optimistic
+          spinner has already reverted, and this explains the snap-back. Shared
+          with the agent ApprovalCard / FileReviewCard via InCardDecisionError. */}
+      {error && (
+        <div className="mt-2">
+          <InCardDecisionError
+            error={error}
+            leadIn="submit decision"
+            cursorTarget="wf-task-approval-error"
+          />
+        </div>
+      )}
     </div>
   );
 });
-
-// ---------------------------------------------------------------------------
-// Internal sub-components
-// ---------------------------------------------------------------------------
-
-type ButtonVariant = "primary" | "destructive" | "secondary";
-
-function OutcomeButton({
-  label,
-  outcomeName,
-  variant,
-  isActive,
-  isSubmitting,
-  onClick,
-}: {
-  readonly label: string;
-  readonly outcomeName: string;
-  readonly variant: ButtonVariant;
-  readonly isActive: boolean;
-  readonly isSubmitting: boolean;
-  readonly onClick: (name: string) => void;
-}) {
-  const variantClasses: Record<ButtonVariant, string> = {
-    primary: cn(
-      "bg-success text-success-foreground hover:bg-success/90",
-      "disabled:bg-success/50 disabled:text-success-foreground/70",
-    ),
-    destructive: cn(
-      "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
-      "disabled:bg-destructive-subtle0 disabled:text-destructive-foreground/70",
-    ),
-    secondary: cn(
-      "border border-border bg-background text-foreground hover:bg-muted",
-      "disabled:bg-muted-faint disabled:text-muted-foreground-faint",
-    ),
-  };
-
-  return (
-    <button
-      type="button"
-      disabled={isSubmitting}
-      onClick={() => onClick(outcomeName)}
-      aria-label={label}
-      className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        "disabled:cursor-not-allowed",
-        variantClasses[variant],
-      )}
-    >
-      {isActive && isSubmitting ? <SpinnerIcon /> : null}
-      {label}
-    </button>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -296,42 +267,23 @@ function resolveVariant(
   outcomeName: string,
   index: number,
   total: number,
-): ButtonVariant {
+): DecisionVariant {
+  // The first outcome is the recommended action (the quiet neutral chip).
   if (index === 0) return "primary";
 
   const lower = outcomeName.toLowerCase();
   if (lower === "reject" || lower === "deny" || lower.includes("reject")) {
-    return "destructive";
+    return "danger";
   }
 
+  // In a simple two-outcome form, the trailing outcome is the negative one.
   if (index === total - 1 && total === 2) {
-    return "destructive";
+    return "danger";
   }
 
-  return "secondary";
+  return "ghost";
 }
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-// ---------------------------------------------------------------------------
-// Inline SVG icons
-// ---------------------------------------------------------------------------
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
-    </svg>
-  );
 }

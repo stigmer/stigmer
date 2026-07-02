@@ -98,16 +98,20 @@ class ListWorkflowExecutionsByWorkflowRequest(_message.Message):
     def __init__(self, workflow_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., filter: _Optional[_Union[ExecutionFilterCriteria, _Mapping]] = ..., sort_field: _Optional[_Union[ExecutionSortField, str]] = ..., sort_ascending: bool = ...) -> None: ...
 
 class WorkflowExecutionUpdateStatusInput(_message.Message):
-    __slots__ = ("execution_id", "status", "events", "update_pending_approvals")
+    __slots__ = ("execution_id", "status", "events", "update_pending_approvals", "update_pending_file_reviews", "pending_update_child_agent_execution_id")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
     EVENTS_FIELD_NUMBER: _ClassVar[int]
     UPDATE_PENDING_APPROVALS_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_PENDING_FILE_REVIEWS_FIELD_NUMBER: _ClassVar[int]
+    PENDING_UPDATE_CHILD_AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     status: _api_pb2.WorkflowExecutionStatus
     events: _containers.RepeatedCompositeFieldContainer[_event_pb2.WorkflowExecutionEvent]
     update_pending_approvals: bool
-    def __init__(self, execution_id: _Optional[str] = ..., status: _Optional[_Union[_api_pb2.WorkflowExecutionStatus, _Mapping]] = ..., events: _Optional[_Iterable[_Union[_event_pb2.WorkflowExecutionEvent, _Mapping]]] = ..., update_pending_approvals: bool = ...) -> None: ...
+    update_pending_file_reviews: bool
+    pending_update_child_agent_execution_id: str
+    def __init__(self, execution_id: _Optional[str] = ..., status: _Optional[_Union[_api_pb2.WorkflowExecutionStatus, _Mapping]] = ..., events: _Optional[_Iterable[_Union[_event_pb2.WorkflowExecutionEvent, _Mapping]]] = ..., update_pending_approvals: bool = ..., update_pending_file_reviews: bool = ..., pending_update_child_agent_execution_id: _Optional[str] = ...) -> None: ...
 
 class SubmitWorkflowApprovalInput(_message.Message):
     __slots__ = ("execution_id", "tool_call_id", "action", "comment")
@@ -120,6 +124,28 @@ class SubmitWorkflowApprovalInput(_message.Message):
     action: _enum_pb2.ApprovalAction
     comment: str
     def __init__(self, execution_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., comment: _Optional[str] = ...) -> None: ...
+
+class SubmitWorkflowFileDecisionInput(_message.Message):
+    __slots__ = ("execution_id", "child_agent_execution_id", "change_set_id", "scope", "file_change_id", "action", "expected_digest", "reason", "acknowledge_unreviewable")
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    CHILD_AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
+    SCOPE_FIELD_NUMBER: _ClassVar[int]
+    FILE_CHANGE_ID_FIELD_NUMBER: _ClassVar[int]
+    ACTION_FIELD_NUMBER: _ClassVar[int]
+    EXPECTED_DIGEST_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    ACKNOWLEDGE_UNREVIEWABLE_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    child_agent_execution_id: str
+    change_set_id: str
+    scope: _enum_pb2.FileDecisionScope
+    file_change_id: str
+    action: _enum_pb2.FileDecisionAction
+    expected_digest: str
+    reason: str
+    acknowledge_unreviewable: bool
+    def __init__(self, execution_id: _Optional[str] = ..., child_agent_execution_id: _Optional[str] = ..., change_set_id: _Optional[str] = ..., scope: _Optional[_Union[_enum_pb2.FileDecisionScope, str]] = ..., file_change_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.FileDecisionAction, str]] = ..., expected_digest: _Optional[str] = ..., reason: _Optional[str] = ..., acknowledge_unreviewable: bool = ...) -> None: ...
 
 class SubmitWorkflowTaskApprovalInput(_message.Message):
     __slots__ = ("execution_id", "task_name", "outcome", "form_data", "reviewer", "comment")

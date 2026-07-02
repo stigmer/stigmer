@@ -1,0 +1,148 @@
+/**
+ * Cursor deny-oracle adapter for the HITL gateway Contract Test Kit.
+ *
+ * Drives the REAL out-of-process gateway: the runner writes the approval state
+ * file (with any grants), then the generated bash preToolUse hook makes the
+ * allow/deny decision for the tool the agent would run inside cursor-agent. There
+ * is no in-process execution to observe, so `executed` means "the hook allowed
+ * it" and the substrate cannot count executions (`observesExecution: false`).
+ *
+ * Cross-taxonomy by construction: grants are minted from the STREAM-side identity
+ * (`edit`/`shell`/`delete`), while the hook is fed the HOOK-side payload
+ * (`Write`/`Shell`/`Delete`). So every approve drive exercises the category
+ * collapse that lets a stream-minted grant match a hook-named call. The grant
+ * token binds the exact resource, so this substrate enforces lease isolation
+ * (`enforcesExactResource: true`) and implements `authorizeAfterGrant`.
+ */
+
+import {
+  setupCursorHookHarness,
+  hasBash,
+  hookWrite,
+  hookShell,
+  hookDelete,
+  hookRead,
+  hookMcp,
+} from "./cursor-hook-harness.js";
+import { toolIdentity, type ApprovalGrant } from "../approval-state.js";
+import { contentDigest } from "../../../shared/file-tools.js";
+import type { ApprovalCategory } from "../approval-policy.js";
+import type {
+  GatewayDecision,
+  GatewayOutcome,
+  GatewaySubstrate,
+  ProposedAction,
+} from "../../../__test-utils__/approval-contract/types.js";
+
+/** Build the real preToolUse hook-input payload for an abstract action. */
+function hookInputFor(action: ProposedAction): object {
+  switch (action.kind) {
+    case "write":
+      return hookWrite(action.resource, action.content ?? "x");
+    case "shell":
+      return hookShell(action.resource);
+    case "delete":
+      return hookDelete(action.resource);
+    case "read":
+      return hookRead(action.resource);
+    case "mcp":
+      return hookMcp(action.mcpToolName ?? "mcp_tool");
+  }
+}
+
+// Stream-side (SDK) tool name per gated category — deliberately the OTHER
+// taxonomy from the hook input, so a grant minted here matches a hook-named call
+// only via the canonical category, not the raw name.
+const STREAM_NAME: Record<"write" | "shell" | "delete", string> = {
+  write: "edit",
+  shell: "shell",
+  delete: "delete",
+};
+
+/**
+ * Mint the approval grant for an action using its stream-side identity. Only the
+ * gated built-in categories are ever granted in the contract (read is never
+ * gated; the MCP cases under test are auto-approved, needing no grant).
+ */
+function grantFor(action: ProposedAction): ApprovalGrant {
+  if (action.kind === "read" || action.kind === "mcp") {
+    throw new Error(`grantFor: ${action.kind} actions are not granted in the contract`);
+  }
+  const streamName = STREAM_NAME[action.kind];
+  // Mirror hookInputFor: a write carries whole-file content (so its digest is
+  // content-exact and matches the hook's), a delete carries only a path (no
+  // content), and a shell carries its command (the salient is already exact).
+  const args: Record<string, unknown> =
+    action.kind === "shell"
+      ? { command: action.resource }
+      : action.kind === "delete"
+        ? { path: action.resource }
+        : { path: action.resource, content: action.content ?? "x" };
+  const identity = toolIdentity(streamName, "", args);
+  return {
+    toolName: streamName,
+    mcpServerSlug: "",
+    key: identity.key,
+    salient: identity.salient,
+    // Content-exact for a write (the sibling-isolation probe), coarse otherwise —
+    // matching how the runner grants from the authoritative captured args.
+    contentDigest: contentDigest(args),
+    sourceToolCallId: `consent-${action.kind}`,
+  };
+}
+
+async function decide(grants: ApprovalGrant[], action: ProposedAction): Promise<GatewayOutcome> {
+  // MCP cases under test are auto-approved: no policy entry, so the hook allows
+  // them. Built-ins are gated by the script's baked-in category set, not state.
+  const harness = setupCursorHookHarness({ grants });
+  const { permission } = harness.decide(hookInputFor(action));
+  const executed = permission === "allow";
+  return { executed, gated: !executed };
+}
+
+// A gated built-in's contract kind IS its approval category (write/shell/delete),
+// so it doubles as the leasedCategories entry the hook reads.
+function leaseCategoryOf(action: ProposedAction): ApprovalCategory {
+  if (action.kind === "read" || action.kind === "mcp") {
+    throw new Error(`leaseCategoryOf: ${action.kind} is not a leasable built-in class`);
+  }
+  return action.kind;
+}
+
+export function createCursorSubstrate(): GatewaySubstrate {
+  return {
+    name: "cursor",
+    available: hasBash,
+    capabilities: {
+      observesExecution: false,
+      enforcesExactResource: true,
+      // The grant binds (category, path, contentDigest), so a DIFFERENT edit to
+      // the same file re-gates — the sibling-hole fix.
+      enforcesExactContent: true,
+      appliesRunLifetimeLease: true,
+      // The Cursor hook's deny decision does not carry approval_policy_source;
+      // provenance is projected at message-reconstruction time (message-translator)
+      // and asserted by the corpus + resolveApprovalProvenance suites instead.
+      surfacesGatePolicySource: false,
+    },
+
+    async authorize(action: ProposedAction, decision: GatewayDecision): Promise<GatewayOutcome> {
+      const grants = decision === "approve" ? [grantFor(action)] : [];
+      return decide(grants, action);
+    },
+
+    async authorizeAfterGrant(granted: ProposedAction, probe: ProposedAction): Promise<GatewayOutcome> {
+      return decide([grantFor(granted)], probe);
+    },
+
+    async authorizeUnderClassLease(leased: ProposedAction, probe: ProposedAction): Promise<GatewayOutcome> {
+      // A run-lifetime category lease is carried in the state file (no per-call
+      // grant), exactly as the runner writes it after an APPROVE_ALL; the hook
+      // allows a probe iff its category is leased.
+      const harness = setupCursorHookHarness({ leasedCategories: [leaseCategoryOf(leased)] });
+      const { permission } = harness.decide(hookInputFor(probe));
+      const executed = permission === "allow";
+      return { executed, gated: !executed };
+    },
+  };
+}

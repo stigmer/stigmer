@@ -51,6 +51,16 @@ export interface GraphInterrupt {
 }
 
 export interface InterruptValue {
+  /**
+   * The interrupt's own id — the canonical key LangGraph matches a
+   * `Command(resume={...})` map against. For a parent-level tool interrupt this
+   * coincides with the owning task id, but for a *nested sub-agent* interrupt
+   * the two differ: the sub-agent's interrupt surfaces under the parent task
+   * that ran the `task` tool, and ONLY this id routes the resume value back into
+   * the sub-agent's `interrupt()`. Keying by `task.id` silently skips sub-agent
+   * approvals (verified empirically in subagent-approval-propagation.test.ts).
+   */
+  readonly id?: string;
   readonly value: Record<string, unknown>;
   readonly resumeValue?: unknown;
 }
@@ -61,15 +71,17 @@ export interface InterruptValue {
  * Returns a `Command(resume=...)` if there are pending interrupts with
  * matching approval decisions, or a fresh user message input if this is
  * not a resume scenario.
+ *
+ * The graph checkpoint snapshot is read once by the caller and passed in: the
+ * same snapshot also decides whether status must be seeded from the persisted
+ * transcript (see `index.ts`), and on the durable (http) saver an extra
+ * `getState` is a network round-trip best avoided.
  */
-export async function resolveResumeInput(
+export function resolveResumeInput(
   execution: AgentExecution,
-  agentGraph: { getState(config: Record<string, unknown>): Promise<GraphStateSnapshot> },
-  langgraphConfig: Record<string, unknown>,
+  graphState: GraphStateSnapshot,
   userMessage: string,
-): Promise<ResumeResult> {
-  const graphState = await agentGraph.getState(langgraphConfig);
-
+): ResumeResult {
   const pendingInterrupts = extractPendingInterrupts(graphState);
   if (pendingInterrupts.length === 0) {
     return {
@@ -152,7 +164,11 @@ function extractPendingInterrupts(state: GraphStateSnapshot): PendingInterrupt[]
       if (typeof value === "object" && value !== null) {
         const toolCallId = (value as Record<string, unknown>).tool_call_id;
         if (typeof toolCallId === "string" && toolCallId) {
-          result.push({ interruptId: task.id, toolCallId });
+          // Key on the interrupt's own id (falling back to task.id for the
+          // parent-level case where they coincide). This is what makes a
+          // sub-agent approval resume into the nested interrupt rather than
+          // being dropped — see InterruptValue.id.
+          result.push({ interruptId: intr.id ?? task.id, toolCallId });
         }
       }
     }

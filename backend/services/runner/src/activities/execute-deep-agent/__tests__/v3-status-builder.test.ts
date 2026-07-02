@@ -271,12 +271,15 @@ describe("V3StatusBuilder", () => {
         sb.setApprovalProvider({
           policies: new Map([
             ["my-server/dangerous_tool", {
+              toolName: "dangerous_tool",
+              mcpServerSlug: "my-server",
               requiresApproval: true,
               approvalMessage: "This tool will modify {{args.path}}",
+              source: "classifier_default",
             }],
           ]),
           toolServerMap: new Map([["dangerous_tool", "my-server"]]),
-          autoApproveAll: false,
+          globalBypass: false,
         } as ApprovalPolicyProvider);
 
         feedAll(sb, [

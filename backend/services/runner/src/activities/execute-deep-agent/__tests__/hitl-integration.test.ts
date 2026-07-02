@@ -41,10 +41,11 @@ describe("HITL approval integration", () => {
             mcpServerSlug: "my-server",
             requiresApproval: true,
             approvalMessage: "Execute dangerous_tool",
+            source: "classifier_default",
           }],
         ]),
         toolServerMap: new Map([["dangerous_tool", "my-server"]]),
-        autoApproveAll: false,
+        globalBypass: false,
       });
 
       sb.processEvent({
@@ -83,7 +84,7 @@ describe("HITL approval integration", () => {
       sb.setApprovalProvider({
         policies: new Map(),
         toolServerMap: new Map([["safe_tool", "my-server"]]),
-        autoApproveAll: false,
+        globalBypass: false,
       });
 
       sb.processEvent({
@@ -110,7 +111,7 @@ describe("HITL approval integration", () => {
       expect(tc?.requiresApproval).toBe(false);
     });
 
-    it("does NOT set WAITING_FOR_APPROVAL when autoApproveAll", () => {
+    it("does NOT set WAITING_FOR_APPROVAL under the global bypass", () => {
       const status = create(AgentExecutionStatusSchema, {});
       const sb = new StatusBuilder("exec-3", status);
 
@@ -121,10 +122,11 @@ describe("HITL approval integration", () => {
             mcpServerSlug: "srv",
             requiresApproval: true,
             approvalMessage: "msg",
+            source: "classifier_default",
           }],
         ]),
         toolServerMap: new Map([["tool", "srv"]]),
-        autoApproveAll: true,
+        globalBypass: true,
       });
 
       sb.processEvent({
@@ -159,10 +161,11 @@ describe("HITL approval integration", () => {
             mcpServerSlug: "srv",
             requiresApproval: true,
             approvalMessage: "Run tool_x",
+            source: "classifier_default",
           }],
         ]),
         toolServerMap: new Map([["tool_x", "srv"]]),
-        autoApproveAll: false,
+        globalBypass: false,
       });
 
       sb.processEvent({

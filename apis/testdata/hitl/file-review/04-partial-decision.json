@@ -1,0 +1,58 @@
+{
+  "name": "partial-decision",
+  "description": "Only one of two files decided -> the change set stays AWAITING_REVIEW (still actionable) with one decision.",
+  "execution_id": "aex_partial",
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "events": [
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs1", "turnId": "t1", "harnessId": "cursor",
+        "baselineSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "base", "ref": "refs/stigmer/x/baseline" } }
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs1",
+        "candidateSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "cand", "ref": "refs/stigmer/x/candidate" } },
+        "changes": [
+          { "id": "fc1", "pathBefore": "src/a.ts", "pathAfter": "src/a.ts", "kind": "FILE_CHANGE_KIND_MODIFY", "fileDigest": "d-fc1", "diffComplete": true },
+          { "id": "fc2", "pathAfter": "src/b.ts", "kind": "FILE_CHANGE_KIND_ADD", "fileDigest": "d-fc2", "diffComplete": true }
+        ],
+        "aggregateDigest": "agg1",
+        "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE"
+      }
+    },
+    {
+      "eventId": "cs1:fc1:FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "timestamp": "2026-06-30T00:01:00Z",
+      "actor": "user",
+      "fileDecided": {
+        "id": "cs1:fc1", "changeSetId": "cs1", "fileChangeId": "fc1",
+        "scope": "FILE_DECISION_SCOPE_FILE", "action": "FILE_DECISION_ACTION_APPROVE",
+        "expectedDigest": "d-fc1", "reviewerId": "u1", "decidedAt": "2026-06-30T00:01:00Z"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs1",
+      "status": "FILE_CHANGE_SET_STATUS_AWAITING_REVIEW",
+      "change_ids": ["fc1", "fc2"],
+      "decision_count": 1,
+      "aggregate_digest": "agg1",
+      "has_approved_snapshot": false
+    }
+  ]
+}

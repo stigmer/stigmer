@@ -230,9 +230,83 @@ type ToolCall struct {
 	//
 	// Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
 	// maximum, so this is appended at 20.
-	ToolKind      ToolKind `protobuf:"varint,20,opt,name=tool_kind,json=toolKind,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ToolKind" json:"tool_kind,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ToolKind ToolKind `protobuf:"varint,20,opt,name=tool_kind,json=toolKind,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ToolKind" json:"tool_kind,omitempty"`
+	// ─────────────────────────────────────────────────────────────────────────────
+	// Offloaded Output (large tool results)
+	//
+	// When a tool's output exceeds a size threshold, the runner spills the full
+	// bytes to artifact storage and records a reference here instead of inlining
+	// megabytes into `result` on every status update. Without this, a single
+	// large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
+	// pushes AgentExecutionStatus past the gRPC message-size limit, so status
+	// persistence fails silently and the live UI freezes mid-execution.
+	//
+	// When set, `result` holds only a short human-readable head/preview (so
+	// consumers that read `result` still render something sensible) and
+	// output_ref points at the full content. Empty for the overwhelming majority
+	// of tool calls — only populated when output crosses the offload threshold.
+	// See ToolCallOutputRef.
+	//
+	// Field 21: appended after tool_kind (20), the prior maximum.
+	OutputRef *ToolCallOutputRef `protobuf:"bytes,21,opt,name=output_ref,json=outputRef,proto3" json:"output_ref,omitempty"`
+	// Policy layer that decided this tool call's approval requirement, set by the
+	// runner's approval gate so clients can explain "why was this gated or
+	// auto-approved?".
+	//
+	// APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+	// or an execution that predates this field (clients fall back to no provenance,
+	// exactly as for an unset tool_kind). See ApprovalPolicySource.
+	//
+	// Field 23: appended after file_changes (22), the prior maximum.
+	ApprovalPolicySource ApprovalPolicySource `protobuf:"varint,23,opt,name=approval_policy_source,json=approvalPolicySource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource" json:"approval_policy_source,omitempty"`
+	// Identifier of the policy-engine logic that produced approval_policy_source,
+	// bumped when the merge/classification semantics change so decisions made by
+	// different engine versions stay distinguishable in audits.
+	//
+	// @internal
+	// Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+	//
+	// Field 24: appended after approval_policy_source (23), the prior maximum.
+	PolicyEngineVersion string `protobuf:"bytes,24,opt,name=policy_engine_version,json=policyEngineVersion,proto3" json:"policy_engine_version,omitempty"`
+	// Stable digest of the authoritative edit content (the hook-captured tool
+	// input) for a gated file-mutating tool call, set by the runner's approval
+	// gate. It is the content discriminator the deny-only Cursor harness needs:
+	// approving one edit must not let a DIFFERENT edit to the same file ride the
+	// approval through, so the grant binds to (category, path, content) rather than
+	// (category, path) alone. A resumed re-attempt that differs from the approved
+	// content re-gates (the "what you approve is what gets applied" contract).
+	//
+	// Carried so it survives at resume immune to the size-limit elision that can
+	// drop `args`/`file_changes` for large edits — a recompute-from-args identity
+	// would be unrecoverable in that case. Empty for tools whose other identity is
+	// already content-exact (shell command, delete path), for read-only tools, and
+	// for executions that predate this field (the runner then degrades to the
+	// coarse (category, path) identity).
+	//
+	// @internal
+	// Runner-written and carried through update_status exactly like tool_kind /
+	// approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+	// needed. See the runner's contentDigest() (shared/file-tools.ts).
+	//
+	// Field 25: appended after policy_engine_version (24), the prior maximum.
+	ApprovalContentDigest string `protobuf:"bytes,25,opt,name=approval_content_digest,json=approvalContentDigest,proto3" json:"approval_content_digest,omitempty"`
+	// Id of the FileChangeSet this flowed file-edit contributed to
+	// (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+	// capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+	// set's review state and to position the set's decision surface after the
+	// turn's last edit row. It is NEVER a correlation or enforcement key —
+	// decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+	// reconcile identity is digest-gated (see filereview.proto's identity rule).
+	//
+	// Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+	// those rows), rows from executions that predate this field, and turns whose
+	// edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+	// so there is no change set to reference).
+	//
+	// Field 26: appended after approval_content_digest (25), the prior maximum.
+	FileChangeSetId string `protobuf:"bytes,26,opt,name=file_change_set_id,json=fileChangeSetId,proto3" json:"file_change_set_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ToolCall) Reset() {
@@ -398,6 +472,403 @@ func (x *ToolCall) GetToolKind() ToolKind {
 	return ToolKind_TOOL_KIND_UNSPECIFIED
 }
 
+func (x *ToolCall) GetOutputRef() *ToolCallOutputRef {
+	if x != nil {
+		return x.OutputRef
+	}
+	return nil
+}
+
+func (x *ToolCall) GetApprovalPolicySource() ApprovalPolicySource {
+	if x != nil {
+		return x.ApprovalPolicySource
+	}
+	return ApprovalPolicySource_APPROVAL_POLICY_SOURCE_UNSPECIFIED
+}
+
+func (x *ToolCall) GetPolicyEngineVersion() string {
+	if x != nil {
+		return x.PolicyEngineVersion
+	}
+	return ""
+}
+
+func (x *ToolCall) GetApprovalContentDigest() string {
+	if x != nil {
+		return x.ApprovalContentDigest
+	}
+	return ""
+}
+
+func (x *ToolCall) GetFileChangeSetId() string {
+	if x != nil {
+		return x.FileChangeSetId
+	}
+	return ""
+}
+
+// ToolCallOutputRef points to a tool call's full output after the runner
+// offloaded it to artifact storage to keep AgentExecutionStatus under the gRPC
+// message-size limit.
+//
+// This is deliberately distinct from ExecutionArtifact (a file the agent
+// publishes for the user to download via publish_artifact): an output ref is
+// internal spillover of a tool's result, not a user-facing deliverable. The
+// bytes live in artifact storage (R2 in the cloud, locally served in dev);
+// only this reference is persisted in the execution status.
+//
+// @since Durable Executions (tool-output offload)
+type ToolCallOutputRef struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Storage location of the full output bytes.
+	// Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+	//
+	// Clients resolve the bytes/URL on demand from this stable key (via
+	// getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+	// persisted URL, since a pre-signed URL would expire while the reference does
+	// not.
+	StorageKey string `protobuf:"bytes,1,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
+	// Size in bytes of the full (original, pre-truncation) output.
+	SizeBytes int64 `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	// SHA-256 hex digest of the full output bytes. Lets the runner dedupe
+	// uploads (skip re-uploading identical content across repeated persists) and
+	// lets clients invalidate caches when content changes under a stable key.
+	ContentHash string `protobuf:"bytes,4,opt,name=content_hash,json=contentHash,proto3" json:"content_hash,omitempty"`
+	// MIME type of the offloaded content.
+	// Examples: "image/png", "text/plain", "application/json".
+	MimeType string `protobuf:"bytes,5,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	// True when the offloaded content is an image the UI should render inline
+	// (e.g. a screenshot from a computer-use MCP server).
+	IsImage bool `protobuf:"varint,6,opt,name=is_image,json=isImage,proto3" json:"is_image,omitempty"`
+	// Short head of the original text content, kept inline for an at-a-glance
+	// preview without fetching the full artifact. Empty for image content.
+	TruncatedPreview string `protobuf:"bytes,7,opt,name=truncated_preview,json=truncatedPreview,proto3" json:"truncated_preview,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ToolCallOutputRef) Reset() {
+	*x = ToolCallOutputRef{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ToolCallOutputRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ToolCallOutputRef) ProtoMessage() {}
+
+func (x *ToolCallOutputRef) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ToolCallOutputRef.ProtoReflect.Descriptor instead.
+func (*ToolCallOutputRef) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ToolCallOutputRef) GetStorageKey() string {
+	if x != nil {
+		return x.StorageKey
+	}
+	return ""
+}
+
+func (x *ToolCallOutputRef) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *ToolCallOutputRef) GetContentHash() string {
+	if x != nil {
+		return x.ContentHash
+	}
+	return ""
+}
+
+func (x *ToolCallOutputRef) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *ToolCallOutputRef) GetIsImage() bool {
+	if x != nil {
+		return x.IsImage
+	}
+	return false
+}
+
+func (x *ToolCallOutputRef) GetTruncatedPreview() string {
+	if x != nil {
+		return x.TruncatedPreview
+	}
+	return ""
+}
+
+// A single file mutation produced by a tool call.
+//
+// Large before/after bodies are offloaded to artifact storage via the existing
+// ToolCallOutputRef envelope; small bodies stay inline. capture_level tells
+// clients how complete the content is so they render whole-file vs hunk-only
+// diffs honestly per harness.
+//
+// @since First-Class Diff Review (#186)
+type FileChange struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Workspace-root-relative path for display, e.g. "src/app/main.ts".
+	// Falls back to absolute_path when the workspace root is unknown.
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	// Absolute on-disk path, retained for "open in editor" and diagnostics.
+	AbsolutePath string `protobuf:"bytes,2,opt,name=absolute_path,json=absolutePath,proto3" json:"absolute_path,omitempty"`
+	// The per-file outcome of this change.
+	//
+	// Distinct from ToolCall.tool_kind, which classifies the tool: one tool call
+	// may yield several FileChanges of different types (multi-file edits), and a
+	// FILE_WRITE tool yields CREATE for a new file or MODIFY when it overwrites
+	// an existing one.
+	ChangeType FileChangeType `protobuf:"varint,3,opt,name=change_type,json=changeType,proto3,enum=ai.stigmer.agentic.agentexecution.v1.FileChangeType" json:"change_type,omitempty"`
+	// How complete the captured content is.
+	//
+	// WHOLE_FILE: before/after carry full content. HUNK_ONLY: only unified_diff
+	// is available (Cursor today).
+	CaptureLevel FileChangeCaptureLevel `protobuf:"varint,4,opt,name=capture_level,json=captureLevel,proto3,enum=ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel" json:"capture_level,omitempty"`
+	// Pre-edit content. Empty for CREATE, or when capture_level is HUNK_ONLY.
+	Before *FileContent `protobuf:"bytes,5,opt,name=before,proto3" json:"before,omitempty"`
+	// Post-edit content. Empty for DELETE, or when capture_level is HUNK_ONLY.
+	After *FileContent `protobuf:"bytes,6,opt,name=after,proto3" json:"after,omitempty"`
+	// Unified hunk-level diff. The primary payload for HUNK_ONLY captures
+	// (Cursor's diffString); small and always safe to render even when
+	// before/after are absent. Derivable from before/after for WHOLE_FILE.
+	UnifiedDiff string `protobuf:"bytes,7,opt,name=unified_diff,json=unifiedDiff,proto3" json:"unified_diff,omitempty"`
+	// Lines added by this change.
+	LinesAdded int32 `protobuf:"varint,8,opt,name=lines_added,json=linesAdded,proto3" json:"lines_added,omitempty"`
+	// Lines removed by this change.
+	LinesRemoved int32 `protobuf:"varint,9,opt,name=lines_removed,json=linesRemoved,proto3" json:"lines_removed,omitempty"`
+	// Source path for RENAME; path holds the destination. Empty otherwise.
+	RenameFrom    string `protobuf:"bytes,10,opt,name=rename_from,json=renameFrom,proto3" json:"rename_from,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FileChange) Reset() {
+	*x = FileChange{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FileChange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FileChange) ProtoMessage() {}
+
+func (x *FileChange) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FileChange.ProtoReflect.Descriptor instead.
+func (*FileChange) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *FileChange) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *FileChange) GetAbsolutePath() string {
+	if x != nil {
+		return x.AbsolutePath
+	}
+	return ""
+}
+
+func (x *FileChange) GetChangeType() FileChangeType {
+	if x != nil {
+		return x.ChangeType
+	}
+	return FileChangeType_FILE_CHANGE_TYPE_UNSPECIFIED
+}
+
+func (x *FileChange) GetCaptureLevel() FileChangeCaptureLevel {
+	if x != nil {
+		return x.CaptureLevel
+	}
+	return FileChangeCaptureLevel_FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED
+}
+
+func (x *FileChange) GetBefore() *FileContent {
+	if x != nil {
+		return x.Before
+	}
+	return nil
+}
+
+func (x *FileChange) GetAfter() *FileContent {
+	if x != nil {
+		return x.After
+	}
+	return nil
+}
+
+func (x *FileChange) GetUnifiedDiff() string {
+	if x != nil {
+		return x.UnifiedDiff
+	}
+	return ""
+}
+
+func (x *FileChange) GetLinesAdded() int32 {
+	if x != nil {
+		return x.LinesAdded
+	}
+	return 0
+}
+
+func (x *FileChange) GetLinesRemoved() int32 {
+	if x != nil {
+		return x.LinesRemoved
+	}
+	return 0
+}
+
+func (x *FileChange) GetRenameFrom() string {
+	if x != nil {
+		return x.RenameFrom
+	}
+	return ""
+}
+
+// One side (before or after) of a file's content.
+//
+// Small bodies are carried inline; large bodies are offloaded to artifact
+// storage and referenced via the existing tool-output offload envelope. Exactly
+// one of inline or ref is set; when offloaded, the head preview lives in
+// ref.truncated_preview and the full size in ref.size_bytes.
+//
+// @since First-Class Diff Review (#186)
+type FileContent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The body of this side — inline when small, an offload pointer when large.
+	//
+	// Types that are valid to be assigned to Body:
+	//
+	//	*FileContent_Inline
+	//	*FileContent_Ref
+	Body isFileContent_Body `protobuf_oneof:"body"`
+	// True when this side is binary; clients skip text diffing and render
+	// "binary file changed" instead.
+	IsBinary      bool `protobuf:"varint,3,opt,name=is_binary,json=isBinary,proto3" json:"is_binary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FileContent) Reset() {
+	*x = FileContent{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FileContent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FileContent) ProtoMessage() {}
+
+func (x *FileContent) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FileContent.ProtoReflect.Descriptor instead.
+func (*FileContent) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *FileContent) GetBody() isFileContent_Body {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *FileContent) GetInline() string {
+	if x != nil {
+		if x, ok := x.Body.(*FileContent_Inline); ok {
+			return x.Inline
+		}
+	}
+	return ""
+}
+
+func (x *FileContent) GetRef() *ToolCallOutputRef {
+	if x != nil {
+		if x, ok := x.Body.(*FileContent_Ref); ok {
+			return x.Ref
+		}
+	}
+	return nil
+}
+
+func (x *FileContent) GetIsBinary() bool {
+	if x != nil {
+		return x.IsBinary
+	}
+	return false
+}
+
+type isFileContent_Body interface {
+	isFileContent_Body()
+}
+
+type FileContent_Inline struct {
+	// Full UTF-8 content, inline. Set only when under the inline cap.
+	Inline string `protobuf:"bytes,1,opt,name=inline,proto3,oneof"`
+}
+
+type FileContent_Ref struct {
+	// Offload pointer for large content; reuses the tool-output offload
+	// envelope (storage_key, size_bytes, content_hash, truncated_preview).
+	Ref *ToolCallOutputRef `protobuf:"bytes,2,opt,name=ref,proto3,oneof"`
+}
+
+func (*FileContent_Inline) isFileContent_Body() {}
+
+func (*FileContent_Ref) isFileContent_Body() {}
+
 var File_ai_stigmer_agentic_agentexecution_v1_message_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
@@ -410,7 +881,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"tool_calls\x18\x04 \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x123\n" +
 	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
-	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\x84\a\n" +
+	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\xed\t\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -433,7 +904,43 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\x10streaming_source\x18\x13 \x01(\x0e2=.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSourceR\x0fstreamingSource\x12&\n" +
 	"\x0fmcp_server_slug\x18\x11 \x01(\tR\rmcpServerSlug\x12!\n" +
 	"\fargs_preview\x18\x12 \x01(\tR\vargsPreview\x12K\n" +
-	"\ttool_kind\x18\x14 \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKindB\xcc\x02\n" +
+	"\ttool_kind\x18\x14 \x01(\x0e2..ai.stigmer.agentic.agentexecution.v1.ToolKindR\btoolKind\x12V\n" +
+	"\n" +
+	"output_ref\x18\x15 \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefR\toutputRef\x12p\n" +
+	"\x16approval_policy_source\x18\x17 \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\x122\n" +
+	"\x15policy_engine_version\x18\x18 \x01(\tR\x13policyEngineVersion\x126\n" +
+	"\x17approval_content_digest\x18\x19 \x01(\tR\x15approvalContentDigest\x12+\n" +
+	"\x12file_change_set_id\x18\x1a \x01(\tR\x0ffileChangeSetIdJ\x04\b\x16\x10\x17\"\xdb\x01\n" +
+	"\x11ToolCallOutputRef\x12\x1f\n" +
+	"\vstorage_key\x18\x01 \x01(\tR\n" +
+	"storageKey\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\x12!\n" +
+	"\fcontent_hash\x18\x04 \x01(\tR\vcontentHash\x12\x1b\n" +
+	"\tmime_type\x18\x05 \x01(\tR\bmimeType\x12\x19\n" +
+	"\bis_image\x18\x06 \x01(\bR\aisImage\x12+\n" +
+	"\x11truncated_preview\x18\a \x01(\tR\x10truncatedPreview\"\xb1\x04\n" +
+	"\n" +
+	"FileChange\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12#\n" +
+	"\rabsolute_path\x18\x02 \x01(\tR\fabsolutePath\x12_\n" +
+	"\vchange_type\x18\x03 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.FileChangeTypeB\b\xbaH\x05\x82\x01\x02\x10\x01R\n" +
+	"changeType\x12k\n" +
+	"\rcapture_level\x18\x04 \x01(\x0e2<.ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevelB\b\xbaH\x05\x82\x01\x02\x10\x01R\fcaptureLevel\x12I\n" +
+	"\x06before\x18\x05 \x01(\v21.ai.stigmer.agentic.agentexecution.v1.FileContentR\x06before\x12G\n" +
+	"\x05after\x18\x06 \x01(\v21.ai.stigmer.agentic.agentexecution.v1.FileContentR\x05after\x12!\n" +
+	"\funified_diff\x18\a \x01(\tR\vunifiedDiff\x12\x1f\n" +
+	"\vlines_added\x18\b \x01(\x05R\n" +
+	"linesAdded\x12#\n" +
+	"\rlines_removed\x18\t \x01(\x05R\flinesRemoved\x12\x1f\n" +
+	"\vrename_from\x18\n" +
+	" \x01(\tR\n" +
+	"renameFrom\"\x99\x01\n" +
+	"\vFileContent\x12\x18\n" +
+	"\x06inline\x18\x01 \x01(\tH\x00R\x06inline\x12K\n" +
+	"\x03ref\x18\x02 \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefH\x00R\x03ref\x12\x1b\n" +
+	"\tis_binary\x18\x03 \x01(\bR\bisBinaryB\x06\n" +
+	"\x04bodyB\xcc\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\fMessageProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -448,31 +955,44 @@ func file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDescGZIP() []byt
 	return file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_agentexecution_v1_message_proto_goTypes = []any{
 	(*AgentMessage)(nil),         // 0: ai.stigmer.agentic.agentexecution.v1.AgentMessage
 	(*ToolCall)(nil),             // 1: ai.stigmer.agentic.agentexecution.v1.ToolCall
-	(MessageType)(0),             // 2: ai.stigmer.agentic.agentexecution.v1.MessageType
-	(*structpb.Struct)(nil),      // 3: google.protobuf.Struct
-	(ToolCallStatus)(0),          // 4: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	(ApprovalAction)(0),          // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(ToolCallStreamingSource)(0), // 6: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
-	(ToolKind)(0),                // 7: ai.stigmer.agentic.agentexecution.v1.ToolKind
+	(*ToolCallOutputRef)(nil),    // 2: ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
+	(*FileChange)(nil),           // 3: ai.stigmer.agentic.agentexecution.v1.FileChange
+	(*FileContent)(nil),          // 4: ai.stigmer.agentic.agentexecution.v1.FileContent
+	(MessageType)(0),             // 5: ai.stigmer.agentic.agentexecution.v1.MessageType
+	(*structpb.Struct)(nil),      // 6: google.protobuf.Struct
+	(ToolCallStatus)(0),          // 7: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	(ApprovalAction)(0),          // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(ToolCallStreamingSource)(0), // 9: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
+	(ToolKind)(0),                // 10: ai.stigmer.agentic.agentexecution.v1.ToolKind
+	(ApprovalPolicySource)(0),    // 11: ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	(FileChangeType)(0),          // 12: ai.stigmer.agentic.agentexecution.v1.FileChangeType
+	(FileChangeCaptureLevel)(0),  // 13: ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
 }
 var file_ai_stigmer_agentic_agentexecution_v1_message_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
-	1, // 1: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	3, // 2: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
-	3, // 3: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
-	4, // 4: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	5, // 5: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	6, // 6: ai.stigmer.agentic.agentexecution.v1.ToolCall.streaming_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
-	7, // 7: ai.stigmer.agentic.agentexecution.v1.ToolCall.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	5,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
+	1,  // 1: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	6,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
+	6,  // 3: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
+	7,  // 4: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	8,  // 5: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	9,  // 6: ai.stigmer.agentic.agentexecution.v1.ToolCall.streaming_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
+	10, // 7: ai.stigmer.agentic.agentexecution.v1.ToolCall.tool_kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolKind
+	2,  // 8: ai.stigmer.agentic.agentexecution.v1.ToolCall.output_ref:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
+	11, // 9: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_policy_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+	12, // 10: ai.stigmer.agentic.agentexecution.v1.FileChange.change_type:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeType
+	13, // 11: ai.stigmer.agentic.agentexecution.v1.FileChange.capture_level:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
+	4,  // 12: ai.stigmer.agentic.agentexecution.v1.FileChange.before:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
+	4,  // 13: ai.stigmer.agentic.agentexecution.v1.FileChange.after:type_name -> ai.stigmer.agentic.agentexecution.v1.FileContent
+	2,  // 14: ai.stigmer.agentic.agentexecution.v1.FileContent.ref:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_message_proto_init() }
@@ -481,13 +1001,17 @@ func file_ai_stigmer_agentic_agentexecution_v1_message_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
+	file_ai_stigmer_agentic_agentexecution_v1_message_proto_msgTypes[4].OneofWrappers = []any{
+		(*FileContent_Inline)(nil),
+		(*FileContent_Ref)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

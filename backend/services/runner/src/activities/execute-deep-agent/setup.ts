@@ -8,11 +8,8 @@
  * the streaming phase needs.
  */
 
-import { createDeepAgent, FilesystemBackend, type FilesystemPermission } from "deepagents";
+import { createDeepAgent, type FilesystemPermission } from "deepagents";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ChatAnthropic } from "@langchain/anthropic";
-import { ChatOpenAI } from "@langchain/openai";
-import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import { z } from "zod";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,6 +29,11 @@ import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
+import { CasCaptureFilesystemBackend } from "./cas-capture-backend.js";
+import { CasCaptureObserver } from "./cas-capture-observer.js";
+import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-substrate.js";
+import { deriveCaptureMode } from "../../shared/filereview/capture.js";
+import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
 import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
 import { reportSetupProgress } from "../../shared/status.js";
@@ -39,8 +41,12 @@ import { resolveEnvironment, type EnvironmentResult } from "./environment.js";
 import { buildEnhancedSystemPrompt } from "./prompt-builder.js";
 import { buildMiddlewareStack, createThinkTool } from "../../middleware/index.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
+import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
+import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
+import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded } from "../../shared/model-pricing.js";
 import { getDefaultModel } from "../../shared/model-registry.js";
+import { buildChatModel } from "../../shared/model-client.js";
 import {
   loadArtifactStorageConfig,
   createArtifactStorage,
@@ -48,15 +54,10 @@ import {
 } from "../../shared/artifact-storage.js";
 import {
   mergeApprovalPolicies,
-  hasApproveAllDecision,
+  deriveActiveLeases,
   type MergedToolPolicy,
 } from "../../shared/approval-policy.js";
-import {
-  inferProvider,
-  stripProviderPrefix,
-  resolveProxyBaseUrl,
-  buildProxyHeaders,
-} from "../../shared/llm-proxy.js";
+import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
 import {
   mergeSkillRefs,
   fetchSkillsByRefs,
@@ -84,13 +85,62 @@ export interface SetupResult {
   readonly secretKeys: ReadonlySet<string>;
   readonly modelName: string;
   readonly gracefulStop: GracefulStopMiddleware;
-  readonly artifactStorage: ArtifactStorage;
+  /**
+   * Artifact storage for CAS blobs, tool-output offload, and attachment/plan
+   * artifacts. `undefined` only when it cannot be built (proxy transport with a
+   * missing token/endpoint — a misconfiguration; local storage never fails). Every
+   * consumer must tolerate its absence: capture degrades to the deny-gate (see
+   * `captureMode`), offload is disabled (the aggregate size guard still applies),
+   * and attachment/plan publishing surface a clear error rather than crashing.
+   */
+  readonly artifactStorage: ArtifactStorage | undefined;
   readonly provisionResults: readonly ProvisionResult[];
   readonly approvalPolicies: ReadonlyMap<string, MergedToolPolicy>;
   readonly toolServerMap: ReadonlyMap<string, string>;
-  readonly autoApproveAll: boolean;
+  /**
+   * Built-in approval categories with a run-lifetime scoped lease (from an
+   * interactive APPROVE_ALL). Threaded to the StatusBuilder so a leased built-in
+   * call is attributed to its lease (approval_lease) rather than the plain
+   * category gate. Empty under a global pre-arm or when no lease is active.
+   */
+  readonly leasedCategories: ReadonlySet<ToolApprovalCategory>;
+  /**
+   * Pre-armed spec.auto_approve_all — the one unscoped, whole-run bypass. When
+   * true the approval gate is not installed at all. Interactive "approve all"
+   * decisions are NOT folded in here; they become scoped leases applied inside
+   * the gate (see ActiveLeases / deriveActiveLeases).
+   */
+  readonly globalBypass: boolean;
   readonly hasStructuredOutput: boolean;
   readonly streamVersion: "v2" | "v3";
+  /**
+   * The single owner of this turn's CAS-capture state (design docs 08/11/12):
+   * the pre-turn bytes of first-touched gitignored paths (recorded
+   * gate-independently by the CAS-observing backends of the parent AND every
+   * sub-agent) plus the gitignored paths the gate hard-blocked as secret-like
+   * (DD-E). The turn boundary reads both to compose the CAS change set. Empty in
+   * the legacy (non-capture) path, where no CAS-observing backend is installed.
+   */
+  readonly casObserver: CasCaptureObserver;
+  /**
+   * Apply-then-review capture mode, decided by {@link deriveCaptureMode} (shared
+   * with the Cursor harness so both degrade identically): file edits flow during
+   * the turn and are reviewed post-hoc as a captured `FileChangeSet` (the activity
+   * authors the baseline/candidate ledger events and reconciles on resume). True
+   * whenever there is a capture substrate — a git work tree (needs no storage) OR
+   * artifact storage for the non-git CAS path. False for a non-git workspace with
+   * no artifact storage (proxy misconfig): capture has no substrate, so file writes
+   * fall back to the deny-gate (gated pre-execution) exactly like Cursor's DD-22
+   * fallback. When true, the deny-gate covers only shell/MCP/irreversible tools.
+   */
+  readonly captureMode: boolean;
+  /**
+   * True when the workspace is a git work tree. Selects the capture SUBSTRATE for
+   * this turn: git-diff (pinned baseline/after trees) when true; content-addressed
+   * CAS manifest (path-scoped to touched paths) when false. Threaded into the
+   * baseline/candidate/reconcile seam (`capture.ts`) and the CAS capture-class.
+   */
+  readonly gitWorkspace: boolean;
 }
 
 export interface SetupDependencies {
@@ -151,9 +201,20 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     await reportSetupProgress(client, executionId, "Resolving environment…");
     const envResult: EnvironmentResult = await resolveEnvironment(client, executionId);
 
-    // Step 6: Create artifact storage
-    const artifactStorageConfig = loadArtifactStorageConfig(config);
-    const artifactStorage = createArtifactStorage(artifactStorageConfig);
+    // Step 6: Create artifact storage. Best-effort, mirroring the Cursor harness:
+    // `createArtifactStorage` throws only for proxy transport with a missing
+    // token/endpoint (a misconfiguration; local storage never throws). We degrade
+    // rather than crash — an absent store flips capture mode off (deny-gate
+    // fallback below) and disables offload, instead of failing the whole execution.
+    let artifactStorage: ArtifactStorage | undefined;
+    try {
+      artifactStorage = createArtifactStorage(loadArtifactStorageConfig(config));
+    } catch (storageErr) {
+      console.warn(
+        `[setup] artifact storage unavailable — capture degrades to the deny-gate ` +
+        `and tool-output offload is disabled: execution=${executionId}, error=${storageErr}`,
+      );
+    }
 
     // Step 7: Provision workspace
     await reportSetupProgress(client, executionId, "Initializing workspace…");
@@ -163,6 +224,61 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       envResult.mergedEnvVars,
       sessionId,
     );
+
+    // Apply-then-review is the file-review model whenever there is a capture
+    // SUBSTRATE (DD-21 D2, Slice 2b): file edits flow during the turn and are
+    // reviewed post-hoc as a captured `FileChangeSet` (reconciled byte-exactly on
+    // resume), never gated before they run. The substrate is selected by
+    // `gitWorkspace`:
+    //   - a git work tree diffs a pinned baseline -> candidate tree (git-substrate,
+    //     needs no artifact storage), and routes its .gitignored edits into the
+    //     path-scoped CAS observer;
+    //   - a non-git workspace has no git snapshot at all, so EVERY touched path is
+    //     captured into the content-addressed CAS manifest (cas-substrate), which
+    //     needs artifact storage to persist blobs.
+    // So a non-git workspace with NO artifact storage has no substrate: capture
+    // degrades to the deny-gate (file writes gated pre-execution), exactly like the
+    // Cursor harness (DD-22). `deriveCaptureMode` is the shared decision so both
+    // harnesses degrade identically. When capture is on, the deny-gate survives only
+    // for shell/MCP/irreversible tools.
+    const gitWorkspace = await isGitWorkTree(workspaceBackend.rootDir);
+    const captureMode = deriveCaptureMode(
+      workspaceBackend.rootDir,
+      gitWorkspace,
+      !!artifactStorage,
+    );
+
+    // Git-tracked capturability, consulted by the gate to route a file write to
+    // disk-and-git-diff (tracked) vs into CAS (ignored). Only meaningful in a git
+    // work tree. In a non-git workspace nothing is "git-capturable" (there is no
+    // snapshot), so this resolves false for every path and the gate routes all
+    // file writes through its captureIgnored (CAS) arm.
+    const isCapturablePath = gitWorkspace
+      ? (rawPath: string): Promise<boolean> =>
+          isPathCapturable(
+            workspaceBackend.rootDir,
+            resolveWorkspacePath(rawPath, workspaceBackend.rootDir, true).path,
+          )
+      : (_rawPath: string): Promise<boolean> => Promise.resolve(false);
+
+    // CAS capture (design docs 08/11/12): the content-addressed half of
+    // apply-then-review. The single per-turn observer owns the before-bytes of
+    // first-touched CAS-owned paths AND the secret-blocked paths, keyed
+    // workspace-root-relative so they align with the CAS reconcile's
+    // `join(workspaceRoot, path)`. It is shared by the parent AND every sub-agent
+    // CAS backend, giving race-free first-touch-wins across concurrent graphs.
+    // Its ownership predicate is memoized, so `git check-ignore` runs at most once
+    // per distinct path.
+    const casObserver = new CasCaptureObserver({
+      rootDir: workspaceBackend.rootDir,
+      // Which touched paths the observer owns (records pre-turn bytes for). In a
+      // git work tree that is the .gitignored set only — git captures the tracked
+      // ones. In a non-git workspace there is no git substrate, so the observer
+      // owns EVERY touched path; the CAS manifest is the sole capture surface.
+      isIgnored: gitWorkspace
+        ? async (relPath) => !(await isPathCapturable(workspaceBackend.rootDir, relPath))
+        : async () => true,
+    });
 
     // Step 7: Resolve and connect MCP servers
     const mcpServerUsages = [
@@ -258,8 +374,18 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       injectedFiles,
     });
 
-    // Step 9: Construct the LLM model
-    const model = constructModel(modelName, config, executionId);
+    // Step 9: Construct the LLM model. Resolution to the provider API id
+    // happens inside buildChatModel; modelName stays the registry id for
+    // pricing, the native-thinking heuristic, and sub-agent inheritance.
+    const requestTimeoutMs =
+      parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "0") || undefined;
+    const { model } = await buildChatModel({
+      modelName,
+      proxyEndpoint: config.proxyEndpoint ?? undefined,
+      stigmerToken: config.stigmerToken ?? undefined,
+      headerScope: { executionId },
+      timeoutMs: requestTimeoutMs,
+    });
 
     // Step 10: Build middleware stack
     await ensurePricingLoaded();
@@ -275,24 +401,63 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       }
     }
 
-    // Step 10b: Resolve approval policies
+    // Step 10b: Resolve approval policies + leases.
     //
-    // Effective auto-approve is true when EITHER the execution was pre-armed via
-    // spec.auto_approve_all (CLI --auto-approve, API, CI/CD) OR a user chose
-    // APPROVE_ALL ("approve and don't ask again") at some gate earlier in this
-    // run. In both cases the gate is disabled for the rest of the execution, and
-    // the value propagates to mergeApprovalPolicies and (below) to sub-agents so
-    // they inherit it. See the ApprovalAction doc in enum.proto.
-    const autoApproveAll =
-      (execution.spec!.autoApproveAll ?? false) || hasApproveAllDecision(execution);
+    // Two distinct bypasses (see ActiveLeases): the pre-armed
+    // spec.auto_approve_all is the one whole-run global bypass; an interactive
+    // APPROVE_ALL grants a run-lifetime lease scoped to that action's class (its
+    // built-in category, or its MCP server). Server leases shape the policy map
+    // (leased servers dropped); built-in category leases are applied inside the
+    // gate. Both flow into sub-agents via the shared config below.
+    const leases = deriveActiveLeases(execution);
+    const globalBypass = leases.global;
     const agentOverrides = agent.spec!.mcpServerUsages?.flatMap(
       u => u.toolApprovalOverrides ?? [],
     ) ?? [];
     const approvalPolicies = mergeApprovalPolicies(
       resolvedMcpServers?.resolvedServers ?? [],
       agentOverrides,
-      autoApproveAll,
+      leases,
     );
+
+    // The approval gate config is the single source of truth for HITL gating,
+    // built once and inherited verbatim by sub-agents (so a mutating tool inside
+    // a sub-agent is gated identically to one in the parent). Null under the
+    // global pre-arm, where the gate is inert; under scoped leases the gate stays
+    // active and clears only leased categories. The per-execution fingerprint key
+    // (runner master secret + execution_id) drives the shadow ExecutionReceipt.
+    const approvalGateConfig: ApprovalGateConfig | null = !globalBypass
+      ? {
+          policies: approvalPolicies,
+          leasedCategories: leases.categories,
+          toolServerMap,
+          fingerprintKey: deriveExecutionFingerprintKey(
+            getRunnerHitlMasterSecret(),
+            executionId,
+          ),
+          executionId,
+          // Capture mode: file edits flow and are reviewed post-hoc. In a git work
+          // tree, git-tracked edits flow to the git diff and .gitignored edits flow
+          // into CAS (captureIgnored) on THIS parent gate; in a non-git workspace
+          // isCapturablePath is always false, so ALL file writes take the CAS arm.
+          // Secret-like paths are hard-blocked (DD-E) and recorded for a
+          // DIFF_UNREVIEWABLE entry. shell/MCP stay gated. Sub-agents inherit this
+          // config; buildSubAgentMiddleware sets their captureIgnored explicitly
+          // from whether a CAS observer backs the sub-agent (Session 26, DD-19),
+          // so their captured edits flow into the SAME observer.
+          //
+          // When captureMode is false (no substrate — non-git + no storage),
+          // fileCaptureMode is false so file writes take the plain deny-gate. The
+          // CAS arm additionally requires storage: captureIgnored gates gitignored
+          // writes onto CAS only when a store exists to persist their blobs (the
+          // git+no-storage case), matching the Cursor harness's
+          // `captureMode && !!artifactStorage`.
+          fileCaptureMode: captureMode,
+          isCapturablePath,
+          captureIgnored: captureMode && !!artifactStorage,
+          recordBlockedSecret: (rawPath: string) => casObserver.recordBlockedSecret(rawPath),
+        }
+      : null;
 
     const maxCostUsd = execConfig?.maxCostUsd ?? 0;
     const { middleware, gracefulStop, costCap: costCapMiddleware } = buildMiddlewareStack({
@@ -318,11 +483,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         warningPct: 80,
       } : null,
       otelSpans: { toolServerMap },
-      approvalGate: !autoApproveAll ? {
-        policies: approvalPolicies,
-        autoApproveAll,
-        toolServerMap,
-      } : null,
+      approvalGate: approvalGateConfig,
     });
 
     // Step 11: Build tools list (MCP tools + think tool)
@@ -352,12 +513,22 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         parentMcpUsages: mcpServerUsages,
         skillClient: client,
         workspaceBackend,
-        approvalPolicies,
-        autoApproveAll,
+        approvalGate: approvalGateConfig,
+        // Capture is universal (Slice 2b), so every sub-agent gets a CAS-observing
+        // backend wired to the SAME per-turn observer as the parent — their
+        // captured writes (.gitignored in a git tree, all touched paths in a
+        // non-git one) compose into the parent's change set (Session 26, DD-19).
+        casObserver,
         parentModelName: modelName,
         parentHasNativeThinking: _modelHasNativeThinking(modelName),
         costCap: costCapMiddleware ?? undefined,
-        modelFactory: (m: string) => constructModel(m, config, executionId),
+        modelFactory: async (m: string) =>
+          (await buildChatModel({
+            modelName: m,
+            proxyEndpoint: config.proxyEndpoint ?? undefined,
+            stigmerToken: config.stigmerToken ?? undefined,
+            headerScope: { executionId },
+          })).model,
       });
     }
 
@@ -381,10 +552,20 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       { operations: ["write"], paths: ["/**"], mode: "deny" },
     ];
 
+    // File capture point. Apply-then-review is universal (Slice 2b), so the
+    // CAS-observing backend: git-tracked edits flow to disk (the turn-boundary
+    // git diff is authoritative), and the shared CAS observer records the pre-turn
+    // bytes of every CAS-owned path — .gitignored paths in a git work tree, all
+    // touched paths in a non-git one — so the boundary can capture them into CAS.
+    // It is gate-independent, so it holds even under the global bypass.
+    const fileBackend = new CasCaptureFilesystemBackend(
+      { rootDir: workspaceBackend.rootDir },
+      { observer: casObserver },
+    );
     const agentGraph = await createDeepAgent({
       model,
       checkpointer: checkpointer as any,
-      backend: new FilesystemBackend({ rootDir: workspaceBackend.rootDir }),
+      backend: fileBackend,
       systemPrompt,
       tools,
       middleware: middleware as any,
@@ -432,9 +613,13 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       provisionResults,
       approvalPolicies,
       toolServerMap,
-      autoApproveAll,
+      leasedCategories: leases.categories,
+      globalBypass,
       hasStructuredOutput: !!outputSchema,
       streamVersion,
+      casObserver,
+      captureMode,
+      gitWorkspace,
     };
   } catch (err) {
     if (mcpConnection) {
@@ -442,93 +627,6 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     }
     throw err;
   }
-}
-
-/**
- * Construct the appropriate chat model for the given model name.
- *
- * Provider inference uses name prefix heuristics (claude → Anthropic,
- * gpt/o1/o3/o4 → OpenAI). In proxy mode, requests route through the
- * stigmer-cloud LlmProxyController at provider-specific paths.
- */
-function constructModel(
-  modelName: string,
-  config: Config,
-  executionId?: string,
-): BaseChatModel {
-  const provider = inferProvider(modelName);
-  const apiModelId = stripProviderPrefix(modelName);
-
-  const baseUrl = config.proxyEndpoint
-    ? resolveProxyBaseUrl(config.proxyEndpoint, provider)
-    : undefined;
-
-  const headers = config.proxyEndpoint && config.stigmerToken
-    ? buildProxyHeaders(config.stigmerToken, { executionId })
-    : undefined;
-
-  switch (provider) {
-    case "anthropic":
-      return buildAnthropicModel(apiModelId, baseUrl, headers, config);
-    case "openai":
-      return buildOpenAIModel(apiModelId, baseUrl, headers, config);
-  }
-}
-
-function buildAnthropicModel(
-  model: string,
-  baseUrl: string | undefined,
-  headers: Record<string, string> | undefined,
-  config: Config,
-): BaseChatModel {
-  const apiKey = config.proxyEndpoint
-    ? (config.stigmerToken ?? "proxy-managed")
-    : (process.env.ANTHROPIC_API_KEY ?? "");
-
-  const requestTimeoutMs = parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "0") || undefined;
-
-  return new ChatAnthropic({
-    model,
-    apiKey,
-    temperature: 0,
-    ...(requestTimeoutMs ? { maxRetries: 0, timeout: requestTimeoutMs } : {}),
-    ...(baseUrl || headers
-      ? {
-          clientOptions: {
-            ...(baseUrl ? { baseURL: baseUrl } : {}),
-            ...(headers ? { defaultHeaders: headers } : {}),
-          },
-        }
-      : {}),
-  });
-}
-
-function buildOpenAIModel(
-  model: string,
-  baseUrl: string | undefined,
-  headers: Record<string, string> | undefined,
-  config: Config,
-): BaseChatModel {
-  const apiKey = config.proxyEndpoint
-    ? (config.stigmerToken ?? "proxy-managed")
-    : (process.env.OPENAI_API_KEY ?? "");
-
-  const requestTimeoutMs = parseInt(process.env.STIGMER_LLM_REQUEST_TIMEOUT_MS ?? "0") || undefined;
-
-  return new ChatOpenAI({
-    model,
-    apiKey,
-    temperature: 0,
-    ...(requestTimeoutMs ? { maxRetries: 0, timeout: requestTimeoutMs } : {}),
-    ...(baseUrl || headers
-      ? {
-          configuration: {
-            ...(baseUrl ? { baseURL: baseUrl } : {}),
-            ...(headers ? { defaultHeaders: headers } : {}),
-          },
-        }
-      : {}),
-  });
 }
 
 /**

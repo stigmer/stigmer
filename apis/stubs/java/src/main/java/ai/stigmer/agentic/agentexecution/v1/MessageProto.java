@@ -41,6 +41,16 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCallOutputRef_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChange_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_FileChange_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileContent_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_FileContent_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -63,7 +73,7 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
       "xecution.v1.ToolCallR\ttoolCalls\0223\n\010metad" +
       "ata\030\005 \001(\0132\027.google.protobuf.StructR\010meta" +
       "data\022!\n\014is_streaming\030\006 \001(\010R\013isStreaming\"" +
-      "\334\007\n\010ToolCall\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001" +
+      "\355\t\n\010ToolCall\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001" +
       "(\tR\004name\022+\n\004args\030\003 \001(\0132\027.google.protobuf" +
       ".StructR\004args\022\026\n\006result\030\004 \001(\tR\006result\022V\n" +
       "\006status\030\005 \001(\01624.ai.stigmer.agentic.agent" +
@@ -87,19 +97,43 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
       " \001(\0162..ai.stigmer.agentic.agentexecution" +
       ".v1.ToolKindR\010toolKind\022V\n\noutput_ref\030\025 \001" +
       "(\01327.ai.stigmer.agentic.agentexecution.v" +
-      "1.ToolCallOutputRefR\toutputRef\"\376\001\n\021ToolC" +
-      "allOutputRef\022\037\n\013storage_key\030\001 \001(\tR\nstora" +
-      "geKey\022!\n\014download_url\030\002 \001(\tR\013downloadUrl" +
-      "\022\035\n\nsize_bytes\030\003 \001(\003R\tsizeBytes\022!\n\014conte" +
-      "nt_hash\030\004 \001(\tR\013contentHash\022\033\n\tmime_type\030" +
-      "\005 \001(\tR\010mimeType\022\031\n\010is_image\030\006 \001(\010R\007isIma" +
-      "ge\022+\n\021truncated_preview\030\007 \001(\tR\020truncated" +
-      "PreviewB\303\001B\014MessageProtoP\001\242\002\004ASAA\252\002$Ai.S" +
-      "tigmer.Agentic.Agentexecution.V1\312\002$Ai\\St" +
-      "igmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Sti" +
-      "gmer\\Agentic\\Agentexecution\\V1\\GPBMetada" +
-      "ta\352\002(Ai::Stigmer::Agentic::Agentexecutio" +
-      "n::V1b\006proto3"
+      "1.ToolCallOutputRefR\toutputRef\022p\n\026approv" +
+      "al_policy_source\030\027 \001(\0162:.ai.stigmer.agen" +
+      "tic.agentexecution.v1.ApprovalPolicySour" +
+      "ceR\024approvalPolicySource\0222\n\025policy_engin" +
+      "e_version\030\030 \001(\tR\023policyEngineVersion\0226\n\027" +
+      "approval_content_digest\030\031 \001(\tR\025approvalC" +
+      "ontentDigest\022+\n\022file_change_set_id\030\032 \001(\t" +
+      "R\017fileChangeSetIdJ\004\010\026\020\027\"\333\001\n\021ToolCallOutp" +
+      "utRef\022\037\n\013storage_key\030\001 \001(\tR\nstorageKey\022\035" +
+      "\n\nsize_bytes\030\003 \001(\003R\tsizeBytes\022!\n\014content" +
+      "_hash\030\004 \001(\tR\013contentHash\022\033\n\tmime_type\030\005 " +
+      "\001(\tR\010mimeType\022\031\n\010is_image\030\006 \001(\010R\007isImage" +
+      "\022+\n\021truncated_preview\030\007 \001(\tR\020truncatedPr" +
+      "eview\"\261\004\n\nFileChange\022\022\n\004path\030\001 \001(\tR\004path" +
+      "\022#\n\rabsolute_path\030\002 \001(\tR\014absolutePath\022_\n" +
+      "\013change_type\030\003 \001(\01624.ai.stigmer.agentic." +
+      "agentexecution.v1.FileChangeTypeB\010\272H\005\202\001\002" +
+      "\020\001R\nchangeType\022k\n\rcapture_level\030\004 \001(\0162<." +
+      "ai.stigmer.agentic.agentexecution.v1.Fil" +
+      "eChangeCaptureLevelB\010\272H\005\202\001\002\020\001R\014captureLe" +
+      "vel\022I\n\006before\030\005 \001(\01321.ai.stigmer.agentic" +
+      ".agentexecution.v1.FileContentR\006before\022G" +
+      "\n\005after\030\006 \001(\01321.ai.stigmer.agentic.agent" +
+      "execution.v1.FileContentR\005after\022!\n\014unifi" +
+      "ed_diff\030\007 \001(\tR\013unifiedDiff\022\037\n\013lines_adde" +
+      "d\030\010 \001(\005R\nlinesAdded\022#\n\rlines_removed\030\t \001" +
+      "(\005R\014linesRemoved\022\037\n\013rename_from\030\n \001(\tR\nr" +
+      "enameFrom\"\231\001\n\013FileContent\022\030\n\006inline\030\001 \001(" +
+      "\tH\000R\006inline\022K\n\003ref\030\002 \001(\01327.ai.stigmer.ag" +
+      "entic.agentexecution.v1.ToolCallOutputRe" +
+      "fH\000R\003ref\022\033\n\tis_binary\030\003 \001(\010R\010isBinaryB\006\n" +
+      "\004bodyB\303\001B\014MessageProtoP\001\242\002\004ASAA\252\002$Ai.Sti" +
+      "gmer.Agentic.Agentexecution.V1\312\002$Ai\\Stig" +
+      "mer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigm" +
+      "er\\Agentic\\Agentexecution\\V1\\GPBMetadata" +
+      "\352\002(Ai::Stigmer::Agentic::Agentexecution:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -119,13 +153,25 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCall_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCall_descriptor,
-        new java.lang.String[] { "Id", "Name", "Args", "Result", "Status", "StartedAt", "CompletedAt", "Error", "RequiresApproval", "ApprovalMessage", "ApprovalRequestedAt", "ApprovalDecidedAt", "ApprovedBy", "ApprovalAction", "IsStreaming", "StreamingSource", "McpServerSlug", "ArgsPreview", "ToolKind", "OutputRef", });
+        new java.lang.String[] { "Id", "Name", "Args", "Result", "Status", "StartedAt", "CompletedAt", "Error", "RequiresApproval", "ApprovalMessage", "ApprovalRequestedAt", "ApprovalDecidedAt", "ApprovedBy", "ApprovalAction", "IsStreaming", "StreamingSource", "McpServerSlug", "ArgsPreview", "ToolKind", "OutputRef", "ApprovalPolicySource", "PolicyEngineVersion", "ApprovalContentDigest", "FileChangeSetId", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCallOutputRef_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCallOutputRef_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCallOutputRef_descriptor,
-        new java.lang.String[] { "StorageKey", "DownloadUrl", "SizeBytes", "ContentHash", "MimeType", "IsImage", "TruncatedPreview", });
+        new java.lang.String[] { "StorageKey", "SizeBytes", "ContentHash", "MimeType", "IsImage", "TruncatedPreview", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChange_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChange_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_FileChange_descriptor,
+        new java.lang.String[] { "Path", "AbsolutePath", "ChangeType", "CaptureLevel", "Before", "After", "UnifiedDiff", "LinesAdded", "LinesRemoved", "RenameFrom", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileContent_descriptor =
+      getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileContent_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_FileContent_descriptor,
+        new java.lang.String[] { "Inline", "Ref", "IsBinary", "Body", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

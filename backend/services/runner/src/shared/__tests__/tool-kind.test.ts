@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { classifyTool } from "../tool-kind.js";
+import { classifyTool, toolApprovalCategory } from "../tool-kind.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 // runner/src/shared/__tests__ -> repo root is five levels up.
@@ -54,5 +54,28 @@ describe("classifyTool", () => {
 
   it("prefers a built-in name over a slug", () => {
     expect(classifyTool("read", "planton")).toBe(ToolKind.FILE_READ);
+  });
+});
+
+describe("toolApprovalCategory", () => {
+  it("collapses write AND edit (both taxonomies) onto 'write'", () => {
+    for (const name of ["write", "write_file", "Write", "edit", "edit_file", "StrReplace", "EditNotebook"]) {
+      expect(toolApprovalCategory(name)).toBe("write");
+    }
+  });
+
+  it("maps the delete and shell aliases to their category", () => {
+    for (const name of ["delete", "delete_file", "remove_file", "Delete"]) {
+      expect(toolApprovalCategory(name)).toBe("delete");
+    }
+    for (const name of ["shell", "bash", "execute", "execute_command", "run_command", "terminal", "Shell"]) {
+      expect(toolApprovalCategory(name)).toBe("shell");
+    }
+  });
+
+  it("returns undefined for read-only and unknown built-ins (not gated by category)", () => {
+    for (const name of ["read", "ls", "glob", "grep", "search", "think", "totally_unknown"]) {
+      expect(toolApprovalCategory(name)).toBeUndefined();
+    }
   });
 });

@@ -3,6 +3,7 @@ import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import { diagEnabled, diagLogPath } from "./diag";
 
 export interface ServerState {
   reused: boolean;
@@ -10,12 +11,41 @@ export interface ServerState {
   serverPid?: number;
   runnerPid?: number;
   tempDir?: string;
+  // Base URL of the deterministic mock LLM proxy, when the stack was booted with
+  // STIGMER_E2E_MOCK_LLM. Specs read it to program the proxy over HTTP. Absent on
+  // a normal (real-LLM) boot.
+  mockLlmControlUrl?: string;
 }
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Allocates an ephemeral TCP port by binding to :0 and reading the assignment.
+ * Mirrors the conformance harness (test/conformance/src/harness/ports.ts): the
+ * Temporal frontend uses a free port rather than the fixed 7233 so a hermetic
+ * e2e stack never collides with — or is poached by — a developer's live dev
+ * stack on the default port (a reused dev runner is not wired to our mock LLM).
+ * There is an inherent TOCTOU window before the server binds it, acceptable for
+ * an ephemeral test server (the same trade-off the Go integration harness makes).
+ */
+export function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (address === null || typeof address === "string") {
+        server.close(() => reject(new Error("failed to acquire a free port")));
+        return;
+      }
+      const { port } = address;
+      server.close(() => resolve(port));
+    });
+  });
 }
 
 export function isPortReachable(
@@ -121,14 +151,24 @@ function resolveRunnerEntrypoint(runnerDir: string): string {
 export async function startBackendStack(opts: {
   apiPort?: number;
   temporalPort?: number;
+  // When set, the runner is pointed at this mock LLM proxy base URL
+  // (STIGMER_PROXY_ENDPOINT) and switched to fully local artifacts/checkpointer
+  // so agent executions stay hermetic and deterministic. See the runnerEnv block.
+  mockLlmEndpoint?: string;
 }): Promise<ServerState> {
   const apiPort = opts.apiPort ?? 7234;
-  const temporalPort = opts.temporalPort ?? 7233;
+  // Default to a free port (not the fixed 7233) so a developer's live dev stack
+  // — its own Temporal + a runner polling the same `stigmer_runner` queue —
+  // cannot poach this stack's executions. Temporal's port is internal (only the
+  // server and runner connect to it; nothing external references it), so moving
+  // it off 7233 is invisible to the node client and web app.
+  const temporalPort = opts.temporalPort ?? (await getFreePort());
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "stigmer-e2e-"));
 
   fs.mkdirSync(path.join(tempDir, "storage"), { recursive: true });
   fs.mkdirSync(path.join(tempDir, "data"), { recursive: true });
   fs.mkdirSync(path.join(tempDir, "workspace"), { recursive: true });
+  fs.mkdirSync(path.join(tempDir, "artifacts"), { recursive: true });
 
   console.log(`[e2e] Starting backend stack (temp: ${tempDir})`);
 
@@ -169,6 +209,13 @@ export async function startBackendStack(opts: {
 
   const server = spawn(serverBin, [], { env: serverEnv, stdio: ["ignore", "pipe", "pipe"] });
 
+  // Opt-in: tee server logs for the post-approval resume-wedge probe (see diag.ts).
+  if (diagEnabled()) {
+    const serverLog = fs.createWriteStream(diagLogPath("server"), { flags: "w" });
+    server.stdout?.on("data", (d: Buffer) => serverLog.write(d));
+    server.stderr?.on("data", (d: Buffer) => serverLog.write(d));
+  }
+
   if (!server.pid) {
     temporal.kill();
     throw new Error(`Failed to spawn stigmer-server at ${serverBin}. Build with: make build`);
@@ -192,6 +239,27 @@ export async function startBackendStack(opts: {
     STIGMER_TASK_QUEUE: "stigmer_runner",
     WORKSPACE_ROOT_DIR: path.join(tempDir, "workspace"),
     LOG_LEVEL: "info",
+    // STIGMER_BACKEND_ENDPOINT stays the real server even with the mock proxy:
+    // main.ts only redirects the Cursor SDK + LLM traffic through the proxy, so
+    // runner->server status streaming is unaffected.
+    ...(opts.mockLlmEndpoint !== undefined
+      ? {
+          // Route LLM calls to the mock proxy (a base-URL override, NOT a model
+          // name). STIGMER_TOKEN is required by the runner whenever a proxy is
+          // set; the mock ignores it and the OSS server is no-auth.
+          STIGMER_PROXY_ENDPOINT: opts.mockLlmEndpoint,
+          STIGMER_TOKEN: "e2e-mock-token",
+          // Setting a proxy flips two runner defaults that would otherwise throw
+          // at setup: artifacts would default to presign (network) and, in cloud
+          // mode, the checkpointer to http. Pin both to local/memory. The
+          // interrupt/resume approval gate needs a checkpointer (memory is fine).
+          ARTIFACT_STORAGE_TYPE: "local",
+          LOCAL_ARTIFACT_PATH: path.join(tempDir, "artifacts"),
+          STIGMER_CHECKPOINTER_TYPE: "memory",
+          // Avoid a boot-time MCP backfill network call (hermetic test detail).
+          SKIP_MCP_CONNECT_BACKFILL: "true",
+        }
+      : {}),
   };
 
   const runnerOutput: string[] = [];
@@ -203,6 +271,13 @@ export async function startBackendStack(opts: {
 
   runner.stdout?.on("data", (data: Buffer) => runnerOutput.push(data.toString()));
   runner.stderr?.on("data", (data: Buffer) => runnerOutput.push(data.toString()));
+
+  // Opt-in: tee runner logs for the post-approval resume-wedge probe (see diag.ts).
+  if (diagEnabled()) {
+    const runnerLog = fs.createWriteStream(diagLogPath("runner"), { flags: "w" });
+    runner.stdout?.on("data", (d: Buffer) => runnerLog.write(d));
+    runner.stderr?.on("data", (d: Buffer) => runnerLog.write(d));
+  }
 
   if (!runner.pid) {
     temporal.kill();

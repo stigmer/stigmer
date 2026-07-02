@@ -71,12 +71,12 @@ func (c *AgentExecutionController) buildRecoverPipeline() *pipeline.Pipeline[*ag
 		AddStep(NewLoadExecutionByIdStep[*agentexecutionv1.RecoverAgentExecutionInput](c.store)).
 		AddStep(NewValidateRecoverableStep[*agentexecutionv1.RecoverAgentExecutionInput]()).
 		AddStep(NewResetTemporalWorkflowStep[*agentexecutionv1.RecoverAgentExecutionInput](c.temporalClient, GetTemporalNamespace())).
-		AddStep(NewUpdateExecutionPhaseStep[*agentexecutionv1.RecoverAgentExecutionInput](
+		AddStep(NewUpdateExecutionPhaseAndPersistStep[*agentexecutionv1.RecoverAgentExecutionInput](
+			c.store,
 			agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
 			false, // don't set error
 			true,  // clear error on recovery
 		)).
-		AddStep(NewLifecyclePersistStep[*agentexecutionv1.RecoverAgentExecutionInput](c.store)).
 		AddStep(NewLifecycleBroadcastStep[*agentexecutionv1.RecoverAgentExecutionInput](c.streamBroker)).
 		Build()
 }

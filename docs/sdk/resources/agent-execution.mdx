@@ -72,6 +72,7 @@ AgentExecution agentExecution = client.agentExecutions().get("aex_01j5q3k7m8r2s4
 | [`terminate`](#terminate) | Terminate an agent execution immediately. | |
 | [`recover`](#recover) | Recover a failed agent execution from the last checkpoint. | |
 | [`submitApproval`](#submitapproval) | Submit an approval decision for a pending tool call. | |
+| [`submitFileDecision`](#submitfiledecision) | Submit a keep/discard decision on a file change set (or a single file). | |
 | [`uploadAttachment`](#uploadattachment) | Upload a file attachment for use in an agent execution. | |
 
 ### get
@@ -1126,6 +1127,75 @@ AgentExecution agentExecution = client.agentExecutions().submitApproval(SubmitAp
 
 **Returns**: [`AgentExecution`](#agentexecution)
 
+### submitFileDecision
+
+Submit a keep/discard decision on a file change set (or a single file).
+
+Records a FILE_DECIDED event in the append-only file_review stream; FileChangeSet.decisions is the derived projection. The runner reconciles the approved bytes (Phase 2) — this RPC records the decision and enforces that expected_digest still matches the captured content the user reviewed.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const agentExecution = await stigmer.agentExecution.submitFileDecision({
+  agentExecutionId: "...",
+  changeSetId: "...",
+  scope: "...",
+  fileChangeId: "...",
+  action: "...",
+  expectedDigest: "...",
+  reason: "...",
+  acknowledgeUnreviewable: false,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecution, err := client.AgentExecution.SubmitFileDecision(ctx, &stigmer.SubmitFileDecisionInput{
+  AgentExecutionId:        "...",
+  ChangeSetId:             "...",
+  Scope:                   "...",
+  FileChangeId:            "...",
+  Action:                  "...",
+  ExpectedDigest:          "...",
+  Reason:                  "...",
+  AcknowledgeUnreviewable: false,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+agent_execution = client.agent_executions.submit_file_decision(SubmitFileDecisionInput(
+    agent_execution_id="...",
+    change_set_id="...",
+    scope="...",
+    file_change_id="...",
+    action="...",
+    expected_digest="...",
+    reason="...",
+    acknowledge_unreviewable=False,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AgentExecution agentExecution = client.agentExecutions().submitFileDecision(SubmitFileDecisionInput.builder()
+    .agentExecutionId("...")
+    .changeSetId("...")
+    .scope("...")
+    .fileChangeId("...")
+    .action("...")
+    .expectedDigest("...")
+    .reason("...")
+    .acknowledgeUnreviewable(false)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`SubmitFileDecisionInput`](#submitfiledecisioninput)
+
+**Returns**: [`AgentExecution`](#agentexecution)
+
 ### uploadAttachment
 
 Upload a file attachment for use in an agent execution.
@@ -1287,6 +1357,23 @@ Input for submitting an approval decision (HITL Phase 1).
     toolCallId: { type: "string", description: "ID of the tool call to approve/skip/reject." },
     action: { type: "ApprovalAction", description: "User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.", typeDescriptionLink: "#approvalaction" },
     comment: { type: "string", description: "Optional reason/comment for the decision." },
+  }}
+/>
+
+### SubmitFileDecisionInput
+
+SubmitFileDecisionInput is a user's keep/discard decision on a file change set or a single file within it.
+
+<TypeTable
+  type={{
+    agentExecutionId: { type: "string", description: "ID of the agent execution." },
+    changeSetId: { type: "string", description: "ID of the change set this decision targets." },
+    scope: { type: "FileDecisionScope", description: "Whether the decision applies to the whole change set or one file.", typeDescriptionLink: "#filedecisionscope" },
+    fileChangeId: { type: "string", description: "ID of the file change to decide; required when scope is FILE, ignored for CHANGE_SET (the cross-field rule is enforced in the handler)." },
+    action: { type: "FileDecisionAction", description: "Keep (APPROVE) or discard (REJECT).", typeDescriptionLink: "#filedecisionaction" },
+    expectedDigest: { type: "string", description: "Digest of the content the user actually saw — the enforcement gate." },
+    reason: { type: "string", description: "Optional reason/comment for the decision (audit trail)." },
+    acknowledgeUnreviewable: { type: "boolean", description: "Set true on an APPROVE to consciously KEEP a change whose diff could not be fully reviewed." },
   }}
 />
 
@@ -1614,12 +1701,15 @@ AgentExecutionStatus contains all execution results and state.
     callbackToken: { type: "Uint8Array", description: "Callback token for notifying a parent workflow when this execution completes." },
     resolvedContext: { type: "ResolvedExecutionContext", description: "Resolved execution context showing what resources the agent had access to.", typeDescriptionLink: "#resolvedexecutioncontext" },
     pendingApprovals: { type: "PendingApproval[]", description: "Active pending approval requests for this execution.", typeDescriptionLink: "#pendingapproval" },
+    approvalEventStream: { type: "ApprovalEventStream", description: "Server-authored, append-only record of every approval request and decision.", typeDescriptionLink: "#approvaleventstream" },
     contextInfo: { type: "ContextInfo", description: "Context window utilization and summarization tracking.", typeDescriptionLink: "#contextinfo" },
     artifacts: { type: "ExecutionArtifact[]", description: "Files/directories published by the agent for download.", typeDescriptionLink: "#executionartifact" },
     workspaceWriteBacks: { type: "WorkspaceWriteBack[]", description: "Git write-back outcomes for workspace entries that had changes.", typeDescriptionLink: "#workspacewriteback" },
     setupProgress: { type: "SetupProgress", description: "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.", typeDescriptionLink: "#setupprogress" },
     streamingUsage: { type: "StreamingUsageSummary", description: "Streaming usage summary, updated progressively during execution.", typeDescriptionLink: "#streamingusagesummary" },
     structuredOutput: { type: "object", description: "Structured output extracted from the agent's final response." },
+    fileChangeSets: { type: "FileChangeSet[]", description: "Server-computed projection of file change sets awaiting or completing review for this execution.", typeDescriptionLink: "#filechangeset" },
+    fileReviewEventStream: { type: "FileReviewEventStream", description: "Server-owned, append-only record of every file-review event (baseline / candidate capture, file decisions, reconcile, failures).", typeDescriptionLink: "#filerevieweventstream" },
   }}
 />
 
@@ -1635,6 +1725,114 @@ Represents a single message in the agent conversation.
     toolCalls: { type: "ToolCall[]", description: "Tool calls associated with this message (if type == ai and tools were invoked).", typeDescriptionLink: "#toolcall" },
     metadata: { type: "object", description: "Optional message metadata." },
     isStreaming: { type: "boolean", description: "True while the AI is actively generating this message, false when complete." },
+  }}
+/>
+
+### ApprovalDecision
+
+A user's decision on an approval request.
+
+<TypeTable
+  type={{
+    approvalRequestId: { type: "string", description: "Correlates this decision to its ApprovalRequest." },
+    action: { type: "ApprovalAction", description: "The precise user action (APPROVE / SKIP / REJECT / APPROVE_ALL).", typeDescriptionLink: "#approvalaction" },
+    decidedAt: { type: "string", description: "ISO 8601 timestamp when the decision was made." },
+    decidedBy: { type: "string", description: "Identity of the decider (principal)." },
+    comment: { type: "string", description: "Optional free-text comment supplied with the decision (e.g. a rejection reason)." },
+  }}
+/>
+
+### ApprovalEvent
+
+An immutable event in the approval lifecycle.
+
+<TypeTable
+  type={{
+    eventId: { type: "string", description: "Unique id of this event, deterministic by design: derived from tool_call_id + event_type." },
+    approvalRequestId: { type: "string", description: "Correlation id shared by every event for one approval (request + decision)." },
+    eventType: { type: "ApprovalEventType", description: "Coarse lifecycle bucket of this event.", typeDescriptionLink: "#approvaleventtype" },
+    timestamp: { type: "string", description: "ISO 8601 timestamp of the event." },
+    actor: { type: "string", description: "Who produced the event: \"system\" for REQUESTED, \"user\" for decisions." },
+    requested: { type: "ApprovalRequest", description: "Set when event_type == REQUESTED.", typeDescriptionLink: "#approvalrequest" },
+    decided: { type: "ApprovalDecision", description: "Set for decision events (APPROVED / REJECTED / SKIPPED).", typeDescriptionLink: "#approvaldecision" },
+    retracted: { type: "ApprovalRetraction", description: "Set when event_type == RETRACTED — the platform withdrew the request before any user decision.", typeDescriptionLink: "#approvalretraction" },
+  }}
+/>
+
+### ApprovalEventStream
+
+The ordered sequence of approval events for a single agent execution.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "AgentExecution.metadata.id this stream belongs to." },
+    events: { type: "ApprovalEvent[]", description: "Events in lifecycle order.", typeDescriptionLink: "#approvalevent" },
+  }}
+/>
+
+### ApprovalRequest
+
+A tool call requesting approval — the "ask" recorded when a gated tool call enters WAITING_APPROVAL.
+
+<TypeTable
+  type={{
+    approvalRequestId: { type: "string", description: "Correlation id shared by every event for this approval." },
+    toolCallId: { type: "string", description: "Harness tool-call id of the gated call." },
+    requestedAt: { type: "string", description: "ISO 8601 timestamp when approval was requested." },
+    toolName: { type: "string", description: "Name of the tool requiring approval." },
+    message: { type: "string", description: "Human-readable approval message for display." },
+    argsPreview: { type: "string", description: "Sanitized preview of tool arguments." },
+    fromSubAgent: { type: "boolean", description: "True if this approval originates from a sub-agent." },
+    subAgentName: { type: "string", description: "Name of the sub-agent when from_sub_agent is true; empty otherwise." },
+    subAgentSubject: { type: "string", description: "Concise subject of the sub-agent's task when from_sub_agent is true; empty otherwise." },
+    mcpServerSlug: { type: "string", description: "Slug of the MCP server providing this tool; empty for built-in tools." },
+    toolKind: { type: "ToolKind", description: "Harness-agnostic tool category.", typeDescriptionLink: "#toolkind" },
+    approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this call.", typeDescriptionLink: "#approvalpolicysource" },
+  }}
+/>
+
+### ApprovalRetraction
+
+The platform's withdrawal of an in-flight approval request — the system-actored terminal transition of the approval lifecycle, authored when a gated call becomes unreachable before any user decision (its sub-agent went terminal, or it was superseded on resume) while the execution is still live.
+
+<TypeTable
+  type={{
+    approvalRequestId: { type: "string", description: "Correlates this retraction to its ApprovalRequest." },
+    reason: { type: "ApprovalRetractionReason", description: "Why the platform withdrew the request.", typeDescriptionLink: "#approvalretractionreason" },
+    retractedAt: { type: "string", description: "ISO 8601 timestamp when the request was retracted." },
+  }}
+/>
+
+### CapturedFileChange
+
+One file's delta within a FileChangeSet.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Stable id of this file change within its set." },
+    pathBefore: { type: "string", description: "Path before the change (workspace-root-relative)." },
+    pathAfter: { type: "string", description: "Path after the change (workspace-root-relative)." },
+    kind: { type: "FileChangeKind", description: "The per-file outcome.", typeDescriptionLink: "#filechangekind" },
+    captureClass: { type: "FileCaptureClass", description: "How this file was captured (git-tracked vs ignored vs non-git/CAS), which governs which substrate holds its before/after bytes.", typeDescriptionLink: "#filecaptureclass" },
+    before: { type: "FileContent", description: "Pre-edit content.", typeDescriptionLink: "#filecontent" },
+    after: { type: "FileContent", description: "Post-edit content.", typeDescriptionLink: "#filecontent" },
+    beforeSha256: { type: "string", description: "SHA-256 of the pre-edit bytes." },
+    afterSha256: { type: "string", description: "SHA-256 of the post-edit bytes." },
+    unifiedDiff: { type: "ToolCallOutputRef", description: "Offloadable unified diff artifact for this file.", typeDescriptionLink: "#toolcalloutputref" },
+    diffComplete: { type: "boolean", description: "False when this file's diff is incomplete (elided, truncated, or not capturable)." },
+    fileDigest: { type: "string", description: "Canonical digest of (path, kind, before, after) for this file." },
+    blockedReason: { type: "FileReviewBlockReason", description: "The honest cause this file's diff is not fully reviewable, set by the runner only when diff_complete == false (otherwise UNSPECIFIED).", typeDescriptionLink: "#filereviewblockreason" },
+  }}
+/>
+
+### CasManifestRef
+
+A content-addressed snapshot manifest for paths git cannot capture (gitignored or non-git workspaces).
+
+<TypeTable
+  type={{
+    manifestDigest: { type: "string", description: "Digest of the manifest listing each captured path and its blob digest." },
+    artifactUri: { type: "string", description: "Storage URI of the manifest artifact." },
   }}
 />
 
@@ -1665,11 +1863,154 @@ ExecutionArtifact represents a file or directory published by an agent.
     kind: { type: "ExecutionArtifactKind", description: "Type of artifact: file or directory.", typeDescriptionLink: "#executionartifactkind" },
     sizeBytes: { type: "number", description: "Total size in bytes." },
     storageKey: { type: "string", description: "Storage location in R2." },
-    downloadUrl: { type: "string", description: "Pre-signed URL for downloading the artifact." },
     createdAt: { type: "string", description: "ISO 8601 timestamp when the artifact was created." },
     expiresAt: { type: "string", description: "ISO 8601 timestamp when the download URL expires." },
     entries: { type: "string[]", description: "Relative file paths within a directory artifact's archive." },
     contentHash: { type: "string", description: "SHA-256 hex digest of the uploaded artifact bytes." },
+  }}
+/>
+
+### FileChangeSet
+
+The set of file deltas produced by one agent turn, reviewed and reconciled as a unit.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Stable id of this change set, unique per turn." },
+    turnId: { type: "string", description: "Id of the turn that produced this change set." },
+    harnessId: { type: "string", description: "Harness that produced the edits: \"cursor\" | \"deep-agent\"." },
+    status: { type: "FileChangeSetStatus", description: "Current state of the change set, DERIVED from the file_review ledger (a fold over the events for this change set).", typeDescriptionLink: "#filechangesetstatus" },
+    baselineSnapshot: { type: "SnapshotRef", description: "Workspace state captured at turn start — the \"before\" the authoritative diff is computed against.", typeDescriptionLink: "#snapshotref" },
+    candidateSnapshot: { type: "SnapshotRef", description: "Workspace state captured at the turn boundary — the \"after\".", typeDescriptionLink: "#snapshotref" },
+    approvedSnapshot: { type: "SnapshotRef", description: "Workspace state derived after decisions (the exact bytes to reconcile to).", typeDescriptionLink: "#snapshotref" },
+    changes: { type: "CapturedFileChange[]", description: "The per-file deltas in this change set (the rendered review surface).", typeDescriptionLink: "#capturedfilechange" },
+    aggregateDigest: { type: "string", description: "Canonical digest over the ordered change manifest." },
+    diffCompleteness: { type: "DiffCompleteness", description: "Whether the rendered diff is complete enough to approve safely, a rollup over the per-file changes.", typeDescriptionLink: "#diffcompleteness" },
+    decisions: { type: "FileDecision[]", description: "Human decisions on this change set, a DERIVED fold over the FILE_DECIDED events in the ledger (never stored-mutable).", typeDescriptionLink: "#filedecision" },
+  }}
+/>
+
+### FileContent
+
+One side (before or after) of a file's content.
+
+<TypeTable
+  type={{
+    inline: { type: "string", description: "Full UTF-8 content, inline." },
+    ref: { type: "ToolCallOutputRef", description: "Offload pointer for large content; reuses the tool-output offload envelope (storage_key, size_bytes, content_hash, truncated_preview).", typeDescriptionLink: "#toolcalloutputref" },
+    isBinary: { type: "boolean", description: "True when this side is binary; clients skip text diffing and render \"binary file changed\" instead." },
+  }}
+/>
+
+### FileDecision
+
+One human decision on a change set or a single file within it.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Stable id of this decision." },
+    changeSetId: { type: "string", description: "The change set this decision targets (correlation key)." },
+    scope: { type: "FileDecisionScope", description: "Whether the decision applies to the whole change set or one file.", typeDescriptionLink: "#filedecisionscope" },
+    fileChangeId: { type: "string", description: "The CapturedFileChange this decision targets; set only when scope is FILE (correlation key)." },
+    action: { type: "FileDecisionAction", description: "Approve or reject.", typeDescriptionLink: "#filedecisionaction" },
+    expectedDigest: { type: "string", description: "The digest of the content the reviewer actually saw." },
+    reviewerId: { type: "string", description: "Identity of the reviewer (principal)." },
+    decidedAt: { type: "string", description: "ISO 8601 timestamp when the decision was made." },
+    reason: { type: "string", description: "Optional free-text comment supplied with the decision (audit trail)." },
+    acknowledgeUnreviewable: { type: "boolean", description: "True when this APPROVE consciously kept a change whose diff could not be fully reviewed (a binary file — no text diff, but exact reconcilable bytes)." },
+    origin: { type: "FileDecisionOrigin", description: "Which authority authored this decision: a human reviewer (USER; also the reading for UNSPECIFIED pre-origin records) or the approved-command auto-keep policy (DD-28).", typeDescriptionLink: "#filedecisionorigin" },
+  }}
+/>
+
+### FileReviewBaselineCaptured
+
+The baseline workspace state captured at turn start.
+
+<TypeTable
+  type={{
+    changeSetId: { type: "string", description: "Stable id of the change set this baseline opens." },
+    turnId: { type: "string", description: "The turn that produced it." },
+    harnessId: { type: "string", description: "The harness that produced it (\"cursor\" | \"deep-agent\")." },
+    baselineSnapshot: { type: "SnapshotRef", description: "The captured baseline state.", typeDescriptionLink: "#snapshotref" },
+  }}
+/>
+
+### FileReviewCandidateCaptured
+
+The candidate workspace state captured at the turn boundary, carrying the computed authoritative diff.
+
+<TypeTable
+  type={{
+    changeSetId: { type: "string", description: "The change set this candidate closes." },
+    candidateSnapshot: { type: "SnapshotRef", description: "The captured candidate state.", typeDescriptionLink: "#snapshotref" },
+    changes: { type: "CapturedFileChange[]", description: "The authoritative per-file diff (diff of baseline → candidate).", typeDescriptionLink: "#capturedfilechange" },
+    aggregateDigest: { type: "string", description: "Canonical digest over the ordered manifest (enforcement)." },
+    diffCompleteness: { type: "DiffCompleteness", description: "The runner-derived completeness rollup for this candidate: COMPLETE when every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only blocker, else PARTIAL_BLOCKED.", typeDescriptionLink: "#diffcompleteness" },
+    commandProvenance: { type: "TurnCommandProvenance", description: "The runner's approved-command turn facts (DD-28).", typeDescriptionLink: "#turncommandprovenance" },
+  }}
+/>
+
+### FileReviewEvent
+
+An immutable event in the file-review lifecycle.
+
+<TypeTable
+  type={{
+    eventId: { type: "string", description: "Unique id of this event, deterministic by design: derived from change_set_id + scope id + event_type." },
+    changeSetId: { type: "string", description: "Correlation id shared by every event for one change set." },
+    eventType: { type: "FileReviewEventType", description: "Coarse lifecycle bucket of this event.", typeDescriptionLink: "#filerevieweventtype" },
+    timestamp: { type: "string", description: "ISO 8601 timestamp of the event." },
+    actor: { type: "string", description: "Who produced the event: \"system\"/\"runner\" for capture and reconcile, \"user\" for decisions." },
+    baselineCaptured: { type: "FileReviewBaselineCaptured", description: "Set when event_type == BASELINE_CAPTURED.", typeDescriptionLink: "#filereviewbaselinecaptured" },
+    candidateCaptured: { type: "FileReviewCandidateCaptured", description: "Set when event_type == CANDIDATE_CAPTURED.", typeDescriptionLink: "#filereviewcandidatecaptured" },
+    fileDecided: { type: "FileDecision", description: "Set when event_type == FILE_DECIDED — authored by SubmitFileDecision.", typeDescriptionLink: "#filedecision" },
+    reconciled: { type: "FileReviewReconciled", description: "Set when event_type == RECONCILED.", typeDescriptionLink: "#filereviewreconciled" },
+    failed: { type: "FileReviewFailure", description: "Set when event_type == FAILED.", typeDescriptionLink: "#filereviewfailure" },
+  }}
+/>
+
+### FileReviewEventStream
+
+The ordered sequence of file-review events for a single agent execution.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "AgentExecution.metadata.id this stream belongs to." },
+    events: { type: "FileReviewEvent[]", description: "Events in lifecycle order.", typeDescriptionLink: "#filereviewevent" },
+  }}
+/>
+
+### FileReviewFailure
+
+A terminal failure in the file-review lifecycle.
+
+<TypeTable
+  type={{
+    changeSetId: { type: "string", description: "The change set the failure pertains to." },
+    kind: { type: "FileReviewFailureKind", description: "The precise failure mode.", typeDescriptionLink: "#filereviewfailurekind" },
+    detail: { type: "string", description: "Human-readable detail for the audit trail." },
+  }}
+/>
+
+### FileReviewReconciled
+
+The result of reconciling approved decisions into the workspace.
+
+<TypeTable
+  type={{
+    changeSetId: { type: "string", description: "The change set that was reconciled." },
+    approvedSnapshot: { type: "SnapshotRef", description: "The exact workspace state reconciled to and hash-verified.", typeDescriptionLink: "#snapshotref" },
+  }}
+/>
+
+### GitTreeRef
+
+A git no-commit tree snapshot (write-tree + a stigmer-namespaced ref).
+
+<TypeTable
+  type={{
+    treeOid: { type: "string", description: "The tree object id produced by git write-tree." },
+    ref: { type: "string", description: "The ref the snapshot is pinned under, e.g. \"refs/stigmer/{execution}/{baseline|candidate|approved}\"." },
   }}
 />
 
@@ -1704,6 +2045,7 @@ A pending approval request for a tool call that requires user consent before exe
     branchAtDeny: { type: "string", description: "Git branch name at the time the tool was denied." },
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
+    approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this tool call, copied from ToolCall.approval_policy_source by the server-side projection (exactly as tool_kind above is).", typeDescriptionLink: "#approvalpolicysource" },
   }}
 />
 
@@ -1727,6 +2069,18 @@ Setup progress reported during the EXECUTION_PENDING phase.
 <TypeTable
   type={{
     currentPhase: { type: "string", description: "Human-readable label for the current setup phase." },
+  }}
+/>
+
+### SnapshotRef
+
+An immutable pointer to a captured workspace state.
+
+<TypeTable
+  type={{
+    kind: { type: "SnapshotKind", description: "Which substrate holds this snapshot.", typeDescriptionLink: "#snapshotkind" },
+    git: { type: "GitTreeRef", description: "Git no-commit tree reference; set when kind is GIT_TREE_REF or HYBRID.", typeDescriptionLink: "#gittreeref" },
+    cas: { type: "CasManifestRef", description: "Content-addressed manifest reference for ignored/non-git paths; set when kind is CAS_MANIFEST or HYBRID.", typeDescriptionLink: "#casmanifestref" },
   }}
 />
 
@@ -1829,6 +2183,37 @@ Represents a tool call made by the agent during execution.
     mcpServerSlug: { type: "string", description: "Slug of the MCP server that provides this tool." },
     argsPreview: { type: "string", description: "Sanitized preview of tool arguments for UI display." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of this tool, set by the runner so clients render the tool identically regardless of which engine produced it.", typeDescriptionLink: "#toolkind" },
+    outputRef: { type: "ToolCallOutputRef", description: "───────────────────────────────────────────────────────────────────────────── Offloaded Output (large tool results).", typeDescriptionLink: "#toolcalloutputref" },
+    approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that decided this tool call's approval requirement, set by the runner's approval gate so clients can explain \"why was this gated or auto-approved?\".", typeDescriptionLink: "#approvalpolicysource" },
+    policyEngineVersion: { type: "string", description: "Identifier of the policy-engine logic that produced approval_policy_source, bumped when the merge/classification semantics change so decisions made by different engine versions stay distinguishable in audits." },
+    approvalContentDigest: { type: "string", description: "Stable digest of the authoritative edit content (the hook-captured tool input) for a gated file-mutating tool call, set by the runner's approval gate." },
+    fileChangeSetId: { type: "string", description: "Id of the FileChangeSet this flowed file-edit contributed to (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary capture." },
+  }}
+/>
+
+### ToolCallOutputRef
+
+ToolCallOutputRef points to a tool call's full output after the runner offloaded it to artifact storage to keep AgentExecutionStatus under the gRPC message-size limit.
+
+<TypeTable
+  type={{
+    storageKey: { type: "string", description: "Storage location of the full output bytes." },
+    sizeBytes: { type: "number", description: "Size in bytes of the full (original, pre-truncation) output." },
+    contentHash: { type: "string", description: "SHA-256 hex digest of the full output bytes." },
+    mimeType: { type: "string", description: "MIME type of the offloaded content." },
+    isImage: { type: "boolean", description: "True when the offloaded content is an image the UI should render inline (e.g. a screenshot from a computer-use MCP server)." },
+    truncatedPreview: { type: "string", description: "Short head of the original text content, kept inline for an at-a-glance preview without fetching the full artifact." },
+  }}
+/>
+
+### TurnCommandProvenance
+
+The runner's turn facts backing the approved-command auto-keep policy (DD-28): its assertion that EVERY mutation in the candidate was produced by executed shell commands the human had already authorized, with the consent evidence the backend can verify.
+
+<TypeTable
+  type={{
+    consentToolCallIds: { type: "string[]", description: "Ids of the transcript tool calls whose SERVER-AUTHORED approval_action (written only by SubmitApproval, preserved against runner writes) authorizes this turn's executed commands: the approved gate row for a per-command grant, or the APPROVE_ALL row whose category lease covered the command." },
+    authorizedByAutoApproveAll: { type: "boolean", description: "True when the commands ran ungated under the pre-armed spec.auto_approve_all global bypass (there is no per-command consent row to cite)." },
   }}
 />
 
@@ -1868,7 +2253,25 @@ ApprovalAction represents the user's decision on an approval request.
 | `APPROVAL_ACTION_APPROVE` | Execute the tool normally. |
 | `APPROVAL_ACTION_SKIP` | Skip tool execution, continue without it. |
 | `APPROVAL_ACTION_REJECT` | Reject tool execution, fail the entire execution. |
-| `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND auto-approve every subsequent tool call for the rest of this execution ("approve and don't ask again"). |
+| `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND grant a run-lifetime lease that auto-approves every subsequent tool call of the SAME class for the rest of this execution ("approve all of this kind, don't ask again"). |
+
+### FileDecisionScope
+
+FileDecisionScope is the granularity a FileDecision applies to.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_DECISION_SCOPE_CHANGE_SET` | The decision applies to the whole change set. |
+| `FILE_DECISION_SCOPE_FILE` | The decision applies to one CapturedFileChange (FileDecision.file_change_id). |
+
+### FileDecisionAction
+
+FileDecisionAction is a user's verdict on a change set or file.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_DECISION_ACTION_APPROVE` | Keep the change(s): reconcile the captured bytes into the workspace. |
+| `FILE_DECISION_ACTION_REJECT` | Discard the change(s): reconcile back to baseline for the targeted scope. |
 
 ### ExecutionPhase
 
@@ -1908,14 +2311,17 @@ MessageType defines the type of message in the conversation.
 | `MESSAGE_SYSTEM` | A system-generated message injected by the platform (e.g., budget warnings, summarization notices). |
 | `MESSAGE_THINKING` | Reasoning/thinking content from the model. |
 
-### ExecutionArtifactKind
+### ApprovalEventType
 
-ExecutionArtifactKind defines the type of artifact published by an agent.
+ApprovalEventType is the kind of event in the append-only approval-event stream (see ApprovalEvent in approval.proto).
 
 | Value | Description |
 |-------|-------------|
-| `EXECUTION_ARTIFACT_KIND_FILE` | A single file published by the agent. |
-| `EXECUTION_ARTIFACT_KIND_DIRECTORY` | A directory published by the agent, archived as a ZIP file for download. |
+| `APPROVAL_EVENT_TYPE_REQUESTED` | A tool call was gated and is awaiting a user decision. |
+| `APPROVAL_EVENT_TYPE_APPROVED` | The user approved the request (APPROVE or APPROVE_ALL); the tool may run. |
+| `APPROVAL_EVENT_TYPE_REJECTED` | The user rejected the request; the execution fails. |
+| `APPROVAL_EVENT_TYPE_SKIPPED` | The user skipped the request; execution continues without the tool. |
+| `APPROVAL_EVENT_TYPE_RETRACTED` | The platform withdrew the request before any user decision because the gated call became unreachable while the execution was still live — its sub-agent reached a terminal state, or the call was superseded on resume. |
 
 ### ToolKind
 
@@ -1936,6 +2342,135 @@ ToolKind is the harness-agnostic category of a tool call.
 | `TOOL_KIND_TODO` | Manage the agent's todo list. |
 | `TOOL_KIND_SUBAGENT` | Delegate work to a sub-agent. |
 | `TOOL_KIND_MCP` | A tool provided by an MCP server. |
+
+### ApprovalPolicySource
+
+ApprovalPolicySource is the policy layer that decided a tool call's approval requirement — the provenance recorded on every gated or auto-approved tool call so an execution's authorizations are auditable.
+
+| Value | Description |
+|-------|-------------|
+| `APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT` | Layer 1: the connect-time classifier's default for an MCP tool (McpServerStatus.tool_approvals). |
+| `APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE` | Layer 2: an operator's pinned override on the MCP server blueprint (McpServerSpec.pinned_tool_approvals). |
+| `APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE` | Layer 3: an agent-level override for an MCP tool (Agent McpServerUsage.tool_approval_overrides). |
+| `APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL` | Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global bypass cleared this call. |
+| `APPROVAL_POLICY_SOURCE_APPROVAL_LEASE` | Layer 4: a run-lifetime scoped lease (the successor to a global "approve all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched the leased class. |
+| `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | A non-MCP built-in tool gated by the shared tool taxonomy (write / delete / shell). |
+| `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The connect-time MCP destructiveHint tightener forced this tool to require approval, overriding a more permissive classifier verdict. |
+
+### ApprovalRetractionReason
+
+ApprovalRetractionReason explains why the platform withdrew an in-flight approval request (an APPROVAL_EVENT_TYPE_RETRACTED event).
+
+| Value | Description |
+|-------|-------------|
+| `APPROVAL_RETRACTION_REASON_SUB_AGENT_TERMINAL` | The gated call's sub-agent reached a terminal state (completed, failed, or cancelled) before the call was decided, orphaning the request. |
+| `APPROVAL_RETRACTION_REASON_SUPERSEDED` | The gated call left the approval gate without a decision (the harness advanced past it or abandoned it on resume) while the execution was still live. |
+
+### FileChangeKind
+
+FileChangeKind is the per-file outcome within a FileChangeSet.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_CHANGE_KIND_ADD` | A new file was created. |
+| `FILE_CHANGE_KIND_MODIFY` | An existing file's contents changed. |
+| `FILE_CHANGE_KIND_DELETE` | A file was deleted. |
+| `FILE_CHANGE_KIND_RENAME` | A file was renamed or moved; path_before holds the source, path_after the destination. |
+| `FILE_CHANGE_KIND_BINARY_CHANGE` | A binary file changed; rendered as "binary file changed" rather than a text diff. |
+
+### FileCaptureClass
+
+FileCaptureClass records how a file was captured, which governs which substrate (git tree ref vs CAS) holds its bytes and whether it is reviewable before CAS lands.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_CAPTURE_CLASS_GIT_TRACKED` | A git-tracked file; captured via the git no-commit tree snapshot. |
+| `FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED` | A git-untracked (but not ignored) file captured into the snapshot. |
+| `FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED` | A gitignored file captured via CAS (Phase 3). |
+| `FILE_CAPTURE_CLASS_NON_GIT_CAS` | A file in a non-git workspace captured via CAS (Phase 3). |
+
+### FileReviewBlockReason
+
+FileReviewBlockReason is the honest cause a captured file's diff is not fully reviewable (carried on CapturedFileChange.blocked_reason, set only when diff_complete == false).
+
+| Value | Description |
+|-------|-------------|
+| `FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD` | A secret-like path (doc 12, DD-E): the bytes were deliberately never captured, so there is nothing to review. |
+| `FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED` | Captured, then its inline bodies were dropped to keep the persisted status under its size limit. |
+| `FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE` | Generic non-capturable cause (forward-compat catch-all; e.g. a future non-git path class). |
+
+### ExecutionArtifactKind
+
+ExecutionArtifactKind defines the type of artifact published by an agent.
+
+| Value | Description |
+|-------|-------------|
+| `EXECUTION_ARTIFACT_KIND_FILE` | A single file published by the agent. |
+| `EXECUTION_ARTIFACT_KIND_DIRECTORY` | A directory published by the agent, archived as a ZIP file for download. |
+
+### FileChangeSetStatus
+
+FileChangeSetStatus is the state of a FileChangeSet, DERIVED by folding its file-review events (never stored-mutable).
+
+| Value | Description |
+|-------|-------------|
+| `FILE_CHANGE_SET_STATUS_CAPTURING` | Baseline captured; the turn is executing and the candidate is not yet captured. |
+| `FILE_CHANGE_SET_STATUS_AWAITING_REVIEW` | Candidate captured and the diff is reviewable; awaiting user decisions. |
+| `FILE_CHANGE_SET_STATUS_DECIDED` | All changes decided; awaiting the runner's reconcile. |
+| `FILE_CHANGE_SET_STATUS_RECONCILED` | Approved bytes reconciled into the workspace and hash-verified. |
+| `FILE_CHANGE_SET_STATUS_FAILED` | A capture, diff, or reconcile failure halted the lifecycle. |
+
+### DiffCompleteness
+
+DiffCompleteness describes whether a change set's rendered diff is complete enough to approve safely.
+
+| Value | Description |
+|-------|-------------|
+| `DIFF_COMPLETENESS_COMPLETE` | Every file's full diff is available; safe to approve. |
+| `DIFF_COMPLETENESS_PARTIAL_BLOCKED` | At least one file has a non-binary incompleteness (elided/truncated/ secret-withheld/uncapturable) with no keepable bytes. |
+| `DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY` | The set's ONLY incompleteness is binary files: every non-binary file is fully reviewable, and the remaining files are binary (a byte-true summary, no text diff). |
+
+### FileDecisionOrigin
+
+FileDecisionOrigin records which authority authored a FileDecision: a human reviewer, or a platform policy acting on consent the human already gave.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_DECISION_ORIGIN_USER` | A human reviewer decided via SubmitFileDecision. |
+| `FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND` | Platform policy auto-kept the set because every mutation in its turn came from commands the human explicitly authorized (per-command approval, APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified against server-authored approval records before authoring (DD-28). |
+
+### FileReviewEventType
+
+FileReviewEventType is the kind of event in the append-only file-review stream (see FileReviewEvent in filereview.proto).
+
+| Value | Description |
+|-------|-------------|
+| `FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED` | Baseline captured at turn start. |
+| `FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED` | Candidate captured at the turn boundary, carrying the diff. |
+| `FILE_REVIEW_EVENT_TYPE_FILE_DECIDED` | A user decided a change set or file. |
+| `FILE_REVIEW_EVENT_TYPE_RECONCILED` | Approved bytes reconciled and verified. |
+| `FILE_REVIEW_EVENT_TYPE_FAILED` | A capture/diff/reconcile failure. |
+
+### FileReviewFailureKind
+
+FileReviewFailureKind is the precise cause carried by a FAILED file-review event (FileReviewFailure.kind).
+
+| Value | Description |
+|-------|-------------|
+| `FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED` | Capturing the baseline or candidate snapshot failed. |
+| `FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE` | The diff could not be rendered completely (uncapturable path); the change set cannot become approvable. |
+| `FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED` | Reconciling approved bytes into the workspace failed. |
+| `FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH` | A post-reconcile filesystem hash did not match the approved digest. |
+
+### SnapshotKind
+
+SnapshotKind is the substrate backing a SnapshotRef.
+
+| Value | Description |
+|-------|-------------|
+| `SNAPSHOT_KIND_GIT_TREE_REF` | A git no-commit tree ref (git-tracked/untracked paths only). |
+| `SNAPSHOT_KIND_CAS_MANIFEST` | A content-addressed manifest (ignored/non-git paths; Phase 3). |
+| `SNAPSHOT_KIND_HYBRID` | Both a git tree ref and a CAS manifest (mixed workspace). |
 
 ### SubAgentStatus
 

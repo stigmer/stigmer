@@ -14,6 +14,11 @@ public interface ToolCallOutputRefOrBuilder extends
    * <pre>
    * Storage location of the full output bytes.
    * Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+   *
+   * Clients resolve the bytes/URL on demand from this stable key (via
+   * getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+   * persisted URL, since a pre-signed URL would expire while the reference does
+   * not.
    * </pre>
    *
    * <code>string storage_key = 1 [json_name = "storageKey"];</code>
@@ -24,6 +29,11 @@ public interface ToolCallOutputRefOrBuilder extends
    * <pre>
    * Storage location of the full output bytes.
    * Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+   *
+   * Clients resolve the bytes/URL on demand from this stable key (via
+   * getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+   * persisted URL, since a pre-signed URL would expire while the reference does
+   * not.
    * </pre>
    *
    * <code>string storage_key = 1 [json_name = "storageKey"];</code>
@@ -31,28 +41,6 @@ public interface ToolCallOutputRefOrBuilder extends
    */
   com.google.protobuf.ByteString
       getStorageKeyBytes();
-
-  /**
-   * <pre>
-   * URL for fetching the full output — pre-signed in the cloud, locally served
-   * in dev. May be refreshed via the artifact download endpoint if expired.
-   * </pre>
-   *
-   * <code>string download_url = 2 [json_name = "downloadUrl"];</code>
-   * @return The downloadUrl.
-   */
-  java.lang.String getDownloadUrl();
-  /**
-   * <pre>
-   * URL for fetching the full output — pre-signed in the cloud, locally served
-   * in dev. May be refreshed via the artifact download endpoint if expired.
-   * </pre>
-   *
-   * <code>string download_url = 2 [json_name = "downloadUrl"];</code>
-   * @return The bytes for downloadUrl.
-   */
-  com.google.protobuf.ByteString
-      getDownloadUrlBytes();
 
   /**
    * <pre>

@@ -43,6 +43,7 @@ private static final long serialVersionUID = 0L;
     pendingApprovals_ = java.util.Collections.emptyList();
     artifacts_ = java.util.Collections.emptyList();
     workspaceWriteBacks_ = java.util.Collections.emptyList();
+    fileChangeSets_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -799,6 +800,131 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     return pendingApprovals_.get(index);
   }
 
+  public static final int APPROVAL_EVENT_STREAM_FIELD_NUMBER = 22;
+  private ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approvalEventStream_;
+  /**
+   * <pre>
+   * Server-authored, append-only record of every approval request and decision.
+   *
+   * &#64;internal
+   *
+   * This is the persisted form of the append-only stream that is the target
+   * single source of truth for approvals (see ApprovalEventStream in
+   * approval.proto). It is NOT yet read by any surface: pending_approvals is
+   * still projected from the authoritative message scan, and the UI/SDK read
+   * that. The stream coexists as a parallel, independently-authored record so
+   * that (1) the message-scan vs event-stream projection parity check becomes a
+   * real cross-writer regression guard rather than a tautology, and (2) the
+   * approval audit trail — who decided, when, with what comment — has a home,
+   * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+   * capture a decision comment at all.
+   *
+   * Field ownership (one writer per event type):
+   * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+   * call enters WAITING_APPROVAL (seeded once from the message scan for
+   * executions that predate this field).
+   * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+   * SubmitApproval handler, carrying decided_by and the user's comment.
+   *
+   * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+   * stream is idempotent under retries and the rich decision event (authored in
+   * the same operation that records the decision on the message scan) can never
+   * be duplicated or overwritten by a coarse re-derivation.
+   *
+   * Because it is server-only, the agent-runner never sends it; it is preserved
+   * across UpdateStatus writes automatically (the merge starts from the loaded
+   * execution and only replaces runner-owned fields).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+   * @return Whether the approvalEventStream field is set.
+   */
+  @java.lang.Override
+  public boolean hasApprovalEventStream() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <pre>
+   * Server-authored, append-only record of every approval request and decision.
+   *
+   * &#64;internal
+   *
+   * This is the persisted form of the append-only stream that is the target
+   * single source of truth for approvals (see ApprovalEventStream in
+   * approval.proto). It is NOT yet read by any surface: pending_approvals is
+   * still projected from the authoritative message scan, and the UI/SDK read
+   * that. The stream coexists as a parallel, independently-authored record so
+   * that (1) the message-scan vs event-stream projection parity check becomes a
+   * real cross-writer regression guard rather than a tautology, and (2) the
+   * approval audit trail — who decided, when, with what comment — has a home,
+   * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+   * capture a decision comment at all.
+   *
+   * Field ownership (one writer per event type):
+   * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+   * call enters WAITING_APPROVAL (seeded once from the message scan for
+   * executions that predate this field).
+   * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+   * SubmitApproval handler, carrying decided_by and the user's comment.
+   *
+   * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+   * stream is idempotent under retries and the rich decision event (authored in
+   * the same operation that records the decision on the message scan) can never
+   * be duplicated or overwritten by a coarse re-derivation.
+   *
+   * Because it is server-only, the agent-runner never sends it; it is preserved
+   * across UpdateStatus writes automatically (the merge starts from the loaded
+   * execution and only replaces runner-owned fields).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+   * @return The approvalEventStream.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream getApprovalEventStream() {
+    return approvalEventStream_ == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.getDefaultInstance() : approvalEventStream_;
+  }
+  /**
+   * <pre>
+   * Server-authored, append-only record of every approval request and decision.
+   *
+   * &#64;internal
+   *
+   * This is the persisted form of the append-only stream that is the target
+   * single source of truth for approvals (see ApprovalEventStream in
+   * approval.proto). It is NOT yet read by any surface: pending_approvals is
+   * still projected from the authoritative message scan, and the UI/SDK read
+   * that. The stream coexists as a parallel, independently-authored record so
+   * that (1) the message-scan vs event-stream projection parity check becomes a
+   * real cross-writer regression guard rather than a tautology, and (2) the
+   * approval audit trail — who decided, when, with what comment — has a home,
+   * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+   * capture a decision comment at all.
+   *
+   * Field ownership (one writer per event type):
+   * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+   * call enters WAITING_APPROVAL (seeded once from the message scan for
+   * executions that predate this field).
+   * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+   * SubmitApproval handler, carrying decided_by and the user's comment.
+   *
+   * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+   * stream is idempotent under retries and the rich decision event (authored in
+   * the same operation that records the decision on the message scan) can never
+   * be duplicated or overwritten by a coarse re-derivation.
+   *
+   * Because it is server-only, the agent-runner never sends it; it is preserved
+   * across UpdateStatus writes automatically (the merge starts from the loaded
+   * execution and only replaces runner-owned fields).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.ApprovalEventStreamOrBuilder getApprovalEventStreamOrBuilder() {
+    return approvalEventStream_ == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.getDefaultInstance() : approvalEventStream_;
+  }
+
   public static final int CONTEXT_INFO_FIELD_NUMBER = 14;
   private ai.stigmer.agentic.agentexecution.v1.ContextInfo contextInfo_;
   /**
@@ -825,7 +951,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasContextInfo() {
-    return ((bitField0_ & 0x00000004) != 0);
+    return ((bitField0_ & 0x00000008) != 0);
   }
   /**
    * <pre>
@@ -1127,7 +1253,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasSetupProgress() {
-    return ((bitField0_ & 0x00000008) != 0);
+    return ((bitField0_ & 0x00000010) != 0);
   }
   /**
    * <pre>
@@ -1173,7 +1299,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasStreamingUsage() {
-    return ((bitField0_ & 0x00000010) != 0);
+    return ((bitField0_ & 0x00000020) != 0);
   }
   /**
    * <pre>
@@ -1223,7 +1349,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasStructuredOutput() {
-    return ((bitField0_ & 0x00000020) != 0);
+    return ((bitField0_ & 0x00000040) != 0);
   }
   /**
    * <pre>
@@ -1273,6 +1399,223 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     return structuredOutput_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutput_;
   }
 
+  public static final int FILE_CHANGE_SETS_FIELD_NUMBER = 23;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChangeSet> fileChangeSets_;
+  /**
+   * <pre>
+   * Server-computed projection of file change sets awaiting or completing
+   * review for this execution.
+   *
+   * &#64;internal
+   *
+   * Recomputed on every status write from file_review_event_stream (never
+   * merged), so it is always consistent with the authoritative ledger — exactly
+   * as pending_approvals is recomputed from the message scan / approval stream.
+   * Empty until the runner's capture activity authors events (Phase 2). A
+   * terminal execution projects no actionable review. See FileChangeSet.
+   *
+   * Field 23: appended after approval_event_stream (22), the prior maximum.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChangeSet> getFileChangeSetsList() {
+    return fileChangeSets_;
+  }
+  /**
+   * <pre>
+   * Server-computed projection of file change sets awaiting or completing
+   * review for this execution.
+   *
+   * &#64;internal
+   *
+   * Recomputed on every status write from file_review_event_stream (never
+   * merged), so it is always consistent with the authoritative ledger — exactly
+   * as pending_approvals is recomputed from the message scan / approval stream.
+   * Empty until the runner's capture activity authors events (Phase 2). A
+   * terminal execution projects no actionable review. See FileChangeSet.
+   *
+   * Field 23: appended after approval_event_stream (22), the prior maximum.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.FileChangeSetOrBuilder> 
+      getFileChangeSetsOrBuilderList() {
+    return fileChangeSets_;
+  }
+  /**
+   * <pre>
+   * Server-computed projection of file change sets awaiting or completing
+   * review for this execution.
+   *
+   * &#64;internal
+   *
+   * Recomputed on every status write from file_review_event_stream (never
+   * merged), so it is always consistent with the authoritative ledger — exactly
+   * as pending_approvals is recomputed from the message scan / approval stream.
+   * Empty until the runner's capture activity authors events (Phase 2). A
+   * terminal execution projects no actionable review. See FileChangeSet.
+   *
+   * Field 23: appended after approval_event_stream (22), the prior maximum.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+   */
+  @java.lang.Override
+  public int getFileChangeSetsCount() {
+    return fileChangeSets_.size();
+  }
+  /**
+   * <pre>
+   * Server-computed projection of file change sets awaiting or completing
+   * review for this execution.
+   *
+   * &#64;internal
+   *
+   * Recomputed on every status write from file_review_event_stream (never
+   * merged), so it is always consistent with the authoritative ledger — exactly
+   * as pending_approvals is recomputed from the message scan / approval stream.
+   * Empty until the runner's capture activity authors events (Phase 2). A
+   * terminal execution projects no actionable review. See FileChangeSet.
+   *
+   * Field 23: appended after approval_event_stream (22), the prior maximum.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.FileChangeSet getFileChangeSets(int index) {
+    return fileChangeSets_.get(index);
+  }
+  /**
+   * <pre>
+   * Server-computed projection of file change sets awaiting or completing
+   * review for this execution.
+   *
+   * &#64;internal
+   *
+   * Recomputed on every status write from file_review_event_stream (never
+   * merged), so it is always consistent with the authoritative ledger — exactly
+   * as pending_approvals is recomputed from the message scan / approval stream.
+   * Empty until the runner's capture activity authors events (Phase 2). A
+   * terminal execution projects no actionable review. See FileChangeSet.
+   *
+   * Field 23: appended after approval_event_stream (22), the prior maximum.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.FileChangeSetOrBuilder getFileChangeSetsOrBuilder(
+      int index) {
+    return fileChangeSets_.get(index);
+  }
+
+  public static final int FILE_REVIEW_EVENT_STREAM_FIELD_NUMBER = 24;
+  private ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream fileReviewEventStream_;
+  /**
+   * <pre>
+   * Server-owned, append-only record of every file-review event (baseline /
+   * candidate capture, file decisions, reconcile, failures).
+   *
+   * &#64;internal
+   *
+   * The persisted source of truth that file_change_sets is projected from — a
+   * sibling of approval_event_stream for the file-review lifecycle (the
+   * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+   * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+   * idempotent under retries.
+   *
+   * Write contract (one writer per event type): the runner CONTRIBUTES its
+   * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+   * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+   * them into the stored stream append-only, by event_id, on the freshly-loaded
+   * execution under the write lock. The runner can never replace an existing
+   * event and never authors FILE_DECIDED (the server drops a runner-sent
+   * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+   * stream is otherwise preserved in place across writes. See
+   * FileReviewEventStream.
+   *
+   * Field 24: appended after file_change_sets (23), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+   * @return Whether the fileReviewEventStream field is set.
+   */
+  @java.lang.Override
+  public boolean hasFileReviewEventStream() {
+    return ((bitField0_ & 0x00000080) != 0);
+  }
+  /**
+   * <pre>
+   * Server-owned, append-only record of every file-review event (baseline /
+   * candidate capture, file decisions, reconcile, failures).
+   *
+   * &#64;internal
+   *
+   * The persisted source of truth that file_change_sets is projected from — a
+   * sibling of approval_event_stream for the file-review lifecycle (the
+   * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+   * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+   * idempotent under retries.
+   *
+   * Write contract (one writer per event type): the runner CONTRIBUTES its
+   * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+   * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+   * them into the stored stream append-only, by event_id, on the freshly-loaded
+   * execution under the write lock. The runner can never replace an existing
+   * event and never authors FILE_DECIDED (the server drops a runner-sent
+   * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+   * stream is otherwise preserved in place across writes. See
+   * FileReviewEventStream.
+   *
+   * Field 24: appended after file_change_sets (23), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+   * @return The fileReviewEventStream.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream getFileReviewEventStream() {
+    return fileReviewEventStream_ == null ? ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.getDefaultInstance() : fileReviewEventStream_;
+  }
+  /**
+   * <pre>
+   * Server-owned, append-only record of every file-review event (baseline /
+   * candidate capture, file decisions, reconcile, failures).
+   *
+   * &#64;internal
+   *
+   * The persisted source of truth that file_change_sets is projected from — a
+   * sibling of approval_event_stream for the file-review lifecycle (the
+   * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+   * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+   * idempotent under retries.
+   *
+   * Write contract (one writer per event type): the runner CONTRIBUTES its
+   * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+   * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+   * them into the stored stream append-only, by event_id, on the freshly-loaded
+   * execution under the write lock. The runner can never replace an existing
+   * event and never authors FILE_DECIDED (the server drops a runner-sent
+   * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+   * stream is otherwise preserved in place across writes. See
+   * FileReviewEventStream.
+   *
+   * Field 24: appended after file_change_sets (23), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamOrBuilder getFileReviewEventStreamOrBuilder() {
+    return fileReviewEventStream_ == null ? ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.getDefaultInstance() : fileReviewEventStream_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1317,7 +1660,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(12, getResolvedContext());
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000008) != 0)) {
       output.writeMessage(14, getContextInfo());
     }
     for (int i = 0; i < artifacts_.size(); i++) {
@@ -1329,14 +1672,23 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     for (int i = 0; i < workspaceWriteBacks_.size(); i++) {
       output.writeMessage(17, workspaceWriteBacks_.get(i));
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000010) != 0)) {
       output.writeMessage(18, getSetupProgress());
     }
-    if (((bitField0_ & 0x00000010) != 0)) {
+    if (((bitField0_ & 0x00000020) != 0)) {
       output.writeMessage(20, getStreamingUsage());
     }
-    if (((bitField0_ & 0x00000020) != 0)) {
+    if (((bitField0_ & 0x00000040) != 0)) {
       output.writeMessage(21, getStructuredOutput());
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(22, getApprovalEventStream());
+    }
+    for (int i = 0; i < fileChangeSets_.size(); i++) {
+      output.writeMessage(23, fileChangeSets_.get(i));
+    }
+    if (((bitField0_ & 0x00000080) != 0)) {
+      output.writeMessage(24, getFileReviewEventStream());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1399,7 +1751,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(12, getResolvedContext());
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000008) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(14, getContextInfo());
     }
@@ -1430,17 +1782,34 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
           }
           size += 2 * count;
         }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000010) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(18, getSetupProgress());
     }
-    if (((bitField0_ & 0x00000010) != 0)) {
+    if (((bitField0_ & 0x00000020) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(20, getStreamingUsage());
     }
-    if (((bitField0_ & 0x00000020) != 0)) {
+    if (((bitField0_ & 0x00000040) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(21, getStructuredOutput());
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(22, getApprovalEventStream());
+    }
+
+        {
+          final int count = fileChangeSets_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(fileChangeSets_.get(i));
+          }
+          size += 2 * count;
+        }
+    if (((bitField0_ & 0x00000080) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(24, getFileReviewEventStream());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -1488,6 +1857,11 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     if (!getPendingApprovalsList()
         .equals(other.getPendingApprovalsList())) return false;
+    if (hasApprovalEventStream() != other.hasApprovalEventStream()) return false;
+    if (hasApprovalEventStream()) {
+      if (!getApprovalEventStream()
+          .equals(other.getApprovalEventStream())) return false;
+    }
     if (hasContextInfo() != other.hasContextInfo()) return false;
     if (hasContextInfo()) {
       if (!getContextInfo()
@@ -1511,6 +1885,13 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (hasStructuredOutput()) {
       if (!getStructuredOutput()
           .equals(other.getStructuredOutput())) return false;
+    }
+    if (!getFileChangeSetsList()
+        .equals(other.getFileChangeSetsList())) return false;
+    if (hasFileReviewEventStream() != other.hasFileReviewEventStream()) return false;
+    if (hasFileReviewEventStream()) {
+      if (!getFileReviewEventStream()
+          .equals(other.getFileReviewEventStream())) return false;
     }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
@@ -1557,6 +1938,10 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       hash = (37 * hash) + PENDING_APPROVALS_FIELD_NUMBER;
       hash = (53 * hash) + getPendingApprovalsList().hashCode();
     }
+    if (hasApprovalEventStream()) {
+      hash = (37 * hash) + APPROVAL_EVENT_STREAM_FIELD_NUMBER;
+      hash = (53 * hash) + getApprovalEventStream().hashCode();
+    }
     if (hasContextInfo()) {
       hash = (37 * hash) + CONTEXT_INFO_FIELD_NUMBER;
       hash = (53 * hash) + getContextInfo().hashCode();
@@ -1580,6 +1965,14 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (hasStructuredOutput()) {
       hash = (37 * hash) + STRUCTURED_OUTPUT_FIELD_NUMBER;
       hash = (53 * hash) + getStructuredOutput().hashCode();
+    }
+    if (getFileChangeSetsCount() > 0) {
+      hash = (37 * hash) + FILE_CHANGE_SETS_FIELD_NUMBER;
+      hash = (53 * hash) + getFileChangeSetsList().hashCode();
+    }
+    if (hasFileReviewEventStream()) {
+      hash = (37 * hash) + FILE_REVIEW_EVENT_STREAM_FIELD_NUMBER;
+      hash = (53 * hash) + getFileReviewEventStream().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1743,12 +2136,15 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         internalGetSubAgentExecutionsFieldBuilder();
         internalGetResolvedContextFieldBuilder();
         internalGetPendingApprovalsFieldBuilder();
+        internalGetApprovalEventStreamFieldBuilder();
         internalGetContextInfoFieldBuilder();
         internalGetArtifactsFieldBuilder();
         internalGetWorkspaceWriteBacksFieldBuilder();
         internalGetSetupProgressFieldBuilder();
         internalGetStreamingUsageFieldBuilder();
         internalGetStructuredOutputFieldBuilder();
+        internalGetFileChangeSetsFieldBuilder();
+        internalGetFileReviewEventStreamFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1792,6 +2188,11 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         pendingApprovalsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000400);
+      approvalEventStream_ = null;
+      if (approvalEventStreamBuilder_ != null) {
+        approvalEventStreamBuilder_.dispose();
+        approvalEventStreamBuilder_ = null;
+      }
       contextInfo_ = null;
       if (contextInfoBuilder_ != null) {
         contextInfoBuilder_.dispose();
@@ -1803,14 +2204,14 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         artifacts_ = null;
         artifactsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       if (workspaceWriteBacksBuilder_ == null) {
         workspaceWriteBacks_ = java.util.Collections.emptyList();
       } else {
         workspaceWriteBacks_ = null;
         workspaceWriteBacksBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       setupProgress_ = null;
       if (setupProgressBuilder_ != null) {
         setupProgressBuilder_.dispose();
@@ -1825,6 +2226,18 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (structuredOutputBuilder_ != null) {
         structuredOutputBuilder_.dispose();
         structuredOutputBuilder_ = null;
+      }
+      if (fileChangeSetsBuilder_ == null) {
+        fileChangeSets_ = java.util.Collections.emptyList();
+      } else {
+        fileChangeSets_ = null;
+        fileChangeSetsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00040000);
+      fileReviewEventStream_ = null;
+      if (fileReviewEventStreamBuilder_ != null) {
+        fileReviewEventStreamBuilder_.dispose();
+        fileReviewEventStreamBuilder_ = null;
       }
       return this;
     }
@@ -1887,22 +2300,31 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         result.pendingApprovals_ = pendingApprovalsBuilder_.build();
       }
       if (artifactsBuilder_ == null) {
-        if (((bitField0_ & 0x00001000) != 0)) {
+        if (((bitField0_ & 0x00002000) != 0)) {
           artifacts_ = java.util.Collections.unmodifiableList(artifacts_);
-          bitField0_ = (bitField0_ & ~0x00001000);
+          bitField0_ = (bitField0_ & ~0x00002000);
         }
         result.artifacts_ = artifacts_;
       } else {
         result.artifacts_ = artifactsBuilder_.build();
       }
       if (workspaceWriteBacksBuilder_ == null) {
-        if (((bitField0_ & 0x00002000) != 0)) {
+        if (((bitField0_ & 0x00004000) != 0)) {
           workspaceWriteBacks_ = java.util.Collections.unmodifiableList(workspaceWriteBacks_);
-          bitField0_ = (bitField0_ & ~0x00002000);
+          bitField0_ = (bitField0_ & ~0x00004000);
         }
         result.workspaceWriteBacks_ = workspaceWriteBacks_;
       } else {
         result.workspaceWriteBacks_ = workspaceWriteBacksBuilder_.build();
+      }
+      if (fileChangeSetsBuilder_ == null) {
+        if (((bitField0_ & 0x00040000) != 0)) {
+          fileChangeSets_ = java.util.Collections.unmodifiableList(fileChangeSets_);
+          bitField0_ = (bitField0_ & ~0x00040000);
+        }
+        result.fileChangeSets_ = fileChangeSets_;
+      } else {
+        result.fileChangeSets_ = fileChangeSetsBuilder_.build();
       }
     }
 
@@ -1940,28 +2362,40 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.approvalEventStream_ = approvalEventStreamBuilder_ == null
+            ? approvalEventStream_
+            : approvalEventStreamBuilder_.build();
+        to_bitField0_ |= 0x00000004;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.contextInfo_ = contextInfoBuilder_ == null
             ? contextInfo_
             : contextInfoBuilder_.build();
-        to_bitField0_ |= 0x00000004;
-      }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
-        result.setupProgress_ = setupProgressBuilder_ == null
-            ? setupProgress_
-            : setupProgressBuilder_.build();
         to_bitField0_ |= 0x00000008;
       }
       if (((from_bitField0_ & 0x00008000) != 0)) {
-        result.streamingUsage_ = streamingUsageBuilder_ == null
-            ? streamingUsage_
-            : streamingUsageBuilder_.build();
+        result.setupProgress_ = setupProgressBuilder_ == null
+            ? setupProgress_
+            : setupProgressBuilder_.build();
         to_bitField0_ |= 0x00000010;
       }
       if (((from_bitField0_ & 0x00010000) != 0)) {
+        result.streamingUsage_ = streamingUsageBuilder_ == null
+            ? streamingUsage_
+            : streamingUsageBuilder_.build();
+        to_bitField0_ |= 0x00000020;
+      }
+      if (((from_bitField0_ & 0x00020000) != 0)) {
         result.structuredOutput_ = structuredOutputBuilder_ == null
             ? structuredOutput_
             : structuredOutputBuilder_.build();
-        to_bitField0_ |= 0x00000020;
+        to_bitField0_ |= 0x00000040;
+      }
+      if (((from_bitField0_ & 0x00080000) != 0)) {
+        result.fileReviewEventStream_ = fileReviewEventStreamBuilder_ == null
+            ? fileReviewEventStream_
+            : fileReviewEventStreamBuilder_.build();
+        to_bitField0_ |= 0x00000080;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2086,6 +2520,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
           }
         }
       }
+      if (other.hasApprovalEventStream()) {
+        mergeApprovalEventStream(other.getApprovalEventStream());
+      }
       if (other.hasContextInfo()) {
         mergeContextInfo(other.getContextInfo());
       }
@@ -2093,7 +2530,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         if (!other.artifacts_.isEmpty()) {
           if (artifacts_.isEmpty()) {
             artifacts_ = other.artifacts_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00002000);
           } else {
             ensureArtifactsIsMutable();
             artifacts_.addAll(other.artifacts_);
@@ -2106,7 +2543,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
             artifactsBuilder_.dispose();
             artifactsBuilder_ = null;
             artifacts_ = other.artifacts_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00002000);
             artifactsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetArtifactsFieldBuilder() : null;
@@ -2119,7 +2556,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         if (!other.workspaceWriteBacks_.isEmpty()) {
           if (workspaceWriteBacks_.isEmpty()) {
             workspaceWriteBacks_ = other.workspaceWriteBacks_;
-            bitField0_ = (bitField0_ & ~0x00002000);
+            bitField0_ = (bitField0_ & ~0x00004000);
           } else {
             ensureWorkspaceWriteBacksIsMutable();
             workspaceWriteBacks_.addAll(other.workspaceWriteBacks_);
@@ -2132,7 +2569,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
             workspaceWriteBacksBuilder_.dispose();
             workspaceWriteBacksBuilder_ = null;
             workspaceWriteBacks_ = other.workspaceWriteBacks_;
-            bitField0_ = (bitField0_ & ~0x00002000);
+            bitField0_ = (bitField0_ & ~0x00004000);
             workspaceWriteBacksBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetWorkspaceWriteBacksFieldBuilder() : null;
@@ -2149,6 +2586,35 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       }
       if (other.hasStructuredOutput()) {
         mergeStructuredOutput(other.getStructuredOutput());
+      }
+      if (fileChangeSetsBuilder_ == null) {
+        if (!other.fileChangeSets_.isEmpty()) {
+          if (fileChangeSets_.isEmpty()) {
+            fileChangeSets_ = other.fileChangeSets_;
+            bitField0_ = (bitField0_ & ~0x00040000);
+          } else {
+            ensureFileChangeSetsIsMutable();
+            fileChangeSets_.addAll(other.fileChangeSets_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.fileChangeSets_.isEmpty()) {
+          if (fileChangeSetsBuilder_.isEmpty()) {
+            fileChangeSetsBuilder_.dispose();
+            fileChangeSetsBuilder_ = null;
+            fileChangeSets_ = other.fileChangeSets_;
+            bitField0_ = (bitField0_ & ~0x00040000);
+            fileChangeSetsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetFileChangeSetsFieldBuilder() : null;
+          } else {
+            fileChangeSetsBuilder_.addAllMessages(other.fileChangeSets_);
+          }
+        }
+      }
+      if (other.hasFileReviewEventStream()) {
+        mergeFileReviewEventStream(other.getFileReviewEventStream());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -2247,7 +2713,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               input.readMessage(
                   internalGetContextInfoFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00001000;
               break;
             } // case 114
             case 122: {
@@ -2293,23 +2759,50 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               input.readMessage(
                   internalGetSetupProgressFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 146
             case 162: {
               input.readMessage(
                   internalGetStreamingUsageFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00008000;
+              bitField0_ |= 0x00010000;
               break;
             } // case 162
             case 170: {
               input.readMessage(
                   internalGetStructuredOutputFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00010000;
+              bitField0_ |= 0x00020000;
               break;
             } // case 170
+            case 178: {
+              input.readMessage(
+                  internalGetApprovalEventStreamFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 178
+            case 186: {
+              ai.stigmer.agentic.agentexecution.v1.FileChangeSet m =
+                  input.readMessage(
+                      ai.stigmer.agentic.agentexecution.v1.FileChangeSet.parser(),
+                      extensionRegistry);
+              if (fileChangeSetsBuilder_ == null) {
+                ensureFileChangeSetsIsMutable();
+                fileChangeSets_.add(m);
+              } else {
+                fileChangeSetsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 186
+            case 194: {
+              input.readMessage(
+                  internalGetFileReviewEventStreamFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00080000;
+              break;
+            } // case 194
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -4788,6 +5281,424 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       return pendingApprovalsBuilder_;
     }
 
+    private ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approvalEventStream_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream, ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.Builder, ai.stigmer.agentic.agentexecution.v1.ApprovalEventStreamOrBuilder> approvalEventStreamBuilder_;
+    /**
+     * <pre>
+     * Server-authored, append-only record of every approval request and decision.
+     *
+     * &#64;internal
+     *
+     * This is the persisted form of the append-only stream that is the target
+     * single source of truth for approvals (see ApprovalEventStream in
+     * approval.proto). It is NOT yet read by any surface: pending_approvals is
+     * still projected from the authoritative message scan, and the UI/SDK read
+     * that. The stream coexists as a parallel, independently-authored record so
+     * that (1) the message-scan vs event-stream projection parity check becomes a
+     * real cross-writer regression guard rather than a tautology, and (2) the
+     * approval audit trail — who decided, when, with what comment — has a home,
+     * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+     * capture a decision comment at all.
+     *
+     * Field ownership (one writer per event type):
+     * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+     * call enters WAITING_APPROVAL (seeded once from the message scan for
+     * executions that predate this field).
+     * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+     * SubmitApproval handler, carrying decided_by and the user's comment.
+     *
+     * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+     * stream is idempotent under retries and the rich decision event (authored in
+     * the same operation that records the decision on the message scan) can never
+     * be duplicated or overwritten by a coarse re-derivation.
+     *
+     * Because it is server-only, the agent-runner never sends it; it is preserved
+     * across UpdateStatus writes automatically (the merge starts from the loaded
+     * execution and only replaces runner-owned fields).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+     * @return Whether the approvalEventStream field is set.
+     */
+    public boolean hasApprovalEventStream() {
+      return ((bitField0_ & 0x00000800) != 0);
+    }
+    /**
+     * <pre>
+     * Server-authored, append-only record of every approval request and decision.
+     *
+     * &#64;internal
+     *
+     * This is the persisted form of the append-only stream that is the target
+     * single source of truth for approvals (see ApprovalEventStream in
+     * approval.proto). It is NOT yet read by any surface: pending_approvals is
+     * still projected from the authoritative message scan, and the UI/SDK read
+     * that. The stream coexists as a parallel, independently-authored record so
+     * that (1) the message-scan vs event-stream projection parity check becomes a
+     * real cross-writer regression guard rather than a tautology, and (2) the
+     * approval audit trail — who decided, when, with what comment — has a home,
+     * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+     * capture a decision comment at all.
+     *
+     * Field ownership (one writer per event type):
+     * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+     * call enters WAITING_APPROVAL (seeded once from the message scan for
+     * executions that predate this field).
+     * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+     * SubmitApproval handler, carrying decided_by and the user's comment.
+     *
+     * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+     * stream is idempotent under retries and the rich decision event (authored in
+     * the same operation that records the decision on the message scan) can never
+     * be duplicated or overwritten by a coarse re-derivation.
+     *
+     * Because it is server-only, the agent-runner never sends it; it is preserved
+     * across UpdateStatus writes automatically (the merge starts from the loaded
+     * execution and only replaces runner-owned fields).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+     * @return The approvalEventStream.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream getApprovalEventStream() {
+      if (approvalEventStreamBuilder_ == null) {
+        return approvalEventStream_ == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.getDefaultInstance() : approvalEventStream_;
+      } else {
+        return approvalEventStreamBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Server-authored, append-only record of every approval request and decision.
+     *
+     * &#64;internal
+     *
+     * This is the persisted form of the append-only stream that is the target
+     * single source of truth for approvals (see ApprovalEventStream in
+     * approval.proto). It is NOT yet read by any surface: pending_approvals is
+     * still projected from the authoritative message scan, and the UI/SDK read
+     * that. The stream coexists as a parallel, independently-authored record so
+     * that (1) the message-scan vs event-stream projection parity check becomes a
+     * real cross-writer regression guard rather than a tautology, and (2) the
+     * approval audit trail — who decided, when, with what comment — has a home,
+     * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+     * capture a decision comment at all.
+     *
+     * Field ownership (one writer per event type):
+     * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+     * call enters WAITING_APPROVAL (seeded once from the message scan for
+     * executions that predate this field).
+     * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+     * SubmitApproval handler, carrying decided_by and the user's comment.
+     *
+     * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+     * stream is idempotent under retries and the rich decision event (authored in
+     * the same operation that records the decision on the message scan) can never
+     * be duplicated or overwritten by a coarse re-derivation.
+     *
+     * Because it is server-only, the agent-runner never sends it; it is preserved
+     * across UpdateStatus writes automatically (the merge starts from the loaded
+     * execution and only replaces runner-owned fields).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+     */
+    public Builder setApprovalEventStream(ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream value) {
+      if (approvalEventStreamBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        approvalEventStream_ = value;
+      } else {
+        approvalEventStreamBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-authored, append-only record of every approval request and decision.
+     *
+     * &#64;internal
+     *
+     * This is the persisted form of the append-only stream that is the target
+     * single source of truth for approvals (see ApprovalEventStream in
+     * approval.proto). It is NOT yet read by any surface: pending_approvals is
+     * still projected from the authoritative message scan, and the UI/SDK read
+     * that. The stream coexists as a parallel, independently-authored record so
+     * that (1) the message-scan vs event-stream projection parity check becomes a
+     * real cross-writer regression guard rather than a tautology, and (2) the
+     * approval audit trail — who decided, when, with what comment — has a home,
+     * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+     * capture a decision comment at all.
+     *
+     * Field ownership (one writer per event type):
+     * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+     * call enters WAITING_APPROVAL (seeded once from the message scan for
+     * executions that predate this field).
+     * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+     * SubmitApproval handler, carrying decided_by and the user's comment.
+     *
+     * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+     * stream is idempotent under retries and the rich decision event (authored in
+     * the same operation that records the decision on the message scan) can never
+     * be duplicated or overwritten by a coarse re-derivation.
+     *
+     * Because it is server-only, the agent-runner never sends it; it is preserved
+     * across UpdateStatus writes automatically (the merge starts from the loaded
+     * execution and only replaces runner-owned fields).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+     */
+    public Builder setApprovalEventStream(
+        ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.Builder builderForValue) {
+      if (approvalEventStreamBuilder_ == null) {
+        approvalEventStream_ = builderForValue.build();
+      } else {
+        approvalEventStreamBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-authored, append-only record of every approval request and decision.
+     *
+     * &#64;internal
+     *
+     * This is the persisted form of the append-only stream that is the target
+     * single source of truth for approvals (see ApprovalEventStream in
+     * approval.proto). It is NOT yet read by any surface: pending_approvals is
+     * still projected from the authoritative message scan, and the UI/SDK read
+     * that. The stream coexists as a parallel, independently-authored record so
+     * that (1) the message-scan vs event-stream projection parity check becomes a
+     * real cross-writer regression guard rather than a tautology, and (2) the
+     * approval audit trail — who decided, when, with what comment — has a home,
+     * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+     * capture a decision comment at all.
+     *
+     * Field ownership (one writer per event type):
+     * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+     * call enters WAITING_APPROVAL (seeded once from the message scan for
+     * executions that predate this field).
+     * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+     * SubmitApproval handler, carrying decided_by and the user's comment.
+     *
+     * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+     * stream is idempotent under retries and the rich decision event (authored in
+     * the same operation that records the decision on the message scan) can never
+     * be duplicated or overwritten by a coarse re-derivation.
+     *
+     * Because it is server-only, the agent-runner never sends it; it is preserved
+     * across UpdateStatus writes automatically (the merge starts from the loaded
+     * execution and only replaces runner-owned fields).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+     */
+    public Builder mergeApprovalEventStream(ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream value) {
+      if (approvalEventStreamBuilder_ == null) {
+        if (((bitField0_ & 0x00000800) != 0) &&
+          approvalEventStream_ != null &&
+          approvalEventStream_ != ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.getDefaultInstance()) {
+          getApprovalEventStreamBuilder().mergeFrom(value);
+        } else {
+          approvalEventStream_ = value;
+        }
+      } else {
+        approvalEventStreamBuilder_.mergeFrom(value);
+      }
+      if (approvalEventStream_ != null) {
+        bitField0_ |= 0x00000800;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-authored, append-only record of every approval request and decision.
+     *
+     * &#64;internal
+     *
+     * This is the persisted form of the append-only stream that is the target
+     * single source of truth for approvals (see ApprovalEventStream in
+     * approval.proto). It is NOT yet read by any surface: pending_approvals is
+     * still projected from the authoritative message scan, and the UI/SDK read
+     * that. The stream coexists as a parallel, independently-authored record so
+     * that (1) the message-scan vs event-stream projection parity check becomes a
+     * real cross-writer regression guard rather than a tautology, and (2) the
+     * approval audit trail — who decided, when, with what comment — has a home,
+     * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+     * capture a decision comment at all.
+     *
+     * Field ownership (one writer per event type):
+     * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+     * call enters WAITING_APPROVAL (seeded once from the message scan for
+     * executions that predate this field).
+     * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+     * SubmitApproval handler, carrying decided_by and the user's comment.
+     *
+     * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+     * stream is idempotent under retries and the rich decision event (authored in
+     * the same operation that records the decision on the message scan) can never
+     * be duplicated or overwritten by a coarse re-derivation.
+     *
+     * Because it is server-only, the agent-runner never sends it; it is preserved
+     * across UpdateStatus writes automatically (the merge starts from the loaded
+     * execution and only replaces runner-owned fields).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+     */
+    public Builder clearApprovalEventStream() {
+      bitField0_ = (bitField0_ & ~0x00000800);
+      approvalEventStream_ = null;
+      if (approvalEventStreamBuilder_ != null) {
+        approvalEventStreamBuilder_.dispose();
+        approvalEventStreamBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-authored, append-only record of every approval request and decision.
+     *
+     * &#64;internal
+     *
+     * This is the persisted form of the append-only stream that is the target
+     * single source of truth for approvals (see ApprovalEventStream in
+     * approval.proto). It is NOT yet read by any surface: pending_approvals is
+     * still projected from the authoritative message scan, and the UI/SDK read
+     * that. The stream coexists as a parallel, independently-authored record so
+     * that (1) the message-scan vs event-stream projection parity check becomes a
+     * real cross-writer regression guard rather than a tautology, and (2) the
+     * approval audit trail — who decided, when, with what comment — has a home,
+     * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+     * capture a decision comment at all.
+     *
+     * Field ownership (one writer per event type):
+     * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+     * call enters WAITING_APPROVAL (seeded once from the message scan for
+     * executions that predate this field).
+     * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+     * SubmitApproval handler, carrying decided_by and the user's comment.
+     *
+     * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+     * stream is idempotent under retries and the rich decision event (authored in
+     * the same operation that records the decision on the message scan) can never
+     * be duplicated or overwritten by a coarse re-derivation.
+     *
+     * Because it is server-only, the agent-runner never sends it; it is preserved
+     * across UpdateStatus writes automatically (the merge starts from the loaded
+     * execution and only replaces runner-owned fields).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.Builder getApprovalEventStreamBuilder() {
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return internalGetApprovalEventStreamFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Server-authored, append-only record of every approval request and decision.
+     *
+     * &#64;internal
+     *
+     * This is the persisted form of the append-only stream that is the target
+     * single source of truth for approvals (see ApprovalEventStream in
+     * approval.proto). It is NOT yet read by any surface: pending_approvals is
+     * still projected from the authoritative message scan, and the UI/SDK read
+     * that. The stream coexists as a parallel, independently-authored record so
+     * that (1) the message-scan vs event-stream projection parity check becomes a
+     * real cross-writer regression guard rather than a tautology, and (2) the
+     * approval audit trail — who decided, when, with what comment — has a home,
+     * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+     * capture a decision comment at all.
+     *
+     * Field ownership (one writer per event type):
+     * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+     * call enters WAITING_APPROVAL (seeded once from the message scan for
+     * executions that predate this field).
+     * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+     * SubmitApproval handler, carrying decided_by and the user's comment.
+     *
+     * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+     * stream is idempotent under retries and the rich decision event (authored in
+     * the same operation that records the decision on the message scan) can never
+     * be duplicated or overwritten by a coarse re-derivation.
+     *
+     * Because it is server-only, the agent-runner never sends it; it is preserved
+     * across UpdateStatus writes automatically (the merge starts from the loaded
+     * execution and only replaces runner-owned fields).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalEventStreamOrBuilder getApprovalEventStreamOrBuilder() {
+      if (approvalEventStreamBuilder_ != null) {
+        return approvalEventStreamBuilder_.getMessageOrBuilder();
+      } else {
+        return approvalEventStream_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.getDefaultInstance() : approvalEventStream_;
+      }
+    }
+    /**
+     * <pre>
+     * Server-authored, append-only record of every approval request and decision.
+     *
+     * &#64;internal
+     *
+     * This is the persisted form of the append-only stream that is the target
+     * single source of truth for approvals (see ApprovalEventStream in
+     * approval.proto). It is NOT yet read by any surface: pending_approvals is
+     * still projected from the authoritative message scan, and the UI/SDK read
+     * that. The stream coexists as a parallel, independently-authored record so
+     * that (1) the message-scan vs event-stream projection parity check becomes a
+     * real cross-writer regression guard rather than a tautology, and (2) the
+     * approval audit trail — who decided, when, with what comment — has a home,
+     * since the flat ToolCall.approval_action / approval_decided_at fields cannot
+     * capture a decision comment at all.
+     *
+     * Field ownership (one writer per event type):
+     * - REQUESTED events are authored by the UpdateStatus handlers when a tool
+     * call enters WAITING_APPROVAL (seeded once from the message scan for
+     * executions that predate this field).
+     * - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+     * SubmitApproval handler, carrying decided_by and the user's comment.
+     *
+     * Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+     * stream is idempotent under retries and the rich decision event (authored in
+     * the same operation that records the decision on the message scan) can never
+     * be duplicated or overwritten by a coarse re-derivation.
+     *
+     * Because it is server-only, the agent-runner never sends it; it is preserved
+     * across UpdateStatus writes automatically (the merge starts from the loaded
+     * execution and only replaces runner-owned fields).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream, ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.Builder, ai.stigmer.agentic.agentexecution.v1.ApprovalEventStreamOrBuilder> 
+        internalGetApprovalEventStreamFieldBuilder() {
+      if (approvalEventStreamBuilder_ == null) {
+        approvalEventStreamBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream, ai.stigmer.agentic.agentexecution.v1.ApprovalEventStream.Builder, ai.stigmer.agentic.agentexecution.v1.ApprovalEventStreamOrBuilder>(
+                getApprovalEventStream(),
+                getParentForChildren(),
+                isClean());
+        approvalEventStream_ = null;
+      }
+      return approvalEventStreamBuilder_;
+    }
+
     private ai.stigmer.agentic.agentexecution.v1.ContextInfo contextInfo_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.agentexecution.v1.ContextInfo, ai.stigmer.agentic.agentexecution.v1.ContextInfo.Builder, ai.stigmer.agentic.agentexecution.v1.ContextInfoOrBuilder> contextInfoBuilder_;
@@ -4814,7 +5725,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * @return Whether the contextInfo field is set.
      */
     public boolean hasContextInfo() {
-      return ((bitField0_ & 0x00000800) != 0);
+      return ((bitField0_ & 0x00001000) != 0);
     }
     /**
      * <pre>
@@ -4875,7 +5786,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         contextInfoBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -4907,7 +5818,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         contextInfoBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -4934,7 +5845,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      */
     public Builder mergeContextInfo(ai.stigmer.agentic.agentexecution.v1.ContextInfo value) {
       if (contextInfoBuilder_ == null) {
-        if (((bitField0_ & 0x00000800) != 0) &&
+        if (((bitField0_ & 0x00001000) != 0) &&
           contextInfo_ != null &&
           contextInfo_ != ai.stigmer.agentic.agentexecution.v1.ContextInfo.getDefaultInstance()) {
           getContextInfoBuilder().mergeFrom(value);
@@ -4945,7 +5856,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         contextInfoBuilder_.mergeFrom(value);
       }
       if (contextInfo_ != null) {
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00001000;
         onChanged();
       }
       return this;
@@ -4972,7 +5883,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
      */
     public Builder clearContextInfo() {
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00001000);
       contextInfo_ = null;
       if (contextInfoBuilder_ != null) {
         contextInfoBuilder_.dispose();
@@ -5003,7 +5914,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.ContextInfo.Builder getContextInfoBuilder() {
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00001000;
       onChanged();
       return internalGetContextInfoFieldBuilder().getBuilder();
     }
@@ -5074,9 +5985,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     private java.util.List<ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact> artifacts_ =
       java.util.Collections.emptyList();
     private void ensureArtifactsIsMutable() {
-      if (!((bitField0_ & 0x00001000) != 0)) {
+      if (!((bitField0_ & 0x00002000) != 0)) {
         artifacts_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact>(artifacts_);
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00002000;
        }
     }
 
@@ -5391,7 +6302,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     public Builder clearArtifacts() {
       if (artifactsBuilder_ == null) {
         artifacts_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00001000);
+        bitField0_ = (bitField0_ & ~0x00002000);
         onChanged();
       } else {
         artifactsBuilder_.clear();
@@ -5573,7 +6484,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         artifactsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact, ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactOrBuilder>(
                 artifacts_,
-                ((bitField0_ & 0x00001000) != 0),
+                ((bitField0_ & 0x00002000) != 0),
                 getParentForChildren(),
                 isClean());
         artifacts_ = null;
@@ -5584,9 +6495,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     private java.util.List<ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack> workspaceWriteBacks_ =
       java.util.Collections.emptyList();
     private void ensureWorkspaceWriteBacksIsMutable() {
-      if (!((bitField0_ & 0x00002000) != 0)) {
+      if (!((bitField0_ & 0x00004000) != 0)) {
         workspaceWriteBacks_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack>(workspaceWriteBacks_);
-        bitField0_ |= 0x00002000;
+        bitField0_ |= 0x00004000;
        }
     }
 
@@ -5901,7 +6812,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     public Builder clearWorkspaceWriteBacks() {
       if (workspaceWriteBacksBuilder_ == null) {
         workspaceWriteBacks_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00002000);
+        bitField0_ = (bitField0_ & ~0x00004000);
         onChanged();
       } else {
         workspaceWriteBacksBuilder_.clear();
@@ -6083,7 +6994,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         workspaceWriteBacksBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder>(
                 workspaceWriteBacks_,
-                ((bitField0_ & 0x00002000) != 0),
+                ((bitField0_ & 0x00004000) != 0),
                 getParentForChildren(),
                 isClean());
         workspaceWriteBacks_ = null;
@@ -6107,7 +7018,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * @return Whether the setupProgress field is set.
      */
     public boolean hasSetupProgress() {
-      return ((bitField0_ & 0x00004000) != 0);
+      return ((bitField0_ & 0x00008000) != 0);
     }
     /**
      * <pre>
@@ -6148,7 +7059,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         setupProgressBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -6170,7 +7081,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         setupProgressBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -6187,7 +7098,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      */
     public Builder mergeSetupProgress(ai.stigmer.agentic.agentexecution.v1.SetupProgress value) {
       if (setupProgressBuilder_ == null) {
-        if (((bitField0_ & 0x00004000) != 0) &&
+        if (((bitField0_ & 0x00008000) != 0) &&
           setupProgress_ != null &&
           setupProgress_ != ai.stigmer.agentic.agentexecution.v1.SetupProgress.getDefaultInstance()) {
           getSetupProgressBuilder().mergeFrom(value);
@@ -6198,7 +7109,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         setupProgressBuilder_.mergeFrom(value);
       }
       if (setupProgress_ != null) {
-        bitField0_ |= 0x00004000;
+        bitField0_ |= 0x00008000;
         onChanged();
       }
       return this;
@@ -6215,7 +7126,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
      */
     public Builder clearSetupProgress() {
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00008000);
       setupProgress_ = null;
       if (setupProgressBuilder_ != null) {
         setupProgressBuilder_.dispose();
@@ -6236,7 +7147,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.SetupProgress.Builder getSetupProgressBuilder() {
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return internalGetSetupProgressFieldBuilder().getBuilder();
     }
@@ -6296,7 +7207,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * @return Whether the streamingUsage field is set.
      */
     public boolean hasStreamingUsage() {
-      return ((bitField0_ & 0x00008000) != 0);
+      return ((bitField0_ & 0x00010000) != 0);
     }
     /**
      * <pre>
@@ -6329,7 +7240,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         streamingUsageBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -6347,7 +7258,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         streamingUsageBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -6360,7 +7271,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      */
     public Builder mergeStreamingUsage(ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary value) {
       if (streamingUsageBuilder_ == null) {
-        if (((bitField0_ & 0x00008000) != 0) &&
+        if (((bitField0_ & 0x00010000) != 0) &&
           streamingUsage_ != null &&
           streamingUsage_ != ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.getDefaultInstance()) {
           getStreamingUsageBuilder().mergeFrom(value);
@@ -6371,7 +7282,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         streamingUsageBuilder_.mergeFrom(value);
       }
       if (streamingUsage_ != null) {
-        bitField0_ |= 0x00008000;
+        bitField0_ |= 0x00010000;
         onChanged();
       }
       return this;
@@ -6384,7 +7295,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
     public Builder clearStreamingUsage() {
-      bitField0_ = (bitField0_ & ~0x00008000);
+      bitField0_ = (bitField0_ & ~0x00010000);
       streamingUsage_ = null;
       if (streamingUsageBuilder_ != null) {
         streamingUsageBuilder_.dispose();
@@ -6401,7 +7312,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary.Builder getStreamingUsageBuilder() {
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return internalGetStreamingUsageFieldBuilder().getBuilder();
     }
@@ -6465,7 +7376,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * @return Whether the structuredOutput field is set.
      */
     public boolean hasStructuredOutput() {
-      return ((bitField0_ & 0x00010000) != 0);
+      return ((bitField0_ & 0x00020000) != 0);
     }
     /**
      * <pre>
@@ -6522,7 +7433,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         structuredOutputBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -6552,7 +7463,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         structuredOutputBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -6577,7 +7488,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      */
     public Builder mergeStructuredOutput(com.google.protobuf.Struct value) {
       if (structuredOutputBuilder_ == null) {
-        if (((bitField0_ & 0x00010000) != 0) &&
+        if (((bitField0_ & 0x00020000) != 0) &&
           structuredOutput_ != null &&
           structuredOutput_ != com.google.protobuf.Struct.getDefaultInstance()) {
           getStructuredOutputBuilder().mergeFrom(value);
@@ -6588,7 +7499,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         structuredOutputBuilder_.mergeFrom(value);
       }
       if (structuredOutput_ != null) {
-        bitField0_ |= 0x00010000;
+        bitField0_ |= 0x00020000;
         onChanged();
       }
       return this;
@@ -6613,7 +7524,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
      */
     public Builder clearStructuredOutput() {
-      bitField0_ = (bitField0_ & ~0x00010000);
+      bitField0_ = (bitField0_ & ~0x00020000);
       structuredOutput_ = null;
       if (structuredOutputBuilder_ != null) {
         structuredOutputBuilder_.dispose();
@@ -6642,7 +7553,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
      */
     public com.google.protobuf.Struct.Builder getStructuredOutputBuilder() {
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return internalGetStructuredOutputFieldBuilder().getBuilder();
     }
@@ -6704,6 +7615,862 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         structuredOutput_ = null;
       }
       return structuredOutputBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChangeSet> fileChangeSets_ =
+      java.util.Collections.emptyList();
+    private void ensureFileChangeSetsIsMutable() {
+      if (!((bitField0_ & 0x00040000) != 0)) {
+        fileChangeSets_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.FileChangeSet>(fileChangeSets_);
+        bitField0_ |= 0x00040000;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.FileChangeSet, ai.stigmer.agentic.agentexecution.v1.FileChangeSet.Builder, ai.stigmer.agentic.agentexecution.v1.FileChangeSetOrBuilder> fileChangeSetsBuilder_;
+
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChangeSet> getFileChangeSetsList() {
+      if (fileChangeSetsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(fileChangeSets_);
+      } else {
+        return fileChangeSetsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public int getFileChangeSetsCount() {
+      if (fileChangeSetsBuilder_ == null) {
+        return fileChangeSets_.size();
+      } else {
+        return fileChangeSetsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.FileChangeSet getFileChangeSets(int index) {
+      if (fileChangeSetsBuilder_ == null) {
+        return fileChangeSets_.get(index);
+      } else {
+        return fileChangeSetsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public Builder setFileChangeSets(
+        int index, ai.stigmer.agentic.agentexecution.v1.FileChangeSet value) {
+      if (fileChangeSetsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureFileChangeSetsIsMutable();
+        fileChangeSets_.set(index, value);
+        onChanged();
+      } else {
+        fileChangeSetsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public Builder setFileChangeSets(
+        int index, ai.stigmer.agentic.agentexecution.v1.FileChangeSet.Builder builderForValue) {
+      if (fileChangeSetsBuilder_ == null) {
+        ensureFileChangeSetsIsMutable();
+        fileChangeSets_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        fileChangeSetsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public Builder addFileChangeSets(ai.stigmer.agentic.agentexecution.v1.FileChangeSet value) {
+      if (fileChangeSetsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureFileChangeSetsIsMutable();
+        fileChangeSets_.add(value);
+        onChanged();
+      } else {
+        fileChangeSetsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public Builder addFileChangeSets(
+        int index, ai.stigmer.agentic.agentexecution.v1.FileChangeSet value) {
+      if (fileChangeSetsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureFileChangeSetsIsMutable();
+        fileChangeSets_.add(index, value);
+        onChanged();
+      } else {
+        fileChangeSetsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public Builder addFileChangeSets(
+        ai.stigmer.agentic.agentexecution.v1.FileChangeSet.Builder builderForValue) {
+      if (fileChangeSetsBuilder_ == null) {
+        ensureFileChangeSetsIsMutable();
+        fileChangeSets_.add(builderForValue.build());
+        onChanged();
+      } else {
+        fileChangeSetsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public Builder addFileChangeSets(
+        int index, ai.stigmer.agentic.agentexecution.v1.FileChangeSet.Builder builderForValue) {
+      if (fileChangeSetsBuilder_ == null) {
+        ensureFileChangeSetsIsMutable();
+        fileChangeSets_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        fileChangeSetsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public Builder addAllFileChangeSets(
+        java.lang.Iterable<? extends ai.stigmer.agentic.agentexecution.v1.FileChangeSet> values) {
+      if (fileChangeSetsBuilder_ == null) {
+        ensureFileChangeSetsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, fileChangeSets_);
+        onChanged();
+      } else {
+        fileChangeSetsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public Builder clearFileChangeSets() {
+      if (fileChangeSetsBuilder_ == null) {
+        fileChangeSets_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00040000);
+        onChanged();
+      } else {
+        fileChangeSetsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public Builder removeFileChangeSets(int index) {
+      if (fileChangeSetsBuilder_ == null) {
+        ensureFileChangeSetsIsMutable();
+        fileChangeSets_.remove(index);
+        onChanged();
+      } else {
+        fileChangeSetsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.FileChangeSet.Builder getFileChangeSetsBuilder(
+        int index) {
+      return internalGetFileChangeSetsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.FileChangeSetOrBuilder getFileChangeSetsOrBuilder(
+        int index) {
+      if (fileChangeSetsBuilder_ == null) {
+        return fileChangeSets_.get(index);  } else {
+        return fileChangeSetsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.FileChangeSetOrBuilder> 
+         getFileChangeSetsOrBuilderList() {
+      if (fileChangeSetsBuilder_ != null) {
+        return fileChangeSetsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(fileChangeSets_);
+      }
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.FileChangeSet.Builder addFileChangeSetsBuilder() {
+      return internalGetFileChangeSetsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.agentexecution.v1.FileChangeSet.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.FileChangeSet.Builder addFileChangeSetsBuilder(
+        int index) {
+      return internalGetFileChangeSetsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.agentexecution.v1.FileChangeSet.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Server-computed projection of file change sets awaiting or completing
+     * review for this execution.
+     *
+     * &#64;internal
+     *
+     * Recomputed on every status write from file_review_event_stream (never
+     * merged), so it is always consistent with the authoritative ledger — exactly
+     * as pending_approvals is recomputed from the message scan / approval stream.
+     * Empty until the runner's capture activity authors events (Phase 2). A
+     * terminal execution projects no actionable review. See FileChangeSet.
+     *
+     * Field 23: appended after approval_event_stream (22), the prior maximum.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agentexecution.v1.FileChangeSet.Builder> 
+         getFileChangeSetsBuilderList() {
+      return internalGetFileChangeSetsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.FileChangeSet, ai.stigmer.agentic.agentexecution.v1.FileChangeSet.Builder, ai.stigmer.agentic.agentexecution.v1.FileChangeSetOrBuilder> 
+        internalGetFileChangeSetsFieldBuilder() {
+      if (fileChangeSetsBuilder_ == null) {
+        fileChangeSetsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.FileChangeSet, ai.stigmer.agentic.agentexecution.v1.FileChangeSet.Builder, ai.stigmer.agentic.agentexecution.v1.FileChangeSetOrBuilder>(
+                fileChangeSets_,
+                ((bitField0_ & 0x00040000) != 0),
+                getParentForChildren(),
+                isClean());
+        fileChangeSets_ = null;
+      }
+      return fileChangeSetsBuilder_;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream fileReviewEventStream_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream, ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.Builder, ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamOrBuilder> fileReviewEventStreamBuilder_;
+    /**
+     * <pre>
+     * Server-owned, append-only record of every file-review event (baseline /
+     * candidate capture, file decisions, reconcile, failures).
+     *
+     * &#64;internal
+     *
+     * The persisted source of truth that file_change_sets is projected from — a
+     * sibling of approval_event_stream for the file-review lifecycle (the
+     * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+     * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
+     *
+     * Field 24: appended after file_change_sets (23), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+     * @return Whether the fileReviewEventStream field is set.
+     */
+    public boolean hasFileReviewEventStream() {
+      return ((bitField0_ & 0x00080000) != 0);
+    }
+    /**
+     * <pre>
+     * Server-owned, append-only record of every file-review event (baseline /
+     * candidate capture, file decisions, reconcile, failures).
+     *
+     * &#64;internal
+     *
+     * The persisted source of truth that file_change_sets is projected from — a
+     * sibling of approval_event_stream for the file-review lifecycle (the
+     * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+     * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
+     *
+     * Field 24: appended after file_change_sets (23), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+     * @return The fileReviewEventStream.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream getFileReviewEventStream() {
+      if (fileReviewEventStreamBuilder_ == null) {
+        return fileReviewEventStream_ == null ? ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.getDefaultInstance() : fileReviewEventStream_;
+      } else {
+        return fileReviewEventStreamBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Server-owned, append-only record of every file-review event (baseline /
+     * candidate capture, file decisions, reconcile, failures).
+     *
+     * &#64;internal
+     *
+     * The persisted source of truth that file_change_sets is projected from — a
+     * sibling of approval_event_stream for the file-review lifecycle (the
+     * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+     * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
+     *
+     * Field 24: appended after file_change_sets (23), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+     */
+    public Builder setFileReviewEventStream(ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream value) {
+      if (fileReviewEventStreamBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        fileReviewEventStream_ = value;
+      } else {
+        fileReviewEventStreamBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00080000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-owned, append-only record of every file-review event (baseline /
+     * candidate capture, file decisions, reconcile, failures).
+     *
+     * &#64;internal
+     *
+     * The persisted source of truth that file_change_sets is projected from — a
+     * sibling of approval_event_stream for the file-review lifecycle (the
+     * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+     * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
+     *
+     * Field 24: appended after file_change_sets (23), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+     */
+    public Builder setFileReviewEventStream(
+        ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.Builder builderForValue) {
+      if (fileReviewEventStreamBuilder_ == null) {
+        fileReviewEventStream_ = builderForValue.build();
+      } else {
+        fileReviewEventStreamBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00080000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-owned, append-only record of every file-review event (baseline /
+     * candidate capture, file decisions, reconcile, failures).
+     *
+     * &#64;internal
+     *
+     * The persisted source of truth that file_change_sets is projected from — a
+     * sibling of approval_event_stream for the file-review lifecycle (the
+     * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+     * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
+     *
+     * Field 24: appended after file_change_sets (23), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+     */
+    public Builder mergeFileReviewEventStream(ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream value) {
+      if (fileReviewEventStreamBuilder_ == null) {
+        if (((bitField0_ & 0x00080000) != 0) &&
+          fileReviewEventStream_ != null &&
+          fileReviewEventStream_ != ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.getDefaultInstance()) {
+          getFileReviewEventStreamBuilder().mergeFrom(value);
+        } else {
+          fileReviewEventStream_ = value;
+        }
+      } else {
+        fileReviewEventStreamBuilder_.mergeFrom(value);
+      }
+      if (fileReviewEventStream_ != null) {
+        bitField0_ |= 0x00080000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-owned, append-only record of every file-review event (baseline /
+     * candidate capture, file decisions, reconcile, failures).
+     *
+     * &#64;internal
+     *
+     * The persisted source of truth that file_change_sets is projected from — a
+     * sibling of approval_event_stream for the file-review lifecycle (the
+     * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+     * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
+     *
+     * Field 24: appended after file_change_sets (23), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+     */
+    public Builder clearFileReviewEventStream() {
+      bitField0_ = (bitField0_ & ~0x00080000);
+      fileReviewEventStream_ = null;
+      if (fileReviewEventStreamBuilder_ != null) {
+        fileReviewEventStreamBuilder_.dispose();
+        fileReviewEventStreamBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Server-owned, append-only record of every file-review event (baseline /
+     * candidate capture, file decisions, reconcile, failures).
+     *
+     * &#64;internal
+     *
+     * The persisted source of truth that file_change_sets is projected from — a
+     * sibling of approval_event_stream for the file-review lifecycle (the
+     * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+     * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
+     *
+     * Field 24: appended after file_change_sets (23), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.Builder getFileReviewEventStreamBuilder() {
+      bitField0_ |= 0x00080000;
+      onChanged();
+      return internalGetFileReviewEventStreamFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Server-owned, append-only record of every file-review event (baseline /
+     * candidate capture, file decisions, reconcile, failures).
+     *
+     * &#64;internal
+     *
+     * The persisted source of truth that file_change_sets is projected from — a
+     * sibling of approval_event_stream for the file-review lifecycle (the
+     * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+     * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
+     *
+     * Field 24: appended after file_change_sets (23), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamOrBuilder getFileReviewEventStreamOrBuilder() {
+      if (fileReviewEventStreamBuilder_ != null) {
+        return fileReviewEventStreamBuilder_.getMessageOrBuilder();
+      } else {
+        return fileReviewEventStream_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.getDefaultInstance() : fileReviewEventStream_;
+      }
+    }
+    /**
+     * <pre>
+     * Server-owned, append-only record of every file-review event (baseline /
+     * candidate capture, file decisions, reconcile, failures).
+     *
+     * &#64;internal
+     *
+     * The persisted source of truth that file_change_sets is projected from — a
+     * sibling of approval_event_stream for the file-review lifecycle (the
+     * ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+     * keyed by the deterministic FileReviewEvent.event_id, so the stream is
+     * idempotent under retries.
+     *
+     * Write contract (one writer per event type): the runner CONTRIBUTES its
+     * capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+     * RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+     * them into the stored stream append-only, by event_id, on the freshly-loaded
+     * execution under the write lock. The runner can never replace an existing
+     * event and never authors FILE_DECIDED (the server drops a runner-sent
+     * decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+     * stream is otherwise preserved in place across writes. See
+     * FileReviewEventStream.
+     *
+     * Field 24: appended after file_change_sets (23), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream, ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.Builder, ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamOrBuilder> 
+        internalGetFileReviewEventStreamFieldBuilder() {
+      if (fileReviewEventStreamBuilder_ == null) {
+        fileReviewEventStreamBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream, ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream.Builder, ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamOrBuilder>(
+                getFileReviewEventStream(),
+                getParentForChildren(),
+                isClean());
+        fileReviewEventStream_ = null;
+      }
+      return fileReviewEventStreamBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus)

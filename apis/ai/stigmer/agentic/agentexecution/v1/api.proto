@@ -6,6 +6,7 @@ import "ai/stigmer/agentic/agentexecution/v1/approval.proto";
 import "ai/stigmer/agentic/agentexecution/v1/artifact.proto";
 import "ai/stigmer/agentic/agentexecution/v1/context.proto";
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "ai/stigmer/agentic/agentexecution/v1/filereview.proto";
 import "ai/stigmer/agentic/agentexecution/v1/message.proto";
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
 import "ai/stigmer/agentic/agentexecution/v1/subagent.proto";
@@ -150,6 +151,44 @@ message AgentExecutionStatus {
   repeated PendingApproval pending_approvals = 16;
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Approval Event Stream (HITL re-architecture — persisted transition state)
+  //
+  // Append-only ledger of approval requests and decisions for this execution.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Server-authored, append-only record of every approval request and decision.
+  //
+  // @internal
+  //
+  // This is the persisted form of the append-only stream that is the target
+  // single source of truth for approvals (see ApprovalEventStream in
+  // approval.proto). It is NOT yet read by any surface: pending_approvals is
+  // still projected from the authoritative message scan, and the UI/SDK read
+  // that. The stream coexists as a parallel, independently-authored record so
+  // that (1) the message-scan vs event-stream projection parity check becomes a
+  // real cross-writer regression guard rather than a tautology, and (2) the
+  // approval audit trail — who decided, when, with what comment — has a home,
+  // since the flat ToolCall.approval_action / approval_decided_at fields cannot
+  // capture a decision comment at all.
+  //
+  // Field ownership (one writer per event type):
+  //   - REQUESTED events are authored by the UpdateStatus handlers when a tool
+  //     call enters WAITING_APPROVAL (seeded once from the message scan for
+  //     executions that predate this field).
+  //   - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
+  //     SubmitApproval handler, carrying decided_by and the user's comment.
+  //
+  // Every append is keyed by the deterministic ApprovalEvent.event_id, so the
+  // stream is idempotent under retries and the rich decision event (authored in
+  // the same operation that records the decision on the message scan) can never
+  // be duplicated or overwritten by a coarse re-derivation.
+  //
+  // Because it is server-only, the agent-runner never sends it; it is preserved
+  // across UpdateStatus writes automatically (the merge starts from the loaded
+  // execution and only replaces runner-owned fields).
+  ApprovalEventStream approval_event_stream = 22;
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Context Management (Phase 3)
   //
   // Context window utilization and automatic summarization tracking.
@@ -263,6 +302,53 @@ message AgentExecutionStatus {
   // YAML from messages. Workflow callback path reads structured_output from
   // the Temporal activity result (separate channel, same data).
   google.protobuf.Struct structured_output = 21;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // File Change Review (HITL — Computed Projection + Append-Only Ledger)
+  //
+  // Apply-then-review file edits: file_change_sets is the read-model the review
+  // surface consumes; file_review_event_stream is the append-only source of
+  // truth it is projected from. The pair mirrors pending_approvals (16) +
+  // approval_event_stream (22) exactly, for a second lifecycle.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Server-computed projection of file change sets awaiting or completing
+  // review for this execution.
+  //
+  // @internal
+  //
+  // Recomputed on every status write from file_review_event_stream (never
+  // merged), so it is always consistent with the authoritative ledger — exactly
+  // as pending_approvals is recomputed from the message scan / approval stream.
+  // Empty until the runner's capture activity authors events (Phase 2). A
+  // terminal execution projects no actionable review. See FileChangeSet.
+  //
+  // Field 23: appended after approval_event_stream (22), the prior maximum.
+  repeated FileChangeSet file_change_sets = 23;
+
+  // Server-owned, append-only record of every file-review event (baseline /
+  // candidate capture, file decisions, reconcile, failures).
+  //
+  // @internal
+  //
+  // The persisted source of truth that file_change_sets is projected from — a
+  // sibling of approval_event_stream for the file-review lifecycle (the
+  // ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
+  // keyed by the deterministic FileReviewEvent.event_id, so the stream is
+  // idempotent under retries.
+  //
+  // Write contract (one writer per event type): the runner CONTRIBUTES its
+  // capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
+  // RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
+  // them into the stored stream append-only, by event_id, on the freshly-loaded
+  // execution under the write lock. The runner can never replace an existing
+  // event and never authors FILE_DECIDED (the server drops a runner-sent
+  // decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
+  // stream is otherwise preserved in place across writes. See
+  // FileReviewEventStream.
+  //
+  // Field 24: appended after file_change_sets (23), the prior maximum.
+  FileReviewEventStream file_review_event_stream = 24;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

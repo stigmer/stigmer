@@ -1,0 +1,58 @@
+{
+  "description": "Cross-language file-change digest vectors for HITL file review. Locks the canonical file_digest and aggregate_digest functions so Go and Java compute byte-identical digests. file_digest = sha256(join(\"\\n\", [path_before, path_after, kind, before_sha256, after_sha256])) as lowercase hex. aggregate_digest = sha256(join(\"\\n\", sort_ascending(file_digests))) as lowercase hex. kind is the proto enum value name (FileChangeKind). Expected values are computed independently (plain sha256), so a passing Go AND Java run proves cross-edition parity.",
+  "cases": [
+    {
+      "name": "modify",
+      "path_before": "src/a.ts",
+      "path_after": "src/a.ts",
+      "kind": "FILE_CHANGE_KIND_MODIFY",
+      "before_sha256": "037ecd1db38c230c248787e60fd7bfc0cb0101b187b59535b6e7483be762d350",
+      "after_sha256": "e7941bea8a31800905dafb6c805ee05f090c641163880f0ef3cfd732f1bc86d2",
+      "file_digest": "3a17395606744f71630511d17df29b091b12030375363d5b59218924e4925169"
+    },
+    {
+      "name": "add",
+      "path_before": "",
+      "path_after": "src/new.ts",
+      "kind": "FILE_CHANGE_KIND_ADD",
+      "before_sha256": "",
+      "after_sha256": "aa6af8cae1312c0801c748c0bd5d729d9e3eacda15968d02a4ffb5768197203f",
+      "file_digest": "abf144601487587e5bc6c10731710c3d0e81e711ce5f4a3088ebaa57261c7675"
+    },
+    {
+      "name": "delete",
+      "path_before": "src/old.ts",
+      "path_after": "",
+      "kind": "FILE_CHANGE_KIND_DELETE",
+      "before_sha256": "b6fc81bc0223a464cb965c1794cc27bd046a61cbca3f77e8f41483a59bdce107",
+      "after_sha256": "",
+      "file_digest": "ef47bf1929b3a86ace69d8029b19e8c20b9150990af21af4dfad47d70a30c20e"
+    },
+    {
+      "name": "rename",
+      "path_before": "src/old.ts",
+      "path_after": "src/new.ts",
+      "kind": "FILE_CHANGE_KIND_RENAME",
+      "before_sha256": "2d45b9b7b90d3ee52d33cde8143dbcec389553354f38072e3c4722eba297c2e7",
+      "after_sha256": "2ae91f9daf49f56e514349eb52fe0403ce005c0387a8ea769bd1b2f2e2759882",
+      "file_digest": "60780027a701d28c22b90afb9a219bd1011351a68721a1706b03afdc23620072"
+    }
+  ],
+  "aggregates": [
+    {
+      "name": "all-four",
+      "change_names": ["modify", "add", "delete", "rename"],
+      "aggregate_digest": "b174d4480514222f02243872e1eb95288a894be987c7f6388112be638cb8198d"
+    },
+    {
+      "name": "add-and-modify",
+      "change_names": ["add", "modify"],
+      "aggregate_digest": "5bbcc823db8d69d818529a4914a940964e1cbbb61c1559fd1548e9aca4a8395c"
+    },
+    {
+      "name": "empty",
+      "change_names": [],
+      "aggregate_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

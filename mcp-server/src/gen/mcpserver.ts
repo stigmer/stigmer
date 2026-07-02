@@ -61,6 +61,7 @@ type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 const ToolApprovalPolicyInputSchema = z.object({
   tool_name: z.string().optional().describe("Name of the tool (must match tools/list from MCP server exactly). Case-sensitive matching against tool names reported by the MCP server. Example: 'delete_repository', 'send_email', 'execute_sql'"),
   message: z.string().optional().describe("Human-readable message shown to user when approval is requested. Supports {{args.field}} placeholders for dynamic content. If empty, a default message is generated: 'Execute tool: {tool_name}' Guidelines for effective messages: - Be specific about what will happen - Include the most important argument values using placeholders - Keep under 100 characters for UI display - Use action verbs: 'Delete', 'Send', 'Execute', 'Create'"),
+  from_destructive_hint: z.boolean().optional().describe("True when the connect-time fail-closed tightener force-gated this tool because the server's own MCP annotation declared destructiveHint=true, rather than the classifier (or a human) gating it. Lets the runner attribute a tightened tool to its true provenance (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN) instead of collapsing it into the classifier default. Carries no enforcement weight — gating is decided by presence in this list — so an absent/false value simply means 'not attributed to the destructiveHint tightener'. Set only on entries written to McpServerStatus.tool_approvals (the classifier layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human pin is, by definition, a pinned override) and left false there."),
 });
 type ToolApprovalPolicyInput = z.infer<typeof ToolApprovalPolicyInputSchema>;
 
@@ -140,6 +141,7 @@ function toolApprovalPolicyInputToProto(input: ToolApprovalPolicyInput) {
   const result = create(ToolApprovalPolicySchema);
   if (input.tool_name !== undefined) result.toolName = input.tool_name;
   if (input.message !== undefined) result.message = input.message;
+  if (input.from_destructive_hint !== undefined) result.fromDestructiveHint = input.from_destructive_hint;
   return result;
 }
 

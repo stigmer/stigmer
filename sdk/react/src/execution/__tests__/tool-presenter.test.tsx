@@ -75,4 +75,99 @@ describe("useToolPresentation", () => {
     const { result } = renderHook(() => useToolPresentation(tc));
     expect(result.current.label).toBe("Shell");
   });
+
+  describe("disclosure", () => {
+    it("keeps known compact tools as summary", () => {
+      // Shell/edit/write are intentionally excluded — they are `preview`
+      // categories (output / diff is the information), asserted separately below.
+      for (const name of ["Read", "Grep", "Glob"]) {
+        const tc = makeToolCall({ name, args: { path: "/x", command: "ls", pattern: "p" } });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.disclosure).toBe("summary");
+      }
+    });
+
+    it("previews file edits and writes (the diff is the information)", () => {
+      for (const name of ["StrReplace", "Write"]) {
+        const tc = makeToolCall({
+          name,
+          args: { path: "/x.ts", contents: "x", old_string: "a", new_string: "b" },
+        });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.disclosure).toBe("preview");
+      }
+    });
+
+    it("keeps a shell tool's output as a persistent preview", () => {
+      const tc = makeToolCall({ name: "Shell", args: { command: "ls" }, result: "files" });
+      const { result } = renderHook(() => useToolPresentation(tc));
+      expect(result.current.category).toBe("shell");
+      expect(result.current.disclosure).toBe("preview");
+    });
+
+    it("foregrounds MCP tools as preview", () => {
+      const tc = makeToolCall({
+        name: "send_message",
+        mcpServerSlug: "acme/slack",
+        args: { channel: "general" },
+      });
+      const { result } = renderHook(() => useToolPresentation(tc));
+      expect(result.current.category).toBe("mcp");
+      expect(result.current.disclosure).toBe("preview");
+    });
+
+    it("foregrounds an unrecognized tool as preview", () => {
+      const tc = makeToolCall({ name: "frobnicate_widget", args: { x: "1" } });
+      const { result } = renderHook(() => useToolPresentation(tc));
+      expect(result.current.category).toBe("unknown");
+      expect(result.current.disclosure).toBe("preview");
+    });
+
+    it("lets a registered presenter override the disclosure", () => {
+      const dispose = registerToolPresenter(ToolKind.MCP, {
+        disclosure: () => "summary",
+      });
+      try {
+        const tc = makeToolCall({
+          name: "noisy_tool",
+          mcpServerSlug: "acme/noisy",
+        });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.disclosure).toBe("summary");
+      } finally {
+        dispose();
+      }
+    });
+  });
+
+  describe("runGroupable", () => {
+    it("folds read-only repetitive categories", () => {
+      for (const name of ["Read", "Grep", "Glob"]) {
+        const tc = makeToolCall({ name, args: { path: "/x", pattern: "p" } });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.runGroupable).toBe(true);
+      }
+    });
+
+    it("never folds high-signal categories", () => {
+      for (const name of ["Shell", "StrReplace"]) {
+        const tc = makeToolCall({ name, args: { command: "ls", path: "/x" } });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.runGroupable).toBe(false);
+      }
+    });
+
+    it("lets a registered presenter override run-grouping", () => {
+      const dispose = registerToolPresenter(ToolKind.SHELL, {
+        runGroupable: () => true,
+      });
+      try {
+        const tc = makeToolCall({ name: "Shell", args: { command: "ls" } });
+        const { result } = renderHook(() => useToolPresentation(tc));
+        expect(result.current.runGroupable).toBe(true);
+      } finally {
+        dispose();
+      }
+    });
+  });
 });

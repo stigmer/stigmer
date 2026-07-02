@@ -1,0 +1,55 @@
+{
+  "name": "multi-tool-call",
+  "description": "Two gated tool calls in one AI message both surface, with tool_kind and mcp_server_slug denormalized.",
+  "input": {
+    "messages": [
+      {
+        "type": "MESSAGE_AI",
+        "tool_calls": [
+          {
+            "id": "tc1",
+            "name": "StrReplace",
+            "status": "TOOL_CALL_WAITING_APPROVAL",
+            "requires_approval": true,
+            "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+            "approval_message": "Approve StrReplace",
+            "args_preview": "{\"path\":\"main.ts\"}",
+            "approval_requested_at": "2026-03-27T10:00:00Z",
+            "tool_kind": "TOOL_KIND_FILE_EDIT"
+          },
+          {
+            "id": "tc2",
+            "name": "create_issue",
+            "status": "TOOL_CALL_WAITING_APPROVAL",
+            "requires_approval": true,
+            "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+            "approval_message": "Approve create_issue",
+            "args_preview": "{\"repo\":\"acme/x\"}",
+            "approval_requested_at": "2026-03-27T10:00:01Z",
+            "mcp_server_slug": "github"
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "pending_approvals": [
+      {
+        "tool_call_id": "tc1",
+        "tool_name": "StrReplace",
+        "message": "Approve StrReplace",
+        "args_preview": "{\"path\":\"main.ts\"}",
+        "requested_at": "2026-03-27T10:00:00Z",
+        "tool_kind": "TOOL_KIND_FILE_EDIT"
+      },
+      {
+        "tool_call_id": "tc2",
+        "tool_name": "create_issue",
+        "message": "Approve create_issue",
+        "args_preview": "{\"repo\":\"acme/x\"}",
+        "requested_at": "2026-03-27T10:00:01Z",
+        "mcp_server_slug": "github"
+      }
+    ]
+  }
+}

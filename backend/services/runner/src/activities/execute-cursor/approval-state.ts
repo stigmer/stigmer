@@ -9,21 +9,36 @@
  * State file format (JSON):
  * {
  *   "autoApproveAll": false,
+ *   "leasedCategories": ["shell"],
  *   "mcpToolPolicies": {
  *     "apply_cloud_resource": { "requiresApproval": true, "message": "..." }
  *   },
- *   "approvedGrants": [{ "toolName": "edit", "mcpServerSlug": "", "key": "write", "salient": "a.txt" }],
- *   "approvedGrantTokens": ["d3JpdGUKYS50eHQ="]
+ *   "approvedGrants": [{ "toolName": "edit", "mcpServerSlug": "", "key": "write", "salient": "a.txt", "contentDigest": "<sha256>" }],
+ *   "approvedGrantTokens": ["<base64(key\nsalient[\ncontentDigest])>"]
  * }
+ *
+ * A grant token is the action's PRIMARY token: base64(key \n salient \n digest)
+ * for a content-identified file edit (so a DIFFERENT edit to the same file does
+ * not match), or base64(key \n salient) for shell/delete/MCP and the rare
+ * content-less fallback. See {@link primaryToken}.
  *
  * The hook gates the dangerous built-in set and the MCP tools that require
  * approval (mcpToolPolicies, which by construction holds only require-approval
  * entries); every other tool is allowed. The gated built-in set and its
  * name->category mapping are baked into the generated hook script (from
  * approval-policy.ts), not carried in the state file — only the dynamic inputs
- * (autoApproveAll, mcpToolPolicies, approvedGrantTokens) live here. This mirrors
- * the native harness and avoids denying auto-approved MCP tools, which are
- * absent from the policy map and indistinguishable from unknown tools by name.
+ * (autoApproveAll, leasedCategories, mcpToolPolicies, approvedGrantTokens) live
+ * here. This mirrors the native harness and avoids denying auto-approved MCP
+ * tools, which are absent from the policy map and indistinguishable from unknown
+ * tools by name.
+ *
+ * Approval leases (the scoped successor to autoApproveAll): `autoApproveAll` is
+ * now ONLY the pre-armed spec.auto_approve_all global bypass. An interactive
+ * "approve all" of a given class becomes a run-lifetime lease: a built-in
+ * category lease is listed in `leasedCategories` (the hook allows any built-in of
+ * that category), and an MCP-server lease is applied upstream by dropping the
+ * server's tools from mcpToolPolicies (so the hook allows them as auto-approved)
+ * — the hook is not server-aware, so omission is the lever there.
  *
  * Why grants instead of tool-call ids: a resumed Cursor agent re-issues the
  * approved tool with a BRAND NEW call id, so matching on the original call id
@@ -51,15 +66,21 @@
  * token next turn.
  */
 
-import { writeFile, readFile, mkdir } from "node:fs/promises";
+import { watch } from "node:fs";
+import { writeFile, readFile, mkdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { MergedToolPolicy } from "./approval-policy.js";
-import { extractArgKey, approvalCategory } from "./approval-policy.js";
+import type { MergedToolPolicy, ApprovalCategory } from "./approval-policy.js";
+import { extractArgKey, approvalCategory, POLICY_ENGINE_VERSION } from "./approval-policy.js";
+import { contentDigest } from "../../shared/file-tools.js";
+import {
+  fingerprintCoarseIdentity,
+  type FingerprintKey,
+} from "../../shared/approval-fingerprint.js";
 
 export interface McpToolPolicyEntry {
   requiresApproval: boolean;
@@ -115,13 +136,78 @@ export interface ApprovalGrant {
   mcpServerSlug: string;
   key: string;
   salient: string;
+  /**
+   * Content digest of the approved edit (see {@link contentDigest}), or "" when
+   * the action is not content-identified (shell/delete/MCP, or a content-less
+   * fallback). When present, the grant authorizes the {@link contentToken} so a
+   * DIFFERENT edit to the same path does NOT match; when "", it authorizes the
+   * coarse {@link grantToken} (the documented degrade).
+   */
+  contentDigest: string;
+  /**
+   * Id of the adjudicated tool call this grant was minted from — the transcript
+   * row carrying the SERVER-authored approval_action. The approved-command
+   * auto-keep provenance (DD-28) cites this row as the consent the backend can
+   * verify; the hook itself never reads it.
+   */
+  sourceToolCallId: string;
 }
 
 export interface ApprovalStateFile {
+  /** Pre-armed spec.auto_approve_all: the whole-run global bypass. */
   autoApproveAll: boolean;
+  /**
+   * Built-in approval categories with a run-lifetime lease (the scoped successor
+   * to a global "approve all"). The hook allows any built-in whose category is
+   * listed. MCP-server leases are NOT listed here — they are applied by dropping
+   * the server's tools from mcpToolPolicies, since the hook is not server-aware.
+   */
+  leasedCategories: string[];
   mcpToolPolicies: Record<string, McpToolPolicyEntry>;
   approvedGrants: ApprovalGrant[];
   approvedGrantTokens: string[];
+  /**
+   * Capture mode (git workspaces): when true, the hook ALLOWS file mutations
+   * (write/edit/delete) to flow during the turn, because the runner captures the
+   * whole change set with git at the turn boundary and gates it per-file for
+   * review (see shared/filereview/git-substrate.ts). The ONLY exception is a
+   * write/delete whose
+   * path is gitignored — the git snapshot cannot capture or revert it, so the
+   * hook keeps gating those (it runs `git check-ignore`). shell and MCP stay
+   * gated as always. False (the default) keeps the classic deny-gate behavior
+   * for every file mutation (non-git workspaces / the fallback path).
+   */
+  captureMode: boolean;
+  /**
+   * CAS capture for gitignored writes (the deep-agent parity switch). When true,
+   * a non-secret gitignored write/edit no longer stays on the deny-gate: the hook
+   * stages its pre-write bytes into the runner-owned cas-observations sidecar and
+   * ALLOWS it to flow, and the turn boundary captures it into content-addressable
+   * storage as a `GIT_IGNORED_CAPTURED` change for per-file review (mirroring the
+   * deep-agent `CasCaptureFilesystemBackend` observer). A secret-like gitignored
+   * path is instead hard-blocked (denied, nothing written) and recorded as an
+   * unreviewable observation, so its bytes never reach durable storage.
+   *
+   * Set only when `captureMode` AND an artifact storage is configured — CAS blob
+   * persistence requires it. When false, gitignored writes keep the classic
+   * deny-gate behavior (gitignored deletes and shell/MCP always do). Independent
+   * of `autoApproveAll`: capture is a property of the turn, not authorization, so
+   * the hook honors this switch even under the global bypass.
+   */
+  captureIgnored: boolean;
+  /**
+   * Whether the primary workspace is a git work tree (Slice 2c). Selects the
+   * hook's capture substrate:
+   *  - `true` (default): git tree — git-tracked write/edit/delete flow freely
+   *    (the runner captures them from the git diff at the turn boundary); only a
+   *    GITIGNORED write is CAS-staged (when `captureIgnored`), a gitignored delete
+   *    stays gated.
+   *  - `false`: non-git workspace — there is no git snapshot, so EVERY file write
+   *    is CAS-staged and flowed for review (`captureIgnored` is on in this mode),
+   *    a delete stays gated (no CAS delete-capture path, parity with the
+   *    deep-agent), and shell/MCP gate as always.
+   */
+  gitWorkspace: boolean;
 }
 
 /**
@@ -135,6 +221,87 @@ export function grantToken(key: string, salient: string): string {
 }
 
 /**
+ * The content-exact wire token: `base64(key \n salient \n contentDigest)`. This
+ * is the exact-identity grant the hook matches for a file-mutating tool, so an
+ * approval of one edit does NOT authorize a DIFFERENT edit to the same file (a
+ * different digest yields a different token). The hook recomputes the identical
+ * token from `tool_input` (it appends the same `\n<digest>` only when the digest
+ * is non-empty — see hook-script.ts), so this encoding must stay byte-identical
+ * to the hook's, exactly as {@link grantToken} already is.
+ */
+export function contentToken(key: string, salient: string, contentDigest: string): string {
+  return Buffer.from(`${key}\n${salient}\n${contentDigest}`, "utf-8").toString("base64");
+}
+
+/**
+ * The single token a tool call authorizes (as a grant) and is recorded under (as
+ * a denial): the {@link contentToken} when a content digest is present (file
+ * edits/writes), else the coarse {@link grantToken} (shell, delete, MCP, or a
+ * content-less grep-fallback). One definition, used by the runner for both grant
+ * building and denial correlation and mirrored by the hook, so the deny-time and
+ * reinvoke-time identities can never drift.
+ */
+export function primaryToken(key: string, salient: string, contentDigest: string): string {
+  return contentDigest ? contentToken(key, salient, contentDigest) : grantToken(key, salient);
+}
+
+/**
+ * The shared HMAC coarse fingerprint of an approval grant.
+ *
+ * This is the SAME canonical coarse identity the wire token (grantToken) encodes
+ * — `(key, salient)` plus the MCP slug — run through the one shared HMAC+canonical
+ * path ({@link fingerprintCoarseIdentity}). It is NOT the hook's wire-match value:
+ * the hook matches on the mechanically-reproducible base64 token (a bash script
+ * can recompute base64 but not a keyed HMAC over a workspace-root-normalized
+ * salient). This fingerprint is the cross-substrate, anti-forgery identity used
+ * for the runner-side shadow receipt today and as the successor wire token once a
+ * lease becomes a server-issued bearer token (Phase 7). Because it shares the
+ * exact category + salient the token uses, the hook-side and stream-side
+ * fingerprints of one action are equal by construction (see the parity tests).
+ */
+export function grantFingerprint(key: FingerprintKey, grant: ApprovalGrant): string {
+  return fingerprintCoarseIdentity(key, {
+    tool: grant.key,
+    mcpServerSlug: grant.mcpServerSlug,
+    salient: grant.salient,
+  });
+}
+
+/**
+ * Emit a best-effort shadow ExecutionReceipt for each grant the runner issues
+ * this turn (Phase 2, mirror of the deep-agent gateway's receipt).
+ *
+ * Cursor executes tools out-of-process, so unlike the in-process deep-agent
+ * gateway the runner cannot observe the actual side effect — the receipt is
+ * issued when the authorization GRANT is written (best-effort, `verified:false`),
+ * not at execution. Structured log only: never persisted, no proto. Shares the
+ * one HMAC+canonical fingerprint path so the value matches the deep-agent and
+ * cross-language corpus definitions.
+ */
+export function emitCursorGrantReceipts(
+  grants: readonly ApprovalGrant[],
+  fingerprintKey: FingerprintKey,
+  executionId: string,
+): void {
+  for (const g of grants) {
+    console.log(
+      "[hitl-gateway] receipt " +
+      JSON.stringify({
+        executionId,
+        toolName: g.toolName,
+        mcpServerSlug: g.mcpServerSlug,
+        category: g.mcpServerSlug ? "" : g.key,
+        authorization: "approval",
+        policyEngineVersion: POLICY_ENGINE_VERSION,
+        fingerprint: grantFingerprint(fingerprintKey, g),
+        substrate: "cursor",
+        verified: false,
+      }),
+    );
+  }
+}
+
+/**
  * Build approval grants from the pending approvals the user adjudicated and
  * their decisions. Only APPROVE / APPROVE_ALL decisions produce grants. Each
  * grant carries the canonical {@link ToolIdentity} (category + salient resource)
@@ -143,14 +310,15 @@ export function grantToken(key: string, salient: string): string {
 export function buildApprovalGrants(
   pendingApprovals: PendingApproval[],
   decisions: Map<string, ApprovalAction>,
+  contentDigests?: Map<string, string>,
 ): ApprovalGrant[] {
   const grants: ApprovalGrant[] = [];
   for (const pa of pendingApprovals) {
     // Both APPROVE and APPROVE_ALL allow the adjudicated tool through on the
-    // resumed turn. APPROVE_ALL additionally flips autoApproveAll for the whole
-    // run (handled by the caller via hasApproveAllDecision), but we still emit a
-    // grant here so the clicked tool is allowed regardless of how the hook reads
-    // the state file.
+    // resumed turn. APPROVE_ALL additionally grants a run-lifetime lease for the
+    // clicked action's class (handled by the caller via deriveActiveLeases ->
+    // leasedCategories / dropped MCP server), but we still emit a grant here so
+    // the clicked tool itself is allowed regardless of how the hook reads state.
     const decision = decisions.get(pa.toolCallId);
     if (decision !== ApprovalAction.APPROVE && decision !== ApprovalAction.APPROVE_ALL) continue;
 
@@ -160,6 +328,14 @@ export function buildApprovalGrants(
       mcpServerSlug: pa.mcpServerSlug,
       key: id.key,
       salient: id.salient,
+      // The content digest comes from the gate's authoritative captured input
+      // (carried on the tool call, see reconstructAdjudicatedApprovals) — NOT
+      // from argsPreview, which elides heavy edit content. Empty when the gate
+      // had no content (shell/delete/MCP) or it was unrecoverable, in which case
+      // the grant degrades to the coarse token (a same-file sibling can ride it,
+      // the documented bounded residual).
+      contentDigest: contentDigests?.get(pa.toolCallId) ?? "",
+      sourceToolCallId: pa.toolCallId,
     });
   }
   return grants;
@@ -180,7 +356,10 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  * grants from a previous HITL cycle.
  *
  * The state file carries the hook script's DYNAMIC inputs:
- * - mcpToolPolicies: per-tool policy for MCP tools requiring approval
+ * - globalBypass: the pre-armed spec.auto_approve_all (written as autoApproveAll)
+ * - leasedCategories: built-in categories with a run-lifetime lease
+ * - mcpToolPolicies: per-tool policy for MCP tools requiring approval (leased
+ *   servers are already absent — dropped upstream by mergeApprovalPolicies)
  * - approvedGrants / approvedGrantTokens: tools approved in the current HITL
  *   cycle, allowed through on reinvocation
  *
@@ -189,8 +368,12 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  */
 export function buildApprovalState(
   mergedPolicies: Map<string, MergedToolPolicy>,
-  autoApproveAll: boolean,
+  globalBypass: boolean,
+  leasedCategories: ReadonlySet<ApprovalCategory>,
   grants?: ApprovalGrant[],
+  captureMode = false,
+  captureIgnored = false,
+  gitWorkspace = true,
 ): ApprovalStateFile {
   const approvedGrants = grants ?? [];
 
@@ -203,10 +386,17 @@ export function buildApprovalState(
   }
 
   return {
-    autoApproveAll,
+    autoApproveAll: globalBypass,
+    leasedCategories: [...leasedCategories],
     mcpToolPolicies,
     approvedGrants,
-    approvedGrantTokens: approvedGrants.map((g) => grantToken(g.key, g.salient)),
+    // The hook matches a tool call's PRIMARY token (content when it can compute a
+    // digest from tool_input, else coarse). A content-identified grant authorizes
+    // only its exact content; a content-less grant authorizes the coarse token.
+    approvedGrantTokens: approvedGrants.map((g) => primaryToken(g.key, g.salient, g.contentDigest)),
+    captureMode,
+    captureIgnored,
+    gitWorkspace,
   };
 }
 
@@ -248,10 +438,21 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  * the same space as grantToken() (base64 of `toolName \n salientArg`), used to
  * correlate the denial back to the streamed tool call. `toolName` is carried raw
  * for human-readable debugging of the ledger file.
+ *
+ * `input` is the authoritative pre-execution tool arguments the hook captured
+ * from the Cursor `tool_input` payload (decoded from the ledger's base64 form).
+ * It is the cursor analog of the native harness reading the AI-message tool-call
+ * args out of graph state at the LangGraph interrupt — the one place the COMPLETE
+ * proposed change is in hand before the tool runs. The runner overlays it onto
+ * the gated tool call so the approval card can show the proposed content/diff
+ * before the user approves. Absent when the hook ran its grep fallback (the Node
+ * binary was unavailable), in which case the gate degrades to stream-recovered
+ * args exactly as before.
  */
 export interface DeniedLedgerEntry {
   toolName: string;
   token: string;
+  input?: Record<string, unknown>;
 }
 
 /**
@@ -279,6 +480,46 @@ export async function resetDenialLedger(hitlDir: string): Promise<string> {
 }
 
 /**
+ * Watch the denial ledger so the stream loop learns about a hook denial the
+ * moment it is written — not on the next tool_call event.
+ *
+ * The hook appends to denials.jsonl BEFORE Cursor surfaces the failure to the
+ * model, so a filesystem notification is the earliest possible signal that a
+ * turn must pause. The watcher deliberately does NOT read the file itself: it
+ * only flips the caller's dirty flag, and the stream loop confirms with a
+ * readDenialLedger() — a notification can fire for the per-turn reset
+ * truncation too, and only a read distinguishes "reset to empty" from "denial
+ * appended". Watching the DIRECTORY (not the file) survives the file being
+ * replaced/truncated between turns.
+ *
+ * fs.watch is best-effort by platform contract, so this is an accelerator,
+ * never the only trigger: the stream loop keeps its tool_call-event read as
+ * the backstop. On any watcher error we fall back to that backstop silently.
+ *
+ * Returns a close function, idempotent and safe to call on every exit path.
+ */
+export function watchDenialLedger(hitlDir: string, onDirty: () => void): () => void {
+  try {
+    const watcher = watch(hitlDir, (_eventType, filename) => {
+      if (!filename || filename === DENIAL_LEDGER_FILE) onDirty();
+    });
+    // Without an error listener a watcher error crashes the process; with one,
+    // the watcher just goes quiet and the tool_call backstop takes over.
+    watcher.on("error", () => {});
+    return () => {
+      try {
+        watcher.close();
+      } catch {
+        // Already closed — nothing to release.
+      }
+    };
+  } catch {
+    // Watch unsupported on this platform/filesystem — backstop only.
+    return () => {};
+  }
+}
+
+/**
  * Read the denial ledger written by the hook during the turn. Missing file →
  * no denials. Blank or partially-written lines are tolerated (the hook appends
  * line-by-line and a run can be interrupted), so a malformed tail never hides
@@ -299,11 +540,12 @@ export async function readDenialLedger(
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      const obj = JSON.parse(trimmed) as Partial<DeniedLedgerEntry>;
+      const obj = JSON.parse(trimmed) as { toolName?: unknown; token?: unknown; input?: unknown };
       if (typeof obj.token === "string" && obj.token) {
         entries.push({
           toolName: typeof obj.toolName === "string" ? obj.toolName : "",
           token: obj.token,
+          input: decodeLedgerInput(obj.input),
         });
       }
     } catch {
@@ -311,6 +553,94 @@ export async function readDenialLedger(
     }
   }
   return entries;
+}
+
+/**
+ * Decode the hook's base64(JSON(tool_input)) into the authoritative args object,
+ * or undefined when absent/garbage. Tolerant by construction: a bad capture must
+ * never drop the denial it rides on — the gate still surfaces, just without the
+ * richer preview.
+ */
+function decodeLedgerInput(raw: unknown): Record<string, unknown> | undefined {
+  if (typeof raw !== "string" || raw.length === 0) return undefined;
+  try {
+    const json = Buffer.from(raw, "base64").toString("utf-8");
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Active-turn pointer (runner → stable hook): the per-turn indirection that makes
+// a single, process-cached hook script resolve the CURRENT execution's artifacts
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ACTIVE_POINTER_FILE = "active.json";
+
+/**
+ * The current turn's artifact paths, written by the runner into the WORKSPACE's
+ * gate directory and read by the stable hook script on every invocation.
+ *
+ * Why this exists: the Cursor SDK caches `.cursor/hooks.json` (the hook script
+ * PATH) for the runner process, so the script must be STABLE across executions
+ * (a per-session script gets cached at the first execution and reused for all
+ * later ones — recording their denials to the FIRST session's ledger, leaving the
+ * current runner's ledger empty so it completes instead of pausing). The stable
+ * script bakes in NO per-session paths; it reads this pointer instead, which the
+ * runner repoints every turn to the current execution's state file, denial
+ * ledger, and runner PID.
+ */
+export interface ActiveTurnPointer {
+  /** Absolute path of THIS turn's approval-state file (hook input). */
+  stateFile: string;
+  /** Absolute path of THIS turn's denial ledger (hook output the runner reads). */
+  ledgerFile: string;
+  /** PID of the runner that owns THIS turn (the hook's scope-guard anchor). */
+  runnerPid: number;
+}
+
+/** Absolute path of the active-turn pointer inside a workspace's gate directory. */
+export function activePointerPath(gateDir: string): string {
+  return join(gateDir, ACTIVE_POINTER_FILE);
+}
+
+/**
+ * Atomically point the workspace's stable hook at the current turn's artifacts.
+ *
+ * Written compactly (the hook's grep fallback parses `"key":"value"` with no
+ * spaces) and atomically (write a temp sibling, then rename) so a hook firing
+ * concurrently with the write never reads a half-written pointer. Returns the
+ * pointer path.
+ */
+export async function writeActiveTurnPointer(
+  gateDir: string,
+  pointer: ActiveTurnPointer,
+): Promise<string> {
+  await mkdir(gateDir, { recursive: true });
+  const filePath = activePointerPath(gateDir);
+  const tmpPath = `${filePath}.${process.pid}.tmp`;
+  await writeFile(tmpPath, JSON.stringify(pointer), "utf-8");
+  await rename(tmpPath, filePath);
+  return filePath;
+}
+
+/**
+ * Remove the active-turn pointer on teardown so the gate is INERT between turns:
+ * a hook that fires when no turn is active (a leftover cached hooks.json, the
+ * user's own IDE) reads no pointer and allows immediately. Best-effort — a
+ * teardown failure must never fail the execution, and a stale pointer is itself
+ * inert once its runnerPid is gone (the scope guard fails closed to allow).
+ */
+export async function removeActiveTurnPointer(gateDir: string): Promise<void> {
+  try {
+    await rm(activePointerPath(gateDir), { force: true });
+  } catch {
+    // Already gone or unwritable — nothing to clean.
+  }
 }
 
 /**
@@ -331,6 +661,15 @@ export async function readDenialLedger(
 export interface AdjudicatedApprovals {
   pendingApprovals: PendingApproval[];
   decisions: Map<string, ApprovalAction>;
+  /**
+   * tool-call id -> content digest of the approved edit, for the content-exact
+   * grant. Sourced from the persisted `approval_content_digest` field (stable,
+   * immune to the size-limit elision that can drop `args`), falling back to a
+   * recompute from `args` only when the field is absent (an execution that
+   * predates the field). Empty for a non-content tool — the grant then degrades
+   * to the coarse token.
+   */
+  contentDigests: Map<string, string>;
 }
 
 export function reconstructAdjudicatedApprovals(
@@ -338,6 +677,7 @@ export function reconstructAdjudicatedApprovals(
 ): AdjudicatedApprovals {
   const pendingApprovals: PendingApproval[] = [];
   const decisions = new Map<string, ApprovalAction>();
+  const contentDigests = new Map<string, string>();
 
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
@@ -345,6 +685,14 @@ export function reconstructAdjudicatedApprovals(
       if (tc.approvalAction === ApprovalAction.UNSPECIFIED) continue;
 
       decisions.set(tc.id, tc.approvalAction);
+      // Prefer the persisted digest (set at the gate from the authoritative
+      // captured input, and never elided); recompute from args only for an
+      // execution that predates the field.
+      contentDigests.set(
+        tc.id,
+        tc.approvalContentDigest ||
+          (tc.args ? contentDigest(tc.args as Record<string, unknown>) : ""),
+      );
       pendingApprovals.push(
         create(PendingApprovalSchema, {
           toolCallId: tc.id,
@@ -358,5 +706,5 @@ export function reconstructAdjudicatedApprovals(
     }
   }
 
-  return { pendingApprovals, decisions };
+  return { pendingApprovals, decisions, contentDigests };
 }

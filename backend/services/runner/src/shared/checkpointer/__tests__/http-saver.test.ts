@@ -80,7 +80,6 @@ describe("HttpCheckpointSaver", () => {
       const metadata: CheckpointMetadata = {
         source: "loop",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -133,7 +132,7 @@ describe("HttpCheckpointSaver", () => {
         channel_versions: {},
         versions_seen: {},
       };
-      const md: CheckpointMetadata = { source: "loop", step: 1, writes: null, parents: {} };
+      const md: CheckpointMetadata = { source: "loop", step: 1, parents: {} };
       const cpSer = await serializeForProxy(cp);
       const mdSer = await serializeForProxy(md);
 

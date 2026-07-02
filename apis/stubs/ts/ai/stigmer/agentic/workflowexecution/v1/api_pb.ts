@@ -31,7 +31,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvYXBpLnByb3RvEidhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEi3QIKEVdvcmtmbG93RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiYKBGtpbmQYAiABKAlCGLpIFXITChFXb3JrZmxvd0V4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESTAoEc3BlYxgEIAEoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvblNwZWMSUAoGc3RhdHVzGAUgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uU3RhdHVzIsIEChdXb3JrZmxvd0V4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0ElAKBXBoYXNlGAEgASgOMjcuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlQgi6SAWCAQIQARJECgV0YXNrcxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1Rhc2sSJwoGb3V0cHV0GAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBINCgVlcnJvchgEIAEoCRISCgpzdGFydGVkX2F0GAUgASgJEhQKDGNvbXBsZXRlZF9hdBgGIAEoCRIcChR0ZW1wb3JhbF93b3JrZmxvd19pZBgHIAEoCRJbChFwZW5kaW5nX2FwcHJvdmFscxgJIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1BlbmRpbmdBcHByb3ZhbBIZChF0b3RhbF9jb3N0X21pY3JvcxgKIAEoAxIaChJ0b3RhbF9pbnB1dF90b2tlbnMYCyABKAMSGwoTdG90YWxfb3V0cHV0X3Rva2VucxgMIAEoAxIdChV3b3JrZmxvd192ZXJzaW9uX2hhc2gYDSABKAkihAEKF1dvcmtmbG93UGVuZGluZ0FwcHJvdmFsEkcKCGFwcHJvdmFsGAEgASgLMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlBlbmRpbmdBcHByb3ZhbBIgChhjaGlsZF9hZ2VudF9leGVjdXRpb25faWQYAiABKAki7gMKDFdvcmtmbG93VGFzaxIPCgd0YXNrX2lkGAEgASgJEhEKCXRhc2tfbmFtZRgCIAEoCRJWCgl0YXNrX3R5cGUYAyABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dUYXNrVHlwZUIIukgFggECEAESJgoFaW5wdXQYBCABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EicKBm91dHB1dBgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSVQoGc3RhdHVzGAYgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93VGFza1N0YXR1c0IIukgFggECEAESEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSDQoFZXJyb3IYCSABKAkSKQoIbWV0YWRhdGEYCiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhQKDGFydGlmYWN0X2lkcxgLIAMoCRITCgtjb3N0X21pY3JvcxgMIAEoAxIUCgxpbnB1dF90b2tlbnMYDSABKAMSFQoNb3V0cHV0X3Rva2VucxgOIAEoA2IGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvYXBpLnByb3RvEidhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEi3QIKEVdvcmtmbG93RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiYKBGtpbmQYAiABKAlCGLpIFXITChFXb3JrZmxvd0V4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESTAoEc3BlYxgEIAEoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvblNwZWMSUAoGc3RhdHVzGAUgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uU3RhdHVzIqQFChdXb3JrZmxvd0V4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0ElAKBXBoYXNlGAEgASgOMjcuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlQgi6SAWCAQIQARJECgV0YXNrcxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1Rhc2sSJwoGb3V0cHV0GAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBINCgVlcnJvchgEIAEoCRISCgpzdGFydGVkX2F0GAUgASgJEhQKDGNvbXBsZXRlZF9hdBgGIAEoCRIcChR0ZW1wb3JhbF93b3JrZmxvd19pZBgHIAEoCRJbChFwZW5kaW5nX2FwcHJvdmFscxgJIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1BlbmRpbmdBcHByb3ZhbBIZChF0b3RhbF9jb3N0X21pY3JvcxgKIAEoAxIaChJ0b3RhbF9pbnB1dF90b2tlbnMYCyABKAMSGwoTdG90YWxfb3V0cHV0X3Rva2VucxgMIAEoAxIdChV3b3JrZmxvd192ZXJzaW9uX2hhc2gYDSABKAkSYAoUcGVuZGluZ19maWxlX3Jldmlld3MYDiADKAsyQi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dQZW5kaW5nRmlsZVJldmlldyKEAQoXV29ya2Zsb3dQZW5kaW5nQXBwcm92YWwSRwoIYXBwcm92YWwYASABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsEiAKGGNoaWxkX2FnZW50X2V4ZWN1dGlvbl9pZBgCIAEoCSJUChlXb3JrZmxvd1BlbmRpbmdGaWxlUmV2aWV3EiAKGGNoaWxkX2FnZW50X2V4ZWN1dGlvbl9pZBgBIAEoCRIVCg1jaGFuZ2Vfc2V0X2lkGAIgAygJIu4DCgxXb3JrZmxvd1Rhc2sSDwoHdGFza19pZBgBIAEoCRIRCgl0YXNrX25hbWUYAiABKAkSVgoJdGFza190eXBlGAMgASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93VGFza1R5cGVCCLpIBYIBAhABEiYKBWlucHV0GAQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBInCgZvdXRwdXQYBSABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0ElUKBnN0YXR1cxgGIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1Rhc2tTdGF0dXNCCLpIBYIBAhABEhIKCnN0YXJ0ZWRfYXQYByABKAkSFAoMY29tcGxldGVkX2F0GAggASgJEg0KBWVycm9yGAkgASgJEikKCG1ldGFkYXRhGAogASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIUCgxhcnRpZmFjdF9pZHMYCyADKAkSEwoLY29zdF9taWNyb3MYDCABKAMSFAoMaW5wdXRfdG9rZW5zGA0gASgDEhUKDW91dHB1dF90b2tlbnMYDiABKANiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
@@ -450,6 +450,31 @@ export type WorkflowExecutionStatus = Message<"ai.stigmer.agentic.workflowexecut
    * @generated from field: string workflow_version_hash = 13;
    */
   workflowVersionHash: string;
+
+  /**
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * @internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * @since Workflow-Parent File Review
+   *
+   * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14;
+   */
+  pendingFileReviews: WorkflowPendingFileReview[];
 };
 
 /**
@@ -498,6 +523,55 @@ export type WorkflowPendingApproval = Message<"ai.stigmer.agentic.workflowexecut
  */
 export const WorkflowPendingApprovalSchema: GenMessage<WorkflowPendingApproval> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_api, 2);
+
+/**
+ * WorkflowPendingFileReview references a child agent execution's file-review
+ * gate for workflow-level surfacing. Reference-only — never a copy of the diff.
+ *
+ * @internal
+ * FileChangeSet is an agentexecution domain concept owned by the child
+ * AgentExecution. WorkflowPendingFileReview adds only the workflow-level
+ * concern: which child holds a file-review gate, and which of its change sets
+ * are awaiting a decision. The UI reads the child's file_change_sets to render
+ * the diff; WorkflowExecution.submitFileDecision forwards the verdict to the
+ * child. This mirrors how WorkflowPendingApproval references a child's tool
+ * approval without embedding the tool call.
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview
+ */
+export type WorkflowPendingFileReview = Message<"ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview"> & {
+  /**
+   * ID of the child agent execution that holds the file-review gate.
+   *
+   * @internal
+   * WorkflowExecution.submitFileDecision uses this to route the decision to the
+   * correct AgentExecution.submitFileDecision RPC.
+   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
+   *
+   * @generated from field: string child_agent_execution_id = 1;
+   */
+  childAgentExecutionId: string;
+
+  /**
+   * IDs of the child's change sets currently AWAITING_REVIEW.
+   *
+   * @internal
+   * Each matches a FileChangeSet.id on the child's
+   * AgentExecution.status.file_change_sets. Empty means the child has no
+   * outstanding review (used transiently to clear this child's entry under the
+   * per-child merge protocol).
+   *
+   * @generated from field: repeated string change_set_id = 2;
+   */
+  changeSetId: string[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview.
+ * Use `create(WorkflowPendingFileReviewSchema)` to create a new message.
+ */
+export const WorkflowPendingFileReviewSchema: GenMessage<WorkflowPendingFileReview> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_api, 3);
 
 /**
  * WorkflowTask represents a single task within a workflow execution.
@@ -728,5 +802,5 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflowexecution.v1.Work
  * Use `create(WorkflowTaskSchema)` to create a new message.
  */
 export const WorkflowTaskSchema: GenMessage<WorkflowTask> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_api, 3);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_api, 4);
 

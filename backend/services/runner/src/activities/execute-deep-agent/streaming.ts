@@ -32,7 +32,7 @@ import {
 import {
   StreamingUpdateScheduler,
   type StreamingConfig,
-} from "./streaming-scheduler.js";
+} from "../../shared/streaming-scheduler.js";
 import { type RetryOptions } from "../../shared/grpc-retry.js";
 import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
 import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";
@@ -42,6 +42,7 @@ import type { InlinePublisher } from "./inline-publisher.js";
 import type { WriteBackCoordinator } from "./writeback-coordinator.js";
 import { createV2EventRecorder } from "./event-recorder.js";
 import { streamExecutionV3 } from "./streaming-v3.js";
+import { extractFilePath, isFileModifyingTool } from "../../shared/file-tools.js";
 
 const DEFAULT_STALL_TIMEOUT_MS = 120_000;
 
@@ -283,25 +284,14 @@ function checkStallTimeout(
   }
 }
 
-const FILE_MODIFYING_TOOLS = new Set([
-  "write_file", "edit_file", "create_file",
-  "write", "edit", "create",
-  "str_replace_editor",
-]);
-
 function extractFilePathFromToolEnd(event: StreamEvent): string | null {
   const toolName = event.name ?? "";
-  if (!FILE_MODIFYING_TOOLS.has(toolName)) return null;
+  if (!isFileModifyingTool(toolName)) return null;
 
   const input = event.data?.input as Record<string, unknown> | undefined;
   if (!input) return null;
 
-  if (typeof input.path === "string") return input.path;
-  if (typeof input.file_path === "string") return input.file_path;
-  if (typeof input.filename === "string") return input.filename;
-  if (typeof input.file === "string") return input.file;
-
-  return null;
+  return extractFilePath(input);
 }
 
 export class StallTimeoutError extends Error {

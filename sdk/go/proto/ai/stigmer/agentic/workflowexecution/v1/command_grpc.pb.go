@@ -24,6 +24,7 @@ const (
 	WorkflowExecutionCommandController_Update_FullMethodName                     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/update"
 	WorkflowExecutionCommandController_UpdateStatus_FullMethodName               = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/updateStatus"
 	WorkflowExecutionCommandController_SubmitApproval_FullMethodName             = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitApproval"
+	WorkflowExecutionCommandController_SubmitFileDecision_FullMethodName         = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitFileDecision"
 	WorkflowExecutionCommandController_SubmitWorkflowTaskApproval_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitWorkflowTaskApproval"
 	WorkflowExecutionCommandController_Delete_FullMethodName                     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete"
 	WorkflowExecutionCommandController_SendSignal_FullMethodName                 = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/sendSignal"
@@ -339,6 +340,47 @@ type WorkflowExecutionCommandControllerClient interface {
 	//
 	// @since Phase 5.3 (Approval Forwarding)
 	SubmitApproval(ctx context.Context, in *SubmitWorkflowApprovalInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
+	// Submit a keep/discard decision for a child agent's file review.
+	//
+	// Forwards the decision to the child AgentExecution whose file-review gate is
+	// surfaced on this workflow via status.pending_file_reviews. This is the
+	// file-review sibling of submitApproval: submitApproval forwards a tool-call
+	// approval, submitFileDecision forwards a FileChangeSet keep/discard.
+	//
+	// @internal
+	// The decision is forwarded to the child via AgentExecution.submitFileDecision
+	// (a same-thread in-process invoke), so the child's completeness/digest gates
+	// and caller attribution (reviewer_id) apply unchanged.
+	//
+	// Preconditions:
+	//   - status.pending_file_reviews must contain an entry whose
+	//     child_agent_execution_id and change_set_id match the input
+	//   - User must have can_edit permission on the workflow execution
+	//
+	// # State Transitions
+	//
+	// After a successful decision:
+	//   - Decision is forwarded to the child AgentExecution
+	//   - Child reconciles the approved bytes / discards and resumes
+	//   - The child's change set leaves AWAITING_REVIEW, so call-agent-status clears
+	//     the reference from WorkflowExecution.status.pending_file_reviews
+	//
+	// # Error Cases
+	//
+	//   - NOT_FOUND: Workflow execution doesn't exist
+	//   - PERMISSION_DENIED: User doesn't have can_edit permission
+	//   - FAILED_PRECONDITION: No matching pending file review for (child, change_set)
+	//   - INVALID_ARGUMENT: Invalid scope/action, or the child handler rejects
+	//     (e.g. digest mismatch, incomplete diff)
+	//   - UNAVAILABLE: Failed to forward to child agent (transient error)
+	//
+	// Alternative: Direct Agent Decision
+	//
+	// Users can also submit the decision directly via AgentExecution.submitFileDecision
+	// using the child_agent_execution_id. Both paths are equivalent.
+	//
+	// @since Workflow-Parent File Review
+	SubmitFileDecision(ctx context.Context, in *SubmitWorkflowFileDecisionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Submit a human reviewer's decision for a workflow-level human_input task.
 	//
 	// Resolves a human_input approval gate by sending the reviewer's outcome
@@ -890,6 +932,16 @@ func (c *workflowExecutionCommandControllerClient) SubmitApproval(ctx context.Co
 	return out, nil
 }
 
+func (c *workflowExecutionCommandControllerClient) SubmitFileDecision(ctx context.Context, in *SubmitWorkflowFileDecisionInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowExecution)
+	err := c.cc.Invoke(ctx, WorkflowExecutionCommandController_SubmitFileDecision_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *workflowExecutionCommandControllerClient) SubmitWorkflowTaskApproval(ctx context.Context, in *SubmitWorkflowTaskApprovalInput, opts ...grpc.CallOption) (*WorkflowExecution, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WorkflowExecution)
@@ -1275,6 +1327,47 @@ type WorkflowExecutionCommandControllerServer interface {
 	//
 	// @since Phase 5.3 (Approval Forwarding)
 	SubmitApproval(context.Context, *SubmitWorkflowApprovalInput) (*WorkflowExecution, error)
+	// Submit a keep/discard decision for a child agent's file review.
+	//
+	// Forwards the decision to the child AgentExecution whose file-review gate is
+	// surfaced on this workflow via status.pending_file_reviews. This is the
+	// file-review sibling of submitApproval: submitApproval forwards a tool-call
+	// approval, submitFileDecision forwards a FileChangeSet keep/discard.
+	//
+	// @internal
+	// The decision is forwarded to the child via AgentExecution.submitFileDecision
+	// (a same-thread in-process invoke), so the child's completeness/digest gates
+	// and caller attribution (reviewer_id) apply unchanged.
+	//
+	// Preconditions:
+	//   - status.pending_file_reviews must contain an entry whose
+	//     child_agent_execution_id and change_set_id match the input
+	//   - User must have can_edit permission on the workflow execution
+	//
+	// # State Transitions
+	//
+	// After a successful decision:
+	//   - Decision is forwarded to the child AgentExecution
+	//   - Child reconciles the approved bytes / discards and resumes
+	//   - The child's change set leaves AWAITING_REVIEW, so call-agent-status clears
+	//     the reference from WorkflowExecution.status.pending_file_reviews
+	//
+	// # Error Cases
+	//
+	//   - NOT_FOUND: Workflow execution doesn't exist
+	//   - PERMISSION_DENIED: User doesn't have can_edit permission
+	//   - FAILED_PRECONDITION: No matching pending file review for (child, change_set)
+	//   - INVALID_ARGUMENT: Invalid scope/action, or the child handler rejects
+	//     (e.g. digest mismatch, incomplete diff)
+	//   - UNAVAILABLE: Failed to forward to child agent (transient error)
+	//
+	// Alternative: Direct Agent Decision
+	//
+	// Users can also submit the decision directly via AgentExecution.submitFileDecision
+	// using the child_agent_execution_id. Both paths are equivalent.
+	//
+	// @since Workflow-Parent File Review
+	SubmitFileDecision(context.Context, *SubmitWorkflowFileDecisionInput) (*WorkflowExecution, error)
 	// Submit a human reviewer's decision for a workflow-level human_input task.
 	//
 	// Resolves a human_input approval gate by sending the reviewer's outcome
@@ -1797,6 +1890,9 @@ func (UnimplementedWorkflowExecutionCommandControllerServer) UpdateStatus(contex
 func (UnimplementedWorkflowExecutionCommandControllerServer) SubmitApproval(context.Context, *SubmitWorkflowApprovalInput) (*WorkflowExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitApproval not implemented")
 }
+func (UnimplementedWorkflowExecutionCommandControllerServer) SubmitFileDecision(context.Context, *SubmitWorkflowFileDecisionInput) (*WorkflowExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitFileDecision not implemented")
+}
 func (UnimplementedWorkflowExecutionCommandControllerServer) SubmitWorkflowTaskApproval(context.Context, *SubmitWorkflowTaskApprovalInput) (*WorkflowExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitWorkflowTaskApproval not implemented")
 }
@@ -1909,6 +2005,24 @@ func _WorkflowExecutionCommandController_SubmitApproval_Handler(srv interface{},
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(WorkflowExecutionCommandControllerServer).SubmitApproval(ctx, req.(*SubmitWorkflowApprovalInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionCommandController_SubmitFileDecision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitWorkflowFileDecisionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionCommandControllerServer).SubmitFileDecision(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionCommandController_SubmitFileDecision_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionCommandControllerServer).SubmitFileDecision(ctx, req.(*SubmitWorkflowFileDecisionInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2079,6 +2193,10 @@ var WorkflowExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "submitApproval",
 			Handler:    _WorkflowExecutionCommandController_SubmitApproval_Handler,
+		},
+		{
+			MethodName: "submitFileDecision",
+			Handler:    _WorkflowExecutionCommandController_SubmitFileDecision_Handler,
 		},
 		{
 			MethodName: "submitWorkflowTaskApproval",

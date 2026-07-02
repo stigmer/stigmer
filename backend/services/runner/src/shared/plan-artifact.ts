@@ -87,7 +87,6 @@ export async function publishPlanArtifact(opts: {
     const storageKey = `artifacts/${executionId}/${PLAN_ARTIFACT_NAME}`;
 
     await artifactStorage.upload(storageKey, content, "text/markdown");
-    const downloadUrl = await artifactStorage.getDownloadUrl(storageKey);
 
     const artifact = create(ExecutionArtifactSchema, {
       name: PLAN_ARTIFACT_NAME,
@@ -95,7 +94,6 @@ export async function publishPlanArtifact(opts: {
       kind: ExecutionArtifactKind.FILE,
       sizeBytes: BigInt(content.length),
       storageKey,
-      downloadUrl,
       createdAt: utcTimestamp(),
       contentHash,
     });

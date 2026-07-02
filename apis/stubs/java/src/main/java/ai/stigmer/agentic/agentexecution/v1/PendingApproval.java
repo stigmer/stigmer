@@ -63,6 +63,7 @@ private static final long serialVersionUID = 0L;
     branchAtDeny_ = "";
     headShaAtDeny_ = "";
     toolKind_ = 0;
+    approvalPolicySource_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -758,6 +759,40 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentexecution.v1.ToolKind.UNRECOGNIZED : result;
   }
 
+  public static final int APPROVAL_POLICY_SOURCE_FIELD_NUMBER = 15;
+  private int approvalPolicySource_ = 0;
+  /**
+   * <pre>
+   * Policy layer that gated this tool call, copied from
+   * ToolCall.approval_policy_source by the server-side projection (exactly as
+   * tool_kind above is). Lets the approval surface explain WHY the tool requires
+   * approval (e.g. "required by agent override") without a client-side lookup.
+   * See ApprovalPolicySource.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 15 [json_name = "approvalPolicySource"];</code>
+   * @return The enum numeric value on the wire for approvalPolicySource.
+   */
+  @java.lang.Override public int getApprovalPolicySourceValue() {
+    return approvalPolicySource_;
+  }
+  /**
+   * <pre>
+   * Policy layer that gated this tool call, copied from
+   * ToolCall.approval_policy_source by the server-side projection (exactly as
+   * tool_kind above is). Lets the approval surface explain WHY the tool requires
+   * approval (e.g. "required by agent override") without a client-side lookup.
+   * See ApprovalPolicySource.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 15 [json_name = "approvalPolicySource"];</code>
+   * @return The approvalPolicySource.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource() {
+    ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource result = ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.forNumber(approvalPolicySource_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -811,6 +846,9 @@ private static final long serialVersionUID = 0L;
     if (toolKind_ != ai.stigmer.agentic.agentexecution.v1.ToolKind.TOOL_KIND_UNSPECIFIED.getNumber()) {
       output.writeEnum(13, toolKind_);
     }
+    if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(15, approvalPolicySource_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -861,6 +899,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(13, toolKind_);
     }
+    if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(15, approvalPolicySource_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -901,6 +943,7 @@ private static final long serialVersionUID = 0L;
     if (!getHeadShaAtDeny()
         .equals(other.getHeadShaAtDeny())) return false;
     if (toolKind_ != other.toolKind_) return false;
+    if (approvalPolicySource_ != other.approvalPolicySource_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -939,6 +982,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getHeadShaAtDeny().hashCode();
     hash = (37 * hash) + TOOL_KIND_FIELD_NUMBER;
     hash = (53 * hash) + toolKind_;
+    hash = (37 * hash) + APPROVAL_POLICY_SOURCE_FIELD_NUMBER;
+    hash = (53 * hash) + approvalPolicySource_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1106,6 +1151,7 @@ private static final long serialVersionUID = 0L;
       branchAtDeny_ = "";
       headShaAtDeny_ = "";
       toolKind_ = 0;
+      approvalPolicySource_ = 0;
       return this;
     }
 
@@ -1177,6 +1223,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00001000) != 0)) {
         result.toolKind_ = toolKind_;
+      }
+      if (((from_bitField0_ & 0x00002000) != 0)) {
+        result.approvalPolicySource_ = approvalPolicySource_;
       }
     }
 
@@ -1252,6 +1301,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.toolKind_ != 0) {
         setToolKindValue(other.getToolKindValue());
+      }
+      if (other.approvalPolicySource_ != 0) {
+        setApprovalPolicySourceValue(other.getApprovalPolicySourceValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1344,6 +1396,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00001000;
               break;
             } // case 104
+            case 120: {
+              approvalPolicySource_ = input.readEnum();
+              bitField0_ |= 0x00002000;
+              break;
+            } // case 120
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2779,6 +2836,98 @@ private static final long serialVersionUID = 0L;
     public Builder clearToolKind() {
       bitField0_ = (bitField0_ & ~0x00001000);
       toolKind_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int approvalPolicySource_ = 0;
+    /**
+     * <pre>
+     * Policy layer that gated this tool call, copied from
+     * ToolCall.approval_policy_source by the server-side projection (exactly as
+     * tool_kind above is). Lets the approval surface explain WHY the tool requires
+     * approval (e.g. "required by agent override") without a client-side lookup.
+     * See ApprovalPolicySource.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 15 [json_name = "approvalPolicySource"];</code>
+     * @return The enum numeric value on the wire for approvalPolicySource.
+     */
+    @java.lang.Override public int getApprovalPolicySourceValue() {
+      return approvalPolicySource_;
+    }
+    /**
+     * <pre>
+     * Policy layer that gated this tool call, copied from
+     * ToolCall.approval_policy_source by the server-side projection (exactly as
+     * tool_kind above is). Lets the approval surface explain WHY the tool requires
+     * approval (e.g. "required by agent override") without a client-side lookup.
+     * See ApprovalPolicySource.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 15 [json_name = "approvalPolicySource"];</code>
+     * @param value The enum numeric value on the wire for approvalPolicySource to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicySourceValue(int value) {
+      approvalPolicySource_ = value;
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Policy layer that gated this tool call, copied from
+     * ToolCall.approval_policy_source by the server-side projection (exactly as
+     * tool_kind above is). Lets the approval surface explain WHY the tool requires
+     * approval (e.g. "required by agent override") without a client-side lookup.
+     * See ApprovalPolicySource.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 15 [json_name = "approvalPolicySource"];</code>
+     * @return The approvalPolicySource.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource() {
+      ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource result = ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.forNumber(approvalPolicySource_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Policy layer that gated this tool call, copied from
+     * ToolCall.approval_policy_source by the server-side projection (exactly as
+     * tool_kind above is). Lets the approval surface explain WHY the tool requires
+     * approval (e.g. "required by agent override") without a client-side lookup.
+     * See ApprovalPolicySource.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 15 [json_name = "approvalPolicySource"];</code>
+     * @param value The approvalPolicySource to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicySource(ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00002000;
+      approvalPolicySource_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Policy layer that gated this tool call, copied from
+     * ToolCall.approval_policy_source by the server-side projection (exactly as
+     * tool_kind above is). Lets the approval surface explain WHY the tool requires
+     * approval (e.g. "required by agent override") without a client-side lookup.
+     * See ApprovalPolicySource.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 15 [json_name = "approvalPolicySource"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApprovalPolicySource() {
+      bitField0_ = (bitField0_ & ~0x00002000);
+      approvalPolicySource_ = 0;
       onChanged();
       return this;
     }

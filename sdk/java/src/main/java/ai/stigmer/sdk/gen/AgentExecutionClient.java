@@ -29,6 +29,7 @@ import ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput;
 import ai.stigmer.agentic.agentexecution.v1.RecoverAgentExecutionInput;
 import ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput;
 import ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput;
+import ai.stigmer.agentic.agentexecution.v1.SubmitFileDecisionInput;
 import ai.stigmer.agentic.agentexecution.v1.TerminateAgentExecutionInput;
 import ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse;
 import ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest;
@@ -74,6 +75,12 @@ public final class AgentExecutionClient {
     public AgentExecution submitApproval(SubmitApprovalInput input) {
         try {
             return command.submitApproval(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AgentExecution submitFileDecision(SubmitFileDecisionInput input) {
+        try {
+            return command.submitFileDecision(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { cn } from "@stigmer/theme";
 import { formatDuration } from "./ToolCallDetail";
@@ -12,6 +13,10 @@ import {
   isScalar,
   humanizeArgKey,
 } from "./tool-rendering-primitives";
+import { execIdFromStorageKey } from "./useFileChangeContent";
+import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
+import { useArtifactDownload } from "./useArtifactDownload";
+import { useToolOutputContent } from "./useToolOutputContent";
 
 /** Props for {@link McpToolDetail}. */
 export interface McpToolDetailProps {
@@ -55,7 +60,7 @@ export function McpToolDetail({ toolCall, className }: McpToolDetailProps) {
         <McpArgsView args={toolCall.args as Record<string, unknown>} />
       )}
 
-      {toolCall.outputRef?.downloadUrl ? (
+      {toolCall.outputRef?.storageKey ? (
         <McpOffloadedOutputView outputRef={toolCall.outputRef} />
       ) : (
         toolCall.result && <McpResultView result={toolCall.result} />
@@ -76,51 +81,112 @@ function formatBytes(n: number): string {
 
 /**
  * Renders an MCP result whose bytes were offloaded to artifact storage (e.g. a
- * computer-use screenshot). Images render inline; other large output shows its
- * preview head plus a link to the full content. Mirrors ResultView's outputRef
- * treatment so MCP and non-MCP offloads look consistent.
+ * computer-use screenshot). The bytes are resolved on demand from the stable
+ * `storageKey` — never from a baked URL, which expires. Images render inline via
+ * a freshly minted URL; other large output expands in-app. Mirrors ResultView's
+ * outputRef treatment so MCP and non-MCP offloads look consistent (DD-016).
  */
 function McpOffloadedOutputView({
   outputRef,
 }: {
   readonly outputRef: NonNullable<ToolCall["outputRef"]>;
 }) {
-  const size = Number(outputRef.sizeBytes);
   return (
     <div className="space-y-1">
       <span className="font-medium text-muted-foreground">Result</span>
       {outputRef.isImage ? (
-        <a
-          href={outputRef.downloadUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <img
-            src={outputRef.downloadUrl}
-            alt="Tool output screenshot"
-            loading="lazy"
-            className="max-h-96 w-auto rounded-md border border-border"
-          />
-        </a>
+        <McpOffloadedImage storageKey={outputRef.storageKey} />
       ) : (
-        <div className="space-y-1">
-          {outputRef.truncatedPreview && (
-            <CollapsiblePre
-              content={outputRef.truncatedPreview}
-              className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle p-2 text-foreground"
-            />
-          )}
-          <a
-            href={outputRef.downloadUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            View full output{size ? ` (${formatBytes(size)})` : ""}
-          </a>
-        </div>
+        <McpOffloadedText outputRef={outputRef} />
       )}
+    </div>
+  );
+}
+
+/** Offloaded MCP image output, rendered from an always-fresh presigned URL. */
+function McpOffloadedImage({ storageKey }: { readonly storageKey: string }) {
+  const executionId = useMemo(() => execIdFromStorageKey(storageKey), [storageKey]);
+  const { url, error } = useArtifactDownloadUrl(executionId, storageKey);
+
+  if (error) {
+    return <p className="text-xs text-destructive">Couldn&apos;t load image output.</p>;
+  }
+  if (!url) {
+    return (
+      <div
+        className="h-40 w-64 animate-pulse rounded-md border border-border bg-muted"
+        aria-busy="true"
+        aria-label="Loading image output"
+      />
+    );
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <img
+        src={url}
+        alt="Tool output screenshot"
+        loading="lazy"
+        className="max-h-96 w-auto rounded-md border border-border"
+      />
+    </a>
+  );
+}
+
+/**
+ * Offloaded MCP text output. Preview head + a "View full output" toggle that
+ * lazily fetches the full content in-app, with a download fallback when the
+ * server truncates it.
+ */
+function McpOffloadedText({
+  outputRef,
+}: {
+  readonly outputRef: NonNullable<ToolCall["outputRef"]>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const executionId = useMemo(() => execIdFromStorageKey(outputRef.storageKey), [outputRef.storageKey]);
+  const { content, isLoading, isTruncated, error } = useToolOutputContent(outputRef, expanded);
+  const { download, isDownloading } = useArtifactDownload(executionId);
+
+  const size = Number(outputRef.sizeBytes);
+  const sizeSuffix = size ? ` (${formatBytes(size)})` : "";
+  const previewClass = "max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle p-2 text-foreground";
+  const linkClass = "inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+  return (
+    <div className="space-y-1">
+      {!expanded ? (
+        <>
+          {outputRef.truncatedPreview && (
+            <CollapsiblePre content={outputRef.truncatedPreview} className={previewClass} />
+          )}
+          <button type="button" onClick={() => setExpanded(true)} className={linkClass}>
+            View full output{sizeSuffix}
+          </button>
+        </>
+      ) : isLoading ? (
+        <p className="text-xs text-muted-foreground">Loading full output…</p>
+      ) : error ? (
+        <p className="text-xs text-destructive">Couldn&apos;t load full output. Try again.</p>
+      ) : content !== null ? (
+        <div className="space-y-1">
+          <CollapsiblePre content={content} className={previewClass} />
+          {isTruncated && (
+            <button
+              type="button"
+              onClick={() => download(outputRef.storageKey)}
+              disabled={isDownloading}
+              className={cn(linkClass, "disabled:opacity-50")}
+            >
+              {isDownloading ? "Preparing download…" : `Output truncated — download full file${sizeSuffix}`}
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,0 +1,111 @@
+{
+  "description": "Cross-language HITL approval FINGERPRINT vectors. expected = APPROVAL_FINGERPRINT_VERSION + ':' + hex(HMAC-SHA256(key, canonicalForm)). FULL hashes canonicalToolActionJson (deep-agent gateway); COARSE hashes canonicalJson(coarseToolIdentity) (Cursor deny-oracle hook). The key is the UTF-8 bytes of `key`. Go/Java editions must reproduce every `expected`.",
+  "key": "stigmer-hitl-fingerprint-test-key",
+  "keyEncoding": "utf-8",
+  "version": "v1",
+  "full": [
+    {
+      "name": "minimal-read",
+      "input": {
+        "toolName": "read"
+      },
+      "expected": "v1:5bd7e64b0ed086bdd80450560c5abfbb3bf03661d2e43500b95e6dd36bd7dd31"
+    },
+    {
+      "name": "write-workspace-relative",
+      "input": {
+        "toolName": "Write",
+        "paths": [
+          "/ws/src/a.ts"
+        ],
+        "workspaceRoot": "/ws",
+        "args": {
+          "contents": "x"
+        }
+      },
+      "expected": "v1:c6d6adc25c76a65b39171652107ce84f1bd42d5302dd21535baa113d7bc7ad35"
+    },
+    {
+      "name": "shell",
+      "input": {
+        "toolName": "Shell",
+        "shellCommand": "  npm   install  "
+      },
+      "expected": "v1:94d803f826869a56738a4a2c7e077f042fa76f892e73a698d8559f2d29d52910"
+    },
+    {
+      "name": "mcp-create-issue",
+      "input": {
+        "toolName": "create_issue",
+        "mcpServerSlug": "GitHub",
+        "args": {
+          "repo": "acme/x",
+          "force": true
+        }
+      },
+      "expected": "v1:40509e6ce523b1c29e2d2f901dd706a85cc5713ae75f71082201ff82375ec1a0"
+    },
+    {
+      "name": "edit-distinct-from-write-by-args",
+      "input": {
+        "toolName": "edit",
+        "paths": [
+          "src/a.ts"
+        ],
+        "args": {
+          "old_string": "a",
+          "new_string": "b"
+        }
+      },
+      "expected": "v1:b932409c412618cbdb0c7bd2b546599e5c5795120d2dd4f7621e37104d8eb7d7"
+    }
+  ],
+  "coarse": [
+    {
+      "name": "coarse-write-hook-taxonomy",
+      "input": {
+        "toolName": "Write",
+        "paths": [
+          "a.txt"
+        ]
+      },
+      "expected": "v1:9251343af971b33a47abe53c071e69aec9d7d59ba9cc6360a85873d4bb0e0c58"
+    },
+    {
+      "name": "coarse-write-stream-taxonomy",
+      "input": {
+        "toolName": "edit",
+        "paths": [
+          "a.txt"
+        ]
+      },
+      "expected": "v1:9251343af971b33a47abe53c071e69aec9d7d59ba9cc6360a85873d4bb0e0c58"
+    },
+    {
+      "name": "coarse-delete",
+      "input": {
+        "toolName": "Delete",
+        "paths": [
+          "a.txt"
+        ]
+      },
+      "expected": "v1:ffef139553c3318013b93847b010f55bba7b7ecc239f0811ff3c935c0d1936af"
+    },
+    {
+      "name": "coarse-shell",
+      "input": {
+        "toolName": "Shell",
+        "shellCommand": "ls -la"
+      },
+      "expected": "v1:ebf3170bfe9bdcdc33017066181a1ee6680d46461fdebf8edb5cf28e42ca551d"
+    },
+    {
+      "name": "coarse-mcp",
+      "input": {
+        "toolName": "create_issue",
+        "mcpServerSlug": "github"
+      },
+      "expected": "v1:06c2462e84f39ddb3dee4a6908b789ce3b309e5f847f6ef591e1ceed0f975111"
+    }
+  ]
+}

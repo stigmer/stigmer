@@ -2,6 +2,7 @@ package harness
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"testing"
@@ -78,6 +79,57 @@ func (w *AgentExecutionWaiter) WaitForPhase(ctx context.Context, executionID str
 // WaitForApproval polls until the agent execution reaches WAITING_FOR_APPROVAL.
 func (w *AgentExecutionWaiter) WaitForApproval(ctx context.Context, executionID string, timeout time.Duration) (*agentexecv1.AgentExecution, error) {
 	return w.WaitForPhase(ctx, executionID, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, timeout)
+}
+
+// WaitForPendingApproval polls until the execution has a pending approval for the
+// named tool, or times out. It is the robust way to step through multiple
+// sequential approval gates in one execution: after approving gate N, the
+// just-decided tool can briefly linger in the recomputed pending list before the
+// runner resumes and raises gate N+1, so keying on the specific next tool name
+// (rather than the phase alone) avoids acting on a stale snapshot. Returns the
+// terminal snapshot together with an error if the execution finishes before the
+// approval appears (e.g. the LLM did not request the expected tool).
+func (w *AgentExecutionWaiter) WaitForPendingApproval(ctx context.Context, executionID, toolName string, timeout time.Duration) (*agentexecv1.AgentExecution, error) {
+	if timeout == 0 {
+		timeout = defaultTimeout
+	}
+
+	deadline := time.Now().Add(timeout)
+	interval := defaultPollInterval
+
+	for time.Now().Before(deadline) {
+		exec, err := w.client.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
+		if err != nil {
+			w.logger.Debug("agent execution poll error (will retry)", "execution_id", executionID, "error", err)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(interval):
+			}
+			interval = nextInterval(interval)
+			continue
+		}
+
+		if FindPendingApproval(exec, toolName) != nil {
+			return exec, nil
+		}
+
+		if isAgentTerminalPhase(exec.GetStatus().GetPhase()) {
+			return exec, fmt.Errorf(
+				"agent execution %s reached terminal phase %s before a pending approval for tool %q appeared",
+				executionID, exec.GetStatus().GetPhase().String(), toolName)
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
+		interval = nextInterval(interval)
+	}
+
+	return nil, fmt.Errorf("timed out waiting for a pending approval for tool %q on execution %s after %v",
+		toolName, executionID, timeout)
 }
 
 // WaitForTerminal polls until the agent execution reaches any terminal phase.
@@ -250,6 +302,113 @@ func (w *AgentExecutionWaiter) ResolveApprovalsUntilPhase(
 	)
 }
 
+// ResolveApprovalsByPathUntilPhase steps an execution through one or more
+// approval rounds, deciding each pending approval by its file path, until the
+// execution reaches target or times out. It is the per-card counterpart of
+// ResolveApprovalsUntilPhase (which applies one action to every card): use it
+// when a turn surfaces several file cards and the test approves some while
+// rejecting others.
+//
+// Ordering is load-bearing. SubmitApproval signals the workflow to resume the
+// instant a REJECT lands — even with sibling cards still undecided (see
+// submit_approval.go signalWorkflowStep: a reject resolves the gate immediately,
+// whereas an approve only resolves it once pending_approvals empties). So within
+// each WAITING_FOR_APPROVAL round this submits every non-reject decision BEFORE
+// any reject; a reject submitted first would resume the turn while an
+// intended-approve sibling is still UNSPECIFIED and would be discarded.
+//
+// decideByPath receives the repo-relative path of each pending approval (its
+// first file change — capture cards carry exactly one) and returns the action to
+// submit. An approval with no file change is treated as APPROVE so the gate can
+// still resolve. Decided cards drop out of pending_approvals, so re-polling never
+// re-submits a decision.
+func (w *AgentExecutionWaiter) ResolveApprovalsByPathUntilPhase(
+	ctx context.Context,
+	clients *Clients,
+	executionID string,
+	decideByPath func(path string) agentexecv1.ApprovalAction,
+	target agentexecv1.ExecutionPhase,
+	timeout time.Duration,
+) (*agentexecv1.AgentExecution, error) {
+	deadline := time.Now().Add(timeout)
+	interval := 500 * time.Millisecond
+
+	for time.Now().Before(deadline) {
+		exec, err := w.client.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
+		if err != nil {
+			return nil, fmt.Errorf("get execution %s: %w", executionID, err)
+		}
+
+		phase := exec.GetStatus().GetPhase()
+		if phase == target {
+			return exec, nil
+		}
+
+		if phase == agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+			type pendingDecision struct {
+				toolCallID string
+				action     agentexecv1.ApprovalAction
+			}
+			var approves, rejects []pendingDecision
+			for _, approval := range exec.GetStatus().GetPendingApprovals() {
+				action := decideByPath(approvalFilePath(approval))
+				d := pendingDecision{toolCallID: approval.GetToolCallId(), action: action}
+				if action == agentexecv1.ApprovalAction_APPROVAL_ACTION_REJECT ||
+					action == agentexecv1.ApprovalAction_APPROVAL_ACTION_SKIP {
+					rejects = append(rejects, d)
+				} else {
+					approves = append(approves, d)
+				}
+			}
+			// Approves first, then rejects (see the ordering rationale above).
+			for _, d := range append(approves, rejects...) {
+				_, err := clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+					AgentExecutionId: executionID,
+					ToolCallId:       d.toolCallID,
+					Action:           d.action,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("submit approval for %s: %w", d.toolCallID, err)
+				}
+			}
+		}
+
+		if isAgentTerminalPhase(phase) && phase != target {
+			return exec, fmt.Errorf(
+				"agent execution reached terminal phase %s instead of expected %s",
+				phase.String(), target.String(),
+			)
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+		}
+	}
+
+	return nil, fmt.Errorf(
+		"timed out waiting for agent execution %s to reach phase %s after %v",
+		executionID, target.String(), timeout,
+	)
+}
+
+// approvalFilePath returns the repo-relative path a pending approval proposes,
+// parsed from its args_preview (the deny-gate carries the proposed change on the
+// args, not a captured file_changes list), or "" when none is present.
+func approvalFilePath(approval *agentexecv1.PendingApproval) string {
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(approval.GetArgsPreview()), &parsed); err != nil {
+		return ""
+	}
+	for _, k := range []string{"path", "file_path", "filePath", "filename", "file", "target_notebook"} {
+		if v, ok := parsed[k].(string); ok && v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 // WaitForApprovalWithRetry creates an execution, waits for approval, and
 // retries once with a fresh execution if the LLM skips the tool call
 // (execution reaches COMPLETED instead of WAITING_FOR_APPROVAL). This
@@ -348,6 +507,24 @@ func AssertHasToolCall(t *testing.T, exec *agentexecv1.AgentExecution, toolName 
 	t.Errorf("expected tool call %q not found in execution messages", toolName)
 }
 
+// FindToolCall returns the first tool call with the given name across all of an
+// execution's messages, or nil if none exists.
+func FindToolCall(exec *agentexecv1.AgentExecution, toolName string) *agentexecv1.ToolCall {
+	for _, msg := range exec.GetStatus().GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			if tc.GetName() == toolName {
+				return tc
+			}
+		}
+	}
+	return nil
+}
+
+// Note: file-review captures are asserted via the FileChangeSet ledger helpers in
+// file_review.go (FindFileChangeSet / FindCapturedChangeByPath / AssertCapturedChange).
+// The tool-call-coupled FileChange (message.proto field 22) was removed in Phase 5
+// Slice 4, so the old FindFileChange/AssertFileChange helpers were retired with it.
+
 // AssertUniqueToolCallIds verifies the core accumulator invariant: a tool
 // call id maps to at most one ToolCall across all of an execution's messages.
 // A repeated id means the runner appended a duplicate ToolCall (e.g. the
@@ -439,6 +616,57 @@ func HasSubAgentDelegation(exec *agentexecv1.AgentExecution) bool {
 	return len(exec.GetStatus().GetSubAgentExecutions()) > 0
 }
 
+// CountSubAgentToolCalls returns the number of tool calls a sub-agent surfaced
+// in its own internal messages, excluding internal TODO-management tools (which
+// the UI renders through a dedicated surface, not the thread). This is the
+// signal that a delegated sub-agent's work — its file reads, searches, edits,
+// and tool runs — is actually visible to the user, rather than the sub-agent
+// appearing on the card to have done nothing. The native harness populates this
+// live via SubAgentTracker; the Cursor harness must match it by parsing the
+// sub-agent's conversationSteps in the task result.
+func CountSubAgentToolCalls(sa *agentexecv1.SubAgentExecution) int {
+	count := 0
+	for _, msg := range sa.GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			if tc.GetToolKind() == agentexecv1.ToolKind_TOOL_KIND_TODO {
+				continue
+			}
+			count++
+		}
+	}
+	return count
+}
+
+// SubAgentToolCallNames returns the names of every tool call across a
+// sub-agent's internal messages, for diagnostics on an assertion failure.
+func SubAgentToolCallNames(sa *agentexecv1.SubAgentExecution) []string {
+	var names []string
+	for _, msg := range sa.GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			names = append(names, tc.GetName())
+		}
+	}
+	return names
+}
+
+// AssertSubAgentHasToolCall asserts that a delegated sub-agent surfaced at least
+// one (non-TODO) internal tool call on SubAgentExecution.messages[].tool_calls.
+// This is the cross-harness visibility contract: the native harness satisfies it
+// via SubAgentTracker, and the Cursor harness must match so the UI shows the
+// sub-agent's actual work instead of an empty card. Use only on a scenario that
+// deterministically forces the sub-agent to use a tool (e.g. the MCP-access
+// test, where the sub-agent is instructed to call the echo tool).
+func AssertSubAgentHasToolCall(t *testing.T, sa *agentexecv1.SubAgentExecution) {
+	t.Helper()
+	count := CountSubAgentToolCalls(sa)
+	assert.Greaterf(t, count, 0,
+		"sub-agent %q (%s) surfaced no internal tool calls across its %d message(s); "+
+			"a delegated sub-agent that used tools must record them on "+
+			"SubAgentExecution.messages[].tool_calls so the UI shows its work "+
+			"(tool names seen: %v)",
+		sa.GetName(), sa.GetId(), len(sa.GetMessages()), SubAgentToolCallNames(sa))
+}
+
 // AssertSubAgentExecution validates the full SubAgentExecution proto field
 // contract. Asserts structural fields that the runner must populate for every
 // sub-agent invocation: id, name, subject, timestamps, and status-dependent
@@ -505,6 +733,19 @@ func AssertPendingApprovals(t *testing.T, exec *agentexecv1.AgentExecution, expe
 	actual := len(exec.GetStatus().GetPendingApprovals())
 	assert.Equal(t, expectedCount, actual,
 		"expected %d pending approvals, got %d", expectedCount, actual)
+}
+
+// FindPendingApproval returns the pending approval whose gated tool call has the
+// given name, or nil if none exists. Mirror of FindToolCall for the server's
+// PendingApproval projection — the data a HITL approver sees before the tool
+// runs, recomputed from messages[].tool_calls on every status write.
+func FindPendingApproval(exec *agentexecv1.AgentExecution, toolName string) *agentexecv1.PendingApproval {
+	for _, pa := range exec.GetStatus().GetPendingApprovals() {
+		if pa.GetToolName() == toolName {
+			return pa
+		}
+	}
+	return nil
 }
 
 // LogExecutionMessages fetches the current execution state and logs all

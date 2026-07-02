@@ -25,7 +25,9 @@ import type { SubAgent, McpServerUsage } from "@stigmer/protos/ai/stigmer/agenti
 
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
-import type { MergedToolPolicy } from "../../shared/approval-policy.js";
+import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
+import { CasCaptureFilesystemBackend } from "./cas-capture-backend.js";
+import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import type { CostCapMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createThinkTool } from "../../middleware/index.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
@@ -131,18 +133,32 @@ export interface SubagentTransformOptions {
   readonly parentMcpUsages: readonly McpServerUsage[];
   readonly skillClient: StigmerClient;
   readonly workspaceBackend: WorkspaceBackend;
-  readonly approvalPolicies: ReadonlyMap<string, MergedToolPolicy>;
-  readonly autoApproveAll: boolean;
+  /**
+   * The parent's approval-gate config, inherited verbatim so a mutating tool
+   * inside a sub-agent is gated identically to one in the parent (same policies,
+   * toolServerMap, fingerprint key, execution id). Null under auto-approve-all,
+   * where the parent gate is inert too — sub-agents then install no gate either.
+   */
+  readonly approvalGate: ApprovalGateConfig | null;
+  /**
+   * The parent turn's shared CAS observer, present only in capture mode. When
+   * supplied, each sub-agent is built with a CAS-observing filesystem backend
+   * wired to THIS observer, so its gitignored writes are captured into the same
+   * change set as the parent's (Session 26, DD-19). Absent outside capture mode,
+   * where sub-agents keep the plain backend and the classic gitignored deny-gate.
+   */
+  readonly casObserver?: CasCaptureObserver;
   readonly parentModelName: string;
   readonly parentHasNativeThinking: boolean;
   readonly costCap?: CostCapMiddleware;
   /**
    * Builds a configured chat-model instance for a given model name. When
    * provided, sub-agents are compiled with the same proxy-aware model client
-   * as the parent (base URL, auth headers, API key). When absent (unit tests),
-   * the model name string is passed to deepagents directly.
+   * as the parent (base URL, auth headers, API key) — including registry-id
+   * resolution, which is why this is async. When absent (unit tests), the
+   * model name string is passed to deepagents directly.
    */
-  readonly modelFactory?: (modelName: string) => BaseChatModel;
+  readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
 }
 
 // =========================================================================
@@ -404,9 +420,12 @@ export async function compileSubagents(
   transformed: readonly TransformedSubagent[],
   opts: {
     readonly costCap?: CostCapMiddleware;
+    readonly approvalGate?: ApprovalGateConfig | null;
     readonly parentModelName: string;
     readonly workspaceRootDir: string;
-    readonly modelFactory?: (modelName: string) => BaseChatModel;
+    /** Shared CAS observer (capture mode only); see {@link SubagentTransformOptions.casObserver}. */
+    readonly casObserver?: CasCaptureObserver;
+    readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
   },
 ): Promise<CompiledSubAgent[]> {
   if (transformed.length === 0) return [];
@@ -416,23 +435,40 @@ export async function compileSubagents(
 
   for (const spec of transformed) {
     try {
+      // Structural coupling (DD-19): a sub-agent gate flows gitignored writes into
+      // CAS iff a CAS observer backs that sub-agent's filesystem backend. Deriving
+      // both from the same `casObserver` makes "unobserved unreviewable bytes"
+      // impossible by construction.
       const middleware = buildSubAgentMiddleware({
         costCap: opts.costCap,
+        approvalGate: opts.approvalGate,
+        captureIgnored: !!opts.casObserver,
       });
 
       const modelName = spec.model ?? opts.parentModelName;
-      // Use a configured model instance (proxy base URL + auth) when a
-      // factory is supplied so sub-agent LLM calls route through the same
-      // proxy as the parent. Falling back to the bare name lets deepagents
-      // construct a default client (unit tests / no-proxy paths).
-      const model = opts.modelFactory ? opts.modelFactory(modelName) : modelName;
+      // Use a configured model instance (proxy base URL + auth, plus registry
+      // id -> API id resolution) when a factory is supplied so sub-agent LLM
+      // calls route through the same proxy as the parent. Falling back to the
+      // bare name lets deepagents construct a default client (unit tests /
+      // no-proxy paths).
+      const model = opts.modelFactory ? await opts.modelFactory(modelName) : modelName;
+
+      // Capture mode: a CAS-observing backend wired to the shared observer, so
+      // the sub-agent's gitignored writes are captured (same class the parent
+      // uses). Otherwise the plain backend + classic gitignored deny-gate.
+      const backend = opts.casObserver
+        ? new CasCaptureFilesystemBackend(
+            { rootDir: opts.workspaceRootDir },
+            { observer: opts.casObserver },
+          )
+        : new FilesystemBackend({ rootDir: opts.workspaceRootDir });
 
       const agentGraph = await createDeepAgent({
         model,
         systemPrompt: spec.systemPrompt,
         tools: spec.tools.length > 0 ? spec.tools : undefined,
         middleware: middleware as unknown[],
-        backend: new FilesystemBackend({ rootDir: opts.workspaceRootDir }),
+        backend,
         generalPurposeAgent: false,
       } as Parameters<typeof createDeepAgent>[0]);
 
@@ -489,6 +525,8 @@ export async function transformAndCompileSubagents(
     parentMcpUsages,
     skillClient,
     workspaceBackend,
+    approvalGate,
+    casObserver,
     parentModelName,
     parentHasNativeThinking,
     costCap,
@@ -602,8 +640,10 @@ export async function transformAndCompileSubagents(
   // Step 4: Compile all subagents
   const compiled = await compileSubagents(allSpecs, {
     costCap,
+    approvalGate,
     parentModelName,
     workspaceRootDir: workspaceBackend.rootDir,
+    casObserver,
     modelFactory,
   });
 

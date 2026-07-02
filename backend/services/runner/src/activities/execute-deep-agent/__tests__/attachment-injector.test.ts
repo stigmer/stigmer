@@ -14,6 +14,7 @@ import {
   MAX_ZIP_EXTRACTED_SIZE,
 } from "../attachment-injector.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 
 // ── ZIP Construction Helpers ─────────────────────────────────────────
 
@@ -156,15 +157,11 @@ function makeAttachment(overrides: Partial<{
   } as any;
 }
 
-function makeMockStorage(downloadContent?: Buffer) {
-  const url = "https://storage.example.com/presigned/test";
-  return {
-    upload: vi.fn(),
-    getDownloadUrl: vi.fn().mockResolvedValue(url),
-    exists: vi.fn().mockResolvedValue(true),
-    _content: downloadContent,
-    _url: url,
-  };
+function makeMockStorage() {
+  // The canonical in-memory double; cloud downloads read from what was uploaded,
+  // so tests seed a blob via `storage.upload` and assert on `storage.download`.
+  const { storage } = makeInMemoryArtifactStorage();
+  return storage;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -359,15 +356,8 @@ describe("injectAttachments", () => {
 
   it("injects single non-ZIP attachment in cloud mode", async () => {
     const content = Buffer.from("cloud data");
-    const storage = makeMockStorage(content);
-
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: () => Promise.resolve(content.buffer.slice(
-        content.byteOffset, content.byteOffset + content.byteLength,
-      )),
-    });
-    vi.stubGlobal("fetch", fetchMock);
+    const storage = makeMockStorage();
+    await storage.upload("attachments/xyz/data.csv", content);
 
     const backend = mockWorkspaceBackend();
 
@@ -385,10 +375,7 @@ describe("injectAttachments", () => {
     expect(result[0].filename).toBe("data.csv");
     expect(result[0].path).toBe(".stigmer/inputs/data.csv");
     expect(result[0].sizeBytes).toBe(content.length);
-    expect(storage.getDownloadUrl).toHaveBeenCalledWith("attachments/xyz/data.csv");
-    expect(fetchMock).toHaveBeenCalledWith(storage._url);
-
-    vi.unstubAllGlobals();
+    expect(storage.download).toHaveBeenCalledWith("attachments/xyz/data.csv");
   });
 
   it("extracts ZIP when extract=true", async () => {
@@ -534,7 +521,7 @@ describe("injectAttachments", () => {
 
   it("propagates error when storage download fails", async () => {
     const storage = makeMockStorage();
-    storage.getDownloadUrl.mockRejectedValue(new Error("network timeout"));
+    storage.download.mockRejectedValue(new Error("network timeout"));
 
     const backend = mockWorkspaceBackend();
 
@@ -602,7 +589,7 @@ describe("injectAttachments", () => {
     })).rejects.toThrow(/collides with/);
 
     // Verify no downloads were attempted
-    expect(storage.getDownloadUrl).not.toHaveBeenCalled();
+    expect(storage.download).not.toHaveBeenCalled();
   });
 
   it("derives filename from storageKey when filename is empty", async () => {

@@ -71,12 +71,12 @@ func (c *AgentExecutionController) buildResumePipeline() *pipeline.Pipeline[*age
 		AddStep(NewLoadExecutionByIdStep[*agentexecutionv1.ResumeAgentExecutionInput](c.store)).
 		AddStep(NewValidateResumableStep[*agentexecutionv1.ResumeAgentExecutionInput]()).
 		AddStep(NewSignalResumeToTemporalStep[*agentexecutionv1.ResumeAgentExecutionInput](c.temporalClient)).
-		AddStep(NewUpdateExecutionPhaseStep[*agentexecutionv1.ResumeAgentExecutionInput](
+		AddStep(NewUpdateExecutionPhaseAndPersistStep[*agentexecutionv1.ResumeAgentExecutionInput](
+			c.store,
 			agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
 			false, // don't set error
 			false, // don't clear error
 		)).
-		AddStep(NewLifecyclePersistStep[*agentexecutionv1.ResumeAgentExecutionInput](c.store)).
 		AddStep(NewLifecycleBroadcastStep[*agentexecutionv1.ResumeAgentExecutionInput](c.streamBroker)).
 		Build()
 }

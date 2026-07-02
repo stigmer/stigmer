@@ -29,6 +29,12 @@ func makeApprovalToolCall(id, name string) *agentexecutionv1.ToolCall {
 	}
 }
 
+func makeMcpApprovalToolCall(id, name, serverSlug string) *agentexecutionv1.ToolCall {
+	tc := makeApprovalToolCall(id, name)
+	tc.McpServerSlug = serverSlug
+	return tc
+}
+
 func makeAIMessageWithToolCalls(toolCalls ...*agentexecutionv1.ToolCall) *agentexecutionv1.AgentMessage {
 	return &agentexecutionv1.AgentMessage{
 		Type:      agentexecutionv1.MessageType_MESSAGE_AI,
@@ -292,64 +298,127 @@ func TestAllApprovalsResolvedClearsPendingApprovals(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// APPROVE_ALL: bulk-approve co-pending tool calls
+// APPROVE_ALL: scope-aware bulk-approve of co-pending tool calls
 //
 // These tests verify the contract implemented by bulkApproveCoPendingToolCalls:
-// a single APPROVE_ALL decision resolves every other co-pending tool call in
-// the gate (root and sub-agents) to APPROVE, producing a complete audit trail
-// and an empty pending_approvals list.
+// a single APPROVE_ALL grants a run-lifetime lease scoped to the clicked tool's
+// CLASS (built-in category, or MCP server). Co-pending tool calls of the SAME
+// class (root and sub-agents) are auto-approved; co-pending calls of a DIFFERENT
+// class stay WAITING_APPROVAL, so pending_approvals (and thus the gate) clears
+// only when no other-class approval is outstanding.
 // ---------------------------------------------------------------------------
 
-// TestApproveAllResolvesAllCoPendingToolCalls verifies the multi-tool gate
-// case: clicking APPROVE_ALL on one tool call bulk-approves the rest.
-func TestApproveAllResolvesAllCoPendingToolCalls(t *testing.T) {
-	clicked := makeApprovalToolCall("call_001", "delete_file")
-	other := makeApprovalToolCall("call_002", "write_file")
-	subTC := makeApprovalToolCall("call_sub", "run_tests")
+// TestApproveAllApprovesSameCategoryAcrossRootAndSubAgent verifies that an
+// APPROVE_ALL on a built-in auto-approves co-pending built-ins of the SAME
+// category anywhere in the execution (root + sub-agent).
+func TestApproveAllApprovesSameCategoryAcrossRootAndSubAgent(t *testing.T) {
+	clicked := makeApprovalToolCall("call_001", "delete_file")  // delete
+	sameRoot := makeApprovalToolCall("call_002", "remove_file") // delete (same class)
+	subSame := makeApprovalToolCall("call_sub", "delete")       // delete (same class, sub-agent)
 
 	exec := makeExecutionWithMessages(
-		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(clicked, other)},
+		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(clicked, sameRoot)},
 		[]*agentexecutionv1.SubAgentExecution{{
 			Name:     "code-reviewer",
-			Messages: []*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(subTC)},
+			Messages: []*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(subSame)},
 		}},
 	)
 
-	if len(exec.Status.PendingApprovals) != 3 {
-		t.Fatalf("precondition: want 3 pending approvals, got %d", len(exec.Status.PendingApprovals))
-	}
-
 	now := time.Now().UTC().Format(time.RFC3339)
+	clicked.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
+	clicked.ApprovalDecidedAt = now
+	bulkApproveCoPendingToolCalls(exec, "call_001", now, "")
 
-	// Record APPROVE_ALL on the clicked tool call, then bulk-approve the rest.
-	found := findToolCallInExecution(exec, "call_001")
-	found.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
-	found.ApprovalDecidedAt = now
-	bulkApproveCoPendingToolCalls(exec, "call_001", now)
-
-	// The clicked tool keeps APPROVE_ALL (audit trail of the user's choice).
-	if found.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
-		t.Errorf("clicked tool call should retain APPROVE_ALL, got %v", found.GetApprovalAction())
+	if clicked.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
+		t.Errorf("clicked tool call should retain APPROVE_ALL, got %v", clicked.GetApprovalAction())
 	}
-
-	// Co-pending tool calls (root + sub-agent) are now APPROVE.
 	for _, id := range []string{"call_002", "call_sub"} {
 		tc := findToolCallInExecution(exec, id)
 		if tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE {
-			t.Errorf("co-pending %q should be APPROVE, got %v", id, tc.GetApprovalAction())
+			t.Errorf("same-class co-pending %q should be APPROVE, got %v", id, tc.GetApprovalAction())
 		}
 		if tc.GetApprovalDecidedAt() == "" {
-			t.Errorf("co-pending %q should have approval_decided_at set", id)
+			t.Errorf("same-class co-pending %q should have approval_decided_at set", id)
 		}
 	}
 
-	// The gate is fully resolved.
 	exec.Status.PendingApprovals = approval.ComputePendingApprovals(
 		exec.Status.GetMessages(),
 		exec.Status.GetSubAgentExecutions(),
 	)
 	if len(exec.Status.PendingApprovals) != 0 {
-		t.Errorf("after APPROVE_ALL: want 0 pending, got %d", len(exec.Status.PendingApprovals))
+		t.Errorf("after same-class APPROVE_ALL: want 0 pending, got %d", len(exec.Status.PendingApprovals))
+	}
+}
+
+// TestApproveAllLeavesDifferentCategoryPending is the core scope invariant:
+// "approve all deletes" must NOT auto-approve a co-pending write, and the gate
+// must stay open (pending_approvals non-empty) so the workflow keeps waiting.
+func TestApproveAllLeavesDifferentCategoryPending(t *testing.T) {
+	clicked := makeApprovalToolCall("call_001", "delete_file")   // delete
+	otherClass := makeApprovalToolCall("call_002", "write_file") // write (different class)
+	sameClass := makeApprovalToolCall("call_003", "remove_file") // delete (same class)
+
+	exec := makeExecutionWithMessages(
+		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(clicked, otherClass, sameClass)},
+		nil,
+	)
+	if len(exec.Status.PendingApprovals) != 3 {
+		t.Fatalf("precondition: want 3 pending approvals, got %d", len(exec.Status.PendingApprovals))
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	clicked.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
+	clicked.ApprovalDecidedAt = now
+	bulkApproveCoPendingToolCalls(exec, "call_001", now, "")
+
+	// Same-class delete is approved.
+	if tc := findToolCallInExecution(exec, "call_003"); tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE {
+		t.Errorf("same-class delete should be APPROVE, got %v", tc.GetApprovalAction())
+	}
+	// Different-class write stays WAITING with no decision.
+	other := findToolCallInExecution(exec, "call_002")
+	if other.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
+		t.Errorf("different-class write must stay UNSPECIFIED, got %v", other.GetApprovalAction())
+	}
+
+	// The gate is NOT resolved: the write is still pending.
+	exec.Status.PendingApprovals = approval.ComputePendingApprovals(
+		exec.Status.GetMessages(),
+		exec.Status.GetSubAgentExecutions(),
+	)
+	if len(exec.Status.PendingApprovals) != 1 {
+		t.Errorf("after delete APPROVE_ALL with a co-pending write: want 1 pending, got %d", len(exec.Status.PendingApprovals))
+	}
+}
+
+// TestApproveAllMcpScopeIsServerLevel verifies the MCP scope is per-server:
+// approving-all an MCP tool auto-approves co-pending tools of the SAME server,
+// but not a different server's tool nor a built-in.
+func TestApproveAllMcpScopeIsServerLevel(t *testing.T) {
+	clicked := makeMcpApprovalToolCall("call_001", "create_issue", "github") // github
+	sameServer := makeMcpApprovalToolCall("call_002", "add_label", "github") // github (same)
+	otherServer := makeMcpApprovalToolCall("call_003", "query", "database")  // different server
+	builtin := makeApprovalToolCall("call_004", "write_file")                // built-in, different class
+
+	exec := makeExecutionWithMessages(
+		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(clicked, sameServer, otherServer, builtin)},
+		nil,
+	)
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	clicked.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
+	clicked.ApprovalDecidedAt = now
+	bulkApproveCoPendingToolCalls(exec, "call_001", now, "")
+
+	if tc := findToolCallInExecution(exec, "call_002"); tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE {
+		t.Errorf("same-server MCP tool should be APPROVE, got %v", tc.GetApprovalAction())
+	}
+	for _, id := range []string{"call_003", "call_004"} {
+		tc := findToolCallInExecution(exec, id)
+		if tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
+			t.Errorf("out-of-scope %q must stay UNSPECIFIED, got %v", id, tc.GetApprovalAction())
+		}
 	}
 }
 
@@ -370,7 +439,7 @@ func TestApproveAllDoesNotOverwriteAlreadyDecidedToolCalls(t *testing.T) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	clicked.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL
 	clicked.ApprovalDecidedAt = now
-	bulkApproveCoPendingToolCalls(exec, "call_001", now)
+	bulkApproveCoPendingToolCalls(exec, "call_001", now, "")
 
 	// The previously-rejected tool call must stay REJECT.
 	rejected := findToolCallInExecution(exec, "call_002")

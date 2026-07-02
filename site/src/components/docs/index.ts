@@ -28,6 +28,7 @@ export { PlatformClientSetupTour as DemoPlatformClientSetupTour } from "./demos/
 export { PlatformClientTokenFlow as DemoPlatformClientTokenFlow } from "./demos/scenarios/platform-client-token-flow";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";
+export { ScenarEmbed } from "./scenar-embed";
 export { PageFeedback } from "./page-feedback";
 export { Term } from "./term";
 export { SDKTabs } from "./sdk-tabs";

@@ -47,15 +47,38 @@ export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
 export { useArtifactContent } from "./useArtifactContent";
 export type { UseArtifactContentReturn } from "./useArtifactContent";
 
+export { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
+export type {
+  UseArtifactDownloadUrlReturn,
+  UseArtifactDownloadUrlOptions,
+} from "./useArtifactDownloadUrl";
+
+export { useArtifactDownload } from "./useArtifactDownload";
+export type { UseArtifactDownloadReturn } from "./useArtifactDownload";
+
+export { useToolOutputContent } from "./useToolOutputContent";
+export type {
+  UseToolOutputContentReturn,
+  ToolOutputRefLike,
+} from "./useToolOutputContent";
+
+export { useFileChangeContent, execIdFromStorageKey } from "./useFileChangeContent";
+export type { UseFileChangeContentReturn } from "./useFileChangeContent";
+
 export { useWorkspaceWriteBacks } from "./useWorkspaceWriteBacks";
 export type { UseWorkspaceWriteBacksReturn } from "./useWorkspaceWriteBacks";
 
 export { WriteBackCard } from "./WriteBackCard";
 export type { WriteBackCardProps } from "./WriteBackCard";
 
+export { FileChangesView, FileChangeDiff } from "./FileChangesView";
+export type { FileChangesViewProps, FileChangeDiffProps } from "./FileChangesView";
+
+export { EmptyChangeNotice } from "./EmptyChangeNotice";
+export type { EmptyChangeNoticeProps, EmptyChangeKind } from "./EmptyChangeNotice";
+
 export {
   isTextArtifact,
-  isArtifactExpired,
   formatArtifactSize,
   getArtifactExtension,
   getFileExtension,
@@ -75,8 +98,16 @@ export type { SetupProgressProps } from "./SetupProgress";
 export { ToolCallGroup } from "./ToolCallGroup";
 export type { ToolCallGroupProps } from "./ToolCallGroup";
 
+export { ToolRunGroup } from "./ToolRunGroup";
+export type { ToolRunGroupProps } from "./ToolRunGroup";
+
+export { segmentToolCalls } from "./segment-tool-calls";
+export type { ToolSegment } from "./segment-tool-calls";
+
 export { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 export type { ToolCallDetailProps } from "./ToolCallDetail";
+
+export { describeApprovalPolicySource } from "./approval-provenance";
 
 export { McpToolDetail, McpArgsView, McpMetadataRow, parseMcpResult } from "./McpToolDetail";
 export type {
@@ -90,6 +121,9 @@ export type { ToolArgsViewProps } from "./ToolArgsView";
 
 export { ResultView, summarizeResultView } from "./ResultView";
 export type { ResultViewProps } from "./ResultView";
+
+export { TerminalSession } from "./TerminalSession";
+export type { TerminalSessionProps } from "./TerminalSession";
 
 export {
   useToolPresentation,
@@ -145,12 +179,56 @@ export {
 } from "./TodoList";
 export type { TodoListProps } from "./TodoList";
 
+export { TodoCard } from "./TodoCard";
+export type { TodoCardProps } from "./TodoCard";
+
 
 export { useSubmitApproval } from "./useSubmitApproval";
 export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
 
-export { ApprovalCard } from "./ApprovalCard";
-export type { ApprovalCardProps } from "./ApprovalCard";
+export { useFileReview, fileDecisionKey } from "./useFileReview";
+export type { UseFileReviewReturn, FileDecisionOptions } from "./useFileReview";
+
+export {
+  fileReviewability,
+  changeSetReviewability,
+  deriveEffectiveVerdicts,
+  changeForRowPath,
+  fileReviewRowState,
+} from "./file-review-status";
+export type {
+  FileReviewability,
+  FileBlockReason,
+  ChangeSetReviewability,
+  FileReviewRowState,
+} from "./file-review-status";
+
+// Settled/historical file-review display: the ledger fold + its read seam +
+// the display-projection adapter, re-exported from @stigmer/sdk (pure, shared).
+export {
+  foldFileReviewEventStream,
+  displayFileChangeSets,
+  toDisplayFileChange,
+} from "@stigmer/sdk";
+
+export { ApprovalCard, ApprovalCardHeader, ApprovalCardBody } from "./ApprovalCard";
+export type {
+  ApprovalCardProps,
+  ApprovalCardHeaderProps,
+  ApprovalCardBodyProps,
+} from "./ApprovalCard";
+
+export { FileReviewCard } from "./FileReviewCard";
+export type { FileReviewCardProps } from "./FileReviewCard";
+
+export { FileReviewDock } from "./FileReviewDock";
+export type { FileReviewDockProps } from "./FileReviewDock";
+
+export { ApprovalContext, useApproval } from "./ApprovalContext";
+export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext";
+
+export { FileReviewContext, useFileReviewRowState } from "./FileReviewContext";
+export type { FileReviewContextValue } from "./FileReviewContext";
 
 export { ArtifactCard } from "./ArtifactCard";
 export type { ArtifactCardProps } from "./ArtifactCard";
@@ -175,8 +253,10 @@ export {
   extractPrimaryArg,
   extractPrimaryArgFromPreview,
   humanizeToolName,
+  defaultDisclosureForCategory,
+  isRunGroupableCategory,
 } from "./tool-categories";
-export type { ToolCategory, ToolCategoryInfo } from "./tool-categories";
+export type { ToolCategory, ToolCategoryInfo, ToolDisclosure } from "./tool-categories";
 
 export { FilePathLink } from "./FilePathLink";
 export type { FilePathLinkProps } from "./FilePathLink";

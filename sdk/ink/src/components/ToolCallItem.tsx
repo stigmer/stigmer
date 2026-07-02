@@ -99,12 +99,20 @@ function describeResultView(view: ToolResultView): string | null {
       return `${view.path}${stats}`;
     }
     case "terminal": {
+      // Lead with the command prompt line so the CLI reads as one terminal
+      // session, matching the web console.
+      const prompt = view.command ? `$ ${view.command}\n` : "";
       const exit =
         view.exitCode !== undefined && view.exitCode !== 0 ? `[exit ${view.exitCode}] ` : "";
-      return exit + truncate(view.stdout || view.stderr);
+      return prompt + exit + truncate(view.stdout || view.stderr);
     }
-    case "search":
-      return `${view.count} ${view.count === 1 ? "match" : "matches"}`;
+    case "search": {
+      const noun =
+        view.kind === "files"
+          ? view.count === 1 ? "file" : "files"
+          : view.count === 1 ? "match" : "matches";
+      return `${view.count} ${noun}${view.truncated ? " (truncated)" : ""}`;
+    }
     case "list":
       return `${view.count} ${view.count === 1 ? "item" : "items"}`;
     case "file":
@@ -116,10 +124,13 @@ function describeResultView(view: ToolResultView): string | null {
     case "json":
       return truncate(JSON.stringify(view.value));
     case "outputRef": {
+      // The full bytes were offloaded to artifact storage. A terminal formatter
+      // can't fetch them inline, so we surface the stable storage key rather
+      // than a baked URL (which expired after an hour and is no longer present).
       const size = view.sizeBytes ? ` (${formatBytes(view.sizeBytes)})` : "";
-      if (view.isImage) return `image${size}: ${view.downloadUrl}`;
+      if (view.isImage) return `[image output${size}] ${view.storageKey}`;
       const preview = view.preview ? `${truncate(view.preview)}\n` : "";
-      return `${preview}full output${size}: ${view.downloadUrl}`;
+      return `${preview}[full output offloaded${size}] ${view.storageKey}`;
     }
     case "error":
       return view.message;

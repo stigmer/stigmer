@@ -714,4 +714,138 @@ public interface WorkflowExecutionStatusOrBuilder extends
    */
   com.google.protobuf.ByteString
       getWorkflowVersionHashBytes();
+
+  /**
+   * <pre>
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * &#64;internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview> 
+      getPendingFileReviewsList();
+  /**
+   * <pre>
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * &#64;internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+   */
+  ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview getPendingFileReviews(int index);
+  /**
+   * <pre>
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * &#64;internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+   */
+  int getPendingFileReviewsCount();
+  /**
+   * <pre>
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * &#64;internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReviewOrBuilder> 
+      getPendingFileReviewsOrBuilderList();
+  /**
+   * <pre>
+   * Pending file reviews from child agent executions, surfaced for
+   * workflow-level visibility and in-place keep/discard decisioning.
+   *
+   * &#64;internal
+   * A reference-only sibling of pending_approvals (field 9): each entry names a
+   * child agent execution and the change_set ids it currently has
+   * AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+   * stays single-sourced on the child's
+   * AgentExecution.status.file_change_sets and is read on demand by the UI.
+   *
+   * Guarded, per-child merge protocol:
+   * Modified only when WorkflowExecutionUpdateStatusInput.update_pending_file_reviews
+   * is true, scoped by pending_update_child_agent_execution_id. The write
+   * replaces the entry for that one child and preserves every sibling child's
+   * entry, so parallel child agents never clobber each other. A scoped write with
+   * an empty change_set list removes that child's entry. Only call-agent-status
+   * manages this field.
+   *
+   * &#64;since Workflow-Parent File Review
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReview pending_file_reviews = 14 [json_name = "pendingFileReviews"];</code>
+   */
+  ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingFileReviewOrBuilder getPendingFileReviewsOrBuilder(
+      int index);
 }

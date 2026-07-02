@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import {
   MARKDOWN_COMPONENTS,
   REMARK_PLUGINS,
+  unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components";
 import {
   getArtifactRenderMode,
@@ -105,6 +106,14 @@ type MarkdownTab = "rendered" | "source";
 function MarkdownView({ content }: { readonly content: string }) {
   const [tab, setTab] = useState<MarkdownTab>("rendered");
 
+  // A `.md` whose entire body is one ```markdown fence (e.g. a model-wrapped
+  // plan) would render flat. Unwrap for the Rendered view only — Source stays
+  // byte-faithful to the stored artifact.
+  const rendered = useMemo(
+    () => unwrapEnclosingMarkdownFence(content),
+    [content],
+  );
+
   return (
     <div>
       <div className="flex items-center border-b border-border px-4 py-1.5">
@@ -132,7 +141,7 @@ function MarkdownView({ content }: { readonly content: string }) {
             remarkPlugins={REMARK_PLUGINS}
             components={MARKDOWN_COMPONENTS}
           >
-            {content}
+            {rendered}
           </Markdown>
         </div>
       ) : (

@@ -71,4 +71,25 @@ public interface ToolApprovalPolicyOrBuilder extends
    */
   com.google.protobuf.ByteString
       getMessageBytes();
+
+  /**
+   * <pre>
+   * True when the connect-time fail-closed tightener force-gated this tool
+   * because the server's own MCP annotation declared destructiveHint=true,
+   * rather than the classifier (or a human) gating it. Lets the runner attribute
+   * a tightened tool to its true provenance
+   * (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN)
+   * instead of collapsing it into the classifier default. Carries no enforcement
+   * weight — gating is decided by presence in this list — so an absent/false
+   * value simply means "not attributed to the destructiveHint tightener".
+   *
+   * Set only on entries written to McpServerStatus.tool_approvals (the classifier
+   * layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human
+   * pin is, by definition, a pinned override) and left false there.
+   * </pre>
+   *
+   * <code>bool from_destructive_hint = 3 [json_name = "fromDestructiveHint"];</code>
+   * @return The fromDestructiveHint.
+   */
+  boolean getFromDestructiveHint();
 }

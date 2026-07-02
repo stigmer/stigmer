@@ -9,34 +9,37 @@ export interface ChangesTabProps {
 }
 
 /**
- * Changes facet for the SessionInspector.
+ * Changes facet for the SessionInspector — the session's git write-backs
+ * (branch/commit/PR), one `WriteBackCard` per entry.
  *
- * Wraps the existing `useSessionWriteBacks` hook and renders
- * `WriteBackCard` per write-back entry — the same content as
- * `WriteBacksWidget` but without its section heading (the tab
- * label provides that context).
+ * Local file changes deliberately do NOT render here: they live in the
+ * transcript, where each stamped edit row shows its diff in place and the
+ * per-turn decision bar carries the review controls and file list
+ * (`FileReviewCard`). Duplicating them in a side panel gave the same change a
+ * third rendering with no added authority. The tab therefore only surfaces
+ * once a write-back exists (see `buildVisibleTabs`).
  */
 export function ChangesTab({ executions }: ChangesTabProps) {
   const { writeBacks, hasWriteBacks } = useSessionWriteBacks(executions);
 
-  if (!hasWriteBacks) {
+  if (hasWriteBacks) {
     return (
-      <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-        <p className="text-xs text-muted-foreground">
-          No pull requests yet. Changes will appear here when the agent
-          writes back to a workspace.
-        </p>
+      <div role="list" className="space-y-2">
+        {writeBacks.map((entry) => (
+          <div key={entry.writeBack.workspaceEntryName} role="listitem">
+            <WriteBackCard writeBack={entry.writeBack} />
+          </div>
+        ))}
       </div>
     );
   }
 
   return (
-    <div role="list" className="space-y-2">
-      {writeBacks.map((entry) => (
-        <div key={entry.writeBack.workspaceEntryName} role="listitem">
-          <WriteBackCard writeBack={entry.writeBack} />
-        </div>
-      ))}
+    <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+      <p className="text-xs text-muted-foreground">
+        No changes yet. Pull requests will appear here once the agent pushes
+        its work back to your repository.
+      </p>
     </div>
   );
 }

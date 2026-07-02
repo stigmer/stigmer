@@ -168,6 +168,33 @@ describe("DiscoverMcpServer activity", () => {
       );
     });
 
+    it("returns previous tool definitions for incremental diffing", async () => {
+      const { extractPreviousState } = await import("../discover-mcp-server.js");
+      const server = makeMcpServer({
+        status: {
+          discoveredCapabilities: {
+            tools: [
+              { name: "search", description: "Search things", inputSchema: { type: "object" } },
+              { name: "delete_repo", description: "Delete a repo", inputSchema: null },
+            ],
+            resourceTemplates: [],
+          },
+          toolApprovals: [{ toolName: "delete_repo", message: "Delete" }],
+        },
+      });
+      const state = extractPreviousState(server);
+      expect(state.tools).toEqual([
+        { name: "search", description: "Search things", inputSchema: { type: "object" } },
+        { name: "delete_repo", description: "Delete a repo", inputSchema: null },
+      ]);
+    });
+
+    it("returns empty previous tools when server has no status", async () => {
+      const { extractPreviousState } = await import("../discover-mcp-server.js");
+      const state = extractPreviousState(makeMcpServer({ status: undefined }));
+      expect(state.tools).toEqual([]);
+    });
+
     it("extracts tool approvals from status", async () => {
       const { extractPreviousState } = await import("../discover-mcp-server.js");
       const server = makeMcpServer({
@@ -443,6 +470,9 @@ describe("DiscoverMcpServer activity", () => {
       expect(result.previousToolsFingerprint).not.toBe("");
       expect(result.previousToolApprovals).toEqual([
         { toolName: "old_tool", requiresApproval: true, message: "Approve old_tool" },
+      ]);
+      expect(result.previousTools).toEqual([
+        { name: "old_tool", description: "Old", inputSchema: null },
       ]);
       expect(result.tools[0].name).toBe("new_tool");
       expect(result.newToolsFingerprint).toHaveLength(64);

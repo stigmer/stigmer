@@ -41,10 +41,12 @@ type RecordedLLMFixture struct {
 // Non-LLM requests (gRPC status updates, etc.) are rejected with 404
 // since those go through the real Java service.
 type MockLLMProxyServer struct {
-	Server  *httptest.Server
-	mu      sync.Mutex
-	entries []RecordedLLMEntry
-	cursor  int
+	Server   *httptest.Server
+	mu       sync.Mutex
+	entries  []RecordedLLMEntry
+	cursor   int
+	requests []map[string]any
+	registry []map[string]any
 }
 
 // NewMockLLMProxyServer creates a mock server from a fixture file.
@@ -60,7 +62,8 @@ func NewMockLLMProxyServer(fixturePath string) (*MockLLMProxyServer, error) {
 	}
 
 	m := &MockLLMProxyServer{
-		entries: fixture.Entries,
+		entries:  fixture.Entries,
+		registry: defaultMockModelRegistry(),
 	}
 
 	m.Server = httptest.NewServer(http.HandlerFunc(m.handleRequest))
@@ -70,15 +73,31 @@ func NewMockLLMProxyServer(fixturePath string) (*MockLLMProxyServer, error) {
 // NewMockLLMProxyServerFromEntries creates a mock server from in-memory entries.
 func NewMockLLMProxyServerFromEntries(entries []RecordedLLMEntry) *MockLLMProxyServer {
 	m := &MockLLMProxyServer{
-		entries: entries,
+		entries:  entries,
+		registry: defaultMockModelRegistry(),
 	}
 	m.Server = httptest.NewServer(http.HandlerFunc(m.handleRequest))
 	return m
 }
 
 func (m *MockLLMProxyServer) handleRequest(w http.ResponseWriter, r *http.Request) {
-	// Only intercept LLM proxy paths
 	path := r.URL.Path
+
+	// The runner resolves registry ids (e.g. "claude-haiku-4.5") to provider
+	// api ids by fetching the model registry from the same proxy host
+	// (STIGMER_CLOUD_API_URL). Serve it here so offline tests exercise real
+	// resolution instead of the silent identity fallback.
+	if pathContains(path, "/v1/proxy/model-registry") {
+		m.mu.Lock()
+		reg := m.registry
+		m.mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]any{"models": reg})
+		return
+	}
+
+	// Only intercept LLM proxy paths
 	isLLM := pathContains(path, "/v1/messages") ||
 		pathContains(path, "/chat/completions") ||
 		pathContains(path, "/v1/proxy/llm/")
@@ -93,20 +112,26 @@ func (m *MockLLMProxyServer) handleRequest(w http.ResponseWriter, r *http.Reques
 	bodyBytes, _ := io.ReadAll(r.Body)
 	r.Body.Close()
 
-	isStreaming := false
+	var reqBody map[string]any
 	if len(bodyBytes) > 0 {
-		var reqBody map[string]any
-		if json.Unmarshal(bodyBytes, &reqBody) == nil {
-			if v, ok := reqBody["stream"]; ok {
-				if b, ok := v.(bool); ok && b {
-					isStreaming = true
-				}
-			}
+		_ = json.Unmarshal(bodyBytes, &reqBody)
+	}
+
+	isStreaming := false
+	if v, ok := reqBody["stream"]; ok {
+		if b, ok := v.(bool); ok && b {
+			isStreaming = true
 		}
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	// Capture the request so tests can assert what was actually sent to the
+	// provider — most importantly the resolved `model` id.
+	if reqBody != nil {
+		m.requests = append(m.requests, reqBody)
+	}
 
 	if m.cursor >= len(m.entries) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -398,6 +423,73 @@ func (m *MockLLMProxyServer) Remaining() int {
 	return len(m.entries) - m.cursor
 }
 
+// Requests returns a copy of every captured LLM request body, in order.
+func (m *MockLLMProxyServer) Requests() []map[string]any {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]map[string]any, len(m.requests))
+	copy(out, m.requests)
+	return out
+}
+
+// LastRequest returns the most recently captured LLM request body, or nil.
+func (m *MockLLMProxyServer) LastRequest() map[string]any {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if len(m.requests) == 0 {
+		return nil
+	}
+	return m.requests[len(m.requests)-1]
+}
+
+// RequestModels returns the `model` field from each captured LLM request, in
+// order. This is the id the provider actually received — after registry
+// resolution — which is the assertion target for model-id regression tests.
+func (m *MockLLMProxyServer) RequestModels() []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	models := make([]string, 0, len(m.requests))
+	for _, req := range m.requests {
+		if v, ok := req["model"].(string); ok {
+			models = append(models, v)
+		}
+	}
+	return models
+}
+
+// SetModelRegistry overrides the registry served at /v1/proxy/model-registry.
+// Pass nil to disable serving (the endpoint then 404s, mimicking an
+// unreachable registry).
+func (m *MockLLMProxyServer) SetModelRegistry(entries []map[string]any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.registry = entries
+}
+
+// defaultMockModelRegistry mirrors the key rows of stigmer-cloud's
+// model-registry.json so the offline runner resolves registry ids
+// (dot-notation) to provider api ids exactly as production does. Kept
+// intentionally small — extend as tests need more models. The id -> apiModelId
+// mappings (e.g. claude-haiku-4.5 -> claude-haiku-4-5-20251001) are the
+// contract a model-resolution regression test asserts against.
+func defaultMockModelRegistry() []map[string]any {
+	price := func(in, out float64) map[string]any {
+		return map[string]any{
+			"inputPricePerMillion":      in,
+			"outputPricePerMillion":     out,
+			"cacheWritePricePerMillion": in,
+			"cacheReadPricePerMillion":  in / 10,
+		}
+	}
+	return []map[string]any{
+		{"id": "claude-sonnet-4.6", "apiModelId": "claude-sonnet-4-6", "provider": "anthropic", "costTier": "standard", "harness": "native", "featured": true, "pricing": price(3, 15)},
+		{"id": "claude-sonnet-4.5", "apiModelId": "claude-sonnet-4-5", "provider": "anthropic", "costTier": "standard", "harness": "native", "pricing": price(3, 15)},
+		{"id": "claude-haiku-4.5", "apiModelId": "claude-haiku-4-5-20251001", "provider": "anthropic", "costTier": "economy", "harness": "native", "pricing": price(1, 5)},
+		{"id": "gpt-4o-mini", "apiModelId": "gpt-4o-mini", "provider": "openai", "costTier": "economy", "harness": "native", "pricing": price(0.15, 0.6)},
+		{"id": "gpt-4.1", "apiModelId": "gpt-4.1", "provider": "openai", "costTier": "standard", "harness": "native", "pricing": price(2, 8)},
+	}
+}
+
 // toAnySlice converts typed slices (e.g., []map[string]any) to []any.
 // In-memory entries from BuildLLMEntry use concrete Go types that don't
 // satisfy the []any type assertion; JSON-deserialized fixtures use []any.
@@ -483,6 +575,41 @@ func AnthropicToolUseResponse(toolID, toolName string, toolInput map[string]any,
 		"content": []map[string]any{
 			{"type": "tool_use", "id": toolID, "name": toolName, "input": toolInput},
 		},
+		"stop_reason": "tool_use",
+		"usage": map[string]any{
+			"input_tokens":  inputTokens,
+			"output_tokens": outputTokens,
+		},
+	}
+}
+
+// ToolUseBlock describes one tool_use content block of a multi-tool assistant
+// turn. Several blocks in a single turn surface as co-pending approvals — the
+// shape the co-pending idempotency case relies on.
+type ToolUseBlock struct {
+	ID    string
+	Name  string
+	Input map[string]any
+}
+
+// AnthropicMultiToolUseResponse builds an Anthropic API response that emits N
+// tool_use blocks in one assistant turn. The SSE writer already iterates content
+// blocks by index, so the blocks stream as N co-pending tool calls — used to
+// raise two approval gates from a single turn deterministically (e.g. to prove
+// approving one open gate leaves the other pending).
+func AnthropicMultiToolUseResponse(blocks []ToolUseBlock, inputTokens, outputTokens int) map[string]any {
+	content := make([]map[string]any, 0, len(blocks))
+	for _, b := range blocks {
+		content = append(content, map[string]any{
+			"type": "tool_use", "id": b.ID, "name": b.Name, "input": b.Input,
+		})
+	}
+	return map[string]any{
+		"id":          fmt.Sprintf("msg_mock_%d", inputTokens),
+		"type":        "message",
+		"role":        "assistant",
+		"model":       "claude-sonnet-4-6",
+		"content":     content,
 		"stop_reason": "tool_use",
 		"usage": map[string]any{
 			"input_tokens":  inputTokens,

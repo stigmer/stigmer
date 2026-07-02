@@ -49,6 +49,14 @@ export interface WireToolApproval {
   tool_name: string;
   requires_approval: boolean;
   message: string;
+  /**
+   * True when the connect-time destructiveHint tightener force-gated this tool
+   * (see applyDestructiveHintTightener). Persisted to
+   * ToolApprovalPolicy.from_destructive_hint so the runner attributes the gate to
+   * the annotation rather than the classifier. Omitted on classifier/pinned
+   * entries.
+   */
+  from_destructive_hint?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

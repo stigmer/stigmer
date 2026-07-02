@@ -273,12 +273,20 @@ export class StigmerClient {
   async updateWorkflowExecutionStatus(
     executionId: string,
     status: WorkflowExecutionStatus,
-    options?: { updatePendingApprovals?: boolean },
+    options?: {
+      updatePendingApprovals?: boolean;
+      updatePendingFileReviews?: boolean;
+      // The child a per-child merge targets (required whenever either update flag
+      // is set, including the scoped-clear case where the list is empty).
+      pendingUpdateChildAgentExecutionId?: string;
+    },
   ): Promise<WorkflowExecution> {
     const input = create(WorkflowExecutionUpdateStatusInputSchema, {
       executionId,
       status,
       updatePendingApprovals: options?.updatePendingApprovals ?? false,
+      updatePendingFileReviews: options?.updatePendingFileReviews ?? false,
+      pendingUpdateChildAgentExecutionId: options?.pendingUpdateChildAgentExecutionId ?? "",
     });
     return this.workflowExecutionCommand.updateStatus(input);
   }

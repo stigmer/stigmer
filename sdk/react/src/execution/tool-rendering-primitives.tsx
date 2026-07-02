@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
+import { RevealToggle } from "../internal/RevealToggle";
 
 /**
  * Shared truncation threshold for all collapsible tool rendering
@@ -48,13 +49,11 @@ export function CollapsibleCode({ label, content, className }: CollapsibleCodePr
         {displayContent}
       </pre>
       {needsTruncation && (
-        <button
-          type="button"
-          onClick={() => setIsExpanded((v) => !v)}
-          className="text-xs font-medium text-primary transition-colors hover:text-primary-muted"
-        >
-          {isExpanded ? "Show less" : `Show all ${lines.length} lines`}
-        </button>
+        <RevealToggle
+          expanded={isExpanded}
+          onToggle={() => setIsExpanded((v) => !v)}
+          moreLabel={`Show all ${lines.length} lines`}
+        />
       )}
     </div>
   );
@@ -97,13 +96,11 @@ export function CollapsiblePre({ content, className }: CollapsiblePreProps) {
         {displayContent}
       </pre>
       {needsTruncation && (
-        <button
-          type="button"
-          onClick={() => setIsExpanded((v) => !v)}
-          className="mt-1 text-xs font-medium text-primary transition-colors hover:text-primary-muted"
-        >
-          {isExpanded ? "Show less" : `Show all ${lines.length} lines`}
-        </button>
+        <RevealToggle
+          expanded={isExpanded}
+          onToggle={() => setIsExpanded((v) => !v)}
+          moreLabel={`Show all ${lines.length} lines`}
+        />
       )}
     </>
   );

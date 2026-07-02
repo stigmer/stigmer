@@ -15,6 +15,13 @@ import { defineConfig, devices } from "@playwright/test";
  *   Temporal, unified runner). Create real resources via API, verify they render
  *   correctly, and exercise complete user flows. Run via `make test-e2e-interactive`.
  *
+ * - **interactive-approval**: the HITL approval/disclosure flow, made
+ *   deterministic by a mock LLM proxy wired into the runner (opt-in via
+ *   STIGMER_E2E_MOCK_LLM). The proxy is a single shared FIFO, so this project
+ *   runs SERIAL (`fullyParallel: false`; `make test-e2e-approval` pins
+ *   `--workers=1`). Specs skip gracefully when the mock control URL is absent.
+ *   Run via `make test-e2e-approval`.
+ *
  * Override the target with STIGMER_E2E_BASE_URL for staging or local.
  * When no STIGMER_E2E_BASE_URL is set, Playwright auto-starts the local
  * dev server and defaults to http://localhost:3000.
@@ -53,6 +60,15 @@ export default defineConfig({
       testDir: "./tests/interactive",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "interactive-approval",
+      testDir: "./tests/interactive-approval",
+      // The mock LLM proxy is a single shared FIFO queue, so the gated specs
+      // must not interleave. `make test-e2e-approval` additionally pins
+      // `--workers=1` to enforce single-consumer ordering across files.
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
 
   globalSetup: "./global-setup.ts",
@@ -65,6 +81,16 @@ export default defineConfig({
         url: "http://localhost:3000",
         reuseExistingServer: true,
         timeout: 60_000,
+        // A local e2e stack must run in OSS no-auth mode against the e2e server,
+        // regardless of a developer's personal client-apps/web/.env (which may
+        // point at prod Auth0/OIDC). @next/env does not override variables that
+        // are already present in process.env, so these win over the .env file.
+        // Only applies to the locally-spawned dev server — external targets
+        // (STIGMER_E2E_BASE_URL) skip webServer entirely.
+        env: {
+          NEXT_PUBLIC_AUTH_MODE: "disabled",
+          NEXT_PUBLIC_API_URL: `http://localhost:${process.env.STIGMER_E2E_API_PORT ?? "7234"}`,
+        },
       }
     : undefined,
 

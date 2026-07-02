@@ -277,10 +277,12 @@ public final class McpServerInput {
     public static final class ToolApprovalPolicyInput {
         private final String toolName;
         private final String message;
+        private final boolean fromDestructiveHint;
 
         private ToolApprovalPolicyInput(Builder builder) {
             this.toolName = builder.toolName;
             this.message = builder.message;
+            this.fromDestructiveHint = builder.fromDestructiveHint;
         }
 
         ToolApprovalPolicy toProto() {
@@ -291,6 +293,7 @@ public final class McpServerInput {
             if (this.message != null) {
                 builder.setMessage(this.message);
             }
+            builder.setFromDestructiveHint(this.fromDestructiveHint);
             return builder.build();
         }
 
@@ -299,11 +302,13 @@ public final class McpServerInput {
         public static final class Builder {
             private String toolName;
             private String message;
+            private boolean fromDestructiveHint;
 
             private Builder() {}
 
             public Builder toolName(String toolName) { this.toolName = toolName; return this; }
             public Builder message(String message) { this.message = message; return this; }
+            public Builder fromDestructiveHint(boolean fromDestructiveHint) { this.fromDestructiveHint = fromDestructiveHint; return this; }
 
             public ToolApprovalPolicyInput build() { return new ToolApprovalPolicyInput(this); }
         }

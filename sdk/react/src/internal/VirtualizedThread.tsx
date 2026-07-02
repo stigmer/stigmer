@@ -18,8 +18,11 @@ import {
 } from "../execution/MessageThread";
 import { FilePathContext, type FilePathContextValue } from "../execution/FilePathContext";
 import { SandboxContext, type SandboxContextValue } from "../execution/SandboxContext";
+import { ApprovalContext, type ApprovalContextValue } from "../execution/ApprovalContext";
+import { FileReviewContext, type FileReviewContextValue } from "../execution/FileReviewContext";
 import { DevProfiler, useDomNodeCount } from "./dev";
 import { JumpToLatestButton } from "./JumpToLatestButton";
+import { ApprovalPeekBar } from "./ApprovalPeekBar";
 import { ThreadItemWrapper } from "./ThreadItemWrapper";
 
 // ---------------------------------------------------------------------------
@@ -35,8 +38,12 @@ export interface VirtualizedThreadProps {
     comment?: string,
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly approvalErrors?: ReadonlyMap<string, Error>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
+  readonly approvalCtx: ApprovalContextValue;
+  readonly fileReviewCtx: FileReviewContextValue;
+  readonly unresolvedApprovalCount: number;
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
@@ -98,8 +105,12 @@ export function VirtualizedThread({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  approvalErrors,
   filePathCtx,
   sandboxCtx,
+  approvalCtx,
+  fileReviewCtx,
+  unresolvedApprovalCount,
   onBuildFromPlan,
   org,
   planActionsDisabled,
@@ -135,6 +146,7 @@ export function VirtualizedThread({
       formatToolCallSummary,
       onApprovalSubmit,
       submittingApprovalIds,
+      approvalErrors,
       onBuildFromPlan,
       org,
       planActionsDisabled,
@@ -142,13 +154,15 @@ export function VirtualizedThread({
       onRetryExecution,
       onEditMessage,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, onBuildFromPlan, org, planActionsDisabled, onRetrySend, onRetryExecution, onEditMessage],
+    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onBuildFromPlan, org, planActionsDisabled, onRetrySend, onRetryExecution, onEditMessage],
   );
 
   return (
     <>
       <SandboxContext.Provider value={sandboxCtx}>
       <FilePathContext.Provider value={filePathCtx}>
+      <ApprovalContext.Provider value={approvalCtx}>
+      <FileReviewContext.Provider value={fileReviewCtx}>
       <DevProfiler id="MessageThread:virtualized">
         <Virtuoso
           ref={virtuosoRef}
@@ -174,9 +188,21 @@ export function VirtualizedThread({
           )}
         />
       </DevProfiler>
+      </FileReviewContext.Provider>
+      </ApprovalContext.Provider>
       </FilePathContext.Provider>
       </SandboxContext.Provider>
-      <JumpToLatestButton onClick={jumpToLatest} visible={!isAtBottom} />
+      {/* The peek bar takes the jump button's slot while approvals are pending,
+          so the two never overlap — a gate is the louder of the two signals. */}
+      <JumpToLatestButton
+        onClick={jumpToLatest}
+        visible={!isAtBottom && unresolvedApprovalCount === 0}
+      />
+      <ApprovalPeekBar
+        visible={!isAtBottom && unresolvedApprovalCount > 0}
+        count={unresolvedApprovalCount}
+        onClick={jumpToLatest}
+      />
     </>
   );
 }

@@ -3,12 +3,26 @@
 import { useCallback, useContext, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { FilePathContext } from "./FilePathContext";
-import { resolvePathAction } from "./file-path-resolver";
+import { resolvePathAction, splitDisplayPath } from "./file-path-resolver";
+
+/** How much of the directory prefix {@link FilePathLink} shows. */
+export type FilePathDirDisplay =
+  /** File name only — the default, for cramped surfaces (tool-call headers). */
+  | "hide"
+  /** Dimmed directory prefix + file name — for diff headers / file lists. */
+  | "dim";
 
 /** Props for {@link FilePathLink}. */
 export interface FilePathLinkProps {
   /** The workspace-relative file path from the tool call. */
   readonly path: string;
+  /**
+   * How much of the directory prefix to show. Defaults to `"hide"` (file name
+   * only); the full path is always available on hover via `title`. Use `"dim"`
+   * where the surrounding directory aids comprehension (diff headers, the
+   * multi-file changes list).
+   */
+  readonly dirDisplay?: FilePathDirDisplay;
   /** Additional CSS class names for the root element. */
   readonly className?: string;
 }
@@ -19,8 +33,14 @@ const COPIED_FEEDBACK_MS = 2000;
  * Interactive file path display that replaces inert `<span>` path
  * text in tool call rendering.
  *
- * Resolves the path against workspace entries from
- * {@link FilePathContext}:
+ * **Filename-first.** It shows the base name prominently and never clips it;
+ * the directory is optional (`dirDisplay`) and dimmed, and the *full* path is
+ * always available on hover via `title` (and to screen readers via
+ * `aria-label`). This fixes the prior behaviour, where a single `truncate` on
+ * the whole path clipped the file name — the one part that identifies the
+ * change — and surfaced only the action verb on hover.
+ *
+ * Resolves the path against workspace entries from {@link FilePathContext}:
  *
  * - **Git source** → `<a>` that opens the file on GitHub in a new tab.
  * - **Local / platform / unresolvable** → `<button>` that copies the
@@ -31,10 +51,15 @@ const COPIED_FEEDBACK_MS = 2000;
  *
  * @example
  * ```tsx
- * <FilePathLink path="src/main.go" />
+ * <FilePathLink path="src/main.go" />              // shows "main.go"
+ * <FilePathLink path="src/main.go" dirDisplay="dim" /> // shows "src/main.go"
  * ```
  */
-export function FilePathLink({ path, className }: FilePathLinkProps) {
+export function FilePathLink({
+  path,
+  dirDisplay = "hide",
+  className,
+}: FilePathLinkProps) {
   const { workspaceEntries, onFilePathClick } = useContext(FilePathContext);
   const [copied, setCopied] = useState(false);
 
@@ -42,6 +67,16 @@ export function FilePathLink({ path, className }: FilePathLinkProps) {
     () => resolvePathAction(path, workspaceEntries),
     [path, workspaceEntries],
   );
+
+  const { dir, base } = useMemo(() => splitDisplayPath(path), [path]);
+
+  // The full path shown on hover and announced to screen readers: the resolved
+  // absolute path for a local source (the most useful form), else the logical
+  // path. The action verb moves into the aria-label so hover surfaces the path,
+  // not "Copy path".
+  const fullPath = resolved.action === "copy" ? resolved.value : path;
+  const title = fullPath;
+  const ariaLabel = `${resolved.tooltip}: ${fullPath}`;
 
   const handleCopy = useCallback(() => {
     const value = resolved.action === "copy" ? resolved.value : path;
@@ -53,6 +88,10 @@ export function FilePathLink({ path, className }: FilePathLinkProps) {
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
+      // The link often sits inside a row whose own click toggles disclosure
+      // (ToolCallItem's role=button header); copying/opening a path must not
+      // also expand the row.
+      e.stopPropagation();
       if (onFilePathClick) {
         e.preventDefault();
         onFilePathClick(path, resolved);
@@ -67,10 +106,23 @@ export function FilePathLink({ path, className }: FilePathLinkProps) {
   );
 
   const sharedClasses = cn(
-    "inline-flex items-center gap-1 font-mono text-foreground",
+    "inline-flex min-w-0 items-center gap-1 font-mono text-foreground",
     "transition-colors hover:text-primary hover:underline",
     "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:rounded-sm",
     className,
+  );
+
+  // The directory truncates (it is context); the base never shrinks (it is
+  // identity). Together they keep the file name legible at any width.
+  const label = copied ? (
+    <span className="min-w-0 truncate">Copied</span>
+  ) : (
+    <>
+      {dirDisplay === "dim" && dir && (
+        <span className="min-w-0 truncate text-muted-foreground-faint">{dir}</span>
+      )}
+      <span className="shrink-0">{base}</span>
+    </>
   );
 
   if (resolved.action === "link" && !onFilePathClick) {
@@ -79,11 +131,12 @@ export function FilePathLink({ path, className }: FilePathLinkProps) {
         href={resolved.url}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={resolved.tooltip}
-        title={resolved.tooltip}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={ariaLabel}
+        title={title}
         className={cn(sharedClasses, "group/fpl")}
       >
-        <span className="min-w-0 truncate">{path}</span>
+        {label}
         <ExternalLinkIcon />
       </a>
     );
@@ -93,11 +146,11 @@ export function FilePathLink({ path, className }: FilePathLinkProps) {
     <button
       type="button"
       onClick={handleClick}
-      aria-label={resolved.tooltip}
-      title={resolved.tooltip}
+      aria-label={ariaLabel}
+      title={title}
       className={cn(sharedClasses, "group/fpl cursor-pointer")}
     >
-      <span className="min-w-0 truncate">{copied ? "Copied" : path}</span>
+      {label}
       {!copied && <CopyIcon />}
     </button>
   );

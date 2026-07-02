@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZW51bS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxKv8BCg5FeGVjdXRpb25QaGFzZRIfChtFWEVDVVRJT05fUEhBU0VfVU5TUEVDSUZJRUQQABIVChFFWEVDVVRJT05fUEVORElORxABEhkKFUVYRUNVVElPTl9JTl9QUk9HUkVTUxACEhcKE0VYRUNVVElPTl9DT01QTEVURUQQAxIUChBFWEVDVVRJT05fRkFJTEVEEAQSFwoTRVhFQ1VUSU9OX0NBTkNFTExFRBAFEhgKFEVYRUNVVElPTl9URVJNSU5BVEVEEAgSIgoeRVhFQ1VUSU9OX1dBSVRJTkdfRk9SX0FQUFJPVkFMEAYSFAoQRVhFQ1VUSU9OX1BBVVNFRBAHKooBCgtNZXNzYWdlVHlwZRIcChhNRVNTQUdFX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1NRVNTQUdFX0hVTUFOEAESDgoKTUVTU0FHRV9BSRACEhAKDE1FU1NBR0VfVE9PTBADEhIKDk1FU1NBR0VfU1lTVEVNEAQSFAoQTUVTU0FHRV9USElOS0lORxAFKsYBCg5Ub29sQ2FsbFN0YXR1cxIgChxUT09MX0NBTExfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFQoRVE9PTF9DQUxMX1BFTkRJTkcQARIVChFUT09MX0NBTExfUlVOTklORxACEhcKE1RPT0xfQ0FMTF9DT01QTEVURUQQAxIUChBUT09MX0NBTExfRkFJTEVEEAQSHgoaVE9PTF9DQUxMX1dBSVRJTkdfQVBQUk9WQUwQBRIVChFUT09MX0NBTExfU0tJUFBFRBAGKs4CCghUb29sS2luZBIZChVUT09MX0tJTkRfVU5TUEVDSUZJRUQQABIXChNUT09MX0tJTkRfRklMRV9SRUFEEAESGAoUVE9PTF9LSU5EX0ZJTEVfV1JJVEUQAhIXChNUT09MX0tJTkRfRklMRV9FRElUEAMSGQoVVE9PTF9LSU5EX0ZJTEVfREVMRVRFEAQSEwoPVE9PTF9LSU5EX1NIRUxMEAUSFAoQVE9PTF9LSU5EX1NFQVJDSBAGEhIKDlRPT0xfS0lORF9MSVNUEAcSEwoPVE9PTF9LSU5EX0ZFVENIEAgSGAoUVE9PTF9LSU5EX1dFQl9TRUFSQ0gQCRITCg9UT09MX0tJTkRfVEhJTksQChISCg5UT09MX0tJTkRfVE9ETxALEhYKElRPT0xfS0lORF9TVUJBR0VOVBAMEhEKDVRPT0xfS0lORF9NQ1AQDSp5CgpUb2RvU3RhdHVzEhsKF1RPRE9fU1RBVFVTX1VOU1BFQ0lGSUVEEAASEAoMVE9ET19QRU5ESU5HEAESFAoQVE9ET19JTl9QUk9HUkVTUxACEhIKDlRPRE9fQ09NUExFVEVEEAMSEgoOVE9ET19DQU5DRUxMRUQQBCqsAQoOU3ViQWdlbnRTdGF0dXMSIAocU1VCX0FHRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVNVQl9BR0VOVF9QRU5ESU5HEAESGQoVU1VCX0FHRU5UX0lOX1BST0dSRVNTEAISFwoTU1VCX0FHRU5UX0NPTVBMRVRFRBADEhQKEFNVQl9BR0VOVF9GQUlMRUQQBBIXChNTVUJfQUdFTlRfQ0FOQ0VMTEVEEAUqiQEKFUV4ZWN1dGlvbkFydGlmYWN0S2luZBInCiNFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9VTlNQRUNJRklFRBAAEiAKHEVYRUNVVElPTl9BUlRJRkFDVF9LSU5EX0ZJTEUQARIlCiFFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9ESVJFQ1RPUlkQAipfChNTdW1tYXJpemF0aW9uU291cmNlEiQKIFNVTU1BUklaQVRJT05fU09VUkNFX1VOU1BFQ0lGSUVEEAASDwoLZ3JhcGhfc3RhcnQQARIRCg1taWRfZXhlY3V0aW9uEAIqkgEKF1Rvb2xDYWxsU3RyZWFtaW5nU291cmNlEioKJlRPT0xfQ0FMTF9TVFJFQU1JTkdfU09VUkNFX1VOU1BFQ0lGSUVEEAASJAogVE9PTF9DQUxMX1NUUkVBTUlOR19TT1VSQ0VfSU5QVVQQARIlCiFUT09MX0NBTExfU1RSRUFNSU5HX1NPVVJDRV9PVVRQVVQQAiqLAQoWRXhlY3V0aW9uQ29udHJvbFNpZ25hbBIoCiRFWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfVU5TUEVDSUZJRUQQABIhCh1FWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfU1RPUBABEiQKIEVYRUNVVElPTl9DT05UUk9MX1NJR05BTF9XQVJOSU5HEAIqpQEKDkFwcHJvdmFsQWN0aW9uEh8KG0FQUFJPVkFMX0FDVElPTl9VTlNQRUNJRklFRBAAEhsKF0FQUFJPVkFMX0FDVElPTl9BUFBST1ZFEAESGAoUQVBQUk9WQUxfQUNUSU9OX1NLSVAQAhIaChZBUFBST1ZBTF9BQ1RJT05fUkVKRUNUEAMSHwobQVBQUk9WQUxfQUNUSU9OX0FQUFJPVkVfQUxMEAQqagoPSW50ZXJhY3Rpb25Nb2RlEiAKHElOVEVSQUNUSU9OX01PREVfVU5TUEVDSUZJRUQQABIaChZJTlRFUkFDVElPTl9NT0RFX0FHRU5UEAESGQoVSU5URVJBQ1RJT05fTU9ERV9QTEFOEAJiBnByb3RvMw");
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZW51bS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxKv8BCg5FeGVjdXRpb25QaGFzZRIfChtFWEVDVVRJT05fUEhBU0VfVU5TUEVDSUZJRUQQABIVChFFWEVDVVRJT05fUEVORElORxABEhkKFUVYRUNVVElPTl9JTl9QUk9HUkVTUxACEhcKE0VYRUNVVElPTl9DT01QTEVURUQQAxIUChBFWEVDVVRJT05fRkFJTEVEEAQSFwoTRVhFQ1VUSU9OX0NBTkNFTExFRBAFEhgKFEVYRUNVVElPTl9URVJNSU5BVEVEEAgSIgoeRVhFQ1VUSU9OX1dBSVRJTkdfRk9SX0FQUFJPVkFMEAYSFAoQRVhFQ1VUSU9OX1BBVVNFRBAHKooBCgtNZXNzYWdlVHlwZRIcChhNRVNTQUdFX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1NRVNTQUdFX0hVTUFOEAESDgoKTUVTU0FHRV9BSRACEhAKDE1FU1NBR0VfVE9PTBADEhIKDk1FU1NBR0VfU1lTVEVNEAQSFAoQTUVTU0FHRV9USElOS0lORxAFKsYBCg5Ub29sQ2FsbFN0YXR1cxIgChxUT09MX0NBTExfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFQoRVE9PTF9DQUxMX1BFTkRJTkcQARIVChFUT09MX0NBTExfUlVOTklORxACEhcKE1RPT0xfQ0FMTF9DT01QTEVURUQQAxIUChBUT09MX0NBTExfRkFJTEVEEAQSHgoaVE9PTF9DQUxMX1dBSVRJTkdfQVBQUk9WQUwQBRIVChFUT09MX0NBTExfU0tJUFBFRBAGKs4CCghUb29sS2luZBIZChVUT09MX0tJTkRfVU5TUEVDSUZJRUQQABIXChNUT09MX0tJTkRfRklMRV9SRUFEEAESGAoUVE9PTF9LSU5EX0ZJTEVfV1JJVEUQAhIXChNUT09MX0tJTkRfRklMRV9FRElUEAMSGQoVVE9PTF9LSU5EX0ZJTEVfREVMRVRFEAQSEwoPVE9PTF9LSU5EX1NIRUxMEAUSFAoQVE9PTF9LSU5EX1NFQVJDSBAGEhIKDlRPT0xfS0lORF9MSVNUEAcSEwoPVE9PTF9LSU5EX0ZFVENIEAgSGAoUVE9PTF9LSU5EX1dFQl9TRUFSQ0gQCRITCg9UT09MX0tJTkRfVEhJTksQChISCg5UT09MX0tJTkRfVE9ETxALEhYKElRPT0xfS0lORF9TVUJBR0VOVBAMEhEKDVRPT0xfS0lORF9NQ1AQDSp5CgpUb2RvU3RhdHVzEhsKF1RPRE9fU1RBVFVTX1VOU1BFQ0lGSUVEEAASEAoMVE9ET19QRU5ESU5HEAESFAoQVE9ET19JTl9QUk9HUkVTUxACEhIKDlRPRE9fQ09NUExFVEVEEAMSEgoOVE9ET19DQU5DRUxMRUQQBCqsAQoOU3ViQWdlbnRTdGF0dXMSIAocU1VCX0FHRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVNVQl9BR0VOVF9QRU5ESU5HEAESGQoVU1VCX0FHRU5UX0lOX1BST0dSRVNTEAISFwoTU1VCX0FHRU5UX0NPTVBMRVRFRBADEhQKEFNVQl9BR0VOVF9GQUlMRUQQBBIXChNTVUJfQUdFTlRfQ0FOQ0VMTEVEEAUqiQEKFUV4ZWN1dGlvbkFydGlmYWN0S2luZBInCiNFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9VTlNQRUNJRklFRBAAEiAKHEVYRUNVVElPTl9BUlRJRkFDVF9LSU5EX0ZJTEUQARIlCiFFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9ESVJFQ1RPUlkQAipfChNTdW1tYXJpemF0aW9uU291cmNlEiQKIFNVTU1BUklaQVRJT05fU09VUkNFX1VOU1BFQ0lGSUVEEAASDwoLZ3JhcGhfc3RhcnQQARIRCg1taWRfZXhlY3V0aW9uEAIqkgEKF1Rvb2xDYWxsU3RyZWFtaW5nU291cmNlEioKJlRPT0xfQ0FMTF9TVFJFQU1JTkdfU09VUkNFX1VOU1BFQ0lGSUVEEAASJAogVE9PTF9DQUxMX1NUUkVBTUlOR19TT1VSQ0VfSU5QVVQQARIlCiFUT09MX0NBTExfU1RSRUFNSU5HX1NPVVJDRV9PVVRQVVQQAiqLAQoWRXhlY3V0aW9uQ29udHJvbFNpZ25hbBIoCiRFWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfVU5TUEVDSUZJRUQQABIhCh1FWEVDVVRJT05fQ09OVFJPTF9TSUdOQUxfU1RPUBABEiQKIEVYRUNVVElPTl9DT05UUk9MX1NJR05BTF9XQVJOSU5HEAIqpQEKDkFwcHJvdmFsQWN0aW9uEh8KG0FQUFJPVkFMX0FDVElPTl9VTlNQRUNJRklFRBAAEhsKF0FQUFJPVkFMX0FDVElPTl9BUFBST1ZFEAESGAoUQVBQUk9WQUxfQUNUSU9OX1NLSVAQAhIaChZBUFBST1ZBTF9BQ1RJT05fUkVKRUNUEAMSHwobQVBQUk9WQUxfQUNUSU9OX0FQUFJPVkVfQUxMEAQqhAMKFEFwcHJvdmFsUG9saWN5U291cmNlEiYKIkFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfVU5TUEVDSUZJRUQQABItCilBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0NMQVNTSUZJRVJfREVGQVVMVBABEioKJkFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfUElOTkVEX09WRVJSSURFEAISKQolQVBQUk9WQUxfUE9MSUNZX1NPVVJDRV9BR0VOVF9PVkVSUklERRADEisKJ0FQUFJPVkFMX1BPTElDWV9TT1VSQ0VfQVVUT19BUFBST1ZFX0FMTBAEEikKJUFQUFJPVkFMX1BPTElDWV9TT1VSQ0VfQVBQUk9WQUxfTEVBU0UQBRIrCidBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0JVSUxUSU5fQ0FURUdPUlkQBhI5CjVBUFBST1ZBTF9QT0xJQ1lfU09VUkNFX0FOTk9UQVRJT05fREVTVFJVQ1RJVkVfVElHSFRFThAHKuMBChFBcHByb3ZhbEV2ZW50VHlwZRIjCh9BUFBST1ZBTF9FVkVOVF9UWVBFX1VOU1BFQ0lGSUVEEAASIQodQVBQUk9WQUxfRVZFTlRfVFlQRV9SRVFVRVNURUQQARIgChxBUFBST1ZBTF9FVkVOVF9UWVBFX0FQUFJPVkVEEAISIAocQVBQUk9WQUxfRVZFTlRfVFlQRV9SRUpFQ1RFRBADEh8KG0FQUFJPVkFMX0VWRU5UX1RZUEVfU0tJUFBFRBAEEiEKHUFQUFJPVkFMX0VWRU5UX1RZUEVfUkVUUkFDVEVEEAUqpAEKGEFwcHJvdmFsUmV0cmFjdGlvblJlYXNvbhIqCiZBUFBST1ZBTF9SRVRSQUNUSU9OX1JFQVNPTl9VTlNQRUNJRklFRBAAEjEKLUFQUFJPVkFMX1JFVFJBQ1RJT05fUkVBU09OX1NVQl9BR0VOVF9URVJNSU5BTBABEikKJUFQUFJPVkFMX1JFVFJBQ1RJT05fUkVBU09OX1NVUEVSU0VERUQQAipqCg9JbnRlcmFjdGlvbk1vZGUSIAocSU5URVJBQ1RJT05fTU9ERV9VTlNQRUNJRklFRBAAEhoKFklOVEVSQUNUSU9OX01PREVfQUdFTlQQARIZChVJTlRFUkFDVElPTl9NT0RFX1BMQU4QAiqmAQoORmlsZUNoYW5nZVR5cGUSIAocRklMRV9DSEFOR0VfVFlQRV9VTlNQRUNJRklFRBAAEhsKF0ZJTEVfQ0hBTkdFX1RZUEVfQ1JFQVRFEAESGwoXRklMRV9DSEFOR0VfVFlQRV9NT0RJRlkQAhIbChdGSUxFX0NIQU5HRV9UWVBFX0RFTEVURRADEhsKF0ZJTEVfQ0hBTkdFX1RZUEVfUkVOQU1FEAQqlgEKFkZpbGVDaGFuZ2VDYXB0dXJlTGV2ZWwSKQolRklMRV9DSEFOR0VfQ0FQVFVSRV9MRVZFTF9VTlNQRUNJRklFRBAAEigKJEZJTEVfQ0hBTkdFX0NBUFRVUkVfTEVWRUxfV0hPTEVfRklMRRABEicKI0ZJTEVfQ0hBTkdFX0NBUFRVUkVfTEVWRUxfSFVOS19PTkxZEAIq/QEKE0ZpbGVDaGFuZ2VTZXRTdGF0dXMSJgoiRklMRV9DSEFOR0VfU0VUX1NUQVRVU19VTlNQRUNJRklFRBAAEiQKIEZJTEVfQ0hBTkdFX1NFVF9TVEFUVVNfQ0FQVFVSSU5HEAESKgomRklMRV9DSEFOR0VfU0VUX1NUQVRVU19BV0FJVElOR19SRVZJRVcQAhIiCh5GSUxFX0NIQU5HRV9TRVRfU1RBVFVTX0RFQ0lERUQQAxIlCiFGSUxFX0NIQU5HRV9TRVRfU1RBVFVTX1JFQ09OQ0lMRUQQBBIhCh1GSUxFX0NIQU5HRV9TRVRfU1RBVFVTX0ZBSUxFRBAFKscBCg5GaWxlQ2hhbmdlS2luZBIgChxGSUxFX0NIQU5HRV9LSU5EX1VOU1BFQ0lGSUVEEAASGAoURklMRV9DSEFOR0VfS0lORF9BREQQARIbChdGSUxFX0NIQU5HRV9LSU5EX01PRElGWRACEhsKF0ZJTEVfQ0hBTkdFX0tJTkRfREVMRVRFEAMSGwoXRklMRV9DSEFOR0VfS0lORF9SRU5BTUUQBBIiCh5GSUxFX0NIQU5HRV9LSU5EX0JJTkFSWV9DSEFOR0UQBSraAQoQRmlsZUNhcHR1cmVDbGFzcxIiCh5GSUxFX0NBUFRVUkVfQ0xBU1NfVU5TUEVDSUZJRUQQABIiCh5GSUxFX0NBUFRVUkVfQ0xBU1NfR0lUX1RSQUNLRUQQARItCilGSUxFX0NBUFRVUkVfQ0xBU1NfR0lUX1VOVFJBQ0tFRF9DQVBUVVJFRBACEisKJ0ZJTEVfQ0FQVFVSRV9DTEFTU19HSVRfSUdOT1JFRF9DQVBUVVJFRBADEiIKHkZJTEVfQ0FQVFVSRV9DTEFTU19OT05fR0lUX0NBUxAEKqcBChBEaWZmQ29tcGxldGVuZXNzEiEKHURJRkZfQ09NUExFVEVORVNTX1VOU1BFQ0lGSUVEEAASHgoaRElGRl9DT01QTEVURU5FU1NfQ09NUExFVEUQARIlCiFESUZGX0NPTVBMRVRFTkVTU19QQVJUSUFMX0JMT0NLRUQQAhIpCiVESUZGX0NPTVBMRVRFTkVTU19CSU5BUllfU1VNTUFSWV9PTkxZEAMqhwEKDFNuYXBzaG90S2luZBIdChlTTkFQU0hPVF9LSU5EX1VOU1BFQ0lGSUVEEAASHgoaU05BUFNIT1RfS0lORF9HSVRfVFJFRV9SRUYQARIeChpTTkFQU0hPVF9LSU5EX0NBU19NQU5JRkVTVBACEhgKFFNOQVBTSE9UX0tJTkRfSFlCUklEEAMqegoRRmlsZURlY2lzaW9uU2NvcGUSIwofRklMRV9ERUNJU0lPTl9TQ09QRV9VTlNQRUNJRklFRBAAEiIKHkZJTEVfREVDSVNJT05fU0NPUEVfQ0hBTkdFX1NFVBABEhwKGEZJTEVfREVDSVNJT05fU0NPUEVfRklMRRACKn0KEkZpbGVEZWNpc2lvbkFjdGlvbhIkCiBGSUxFX0RFQ0lTSU9OX0FDVElPTl9VTlNQRUNJRklFRBAAEiAKHEZJTEVfREVDSVNJT05fQUNUSU9OX0FQUFJPVkUQARIfChtGSUxFX0RFQ0lTSU9OX0FDVElPTl9SRUpFQ1QQAiqLAQoSRmlsZURlY2lzaW9uT3JpZ2luEiQKIEZJTEVfREVDSVNJT05fT1JJR0lOX1VOU1BFQ0lGSUVEEAASHQoZRklMRV9ERUNJU0lPTl9PUklHSU5fVVNFUhABEjAKLEZJTEVfREVDSVNJT05fT1JJR0lOX1BPTElDWV9BUFBST1ZFRF9DT01NQU5EEAIqjQIKE0ZpbGVSZXZpZXdFdmVudFR5cGUSJgoiRklMRV9SRVZJRVdfRVZFTlRfVFlQRV9VTlNQRUNJRklFRBAAEiwKKEZJTEVfUkVWSUVXX0VWRU5UX1RZUEVfQkFTRUxJTkVfQ0FQVFVSRUQQARItCilGSUxFX1JFVklFV19FVkVOVF9UWVBFX0NBTkRJREFURV9DQVBUVVJFRBACEicKI0ZJTEVfUkVWSUVXX0VWRU5UX1RZUEVfRklMRV9ERUNJREVEEAMSJQohRklMRV9SRVZJRVdfRVZFTlRfVFlQRV9SRUNPTkNJTEVEEAQSIQodRklMRV9SRVZJRVdfRVZFTlRfVFlQRV9GQUlMRUQQBSr5AQoVRmlsZVJldmlld0ZhaWx1cmVLaW5kEigKJEZJTEVfUkVWSUVXX0ZBSUxVUkVfS0lORF9VTlNQRUNJRklFRBAAEisKJ0ZJTEVfUkVWSUVXX0ZBSUxVUkVfS0lORF9DQVBUVVJFX0ZBSUxFRBABEi4KKkZJTEVfUkVWSUVXX0ZBSUxVUkVfS0lORF9ESUZGX1VOUkVWSUVXQUJMRRACEi0KKUZJTEVfUkVWSUVXX0ZBSUxVUkVfS0lORF9SRUNPTkNJTEVfRkFJTEVEEAMSKgomRklMRV9SRVZJRVdfRkFJTFVSRV9LSU5EX0hBU0hfTUlTTUFUQ0gQBCrEAQoVRmlsZVJldmlld0Jsb2NrUmVhc29uEigKJEZJTEVfUkVWSUVXX0JMT0NLX1JFQVNPTl9VTlNQRUNJRklFRBAAEiwKKEZJTEVfUkVWSUVXX0JMT0NLX1JFQVNPTl9TRUNSRVRfV0lUSEhFTEQQARIoCiRGSUxFX1JFVklFV19CTE9DS19SRUFTT05fU0laRV9FTElERUQQAhIpCiVGSUxFX1JFVklFV19CTE9DS19SRUFTT05fVU5SRVZJRVdBQkxFEANiBnByb3RvMw");
 
 /**
  * ExecutionPhase defines the lifecycle phase of an agent execution.
@@ -848,45 +848,49 @@ export enum ApprovalAction {
   REJECT = 3,
 
   /**
-   * Approve this tool call AND auto-approve every subsequent tool call for
-   * the rest of this execution ("approve and don't ask again").
+   * Approve this tool call AND grant a run-lifetime lease that auto-approves
+   * every subsequent tool call of the SAME class for the rest of this execution
+   * ("approve all of this kind, don't ask again").
    *
-   * This is the gate-time analog of AgentExecutionSpec.auto_approve_all: it
-   * lets a human escalate from per-call approval to "trust the rest of this
-   * run" at the moment of friction, instead of pre-arming a bypass before the
-   * agent has done anything.
+   * This is the gate-time, scoped analog of AgentExecutionSpec.auto_approve_all:
+   * it lets a human escalate from per-call approval to "trust this whole class"
+   * at the moment of friction, without pre-arming a global bypass. The lease is
+   * scoped to one class — a built-in approval category (write / delete / shell,
+   * with write and edit collapsed) or a single MCP server — never the whole run.
    *
    * ## Canonical contract (every layer derives its behavior from this)
    *
-   * 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the
-   *    clicked tool call, and resolve the rest of the *current* approval gate
-   *    by setting every other tool call still in TOOL_CALL_WAITING_APPROVAL
-   *    (action UNSPECIFIED) — including sub-agent tool calls — to
-   *    APPROVAL_ACTION_APPROVE. pending_approvals is recomputed to empty, so
-   *    the standard "gate fully resolved" path sends the approvalGateResolved
-   *    signal. This keeps the audit trail honest: every tool that runs carries
-   *    an explicit approval_action.
+   * 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the clicked
+   *    tool call, and resolve any other still-pending tool call that shares the
+   *    clicked call's class — including sub-agent tool calls — to
+   *    APPROVAL_ACTION_APPROVE. Pending tool calls of a DIFFERENT class stay in
+   *    TOOL_CALL_WAITING_APPROVAL so the gate still holds for them. This keeps
+   *    the audit trail honest: every tool that runs carries an explicit
+   *    approval_action.
    *
-   * 2. Runner (native + cursor harness): on reinvocation, the presence of ANY
-   *    APPROVE_ALL decision in the persisted execution history means the
-   *    execution is auto-approved for the remainder of the run. New tool calls
-   *    (and sub-agent tool calls) skip the approval gate entirely, exactly as
-   *    if spec.auto_approve_all were true. The interrupted tool itself resumes
-   *    as an approval.
+   * 2. Runner (native + cursor harness): the lease is derived on read from the
+   *    persisted APPROVE_ALL decision plus the tool's class — there is no
+   *    separately stored lease. On reinvocation, a new tool call (or sub-agent
+   *    tool call) whose class matches an active lease skips the approval gate; a
+   *    tool call of any other class is still gated. The interrupted tool itself
+   *    resumes as an approval.
    *
    * ## Scope
    *
-   * APPROVE_ALL covers the rest of THIS execution. It is NOT persisted to the
-   * session or the agent; a subsequent execution starts gated again unless the
-   * caller sets it anew (interactive clients may carry a session-scoped
-   * preference forward in-memory, but that is a client concern, not a
-   * server-persisted state).
+   * The lease covers the rest of THIS execution and only the matched class. It
+   * is NOT persisted to the session or the agent; a subsequent execution starts
+   * gated again unless the caller sets it anew (interactive clients may carry a
+   * session-scoped preference forward in-memory, but that is a client concern,
+   * not server-persisted state). AgentExecutionSpec.auto_approve_all remains the
+   * single, explicit whole-run global bypass.
    *
    * ## Audit
    *
-   * Because this bypasses all remaining approval checks for the execution,
-   * executions containing an APPROVE_ALL decision should be auditable. The
-   * decision is recorded on ToolCall.approval_action like any other.
+   * Because it bypasses subsequent same-class approval checks, executions
+   * containing an APPROVE_ALL decision should be auditable. The decision is
+   * recorded on ToolCall.approval_action like any other; the policy layer that
+   * cleared each subsequent call is recorded on ToolCall.approval_policy_source
+   * (APPROVAL_POLICY_SOURCE_APPROVAL_LEASE).
    *
    * @generated from enum value: APPROVAL_ACTION_APPROVE_ALL = 4;
    */
@@ -898,6 +902,224 @@ export enum ApprovalAction {
  */
 export const ApprovalActionSchema: GenEnum<ApprovalAction> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 10);
+
+/**
+ * ApprovalPolicySource is the policy layer that decided a tool call's approval
+ * requirement — the provenance recorded on every gated or auto-approved tool
+ * call so an execution's authorizations are auditable.
+ *
+ * Set by the runner at the approval gate (the one component that evaluates the
+ * merged policy) and persisted on ToolCall.approval_policy_source, exactly as
+ * ToolCall.tool_kind is set and persisted. Clients render it to answer "why was
+ * this tool gated or auto-approved?".
+ *
+ * @internal
+ * Mirrors the runner's internal PolicySource union (approval-policy.ts) one for
+ * one. Layered precedence: a pinned or agent override wins over the classifier
+ * default; a lease or the global bypass clears an otherwise-required approval.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource
+ */
+export enum ApprovalPolicySource {
+  /**
+   * Default — the execution predates this field, or the tool was never evaluated
+   * by the approval gate (e.g. a read-only built-in). Clients show no provenance.
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Layer 1: the connect-time classifier's default for an MCP tool
+   * (McpServerStatus.tool_approvals).
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT = 1;
+   */
+  CLASSIFIER_DEFAULT = 1,
+
+  /**
+   * Layer 2: an operator's pinned override on the MCP server blueprint
+   * (McpServerSpec.pinned_tool_approvals).
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE = 2;
+   */
+  PINNED_OVERRIDE = 2,
+
+  /**
+   * Layer 3: an agent-level override for an MCP tool
+   * (Agent McpServerUsage.tool_approval_overrides).
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE = 3;
+   */
+  AGENT_OVERRIDE = 3,
+
+  /**
+   * Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global
+   * bypass cleared this call.
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL = 4;
+   */
+  AUTO_APPROVE_ALL = 4,
+
+  /**
+   * Layer 4: a run-lifetime scoped lease (the successor to a global "approve
+   * all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched
+   * the leased class.
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_APPROVAL_LEASE = 5;
+   */
+  APPROVAL_LEASE = 5,
+
+  /**
+   * A non-MCP built-in tool gated by the shared tool taxonomy
+   * (write / delete / shell).
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY = 6;
+   */
+  BUILTIN_CATEGORY = 6,
+
+  /**
+   * The connect-time MCP destructiveHint tightener forced this tool to require
+   * approval, overriding a more permissive classifier verdict. First-class
+   * provenance so a tightened tool is distinguishable from a plain classifier
+   * default. See applyDestructiveHintTightener.
+   *
+   * @generated from enum value: APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;
+   */
+  ANNOTATION_DESTRUCTIVE_TIGHTEN = 7,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.
+ */
+export const ApprovalPolicySourceSchema: GenEnum<ApprovalPolicySource> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 11);
+
+/**
+ * ApprovalEventType is the kind of event in the append-only approval-event
+ * stream (see ApprovalEvent in approval.proto).
+ *
+ * The event stream is the future single source of truth for HITL approvals. In
+ * Phase 1 of the approval re-architecture it is computed in *shadow* beside the
+ * existing message-scan projection (PendingApproval) and compared for parity in
+ * CI — it never feeds the UI yet, so introducing it changes no behavior.
+ *
+ * The set covers every way an approval request resolves: the three user
+ * decisions (APPROVED / REJECTED / SKIPPED) plus RETRACTED — the platform
+ * withdrawing an in-flight request whose gated call became unreachable before a
+ * decision. Together they make the lifecycle total, which is what lets the
+ * event-stream projection stand on its own. Lease-expiry events remain
+ * intentionally omitted until a component emits them; enums extend additively,
+ * so adding them later is non-breaking.
+ *
+ * event_type is the coarse lifecycle bucket; the precise user action (including
+ * APPROVE_ALL, which buckets as APPROVED) lives on ApprovalDecision.action.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.ApprovalEventType
+ */
+export enum ApprovalEventType {
+  /**
+   * Default value, not a valid event type.
+   *
+   * @generated from enum value: APPROVAL_EVENT_TYPE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A tool call was gated and is awaiting a user decision.
+   * Payload: ApprovalRequest.
+   *
+   * @generated from enum value: APPROVAL_EVENT_TYPE_REQUESTED = 1;
+   */
+  REQUESTED = 1,
+
+  /**
+   * The user approved the request (APPROVE or APPROVE_ALL); the tool may run.
+   * Payload: ApprovalDecision.
+   *
+   * @generated from enum value: APPROVAL_EVENT_TYPE_APPROVED = 2;
+   */
+  APPROVED = 2,
+
+  /**
+   * The user rejected the request; the execution fails.
+   * Payload: ApprovalDecision.
+   *
+   * @generated from enum value: APPROVAL_EVENT_TYPE_REJECTED = 3;
+   */
+  REJECTED = 3,
+
+  /**
+   * The user skipped the request; execution continues without the tool.
+   * Payload: ApprovalDecision.
+   *
+   * @generated from enum value: APPROVAL_EVENT_TYPE_SKIPPED = 4;
+   */
+  SKIPPED = 4,
+
+  /**
+   * The platform withdrew the request before any user decision because the gated
+   * call became unreachable while the execution was still live — its sub-agent
+   * reached a terminal state, or the call was superseded on resume. This is the
+   * system-actored terminal transition that makes the lifecycle total: a
+   * REQUESTED is resolved by exactly one of APPROVED / REJECTED / SKIPPED (user
+   * decisions) or RETRACTED (platform withdrawal). It is distinct from SKIPPED so
+   * the audit trail never conflates "the human skipped this" with "the platform
+   * withdrew it." Terminal-execution gate-exits (cancel / fail / terminate) are
+   * NOT modeled as per-call events — a terminal execution simply projects to zero
+   * pending approvals — so RETRACTED is reserved for the in-flight, per-call case.
+   * Payload: ApprovalRetraction.
+   *
+   * @generated from enum value: APPROVAL_EVENT_TYPE_RETRACTED = 5;
+   */
+  RETRACTED = 5,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.ApprovalEventType.
+ */
+export const ApprovalEventTypeSchema: GenEnum<ApprovalEventType> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 12);
+
+/**
+ * ApprovalRetractionReason explains why the platform withdrew an in-flight
+ * approval request (an APPROVAL_EVENT_TYPE_RETRACTED event). It is audit-trail
+ * metadata — it answers the user's question "why did my approval disappear?" —
+ * and never affects control flow.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReason
+ */
+export enum ApprovalRetractionReason {
+  /**
+   * Default value, not a valid reason.
+   *
+   * @generated from enum value: APPROVAL_RETRACTION_REASON_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The gated call's sub-agent reached a terminal state (completed, failed, or
+   * cancelled) before the call was decided, orphaning the request.
+   *
+   * @generated from enum value: APPROVAL_RETRACTION_REASON_SUB_AGENT_TERMINAL = 1;
+   */
+  SUB_AGENT_TERMINAL = 1,
+
+  /**
+   * The gated call left the approval gate without a decision (the harness
+   * advanced past it or abandoned it on resume) while the execution was still
+   * live.
+   *
+   * @generated from enum value: APPROVAL_RETRACTION_REASON_SUPERSEDED = 2;
+   */
+  SUPERSEDED = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.ApprovalRetractionReason.
+ */
+export const ApprovalRetractionReasonSchema: GenEnum<ApprovalRetractionReason> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 13);
 
 /**
  * InteractionMode controls the agent's behavioral posture for an execution.
@@ -956,5 +1178,662 @@ export enum InteractionMode {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.InteractionMode.
  */
 export const InteractionModeSchema: GenEnum<InteractionMode> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 11);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 14);
+
+/**
+ * FileChangeType is the per-file outcome of a file mutation in a tool call.
+ *
+ * Distinct from ToolKind, which classifies the tool: a single tool call may
+ * produce several FileChanges of different types (multi-file edits).
+ *
+ * @since First-Class Diff Review (#186)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileChangeType
+ */
+export enum FileChangeType {
+  /**
+   * Default value, not a valid file change type.
+   *
+   * @generated from enum value: FILE_CHANGE_TYPE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A new file was created.
+   *
+   * @generated from enum value: FILE_CHANGE_TYPE_CREATE = 1;
+   */
+  CREATE = 1,
+
+  /**
+   * An existing file's contents were modified.
+   *
+   * @generated from enum value: FILE_CHANGE_TYPE_MODIFY = 2;
+   */
+  MODIFY = 2,
+
+  /**
+   * A file was deleted.
+   *
+   * @generated from enum value: FILE_CHANGE_TYPE_DELETE = 3;
+   */
+  DELETE = 3,
+
+  /**
+   * A file was renamed or moved; FileChange.rename_from holds the source path.
+   *
+   * @generated from enum value: FILE_CHANGE_TYPE_RENAME = 4;
+   */
+  RENAME = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileChangeType.
+ */
+export const FileChangeTypeSchema: GenEnum<FileChangeType> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 15);
+
+/**
+ * FileChangeCaptureLevel describes how complete a FileChange's captured content
+ * is, so clients render whole-file vs hunk-only diffs honestly per harness.
+ *
+ * @since First-Class Diff Review (#186)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel
+ */
+export enum FileChangeCaptureLevel {
+  /**
+   * Default value, not a valid capture level.
+   *
+   * @generated from enum value: FILE_CHANGE_CAPTURE_LEVEL_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Full before+after content captured (native edit/write; future Cursor
+   * pre-read). Clients render a true two-pane diff.
+   *
+   * @generated from enum value: FILE_CHANGE_CAPTURE_LEVEL_WHOLE_FILE = 1;
+   */
+  WHOLE_FILE = 1,
+
+  /**
+   * Only a hunk-level unified_diff is available (Cursor today). Clients render
+   * the hunk diff; before/after whole-file content is absent.
+   *
+   * @generated from enum value: FILE_CHANGE_CAPTURE_LEVEL_HUNK_ONLY = 2;
+   */
+  HUNK_ONLY = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileChangeCaptureLevel.
+ */
+export const FileChangeCaptureLevelSchema: GenEnum<FileChangeCaptureLevel> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 16);
+
+/**
+ * FileChangeSetStatus is the state of a FileChangeSet, DERIVED by folding its
+ * file-review events (never stored-mutable).
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus
+ */
+export enum FileChangeSetStatus {
+  /**
+   * Default value, not a valid status.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Baseline captured; the turn is executing and the candidate is not yet
+   * captured. No diff to review yet.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_CAPTURING = 1;
+   */
+  CAPTURING = 1,
+
+  /**
+   * Candidate captured and the diff is reviewable; awaiting user decisions.
+   * Partially-decided sets stay here (still actionable) until every change is
+   * decided.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_AWAITING_REVIEW = 2;
+   */
+  AWAITING_REVIEW = 2,
+
+  /**
+   * All changes decided; awaiting the runner's reconcile.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_DECIDED = 3;
+   */
+  DECIDED = 3,
+
+  /**
+   * Approved bytes reconciled into the workspace and hash-verified. Terminal.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_RECONCILED = 4;
+   */
+  RECONCILED = 4,
+
+  /**
+   * A capture, diff, or reconcile failure halted the lifecycle. Terminal. See
+   * FileReviewFailureKind for the precise cause.
+   *
+   * @generated from enum value: FILE_CHANGE_SET_STATUS_FAILED = 5;
+   */
+  FAILED = 5,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileChangeSetStatus.
+ */
+export const FileChangeSetStatusSchema: GenEnum<FileChangeSetStatus> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 17);
+
+/**
+ * FileChangeKind is the per-file outcome within a FileChangeSet.
+ *
+ * The minimal set that covers the overwhelming majority of edits; COPY /
+ * MODE_CHANGE / SYMLINK_CHANGE are deferred (adding enum values later is
+ * non-breaking).
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileChangeKind
+ */
+export enum FileChangeKind {
+  /**
+   * Default value, not a valid kind.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A new file was created.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_ADD = 1;
+   */
+  ADD = 1,
+
+  /**
+   * An existing file's contents changed.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_MODIFY = 2;
+   */
+  MODIFY = 2,
+
+  /**
+   * A file was deleted.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_DELETE = 3;
+   */
+  DELETE = 3,
+
+  /**
+   * A file was renamed or moved; path_before holds the source, path_after the
+   * destination.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_RENAME = 4;
+   */
+  RENAME = 4,
+
+  /**
+   * A binary file changed; rendered as "binary file changed" rather than a text
+   * diff.
+   *
+   * @generated from enum value: FILE_CHANGE_KIND_BINARY_CHANGE = 5;
+   */
+  BINARY_CHANGE = 5,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileChangeKind.
+ */
+export const FileChangeKindSchema: GenEnum<FileChangeKind> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 18);
+
+/**
+ * FileCaptureClass records how a file was captured, which governs which
+ * substrate (git tree ref vs CAS) holds its bytes and whether it is reviewable
+ * before CAS lands.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileCaptureClass
+ */
+export enum FileCaptureClass {
+  /**
+   * Default value, not a valid capture class.
+   *
+   * @generated from enum value: FILE_CAPTURE_CLASS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A git-tracked file; captured via the git no-commit tree snapshot.
+   *
+   * @generated from enum value: FILE_CAPTURE_CLASS_GIT_TRACKED = 1;
+   */
+  GIT_TRACKED = 1,
+
+  /**
+   * A git-untracked (but not ignored) file captured into the snapshot.
+   *
+   * @generated from enum value: FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED = 2;
+   */
+  GIT_UNTRACKED_CAPTURED = 2,
+
+  /**
+   * A gitignored file captured via CAS (Phase 3).
+   *
+   * @generated from enum value: FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED = 3;
+   */
+  GIT_IGNORED_CAPTURED = 3,
+
+  /**
+   * A file in a non-git workspace captured via CAS (Phase 3).
+   *
+   * @generated from enum value: FILE_CAPTURE_CLASS_NON_GIT_CAS = 4;
+   */
+  NON_GIT_CAS = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileCaptureClass.
+ */
+export const FileCaptureClassSchema: GenEnum<FileCaptureClass> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 19);
+
+/**
+ * DiffCompleteness describes whether a change set's rendered diff is complete
+ * enough to approve safely. A non-COMPLETE value blocks normal approval so an
+ * elided or binary-only diff can never be approved as if it were the whole
+ * change. The value is a rollup the runner derives from the per-file
+ * diff_complete + is_binary signals; it is an honest UI/audit signal, never the
+ * enforcement boundary — the backend gate always re-derives the keep-all
+ * condition from the per-file changes so a stale or mislabeled rollup can never
+ * widen what may be approved.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.DiffCompleteness
+ */
+export enum DiffCompleteness {
+  /**
+   * Default value, not a valid completeness.
+   *
+   * @generated from enum value: DIFF_COMPLETENESS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Every file's full diff is available; safe to approve.
+   *
+   * @generated from enum value: DIFF_COMPLETENESS_COMPLETE = 1;
+   */
+  COMPLETE = 1,
+
+  /**
+   * At least one file has a non-binary incompleteness (elided/truncated/
+   * secret-withheld/uncapturable) with no keepable bytes. The set cannot be
+   * approved in one shot; it is resolved per file (keep the reviewable files,
+   * discard the rest).
+   *
+   * @generated from enum value: DIFF_COMPLETENESS_PARTIAL_BLOCKED = 2;
+   */
+  PARTIAL_BLOCKED = 2,
+
+  /**
+   * The set's ONLY incompleteness is binary files: every non-binary file is
+   * fully reviewable, and the remaining files are binary (a byte-true summary,
+   * no text diff). Includes mixed sets (e.g. text edits + generated images).
+   * Such a set can be kept in one action via a CHANGE_SET-scoped APPROVE
+   * carrying acknowledge_unreviewable=true ("Keep all"). The acknowledgment
+   * relaxes completeness only — never the expected_digest gate ("what you
+   * approve is what gets applied").
+   *
+   * @generated from enum value: DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY = 3;
+   */
+  BINARY_SUMMARY_ONLY = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.DiffCompleteness.
+ */
+export const DiffCompletenessSchema: GenEnum<DiffCompleteness> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 20);
+
+/**
+ * SnapshotKind is the substrate backing a SnapshotRef.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.SnapshotKind
+ */
+export enum SnapshotKind {
+  /**
+   * Default value, not a valid snapshot kind.
+   *
+   * @generated from enum value: SNAPSHOT_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A git no-commit tree ref (git-tracked/untracked paths only).
+   *
+   * @generated from enum value: SNAPSHOT_KIND_GIT_TREE_REF = 1;
+   */
+  GIT_TREE_REF = 1,
+
+  /**
+   * A content-addressed manifest (ignored/non-git paths; Phase 3).
+   *
+   * @generated from enum value: SNAPSHOT_KIND_CAS_MANIFEST = 2;
+   */
+  CAS_MANIFEST = 2,
+
+  /**
+   * Both a git tree ref and a CAS manifest (mixed workspace).
+   *
+   * @generated from enum value: SNAPSHOT_KIND_HYBRID = 3;
+   */
+  HYBRID = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.SnapshotKind.
+ */
+export const SnapshotKindSchema: GenEnum<SnapshotKind> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 21);
+
+/**
+ * FileDecisionScope is the granularity a FileDecision applies to.
+ *
+ * HUNK is intentionally deferred — per-hunk approval is a derived approved
+ * snapshot, not a new lease, and ships after file-level is stable.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileDecisionScope
+ */
+export enum FileDecisionScope {
+  /**
+   * Default value, not a valid scope.
+   *
+   * @generated from enum value: FILE_DECISION_SCOPE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The decision applies to the whole change set.
+   *
+   * @generated from enum value: FILE_DECISION_SCOPE_CHANGE_SET = 1;
+   */
+  CHANGE_SET = 1,
+
+  /**
+   * The decision applies to one CapturedFileChange (FileDecision.file_change_id).
+   *
+   * @generated from enum value: FILE_DECISION_SCOPE_FILE = 2;
+   */
+  FILE = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileDecisionScope.
+ */
+export const FileDecisionScopeSchema: GenEnum<FileDecisionScope> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 22);
+
+/**
+ * FileDecisionAction is a user's verdict on a change set or file.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileDecisionAction
+ */
+export enum FileDecisionAction {
+  /**
+   * Default value, not a valid action.
+   *
+   * @generated from enum value: FILE_DECISION_ACTION_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Keep the change(s): reconcile the captured bytes into the workspace.
+   *
+   * @generated from enum value: FILE_DECISION_ACTION_APPROVE = 1;
+   */
+  APPROVE = 1,
+
+  /**
+   * Discard the change(s): reconcile back to baseline for the targeted scope.
+   *
+   * @generated from enum value: FILE_DECISION_ACTION_REJECT = 2;
+   */
+  REJECT = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileDecisionAction.
+ */
+export const FileDecisionActionSchema: GenEnum<FileDecisionAction> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 23);
+
+/**
+ * FileDecisionOrigin records which authority authored a FileDecision: a human
+ * reviewer, or a platform policy acting on consent the human already gave.
+ * Audit provenance carried on the decision so the record always shows WHO
+ * decided — it is never an enforcement input, never a correlation key, and
+ * never folded into any digest. UNSPECIFIED (decisions authored before this
+ * field existed) reads as a human decision, the only author that existed then.
+ *
+ * @since File-Change HITL Redesign (DD-28 approved-command auto-keep)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin
+ */
+export enum FileDecisionOrigin {
+  /**
+   * Default value: a pre-DD-28 decision with no recorded origin. Treated as
+   * USER by every consumer (the only author that existed before origins).
+   *
+   * @generated from enum value: FILE_DECISION_ORIGIN_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A human reviewer decided via SubmitFileDecision.
+   *
+   * @generated from enum value: FILE_DECISION_ORIGIN_USER = 1;
+   */
+  USER = 1,
+
+  /**
+   * Platform policy auto-kept the set because every mutation in its turn came
+   * from commands the human explicitly authorized (per-command approval,
+   * APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified
+   * against server-authored approval records before authoring (DD-28). The
+   * decision's actor is "policy", never the user.
+   *
+   * @generated from enum value: FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND = 2;
+   */
+  POLICY_APPROVED_COMMAND = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileDecisionOrigin.
+ */
+export const FileDecisionOriginSchema: GenEnum<FileDecisionOrigin> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 24);
+
+/**
+ * FileReviewEventType is the kind of event in the append-only file-review
+ * stream (see FileReviewEvent in filereview.proto). It is the coarse lifecycle
+ * bucket; failure fidelity lives on FileReviewFailure.kind.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileReviewEventType
+ */
+export enum FileReviewEventType {
+  /**
+   * Default value, not a valid event type.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Baseline captured at turn start. Payload: FileReviewBaselineCaptured.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED = 1;
+   */
+  BASELINE_CAPTURED = 1,
+
+  /**
+   * Candidate captured at the turn boundary, carrying the diff. Payload:
+   * FileReviewCandidateCaptured.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED = 2;
+   */
+  CANDIDATE_CAPTURED = 2,
+
+  /**
+   * A user decided a change set or file. Payload: FileDecision.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_FILE_DECIDED = 3;
+   */
+  FILE_DECIDED = 3,
+
+  /**
+   * Approved bytes reconciled and verified. Payload: FileReviewReconciled.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_RECONCILED = 4;
+   */
+  RECONCILED = 4,
+
+  /**
+   * A capture/diff/reconcile failure. Payload: FileReviewFailure.
+   *
+   * @generated from enum value: FILE_REVIEW_EVENT_TYPE_FAILED = 5;
+   */
+  FAILED = 5,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileReviewEventType.
+ */
+export const FileReviewEventTypeSchema: GenEnum<FileReviewEventType> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 25);
+
+/**
+ * FileReviewFailureKind is the precise cause carried by a FAILED file-review
+ * event (FileReviewFailure.kind). Audit/control metadata for the failure
+ * lifecycle.
+ *
+ * @since File-Change HITL Redesign (Phase 1)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind
+ */
+export enum FileReviewFailureKind {
+  /**
+   * Default value, not a valid failure kind.
+   *
+   * @generated from enum value: FILE_REVIEW_FAILURE_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Capturing the baseline or candidate snapshot failed.
+   *
+   * @generated from enum value: FILE_REVIEW_FAILURE_KIND_CAPTURE_FAILED = 1;
+   */
+  CAPTURE_FAILED = 1,
+
+  /**
+   * The diff could not be rendered completely (uncapturable path); the change
+   * set cannot become approvable.
+   *
+   * @generated from enum value: FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE = 2;
+   */
+  DIFF_UNREVIEWABLE = 2,
+
+  /**
+   * Reconciling approved bytes into the workspace failed.
+   *
+   * @generated from enum value: FILE_REVIEW_FAILURE_KIND_RECONCILE_FAILED = 3;
+   */
+  RECONCILE_FAILED = 3,
+
+  /**
+   * A post-reconcile filesystem hash did not match the approved digest.
+   *
+   * @generated from enum value: FILE_REVIEW_FAILURE_KIND_HASH_MISMATCH = 4;
+   */
+  HASH_MISMATCH = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileReviewFailureKind.
+ */
+export const FileReviewFailureKindSchema: GenEnum<FileReviewFailureKind> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 26);
+
+/**
+ * FileReviewBlockReason is the honest cause a captured file's diff is not fully
+ * reviewable (carried on CapturedFileChange.blocked_reason, set only when
+ * diff_complete == false). It is INFORMATIONAL provenance for the review UI —
+ * never an enforcement input and never folded into file_digest/aggregate_digest.
+ * Binary changes are conveyed by FileContent.is_binary, not here, so there is no
+ * BINARY value (it would duplicate a signal the wire already carries).
+ *
+ * @since File-Change HITL Redesign (Phase 4)
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason
+ */
+export enum FileReviewBlockReason {
+  /**
+   * Default: the file is reviewable, or diff_complete is false for a reason the
+   * wire already conveys elsewhere (a binary side via FileContent.is_binary).
+   *
+   * @generated from enum value: FILE_REVIEW_BLOCK_REASON_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A secret-like path (doc 12, DD-E): the bytes were deliberately never
+   * captured, so there is nothing to review. Authored content-less by the runner.
+   *
+   * @generated from enum value: FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD = 1;
+   */
+  SECRET_WITHHELD = 1,
+
+  /**
+   * Captured, then its inline bodies were dropped to keep the persisted status
+   * under its size limit. The content exists but is not inline for review.
+   *
+   * @generated from enum value: FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED = 2;
+   */
+  SIZE_ELIDED = 2,
+
+  /**
+   * Generic non-capturable cause (forward-compat catch-all; e.g. a future
+   * non-git path class). Mirrors the fail-open spirit of DIFF_UNREVIEWABLE.
+   *
+   * @generated from enum value: FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE = 3;
+   */
+  UNREVIEWABLE = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason.
+ */
+export const FileReviewBlockReasonSchema: GenEnum<FileReviewBlockReason> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 27);
 

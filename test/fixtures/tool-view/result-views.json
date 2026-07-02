@@ -44,7 +44,7 @@
       "mcpServerSlug": "",
       "args": { "command": "ls -la" },
       "result": "total 8\ndrwxr-xr-x  2 user user 4096 .\n[Command succeeded]",
-      "expected": { "type": "terminal", "exitCode": 0 }
+      "expected": { "type": "terminal", "exitCode": 0, "command": "ls -la" }
     },
     {
       "name": "native_shell_failure",
@@ -53,7 +53,7 @@
       "mcpServerSlug": "",
       "args": { "command": "false" },
       "result": "some stderr output\n[Command failed with exit code 1]",
-      "expected": { "type": "terminal", "exitCode": 1 }
+      "expected": { "type": "terminal", "exitCode": 1, "command": "false" }
     },
     {
       "name": "cursor_shell_string",
@@ -62,7 +62,16 @@
       "mcpServerSlug": "",
       "args": { "command": "echo hi" },
       "result": "hi\n",
-      "expected": { "type": "terminal" }
+      "expected": { "type": "terminal", "command": "echo hi" }
+    },
+    {
+      "name": "cursor_shell_envelope",
+      "harness": "cursor",
+      "toolName": "Shell",
+      "mcpServerSlug": "",
+      "args": { "command": "ls -la" },
+      "result": "{\"status\":\"success\",\"value\":{\"exitCode\":0,\"signal\":\"\",\"stdout\":\"total 8\\n\",\"stderr\":\"\",\"executionTime\":1176}}",
+      "expected": { "type": "terminal", "exitCode": 0, "command": "ls -la" }
     },
     {
       "name": "native_grep_matches",
@@ -72,6 +81,33 @@
       "args": { "pattern": "TODO" },
       "result": "\n/workspace/a.go:\n  12: // TODO: fix\n/workspace/b.go:\n  7: // TODO: later",
       "expected": { "type": "search", "count": 2 }
+    },
+    {
+      "name": "cursor_file_search_empty",
+      "harness": "cursor",
+      "toolName": "Glob",
+      "mcpServerSlug": "",
+      "args": { "pattern": "**/*.nope" },
+      "result": "{\"status\":\"success\",\"value\":{\"files\":[],\"totalFiles\":0,\"clientTruncated\":false,\"ripgrepTruncated\":false}}",
+      "expected": { "type": "search", "count": 0 }
+    },
+    {
+      "name": "cursor_file_search_one",
+      "harness": "cursor",
+      "toolName": "Glob",
+      "mcpServerSlug": "",
+      "args": { "pattern": "Dockerfile" },
+      "result": "{\"status\":\"success\",\"value\":{\"files\":[\"Dockerfile\"],\"totalFiles\":1,\"clientTruncated\":false,\"ripgrepTruncated\":false}}",
+      "expected": { "type": "search", "count": 1 }
+    },
+    {
+      "name": "cursor_grep_workspace_results_empty",
+      "harness": "cursor",
+      "toolName": "Grep",
+      "mcpServerSlug": "",
+      "args": { "pattern": "pipeline" },
+      "result": "{\"status\":\"success\",\"value\":{\"workspaceResults\":{\"/work/demo\":{\"type\":\"files\",\"output\":{\"files\":[],\"count\":0}}}}}",
+      "expected": { "type": "search", "count": 0 }
     },
     {
       "name": "native_ls_entries",

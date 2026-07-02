@@ -134,9 +134,17 @@ pub fn run() {
         RunEvent::Exit => {
             // Reap the embedded runner before the process exits. Relying on the crate's
             // `kill_on_drop` is only a soft guarantee (the runner's background reader holds an
-            // Arc to the child handle), so reap explicitly here — a graceful stop that drains
-            // in-flight work and force-kills if the runner is wedged (issue #177).
-            tauri::async_runtime::block_on(app_handle.state::<RunnerState>().stop());
+            // Arc to the child handle), so reap explicitly here (issue #177).
+            //
+            // Use `kill()`, not `stop()`. `stop()` sends the IPC shutdown and then waits with a
+            // `tokio::time::timeout`, but by `RunEvent::Exit` the tokio time driver is no longer
+            // pumped, so that timeout can never fire; and a mid-execution runner never acks the
+            // shutdown, so `child.wait()` never returns on its own — `block_on(stop())` would
+            // park forever (issue #178). `kill()` is timer-free: a synchronous SIGKILL makes the
+            // child a zombie at once, so the first `wait()` poll reaps it and returns immediately.
+            // Draining in-flight work is pointless at teardown anyway — the UI is gone and results
+            // stream to the control plane, not through our pipes.
+            tauri::async_runtime::block_on(app_handle.state::<RunnerState>().kill());
         }
         _ => {}
     });

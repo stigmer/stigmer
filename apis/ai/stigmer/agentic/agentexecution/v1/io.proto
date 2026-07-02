@@ -137,6 +137,70 @@ message ApprovalDecisionList {
   repeated SubmitApprovalInput decisions = 1;
 }
 
+// SubmitFileDecisionInput is a user's keep/discard decision on a file change
+// set or a single file within it.
+//
+// The decision is recorded in the append-only file_review event stream as a
+// FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The
+// runner reconciles approved bytes (Phase 2); this RPC only records the
+// decision and enforces that expected_digest still matches what the user saw.
+//
+// Example:
+//   {
+//     "agent_execution_id": "aex_abc123xyz456",
+//     "change_set_id": "fcs_def789",
+//     "scope": "FILE_DECISION_SCOPE_FILE",
+//     "file_change_id": "fc_001",
+//     "action": "FILE_DECISION_ACTION_APPROVE",
+//     "expected_digest": "sha256:…",
+//     "reason": "Looks correct"
+//   }
+message SubmitFileDecisionInput {
+  // ID of the agent execution.
+  string agent_execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // ID of the change set this decision targets. Must match
+  // status.file_change_sets[].id.
+  string change_set_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Whether the decision applies to the whole change set or one file.
+  // FILE_DECISION_SCOPE_UNSPECIFIED (0) is rejected by validation.
+  FileDecisionScope scope = 3 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+
+  // ID of the file change to decide; required when scope is FILE, ignored for
+  // CHANGE_SET (the cross-field rule is enforced in the handler). Must match a
+  // CapturedFileChange.id within the change set.
+  string file_change_id = 4;
+
+  // Keep (APPROVE) or discard (REJECT). FILE_DECISION_ACTION_UNSPECIFIED (0) is
+  // rejected by validation.
+  FileDecisionAction action = 5 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+
+  // Digest of the content the user actually saw — the enforcement gate. The
+  // handler rejects the decision if the target's current digest differs, so a
+  // change captured after the user reviewed cannot be silently decided.
+  string expected_digest = 6 [(buf.validate.field).string.min_len = 1];
+
+  // Optional reason/comment for the decision (audit trail).
+  string reason = 7;
+
+  // Set true on an APPROVE to consciously KEEP a change whose diff could not be
+  // fully reviewed. Honored only for a binary file (FileContent.is_binary) at
+  // FILE scope: a binary has no text diff, but its exact bytes are captured and
+  // reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes
+  // the expected_digest gate, and is ignored for CHANGE_SET scope and for any
+  // other incompleteness (secret-withheld / size-elided / uncapturable), which
+  // have no keepable bytes and stay discard-only (fail-closed). Ignored on
+  // REJECT.
+  bool acknowledge_unreviewable = 8;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Lifecycle Control Input Messages
 //

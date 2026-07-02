@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "filereview",
+    srcs = [
+        "author.go",
+        "cas_blob.go",
+        "digest.go",
+        "gate.go",
+        "project.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview",
+    visibility = ["//visibility:public"],
+    deps = ["//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution"],
+)
+
+go_test(
+    name = "filereview_test",
+    srcs = [
+        "append_runner_events_test.go",
+        "author_test.go",
+        "cas_blob_test.go",
+        "corpus_test.go",
+        "digest_test.go",
+        "gate_test.go",
+    ],
+    embed = [":filereview"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)

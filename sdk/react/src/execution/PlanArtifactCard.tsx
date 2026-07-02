@@ -5,6 +5,8 @@ import { cn } from "@stigmer/theme";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ArtifactPreviewModal } from "./ArtifactPreviewModal";
 import { formatArtifactSize } from "./artifact-utils";
+import { useArtifactDownload } from "./useArtifactDownload";
+import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey";
 
 /** Props for {@link PlanArtifactCard}. */
 export interface PlanArtifactCardProps {
@@ -13,30 +15,41 @@ export interface PlanArtifactCardProps {
   /** The published `plan.md` artifact (from `findPlanArtifact`). */
   readonly artifact: ExecutionArtifact;
   /**
-   * Organization slug. Required for the "Review plan" modal (the shared
-   * {@link ArtifactPreviewModal} uses it for its detection/apply pipeline).
-   * When omitted, the Review action is hidden — Implement and Download remain.
+   * Organization slug. Required for the "Open full" modal (the shared
+   * {@link ArtifactPreviewModal} uses it for its detection/apply pipeline and
+   * to fetch the content). When omitted, "Open full" is hidden — the prominent
+   * "Build from plan" action and "Download" remain.
    */
   readonly org?: string;
-  /** Called when the user clicks "Implement". Hidden when omitted. */
+  /** Called when the user clicks "Build from plan". Hidden when omitted. */
   readonly onImplement?: () => void;
-  /** Disables the Implement CTA (e.g., while an execution is active). */
+  /** Disables the primary CTA (e.g., while an execution is active). */
   readonly disabled?: boolean;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
 
 /**
- * Reviewable card shown after a completed Plan-mode execution when the agent
- * published a `plan.md` artifact.
+ * Action surface for a plan that a completed Plan-mode execution published as a
+ * `plan.md` artifact.
  *
- * Presentational by design: it surfaces the plan as a first-class object with
- * three actions — **Implement** (turn the plan into an Agent run), **Review
- * plan** (open the rendered plan in the shared {@link ArtifactPreviewModal},
- * the same popup used elsewhere for artifact previews — where Copy and an
- * Implement CTA also live), and **Download** the `plan.md` file. The plan text
- * is the single source of truth (the published artifact); the modal fetches it
- * on demand, so the card itself holds no plan content.
+ * It is rendered immediately below the plan message in the thread (which already
+ * shows the plan as rich markdown — the message renderer unwraps a model's
+ * enclosing markdown fence), so this card deliberately holds **no** plan
+ * content: the message is the document and this is its action bar. Rendering
+ * the plan a second time here would duplicate the same text the message and the
+ * "Open full" modal already show.
+ *
+ * The hierarchy is the point: one prominent, themeable primary action —
+ * **Build from plan** — with **Open full** and **Download** as subdued
+ * secondaries, so the next step is unmistakable. A small negative top margin
+ * pulls the bar against the plan message so the two read as a single
+ * first-class plan block.
+ *
+ * Kept as its own thread item (not merged into the message) on purpose: merging
+ * would change the streamed message item's identity at completion and remount
+ * the just-streamed plan. Adjacent-and-attached gets the unified look with no
+ * remount.
  *
  * All visual properties flow through `--stgm-*` tokens; the component is
  * self-contained and embeddable.
@@ -50,27 +63,54 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
   className,
 }: PlanArtifactCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const handleKeyDown = useBuildFromPlanHotkey(onImplement, disabled);
+  const { download, isDownloading } = useArtifactDownload(executionId);
 
   return (
     <div
       role="region"
-      aria-label="Plan ready to review"
+      aria-label="Plan actions"
+      onKeyDown={handleKeyDown}
       className={cn(
-        "mx-4 overflow-hidden rounded-md border border-border-muted bg-muted-faint",
+        // `-mt-2` tightens the thread's `gap-4` so the bar attaches to the
+        // plan message above it, reading as one first-class plan block.
+        "mx-4 -mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md",
+        "border border-border-muted bg-muted-faint px-3 py-2",
         className,
       )}
     >
-      {/* Header */}
-      <div className="flex items-center gap-3 px-3 py-2.5">
-        <PlanIcon />
-        <div className="min-w-0 flex-1">
-          <div className="text-xs font-medium text-foreground">
-            Plan ready to review
-          </div>
-          <div className="text-xs tabular-nums text-muted-foreground">
-            {artifact.name} · {formatArtifactSize(artifact.sizeBytes)}
-          </div>
-        </div>
+      <PlanIcon />
+      <span className="text-xs font-medium text-foreground">Plan</span>
+      <span className="text-xs tabular-nums text-muted-foreground-faint">
+        {formatArtifactSize(artifact.sizeBytes)}
+      </span>
+
+      <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        {org && (
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className={cn(
+              "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
+              FOCUS_RING,
+            )}
+          >
+            <ExpandIcon />
+            Open full
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => download(artifact.storageKey, artifact.name)}
+          disabled={isDownloading}
+          className={cn(
+            "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
+            FOCUS_RING,
+          )}
+        >
+          <DownloadIcon />
+          {isDownloading ? "Preparing…" : "Download"}
+        </button>
         {onImplement && (
           <button
             type="button"
@@ -85,41 +125,13 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
             )}
           >
             <ImplementIcon />
-            Implement
+            Build from plan
           </button>
         )}
       </div>
 
-      {/* Secondary actions */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border-muted px-3 py-1.5">
-        {org && (
-          <button
-            type="button"
-            onClick={() => setPreviewOpen(true)}
-            className={cn(
-              "inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary-muted",
-              FOCUS_RING,
-            )}
-          >
-            <ExpandIcon />
-            Review plan
-          </button>
-        )}
-        <a
-          href={artifact.downloadUrl}
-          download={artifact.name}
-          className={cn(
-            "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
-            FOCUS_RING,
-          )}
-        >
-          <DownloadIcon />
-          Download
-        </a>
-      </div>
-
-      {/* Review opens the shared artifact preview popup — consistent with the
-          Artifacts tab and the single place that fetches/renders plan content. */}
+      {/* "Open full" reuses the shared artifact preview popup — the single place
+          that fetches/renders plan content (with Copy + Source/Rendered). */}
       {org && previewOpen && (
         <ArtifactPreviewModal
           artifact={artifact}

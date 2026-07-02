@@ -139,6 +139,19 @@ message PendingApproval {
   // ToolCall is not co-located with the approval — classify and render the tool
   // without a client-side lookup. See ToolKind.
   ToolKind tool_kind = 13;
+
+  // Field 14 (file_changes) was removed in Phase 5 Slice 4. The pre-execution
+  // deny-gate no longer carries a captured diff: file review moved to the
+  // apply-then-review FileChangeSet ledger, and the no-storage deny-gate renders
+  // the proposed change from the tool args instead. See design-decisions 21 & 22.
+  reserved 14;
+
+  // Policy layer that gated this tool call, copied from
+  // ToolCall.approval_policy_source by the server-side projection (exactly as
+  // tool_kind above is). Lets the approval surface explain WHY the tool requires
+  // approval (e.g. "required by agent override") without a client-side lookup.
+  // See ApprovalPolicySource.
+  ApprovalPolicySource approval_policy_source = 15;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -187,4 +200,201 @@ message ChildApprovalNotification {
   //
   // One signal, complete picture, no partial states.
   repeated PendingApproval pending_approvals = 2;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Approval Event Stream (HITL re-architecture, Phase 1)
+//
+// An append-only event stream is the target single source of truth for
+// approvals: harnesses *propose* tool calls, the stream *records* requests and
+// decisions, and pending_approvals becomes a projection of the stream rather
+// than a scan of tool-call status embedded in messages.
+//
+// Phase 1 introduces these types and dual-projects pending_approvals from BOTH
+// the existing message scan (authoritative) and a shadow event stream derived
+// from the same tool calls, asserting equality in CI. The stream does not feed
+// the UI and the source of truth does not flip until a later phase, so adding
+// these messages changes no runtime behavior.
+//
+// Correlation is always by approval_request_id (never by a content hash).
+// approval_request_id is set equal to the harness tool_call_id by a deliberate,
+// documented decision: tool_call_id is already a stable, run-unique identity and
+// the public correlation key everywhere, so a second minted identity would be
+// parallel state with no reader. The field is retained as the reserved seam an
+// independent id will occupy the day a request must outlive or diverge from its
+// tool call (a re-request, or an approval that crosses a wire) — see the HITL
+// "approval-request-id-equals-tool-call-id" design decision for the rationale,
+// the mint-trigger, and how to mint one safely without breaking the lock-free
+// write model.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// A tool call requesting approval — the "ask" recorded when a gated tool call
+// enters WAITING_APPROVAL.
+//
+// Carries the same display-facing field set as PendingApproval so a REQUESTED
+// event can fully reconstruct the pending-approval projection without joining
+// back to the originating ToolCall (which, for workflow-parent approvals, is not
+// co-located with the approval).
+message ApprovalRequest {
+  // Correlation id shared by every event for this approval. Equal to
+  // tool_call_id by a deliberate decision (see the file header); the reserved
+  // seam for a future independent id, not a temporary placeholder.
+  string approval_request_id = 1;
+
+  // Harness tool-call id of the gated call. Matches ToolCall.id; the bridge
+  // between today's message scan and the event stream.
+  string tool_call_id = 2;
+
+  // ISO 8601 timestamp when approval was requested. Copied from
+  // ToolCall.approval_requested_at.
+  string requested_at = 3;
+
+  // Name of the tool requiring approval. Matches ToolCall.name.
+  string tool_name = 4;
+
+  // Human-readable approval message for display. Copied from
+  // ToolCall.approval_message (placeholders already resolved).
+  string message = 5;
+
+  // Sanitized preview of tool arguments. Copied from ToolCall.args_preview.
+  string args_preview = 6;
+
+  // True if this approval originates from a sub-agent.
+  bool from_sub_agent = 7;
+
+  // Name of the sub-agent when from_sub_agent is true; empty otherwise.
+  string sub_agent_name = 8;
+
+  // Concise subject of the sub-agent's task when from_sub_agent is true; empty
+  // otherwise. Copied from SubAgentExecution.subject.
+  string sub_agent_subject = 9;
+
+  // Slug of the MCP server providing this tool; empty for built-in tools.
+  // Copied from ToolCall.mcp_server_slug.
+  string mcp_server_slug = 10;
+
+  // Harness-agnostic tool category. Copied from ToolCall.tool_kind.
+  ToolKind tool_kind = 11;
+
+  // Field 12 (file_changes) was removed in Phase 5 Slice 4 (see PendingApproval
+  // above and design-decisions 21 & 22).
+  reserved 12;
+
+  // Policy layer that gated this call. Copied from
+  // ToolCall.approval_policy_source so the event-stream projection reconstructs
+  // the same PendingApproval as the message scan. See ApprovalPolicySource.
+  ApprovalPolicySource approval_policy_source = 13;
+}
+
+// The platform's withdrawal of an in-flight approval request — the system-actored
+// terminal transition of the approval lifecycle, authored when a gated call
+// becomes unreachable before any user decision (its sub-agent went terminal, or
+// it was superseded on resume) while the execution is still live.
+//
+// It is distinct from ApprovalDecision (the three user actions). Terminal-execution
+// gate-exits (cancel / fail / terminate) are NOT modeled here — a terminal
+// execution simply has zero pending approvals by projection — so this event is
+// reserved for the in-flight, per-call orphan case. See APPROVAL_EVENT_TYPE_RETRACTED.
+message ApprovalRetraction {
+  // Correlates this retraction to its ApprovalRequest.
+  string approval_request_id = 1;
+
+  // Why the platform withdrew the request. Audit-trail metadata only; never
+  // affects control flow. See ApprovalRetractionReason.
+  ApprovalRetractionReason reason = 2;
+
+  // ISO 8601 timestamp when the request was retracted.
+  string retracted_at = 3;
+}
+
+// A user's decision on an approval request.
+message ApprovalDecision {
+  // Correlates this decision to its ApprovalRequest.
+  string approval_request_id = 1;
+
+  // The precise user action (APPROVE / SKIP / REJECT / APPROVE_ALL).
+  // ApprovalEvent.event_type carries the coarse bucket; this carries fidelity.
+  ApprovalAction action = 2;
+
+  // ISO 8601 timestamp when the decision was made.
+  string decided_at = 3;
+
+  // Identity of the decider (principal). Empty when not attributed.
+  string decided_by = 4;
+
+  // Optional free-text comment supplied with the decision (e.g. a rejection
+  // reason).
+  string comment = 5;
+}
+
+// An immutable event in the approval lifecycle.
+//
+// The payload is a closed oneof so each event type is type-safe and
+// self-documenting: REQUESTED carries an ApprovalRequest; APPROVED / REJECTED /
+// SKIPPED carry an ApprovalDecision; RETRACTED carries an ApprovalRetraction.
+message ApprovalEvent {
+  // Unique id of this event, deterministic by design: derived from
+  // tool_call_id + event_type. This is the permanent idempotency key for
+  // append-only authoring (a single approval has at most one event per type), so
+  // re-deriving or re-authoring the stream never duplicates an event.
+  string event_id = 1;
+
+  // Correlation id shared by every event for one approval (request + decision).
+  string approval_request_id = 2;
+
+  // Coarse lifecycle bucket of this event. See ApprovalEventType.
+  ApprovalEventType event_type = 3;
+
+  // ISO 8601 timestamp of the event.
+  string timestamp = 4;
+
+  // Who produced the event: "system" for REQUESTED, "user" for decisions.
+  string actor = 5;
+
+  // Typed payload, selected by event_type.
+  oneof payload {
+    // Set when event_type == REQUESTED.
+    ApprovalRequest requested = 6;
+
+    // Set for decision events (APPROVED / REJECTED / SKIPPED).
+    ApprovalDecision decided = 7;
+
+    // Set when event_type == RETRACTED — the platform withdrew the request
+    // before any user decision. See ApprovalRetraction.
+    ApprovalRetraction retracted = 8;
+  }
+}
+
+// The ordered sequence of approval events for a single agent execution.
+//
+// Persisted on AgentExecutionStatus.approval_event_stream as a server-authored,
+// append-only record that coexists with the authoritative message scan. The
+// scan still feeds pending_approvals and the UI; this stream is the parallel,
+// independently-written ledger that (1) turns the projection parity check into a
+// real cross-writer guard and (2) holds the approval audit trail (decided_by +
+// comment) the flat ToolCall fields cannot.
+//
+// The lifecycle is total: every REQUESTED is eventually resolved by a decision
+// (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
+// when an in-flight gated call becomes unreachable without a decision. Combined
+// with the projection treating a terminal execution as zero pending approvals,
+// this makes ComputePendingApprovalsFromEvents over this stream agree with the
+// message scan after every write — the equality property the eventual
+// source-of-truth flip rides on. The source of truth does not flip in this
+// phase; the scan remains authoritative and is retained as the permanent
+// cross-writer guard.
+//
+// Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
+// RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
+// (REQUESTED seeded once from the scan for executions predating the field),
+// decision events by SubmitApproval (with decided_by and comment). Authoring the
+// rich decision event in the same operation that records the decision on the
+// scan guarantees it can never be duplicated or clobbered by a coarse
+// re-derivation.
+message ApprovalEventStream {
+  // AgentExecution.metadata.id this stream belongs to.
+  string execution_id = 1;
+
+  // Events in lifecycle order.
+  repeated ApprovalEvent events = 2;
 }

@@ -1,0 +1,36 @@
+{
+  "name": "terminal-empty",
+  "description": "A terminal execution projects no actionable file change sets (phase-aware), even with a fully captured ledger. The ledger itself is preserved; only the projection collapses.",
+  "execution_id": "aex_terminal",
+  "phase": "EXECUTION_COMPLETED",
+  "events": [
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs1", "turnId": "t1", "harnessId": "cursor",
+        "baselineSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "base", "ref": "refs/stigmer/x/baseline" } }
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs1",
+        "candidateSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "cand", "ref": "refs/stigmer/x/candidate" } },
+        "changes": [
+          { "id": "fc1", "pathBefore": "src/a.ts", "pathAfter": "src/a.ts", "kind": "FILE_CHANGE_KIND_MODIFY", "fileDigest": "d-fc1", "diffComplete": true }
+        ],
+        "aggregateDigest": "agg1",
+        "diffCompleteness": "DIFF_COMPLETENESS_COMPLETE"
+      }
+    }
+  ],
+  "expected": []
+}

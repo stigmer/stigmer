@@ -1,0 +1,57 @@
+{
+  "name": "failed-diff-unreviewable",
+  "description": "A DIFF_UNREVIEWABLE failure after candidate capture -> status FAILED while the execution is still non-terminal (the diff cannot be shown completely, so the set is unapprovable but the audit set is still projected). Pins the terminal FAILED fold, uncovered by 01-05. A terminal failure (HASH_MISMATCH/RECONCILE_FAILED) drives the EXECUTION phase terminal, which projects empty (the phase-aware rule pinned by 05); DIFF_UNREVIEWABLE is the projectable FAILED.",
+  "execution_id": "aex_failed_unreviewable",
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "events": [
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs1", "turnId": "t1", "harnessId": "deep-agent",
+        "baselineSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "base", "ref": "refs/stigmer/x/baseline" } }
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs1",
+        "candidateSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "cand", "ref": "refs/stigmer/x/candidate" } },
+        "changes": [
+          { "id": "fc1", "pathAfter": "assets/logo.png", "kind": "FILE_CHANGE_KIND_BINARY_CHANGE", "fileDigest": "d-fc1", "diffComplete": false }
+        ],
+        "aggregateDigest": "agg-unreviewable",
+        "diffCompleteness": "DIFF_COMPLETENESS_PARTIAL_BLOCKED"
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_FAILED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_FAILED",
+      "timestamp": "2026-06-30T00:00:10Z",
+      "actor": "runner",
+      "failed": {
+        "changeSetId": "cs1",
+        "kind": "FILE_REVIEW_FAILURE_KIND_DIFF_UNREVIEWABLE",
+        "detail": "binary diff exceeds the reviewable size; full artifact not available"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs1",
+      "status": "FILE_CHANGE_SET_STATUS_FAILED",
+      "change_ids": ["fc1"],
+      "decision_count": 0,
+      "aggregate_digest": "agg-unreviewable",
+      "has_approved_snapshot": false
+    }
+  ]
+}

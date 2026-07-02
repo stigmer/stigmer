@@ -1,13 +1,10 @@
 package agentexecution
 
 import (
-	"context"
 	"testing"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCancelInProgressSubAgents(t *testing.T) {
@@ -43,56 +40,100 @@ func TestCancelInProgressSubAgents_NilSafe(t *testing.T) {
 	})
 }
 
-// Verifies the shared phase step cascades sub-agent cancellation for both
-// CANCELLED and TERMINATED transitions, and leaves them alone for non-terminal
-// transitions like PAUSED.
-func TestUpdateExecutionPhaseStep_CascadesSubAgentsOnTerminal(t *testing.T) {
-	cases := []struct {
-		name        string
-		targetPhase agentexecutionv1.ExecutionPhase
-		setError    bool
-		wantCascade bool
-	}{
-		{"cancel cascades", agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED, false, true},
-		{"terminate cascades", agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED, true, true},
-		{"pause does not cascade", agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED, false, false},
+// newTransitionFixture builds an IN_PROGRESS execution that carries every field
+// applyLifecyclePhaseTransition can touch (completed_at, error, an in-flight +
+// a completed sub-agent, and a pending approval), so each case can assert both
+// what changes and what is left alone.
+func newTransitionFixture() *agentexecutionv1.AgentExecution {
+	return &agentexecutionv1.AgentExecution{
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase:       agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+			CompletedAt: "2026-01-01T00:00:00Z",
+			Error:       "preexisting error",
+			SubAgentExecutions: []*agentexecutionv1.SubAgentExecution{
+				{Id: "s1", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS},
+				{Id: "s2", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED},
+			},
+			PendingApprovals: []*agentexecutionv1.PendingApproval{{}},
+		},
 	}
+}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			exec := &agentexecutionv1.AgentExecution{
-				Status: &agentexecutionv1.AgentExecutionStatus{
-					Phase: agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
-					SubAgentExecutions: []*agentexecutionv1.SubAgentExecution{
-						{Id: "s1", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS},
-						{Id: "s2", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED},
-					},
-				},
-			}
+// Locks the full behavior of applyLifecyclePhaseTransition across every lifecycle
+// op. This is the pure mutation that runs inside the
+// UpdateExecutionPhaseAndPersistStep's atomic store.UpdateResource closure, so
+// testing it directly is the highest-value unit of the lifecycle persist path.
+func TestApplyLifecyclePhaseTransition(t *testing.T) {
+	t.Run("pause: non-terminal, keeps completed_at/pending/sub-agents/error", func(t *testing.T) {
+		exec := newTransitionFixture()
+		applyLifecyclePhaseTransition(exec, agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED, false, false, "")
 
-			reqCtx := pipeline.NewRequestContext(context.Background(),
-				&agentexecutionv1.CancelAgentExecutionInput{Id: "aex_test"})
-			reqCtx.Set(LoadedExecutionKey, exec)
+		assert.Equal(t, agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED, exec.Status.Phase)
+		assert.Equal(t, "2026-01-01T00:00:00Z", exec.Status.CompletedAt, "PAUSED is not terminal; completed_at untouched")
+		assert.Equal(t, "preexisting error", exec.Status.Error)
+		assert.Len(t, exec.Status.PendingApprovals, 1, "pending must survive a pause (it can resume)")
+		assert.Equal(t, agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS, exec.Status.SubAgentExecutions[0].GetStatus())
+	})
 
-			step := NewUpdateExecutionPhaseStep[*agentexecutionv1.CancelAgentExecutionInput](
-				tc.targetPhase, tc.setError, false)
-			require.NoError(t, step.Execute(reqCtx))
+	t.Run("resume: IN_PROGRESS clears completed_at, keeps error and pending", func(t *testing.T) {
+		exec := newTransitionFixture()
+		exec.Status.Phase = agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED
+		applyLifecyclePhaseTransition(exec, agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, false, false, "")
 
-			assert.Equal(t, tc.targetPhase, exec.Status.Phase)
+		assert.Equal(t, agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, exec.Status.Phase)
+		assert.Empty(t, exec.Status.CompletedAt, "IN_PROGRESS clears completed_at")
+		assert.Equal(t, "preexisting error", exec.Status.Error, "resume does not clear error")
+		assert.Len(t, exec.Status.PendingApprovals, 1)
+	})
 
-			s1 := exec.Status.SubAgentExecutions[0]
-			if tc.wantCascade {
-				assert.Equal(t, agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED, s1.GetStatus(),
-					"in-flight sub-agent should be CANCELLED on %s", tc.targetPhase)
-				assert.NotEmpty(t, s1.GetCompletedAt())
-			} else {
-				assert.Equal(t, agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS, s1.GetStatus(),
-					"sub-agent must not be cancelled on a non-terminal transition")
-			}
+	t.Run("recover: IN_PROGRESS clears completed_at and error", func(t *testing.T) {
+		exec := newTransitionFixture()
+		exec.Status.Phase = agentexecutionv1.ExecutionPhase_EXECUTION_FAILED
+		applyLifecyclePhaseTransition(exec, agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, false, true, "")
 
-			// COMPLETED sub-agent is always preserved.
-			assert.Equal(t, agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED,
-				exec.Status.SubAgentExecutions[1].GetStatus())
-		})
-	}
+		assert.Equal(t, agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS, exec.Status.Phase)
+		assert.Empty(t, exec.Status.CompletedAt)
+		assert.Empty(t, exec.Status.Error, "recover clears error")
+	})
+
+	t.Run("cancel: terminal sets completed_at, cascades, clears pending", func(t *testing.T) {
+		exec := newTransitionFixture()
+		applyLifecyclePhaseTransition(exec, agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED, false, false, "")
+
+		assert.Equal(t, agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED, exec.Status.Phase)
+		assert.NotEmpty(t, exec.Status.CompletedAt)
+		assert.Nil(t, exec.Status.PendingApprovals, "a terminal execution carries no pending approvals")
+		assert.Equal(t, agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED, exec.Status.SubAgentExecutions[0].GetStatus(),
+			"in-flight sub-agent cascaded to CANCELLED")
+		assert.NotEmpty(t, exec.Status.SubAgentExecutions[0].GetCompletedAt())
+		assert.Equal(t, agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, exec.Status.SubAgentExecutions[1].GetStatus(),
+			"already-COMPLETED sub-agent preserved")
+		assert.Equal(t, "preexisting error", exec.Status.Error, "cancel does not set error")
+	})
+
+	t.Run("terminate: sets error from reason, cascades, clears pending", func(t *testing.T) {
+		exec := newTransitionFixture()
+		applyLifecyclePhaseTransition(exec, agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED, true, false, "disk full")
+
+		assert.Equal(t, agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED, exec.Status.Phase)
+		assert.NotEmpty(t, exec.Status.CompletedAt)
+		assert.Nil(t, exec.Status.PendingApprovals)
+		assert.Equal(t, agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED, exec.Status.SubAgentExecutions[0].GetStatus())
+		assert.Equal(t, "Terminated: disk full", exec.Status.Error)
+	})
+
+	t.Run("terminate: empty reason falls back to default error", func(t *testing.T) {
+		exec := newTransitionFixture()
+		applyLifecyclePhaseTransition(exec, agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED, true, false, "")
+
+		assert.Equal(t, "Terminated by user", exec.Status.Error)
+	})
+
+	t.Run("nil status is initialized", func(t *testing.T) {
+		exec := &agentexecutionv1.AgentExecution{}
+		applyLifecyclePhaseTransition(exec, agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED, false, false, "")
+
+		assert.NotNil(t, exec.Status)
+		assert.Equal(t, agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED, exec.Status.Phase)
+	})
 }

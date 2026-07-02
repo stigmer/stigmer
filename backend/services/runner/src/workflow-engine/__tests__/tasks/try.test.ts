@@ -554,7 +554,7 @@ describe("executeTryTask — retryContext propagation", () => {
 
     let capturedRetryContext: unknown = undefined;
     const spyEmitEvents = vi.fn(async function (this: TaskExecutionContext, events: WorkflowEventDescriptor[]) {
-      capturedRetryContext = (this as Record<string, unknown>)?.retryContext;
+      capturedRetryContext = this.retryContext;
     });
 
     let callCount = 0;

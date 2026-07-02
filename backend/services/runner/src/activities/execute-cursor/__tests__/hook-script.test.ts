@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fix #2 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Behavior tests for the generated preToolUse bash hook.
  *
  * These run the ACTUAL bash script the runner writes into the workspace, feeding
@@ -11,118 +13,51 @@
  * Skipped automatically where bash is unavailable.
  */
 
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
-import { execFileSync, execSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { describe, it, expect, onTestFinished } from "vitest";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { generateHookScript } from "../hook-script.js";
-import { buildApprovalState, grantToken, toolIdentity, type ApprovalGrant } from "../approval-state.js";
-import type { McpToolPolicyEntry } from "../approval-state.js";
+import { buildApprovalState, grantToken, primaryToken, toolIdentity } from "../approval-state.js";
+import { contentDigest } from "../../../shared/file-tools.js";
+import {
+  setupCursorHookHarness as setup,
+  hasBash,
+  hookWrite,
+  hookEdit,
+  hookShell,
+  hookDelete,
+  hookRead,
+  hookMcp,
+} from "../__test-utils__/cursor-hook-harness.js";
 
-let hasBash = false;
-try {
-  execSync("bash -c 'exit 0'", { stdio: "ignore" });
-  hasBash = true;
-} catch {
-  hasBash = false;
+/** Decode the base64(JSON(tool_input)) the hook records on a denial. */
+function decodeInput(b64: string | undefined): Record<string, unknown> {
+  if (!b64) throw new Error("ledger entry carried no input");
+  return JSON.parse(Buffer.from(b64, "base64").toString("utf-8")) as Record<string, unknown>;
 }
 
 const d = hasBash ? describe : describe.skip;
 
-const tempDirs: string[] = [];
-afterEach(() => {
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
-});
-
-interface Harness {
-  decide(input: object): { permission: string; raw: string };
-  ledger(): Array<{ toolName: string; token: string }>;
-  resetLedger(): void;
-}
-
-function setup(opts: {
-  autoApproveAll?: boolean;
-  grants?: ApprovalGrant[];
-  mcpPolicies?: Record<string, McpToolPolicyEntry>;
-  noStateFile?: boolean;
-  // Process the hook treats as "the runner". Defaults to this test process,
-  // which is an ancestor of the bash child execFileSync spawns — so the scope
-  // guard sees the call as the runner's own agent and applies the gate. Pass a
-  // non-ancestor PID to exercise the foreign-client path (issue #173).
-  runnerPid?: number;
-}): Harness {
-  const ws = mkdtempSync(join(tmpdir(), "hook-script-"));
-  tempDirs.push(ws);
-  const dir = join(ws, ".cursor", "hooks");
-  mkdirSync(dir, { recursive: true });
-  const statePath = join(dir, "state.json");
-  const ledgerPath = join(dir, "denials.jsonl");
-  const scriptPath = join(dir, "hook.sh");
-  writeFileSync(scriptPath, generateHookScript(statePath, ledgerPath, opts.runnerPid ?? process.pid), "utf-8");
-
-  if (!opts.noStateFile) {
-    const policies = new Map(
-      Object.entries(opts.mcpPolicies ?? {}).map(([name, p]) => [
-        `srv/${name}`,
-        { toolName: name, mcpServerSlug: "srv", requiresApproval: p.requiresApproval, approvalMessage: p.message ?? "" },
-      ]),
-    );
-    const state = buildApprovalState(policies, opts.autoApproveAll ?? false, opts.grants);
-    writeFileSync(statePath, JSON.stringify(state), "utf-8");
-  }
-
-  return {
-    decide(input: object) {
-      const raw = execFileSync("bash", [scriptPath], { input: JSON.stringify(input) }).toString();
-      const permission = raw.includes('"permission":"deny"') ? "deny" : raw.includes('"permission":"allow"') ? "allow" : "?";
-      return { permission, raw };
-    },
-    ledger() {
-      if (!existsSync(ledgerPath)) return [];
-      return readFileSync(ledgerPath, "utf-8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-    },
-    resetLedger() {
-      writeFileSync(ledgerPath, "", "utf-8");
-    },
-  };
-}
-
-// Real preToolUse hook-input shapes (PascalCase name, file_path/command in
-// tool_input). These omit hook_event_name on purpose: a payload with no event
-// must still take the built-in arm (the script only diverts to the MCP arm on an
-// explicit beforeMCPExecution).
-const hookWrite = (filePath: string) => ({ tool_name: "Write", tool_input: { file_path: filePath, content: "x" } });
-const hookShell = (command: string) => ({ tool_name: "Shell", tool_input: { command, cwd: "/x", timeout: 30000 } });
-const hookDelete = (filePath: string) => ({ tool_name: "Delete", tool_input: { file_path: filePath } });
-const hookRead = (filePath: string) => ({ tool_name: "Read", tool_input: { file_path: filePath } });
-
-// Real beforeMCPExecution shape (captured live): bare tool_name, tool_input as a
-// JSON STRING, server identity, and the hook_event_name discriminator.
-const hookMcp = (name: string, input: Record<string, unknown> = {}) => ({
-  tool_name: name,
-  tool_input: JSON.stringify(input),
-  mcp_server_name: "srv",
-  command: "npx -y srv mcp",
-  hook_event_name: "beforeMCPExecution",
-});
-
 d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
-  it("denies gated built-ins (Write/Shell/Delete) and records a category+salient token", () => {
+  it("denies gated built-ins and records the PRIMARY token (content-exact for a write, coarse for shell/delete)", () => {
     const h = setup({});
 
-    for (const [input, category, salient] of [
-      [hookWrite("/x/a.txt"), "write", "/x/a.txt"],
-      [hookShell("rm -rf build"), "shell", "rm -rf build"],
-      [hookDelete("/x/b.txt"), "delete", "/x/b.txt"],
+    for (const [input, category, salient, args] of [
+      // hookWrite defaults content "x"; the hook records the content-exact token.
+      [hookWrite("/x/a.txt"), "write", "/x/a.txt", { content: "x" }],
+      [hookShell("rm -rf build"), "shell", "rm -rf build", {}],
+      [hookDelete("/x/b.txt"), "delete", "/x/b.txt", {}],
     ] as const) {
       h.resetLedger();
       expect(h.decide(input).permission).toBe("deny");
       const ledger = h.ledger();
       expect(ledger).toHaveLength(1);
-      // Byte-identical to the runner's grantToken(category, salient).
-      expect(ledger[0].token).toBe(grantToken(category, salient));
+      // Byte-identical to the runner's primaryToken: content-exact when the hook
+      // can compute an edit digest (the write), else the coarse grantToken.
+      expect(ledger[0].token).toBe(primaryToken(category, salient, contentDigest(args)));
     }
   });
 
@@ -137,15 +72,21 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("allow");
   });
 
-  it("allows the EXACT granted resource and re-gates any other (no name-only over-grant)", () => {
-    const id = toolIdentity("edit", "", { path: "/x/a.txt" });
-    const h = setup({ grants: [{ toolName: "edit", mcpServerSlug: "", key: id.key, salient: id.salient }] });
-
-    // Same resource the user approved -> allowed on the resumed turn.
-    expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("allow");
-    // A different file is NOT covered by the grant -> still gated.
-    expect(h.decide(hookWrite("/x/OTHER.txt")).permission).toBe("deny");
+  it("a run-lifetime category lease allows that category and ONLY that category", () => {
+    // "Approve all shell commands" must let later shell calls through while still
+    // gating a write — the scoped successor to the old global auto-approve-all.
+    const h = setup({ leasedCategories: ["shell"] });
+    expect(h.decide(hookShell("rm -rf build")).permission).toBe("allow");
+    const writeDecision = h.decide(hookWrite("/x/a.txt"));
+    expect(writeDecision.permission).toBe("deny");
+    // The denied, non-leased write is still recorded for the runner.
+    expect(h.ledger().map((e) => e.toolName)).toContain("Write");
   });
+
+  // Exact-resource lease isolation ("no name-only over-grant") moved to the
+  // gateway Contract Test Kit's invariant 10, where the SAME bash hook is driven
+  // through the Cursor substrate adapter alongside the deep-agent substrate. See
+  // src/__tests__/approval-gateway-contract.test.ts.
 
   it("fails closed (deny) when the state file is missing", () => {
     const h = setup({ noStateFile: true });
@@ -173,6 +114,11 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       // and that it should continue, NOT stop and wait or ask for permission.
       expect(res.raw).toContain("submitted to the user for approval automatically");
       expect(res.raw).toContain("continue with the rest of the task");
+      // It must reframe the deny as the approval gate working as intended and
+      // forbid the "fix your Cursor settings" narration that the leaky MCP deny
+      // path otherwise provokes.
+      expect(res.raw.toLowerCase()).toContain("not an error");
+      expect(res.raw.toLowerCase()).toContain("cursor settings");
       // The old propose-then-wait framing and internal sentinel must be gone.
       expect(res.raw).not.toContain("STIGMER_APPROVAL_REQUIRED");
       expect(res.raw).not.toContain("Stop and wait");
@@ -181,7 +127,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     it("allows a require-approval MCP tool once it has been granted (reinvocation)", () => {
       const h = setup({
         mcpPolicies: { click: { requiresApproval: true } },
-        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "" }],
+        grants: [{ toolName: "click", mcpServerSlug: "srv", key: "click", salient: "", contentDigest: "", sourceToolCallId: "consent-1" }],
       });
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
       expect(h.ledger()).toEqual([]);
@@ -227,6 +173,49 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
+  // The hook captures the COMPLETE tool_input on every denial (base64(JSON)),
+  // so the runner can overlay the proposed change onto the gated tool call for
+  // the approval preview — the cursor analog of the native harness reading args
+  // from graph state at the interrupt. These pin the capture across taxonomies
+  // (built-in object tool_input vs. MCP JSON-string tool_input).
+  describe("captures tool_input on the denial ledger", () => {
+    it("records the full built-in write input (object tool_input)", () => {
+      const h = setup({});
+      expect(h.decide(hookWrite("/x/a.txt", "export const x = 1;\n")).permission).toBe("deny");
+      const ledger = h.ledger();
+      expect(ledger).toHaveLength(1);
+      expect(decodeInput(ledger[0].input)).toEqual({
+        file_path: "/x/a.txt",
+        content: "export const x = 1;\n",
+      });
+    });
+
+    it("records an edit's old/new replacement strings", () => {
+      const h = setup({});
+      expect(h.decide(hookEdit("/x/a.txt", "alpha", "beta")).permission).toBe("deny");
+      expect(decodeInput(h.ledger()[0].input)).toEqual({
+        file_path: "/x/a.txt",
+        old_string: "alpha",
+        new_string: "beta",
+      });
+    });
+
+    it("parses and records the MCP JSON-STRING tool_input", () => {
+      // Cursor delivers MCP tool_input as a JSON string, not an object — the
+      // extractor must parse it so the captured input is the same object shape.
+      const h = setup({ mcpPolicies: { click: { requiresApproval: true } } });
+      expect(h.decide(hookMcp("click", { app: "Slack", element_index: "59" })).permission).toBe("deny");
+      expect(decodeInput(h.ledger()[0].input)).toEqual({ app: "Slack", element_index: "59" });
+    });
+
+    it("captures large multi-line content intact (printf, not echo/argv)", () => {
+      const content = "line\n".repeat(20_000); // ~100 KB, exercises the printf write
+      const h = setup({});
+      expect(h.decide(hookWrite("/x/big.ts", content)).permission).toBe("deny");
+      expect(decodeInput(h.ledger()[0].input).content).toBe(content);
+    });
+  });
+
   // Regression: the original grep-based extraction truncated string values at
   // the first JSON-escaped character, so a shell command containing double
   // quotes (e.g. `printf '%s' 'x' > "file"`) produced a ledger token that never
@@ -252,11 +241,98 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
   it("allows the exact granted shell command even when it contains quotes", () => {
     const command = 'printf \'%s\' \'hello-resume\' > "/x/resumed-gate.txt"';
     const id = toolIdentity("shell", "", { command });
-    const h = setup({ grants: [{ toolName: "shell", mcpServerSlug: "", key: id.key, salient: id.salient }] });
+    const h = setup({ grants: [{ toolName: "shell", mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: "", sourceToolCallId: "consent-1" }] });
 
     expect(h.decide(hookShell(command)).permission).toBe("allow");
     // A different command is NOT covered by the grant -> still gated.
     expect(h.decide(hookShell('rm -rf "/x"')).permission).toBe("deny");
+  });
+
+  // The full runner<->hook closure, per gated category and for the bytes most
+  // likely to drift: the token the RUNNER writes into approval-state.json (via
+  // buildApprovalState, exactly as index.ts does on resume) is byte-identical to
+  // the token the HOOK records when it denies the same action, and the hook's
+  // grep -qF membership check then ALLOWS the re-issued call. This is the precise
+  // production safety property — "approve once, allowed on the resumed turn" —
+  // closed end to end rather than asserted on either half alone.
+  describe("runner grant <-> hook allow closure (tricky args, every gated category)", () => {
+    const cases: Array<{
+      label: string;
+      streamName: string;
+      streamArgs: Record<string, unknown>;
+      hookInput: object;
+      otherHookInput: object;
+    }> = [
+      {
+        label: "write — path with spaces, quotes, and unicode",
+        streamName: "edit",
+        // Content matches hookWrite's default ("x") so the runner-side grant
+        // digest equals the hook-side content digest (content-exact closure).
+        streamArgs: { path: '/work/a dir/"café" notes.md', content: "x" },
+        hookInput: hookWrite('/work/a dir/"café" notes.md'),
+        otherHookInput: hookWrite("/work/other.md"),
+      },
+      {
+        label: "shell — multi-line heredoc with quotes and unicode",
+        streamName: "shell",
+        streamArgs: { command: "cat > notes.md << 'EOF'\n# Notes — \"x\" café\nEOF" },
+        hookInput: hookShell("cat > notes.md << 'EOF'\n# Notes — \"x\" café\nEOF"),
+        otherHookInput: hookShell("rm -rf build"),
+      },
+      {
+        label: "delete — path with quotes",
+        streamName: "delete",
+        streamArgs: { path: '/work/"old" file.tmp' },
+        hookInput: hookDelete('/work/"old" file.tmp'),
+        otherHookInput: hookDelete("/work/keep.tmp"),
+      },
+    ];
+
+    for (const { label, streamName, streamArgs, hookInput, otherHookInput } of cases) {
+      it(`${label}: the state-file token the runner writes is the token the hook denies and then allows`, () => {
+        // 1. The hook denies the un-granted call and records its identity token.
+        const denyHarness = setup({});
+        expect(denyHarness.decide(hookInput).permission).toBe("deny");
+        const denialLedger = denyHarness.ledger();
+        expect(denialLedger).toHaveLength(1);
+        const hookDenialToken = denialLedger[0].token;
+
+        // 2. The runner mints the grant from the STREAM-side identity (the only
+        //    side it sees) and writes it into the real state file via
+        //    buildApprovalState — the exact path index.ts takes on resume.
+        const id = toolIdentity(streamName, "", streamArgs);
+        const state = buildApprovalState(new Map(), false, new Set(), [
+          { toolName: streamName, mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: contentDigest(streamArgs), sourceToolCallId: "consent-1" },
+        ]);
+
+        // 3. The state file carries the byte-exact token the hook recomputed —
+        //    the grep -qF membership the bash hook performs (string equality).
+        expect(state.approvedGrantTokens).toContain(hookDenialToken);
+
+        // 4. With that state file, the hook ALLOWS the re-issued (fresh-id) call
+        //    and re-gates a DIFFERENT resource of the same category.
+        const grantHarness = setup({ grants: state.approvedGrants });
+        expect(grantHarness.decide(hookInput).permission).toBe("allow");
+        expect(grantHarness.decide(otherHookInput).permission).toBe("deny");
+      });
+    }
+  });
+
+  it("sibling isolation: approving one edit does NOT allow a DIFFERENT edit to the same file", () => {
+    // The exact reported bug, closed end-to-end through the real hook: approving
+    // the rename must re-gate the later `## TODO` edit to the SAME file.
+    const path = "/work/notes.md";
+    const renameArgs = { path, content: "Planton" };
+    const id = toolIdentity("edit", "", renameArgs);
+    const state = buildApprovalState(new Map(), false, new Set(), [
+      { toolName: "edit", mcpServerSlug: "", key: id.key, salient: id.salient, contentDigest: contentDigest(renameArgs), sourceToolCallId: "consent-1" },
+    ]);
+    const h = setup({ grants: state.approvedGrants });
+
+    // The approved edit, re-issued with the SAME content, is allowed.
+    expect(h.decide(hookWrite(path, "Planton")).permission).toBe("allow");
+    // A DIFFERENT edit to the SAME file is re-gated — the sibling hole is closed.
+    expect(h.decide(hookWrite(path, "## TODO")).permission).toBe("deny");
   });
 
   // Issue #173: the hook ships on the workspace's shared .cursor/hooks.json, so
@@ -303,19 +379,217 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
+  // Capture mode (git workspaces): file mutations flow during the turn (the
+  // runner captures the whole change set with git and gates it per-file at the
+  // turn boundary), while shell/MCP and gitignored writes stay on the deny-gate.
+  describe("capture mode (git workspaces)", () => {
+    it("allows write/edit/delete to flow and records no denial", () => {
+      const h = setup({ captureMode: true });
+      expect(h.decide(hookWrite("normal.txt")).permission).toBe("allow");
+      expect(h.decide(hookEdit("normal.txt")).permission).toBe("allow");
+      expect(h.decide(hookDelete("normal.txt")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("still gates shell (it is not git-reversible)", () => {
+      const h = setup({ captureMode: true });
+      expect(h.decide(hookShell("rm -rf build")).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.toolName)).toContain("Shell");
+    });
+
+    it("still gates require-approval MCP tools", () => {
+      const h = setup({ captureMode: true, mcpPolicies: { click: { requiresApproval: true } } });
+      expect(h.decide(hookMcp("click")).permission).toBe("deny");
+    });
+
+    it("keeps gating a write to a GITIGNORED path (the snapshot cannot revert it)", () => {
+      // .env-style ignored paths are invisible to the git snapshot, so capture
+      // mode must still gate them for explicit approval.
+      const h = setup({ captureMode: true, gitignored: ["secret.txt"] });
+      expect(h.decide(hookWrite("secret.txt")).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.toolName)).toContain("Write");
+      // A non-ignored sibling still flows.
+      expect(h.decide(hookWrite("normal.txt")).permission).toBe("allow");
+    });
+
+    it("keeps gating a DELETE of a gitignored path", () => {
+      const h = setup({ captureMode: true, gitignored: ["secret.txt"] });
+      expect(h.decide(hookDelete("secret.txt")).permission).toBe("deny");
+    });
+  });
+
+  // CAS parity (DD-18): with captureIgnored on, a non-secret gitignored write no
+  // longer stays on the deny-gate — the hook stages its pre-turn bytes into the
+  // cas-observations sidecar and ALLOWS it (apply-then-review), while a secret-
+  // like gitignored write is hard-blocked and recorded as unreviewable. The
+  // sidecar is read back through the real reader.
+  describe("capture mode + captureIgnored (gitignored CAS capture)", () => {
+    it("stages a non-secret gitignored ADD and allows it (before=null)", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      expect(h.decide(hookWrite("app.log", "hello")).permission).toBe("allow");
+      // Flowed, not denied — it must not become a WAITING_APPROVAL row.
+      expect(h.ledger()).toEqual([]);
+      const obs = await h.observations();
+      expect(obs.secretPaths).toEqual([]);
+      expect(obs.captured).toHaveLength(1);
+      expect(obs.captured[0].path).toBe("app.log");
+      expect(obs.captured[0].before).toBeNull();
+    });
+
+    it("stages a non-secret gitignored MODIFY with the true pre-turn before-bytes", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      writeFileSync(join(h.root, "app.log"), "ORIGINAL", "utf-8");
+      expect(h.decide(hookWrite("app.log", "NEW")).permission).toBe("allow");
+      const obs = await h.observations();
+      expect(obs.captured).toHaveLength(1);
+      expect(obs.captured[0].before).not.toBeNull();
+      expect(Buffer.from(obs.captured[0].before!).toString("utf8")).toBe("ORIGINAL");
+    });
+
+    it("first-touch-wins: two edits to one gitignored path keep the original before", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      writeFileSync(join(h.root, "app.log"), "ORIGINAL", "utf-8");
+      expect(h.decide(hookWrite("app.log", "FIRST")).permission).toBe("allow");
+      // Simulate the first write having applied, then a second edit this turn.
+      writeFileSync(join(h.root, "app.log"), "FIRST", "utf-8");
+      expect(h.decide(hookEdit("app.log")).permission).toBe("allow");
+      const obs = await h.observations();
+      expect(obs.captured).toHaveLength(1);
+      expect(Buffer.from(obs.captured[0].before!).toString("utf8")).toBe("ORIGINAL");
+    });
+
+    it("hard-blocks a secret-like gitignored write and records NO denial-ledger entry", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: [".env"] });
+      const d = h.decide(hookWrite(".env", "API_KEY=abc"));
+      expect(d.permission).toBe("deny");
+      expect(d.raw).toContain("blocked for security");
+      // A secret is NOT approvable: it must never enter the denial ledger (which
+      // drives WAITING_APPROVAL) — it surfaces as DIFF_UNREVIEWABLE instead.
+      expect(h.ledger()).toEqual([]);
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+      expect(obs.secretPaths).toEqual([".env"]);
+    });
+
+    it("captures under auto_approve_all too (capture is a turn property, not authorization)", async () => {
+      const h = setup({
+        captureMode: true,
+        captureIgnored: true,
+        autoApproveAll: true,
+        gitignored: ["*.log", ".env"],
+      });
+      // Non-secret gitignored write is staged + allowed even under the bypass...
+      expect(h.decide(hookWrite("app.log", "x")).permission).toBe("allow");
+      // ...and a secret-like one is STILL hard-blocked under the bypass.
+      expect(h.decide(hookWrite(".env", "SECRET")).permission).toBe("deny");
+      const obs = await h.observations();
+      expect(obs.captured.map((c) => c.path)).toEqual(["app.log"]);
+      expect(obs.secretPaths).toEqual([".env"]);
+    });
+
+    it("does not stage a git-tracked write (git captures it) — flows, no observation", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      expect(h.decide(hookWrite("tracked.ts", "x")).permission).toBe("allow");
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+      expect(obs.secretPaths).toEqual([]);
+    });
+
+    it("still gates a gitignored DELETE (no CAS capture path, parity with deep-agent)", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      expect(h.decide(hookDelete("app.log")).permission).toBe("deny");
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+    });
+
+    it("with captureIgnored OFF, a gitignored write stays denied and stages nothing", async () => {
+      const h = setup({ captureMode: true, captureIgnored: false, gitignored: ["*.log"] });
+      expect(h.decide(hookWrite("app.log", "x")).permission).toBe("deny");
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+    });
+  });
+
+  // Slice 2c: a NON-git workspace has no git snapshot, so EVERY file write is
+  // CAS-staged and flowed for review (not only gitignored ones), a delete stays
+  // gated (no CAS delete-capture path, parity with the deep-agent), and shell/MCP
+  // gate as always. The workspace is deliberately NOT git-initialized.
+  describe("non-git workspace CAS capture (Slice 2c)", () => {
+    it("stages EVERY write (not just gitignored) and allows it, no denial", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      writeFileSync(join(h.root, "notes.md"), "ORIGINAL", "utf-8");
+      expect(h.decide(hookWrite("notes.md", "NEW")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+      const obs = await h.observations();
+      expect(obs.secretPaths).toEqual([]);
+      expect(obs.captured).toHaveLength(1);
+      expect(obs.captured[0].path).toBe("notes.md");
+      expect(Buffer.from(obs.captured[0].before!).toString("utf8")).toBe("ORIGINAL");
+    });
+
+    it("stages an ADD (before=null) and allows it", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      expect(h.decide(hookWrite("created.ts", "x")).permission).toBe("allow");
+      const obs = await h.observations();
+      expect(obs.captured).toHaveLength(1);
+      expect(obs.captured[0].before).toBeNull();
+    });
+
+    it("hard-blocks a secret-like write and records NO denial-ledger entry", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      const dcn = h.decide(hookWrite(".env", "API_KEY=abc"));
+      expect(dcn.permission).toBe("deny");
+      expect(dcn.raw).toContain("blocked for security");
+      expect(h.ledger()).toEqual([]);
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+      expect(obs.secretPaths).toEqual([".env"]);
+    });
+
+    it("still gates a DELETE (deny-gate, parity with deep-agent) and stages nothing", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      expect(h.decide(hookDelete("notes.md")).permission).toBe("deny");
+      expect(h.ledger()).toHaveLength(1);
+      const obs = await h.observations();
+      expect(obs.captured).toEqual([]);
+    });
+
+    it("still gates shell (never git-reversible, never CAS-captured)", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
+      expect(h.decide(hookShell("rm -rf /")).permission).toBe("deny");
+    });
+
+    it("still gates a require-approval MCP tool", async () => {
+      const h = setup({
+        captureMode: true,
+        captureIgnored: true,
+        gitWorkspace: false,
+        mcpPolicies: { click: { requiresApproval: true } },
+      });
+      expect(h.decide(hookMcp("click")).permission).toBe("deny");
+    });
+  });
+
   it("still denies gated tools via the bash fallback when the Node binary is unavailable", () => {
     const ws = mkdtempSync(join(tmpdir(), "hook-script-fallback-"));
-    tempDirs.push(ws);
+    onTestFinished(() => rmSync(ws, { recursive: true, force: true }));
     const dir = join(ws, ".cursor", "hooks");
     mkdirSync(dir, { recursive: true });
     const statePath = join(dir, "state.json");
     const ledgerPath = join(dir, "denials.jsonl");
+    const pointerPath = join(dir, "active.json");
     const scriptPath = join(dir, "hook.sh");
-    // Break the baked Node path to force the grep/cut fallback.
-    const script = generateHookScript(statePath, ledgerPath, process.pid)
+    // Break the baked Node path to force the grep/cut fallback for BOTH the
+    // active-turn pointer parse and the tool identity extraction.
+    const script = generateHookScript(pointerPath)
       .replace(`NODE_BIN="${process.execPath}"`, 'NODE_BIN="/nonexistent/node"');
     writeFileSync(scriptPath, script, "utf-8");
-    writeFileSync(statePath, JSON.stringify(buildApprovalState(new Map(), false)), "utf-8");
+    writeFileSync(
+      pointerPath,
+      JSON.stringify({ stateFile: statePath, ledgerFile: ledgerPath, runnerPid: process.pid }),
+      "utf-8",
+    );
+    writeFileSync(statePath, JSON.stringify(buildApprovalState(new Map(), false, new Set())), "utf-8");
 
     const raw = execFileSync("bash", [scriptPath], {
       input: JSON.stringify(hookWrite("/x/a.txt")),

@@ -1,0 +1,84 @@
+{
+  "name": "request-reject",
+  "description": "The REJECTED lifecycle: a gated call is requested, then a user rejects it. The rejection resolves the request in both projections.",
+  "execution_id": "exec-reject",
+  "steps": [
+    {
+      "name": "seed: tc1 gated",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc1",
+                "name": "delete_file",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve delete_file",
+                "args_preview": "{\"path\":\"secret.txt\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "pending_approvals": [
+          {
+            "tool_call_id": "tc1",
+            "tool_name": "delete_file",
+            "message": "Approve delete_file",
+            "args_preview": "{\"path\":\"secret.txt\"}",
+            "requested_at": "2026-03-27T10:00:00Z"
+          }
+        ],
+        "stream_events": [
+          { "approval_request_id": "tc1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" }
+        ]
+      }
+    },
+    {
+      "name": "reject tc1",
+      "description": "A SubmitApproval site with a REJECT decision; the call is no longer pending and the ledger records REJECTED.",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc1",
+                "name": "delete_file",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve delete_file",
+                "args_preview": "{\"path\":\"secret.txt\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              }
+            ]
+          }
+        ]
+      },
+      "decisions": [
+        {
+          "tool_call_id": "tc1",
+          "action": "APPROVAL_ACTION_REJECT",
+          "decided_by": "bob",
+          "comment": "do not delete secrets",
+          "decided_at": "2026-03-27T10:03:00Z"
+        }
+      ],
+      "expected": {
+        "pending_approvals": [],
+        "stream_events": [
+          { "approval_request_id": "tc1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "tc1", "event_type": "APPROVAL_EVENT_TYPE_REJECTED" }
+        ]
+      }
+    }
+  ]
+}

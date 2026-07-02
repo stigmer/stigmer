@@ -8,12 +8,23 @@ vi.mock("../../idle-watchdog.js", () => ({
 
 vi.mock("../../shared/model-registry.js", () => ({
   getSummarizationModel: vi.fn().mockResolvedValue("gpt-4o-mini"),
+  // buildChatModel resolves registry ids; identity keeps the economy model name
+  // intact so provider inference drives client selection in these tests.
+  resolveToApiModelId: vi.fn((m: string) => Promise.resolve(m)),
 }));
 
 const mockInvoke = vi.fn();
 
 vi.mock("@langchain/openai", () => ({
   ChatOpenAI: vi.fn().mockImplementation(() => ({
+    withStructuredOutput: vi.fn().mockReturnValue({
+      invoke: mockInvoke,
+    }),
+  })),
+}));
+
+vi.mock("@langchain/anthropic", () => ({
+  ChatAnthropic: vi.fn().mockImplementation(() => ({
     withStructuredOutput: vi.fn().mockReturnValue({
       invoke: mockInvoke,
     }),
@@ -223,6 +234,106 @@ describe("ClassifyToolApprovals activity", () => {
     });
   });
 
+  describe("reconcileBatchClassifications — fail closed on partial output", () => {
+    it("fails closed for a tool the model omitted from its output", async () => {
+      const { reconcileBatchClassifications } = await import("../classify-tool-approvals.js");
+
+      const batch: ToolDescriptor[] = [
+        { name: "delete_file", description: "Delete a file" },
+        { name: "send_email", description: "Send an email" },
+      ];
+      // Model only classified one of the two tools.
+      const llmResults = [
+        { tool_name: "delete_file", requires_approval: true, message: "Delete {{args.path}}" },
+      ];
+
+      const { reconciled, failedClosedCount } = reconcileBatchClassifications(batch, llmResults);
+
+      expect(failedClosedCount).toBe(1);
+      expect(reconciled).toEqual([
+        { tool_name: "delete_file", requires_approval: true, message: "Delete {{args.path}}" },
+        { tool_name: "send_email", requires_approval: true, message: "Execute send_email" },
+      ]);
+    });
+
+    it("keeps full classifications unchanged when every tool is present", async () => {
+      const { reconcileBatchClassifications } = await import("../classify-tool-approvals.js");
+
+      const batch: ToolDescriptor[] = [
+        { name: "search_code", description: "Search" },
+        { name: "delete_file", description: "Delete" },
+      ];
+      const llmResults = [
+        { tool_name: "search_code", requires_approval: false, message: "" },
+        { tool_name: "delete_file", requires_approval: true, message: "Delete {{args.path}}" },
+      ];
+
+      const { reconciled, failedClosedCount } = reconcileBatchClassifications(batch, llmResults);
+
+      expect(failedClosedCount).toBe(0);
+      expect(reconciled).toEqual(llmResults);
+    });
+
+    it("drops hallucinated output names that were never in the batch", async () => {
+      const { reconcileBatchClassifications } = await import("../classify-tool-approvals.js");
+
+      const batch: ToolDescriptor[] = [{ name: "real_tool", description: "Real" }];
+      const llmResults = [
+        { tool_name: "real_tool", requires_approval: false, message: "" },
+        { tool_name: "ghost_tool", requires_approval: false, message: "" },
+      ];
+
+      const { reconciled } = reconcileBatchClassifications(batch, llmResults);
+
+      expect(reconciled).toHaveLength(1);
+      expect(reconciled[0].tool_name).toBe("real_tool");
+    });
+
+    it("fails closed for the entire batch when the model returns nothing", async () => {
+      const { reconcileBatchClassifications } = await import("../classify-tool-approvals.js");
+
+      const batch: ToolDescriptor[] = [
+        { name: "tool_a", description: "" },
+        { name: "tool_b", description: "" },
+      ];
+
+      const { reconciled, failedClosedCount } = reconcileBatchClassifications(batch, []);
+
+      expect(failedClosedCount).toBe(2);
+      expect(reconciled.every((r) => r.requires_approval)).toBe(true);
+    });
+
+    it("end-to-end: an omitted mutating tool is gated, not silently dropped", async () => {
+      const { classifyTools } = await import("../classify-tool-approvals.js");
+
+      // The model omits `wire_transfer` entirely — only classifies the read tool.
+      mockInvoke.mockResolvedValueOnce({
+        approvals: [
+          { tool_name: "get_balance", requires_approval: false, message: "" },
+        ],
+      });
+
+      const result = await classifyTools(
+        {
+          tools: [
+            { name: "get_balance", description: "Get account balance" },
+            { name: "wire_transfer", description: "Transfer money" },
+          ],
+          serverName: "bank",
+          serverDescription: "",
+          mcpServerId: null,
+        },
+        makeOptions(),
+      );
+
+      // get_balance auto-approved by the classifier; wire_transfer (omitted)
+      // fails closed via reconciliation.
+      expect(result).toHaveLength(1);
+      expect(result[0].tool_name).toBe("wire_transfer");
+      expect(result[0].requires_approval).toBe(true);
+    });
+  });
+
   describe("buildToolsPayload", () => {
     it("formats tools as compact JSON with parameter names only", async () => {
       const { buildToolsPayload } = await import("../classify-tool-approvals.js");
@@ -280,7 +391,7 @@ describe("ClassifyToolApprovals activity", () => {
   });
 
   describe("fallbackApprovals", () => {
-    it("marks all tools as requiring approval with default message", async () => {
+    it("marks ambiguous tools as requiring approval with default message", async () => {
       const { fallbackApprovals } = await import("../classify-tool-approvals.js");
 
       const tools: ToolDescriptor[] = [
@@ -294,6 +405,79 @@ describe("ClassifyToolApprovals activity", () => {
         { tool_name: "tool_a", requires_approval: true, message: "Execute tool_a" },
         { tool_name: "tool_b", requires_approval: true, message: "Execute tool_b" },
       ]);
+    });
+
+    it("fails closed for every tool, including read-only-looking names", async () => {
+      const { fallbackApprovals } = await import("../classify-tool-approvals.js");
+
+      // Full fail-closed: with no trusted classification, even a `get_*` name is
+      // gated. A name is an untrusted signal and must not relax a gate on outage.
+      const result = fallbackApprovals([
+        { name: "get_app_state", description: "" },
+        { name: "delete_file", description: "" },
+      ]);
+
+      expect(result).toEqual([
+        { tool_name: "get_app_state", requires_approval: true, message: "Execute get_app_state" },
+        { tool_name: "delete_file", requires_approval: true, message: "Execute delete_file" },
+      ]);
+    });
+  });
+
+  describe("read-only authority is the LLM classifier alone (no name relax)", () => {
+    it("keeps a classifier-gated tool gated even if its name leads with a read verb", async () => {
+      const { classifyTools } = await import("../classify-tool-approvals.js");
+
+      // The classic hole: `get_and_delete_stale_records` leads with `get` but
+      // deletes. The old name heuristic auto-approved it; now the trusted LLM
+      // decision (gate it) must stand.
+      mockInvoke.mockResolvedValueOnce({
+        approvals: [
+          { tool_name: "get_and_delete_stale_records", requires_approval: true, message: "Delete stale records" },
+        ],
+      });
+
+      const result = await classifyTools(
+        {
+          tools: [{ name: "get_and_delete_stale_records", description: "Reads then deletes stale rows" }],
+          serverName: "db",
+          serverDescription: "",
+          mcpServerId: null,
+        },
+        makeOptions(),
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].tool_name).toBe("get_and_delete_stale_records");
+      expect(result[0].requires_approval).toBe(true);
+    });
+
+    it("respects the classifier auto-approving a genuine read-only tool", async () => {
+      const { classifyTools } = await import("../classify-tool-approvals.js");
+
+      mockInvoke.mockResolvedValueOnce({
+        approvals: [
+          { tool_name: "get_app_state", requires_approval: false, message: "" },
+          { tool_name: "click", requires_approval: true, message: "Click {{args.element}}" },
+        ],
+      });
+
+      const result = await classifyTools(
+        {
+          tools: [
+            { name: "get_app_state", description: "Reads UI state" },
+            { name: "click", description: "Clicks an element" },
+          ],
+          serverName: "open-computer-use",
+          serverDescription: "",
+          mcpServerId: null,
+        },
+        makeOptions(),
+      );
+
+      // Only what the classifier gated remains; the read tool it cleared is gone.
+      expect(result).toHaveLength(1);
+      expect(result[0].tool_name).toBe("click");
     });
   });
 
@@ -342,6 +526,29 @@ describe("ClassifyToolApprovals activity", () => {
       );
 
       expect(getSummarizationModel).toHaveBeenCalledWith("claude-opus-4");
+    });
+  });
+
+  describe("provider routing", () => {
+    it("routes Anthropic economy models to ChatAnthropic, not the OpenAI path", async () => {
+      const { ChatAnthropic } = await import("@langchain/anthropic");
+      const { ChatOpenAI } = await import("@langchain/openai");
+      const { getSummarizationModel } = await import("../../shared/model-registry.js");
+      vi.mocked(getSummarizationModel).mockResolvedValueOnce("claude-haiku-4.5");
+
+      const { classifyTools } = await import("../classify-tool-approvals.js");
+
+      mockInvoke.mockResolvedValueOnce({
+        approvals: [{ tool_name: "t", requires_approval: false, message: "" }],
+      });
+
+      await classifyTools(
+        { tools: [{ name: "t", description: "d" }], serverName: "s", serverDescription: "", mcpServerId: null },
+        { proxyEndpoint: "http://proxy:8080", stigmerToken: "tok", primaryModel: "claude-opus-4" },
+      );
+
+      expect(ChatAnthropic).toHaveBeenCalledTimes(1);
+      expect(ChatOpenAI).not.toHaveBeenCalled();
     });
   });
 

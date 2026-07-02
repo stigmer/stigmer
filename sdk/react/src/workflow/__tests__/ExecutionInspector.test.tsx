@@ -88,13 +88,42 @@ describe("ExecutionInspector — approval gating", () => {
         events={[approvalRequested]}
         taskStates={new Map([[TASK, makeTaskState(TASK, "waiting_approval")]])}
         onSubmitTaskApproval={vi.fn().mockResolvedValue(undefined)}
-        isSubmittingTaskApproval={false}
       />,
     );
 
     // Interactive: outcome buttons are actionable.
     expect(screen.getByRole("button", { name: "Approve Plan" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Reject" })).toBeTruthy();
+  });
+
+  it("surfaces this gate's keyed failure in-card, beside the outcome buttons", () => {
+    render(
+      <ExecutionInspector
+        selectedTaskName={TASK}
+        events={[approvalRequested]}
+        taskStates={new Map([[TASK, makeTaskState(TASK, "waiting_approval")]])}
+        onSubmitTaskApproval={vi.fn().mockResolvedValue(undefined)}
+        taskApprovalErrorsByTaskName={new Map([[TASK, new Error("signal failed")]])}
+      />,
+    );
+
+    expect(screen.getByText(/Couldn.t submit decision — signal failed/)).toBeTruthy();
+  });
+
+  it("marks only this gate's buttons as submitting via the keyed set", () => {
+    render(
+      <ExecutionInspector
+        selectedTaskName={TASK}
+        events={[approvalRequested]}
+        taskStates={new Map([[TASK, makeTaskState(TASK, "waiting_approval")]])}
+        onSubmitTaskApproval={vi.fn().mockResolvedValue(undefined)}
+        taskApprovalSubmittingTaskNames={new Set([TASK])}
+      />,
+    );
+
+    expect(
+      (screen.getByRole("button", { name: "Approve Plan" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
   });
 
   it("renders the read-only decision summary once the gate is resolved", () => {
@@ -111,7 +140,6 @@ describe("ExecutionInspector — approval gating", () => {
           }),
         ]}
         onSubmitTaskApproval={vi.fn().mockResolvedValue(undefined)}
-        isSubmittingTaskApproval={false}
       />,
     );
 

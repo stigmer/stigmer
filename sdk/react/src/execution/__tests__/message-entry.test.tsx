@@ -126,6 +126,49 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
     const prose = container.querySelector(".stgm-prose");
     expect(prose).not.toBeNull();
   });
+
+  it("renders a model-wrapped ```markdown plan as rich markdown, not a code block", () => {
+    const msg = makeMessage(
+      MessageType.MESSAGE_AI,
+      "```markdown\n# Plan\n\n1. First step\n2. Second step\n```",
+    );
+    const { container } = render(<MessageEntry message={msg} />);
+
+    const article = queryArticle(container, "AI response");
+    // The enclosing fence is unwrapped: the heading and list render as elements,
+    // and the whole plan is NOT trapped inside a single <pre>.
+    expect(article!.querySelector("h1")).not.toBeNull();
+    expect(article!.querySelector("ol")).not.toBeNull();
+    expect(article!.querySelector("pre")).toBeNull();
+    expect(article!.textContent).toContain("Plan");
+  });
+
+  it("still renders a genuine ```js code block as a code block", () => {
+    const msg = makeMessage(
+      MessageType.MESSAGE_AI,
+      "```js\nconsole.log('hi');\n```",
+    );
+    const { container } = render(<MessageEntry message={msg} />);
+
+    const article = queryArticle(container, "AI response");
+    expect(article!.querySelector("pre")).not.toBeNull();
+  });
+
+  it("syntax-highlights fenced code in the chat stream (Streamdown path)", () => {
+    const msg = makeMessage(
+      MessageType.MESSAGE_AI,
+      "```go\nfunc main() {}\n```",
+    );
+    const { container } = render(<MessageEntry message={msg} />);
+
+    const article = queryArticle(container, "AI response");
+    // Streamdown routes fenced code through the shared MARKDOWN_COMPONENTS.code
+    // override, so chat highlights identically to the artifact viewer.
+    expect(article!.querySelector("code.hljs")).not.toBeNull();
+    expect(
+      article!.querySelectorAll('span[class*="hljs-"]').length,
+    ).toBeGreaterThan(0);
+  });
 });
 
 // ---------------------------------------------------------------------------

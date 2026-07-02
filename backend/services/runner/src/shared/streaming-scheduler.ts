@@ -13,6 +13,10 @@
  *     OR firstUpdate
  *
  * Ported from Python StreamingUpdateScheduler.
+ *
+ * Shared infrastructure: both the native deep-agent harness and the Cursor
+ * harness drive their incremental status persistence through this scheduler so
+ * the live stream cadence is identical across harnesses.
  */
 
 export enum UpdateReason {

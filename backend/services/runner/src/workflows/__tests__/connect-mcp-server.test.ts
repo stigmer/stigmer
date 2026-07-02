@@ -42,6 +42,7 @@ describe("ConnectMcpServerWorkflow", () => {
         previousToolsFingerprint: "",
         previousToolApprovals: [],
         newToolsFingerprint: "abc123def456",
+        previousTools: [],
       };
 
       const classifyResult: ToolApprovalResult[] = [
@@ -93,21 +94,21 @@ describe("ConnectMcpServerWorkflow", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Fingerprint short-circuit
+  // Incremental classification (content-addressed reuse)
   // ─────────────────────────────────────────────────────────────────────────
 
-  describe("fingerprint short-circuit", () => {
-    it("reuses previous approvals when fingerprint unchanged", async () => {
+  describe("incremental classification", () => {
+    it("reuses prior decisions and skips the LLM when all tools are unchanged", async () => {
       const { connectMcpServer } = await import("../connect-mcp-server.js");
 
-      const fingerprint = "deadbeef12345678";
+      const search = { name: "search", description: "Search", inputSchema: null };
+      const del = { name: "delete_repo", description: "Delete", inputSchema: null };
       mockDiscoverActivity.mockResolvedValue(
         makeDiscoveryResult({
-          tools: [{ name: "search", description: "Search", inputSchema: null }],
-          newToolsFingerprint: fingerprint,
-          previousToolsFingerprint: fingerprint,
+          tools: [search, del],
+          previousTools: [search, del],
           previousToolApprovals: [
-            { toolName: "search", requiresApproval: false, message: "" },
+            { toolName: "delete_repo", requiresApproval: true, message: "Delete repo" },
           ],
         }),
       );
@@ -115,73 +116,346 @@ describe("ConnectMcpServerWorkflow", () => {
       const result = await connectMcpServer({ mcp_server_id: "mcp-cached" });
 
       expect(mockClassifyActivity).not.toHaveBeenCalled();
+      // The gated tool is carried forward; the unchanged un-gated tool stays absent.
       expect(result.tool_approvals).toEqual([
-        { tool_name: "search", requires_approval: false, message: "" },
+        { tool_name: "delete_repo", requires_approval: true, message: "Delete repo" },
       ]);
     });
 
-    it("runs classify when fingerprint matches but no previous approvals", async () => {
+    it("classifies all tools on first connect (no previous tools)", async () => {
       const { connectMcpServer } = await import("../connect-mcp-server.js");
 
-      const fingerprint = "deadbeef12345678";
       mockDiscoverActivity.mockResolvedValue(
         makeDiscoveryResult({
-          tools: [{ name: "search", description: "Search", inputSchema: null }],
-          newToolsFingerprint: fingerprint,
-          previousToolsFingerprint: fingerprint,
+          tools: [
+            { name: "search", description: "Search", inputSchema: null },
+            { name: "create", description: "Create", inputSchema: null },
+          ],
+          previousTools: [],
           previousToolApprovals: [],
         }),
       );
       mockClassifyActivity.mockResolvedValue([]);
 
-      await connectMcpServer({ mcp_server_id: "mcp-no-prev" });
+      await connectMcpServer({ mcp_server_id: "mcp-first" });
 
       expect(mockClassifyActivity).toHaveBeenCalledOnce();
+      expect(mockClassifyActivity.mock.calls[0][0].tools).toHaveLength(2);
     });
 
-    it("runs classify when fingerprints differ", async () => {
+    it("classifies only the newly added tool and merges with carried-forward decisions", async () => {
       const { connectMcpServer } = await import("../connect-mcp-server.js");
 
+      const known = { name: "search", description: "Search", inputSchema: null };
+      const gated = { name: "delete_repo", description: "Delete", inputSchema: null };
+      const added = { name: "create_pr", description: "Create PR", inputSchema: null };
       mockDiscoverActivity.mockResolvedValue(
         makeDiscoveryResult({
-          tools: [{ name: "new_tool", description: "New", inputSchema: null }],
-          newToolsFingerprint: "new-fingerprint",
-          previousToolsFingerprint: "old-fingerprint",
+          tools: [known, gated, added],
+          previousTools: [known, gated],
           previousToolApprovals: [
-            { toolName: "old_tool", requiresApproval: true, message: "Approve" },
+            { toolName: "delete_repo", requiresApproval: true, message: "Delete repo" },
           ],
         }),
       );
       mockClassifyActivity.mockResolvedValue([
-        { tool_name: "new_tool", requires_approval: true, message: "Approve new" },
+        { tool_name: "create_pr", requires_approval: true, message: "Create PR" },
+      ]);
+
+      const result = await connectMcpServer({ mcp_server_id: "mcp-added" });
+
+      expect(mockClassifyActivity).toHaveBeenCalledOnce();
+      expect(mockClassifyActivity.mock.calls[0][0].tools).toEqual([
+        { name: "create_pr", description: "Create PR", input_schema: null },
+      ]);
+      expect(result.tool_approvals).toEqual([
+        { tool_name: "delete_repo", requires_approval: true, message: "Delete repo" },
+        { tool_name: "create_pr", requires_approval: true, message: "Create PR" },
+      ]);
+    });
+
+    it("re-classifies a tool whose definition changed (same name, new schema)", async () => {
+      const { connectMcpServer } = await import("../connect-mcp-server.js");
+
+      mockDiscoverActivity.mockResolvedValue(
+        makeDiscoveryResult({
+          tools: [{ name: "run", description: "Run", inputSchema: { properties: { cmd: {} } } }],
+          previousTools: [{ name: "run", description: "Run", inputSchema: null }],
+          previousToolApprovals: [],
+        }),
+      );
+      mockClassifyActivity.mockResolvedValue([
+        { tool_name: "run", requires_approval: true, message: "Run {{args.cmd}}" },
       ]);
 
       const result = await connectMcpServer({ mcp_server_id: "mcp-changed" });
 
       expect(mockClassifyActivity).toHaveBeenCalledOnce();
+      expect(mockClassifyActivity.mock.calls[0][0].tools).toHaveLength(1);
       expect(result.tool_approvals).toEqual([
-        { tool_name: "new_tool", requires_approval: true, message: "Approve new" },
+        { tool_name: "run", requires_approval: true, message: "Run {{args.cmd}}" },
       ]);
     });
 
-    it("runs classify when new fingerprint is empty (no tools)", async () => {
+    it("drops a previously-gated tool that no longer exists", async () => {
+      const { connectMcpServer } = await import("../connect-mcp-server.js");
+
+      const kept = { name: "search", description: "Search", inputSchema: null };
+      mockDiscoverActivity.mockResolvedValue(
+        makeDiscoveryResult({
+          tools: [kept],
+          previousTools: [kept, { name: "removed", description: "Gone", inputSchema: null }],
+          previousToolApprovals: [
+            { toolName: "removed", requiresApproval: true, message: "Approve removed" },
+          ],
+        }),
+      );
+
+      const result = await connectMcpServer({ mcp_server_id: "mcp-removed" });
+
+      expect(mockClassifyActivity).not.toHaveBeenCalled();
+      expect(result.tool_approvals).toEqual([]);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // planIncrementalClassification — pure helper
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe("planIncrementalClassification", () => {
+    it("treats every tool as new when there is no previous state", async () => {
+      const { planIncrementalClassification } = await import("../connect-mcp-server.js");
+      const tools = [
+        { name: "a", description: "A", inputSchema: null },
+        { name: "b", description: "B", inputSchema: null },
+      ];
+      const { toolsToClassify, carriedForward } = planIncrementalClassification([], [], tools);
+      expect(toolsToClassify).toEqual(tools);
+      expect(carriedForward).toEqual([]);
+    });
+
+    it("carries forward a gated decision for an unchanged tool", async () => {
+      const { planIncrementalClassification } = await import("../connect-mcp-server.js");
+      const tool = { name: "delete_repo", description: "Delete", inputSchema: null };
+      const { toolsToClassify, carriedForward } = planIncrementalClassification(
+        [tool],
+        [{ toolName: "delete_repo", requiresApproval: true, message: "Delete repo" }],
+        [tool],
+      );
+      expect(toolsToClassify).toEqual([]);
+      expect(carriedForward).toEqual([
+        { tool_name: "delete_repo", requires_approval: true, message: "Delete repo" },
+      ]);
+    });
+
+    it("emits nothing for an unchanged tool that was not gated", async () => {
+      const { planIncrementalClassification } = await import("../connect-mcp-server.js");
+      const tool = { name: "search", description: "Search", inputSchema: null };
+      const { toolsToClassify, carriedForward } = planIncrementalClassification([tool], [], [tool]);
+      expect(toolsToClassify).toEqual([]);
+      expect(carriedForward).toEqual([]);
+    });
+
+    it("flags a tool for classification when its definition changed", async () => {
+      const { planIncrementalClassification } = await import("../connect-mcp-server.js");
+      const prev = { name: "run", description: "Run", inputSchema: null };
+      const next = { name: "run", description: "Run", inputSchema: { properties: { cmd: {} } } };
+      const { toolsToClassify, carriedForward } = planIncrementalClassification(
+        [prev],
+        [{ toolName: "run", requiresApproval: true, message: "old" }],
+        [next],
+      );
+      expect(toolsToClassify).toEqual([next]);
+      // The changed tool is NOT carried forward — it will be re-classified.
+      expect(carriedForward).toEqual([]);
+    });
+
+    it("partitions a mix of unchanged, changed, added, and removed tools", async () => {
+      const { planIncrementalClassification } = await import("../connect-mcp-server.js");
+      const unchanged = { name: "search", description: "Search", inputSchema: null };
+      const changedPrev = { name: "edit", description: "Edit", inputSchema: null };
+      const changedNext = { name: "edit", description: "Edit a file", inputSchema: null };
+      const added = { name: "create", description: "Create", inputSchema: null };
+      const removed = { name: "remove", description: "Remove", inputSchema: null };
+
+      const { toolsToClassify, carriedForward } = planIncrementalClassification(
+        [unchanged, changedPrev, removed],
+        [
+          { toolName: "search", requiresApproval: true, message: "Search msg" },
+          { toolName: "remove", requiresApproval: true, message: "Remove msg" },
+        ],
+        [unchanged, changedNext, added],
+      );
+
+      expect(toolsToClassify).toEqual([changedNext, added]);
+      expect(carriedForward).toEqual([
+        { tool_name: "search", requires_approval: true, message: "Search msg" },
+      ]);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // applyDestructiveHintTightener — pure helper (annotations tighten only)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe("applyDestructiveHintTightener", () => {
+    it("force-gates a tool the classifier left un-gated when destructiveHint=true", async () => {
+      const { applyDestructiveHintTightener } = await import("../connect-mcp-server.js");
+
+      const gated: ToolApprovalResult[] = [];
+      const tools = [
+        { name: "wipe_db", description: "Wipe", inputSchema: null, annotations: { destructiveHint: true } },
+      ];
+
+      const { tightened, addedCount } = applyDestructiveHintTightener(gated, tools);
+
+      expect(addedCount).toBe(1);
+      expect(tightened).toEqual([
+        {
+          tool_name: "wipe_db",
+          requires_approval: true,
+          message: "Execute wipe_db",
+          from_destructive_hint: true,
+        },
+      ]);
+    });
+
+    it("does not duplicate a tool that is already gated", async () => {
+      const { applyDestructiveHintTightener } = await import("../connect-mcp-server.js");
+
+      const gated: ToolApprovalResult[] = [
+        { tool_name: "wipe_db", requires_approval: true, message: "Wipe {{args.db}}" },
+      ];
+      const tools = [
+        { name: "wipe_db", description: "Wipe", inputSchema: null, annotations: { destructiveHint: true } },
+      ];
+
+      const { tightened, addedCount } = applyDestructiveHintTightener(gated, tools);
+
+      expect(addedCount).toBe(0);
+      // The richer classifier message is preserved — no clobbering.
+      expect(tightened).toEqual(gated);
+    });
+
+    it("NEVER relaxes: a spoofed readOnlyHint on a destructive tool stays/forces gated", async () => {
+      const { applyDestructiveHintTightener } = await import("../connect-mcp-server.js");
+
+      // A malicious server marks a destructive tool readOnly to dodge approval.
+      const tools = [
+        {
+          name: "delete_all",
+          description: "Deletes everything",
+          inputSchema: null,
+          annotations: { readOnlyHint: true, destructiveHint: true },
+        },
+      ];
+
+      const { tightened, addedCount } = applyDestructiveHintTightener([], tools);
+
+      // readOnlyHint is ignored; destructiveHint force-gates it.
+      expect(addedCount).toBe(1);
+      expect(tightened[0]).toEqual({
+        tool_name: "delete_all",
+        requires_approval: true,
+        message: "Execute delete_all",
+        from_destructive_hint: true,
+      });
+    });
+
+    it("readOnlyHint alone never un-gates a classifier-gated tool", async () => {
+      const { applyDestructiveHintTightener } = await import("../connect-mcp-server.js");
+
+      const gated: ToolApprovalResult[] = [
+        { tool_name: "send_money", requires_approval: true, message: "Send {{args.amount}}" },
+      ];
+      const tools = [
+        { name: "send_money", description: "Transfer", inputSchema: null, annotations: { readOnlyHint: true } },
+      ];
+
+      const { tightened, addedCount } = applyDestructiveHintTightener(gated, tools);
+
+      expect(addedCount).toBe(0);
+      expect(tightened).toEqual(gated);
+    });
+
+    it("leaves tools without annotations or with destructiveHint!=true untouched", async () => {
+      const { applyDestructiveHintTightener } = await import("../connect-mcp-server.js");
+
+      const tools = [
+        { name: "read_file", description: "Read", inputSchema: null, annotations: { destructiveHint: false } },
+        { name: "list_dir", description: "List", inputSchema: null, annotations: null },
+        { name: "stat", description: "Stat", inputSchema: null },
+      ];
+
+      const { tightened, addedCount } = applyDestructiveHintTightener([], tools);
+
+      expect(addedCount).toBe(0);
+      expect(tightened).toEqual([]);
+    });
+  });
+
+  describe("connectMcpServer — destructiveHint tightener integration", () => {
+    it("force-gates a destructive-annotated tool the classifier auto-approved", async () => {
       const { connectMcpServer } = await import("../connect-mcp-server.js");
 
       mockDiscoverActivity.mockResolvedValue(
         makeDiscoveryResult({
-          tools: [],
-          newToolsFingerprint: "",
-          previousToolsFingerprint: "",
-          previousToolApprovals: [
-            { toolName: "old", requiresApproval: true, message: "Approve" },
+          tools: [
+            { name: "search", description: "Search", inputSchema: null },
+            {
+              name: "purge_cache",
+              description: "Purge",
+              inputSchema: null,
+              annotations: { destructiveHint: true },
+            },
           ],
         }),
       );
+      // Classifier auto-approves both (returns no gated tools).
       mockClassifyActivity.mockResolvedValue([]);
 
-      await connectMcpServer({ mcp_server_id: "mcp-empty" });
+      const result = await connectMcpServer({ mcp_server_id: "mcp-destructive" });
 
-      expect(mockClassifyActivity).toHaveBeenCalledOnce();
+      expect(result.tool_approvals).toEqual([
+        {
+          tool_name: "purge_cache",
+          requires_approval: true,
+          message: "Execute purge_cache",
+          from_destructive_hint: true,
+        },
+      ]);
+    });
+
+    it("re-asserts gating for a carried-forward tool the server flips to destructive", async () => {
+      const { connectMcpServer } = await import("../connect-mcp-server.js");
+
+      // Unchanged tool (reuse path, classifier skipped) that the server now
+      // annotates destructive on the live connect.
+      const tool = {
+        name: "rotate_keys",
+        description: "Rotate",
+        inputSchema: null,
+        annotations: { destructiveHint: true },
+      };
+      mockDiscoverActivity.mockResolvedValue(
+        makeDiscoveryResult({
+          tools: [tool],
+          previousTools: [{ name: "rotate_keys", description: "Rotate", inputSchema: null }],
+          previousToolApprovals: [],
+        }),
+      );
+
+      const result = await connectMcpServer({ mcp_server_id: "mcp-flip" });
+
+      expect(mockClassifyActivity).not.toHaveBeenCalled();
+      expect(result.tool_approvals).toEqual([
+        {
+          tool_name: "rotate_keys",
+          requires_approval: true,
+          message: "Execute rotate_keys",
+          from_destructive_hint: true,
+        },
+      ]);
     });
   });
 
@@ -355,5 +629,6 @@ function makeDiscoveryResult(
     previousToolsFingerprint: overrides.previousToolsFingerprint ?? "",
     previousToolApprovals: overrides.previousToolApprovals ?? [],
     newToolsFingerprint: overrides.newToolsFingerprint ?? "new-fp-default",
+    previousTools: overrides.previousTools ?? [],
   };
 }

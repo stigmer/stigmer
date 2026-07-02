@@ -2,25 +2,42 @@ import { describe, it, expect, vi } from "vitest";
 import { create, toBinary } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { ArtifactStorage } from "../artifact-storage.js";
+import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
+import {
+  DiffCompleteness,
+  FileCaptureClass,
+  FileChangeKind,
+  FileChangeType,
+  FileChangeCaptureLevel,
+  FileReviewBlockReason,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   offloadOversizedToolOutputs,
+  offloadCandidateChangesToFit,
   enforceStatusSizeLimit,
   detectImagePayload,
 } from "../status-offload.js";
+import {
+  appendFileReviewEvents,
+  buildCandidateCapturedEvent,
+  buildCapturedFileChange,
+  type ChangeSetContext,
+} from "../filereview/events.js";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 
 function makeFakeStorage() {
+  // Canonical double, with the metadata-tracking `uploads` shim these tests assert
+  // on and the serve-URL base they expect. `download` reads back what was uploaded.
+  const { storage, blobs } = makeInMemoryArtifactStorage({ urlBase: "https://artifacts.local/" });
   const uploads: { key: string; size: number; contentType?: string }[] = [];
-  const storage: ArtifactStorage = {
-    upload: vi.fn(async (key: string, content: Buffer, contentType?: string) => {
-      uploads.push({ key, size: content.length, contentType });
-      return key;
-    }),
-    getDownloadUrl: vi.fn(async (key: string) => `https://artifacts.local/${key}`),
-    exists: vi.fn(async () => true),
-  };
+  storage.upload.mockImplementation(async (key: string, content: Buffer, contentType?: string) => {
+    uploads.push({ key, size: content.length, contentType });
+    blobs.set(key, Buffer.from(content));
+    return key;
+  });
   return { storage, uploads };
 }
 
@@ -72,6 +89,87 @@ describe("detectImagePayload", () => {
     expect(img?.mimeType).toBe("image/png");
     expect(img?.base64).toBe(BIG_BASE64_IMAGE);
   });
+
+  it("extracts the Cursor SDK MCP block shape ({ image: { data, mimeType } })", () => {
+    // The shape @cursor/sdk uses for MCP image content. When the result reaches
+    // the offloader as a pre-serialized string it bypasses canonicalizeImageResult,
+    // so detection must recognize this shape directly.
+    const result = JSON.stringify([
+      { text: { text: "Screen captured. App state: ready." } },
+      { image: { data: BIG_BASE64_IMAGE, mimeType: "image/png" } },
+    ]);
+    const img = detectImagePayload(result);
+    expect(img?.mimeType).toBe("image/png");
+    expect(img?.base64).toBe(BIG_BASE64_IMAGE);
+  });
+
+  it("extracts an image nested under a status/value/content envelope", () => {
+    // The full Cursor MCP result envelope, serialized to a string. The image is
+    // two levels deep — the recursive walk must still find it.
+    const result = JSON.stringify({
+      status: "success",
+      value: {
+        isError: false,
+        content: [
+          { text: { text: "accessibility tree…" } },
+          { image: { data: BIG_BASE64_IMAGE, mimeType: "image/jpeg" } },
+        ],
+      },
+    });
+    const img = detectImagePayload(result);
+    expect(img?.mimeType).toBe("image/jpeg");
+    expect(img?.base64).toBe(BIG_BASE64_IMAGE);
+  });
+
+  it("extracts a data URL embedded in a JSON field (not a content block)", () => {
+    const result = JSON.stringify({
+      accessibilityTree: "Window > Button(OK)",
+      screenshot: `data:image/png;base64,${BIG_BASE64_IMAGE}`,
+    });
+    const img = detectImagePayload(result);
+    expect(img?.mimeType).toBe("image/png");
+    expect(img?.base64).toBe(BIG_BASE64_IMAGE);
+  });
+
+  it("extracts a data URL embedded in surrounding prose", () => {
+    const img = detectImagePayload(`Here is the screenshot: data:image/gif;base64,${BIG_BASE64_IMAGE}`);
+    expect(img?.mimeType).toBe("image/gif");
+    expect(img?.base64).toBe(BIG_BASE64_IMAGE);
+  });
+
+  it("does NOT treat a bare base64 string with no image marker as an image", () => {
+    // A base64-encoded file or a long log must remain text — never a false image.
+    const result = JSON.stringify({ file: BIG_BASE64_IMAGE, encoding: "base64" });
+    expect(detectImagePayload(result)).toBeNull();
+  });
+
+  it("does NOT treat an image field that is a file path as an image", () => {
+    const result = JSON.stringify({ image: "assets/capture.png" });
+    expect(detectImagePayload(result)).toBeNull();
+  });
+
+  it("extracts the REAL cursor-harness get_app_state shape (value.content + Buffer-JSON, no mimeType)", () => {
+    // Captured verbatim from a production cursor-harness get_app_state result:
+    // the multimodal envelope arrives as a serialized string, blocks live under
+    // value.content, the image data is Node Buffer-JSON, and there is NO
+    // mimeType. The old top-level-only detector missed this (offloaded as text);
+    // this is the exact regression that made screenshots render as raw JSON.
+    const PNG_BYTES = [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82];
+    const result = JSON.stringify({
+      status: "success",
+      value: {
+        content: [
+          { text: { text: "App=com.google.Chrome … 65 button Done." } },
+          { image: { data: { type: "Buffer", data: PNG_BYTES } } },
+        ],
+        isError: false,
+      },
+    });
+    const img = detectImagePayload(result);
+    expect(img).not.toBeNull();
+    expect(img?.mimeType).toBe("image/png");
+    expect(img?.base64).toBe(Buffer.from(PNG_BYTES).toString("base64"));
+  });
 });
 
 describe("offloadOversizedToolOutputs", () => {
@@ -93,11 +191,81 @@ describe("offloadOversizedToolOutputs", () => {
     expect(out.outputRef).toBeDefined();
     expect(out.outputRef?.isImage).toBe(true);
     expect(out.outputRef?.mimeType).toBe("image/png");
-    expect(out.outputRef?.downloadUrl).toContain("artifacts/exec-1/toolcalls/tc-1.png");
+    expect(out.outputRef?.storageKey).toBe("artifacts/exec-1/toolcalls/tc-1.png");
     // result is collapsed to a short label, no longer the giant blob.
     expect(out.result.length).toBeLessThan(200);
     expect(uploads).toHaveLength(1);
     expect(uploads[0].contentType).toBe("image/png");
+  });
+
+  it("offloads a Cursor-SDK-shape multimodal result as a renderable image (not text)", async () => {
+    // Reproduces the production symptom class: a get_app_state-style result
+    // (status line text + screenshot) delivered as a pre-serialized string in
+    // the @cursor/sdk MCP block shape. Before the recursive detector this fell
+    // through to a text offload (is_image=false → "view full output" instead of
+    // the picture); it must now offload as an image.
+    const { storage, uploads } = makeFakeStorage();
+    const result = JSON.stringify({
+      status: "success",
+      value: {
+        isError: false,
+        content: [
+          { text: { text: "Screen captured. App state: ready." } },
+          { image: { data: BIG_BASE64_IMAGE, mimeType: "image/png" } },
+        ],
+      },
+    });
+    const tc = create(ToolCallSchema, { id: "tc-app", name: "get_app_state", result });
+    const status = statusWithToolCall(tc);
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineBytes: 256,
+    });
+
+    const out = status.messages[0].toolCalls[0];
+    expect(out.outputRef?.isImage).toBe(true);
+    expect(out.outputRef?.mimeType).toBe("image/png");
+    expect(out.outputRef?.storageKey).toBe("artifacts/exec-1/toolcalls/tc-app.png");
+    expect(out.result).not.toContain(BIG_BASE64_IMAGE);
+    expect(uploads).toHaveLength(1);
+    expect(uploads[0].contentType).toBe("image/png");
+  });
+
+  it("offloads the REAL get_app_state shape (Buffer-JSON, no mimeType) as a renderable image", async () => {
+    // End-to-end guard for the production regression: a serialized multimodal
+    // envelope with the image as Buffer-JSON under value.content and no mimeType
+    // must offload as an image ref (is_image=true), not text.
+    const { storage, uploads } = makeFakeStorage();
+    const pngBytes = [137, 80, 78, 71, 13, 10, 26, 10, ...Array(4096).fill(65)];
+    const result = JSON.stringify({
+      status: "success",
+      value: {
+        content: [
+          { text: { text: "accessibility tree…" } },
+          { image: { data: { type: "Buffer", data: pngBytes } } },
+        ],
+        isError: false,
+      },
+    });
+    const tc = create(ToolCallSchema, { id: "tc-gas", name: "get_app_state", result });
+    const status = statusWithToolCall(tc);
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineBytes: 256,
+    });
+
+    const out = status.messages[0].toolCalls[0];
+    expect(out.outputRef?.isImage).toBe(true);
+    expect(out.outputRef?.mimeType).toBe("image/png");
+    expect(out.outputRef?.storageKey).toBe("artifacts/exec-1/toolcalls/tc-gas.png");
+    expect(uploads).toHaveLength(1);
+    expect(uploads[0].contentType).toBe("image/png");
+    // The decoded image bytes are what gets uploaded, not the Buffer-JSON array.
+    expect(out.result).not.toContain('"Buffer"');
   });
 
   it("offloads oversized text with a preview head and text/plain upload", async () => {
@@ -141,7 +309,7 @@ describe("offloadOversizedToolOutputs", () => {
 
     const out = status.messages[0].toolCalls[0];
     expect(out.outputRef?.isImage).toBe(true);
-    expect(out.outputRef?.downloadUrl).toContain("artifacts/exec-1/toolcalls/tc-img.png");
+    expect(out.outputRef?.storageKey).toBe("artifacts/exec-1/toolcalls/tc-img.png");
     expect(out.result).not.toContain(smallImage);
     expect(uploads).toHaveLength(1);
     expect(uploads[0].contentType).toBe("image/png");
@@ -201,11 +369,8 @@ describe("offloadOversizedToolOutputs", () => {
   });
 
   it("falls back to inline truncation when the upload fails (never throws)", async () => {
-    const storage: ArtifactStorage = {
-      upload: vi.fn(async () => { throw new Error("storage down"); }),
-      getDownloadUrl: vi.fn(async (k: string) => k),
-      exists: vi.fn(async () => false),
-    };
+    const { storage } = makeInMemoryArtifactStorage();
+    storage.upload.mockImplementation(async () => { throw new Error("storage down"); });
     const result = "LOG ".repeat(2000);
     const tc = create(ToolCallSchema, { id: "tc-6", name: "Shell", result });
     const status = statusWithToolCall(tc);
@@ -223,6 +388,97 @@ describe("offloadOversizedToolOutputs", () => {
     expect(out.outputRef).toBeUndefined();
     expect(out.result).toContain("offload failed");
     expect(out.result.length).toBeLessThan(result.length);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sub-agent coverage — the size-bounding walks must include
+// sub_agent_executions[].messages, not just the parent transcript. A delegated
+// read/grep/screenshot result is as unbounded as a top-level one; missing this
+// location was a hole in the persist boundary's bounded-payload guarantee.
+// ---------------------------------------------------------------------------
+
+function statusWithSubAgentToolCall(tc: ToolCall): AgentExecutionStatus {
+  return create(AgentExecutionStatusSchema, {
+    subAgentExecutions: [
+      create(SubAgentExecutionSchema, {
+        id: "sa-1",
+        name: "researcher",
+        messages: [create(AgentMessageSchema, { toolCalls: [tc] })],
+      }),
+    ],
+  });
+}
+
+describe("sub-agent message size bounding", () => {
+  it("offloads an oversized sub-agent tool result exactly like a parent one", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const result = "LOG ".repeat(2000); // ~8 KB
+    const tc = create(ToolCallSchema, { id: "tc-sub", name: "Shell", result });
+    const status = statusWithSubAgentToolCall(tc);
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineBytes: 256,
+    });
+
+    const out = status.subAgentExecutions[0].messages[0].toolCalls[0];
+    expect(out.outputRef?.mimeType).toBe("text/plain");
+    expect(out.result).toContain("view full output");
+    expect(uploads).toHaveLength(1);
+  });
+
+  it("offloads a sub-agent image result into a renderable ref", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const result = JSON.stringify([
+      { type: "image", data: BIG_BASE64_IMAGE, mimeType: "image/png" },
+    ]);
+    const tc = create(ToolCallSchema, { id: "tc-sub-img", name: "screenshot", result });
+    const status = statusWithSubAgentToolCall(tc);
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineBytes: 256,
+    });
+
+    const out = status.subAgentExecutions[0].messages[0].toolCalls[0];
+    expect(out.outputRef?.isImage).toBe(true);
+    expect(out.result).not.toContain(BIG_BASE64_IMAGE);
+    expect(uploads).toHaveLength(1);
+  });
+
+  it("enforceStatusSizeLimit elides oversized sub-agent tool results", () => {
+    const big = "Z".repeat(50_000);
+    const tc = create(ToolCallSchema, { id: "tc-sub-big", name: "Shell", result: big });
+    const status = statusWithSubAgentToolCall(tc);
+    expect(encodedSize(status)).toBeGreaterThan(40_000);
+
+    const elided = enforceStatusSizeLimit(status, 4_000);
+
+    expect(elided).toBe(true);
+    expect(encodedSize(status)).toBeLessThanOrEqual(4_000);
+    expect(status.subAgentExecutions[0].messages[0].toolCalls[0].result)
+      .not.toBe(big);
+  });
+
+  it("enforceStatusSizeLimit last-resort elides oversized sub-agent message content", () => {
+    const status = create(AgentExecutionStatusSchema, {
+      subAgentExecutions: [
+        create(SubAgentExecutionSchema, {
+          id: "sa-2",
+          messages: [create(AgentMessageSchema, { content: "W".repeat(50_000) })],
+        }),
+      ],
+    });
+    expect(encodedSize(status)).toBeGreaterThan(40_000);
+
+    const elided = enforceStatusSizeLimit(status, 8_000);
+
+    expect(elided).toBe(true);
+    expect(encodedSize(status)).toBeLessThanOrEqual(8_000);
+    expect(status.subAgentExecutions[0].messages[0].content).toContain("elided");
   });
 });
 
@@ -253,4 +509,305 @@ describe("enforceStatusSizeLimit", () => {
     expect(elided).toBe(true);
     expect(encodedSize(status)).toBeLessThanOrEqual(4_000);
   });
+
+  it("marks a size-elided file-review change SIZE_ELIDED and PARTIAL_BLOCKED (doc 15)", () => {
+    const big = "Z".repeat(50_000);
+    const ctx: ChangeSetContext = {
+      changeSetId: "exec-1:0",
+      turnId: "turn-0",
+      harnessId: "deep-agent",
+      timestamp: "2026-07-01T00:00:00Z",
+    };
+    const change = buildCapturedFileChange({
+      id: "fc-big",
+      pathBefore: "src/big.ts",
+      pathAfter: "src/big.ts",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      before: big,
+      after: big,
+    });
+    // Reviewable at capture time: no reason, complete.
+    expect(change.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
+    expect(change.diffComplete).toBe(true);
+
+    const status = create(AgentExecutionStatusSchema, {});
+    appendFileReviewEvents(status, "exec-1", [
+      buildCandidateCapturedEvent(ctx, undefined, [change]),
+    ]);
+    expect(encodedSize(status)).toBeGreaterThan(90_000);
+
+    const elided = enforceStatusSizeLimit(status, 4_000);
+    expect(elided).toBe(true);
+
+    const ev = status.fileReviewEventStream?.events.find(
+      (e) => e.payload.case === "candidateCaptured",
+    );
+    expect(ev?.payload.case).toBe("candidateCaptured");
+    if (ev?.payload.case === "candidateCaptured") {
+      const dropped = ev.payload.value.changes[0];
+      // Bodies dropped, marked incomplete, and the honest cause recorded.
+      expect(dropped.before).toBeUndefined();
+      expect(dropped.after).toBeUndefined();
+      expect(dropped.diffComplete).toBe(false);
+      expect(dropped.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
+      expect(ev.payload.value.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+    }
+  });
+
+  it("downgrades a BINARY_SUMMARY_ONLY set to PARTIAL_BLOCKED when size-elision drops a text body", () => {
+    // A set whose only blocker is a binary file (BINARY_SUMMARY_ONLY) plus a
+    // large-but-reviewable text file. When the text body is elided it becomes a
+    // non-binary incompleteness, so the shared re-derivation must downgrade the
+    // whole set to PARTIAL_BLOCKED (it is no longer binary-only).
+    const big = "Z".repeat(50_000);
+    const ctx: ChangeSetContext = {
+      changeSetId: "exec-3:0",
+      turnId: "turn-0",
+      harnessId: "deep-agent",
+      timestamp: "2026-07-01T00:00:00Z",
+    };
+    const binary = buildCapturedFileChange({
+      id: "fc-bin",
+      pathBefore: "",
+      pathAfter: "assets/logo.png",
+      kind: FileChangeKind.ADD,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      after: { kind: "binary", sha256: "sha-bin" },
+      diffComplete: false,
+    });
+    const bigText = buildCapturedFileChange({
+      id: "fc-text",
+      pathBefore: "src/big.ts",
+      pathAfter: "src/big.ts",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      before: big,
+      after: big,
+    });
+
+    const status = create(AgentExecutionStatusSchema, {});
+    appendFileReviewEvents(status, "exec-3", [
+      buildCandidateCapturedEvent(ctx, undefined, [binary, bigText]),
+    ]);
+    // Before elision: binary is the only blocker.
+    const before = status.fileReviewEventStream?.events.find(
+      (e) => e.payload.case === "candidateCaptured",
+    );
+    if (before?.payload.case === "candidateCaptured") {
+      expect(before.payload.value.diffCompleteness).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
+    }
+
+    expect(enforceStatusSizeLimit(status, 4_000)).toBe(true);
+
+    const after = status.fileReviewEventStream?.events.find(
+      (e) => e.payload.case === "candidateCaptured",
+    );
+    if (after?.payload.case === "candidateCaptured") {
+      const cs = after.payload.value;
+      const text = cs.changes.find((c) => c.id === "fc-text");
+      const bin = cs.changes.find((c) => c.id === "fc-bin");
+      // The text body is dropped (now a non-binary incompleteness); the binary
+      // side is body-less already, so it is untouched and keeps is_binary.
+      expect(text?.diffComplete).toBe(false);
+      expect(text?.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
+      expect(bin?.after?.isBinary).toBe(true);
+      expect(cs.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+    }
+  });
+
+  it("does not overwrite a more specific reason (SECRET_WITHHELD survives size elision)", () => {
+    // A secret entry is content-less, so it can't be size-elided; but guard the
+    // precedence explicitly: if a reason is already set, the size backstop keeps it.
+    const big = "Z".repeat(50_000);
+    const ctx: ChangeSetContext = {
+      changeSetId: "exec-2:0",
+      turnId: "turn-0",
+      harnessId: "deep-agent",
+      timestamp: "2026-07-01T00:00:00Z",
+    };
+    const secretButLarge = buildCapturedFileChange({
+      id: "fc-x",
+      pathBefore: "big.env",
+      pathAfter: "big.env",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+      before: big,
+      after: big,
+      diffComplete: false,
+      blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
+    });
+    const status = create(AgentExecutionStatusSchema, {});
+    appendFileReviewEvents(status, "exec-2", [
+      buildCandidateCapturedEvent(ctx, undefined, [secretButLarge]),
+    ]);
+    enforceStatusSizeLimit(status, 4_000);
+    const ev = status.fileReviewEventStream?.events.find(
+      (e) => e.payload.case === "candidateCaptured",
+    );
+    if (ev?.payload.case === "candidateCaptured") {
+      expect(ev.payload.value.changes[0].blockedReason).toBe(
+        FileReviewBlockReason.SECRET_WITHHELD,
+      );
+    }
+  });
 });
+
+describe("offloadCandidateChangesToFit", () => {
+  function statusWithCandidate(
+    changes: CapturedFileChange[],
+    executionId: string,
+  ): AgentExecutionStatus {
+    const ctx: ChangeSetContext = {
+      changeSetId: `${executionId}:0`,
+      turnId: "turn-0",
+      harnessId: "deep-agent",
+      timestamp: "2026-07-01T00:00:00Z",
+    };
+    const status = create(AgentExecutionStatusSchema, {});
+    appendFileReviewEvents(status, executionId, [
+      buildCandidateCapturedEvent(ctx, undefined, changes),
+    ]);
+    return status;
+  }
+
+  function candidateOf(status: AgentExecutionStatus) {
+    const ev = status.fileReviewEventStream?.events.find(
+      (e) => e.payload.case === "candidateCaptured",
+    );
+    if (ev?.payload.case !== "candidateCaptured") throw new Error("no candidate event");
+    return ev.payload.value;
+  }
+
+  function textChange(id: string, path: string, before: string, after: string): CapturedFileChange {
+    return buildCapturedFileChange({
+      id,
+      pathBefore: before === "" ? "" : path,
+      pathAfter: after === "" ? "" : path,
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      ...(before !== "" ? { before } : {}),
+      ...(after !== "" ? { after } : {}),
+    });
+  }
+
+  it("offloads oversized captured bodies to refs so they stay reviewable (no SIZE_ELIDED)", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    // Two mid-sized files, each under the 128 KiB per-file cap but summing well
+    // past the injected soft cap — the exact case the per-item pass misses. The
+    // cap sits above the ~4 KB-per-side preview floor a ref keeps, so all four
+    // oversized sides can be offloaded and the status still lands under it.
+    const a = textChange("exec-fit:0:a.ts", "a.ts", "A".repeat(30_000), "A".repeat(50_000));
+    const b = textChange("exec-fit:0:b.ts", "b.ts", "B".repeat(40_000), "B".repeat(60_000));
+    const status = statusWithCandidate([a, b], "exec-fit");
+    expect(candidateOf(status).diffCompleteness).toBe(DiffCompleteness.COMPLETE);
+    expect(encodedSize(status)).toBeGreaterThan(150_000);
+
+    const offloaded = await offloadCandidateChangesToFit(
+      status,
+      { artifactStorage: storage, executionId: "exec-fit" },
+      20_000,
+    );
+    expect(offloaded).toBe(true);
+    expect(encodedSize(status)).toBeLessThanOrEqual(20_000);
+
+    const cs = candidateOf(status);
+    for (const c of cs.changes) {
+      // Every remaining side is a retrievable ref (never dropped, never left large-inline).
+      if (c.before) expect(c.before.body.case).toBe("ref");
+      if (c.after) expect(c.after.body.case).toBe("ref");
+      // Reviewability preserved: complete, no block reason.
+      expect(c.diffComplete).toBe(true);
+      expect(c.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
+    }
+    // The set stays COMPLETE (approvable), never PARTIAL_BLOCKED.
+    expect(cs.diffCompleteness).toBe(DiffCompleteness.COMPLETE);
+    // Keys follow the canonical maybeOffloadCandidateChanges convention.
+    expect(uploads.some((u) => u.key === "artifacts/exec-fit/filereview/exec-fit:0:a.ts.after.txt")).toBe(true);
+  });
+
+  it("offloads biggest-first and stops as soon as the status fits", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const big = textChange("exec-bf:0:big.ts", "big.ts", "", "B".repeat(60_000));
+    const small = textChange("exec-bf:0:small.ts", "small.ts", "", "s".repeat(2_000));
+    const status = statusWithCandidate([small, big], "exec-bf");
+    // Cap chosen so offloading only the big side gets under it.
+    const cap = encodedSize(status) - 40_000;
+
+    await offloadCandidateChangesToFit(
+      status,
+      { artifactStorage: storage, executionId: "exec-bf" },
+      cap,
+    );
+
+    const cs = candidateOf(status);
+    const bigC = cs.changes.find((c) => c.id === "exec-bf:0:big.ts");
+    const smallC = cs.changes.find((c) => c.id === "exec-bf:0:small.ts");
+    // The big body was offloaded; the small one was never touched (still inline).
+    expect(bigC?.after?.body.case).toBe("ref");
+    expect(smallC?.after?.body.case).toBe("inline");
+    expect(uploads).toHaveLength(1);
+    expect(uploads[0].key).toBe("artifacts/exec-bf/filereview/exec-bf:0:big.ts.after.txt");
+  });
+
+  it("is idempotent: an already-offloaded ref side is skipped, never re-uploaded", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const c = textChange("exec-idem:0:x.ts", "x.ts", "", "X".repeat(40_000));
+    const status = statusWithCandidate([c], "exec-idem");
+    const ctx = { artifactStorage: storage, executionId: "exec-idem" };
+
+    // A tiny cap the ref can never satisfy forces full iteration on both passes.
+    const first = await offloadCandidateChangesToFit(status, ctx, 100);
+    expect(first).toBe(true);
+    expect(uploads).toHaveLength(1);
+    expect(candidateOf(status).changes[0].after?.body.case).toBe("ref");
+
+    // Second pass over the same status: the side is a ref, so it is not collected
+    // and nothing is re-uploaded.
+    const second = await offloadCandidateChangesToFit(status, ctx, 100);
+    expect(second).toBe(false);
+    expect(uploads).toHaveLength(1);
+  });
+
+  it("falls through to the SIZE_ELIDED backstop when the upload fails", async () => {
+    const { storage } = makeFakeStorage();
+    storage.upload.mockRejectedValue(new Error("storage down"));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const c = textChange("exec-fail:0:y.ts", "y.ts", "", "Y".repeat(50_000));
+    const status = statusWithCandidate([c], "exec-fail");
+
+    const offloaded = await offloadCandidateChangesToFit(
+      status,
+      { artifactStorage: storage, executionId: "exec-fail" },
+      4_000,
+    );
+    // Nothing offloaded; the body is left inline for the backstop, not dropped here.
+    expect(offloaded).toBe(false);
+    expect(candidateOf(status).changes[0].after?.body.case).toBe("inline");
+
+    // The storage-less backstop then drops it and records the honest cause.
+    expect(enforceStatusSizeLimit(status, 4_000)).toBe(true);
+    const dropped = candidateOf(status).changes[0];
+    expect(dropped.after).toBeUndefined();
+    expect(dropped.diffComplete).toBe(false);
+    expect(dropped.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
+  });
+
+  it("only offloads file-review bodies, never tool-call content", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const tc = create(ToolCallSchema, { id: "tc-1", name: "Read", result: "R".repeat(50_000) });
+    const status = statusWithToolCall(tc);
+    expect(encodedSize(status)).toBeGreaterThan(40_000);
+
+    const offloaded = await offloadCandidateChangesToFit(
+      status,
+      { artifactStorage: storage, executionId: "exec-tc" },
+      4_000,
+    );
+    expect(offloaded).toBe(false);
+    expect(uploads).toHaveLength(0);
+    // The tool-call result is untouched (that is offloadOversizedToolOutputs' job).
+    expect(status.messages[0].toolCalls[0].result).toHaveLength(50_000);
+  });
+});
+

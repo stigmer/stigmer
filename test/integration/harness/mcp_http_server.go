@@ -2,6 +2,7 @@ package harness
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,27 @@ import (
 
 type echoParams struct {
 	Input string `json:"input" jsonschema:"the value to echo back"`
+}
+
+// imageParams is intentionally empty: the image tool takes no arguments. A
+// dedicated type is still required because mcp.AddTool derives the tool's input
+// schema from it.
+type imageParams struct{}
+
+// onePixelPNG is a minimal valid 1x1 PNG. We carry real (if tiny) image bytes so
+// the test exercises the exact MCP image-content path a computer-use screenshot
+// takes, not a stand-in. mcp.ImageContent.Data is raw bytes; the SDK base64-
+// encodes it on the wire.
+var onePixelPNG = mustDecodeBase64(
+	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+)
+
+func mustDecodeBase64(s string) []byte {
+	b, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		panic("mcp_http_server: invalid base64 image fixture: " + err.Error())
+	}
+	return b
 }
 
 type addParams struct {
@@ -60,6 +82,25 @@ func slowTool(_ context.Context, _ *mcp.CallToolRequest, params *slowParams) (*m
 	}, nil, nil
 }
 
+// imageTool returns a multimodal tool result: a short text block followed by an
+// MCP ImageContent block — the spec-defined way a server returns an image
+// alongside descriptive text (e.g. a computer-use screenshot with a status
+// line). It is the deterministic stand-in for tools like open-computer-use's
+// get_app_state, which return both the app-state text and a screenshot. The
+// text block is what lets the calling agent treat the call as "done" and move
+// on (a pure-image result gives the model nothing to read, so it tends to
+// abandon the call); the image block is what the UI must render inline rather
+// than as raw JSON. Used to reproduce and guard the image-result pipeline across
+// both harnesses.
+func imageTool(_ context.Context, _ *mcp.CallToolRequest, _ *imageParams) (*mcp.CallToolResult, any, error) {
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: "Screen captured. App state: ready."},
+			&mcp.ImageContent{Data: onePixelPNG, MIMEType: "image/png"},
+		},
+	}, nil, nil
+}
+
 // StartHTTPMcpServer starts an in-process Streamable HTTP MCP test server.
 // The server exposes the same tools as the stdio test server (echo, add, fail,
 // slow) using the official MCP Go SDK transport expected by the native
@@ -88,6 +129,10 @@ func StartHTTPMcpServer(t *testing.T) *httptest.Server {
 		Name:        "slow",
 		Description: "Sleeps for the given number of seconds then returns 'done'. For timeout testing.",
 	}, slowTool)
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "image",
+		Description: "Captures the current screen and returns a status line plus a PNG screenshot as MCP image content. For testing inline image rendering of tool results.",
+	}, imageTool)
 
 	handler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
 		return server

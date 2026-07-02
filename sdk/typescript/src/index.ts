@@ -186,6 +186,7 @@ export { PENDING_SUBJECT, resolvedSubject } from "./session";
 // Tool-call view model (framework-agnostic; shared by @stigmer/react and @stigmer/ink)
 export {
   ToolKind,
+  FileChangeCaptureLevel,
   resolveToolKind,
   resolveToolKindByName,
   normalizeToolResult,
@@ -193,6 +194,17 @@ export {
   type ToolSearchMatch,
   type ToolContentBlock,
 } from "./execution/tool-view";
+export {
+  ApprovalPolicySource,
+  describeApprovalPolicySource,
+  isInformativePolicySource,
+} from "./execution/approval-provenance";
+export { isTerminalPhase } from "./execution/execution-phases";
+export {
+  foldFileReviewEventStream,
+  displayFileChangeSets,
+} from "./execution/file-review-fold";
+export { toDisplayFileChange } from "./execution/to-display-file-change";
 export { SkillClient, type SkillInput } from "./gen/skill";
 export {
   WorkflowClient,

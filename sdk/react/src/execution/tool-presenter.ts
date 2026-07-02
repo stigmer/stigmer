@@ -16,16 +16,34 @@ import { useMemo } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ToolKind, resolveToolKind, normalizeToolResult } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
-import { resolveToolCategoryFromCall, extractPrimaryArg } from "./tool-categories";
-import type { ToolCategory } from "./tool-categories";
+import {
+  resolveToolCategoryFromCall,
+  extractPrimaryArg,
+  defaultDisclosureForCategory,
+  isRunGroupableCategory,
+} from "./tool-categories";
+import type { ToolCategory, ToolDisclosure } from "./tool-categories";
 import { summarizeResultView } from "./ResultView";
 
-/** Optional per-kind overrides for label and summary. */
+/** Optional per-kind overrides for label, summary, disclosure, and run-grouping. */
 export interface ToolPresenter {
   /** Overrides the display label (e.g. "Shell" -> "Run command"). */
   readonly label?: (toolCall: ToolCall) => string;
   /** Overrides the one-line result summary suffix. */
   readonly summary?: (toolCall: ToolCall, result: ToolResultView) => string | null;
+  /**
+   * Overrides the default inline disclosure. Use to keep a noisy MCP tool
+   * compact (`() => "summary"`) or to foreground a custom tool's output
+   * (`() => "preview"`) without forking the components.
+   */
+  readonly disclosure?: (toolCall: ToolCall, result: ToolResultView) => ToolDisclosure;
+  /**
+   * Overrides whether consecutive same-kind calls fold into one collapsible
+   * "Read 5 files" chip. Use to fold a chatty custom tool (`() => true`) or to
+   * keep a normally-folded category as standalone rows (`() => false`) without
+   * forking the thread layout. Defaults to {@link isRunGroupableCategory}.
+   */
+  readonly runGroupable?: (toolCall: ToolCall) => boolean;
 }
 
 const registry = new Map<ToolKind, ToolPresenter>();
@@ -72,6 +90,22 @@ export function getToolPresenter(kind: ToolKind): ToolPresenter | undefined {
   return registry.get(kind);
 }
 
+/**
+ * Resolves whether a tool call participates in run-grouping, honouring a
+ * registered {@link ToolPresenter.runGroupable} override before the
+ * category default ({@link isRunGroupableCategory}).
+ *
+ * This is the non-hook twin of the `runGroupable` field in
+ * {@link useToolPresentation}, so the pure `segmentToolCalls` layout pass and
+ * the component layer share one source of truth (and honour the same override).
+ */
+export function resolveRunGroupable(toolCall: ToolCall): boolean {
+  const kind = resolveToolKind(toolCall);
+  const override = registry.get(kind)?.runGroupable;
+  if (override) return override(toolCall);
+  return isRunGroupableCategory(resolveToolCategoryFromCall(toolCall).category);
+}
+
 /** The fully-resolved presentation for a tool call, returned by {@link useToolPresentation}. */
 export interface ToolPresentation {
   /** Harness-agnostic kind (wire field, with name fallback). */
@@ -86,6 +120,19 @@ export interface ToolPresentation {
   readonly result: ToolResultView;
   /** One-line result summary suffix for the collapsed row (e.g. "+40 -0"). */
   readonly resultSummary: string | null;
+  /**
+   * Default inline disclosure for this tool — `"preview"` keeps a bounded,
+   * persistent preview of the result, `"summary"` keeps a compact row. The
+   * active/awaiting state can still force a row open; this is the *settled*
+   * default.
+   */
+  readonly disclosure: ToolDisclosure;
+  /**
+   * Whether consecutive same-kind calls fold into one collapsible chip — the
+   * run-grouping axis, orthogonal to {@link disclosure}. See
+   * {@link isRunGroupableCategory}.
+   */
+  readonly runGroupable: boolean;
 }
 
 /**
@@ -105,6 +152,12 @@ export function useToolPresentation(toolCall: ToolCall): ToolPresentation {
     const label = override?.label?.(toolCall) ?? categoryInfo.label;
     const resultSummary =
       override?.summary?.(toolCall, result) ?? summarizeResultView(result);
+    const disclosure =
+      override?.disclosure?.(toolCall, result) ??
+      defaultDisclosureForCategory(categoryInfo.category);
+    const runGroupable =
+      override?.runGroupable?.(toolCall) ??
+      isRunGroupableCategory(categoryInfo.category);
 
     return {
       kind,
@@ -113,6 +166,8 @@ export function useToolPresentation(toolCall: ToolCall): ToolPresentation {
       primaryArg: extractPrimaryArg(toolCall),
       result,
       resultSummary,
+      disclosure,
+      runGroupable,
     };
   }, [toolCall]);
 }

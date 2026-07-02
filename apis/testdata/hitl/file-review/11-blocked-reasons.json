@@ -1,0 +1,60 @@
+{
+  "name": "blocked-reasons",
+  "description": "A PARTIAL_BLOCKED change set carrying all three per-file block reasons (doc 15): a reviewable file (UNSPECIFIED), a secret-withheld content-less file (SECRET_WITHHELD), and a size-elided file (SIZE_ELIDED, digests kept, bodies dropped). Locks that blocked_reason survives the protojson persist->project->read round-trip identically in Go and Java (Java's JsonFormat drops UNKNOWN fields, so this proves the regenerated stubs carry the field), and — since aggregate_digest is 'agg-cs11' regardless — that the informational reason is never folded into a digest.",
+  "execution_id": "aex_blocked_reasons",
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "events": [
+    {
+      "eventId": "cs11:cs11:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs11",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-07-01T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs11", "turnId": "t1", "harnessId": "deep-agent",
+        "baselineSnapshot": {
+          "kind": "SNAPSHOT_KIND_HYBRID",
+          "git": { "treeOid": "base-tree", "ref": "refs/stigmer/aex_blocked_reasons/baseline" },
+          "cas": { "manifestDigest": "base-manifest", "artifactUri": "artifacts/aex_blocked_reasons/filereview/cas/manifests/base-manifest" }
+        }
+      }
+    },
+    {
+      "eventId": "cs11:cs11:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs11",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-07-01T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs11",
+        "candidateSnapshot": {
+          "kind": "SNAPSHOT_KIND_HYBRID",
+          "git": { "treeOid": "cand-tree", "ref": "refs/stigmer/aex_blocked_reasons/candidate" },
+          "cas": { "manifestDigest": "cand-manifest", "artifactUri": "artifacts/aex_blocked_reasons/filereview/cas/manifests/cand-manifest" }
+        },
+        "changes": [
+          { "id": "fc1", "pathBefore": "src/a.ts", "pathAfter": "src/a.ts", "kind": "FILE_CHANGE_KIND_MODIFY", "captureClass": "FILE_CAPTURE_CLASS_GIT_TRACKED", "beforeSha256": "aaa", "afterSha256": "bbb", "diffComplete": true, "fileDigest": "d-fc1" },
+          { "id": "fc2", "pathBefore": ".env", "pathAfter": ".env", "kind": "FILE_CHANGE_KIND_MODIFY", "captureClass": "FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED", "diffComplete": false, "blockedReason": "FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD", "fileDigest": "d-fc2" },
+          { "id": "fc3", "pathBefore": "src/huge.ts", "pathAfter": "src/huge.ts", "kind": "FILE_CHANGE_KIND_MODIFY", "captureClass": "FILE_CAPTURE_CLASS_GIT_TRACKED", "beforeSha256": "ccc", "afterSha256": "ddd", "diffComplete": false, "blockedReason": "FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED", "fileDigest": "d-fc3" }
+        ],
+        "aggregateDigest": "agg-cs11",
+        "diffCompleteness": "DIFF_COMPLETENESS_PARTIAL_BLOCKED"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs11",
+      "status": "FILE_CHANGE_SET_STATUS_AWAITING_REVIEW",
+      "change_ids": ["fc1", "fc2", "fc3"],
+      "blocked_reasons": [
+        "FILE_REVIEW_BLOCK_REASON_UNSPECIFIED",
+        "FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD",
+        "FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED"
+      ],
+      "decision_count": 0,
+      "aggregate_digest": "agg-cs11",
+      "has_approved_snapshot": false
+    }
+  ]
+}

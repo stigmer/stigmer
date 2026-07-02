@@ -2,8 +2,13 @@
  * Artifact storage abstraction for the unified runner.
  *
  * Two backends:
- * - Local: writes to the filesystem, served by stigmer-server (OSS mode).
+ * - Local: writes to the filesystem (OSS mode). The runner reads its own
+ *   artifacts straight back off disk via {@link ArtifactStorage.download} — the
+ *   exact inverse of {@link ArtifactStorage.upload}. `getDownloadUrl` still
+ *   returns the stigmer-server serve URL, but that is for OTHER consumers (the
+ *   web console fetching an artifact for display), not the runner's own reads.
  * - Proxy: uses presigned URLs from the Stigmer Side-Channel Proxy (cloud mode).
+ *   Here `download` resolves a presigned URL and fetches it over HTTPS.
  *
  * The runner never holds R2/S3 credentials — in cloud mode it calls the proxy
  * to obtain a presigned upload URL, then PUTs content over plain HTTPS.
@@ -11,7 +16,7 @@
  * DD-6: No direct R2 backend. Local + Proxy only.
  */
 
-import { mkdir, writeFile, readFile, access, unlink } from "node:fs/promises";
+import { mkdir, writeFile, readFile, access } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Config } from "../config.js";
 
@@ -20,6 +25,17 @@ import type { Config } from "../config.js";
 export interface ArtifactStorage {
   upload(key: string, content: Buffer, contentType?: string): Promise<string>;
   getDownloadUrl(key: string): Promise<string>;
+  /**
+   * Read an artifact's raw bytes by key — the inverse of {@link upload} and the
+   * single read path for all runner read-back (CAS reconcile, exact-apply,
+   * claimcheck decode, attachment injection).
+   *
+   * Returns the exact stored bytes, or throws a descriptive, key-scoped `Error`
+   * when the object is missing or the transport fails. Per-backend semantics:
+   * local reads directly off disk; proxy resolves a presigned URL and fetches
+   * it. Callers own their own error-wrapping / degradation policy.
+   */
+  download(key: string): Promise<Buffer>;
   exists(key: string): Promise<boolean>;
 }
 
@@ -45,6 +61,18 @@ export class LocalArtifactStorage implements ArtifactStorage {
 
   async getDownloadUrl(key: string): Promise<string> {
     return `${this.serveUrlBase}/${key}`;
+  }
+
+  async download(key: string): Promise<Buffer> {
+    // Direct disk read — the exact inverse of `upload`. The runner wrote these
+    // bytes to `basePath`, so it reads them back without a self-HTTP round-trip
+    // and without depending on the serve URL being set or reachable.
+    try {
+      return await readFile(join(this.basePath, key));
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new Error(`Artifact not found for key '${key}': ${reason}`);
+    }
   }
 
   async exists(key: string): Promise<boolean> {
@@ -144,20 +172,43 @@ export class ProxyArtifactStorage implements ArtifactStorage {
     return data.url;
   }
 
+  async download(key: string): Promise<Buffer> {
+    const url = await this.getDownloadUrl(key);
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      throw new Error(
+        `Artifact download failed (HTTP ${resp.status}) for key '${key}': ` +
+        await resp.text(),
+      );
+    }
+    return Buffer.from(await resp.arrayBuffer());
+  }
+
   async exists(key: string): Promise<boolean> {
+    // A presigned URL is minted for ANY key — the presign endpoint does not check
+    // the object — so "did presign succeed?" is NOT existence (that bug turned a
+    // git-only file-review reconcile into a doomed manifest download + 404 crash).
+    // Probe the object itself with a 1-byte ranged GET: the presigned URL is
+    // SigV4-signed for GET (a HEAD would break the signature), and `Range:
+    // bytes=0-0` transfers at most one byte. Missing => 404; present => 200/206
+    // (or 416 for a 0-byte object, whose range is unsatisfiable yet it exists).
+    let url: string;
     try {
-      const resp = await fetch(`${this.baseUrl}/presigned-download-url`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${this.authToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ key }),
-      });
-      return resp.ok;
+      url = await this.getDownloadUrl(key);
     } catch {
+      // Presign endpoint unreachable: report absent. The sole caller (content-
+      // addressed CAS blob dedup) then re-uploads, which is idempotent.
       return false;
     }
+    const resp = await fetch(url, { headers: { Range: "bytes=0-0" } });
+    await resp.arrayBuffer().catch(() => undefined); // drain the <=1-byte body
+    if (resp.status === 404) return false;
+    if (resp.status === 200 || resp.status === 206 || resp.status === 416) return true;
+    // Any other status (e.g. 403 expired/misconfigured, 5xx) is a real fault, not
+    // an existence answer — surface it rather than silently mis-reporting.
+    throw new Error(
+      `Artifact existence check failed (HTTP ${resp.status}) for key '${key}'`,
+    );
   }
 }
 

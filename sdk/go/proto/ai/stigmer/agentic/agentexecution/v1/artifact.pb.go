@@ -54,11 +54,11 @@ type ExecutionArtifact struct {
 	SizeBytes int64 `protobuf:"varint,4,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
 	// Storage location in R2.
 	// Format: "artifacts/{execution_id}/{filename}"
+	//
+	// Clients resolve a download URL on demand from this stable key (via
+	// getArtifactDownloadUrl) — there is deliberately no persisted URL, since a
+	// pre-signed URL would expire while the reference does not.
 	StorageKey string `protobuf:"bytes,5,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
-	// Pre-signed URL for downloading the artifact.
-	// Expires after a configured period (default: 7 days).
-	// Clients can call the refresh endpoint to get a new URL if expired.
-	DownloadUrl string `protobuf:"bytes,6,opt,name=download_url,json=downloadUrl,proto3" json:"download_url,omitempty"`
 	// ISO 8601 timestamp when the artifact was created.
 	// Example: "2026-02-13T10:30:00Z"
 	CreatedAt string `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -158,13 +158,6 @@ func (x *ExecutionArtifact) GetStorageKey() string {
 	return ""
 }
 
-func (x *ExecutionArtifact) GetDownloadUrl() string {
-	if x != nil {
-		return x.DownloadUrl
-	}
-	return ""
-}
-
 func (x *ExecutionArtifact) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
@@ -197,7 +190,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_artifact_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_agentexecution_v1_artifact_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x83\x03\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xe0\x02\n" +
 	"\x11ExecutionArtifact\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fsandbox_path\x18\x02 \x01(\tR\vsandboxPath\x12Y\n" +
@@ -205,8 +198,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_artifact_proto_rawDesc = "" +
 	"\n" +
 	"size_bytes\x18\x04 \x01(\x03R\tsizeBytes\x12\x1f\n" +
 	"\vstorage_key\x18\x05 \x01(\tR\n" +
-	"storageKey\x12!\n" +
-	"\fdownload_url\x18\x06 \x01(\tR\vdownloadUrl\x12\x1d\n" +
+	"storageKey\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +

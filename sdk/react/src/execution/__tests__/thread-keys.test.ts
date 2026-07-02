@@ -13,8 +13,13 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import {
+  TodoItemSchema,
+  type TodoItem,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
+import {
   ExecutionPhase,
   MessageType,
+  TodoStatus,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { buildThreadItems } from "../MessageThread";
@@ -55,12 +60,24 @@ function makeSubAgent(id: string) {
   return sa;
 }
 
+function makeTodo(id: string, content: string, status: TodoStatus): TodoItem {
+  return create(TodoItemSchema, { id, content, status });
+}
+
+/** Build the `status.todos` proto map from a list of items, keyed by id. */
+function todoMap(items: TodoItem[]): { [id: string]: TodoItem } {
+  const map: { [id: string]: TodoItem } = {};
+  for (const t of items) map[t.id] = t;
+  return map;
+}
+
 function makeExecution(opts: {
   id: string;
   specMessage?: string;
   phase?: ExecutionPhase;
   messages?: ReturnType<typeof makeMessage>[];
   subAgents?: ReturnType<typeof makeSubAgent>[];
+  todos?: { [id: string]: TodoItem };
 }): AgentExecution {
   const exec = create(AgentExecutionSchema);
 
@@ -81,6 +98,9 @@ function makeExecution(opts: {
   }
   if (opts.subAgents) {
     status.subAgentExecutions = opts.subAgents;
+  }
+  if (opts.todos) {
+    status.todos = opts.todos;
   }
   exec.status = status;
 
@@ -610,5 +630,180 @@ describe("buildThreadItems key generation", () => {
       expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls).toHaveLength(1);
       expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls[0].name).toBe("Shell");
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Inline todos card
+// ---------------------------------------------------------------------------
+
+describe("buildThreadItems todos card", () => {
+  it("emits no todos card when status.todos is empty", () => {
+    const exec = makeExecution({
+      id: "exec-no-todos",
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Done")],
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    expect(items.filter((i) => i.kind === "todos")).toHaveLength(0);
+  });
+
+  it("anchors the card immediately after the opening AI message (anchor 1)", () => {
+    const exec = makeExecution({
+      id: "exec-a1",
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "Here is my plan"),
+        makeMessage(MessageType.MESSAGE_AI, "Working on it"),
+      ],
+      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_IN_PROGRESS)]),
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const keys = extractKeys(items);
+    // ...-m0 (opening AI) -> todos -> ...-m1
+    expect(keys).toEqual(["exec-a1-m0", "exec-a1-todos", "exec-a1-m1"]);
+  });
+
+  it("anchors the card after the opening thinking message", () => {
+    const exec = makeExecution({
+      id: "exec-think",
+      messages: [
+        makeMessage(MessageType.MESSAGE_THINKING, "Let me think"),
+        makeMessage(MessageType.MESSAGE_AI, "Answer"),
+      ],
+      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_PENDING)]),
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const keys = extractKeys(items);
+    expect(keys).toEqual(["exec-think-m0", "exec-think-todos", "exec-think-m1"]);
+  });
+
+  it("anchors before the first tool-group when work precedes any narration (anchor 2)", () => {
+    // An empty-content AI message that only carries a Shell tool call: no
+    // rendered narration, so the plan must lead the work.
+    const shellTc = makeToolCall("Shell", "tc-shell");
+    const exec = makeExecution({
+      id: "exec-a2",
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "  ", { toolCalls: [shellTc] }),
+      ],
+      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_IN_PROGRESS)]),
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const keys = extractKeys(items);
+    expect(keys).toEqual(["exec-a2-todos", "exec-a2-m0-tc"]);
+  });
+
+  it("falls back to the turn tail when there is no narration or work (anchor 3)", () => {
+    // Only a suppressed/internal todo tool call, empty content: nothing renders
+    // except the plan itself, which must still surface.
+    const todoTc = makeToolCall("updateTodos", "tc-todo");
+    const exec = makeExecution({
+      id: "exec-a3",
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "  ", { toolCalls: [todoTc] }),
+      ],
+      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_COMPLETED)]),
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const todoItems = items.filter((i) => i.kind === "todos");
+    expect(todoItems).toHaveLength(1);
+    expect(todoItems[0].key).toBe("exec-a3-todos");
+  });
+
+  it("emits exactly one card per execution even with multiple AI messages", () => {
+    const exec = makeExecution({
+      id: "exec-one",
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "First"),
+        makeMessage(MessageType.MESSAGE_AI, "Second"),
+        makeMessage(MessageType.MESSAGE_AI, "Third"),
+      ],
+      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_PENDING)]),
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    expect(items.filter((i) => i.kind === "todos")).toHaveLength(1);
+  });
+
+  it("emits one card per turn across a multi-turn session", () => {
+    const turn1 = makeExecution({
+      id: "exec-1",
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan A")],
+      todos: todoMap([makeTodo("t1", "A", TodoStatus.TODO_COMPLETED)]),
+    });
+    // A follow-up turn that did not write todos shows no card.
+    const turn2 = makeExecution({
+      id: "exec-2",
+      messages: [makeMessage(MessageType.MESSAGE_AI, "No plan here")],
+    });
+    const turn3 = makeExecution({
+      id: "exec-3",
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan C")],
+      todos: todoMap([makeTodo("t1", "C", TodoStatus.TODO_IN_PROGRESS)]),
+    });
+
+    const items = buildThreadItems([turn1, turn2, turn3], null, null, false, undefined);
+    const todoKeys = items.filter((i) => i.kind === "todos").map((i) => i.key);
+    expect(todoKeys).toEqual(["exec-1-todos", "exec-3-todos"]);
+  });
+
+  it("carries the live status.todos reference (no clone) for memoization", () => {
+    const todos = todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_PENDING)]);
+    const exec = makeExecution({
+      id: "exec-ref",
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan")],
+      todos,
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const todoItem = items.find((i) => i.kind === "todos");
+    expect(todoItem?.kind === "todos" && todoItem.todos).toBe(exec.status!.todos);
+  });
+
+  it("native-harness shape: filters the write_todos tool call but still shows the card", () => {
+    // Native keeps write_todos as a (filtered) tool call AND populates status.todos.
+    const writeTodosTc = makeToolCall("write_todos", "tc-wt");
+    const exec = makeExecution({
+      id: "exec-native",
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "Planning", {
+          toolCalls: [writeTodosTc],
+        }),
+      ],
+      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_IN_PROGRESS)]),
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    expect(items.filter((i) => i.kind === "tool-group")).toHaveLength(0);
+    expect(items.filter((i) => i.kind === "todos")).toHaveLength(1);
+  });
+
+  it("keeps a stable key as todos update (no remount)", () => {
+    const before = makeExecution({
+      id: "exec-stable",
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan")],
+      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_PENDING)]),
+    });
+    const after = makeExecution({
+      id: "exec-stable",
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan")],
+      todos: todoMap([
+        makeTodo("t1", "Step 1", TodoStatus.TODO_COMPLETED),
+        makeTodo("t2", "Step 2", TodoStatus.TODO_IN_PROGRESS),
+      ]),
+    });
+
+    const k1 = buildThreadItems([before], null, null, false, undefined).find(
+      (i) => i.kind === "todos",
+    )?.key;
+    const k2 = buildThreadItems([after], null, null, false, undefined).find(
+      (i) => i.kind === "todos",
+    )?.key;
+    expect(k1).toBe("exec-stable-todos");
+    expect(k2).toBe("exec-stable-todos");
   });
 });

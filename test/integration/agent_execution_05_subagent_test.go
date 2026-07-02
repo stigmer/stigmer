@@ -403,6 +403,15 @@ func TestAgentExecution_SubAgent_McpAccess(t *testing.T) {
 			assert.Equal(t, agentexecv1.SubAgentStatus_SUB_AGENT_COMPLETED, sa.GetStatus(),
 				"sub-agent should be COMPLETED when parent execution is COMPLETED")
 
+			// Sub-agent tool-call visibility contract. The tooluser sub-agent was
+			// instructed to call the echo MCP tool, so its internal tool call must
+			// surface on SubAgentExecution.messages[].tool_calls — the data the UI
+			// renders as the sub-agent's work. The native harness satisfies this via
+			// SubAgentTracker; the Cursor harness satisfies it by parsing the
+			// task-result conversationSteps (a regression here renders a sub-agent
+			// card that shows no activity, even though it ran tools).
+			harness.AssertSubAgentHasToolCall(t, sa)
+
 			harness.LogSubAgentExecutions(t, result)
 		})
 	}

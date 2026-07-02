@@ -44,22 +44,21 @@ public final class ArtifactProto extends com.google.protobuf.GeneratedFile {
       "rtifact.proto\022$ai.stigmer.agentic.agente" +
       "xecution.v1\032/ai/stigmer/agentic/agentexe" +
       "cution/v1/enum.proto\032\033buf/validate/valid" +
-      "ate.proto\"\203\003\n\021ExecutionArtifact\022\022\n\004name\030" +
+      "ate.proto\"\340\002\n\021ExecutionArtifact\022\022\n\004name\030" +
       "\001 \001(\tR\004name\022!\n\014sandbox_path\030\002 \001(\tR\013sandb" +
       "oxPath\022Y\n\004kind\030\003 \001(\0162;.ai.stigmer.agenti" +
       "c.agentexecution.v1.ExecutionArtifactKin" +
       "dB\010\272H\005\202\001\002\020\001R\004kind\022\035\n\nsize_bytes\030\004 \001(\003R\ts" +
       "izeBytes\022\037\n\013storage_key\030\005 \001(\tR\nstorageKe" +
-      "y\022!\n\014download_url\030\006 \001(\tR\013downloadUrl\022\035\n\n" +
-      "created_at\030\007 \001(\tR\tcreatedAt\022\035\n\nexpires_a" +
-      "t\030\010 \001(\tR\texpiresAt\022\030\n\007entries\030\t \003(\tR\007ent" +
-      "ries\022!\n\014content_hash\030\n \001(\tR\013contentHashB" +
-      "\304\001B\rArtifactProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer." +
-      "Agentic.Agentexecution.V1\312\002$Ai\\Stigmer\\A" +
-      "gentic\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Ag" +
-      "entic\\Agentexecution\\V1\\GPBMetadata\352\002(Ai" +
-      "::Stigmer::Agentic::Agentexecution::V1b\006" +
-      "proto3"
+      "y\022\035\n\ncreated_at\030\007 \001(\tR\tcreatedAt\022\035\n\nexpi" +
+      "res_at\030\010 \001(\tR\texpiresAt\022\030\n\007entries\030\t \003(\t" +
+      "R\007entries\022!\n\014content_hash\030\n \001(\tR\013content" +
+      "HashB\304\001B\rArtifactProtoP\001\242\002\004ASAA\252\002$Ai.Sti" +
+      "gmer.Agentic.Agentexecution.V1\312\002$Ai\\Stig" +
+      "mer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigm" +
+      "er\\Agentic\\Agentexecution\\V1\\GPBMetadata" +
+      "\352\002(Ai::Stigmer::Agentic::Agentexecution:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -72,7 +71,7 @@ public final class ArtifactProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionArtifact_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionArtifact_descriptor,
-        new java.lang.String[] { "Name", "SandboxPath", "Kind", "SizeBytes", "StorageKey", "DownloadUrl", "CreatedAt", "ExpiresAt", "Entries", "ContentHash", });
+        new java.lang.String[] { "Name", "SandboxPath", "Kind", "SizeBytes", "StorageKey", "CreatedAt", "ExpiresAt", "Entries", "ContentHash", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

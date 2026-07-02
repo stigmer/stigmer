@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 )
 
@@ -38,11 +39,13 @@ const (
 //   - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
 //   - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
 //   - REJECT: Execution fails with rejection error, phase becomes FAILED
-//   - APPROVE_ALL: Like APPROVE for the clicked tool, but also resolves the rest
-//     of the current gate — every other tool call still WAITING_APPROVAL (root
-//     and sub-agents) is set to APPROVE. pending_approvals becomes empty, so the
-//     gate resolves in one action. The runner then treats the rest of the
-//     execution as auto-approved (see ApprovalAction doc in enum.proto).
+//   - APPROVE_ALL: Like APPROVE for the clicked tool, and also auto-approves the
+//     co-pending tool calls of the SAME lease class (the clicked tool's built-in
+//     category, or its MCP server — see approval.DeriveLeaseScope). Co-pending
+//     calls of a different class stay WAITING_APPROVAL, so pending_approvals
+//     becomes empty (and the gate resolves) only when no other-class approval is
+//     outstanding. The runner then auto-approves only that class for the rest of
+//     the execution (a run-lifetime lease, see ApprovalAction doc in enum.proto).
 //
 // ## Immediate State Transitions (in this handler)
 //
@@ -274,7 +277,13 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 	executionID := input.GetAgentExecutionId()
 	toolCallId := input.GetToolCallId()
 	action := input.GetAction()
+	comment := input.GetComment()
 	now := time.Now().UTC().Format(time.RFC3339)
+
+	// Decider identity for the approval ledger. OSS is single-user with no
+	// multi-tenant auth context, so the principal is empty; the Cloud edition
+	// populates decided_by/approved_by from the authenticated caller.
+	decidedBy := ""
 
 	updated := &agentexecutionv1.AgentExecution{}
 
@@ -297,31 +306,51 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 					toolCallId, tc.GetApprovalAction().String())
 			}
 
-			tc.ApprovalAction = action
-			tc.ApprovalDecidedAt = now
-
-			// APPROVE_ALL ("approve and don't ask again") resolves the entire
-			// current gate in one decision: every other tool call still waiting
-			// for approval (root and sub-agents) is auto-approved. The clicked
-			// tool keeps APPROVE_ALL as its recorded action — that single entry
-			// marks where the user opted into trusting the rest of the run; the
-			// co-pending tools carry a plain APPROVE so the audit trail stays
-			// honest (every executed tool shows an explicit decision). The runner
-			// detects the APPROVE_ALL decision in history and skips the gate for
-			// all subsequent tool calls in this execution.
-			if action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
-				bulkApproveCoPendingToolCalls(updated, toolCallId, now)
-			}
-
 			if updated.Status == nil {
 				updated.Status = &agentexecutionv1.AgentExecutionStatus{}
 			}
 
+			// Author REQUESTED events BEFORE recording the decision, while every
+			// gated tool call is still WAITING. This seeds the persisted stream
+			// for executions that predate the field, so a decision event always
+			// has a preceding request even for an execution parked at the gate
+			// across the deploy. See approval.EnsureApprovalRequests.
+			approval.EnsureApprovalRequests(updated.Status, executionID)
+
+			tc.ApprovalAction = action
+			tc.ApprovalDecidedAt = now
+			tc.ApprovedBy = decidedBy
+			// Author the rich decision event (decided_by + the user's comment) in
+			// the same locked write that records the decision on the scan, so it
+			// can never be duplicated or clobbered by a coarse re-derivation.
+			approval.RecordDecisionEvent(updated.Status, tc, decidedBy, comment)
+
+			// APPROVE_ALL ("approve all of this kind") grants a run-lifetime lease
+			// scoped to the clicked tool's class: every co-pending tool call of
+			// the SAME class (root and sub-agents) is auto-approved; co-pending
+			// calls of a different class stay WAITING_APPROVAL. The clicked tool
+			// keeps APPROVE_ALL as its recorded action — that single entry marks
+			// where the user opted into trusting that class for the rest of the
+			// run; the matched co-pending tools carry a plain APPROVE so the audit
+			// trail stays honest (every executed tool shows an explicit decision).
+			// The runner detects the APPROVE_ALL decision in history and derives
+			// the same scope to auto-approve only that class going forward.
+			if action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE_ALL {
+				for _, bulkTc := range bulkApproveCoPendingToolCalls(updated, toolCallId, now, decidedBy) {
+					// Co-pending tools carry a plain APPROVE and no comment — the
+					// escalation comment belongs to the clicked tool.
+					approval.RecordDecisionEvent(updated.Status, bulkTc, decidedBy, "")
+				}
+			}
+
 			// Recompute pending_approvals — the approved entry disappears because
-			// its approval_action is now set (no longer UNSPECIFIED).
-			updated.Status.PendingApprovals = approval.ComputePendingApprovals(
+			// its approval_action is now set (no longer UNSPECIFIED). Via the single
+			// projection seam (a pure read that also runs the event-stream parity check).
+			updated.Status.PendingApprovals = approval.ProjectPendingApprovals(
+				updated.Status.GetPhase(),
 				updated.Status.GetMessages(),
 				updated.Status.GetSubAgentExecutions(),
+				updated.Status.GetApprovalEventStream(),
 			)
 
 			return nil
@@ -396,21 +425,30 @@ func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutio
 	executionID := execution.GetMetadata().GetId()
 	action := input.GetAction()
 	pendingRemaining := len(execution.GetStatus().GetPendingApprovals())
+	awaitingReview := filereview.CountAwaitingReview(execution.GetStatus().GetFileChangeSets())
 
 	isReject := action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
-	allDecided := pendingRemaining == 0
 
-	if !isReject && !allDecided {
+	// The HITL gate is unified: a turn resumes only when BOTH sub-gates clear.
+	// The approval sub-gate clears on REJECT (Python auto-skips the rest) or when
+	// no approvals remain; the file-review sub-gate clears when no change set is
+	// awaiting a human decision. Clearing the last approval while file review is
+	// still pending must NOT resume the turn.
+	approvalSubGateClear := isReject || pendingRemaining == 0
+	fileReviewClear := awaitingReview == 0
+
+	if !(approvalSubGateClear && fileReviewClear) {
 		log.Info().
 			Str("execution_id", executionID).
 			Str("tool_call_id", input.GetToolCallId()).
 			Str("action", action.String()).
 			Int("pending_approvals_remaining", pendingRemaining).
-			Msg("Approval recorded, gate not yet resolved — waiting for remaining approvals")
+			Int("change_sets_awaiting_review", awaitingReview).
+			Msg("Approval recorded, HITL gate not yet resolved — waiting")
 		return nil
 	}
 
-	reason := "all tool calls decided"
+	reason := "all approvals decided and no file review pending"
 	if isReject {
 		reason = "REJECT triggers immediate resume"
 	}
@@ -472,6 +510,11 @@ func (s *signalWorkflowStep) reconcileStaleExecution(ctx context.Context, execut
 			Error:    "Workflow backing this execution is no longer running. Execution has been marked as failed.",
 			Messages: execution.GetStatus().GetMessages(),
 			Audit:    execution.GetStatus().GetAudit(),
+			// Preserve the approval-event ledger for the audit trail. pending_approvals
+			// is intentionally omitted (left empty): a FAILED execution is terminal and
+			// has no actionable approvals — the same invariant the phase-aware projection
+			// seam enforces on every other terminal path.
+			ApprovalEventStream: execution.GetStatus().GetApprovalEventStream(),
 		},
 	}
 
@@ -481,6 +524,10 @@ func (s *signalWorkflowStep) reconcileStaleExecution(ctx context.Context, execut
 		Content: "The workflow backing this execution is no longer running. This can happen due to infrastructure issues or manual termination. The execution has been marked as failed.",
 	})
 
+	// Whole-resource save is intentional here (exempt from the atomic UpdateStatus
+	// path): this writes a TERMINAL (FAILED) state because the backing workflow is
+	// gone, so there is no live appender racing the approval_event_stream — which is
+	// preserved verbatim above for the audit trail, not rewritten from a scan.
 	if err := s.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, executionID, reconciledExecution); err != nil {
 		log.Error().
 			Err(err).
@@ -542,16 +589,43 @@ func (s *buildApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*agente
 }
 
 // bulkApproveCoPendingToolCalls implements the gate-resolving half of an
-// APPROVE_ALL decision. It scans the same surface as findToolCallInExecution
-// (root messages and sub-agent messages) and sets every tool call still
-// WAITING_APPROVAL with no recorded decision to APPROVE.
+// APPROVE_ALL decision, SCOPED to the clicked tool's lease class. It scans the
+// same surface as findToolCallInExecution (root messages and sub-agent messages)
+// and sets every co-pending tool call (still WAITING_APPROVAL, no decision)
+// whose lease scope MATCHES the clicked tool's scope to APPROVE. Co-pending tool
+// calls of a DIFFERENT class stay WAITING_APPROVAL.
+//
+// This scoping is required for correctness, not cosmetics. APPROVE_ALL now means
+// "approve all of THIS kind" (the clicked tool's built-in category, or its MCP
+// server — see approval.DeriveLeaseScope), not "approve everything". If a write
+// and a shell are co-pending and the user approves-all the shell, the write must
+// remain pending: pending_approvals must still list it, and the
+// approvalGateResolved signal must NOT fire (the SignalWorkflow step keys off a
+// non-empty pending_approvals), so the workflow keeps waiting for the write.
 //
 // The tool the user clicked (clickedToolCallID) is skipped here — its action is
-// already set to APPROVE_ALL by the caller. Recording APPROVE on the co-pending
-// tools (rather than APPROVE_ALL) keeps the audit trail unambiguous: exactly one
-// tool carries APPROVE_ALL, marking the user's escalation point.
-func bulkApproveCoPendingToolCalls(execution *agentexecutionv1.AgentExecution, clickedToolCallID, decidedAt string) {
-	approveIfWaiting := func(tc *agentexecutionv1.ToolCall) {
+// already set to APPROVE_ALL by the caller. Recording APPROVE on the matched
+// co-pending tools (rather than APPROVE_ALL) keeps the audit trail unambiguous:
+// exactly one tool carries APPROVE_ALL, marking the user's escalation point.
+// bulkApproveCoPendingToolCalls auto-approves every co-pending tool call of the
+// clicked tool's lease class and returns the calls it approved, so the caller can
+// author a decision event for each. decidedBy stamps approved_by for the audit
+// trail; OSS passes empty (no auth principal).
+func bulkApproveCoPendingToolCalls(execution *agentexecutionv1.AgentExecution, clickedToolCallID, decidedAt, decidedBy string) []*agentexecutionv1.ToolCall {
+	clicked := findToolCallInExecution(execution, clickedToolCallID)
+	if clicked == nil {
+		return nil
+	}
+	clickedScope, ok := approval.DeriveLeaseScope(clicked)
+	if !ok {
+		// The clicked tool has no leasable scope (an unknown/ungated name that
+		// somehow carried APPROVE_ALL). Nothing else can match it, so approve no
+		// co-pending tools. Defensive — a gated tool always has a scope.
+		return nil
+	}
+
+	var approved []*agentexecutionv1.ToolCall
+	approveIfWaitingInScope := func(tc *agentexecutionv1.ToolCall) {
 		if tc.GetId() == clickedToolCallID {
 			return
 		}
@@ -561,22 +635,29 @@ func bulkApproveCoPendingToolCalls(execution *agentexecutionv1.AgentExecution, c
 		if tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
 			return
 		}
+		// Only co-pending tools of the SAME lease class are auto-approved.
+		if scope, ok := approval.DeriveLeaseScope(tc); !ok || scope != clickedScope {
+			return
+		}
 		tc.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
 		tc.ApprovalDecidedAt = decidedAt
+		tc.ApprovedBy = decidedBy
+		approved = append(approved, tc)
 	}
 
 	for _, msg := range execution.GetStatus().GetMessages() {
 		for _, tc := range msg.GetToolCalls() {
-			approveIfWaiting(tc)
+			approveIfWaitingInScope(tc)
 		}
 	}
 	for _, sa := range execution.GetStatus().GetSubAgentExecutions() {
 		for _, msg := range sa.GetMessages() {
 			for _, tc := range msg.GetToolCalls() {
-				approveIfWaiting(tc)
+				approveIfWaitingInScope(tc)
 			}
 		}
 	}
+	return approved
 }
 
 // findToolCallInExecution searches for a ToolCall by ID in messages (root and

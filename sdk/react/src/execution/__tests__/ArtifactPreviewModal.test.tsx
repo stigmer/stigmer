@@ -15,7 +15,6 @@ const binaryArtifact = create(ExecutionArtifactSchema, {
   kind: ExecutionArtifactKind.FILE,
   sizeBytes: 128n,
   storageKey: "artifacts/aex_1/report.bin",
-  downloadUrl: "https://example.test/report.bin",
 });
 
 function withStigmer(children: ReactNode) {
@@ -27,8 +26,8 @@ function withStigmer(children: ReactNode) {
 
 afterEach(cleanup);
 
-describe("ArtifactPreviewContent — Implement action", () => {
-  it("renders an Implement button only when onImplement is provided", () => {
+describe("ArtifactPreviewContent — Build from plan action", () => {
+  it("renders a 'Build from plan' button only when onImplement is provided", () => {
     const { rerender } = render(
       withStigmer(
         <ArtifactPreviewContent
@@ -40,7 +39,7 @@ describe("ArtifactPreviewContent — Implement action", () => {
         />,
       ),
     );
-    expect(screen.queryByText("Implement")).toBeNull();
+    expect(screen.queryByText("Build from plan")).toBeNull();
 
     rerender(
       withStigmer(
@@ -54,10 +53,10 @@ describe("ArtifactPreviewContent — Implement action", () => {
         />,
       ),
     );
-    expect(screen.getByText("Implement")).toBeTruthy();
+    expect(screen.getByText("Build from plan")).toBeTruthy();
   });
 
-  it("calls onImplement then closes the modal when Implement is clicked", () => {
+  it("calls onImplement then closes the modal when 'Build from plan' is clicked", () => {
     const calls: string[] = [];
     const onImplement = vi.fn(() => calls.push("implement"));
     const onClose = vi.fn(() => calls.push("close"));
@@ -75,7 +74,7 @@ describe("ArtifactPreviewContent — Implement action", () => {
       ),
     );
 
-    fireEvent.click(screen.getByText("Implement"));
+    fireEvent.click(screen.getByText("Build from plan"));
 
     expect(onImplement).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);

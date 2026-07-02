@@ -149,6 +149,37 @@ public final class WorkflowExecutionCommandControllerGrpc {
     return getSubmitApprovalMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput,
+      ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> getSubmitFileDecisionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "submitFileDecision",
+      requestType = ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput.class,
+      responseType = ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput,
+      ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> getSubmitFileDecisionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> getSubmitFileDecisionMethod;
+    if ((getSubmitFileDecisionMethod = WorkflowExecutionCommandControllerGrpc.getSubmitFileDecisionMethod) == null) {
+      synchronized (WorkflowExecutionCommandControllerGrpc.class) {
+        if ((getSubmitFileDecisionMethod = WorkflowExecutionCommandControllerGrpc.getSubmitFileDecisionMethod) == null) {
+          WorkflowExecutionCommandControllerGrpc.getSubmitFileDecisionMethod = getSubmitFileDecisionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "submitFileDecision"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowExecutionCommandControllerMethodDescriptorSupplier("submitFileDecision"))
+              .build();
+        }
+      }
+    }
+    return getSubmitFileDecisionMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput,
       ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> getSubmitWorkflowTaskApprovalMethod;
 
@@ -734,6 +765,45 @@ public final class WorkflowExecutionCommandControllerGrpc {
     default void submitApproval(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubmitApprovalMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Submit a keep/discard decision for a child agent's file review.
+     * Forwards the decision to the child AgentExecution whose file-review gate is
+     * surfaced on this workflow via status.pending_file_reviews. This is the
+     * file-review sibling of submitApproval: submitApproval forwards a tool-call
+     * approval, submitFileDecision forwards a FileChangeSet keep/discard.
+     * &#64;internal
+     * The decision is forwarded to the child via AgentExecution.submitFileDecision
+     * (a same-thread in-process invoke), so the child's completeness/digest gates
+     * and caller attribution (reviewer_id) apply unchanged.
+     * Preconditions:
+     * - status.pending_file_reviews must contain an entry whose
+     *   child_agent_execution_id and change_set_id match the input
+     * - User must have can_edit permission on the workflow execution
+     * State Transitions
+     * After a successful decision:
+     * - Decision is forwarded to the child AgentExecution
+     * - Child reconciles the approved bytes / discards and resumes
+     * - The child's change set leaves AWAITING_REVIEW, so call-agent-status clears
+     *   the reference from WorkflowExecution.status.pending_file_reviews
+     * Error Cases
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - FAILED_PRECONDITION: No matching pending file review for (child, change_set)
+     * - INVALID_ARGUMENT: Invalid scope/action, or the child handler rejects
+     *   (e.g. digest mismatch, incomplete diff)
+     * - UNAVAILABLE: Failed to forward to child agent (transient error)
+     * Alternative: Direct Agent Decision
+     * Users can also submit the decision directly via AgentExecution.submitFileDecision
+     * using the child_agent_execution_id. Both paths are equivalent.
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     */
+    default void submitFileDecision(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubmitFileDecisionMethod(), responseObserver);
     }
 
     /**
@@ -1499,6 +1569,46 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Submit a keep/discard decision for a child agent's file review.
+     * Forwards the decision to the child AgentExecution whose file-review gate is
+     * surfaced on this workflow via status.pending_file_reviews. This is the
+     * file-review sibling of submitApproval: submitApproval forwards a tool-call
+     * approval, submitFileDecision forwards a FileChangeSet keep/discard.
+     * &#64;internal
+     * The decision is forwarded to the child via AgentExecution.submitFileDecision
+     * (a same-thread in-process invoke), so the child's completeness/digest gates
+     * and caller attribution (reviewer_id) apply unchanged.
+     * Preconditions:
+     * - status.pending_file_reviews must contain an entry whose
+     *   child_agent_execution_id and change_set_id match the input
+     * - User must have can_edit permission on the workflow execution
+     * State Transitions
+     * After a successful decision:
+     * - Decision is forwarded to the child AgentExecution
+     * - Child reconciles the approved bytes / discards and resumes
+     * - The child's change set leaves AWAITING_REVIEW, so call-agent-status clears
+     *   the reference from WorkflowExecution.status.pending_file_reviews
+     * Error Cases
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - FAILED_PRECONDITION: No matching pending file review for (child, change_set)
+     * - INVALID_ARGUMENT: Invalid scope/action, or the child handler rejects
+     *   (e.g. digest mismatch, incomplete diff)
+     * - UNAVAILABLE: Failed to forward to child agent (transient error)
+     * Alternative: Direct Agent Decision
+     * Users can also submit the decision directly via AgentExecution.submitFileDecision
+     * using the child_agent_execution_id. Both paths are equivalent.
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     */
+    public void submitFileDecision(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getSubmitFileDecisionMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Submit a human reviewer's decision for a workflow-level human_input task.
      * Resolves a human_input approval gate by sending the reviewer's outcome
      * (and optional form data) to the waiting workflow task via Temporal signal.
@@ -2240,6 +2350,45 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Submit a keep/discard decision for a child agent's file review.
+     * Forwards the decision to the child AgentExecution whose file-review gate is
+     * surfaced on this workflow via status.pending_file_reviews. This is the
+     * file-review sibling of submitApproval: submitApproval forwards a tool-call
+     * approval, submitFileDecision forwards a FileChangeSet keep/discard.
+     * &#64;internal
+     * The decision is forwarded to the child via AgentExecution.submitFileDecision
+     * (a same-thread in-process invoke), so the child's completeness/digest gates
+     * and caller attribution (reviewer_id) apply unchanged.
+     * Preconditions:
+     * - status.pending_file_reviews must contain an entry whose
+     *   child_agent_execution_id and change_set_id match the input
+     * - User must have can_edit permission on the workflow execution
+     * State Transitions
+     * After a successful decision:
+     * - Decision is forwarded to the child AgentExecution
+     * - Child reconciles the approved bytes / discards and resumes
+     * - The child's change set leaves AWAITING_REVIEW, so call-agent-status clears
+     *   the reference from WorkflowExecution.status.pending_file_reviews
+     * Error Cases
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - FAILED_PRECONDITION: No matching pending file review for (child, change_set)
+     * - INVALID_ARGUMENT: Invalid scope/action, or the child handler rejects
+     *   (e.g. digest mismatch, incomplete diff)
+     * - UNAVAILABLE: Failed to forward to child agent (transient error)
+     * Alternative: Direct Agent Decision
+     * Users can also submit the decision directly via AgentExecution.submitFileDecision
+     * using the child_agent_execution_id. Both paths are equivalent.
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution submitFileDecision(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getSubmitFileDecisionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Submit a human reviewer's decision for a workflow-level human_input task.
      * Resolves a human_input approval gate by sending the reviewer's outcome
      * (and optional form data) to the waiting workflow task via Temporal signal.
@@ -2969,6 +3118,45 @@ public final class WorkflowExecutionCommandControllerGrpc {
     public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution submitApproval(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getSubmitApprovalMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Submit a keep/discard decision for a child agent's file review.
+     * Forwards the decision to the child AgentExecution whose file-review gate is
+     * surfaced on this workflow via status.pending_file_reviews. This is the
+     * file-review sibling of submitApproval: submitApproval forwards a tool-call
+     * approval, submitFileDecision forwards a FileChangeSet keep/discard.
+     * &#64;internal
+     * The decision is forwarded to the child via AgentExecution.submitFileDecision
+     * (a same-thread in-process invoke), so the child's completeness/digest gates
+     * and caller attribution (reviewer_id) apply unchanged.
+     * Preconditions:
+     * - status.pending_file_reviews must contain an entry whose
+     *   child_agent_execution_id and change_set_id match the input
+     * - User must have can_edit permission on the workflow execution
+     * State Transitions
+     * After a successful decision:
+     * - Decision is forwarded to the child AgentExecution
+     * - Child reconciles the approved bytes / discards and resumes
+     * - The child's change set leaves AWAITING_REVIEW, so call-agent-status clears
+     *   the reference from WorkflowExecution.status.pending_file_reviews
+     * Error Cases
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - FAILED_PRECONDITION: No matching pending file review for (child, change_set)
+     * - INVALID_ARGUMENT: Invalid scope/action, or the child handler rejects
+     *   (e.g. digest mismatch, incomplete diff)
+     * - UNAVAILABLE: Failed to forward to child agent (transient error)
+     * Alternative: Direct Agent Decision
+     * Users can also submit the decision directly via AgentExecution.submitFileDecision
+     * using the child_agent_execution_id. Both paths are equivalent.
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution submitFileDecision(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getSubmitFileDecisionMethod(), getCallOptions(), request);
     }
 
     /**
@@ -3710,6 +3898,46 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Submit a keep/discard decision for a child agent's file review.
+     * Forwards the decision to the child AgentExecution whose file-review gate is
+     * surfaced on this workflow via status.pending_file_reviews. This is the
+     * file-review sibling of submitApproval: submitApproval forwards a tool-call
+     * approval, submitFileDecision forwards a FileChangeSet keep/discard.
+     * &#64;internal
+     * The decision is forwarded to the child via AgentExecution.submitFileDecision
+     * (a same-thread in-process invoke), so the child's completeness/digest gates
+     * and caller attribution (reviewer_id) apply unchanged.
+     * Preconditions:
+     * - status.pending_file_reviews must contain an entry whose
+     *   child_agent_execution_id and change_set_id match the input
+     * - User must have can_edit permission on the workflow execution
+     * State Transitions
+     * After a successful decision:
+     * - Decision is forwarded to the child AgentExecution
+     * - Child reconciles the approved bytes / discards and resumes
+     * - The child's change set leaves AWAITING_REVIEW, so call-agent-status clears
+     *   the reference from WorkflowExecution.status.pending_file_reviews
+     * Error Cases
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - FAILED_PRECONDITION: No matching pending file review for (child, change_set)
+     * - INVALID_ARGUMENT: Invalid scope/action, or the child handler rejects
+     *   (e.g. digest mismatch, incomplete diff)
+     * - UNAVAILABLE: Failed to forward to child agent (transient error)
+     * Alternative: Direct Agent Decision
+     * Users can also submit the decision directly via AgentExecution.submitFileDecision
+     * using the child_agent_execution_id. Both paths are equivalent.
+     * &#64;since Workflow-Parent File Review
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> submitFileDecision(
+        ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getSubmitFileDecisionMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Submit a human reviewer's decision for a workflow-level human_input task.
      * Resolves a human_input approval gate by sending the reviewer's outcome
      * (and optional form data) to the waiting workflow task via Temporal signal.
@@ -4161,14 +4389,15 @@ public final class WorkflowExecutionCommandControllerGrpc {
   private static final int METHODID_UPDATE = 1;
   private static final int METHODID_UPDATE_STATUS = 2;
   private static final int METHODID_SUBMIT_APPROVAL = 3;
-  private static final int METHODID_SUBMIT_WORKFLOW_TASK_APPROVAL = 4;
-  private static final int METHODID_DELETE = 5;
-  private static final int METHODID_SEND_SIGNAL = 6;
-  private static final int METHODID_CANCEL = 7;
-  private static final int METHODID_TERMINATE = 8;
-  private static final int METHODID_RECOVER = 9;
-  private static final int METHODID_PAUSE = 10;
-  private static final int METHODID_RESUME = 11;
+  private static final int METHODID_SUBMIT_FILE_DECISION = 4;
+  private static final int METHODID_SUBMIT_WORKFLOW_TASK_APPROVAL = 5;
+  private static final int METHODID_DELETE = 6;
+  private static final int METHODID_SEND_SIGNAL = 7;
+  private static final int METHODID_CANCEL = 8;
+  private static final int METHODID_TERMINATE = 9;
+  private static final int METHODID_RECOVER = 10;
+  private static final int METHODID_PAUSE = 11;
+  private static final int METHODID_RESUME = 12;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -4201,6 +4430,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
           break;
         case METHODID_SUBMIT_APPROVAL:
           serviceImpl.submitApproval((ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>) responseObserver);
+          break;
+        case METHODID_SUBMIT_FILE_DECISION:
+          serviceImpl.submitFileDecision((ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>) responseObserver);
           break;
         case METHODID_SUBMIT_WORKFLOW_TASK_APPROVAL:
@@ -4281,6 +4514,13 @@ public final class WorkflowExecutionCommandControllerGrpc {
               ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput,
               ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>(
                 service, METHODID_SUBMIT_APPROVAL)))
+        .addMethod(
+          getSubmitFileDecisionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowFileDecisionInput,
+              ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>(
+                service, METHODID_SUBMIT_FILE_DECISION)))
         .addMethod(
           getSubmitWorkflowTaskApprovalMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -4389,6 +4629,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateStatusMethod())
               .addMethod(getSubmitApprovalMethod())
+              .addMethod(getSubmitFileDecisionMethod())
               .addMethod(getSubmitWorkflowTaskApprovalMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getSendSignalMethod())

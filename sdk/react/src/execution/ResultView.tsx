@@ -5,7 +5,8 @@
 // blocks — instead of a raw JSON dump. The json/text variants are the graceful
 // fallbacks, so unknown tools are still readable.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import type {
   ToolResultView,
   ToolSearchMatch,
@@ -13,15 +14,40 @@ import type {
 } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { computeDiff } from "../version-history/computeDiff";
+import { DiffViewer } from "../version-history/DiffViewer";
+import { UnifiedDiffView } from "../version-history/UnifiedDiffView";
 import type { DiffHunk } from "../version-history/types";
 import { CollapsibleCode, CollapsiblePre, formatJson } from "./tool-rendering-primitives";
 import { FilePathLink } from "./FilePathLink";
-import { useSandboxNormalize } from "./SandboxContext";
+import { EmptyChangeNotice } from "./EmptyChangeNotice";
+import { TerminalSession } from "./TerminalSession";
+import { execIdFromStorageKey } from "./useFileChangeContent";
+import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
+import { useArtifactDownload } from "./useArtifactDownload";
+import { useToolOutputContent } from "./useToolOutputContent";
 
 /** Props for {@link ResultView}. */
 export interface ResultViewProps {
   /** The normalized result view to render. */
   readonly view: ToolResultView;
+  /**
+   * Whether the file/diff variants render the filename header. Defaults to
+   * `true`. Set to `false` where an ancestor already names the file (a tool-call
+   * row whose header shows the path) so the body is not captioned with a path
+   * the user just read; the `+N -M` stats still render.
+   */
+  readonly showFileName?: boolean;
+  /**
+   * Whether the result body renders its headline summary stat — the diff's
+   * `+N -M`, or a search/list's `N files` / `N matches` / `N items` count.
+   * Defaults to `true`. Set to `false` where an ancestor row already shows the
+   * summary (a tool-call row that renders `summarizeResultView`) so the body does
+   * not repeat the count the user just read. A search/list still surfaces a
+   * truncation note when suppressed, since that is information the row header does
+   * not carry. Orthogonal to {@link showFileName}: the approval gate suppresses
+   * the name but keeps the stats.
+   */
+  readonly showStats?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -34,18 +60,18 @@ export interface ResultViewProps {
  * this component renders it. Importable on its own by platform builders who
  * compose custom tool UIs.
  */
-export function ResultView({ view, className }: ResultViewProps) {
+export function ResultView({ view, showFileName = true, showStats = true, className }: ResultViewProps) {
   switch (view.type) {
     case "diff":
-      return <DiffResultView view={view} className={className} />;
+      return <DiffResultView view={view} showFileName={showFileName} showStats={showStats} className={className} />;
     case "terminal":
       return <TerminalResultView view={view} className={className} />;
     case "search":
-      return <SearchResultView matches={view.matches} count={view.count} className={className} />;
+      return <SearchResultView view={view} showCount={showStats} className={className} />;
     case "list":
-      return <ListResultView entries={view.entries} count={view.count} className={className} />;
+      return <ListResultView entries={view.entries} count={view.count} showCount={showStats} className={className} />;
     case "file":
-      return <FileResultView view={view} className={className} />;
+      return <FileResultView view={view} showFileName={showFileName} className={className} />;
     case "contentBlocks":
       return <ContentBlocksResultView blocks={view.blocks} className={className} />;
     case "outputRef":
@@ -75,7 +101,7 @@ export function summarizeResultView(view: ToolResultView): string | null {
     case "terminal":
       return view.exitCode !== undefined && view.exitCode !== 0 ? `exit ${view.exitCode}` : null;
     case "search":
-      return `${view.count} ${view.count === 1 ? "match" : "matches"}`;
+      return searchCountLabel(view.count, view.kind);
     case "list":
       return `${view.count} ${view.count === 1 ? "item" : "items"}`;
     default:
@@ -119,7 +145,17 @@ function diffStats(view: DiffView): DiffStats | null {
   return null;
 }
 
-function DiffResultView({ view, className }: { view: DiffView; className?: string }) {
+function DiffResultView({
+  view,
+  showFileName = true,
+  showStats = true,
+  className,
+}: {
+  view: DiffView;
+  showFileName?: boolean;
+  showStats?: boolean;
+  className?: string;
+}) {
   // The native engine returns no diff, so we compute hunks from args (old/new).
   // The Cursor envelope provides a ready unified-diff string we render directly.
   const hunks = useMemo<readonly DiffHunk[]>(() => {
@@ -137,79 +173,39 @@ function DiffResultView({ view, className }: { view: DiffView; className?: strin
     return hunks.length > 0 ? countHunks(hunks) : null;
   }, [view.linesAdded, view.linesRemoved, hunks]);
 
+  const showPath = showFileName && Boolean(view.path);
+  const showStatsRow = showStats && stats != null;
+
+  // One diff family across every surface: computed hunks render through the
+  // canonical, accessible DiffViewer (line numbers + --stgm-diff-* tokens); a
+  // ready hunk-only patch (Cursor envelope) is parsed into the same DiffViewer
+  // table by UnifiedDiffView (raw fallback only if unparseable). The header
+  // (path + ± stats) is this view's own, so the DiffViewer is used without its
+  // filePath header to avoid a duplicate path.
   return (
-    <div className={cn("space-y-1", className)}>
-      <div className="flex items-center gap-2 text-muted-foreground">
-        {view.path && <FilePathLink path={view.path} className="text-xs" />}
-        {stats && (
-          <span className="shrink-0 tabular-nums text-xs">
-            <span className="text-success">+{stats.added}</span>{" "}
-            <span className="text-destructive">-{stats.removed}</span>
-          </span>
-        )}
-      </div>
+    <div className={cn("space-y-1", className)} data-cursor-target="file-diff">
+      {(showPath || showStatsRow) && (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          {showPath && (
+            <FilePathLink path={view.path} dirDisplay="dim" className="text-xs" />
+          )}
+          {showStatsRow && stats && (
+            <span className="shrink-0 tabular-nums text-xs">
+              <span className="text-diff-added-fg">+{stats.added}</span>{" "}
+              <span className="text-diff-removed-fg">-{stats.removed}</span>
+            </span>
+          )}
+        </div>
+      )}
 
       {hunks.length > 0 ? (
-        <DiffHunks hunks={hunks} />
+        <DiffViewer hunks={hunks} />
       ) : view.unifiedDiff ? (
-        <UnifiedDiffText patch={view.unifiedDiff} />
-      ) : null}
+        <UnifiedDiffView patch={view.unifiedDiff} />
+      ) : (
+        <EmptyChangeNotice kind="no-preview" />
+      )}
     </div>
-  );
-}
-
-function DiffHunks({ hunks }: { hunks: readonly DiffHunk[] }) {
-  return (
-    <div className="overflow-auto rounded-md border border-border bg-muted-subtle font-mono text-xs">
-      {hunks.map((hunk, hi) => (
-        <div key={hi} className="border-b border-border-muted last:border-b-0">
-          {hunk.lines.map((line, li) => (
-            <div
-              key={li}
-              className={cn(
-                "whitespace-pre-wrap break-words px-2 py-0.5",
-                line.type === "added" && "bg-success-subtle text-success",
-                line.type === "removed" && "bg-destructive-subtle text-destructive",
-                line.type === "context" && "text-muted-foreground",
-              )}
-            >
-              {/* Screen readers get the change type as words; sighted users get
-                  the +/- sign and color. Never color-only. */}
-              {line.type !== "context" && (
-                <span className="sr-only">
-                  {line.type === "added" ? "Added: " : "Removed: "}
-                </span>
-              )}
-              <span className="select-none" aria-hidden="true">
-                {line.type === "added" ? "+" : line.type === "removed" ? "-" : " "}
-              </span>
-              {line.content}
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Renders a raw unified-diff patch string (Cursor envelope) with +/- coloring.
-function UnifiedDiffText({ patch }: { patch: string }) {
-  const lines = patch.split("\n");
-  return (
-    <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted-subtle p-2 font-mono text-xs">
-      {lines.map((line, i) => (
-        <div
-          key={i}
-          className={cn(
-            line.startsWith("+") && !line.startsWith("+++") && "text-success",
-            line.startsWith("-") && !line.startsWith("---") && "text-destructive",
-            line.startsWith("@@") && "text-primary",
-          )}
-        >
-          {line || " "}
-        </div>
-      ))}
-    </pre>
   );
 }
 
@@ -219,40 +215,18 @@ function UnifiedDiffText({ patch }: { patch: string }) {
 
 type TerminalView = Extract<ToolResultView, { type: "terminal" }>;
 
+// A shell result IS a terminal session: the command prompt line plus its
+// output, rendered as one block by the shared TerminalSession (no separate
+// "Output" caption or command box).
 function TerminalResultView({ view, className }: { view: TerminalView; className?: string }) {
-  const normalize = useSandboxNormalize();
-  const failed = view.exitCode !== undefined && view.exitCode !== 0;
-
   return (
-    <div className={cn("space-y-1", className)}>
-      <div className="flex items-center gap-2">
-        <span className="font-medium text-muted-foreground">Output</span>
-        {view.exitCode !== undefined && (
-          <span
-            className={cn(
-              "rounded px-1 py-0.5 text-[10px] font-medium leading-none tabular-nums",
-              failed ? "bg-destructive-subtle text-destructive" : "bg-success-subtle text-success",
-            )}
-          >
-            exit {view.exitCode}
-          </span>
-        )}
-      </div>
-      <div className="rounded-md border border-border bg-[var(--stgm-terminal-bg,#1a1a2e)] p-2.5">
-        {view.stdout && (
-          <CollapsiblePre
-            content={normalize(view.stdout)}
-            className="text-[var(--stgm-terminal-fg,#e0e0e0)]"
-          />
-        )}
-        {view.stderr && (
-          <CollapsiblePre
-            content={normalize(view.stderr)}
-            className="text-destructive"
-          />
-        )}
-      </div>
-    </div>
+    <TerminalSession
+      command={view.command}
+      stdout={view.stdout}
+      stderr={view.stderr}
+      exitCode={view.exitCode}
+      className={className}
+    />
   );
 }
 
@@ -260,42 +234,158 @@ function TerminalResultView({ view, className }: { view: TerminalView; className
 // Search / List
 // ---------------------------------------------------------------------------
 
+type SearchView = Extract<ToolResultView, { type: "search" }>;
+
+/** "N files" / "N matches" — the noun follows the search subtype. */
+function searchCountLabel(count: number, kind: SearchView["kind"]): string {
+  if (kind === "files") {
+    return `${count} ${count === 1 ? "file" : "files"}`;
+  }
+  return `${count} ${count === 1 ? "match" : "matches"}`;
+}
+
+/**
+ * Renders a search result with a subtype-aware treatment.
+ *
+ * - **File-name search** (`kind: "files"` — glob / file_search): the matches are
+ *   paths, rendered as a clickable {@link FilePathLink} list (filename-first,
+ *   full path on hover, opens on GitHub or copies locally).
+ * - **Content search** (`kind: "content"` — grep): the matches are lines,
+ *   grouped under their file with `line: text` rows; matches with no file
+ *   association (the native grep shape) render as a flat monospace list.
+ *
+ * The count header uses the engine's authoritative `count` (which can exceed the
+ * returned matches when `truncated`), and a "showing first N" note makes a
+ * capped result honest instead of silently partial. Empty results name the
+ * subtype ("No files found" vs "No matches") — the query lives in the owning row
+ * header, so it is not restated here.
+ */
 function SearchResultView({
-  matches,
-  count,
+  view,
+  showCount = true,
   className,
 }: {
-  matches: readonly ToolSearchMatch[];
-  count: number;
+  view: SearchView;
+  showCount?: boolean;
   className?: string;
 }) {
-  if (count === 0) {
-    return <p className={cn("text-xs text-muted-foreground", className)}>No matches</p>;
+  const { matches, count, kind, truncated } = view;
+
+  if (count === 0 && matches.length === 0) {
+    return (
+      <p className={cn("text-xs text-muted-foreground", className)}>
+        {kind === "files" ? "No files found" : "No matches"}
+      </p>
+    );
   }
+
+  // The owning row header already shows the count (summarizeResultView), so when
+  // suppressed the body shows only the truncation note — the one fact the header
+  // does not carry. When standalone (showCount), it leads with the full count.
+  const header = showCount
+    ? `${searchCountLabel(count, kind)}${truncated ? ` \u00b7 showing first ${matches.length}` : ""}`
+    : truncated
+      ? `Showing first ${matches.length} of ${count}`
+      : null;
+
   return (
     <div className={cn("space-y-1", className)}>
-      <span className="font-medium text-muted-foreground">
-        {count} {count === 1 ? "match" : "matches"}
-      </span>
-      <div className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle font-mono text-xs">
-        {matches.map((m, i) => (
-          <div key={i} className="whitespace-pre-wrap break-words border-b border-border-muted px-2 py-0.5 text-foreground last:border-b-0">
-            {m.file && <span className="text-primary">{m.file}{m.line !== undefined ? `:${m.line}` : ""} </span>}
-            <span className={m.file ? "text-muted-foreground" : "text-foreground"}>{m.text}</span>
-          </div>
-        ))}
-      </div>
+      {header && <span className="font-medium text-muted-foreground">{header}</span>}
+      {kind === "files" ? (
+        <SearchFileList matches={matches} />
+      ) : (
+        <SearchContentMatches matches={matches} />
+      )}
     </div>
   );
+}
+
+/** Bounded, scrollable shell shared by both search result treatments. */
+function SearchResultBox({ children }: { children: ReactNode }) {
+  return (
+    <div className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle text-xs">
+      {children}
+    </div>
+  );
+}
+
+/** A clickable list of file-name search hits. */
+function SearchFileList({ matches }: { matches: readonly ToolSearchMatch[] }) {
+  return (
+    <SearchResultBox>
+      {matches.map((m, i) => (
+        <div
+          key={i}
+          className="border-b border-border-muted px-2 py-0.5 last:border-b-0"
+        >
+          <FilePathLink path={m.file ?? m.text} dirDisplay="dim" className="text-xs" />
+        </div>
+      ))}
+    </SearchResultBox>
+  );
+}
+
+/** Content (grep) matches, grouped under their file when one is provided. */
+function SearchContentMatches({ matches }: { matches: readonly ToolSearchMatch[] }) {
+  const groups = useMemo(() => groupMatchesByFile(matches), [matches]);
+  return (
+    <SearchResultBox>
+      {groups.map((group, gi) => (
+        <div key={gi} className="border-b border-border-muted last:border-b-0">
+          {group.file && (
+            <div className="bg-muted-faint px-2 py-0.5">
+              <FilePathLink path={group.file} dirDisplay="dim" className="text-xs" />
+            </div>
+          )}
+          {group.matches.map((m, i) => (
+            <div
+              key={i}
+              className="whitespace-pre-wrap break-words px-2 py-0.5 font-mono text-foreground"
+            >
+              {m.line !== undefined && (
+                <span className="select-none text-muted-foreground-subtle">{m.line}: </span>
+              )}
+              {m.text}
+            </div>
+          ))}
+        </div>
+      ))}
+    </SearchResultBox>
+  );
+}
+
+interface MatchGroup {
+  readonly file?: string;
+  readonly matches: ToolSearchMatch[];
+}
+
+/**
+ * Groups consecutive matches that share a file into one group, preserving order.
+ * Matches with no file association fall into their own file-less group so the
+ * native grep shape (line text only) still renders as a flat list.
+ */
+function groupMatchesByFile(matches: readonly ToolSearchMatch[]): MatchGroup[] {
+  const groups: MatchGroup[] = [];
+  for (const m of matches) {
+    const last = groups[groups.length - 1];
+    if (last && last.file === m.file) {
+      last.matches.push(m);
+    } else {
+      groups.push({ file: m.file, matches: [m] });
+    }
+  }
+  return groups;
 }
 
 function ListResultView({
   entries,
   count,
+  showCount = true,
   className,
 }: {
   entries: readonly string[];
   count: number;
+  showCount?: boolean;
   className?: string;
 }) {
   if (count === 0) {
@@ -303,9 +393,11 @@ function ListResultView({
   }
   return (
     <div className={cn("space-y-1", className)}>
-      <span className="font-medium text-muted-foreground">
-        {count} {count === 1 ? "item" : "items"}
-      </span>
+      {showCount && (
+        <span className="font-medium text-muted-foreground">
+          {count} {count === 1 ? "item" : "items"}
+        </span>
+      )}
       <div className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle font-mono text-xs">
         {entries.map((e, i) => (
           <div key={i} className="truncate px-2 py-0.5 text-foreground">
@@ -323,17 +415,35 @@ function ListResultView({
 
 type FileView = Extract<ToolResultView, { type: "file" }>;
 
-function FileResultView({ view, className }: { view: FileView; className?: string }) {
+function FileResultView({
+  view,
+  showFileName = true,
+  className,
+}: {
+  view: FileView;
+  showFileName?: boolean;
+  className?: string;
+}) {
   if (!view.content) {
-    return view.path ? (
-      <div className={cn("flex items-center gap-1.5 text-xs", className)}>
-        <FilePathLink path={view.path} className="text-xs" />
-      </div>
-    ) : null;
+    // No body. When the filename is shown elsewhere (showFileName=false), an
+    // empty write fallback degrades honestly to a neutral notice rather than a
+    // bare, redundant path; otherwise the path itself is the information (a read).
+    if (showFileName && view.path) {
+      return (
+        <div className={cn("flex items-center gap-1.5 text-xs", className)}>
+          <FilePathLink path={view.path} className="text-xs" />
+        </div>
+      );
+    }
+    return showFileName ? null : (
+      <EmptyChangeNotice kind="no-preview" className={className} />
+    );
   }
   return (
     <div className={cn("space-y-1", className)}>
-      {view.path && <FilePathLink path={view.path} className="text-xs" />}
+      {showFileName && view.path && (
+        <FilePathLink path={view.path} className="text-xs" />
+      )}
       <CollapsibleCode label={view.truncated ? "Content (truncated)" : "Content"} content={view.content} />
     </div>
   );
@@ -369,45 +479,106 @@ function formatBytes(n: number): string {
 }
 
 /**
- * Renders a tool result whose bytes were offloaded to artifact storage. Images
- * (e.g. computer-use screenshots) render inline as a thumbnail that opens full
- * size; other large output shows its inline preview head plus a link to fetch
- * the full content. Replaces the old `[image]` placeholder.
+ * Renders a tool result whose bytes were offloaded to artifact storage. The
+ * bytes are resolved on demand from the stable `storageKey` at view time — the
+ * URL once baked into the persisted status expired after an hour, so it is no
+ * longer trusted. Images (e.g. computer-use screenshots) render inline via a
+ * freshly minted URL; other large output expands its full text in-app, with a
+ * download fallback when the server truncates it.
  */
 function OutputRefResultView({ view, className }: { view: OutputRefView; className?: string }) {
   if (view.isImage) {
+    return <OutputRefImage storageKey={view.storageKey} className={className} />;
+  }
+  return <OutputRefText view={view} className={className} />;
+}
+
+/** Offloaded image output, rendered from an always-fresh presigned URL. */
+function OutputRefImage({ storageKey, className }: { storageKey: string; className?: string }) {
+  const executionId = useMemo(() => execIdFromStorageKey(storageKey), [storageKey]);
+  const { url, error } = useArtifactDownloadUrl(executionId, storageKey);
+
+  if (error) {
+    return <p className={cn("text-xs text-destructive", className)}>Couldn&apos;t load image output.</p>;
+  }
+  if (!url) {
     return (
-      <div className={cn("space-y-1", className)}>
-        <a
-          href={view.downloadUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <img
-            src={view.downloadUrl}
-            alt="Tool output screenshot"
-            loading="lazy"
-            className="max-h-96 w-auto rounded-md border border-border"
-          />
-        </a>
-      </div>
+      <div
+        className={cn("h-40 w-64 animate-pulse rounded-md border border-border bg-muted", className)}
+        aria-busy="true"
+        aria-label="Loading image output"
+      />
     );
   }
+  return (
+    <div className={cn("space-y-1", className)}>
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <img
+          src={url}
+          alt="Tool output screenshot"
+          loading="lazy"
+          className="max-h-96 w-auto rounded-md border border-border"
+        />
+      </a>
+    </div>
+  );
+}
+
+/**
+ * Offloaded text output. Shows a preview head with a "View full output" toggle
+ * that lazily fetches the full content in-app (CORS-safe). If the server
+ * truncates it, offers a full download via a freshly minted URL.
+ */
+function OutputRefText({ view, className }: { view: OutputRefView; className?: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const executionId = useMemo(() => execIdFromStorageKey(view.storageKey), [view.storageKey]);
+  const { content, isLoading, isTruncated, error } = useToolOutputContent(
+    { storageKey: view.storageKey, contentHash: view.contentHash },
+    expanded,
+  );
+  const { download, isDownloading } = useArtifactDownload(executionId);
+
+  const sizeSuffix = view.sizeBytes ? ` (${formatBytes(view.sizeBytes)})` : "";
 
   return (
     <div className={cn("space-y-1", className)}>
-      {view.preview && (
-        <CollapsiblePre content={view.preview} className="text-foreground" />
-      )}
-      <a
-        href={view.downloadUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        View full output{view.sizeBytes ? ` (${formatBytes(view.sizeBytes)})` : ""}
-      </a>
+      {!expanded ? (
+        <>
+          {view.preview && (
+            <CollapsiblePre content={view.preview} className="text-foreground" />
+          )}
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            View full output{sizeSuffix}
+          </button>
+        </>
+      ) : isLoading ? (
+        <p className="text-xs text-muted-foreground">Loading full output…</p>
+      ) : error ? (
+        <p className="text-xs text-destructive">Couldn&apos;t load full output. Try again.</p>
+      ) : content !== null ? (
+        <div className="space-y-1">
+          <CollapsiblePre content={content} className="text-foreground" />
+          {isTruncated && (
+            <button
+              type="button"
+              onClick={() => download(view.storageKey)}
+              disabled={isDownloading}
+              className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+            >
+              {isDownloading ? "Preparing download…" : `Output truncated — download full file${sizeSuffix}`}
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

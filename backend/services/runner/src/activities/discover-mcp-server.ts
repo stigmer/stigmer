@@ -47,6 +47,18 @@ export interface DiscoveredToolResult {
   name: string;
   description: string;
   inputSchema?: Record<string, unknown> | null;
+  // MCP server-supplied behaviour hints. UNTRUSTED — the MCP spec is explicit
+  // that clients must never make tool-use decisions on annotations from
+  // untrusted servers. We therefore consume them only to TIGHTEN gating
+  // (destructiveHint → force-gate), never to relax it. Kept in-memory for the
+  // connect workflow's tightener; deliberately excluded from `toolsFingerprint`
+  // / `toolSignature` so incremental-classification reuse stays content-stable.
+  annotations?: DiscoveredToolAnnotations | null;
+}
+
+export interface DiscoveredToolAnnotations {
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
 }
 
 export interface DiscoveredResourceTemplateResult {
@@ -62,6 +74,11 @@ export interface DiscoverMcpServerOutput {
   previousToolsFingerprint: string;
   previousToolApprovals: ToolApprovalDict[];
   newToolsFingerprint: string;
+  // Full definitions of the tools discovered on the previous connect, read from
+  // status.discovered_capabilities. The connect workflow diffs these against the
+  // freshly discovered tools to reuse prior approval decisions for unchanged
+  // tools and (re)classify only the new or changed ones. Empty on first connect.
+  previousTools: DiscoveredToolResult[];
 }
 
 export interface ToolApprovalDict {
@@ -97,11 +114,12 @@ export function toolsFingerprint(tools: DiscoveredToolResult[]): string {
 interface PreviousState {
   fingerprint: string;
   toolApprovals: ToolApprovalDict[];
+  tools: DiscoveredToolResult[];
 }
 
 export function extractPreviousState(mcpServer: McpServer): PreviousState {
   const status = mcpServer.status;
-  if (!status) return { fingerprint: "", toolApprovals: [] };
+  if (!status) return { fingerprint: "", toolApprovals: [], tools: [] };
 
   const caps = status.discoveredCapabilities;
   const prevTools: DiscoveredToolResult[] = [];
@@ -131,6 +149,7 @@ export function extractPreviousState(mcpServer: McpServer): PreviousState {
   return {
     fingerprint: toolsFingerprint(prevTools),
     toolApprovals,
+    tools: prevTools,
   };
 }
 
@@ -244,6 +263,7 @@ export async function discoverMcpServer(
     previousToolsFingerprint: previousState.fingerprint,
     previousToolApprovals: previousState.toolApprovals,
     newToolsFingerprint: newFp,
+    previousTools: previousState.tools,
   };
 }
 
@@ -322,6 +342,14 @@ async function connectAndDiscover(
           description: tool.description ?? "",
           inputSchema: tool.inputSchema
             ? (tool.inputSchema as Record<string, unknown>)
+            : null,
+          // Capture only the two hints the tightener uses. Stored verbatim from
+          // the server (untrusted): used to tighten, never to relax.
+          annotations: tool.annotations
+            ? {
+                readOnlyHint: tool.annotations.readOnlyHint,
+                destructiveHint: tool.annotations.destructiveHint,
+              }
             : null,
         });
       }

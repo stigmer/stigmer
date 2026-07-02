@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -125,6 +126,24 @@ func (c *AgentExecutionController) GetArtifactContent(
 			Str("storage_key", req.StorageKey).
 			Msg("Failed to download artifact content")
 		return nil, status.Errorf(codes.Internal, "failed to read artifact content: %v", err)
+	}
+
+	// Serve-time integrity check for CAS blobs. A CAS blob key encodes its own
+	// content address (SHA-256), so we can prove the stored bytes are exactly what
+	// the runner captured before a reviewer ever sees them — fail closed on
+	// corruption/tampering (DATA_LOSS). Only when we hold the complete object:
+	// data here is the full download, and len(data) <= maxBytes means it was not
+	// truncated. A truncated read cannot be full-hash-verified, and entry_path
+	// reads serve a ZIP member, not the object, so both skip the check.
+	// Non-CAS keys fail open (CasBlobContentMismatch returns "").
+	if req.EntryPath == "" && int64(len(data)) <= maxBytes {
+		if reason := filereview.CasBlobContentMismatch(req.StorageKey, data); reason != "" {
+			log.Error().
+				Str("execution_id", req.ExecutionId).
+				Str("storage_key", req.StorageKey).
+				Msg("CAS blob failed content-address integrity check")
+			return nil, status.Error(codes.DataLoss, reason)
+		}
 	}
 
 	// When entry_path is set, extract a single file from the ZIP archive

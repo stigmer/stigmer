@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import {
@@ -8,12 +8,18 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { useRenderTracer } from "../internal/dev";
+import { useAutoDisclosure } from "../internal/useAutoDisclosure";
+import { useIsTextTruncated } from "../internal/useIsTextTruncated";
 import { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 import { SubAgentSection } from "./SubAgentSection";
+import { ApprovalCardBody } from "./ApprovalCard";
+import { useApproval } from "./ApprovalContext";
+import { useFileReviewRowState } from "./FileReviewContext";
+import type { FileReviewRowState } from "./file-review-status";
 import { FilePathLink } from "./FilePathLink";
-import { type ToolCategory } from "./tool-categories";
+import { isFileCategory, type ToolCategory } from "./tool-categories";
 import { useToolPresentation } from "./tool-presenter";
-import { useSandboxNormalize } from "./SandboxContext";
 import { useThreadSelection } from "./useThreadSelection";
 
 /** Props for {@link ToolCallItem}. */
@@ -27,9 +33,18 @@ export interface ToolCallItemProps {
    */
   readonly subAgentExecution?: SubAgentExecution | null;
   /**
-   * Initial expansion state. Defaults to `false`.
+   * Forces the detail panel open on first render regardless of the
+   * auto-disclosure policy. Defaults to `false`.
    */
   readonly defaultExpanded?: boolean;
+  /**
+   * Whether the row renders as its own self-contained card (a thin rounded
+   * border). Defaults to `true`. Set to `false` when the row is nested inside a
+   * container that already provides the border — e.g. the folded
+   * `ToolRunGroup` chip — where the row falls back to a divider-separated
+   * row to avoid a card-in-a-card.
+   */
+  readonly bordered?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -37,17 +52,36 @@ export interface ToolCallItemProps {
 /**
  * Renders a single tool call as a row in the tool call group.
  *
- * Two rendering modes:
+ * Three rendering modes, set by one rule — **does the body carry content the
+ * one-line row cannot?**
  *
- * - **Non-expandable** (completed/skipped Read): a static `<div>` row
- *   with a clickable {@link FilePathLink}. No chevron, no expansion.
- *   The clickable path IS the complete information.
- * - **Expandable** (all other tools): a `<button>` row that toggles a
- *   {@link ToolCallDetail} or {@link SubAgentSection} detail panel.
+ * - **Non-expandable** (completed/skipped Read): a static `<div>` row with a
+ *   clickable {@link FilePathLink}. The path IS the complete information.
+ * - **Preview** (content-bearing: shell / edit / write / fetch / web-search /
+ *   unknown / mcp): a plain (non-button) header above an **always-visible**
+ *   {@link ToolCallDetail} body — Cursor-style "previews aren't collapsible".
+ *   There is no header chevron; each content block self-bounds with its own
+   *   single in-place reveal (`RevealToggle`), so a long diff or output
+ *   never floods the thread. The body is suppressed only for an `empty` result
+ *   (e.g. a no-output shell), which stays a clean one-line row.
+ * - **Summary / sub-agent** (read / list / search / delete / think, and
+ *   sub-agent delegations): a chevron-gated `div[role=button]` header that
+ *   discloses a body hidden by default — {@link ToolCallDetail}, a
+ *   {@link SubAgentSection}, or, when gated, an inline {@link ApprovalCardBody}.
+ *   {@link useAutoDisclosure} force-opens it while *running* or *awaiting
+ *   approval*, then settles it closed; a manual click always wins thereafter.
+ *
+ * The two disclosure axes — the card-level chevron and a block's
+ * content-overflow reveal — never govern the same body, which is what removes
+ * the old "expand, then Show more" double control.
  *
  * Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
  * the primary argument as a subtitle, a category-specific icon, and
  * an inline approval decision badge when applicable.
+ *
+ * Wrapped in `React.memo` — structural sharing (DD-009/010) preserves
+ * the `ToolCall` reference when unchanged, so a settled row skips
+ * re-renders while sibling tools stream.
  *
  * @example
  * ```tsx
@@ -55,29 +89,85 @@ export interface ToolCallItemProps {
  * <ToolCallItem toolCall={tc} subAgentExecution={sub} />
  * ```
  */
-export function ToolCallItem({
+export const ToolCallItem = memo(function ToolCallItem({
   toolCall,
   subAgentExecution,
   defaultExpanded = false,
+  bordered = true,
   className,
 }: ToolCallItemProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  useRenderTracer("ToolCallItem", { status: toolCall.status, id: toolCall.id });
 
   const status = mapToolCallStatus(toolCall);
   const StatusIcon = STATUS_ICON[status];
   const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
   const isSubAgent = subAgentExecution != null;
 
-  const { category, label, primaryArg, resultSummary } = useToolPresentation(toolCall);
+  const { category, label, primaryArg, result, resultSummary, disclosure } =
+    useToolPresentation(toolCall);
   const CategoryIcon = CATEGORY_ICON[category];
+
+  // An unresolved approval gating this exact call (parent or nested sub-agent),
+  // or null. Drives the inline approval panel and forces the row open.
+  const approval = useApproval(toolCall.id);
+
+  // The card-level disclosure for *summary* rows (preview rows ignore it — their
+  // body is always visible). Force-open only while the row carries live or
+  // actionable content: while it runs, or while it awaits approval; a manual
+  // toggle takes over from there. Called unconditionally to honour the rules of
+  // hooks even though preview rows do not read `expanded`.
+  const autoOpen =
+    toolCall.status === ToolCallStatus.TOOL_CALL_RUNNING || approval != null;
+  const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
+    initialOpen: defaultExpanded || autoOpen,
+  });
 
   const displayLabel = isSubAgent
     ? subAgentExecution.subject || subAgentExecution.name || label
     : label;
 
-  const normalize = useSandboxNormalize();
   const approvalBadge = getApprovalBadge(toolCall);
+
+  // A flowed file edit stamped with its change set id badges the set's live
+  // review state (pending review / kept / discarded) right on the row — the
+  // observational record stays in place while the decision surface is the
+  // set's own bar. Null for unstamped rows and honest-degradation cases.
+  const reviewState = useFileReviewRowState(toolCall.fileChangeSetId, primaryArg);
+  const reviewBadge = reviewState ? REVIEW_BADGE[reviewState] : null;
+
   const selection = useThreadSelection("tool-call", toolCall.id);
+
+  // Search/list show their query/path as the header subtitle (truncated). Track
+  // whether it actually clips so the expanded detail can restate the full,
+  // wrapping value only when needed — avoiding a redundant repeat of a short
+  // value the header already shows in full. Gated to these two categories so
+  // only the rows that consume the signal pay for the measurement.
+  const measuresSubtitle = category === "search" || category === "list";
+  const { ref: subtitleRef, isTruncated: primaryArgTruncated } =
+    useIsTextTruncated<HTMLSpanElement>(measuresSubtitle);
+
+  // Cursor-style chrome: each tool call is its own self-contained card — a thin
+  // rounded neutral border. A pending gate carries a restrained left accent on
+  // the card itself (warning, or destructive for a delete); that accent is the
+  // only "awaiting you" cue now that the amber fill is gone. Nested inside a
+  // folded run chip the card degrades to a divider-separated row (via
+  // `bordered={false}`) so we never draw a card inside a card.
+  const cardClass = bordered
+    ? cn(
+        // border-prominent (not border): a transparent card needs a line the eye
+        // actually catches — the default border token is white at 14% opacity,
+        // which vanishes on the dark thread surface.
+        "rounded-lg border border-border-prominent overflow-hidden",
+        approval != null &&
+          (category === "delete"
+            ? "border-l-2 border-l-destructive"
+            : "border-l-2 border-l-warning"),
+        selection?.isSelected && "ring-1 ring-primary/40",
+      )
+    : cn(
+        "border-b border-border-muted last:border-b-0",
+        selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
+      );
 
   // Completed/skipped Read items are non-expandable — the clickable
   // path in the row is the complete information. Failed reads remain
@@ -98,6 +188,18 @@ export function ToolCallItem({
           )}
         >
           {approvalBadge.label}
+        </span>
+      )}
+
+      {reviewBadge && (
+        <span
+          className={cn(
+            "shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none",
+            reviewBadge.colorClass,
+          )}
+          data-cursor-target="file-review-row-badge"
+        >
+          {reviewBadge.label}
         </span>
       )}
 
@@ -142,11 +244,10 @@ export function ToolCallItem({
 
   if (isNonExpandableRead) {
     return (
-      <div className={cn(
-        "border-b border-border-muted last:border-b-0",
-        selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
-        className,
-      )}>
+      <div
+        data-cursor-target="tool-call-row"
+        className={cn(cardClass, className)}
+      >
         <div
           className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs"
         >
@@ -169,65 +270,145 @@ export function ToolCallItem({
     );
   }
 
-  const displaySubtitle = isSubAgent
-    ? null
-    : category === "shell" && primaryArg
-      ? normalize(primaryArg)
-      : primaryArg;
+  // Shell shows neither a command subtitle nor an exit summary in the header —
+  // both live in the terminal session body below, so the header stays minimal
+  // (icon + label + status + duration).
+  const displaySubtitle =
+    isSubAgent || category === "shell" ? null : primaryArg;
 
+  // For file tools the subtitle is a path: render it filename-first through
+  // FilePathLink (full path on hover) rather than the raw, often-absolute string
+  // that buried the file name behind a long prefix.
+  const subtitleIsFilePath =
+    !isSubAgent && primaryArg != null && isFileCategory(category);
+
+  // Preview categories (shell, edit, write, fetch, web-search, unknown, mcp)
+  // render their body ALWAYS — Cursor-style "previews aren't collapsible" — so
+  // no header chevron competes with the body's own in-place reveal. Summary
+  // categories and sub-agents keep the chevron: their body is genuinely hidden
+  // by default, so the chevron has a real job. The two disclosure axes
+  // (card-level chevron vs. content-overflow reveal) never govern one body.
+  const isPreviewCategory = !isSubAgent && disclosure === "preview";
+
+  // The disclosed body, shared by both layouts: a pending gate decides inline,
+  // a sub-agent shows its delegation, otherwise the category detail.
+  const body = isSubAgent ? (
+    <SubAgentSection subAgentExecution={subAgentExecution} collapsible={false} />
+  ) : approval ? (
+    // The row above is this approval's header, so render only the body (preview
+    // + actions). The enclosing card already carries the border + warning/
+    // destructive accent for a pending gate, so the body renders borderless.
+    <ApprovalCardBody
+      pendingApproval={approval.pendingApproval}
+      onSubmit={approval.onSubmit}
+      isSubmitting={approval.isSubmitting}
+      error={approval.error}
+    />
+  ) : (
+    <ToolCallDetail
+      toolCall={toolCall}
+      primaryArgTruncated={primaryArgTruncated}
+    />
+  );
+
+  // The header's metadata, identical in both layouts (the chevron is appended
+  // only by the summary layout below).
+  const headerInner = (
+    <>
+      <span className="shrink-0 text-muted-foreground" aria-hidden="true">
+        <CategoryIcon />
+      </span>
+
+      <span className="min-w-0 flex-1 flex items-baseline gap-1.5 overflow-hidden">
+        <span className="shrink-0 font-medium text-foreground">
+          {displayLabel}
+        </span>
+        {subtitleIsFilePath && primaryArg ? (
+          <FilePathLink
+            path={primaryArg}
+            className="min-w-0 text-xs text-muted-foreground"
+          />
+        ) : (
+          displaySubtitle && (
+            <span
+              ref={measuresSubtitle ? subtitleRef : undefined}
+              title={displaySubtitle}
+              className="min-w-0 truncate text-muted-foreground font-mono"
+            >
+              {displaySubtitle}
+            </span>
+          )
+        )}
+        {!isSubAgent && category !== "shell" && resultSummary && (
+          <span className="shrink-0 tabular-nums text-muted-foreground">
+            {resultSummary}
+          </span>
+        )}
+      </span>
+
+      {trailingContent}
+    </>
+  );
+
+  // Preview layout: a plain (non-button) header above an always-visible body.
+  // The body renders only when it has something to show — a pending gate, or a
+  // non-empty result — so a no-output shell (which normalizes to an `empty`
+  // result) stays a clean one-line row, never an empty padded box.
+  if (isPreviewCategory) {
+    const showBody = approval != null || result.type !== "empty";
+    return (
+      <div
+        data-cursor-target="tool-call-row"
+        className={cn(cardClass, className)}
+      >
+        <div className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs">
+          {headerInner}
+        </div>
+        {showBody && (
+          <div className="px-2.5 pb-2.5 pt-1" data-cursor-target="tool-preview">
+            {body}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Summary / sub-agent layout: a chevron-gated header disclosing a body hidden
+  // by default. The header is a div[role=button], not a <button>, because it
+  // carries the nested "Inspect tool call" <button> (a <button> may not contain
+  // another); Enter/Space drive the toggle for keyboard parity.
   return (
-    <div className={cn(
-      "border-b border-border-muted last:border-b-0",
-      selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
-      className,
-    )}>
-      <button
-        type="button"
+    <div
+      data-cursor-target="tool-call-row"
+      className={cn(cardClass, className)}
+    >
+      <div
+        role="button"
+        tabIndex={0}
         aria-expanded={expanded}
-        onClick={() => setExpanded((v) => !v)}
+        onClick={handleToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
         className={cn(
-          "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors",
+          "flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors",
           "hover:bg-muted-subtle",
+          // ring-inset so the card's overflow-hidden does not clip the focus ring.
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           expanded && "bg-muted-faint",
         )}
       >
-        <span className="shrink-0 text-muted-foreground" aria-hidden="true">
-          <CategoryIcon />
-        </span>
-
-        <span className="min-w-0 flex-1 flex items-baseline gap-1.5 overflow-hidden">
-          <span className="shrink-0 font-medium text-foreground">
-            {displayLabel}
-          </span>
-          {displaySubtitle && (
-            <span className="min-w-0 truncate text-muted-foreground font-mono">
-              {displaySubtitle}
-            </span>
-          )}
-          {!isSubAgent && resultSummary && (
-            <span className="shrink-0 tabular-nums text-muted-foreground">
-              {resultSummary}
-            </span>
-          )}
-        </span>
-
-        {trailingContent}
-
+        {headerInner}
         <ChevronIcon expanded={expanded} />
-      </button>
+      </div>
 
-      {expanded && (
-        <div className="px-2.5 pb-2.5 pt-1">
-          {isSubAgent ? (
-            <SubAgentSection subAgentExecution={subAgentExecution} collapsible={false} />
-          ) : (
-            <ToolCallDetail toolCall={toolCall} />
-          )}
-        </div>
-      )}
+      {expanded && <div className="px-2.5 pb-2.5 pt-1">{body}</div>}
     </div>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Approval badge
@@ -251,6 +432,23 @@ function getApprovalBadge(toolCall: ToolCall): ApprovalBadgeInfo | null {
       return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// File-review badge — a stamped edit row's live review state
+// ---------------------------------------------------------------------------
+
+/**
+ * The badge pill for each {@link FileReviewRowState}, in the approval badge's
+ * visual vocabulary. "Kept"/"Discarded" match the decision surface's verdict
+ * copy (see FileReviewCard's VerdictBadge) so the row and the bar always speak
+ * the same language.
+ */
+const REVIEW_BADGE: Record<FileReviewRowState, ApprovalBadgeInfo> = {
+  pending: { label: "Pending review", colorClass: "bg-warning/15 text-warning" },
+  kept: { label: "Kept", colorClass: "bg-success/15 text-success" },
+  discarded: { label: "Discarded", colorClass: "bg-destructive/15 text-destructive" },
+  failed: { label: "Review failed", colorClass: "bg-destructive/15 text-destructive" },
+};
 
 // ---------------------------------------------------------------------------
 // Status mapping

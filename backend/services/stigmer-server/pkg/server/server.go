@@ -472,6 +472,11 @@ func Run() error {
 	// This enables WorkflowExecution.SubmitApproval to forward decisions to child agent executions
 	workflowExecutionController.SetAgentExecutionClient(agentExecutionController)
 
+	// Inject AgentExecution client for HITL file-review forwarding
+	// This enables WorkflowExecution.SubmitFileDecision to forward keep/discard
+	// decisions to the child agent execution that holds the file-review gate.
+	workflowExecutionController.SetAgentExecutionFileDecisionClient(agentExecutionController)
+
 	// Inject discovery dependencies into McpServerController.
 	// The connect workflow runs on the runner's activity queue. In per-session
 	// routing mode, the queue is derived from the session ID at connect time.
@@ -545,6 +550,14 @@ func Run() error {
 	// requests from the web console (port 8234 → port 7234).
 	grpcWebWrapper := grpcweb.WrapServer(server.GRPCServer(),
 		grpcweb.WithOriginFunc(func(origin string) bool { return true }),
+		// Answer CORS preflight for ALL endpoints, not only those the wrapper can
+		// match in its registered-endpoint table. The default
+		// (corsForRegisteredEndpointsOnly=true) silently 404s the OPTIONS
+		// preflight here — its endpoint lookup does not recognize our registered
+		// services — so every cross-origin browser call (the web console on a
+		// different port than the API) is blocked with a missing
+		// Access-Control-Allow-Origin. Origin is already gated by WithOriginFunc.
+		grpcweb.WithCorsForRegisteredEndpointsOnly(false),
 		grpcweb.WithWebsockets(true),
 		grpcweb.WithWebsocketOriginFunc(func(r *http.Request) bool { return true }),
 	)

@@ -2,12 +2,25 @@
  * Unit tests for Cursor MCP image-result normalization.
  *
  * The Cursor SDK wraps an MCP tool result as
- *   { status, value: { content: [ { text:{text} }, { image:{ data, mimeType } } ] } }
- * where image `data` is a Node Buffer-JSON ({ type:"Buffer", data:number[] }).
- * The translator must re-emit that as the canonical top-level content-block
- * array the shared persist-time offload consumes, so a screenshot lands as a
- * renderable image ToolCallOutputRef instead of text/plain. These tests pin
- * that normalization and confirm it flows end-to-end through the offload.
+ *   { status, value: { content: [ { text:{text} }, { image:{ data, mimeType? } } ] } }
+ * where image `data` is a Node Buffer-JSON ({ type:"Buffer", data:number[] }) at
+ * RUNTIME — confirmed verbatim from a real cursor-harness get_app_state result
+ * (a PNG screenshot, no mimeType field). The SDK's .d.ts types `data` as a
+ * string, but the runtime serialization is Buffer-JSON, so the canonical fixture
+ * below uses Buffer-JSON; base64 / data:-URL string `data` is also covered.
+ *
+ * The translator must re-emit the envelope as the canonical top-level
+ * content-block array the shared persist-time offload consumes, so a screenshot
+ * lands as a renderable image ToolCallOutputRef instead of text/plain. These
+ * tests pin that normalization and confirm it flows end-to-end through the
+ * offload.
+ *
+ * Note: this normalization only runs when the SDK delivers `result` as an
+ * OBJECT. When it arrives already-serialized as a STRING (observed in
+ * production: the whole envelope nested under value.content), the translator
+ * passes it through and the shared offload's detectImagePayload is what must
+ * recognize it — that string path (including the Buffer-JSON + no-mimeType
+ * shape) is guarded in shared/__tests__/status-offload.
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -15,7 +28,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SDKMessage } from "@cursor/sdk";
-import type { ArtifactStorage } from "../../../shared/artifact-storage.js";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import {
   offloadOversizedToolOutputs,
   detectImagePayload,
@@ -28,17 +41,22 @@ import {
 } from "../message-translator.js";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
-// PNG signature + a little payload, the way the Cursor SDK serializes bytes.
+// PNG signature + a little payload. PNG_BYTES is how the Cursor SDK delivers
+// image data at runtime (Node Buffer-JSON); PNG_BASE64 is its base64 form, used
+// by the string-`data` variant tests.
 const PNG_BYTES = [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82];
 const PNG_BASE64 = Buffer.from(PNG_BYTES).toString("base64");
 
+// The canonical envelope, matching the real runtime shape: image.data is Node
+// Buffer-JSON and there is no mimeType. This is the shape the translator and
+// offload must handle.
 function cursorImageEnvelope(text = "App=com.example") {
   return {
     status: "success",
     value: {
       content: [
         { text: { text } },
-        { image: { data: { type: "Buffer", data: PNG_BYTES }, mimeType: "image/png" } },
+        { image: { data: { type: "Buffer", data: PNG_BYTES } } },
       ],
       isError: false,
     },
@@ -46,7 +64,7 @@ function cursorImageEnvelope(text = "App=com.example") {
 }
 
 describe("canonicalizeImageResult", () => {
-  it("converts a Cursor image envelope (Buffer-JSON) to the canonical array", () => {
+  it("converts the canonical Cursor image envelope (Buffer-JSON) to the canonical array", () => {
     const out = canonicalizeImageResult(cursorImageEnvelope("App=Slack"));
     expect(out).toBeDefined();
     expect(JSON.parse(out!)).toEqual([
@@ -152,14 +170,12 @@ describe("buildToolCallProto image normalization", () => {
 describe("cursor image flows through the persist-time offload", () => {
   it("offloads the screenshot as an image ref with no inline bytes", async () => {
     const uploads: { key: string; contentType?: string }[] = [];
-    const storage: ArtifactStorage = {
-      upload: vi.fn(async (key: string, _content: Buffer, contentType?: string) => {
-        uploads.push({ key, contentType });
-        return key;
-      }),
-      getDownloadUrl: vi.fn(async (key: string) => `https://artifacts.local/${key}`),
-      exists: vi.fn(async () => true),
-    };
+    const { storage, blobs } = makeInMemoryArtifactStorage({ urlBase: "https://artifacts.local/" });
+    storage.upload.mockImplementation(async (key: string, content: Buffer, contentType?: string) => {
+      uploads.push({ key, contentType });
+      blobs.set(key, Buffer.from(content));
+      return key;
+    });
 
     const event = {
       type: "tool_call",
@@ -219,13 +235,18 @@ describe("sub-agent image normalization (extractConversationSteps)", () => {
       result: {
         status: "success",
         value: {
+          // Real Cursor task-result shape: a conversation step is keyed directly
+          // by kind, and a tool call is { toolCall: { toolCallId, <kind>ToolCall:
+          // { args, result } } } whose result is a oneof { success | error | ... }.
+          // The screenshot rides the `success` branch as the tool's result value.
           conversationSteps: [
             {
-              type: "toolCall",
-              message: {
-                type: "get_app_state",
-                args: {},
-                result: cursorImageEnvelope("App=SubAgent"),
+              toolCall: {
+                toolCallId: "sub-img-1",
+                mcpToolCall: {
+                  args: {},
+                  result: { success: cursorImageEnvelope("App=SubAgent").value },
+                },
               },
             },
           ],

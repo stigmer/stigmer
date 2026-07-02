@@ -82,15 +82,15 @@ export class ClaimcheckPayloadCodec implements PayloadCodec {
       Buffer.from(payload.data!).toString("utf-8"),
     );
 
-    const downloadUrl = await this.storage.getDownloadUrl(marker.key);
-    const response = await fetch(downloadUrl);
-    if (!response.ok) {
-      throw new Error(
-        `Claimcheck retrieve failed for key ${marker.key}: HTTP ${response.status}`,
-      );
+    let rawBuf: Buffer;
+    try {
+      rawBuf = await this.storage.download(marker.key);
+    } catch (err) {
+      // Preserve the claimcheck-scoped error contract; the shared download error
+      // already carries the HTTP status (proxy) or the miss (local) as the cause.
+      const cause = err instanceof Error ? err.message : String(err);
+      throw new Error(`Claimcheck retrieve failed for key ${marker.key}: ${cause}`);
     }
-
-    const rawBuf = Buffer.from(await response.arrayBuffer());
     const dataBuf = marker.compressed ? decompress(rawBuf) : rawBuf;
 
     return {

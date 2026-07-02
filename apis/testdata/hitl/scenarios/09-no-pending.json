@@ -1,0 +1,30 @@
+{
+  "name": "no-pending",
+  "description": "Tool calls that are running or completed are never pending approvals.",
+  "input": {
+    "messages": [
+      {
+        "type": "MESSAGE_AI",
+        "tool_calls": [
+          {
+            "id": "tc1",
+            "name": "read_file",
+            "status": "TOOL_CALL_COMPLETED",
+            "requires_approval": true,
+            "approval_action": "APPROVAL_ACTION_UNSPECIFIED"
+          },
+          {
+            "id": "tc2",
+            "name": "list_dir",
+            "status": "TOOL_CALL_RUNNING",
+            "requires_approval": true,
+            "approval_action": "APPROVAL_ACTION_UNSPECIFIED"
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "pending_approvals": []
+  }
+}

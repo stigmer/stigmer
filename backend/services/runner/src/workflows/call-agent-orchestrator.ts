@@ -169,6 +169,39 @@ export async function orchestrateAgentCall(
       activityDone = true;
     });
 
+  // Last-written file-review reference for this child, as a deterministic key, so
+  // we write pending_file_reviews only when the child's AWAITING_REVIEW set changes
+  // (avoids status-write storms). undefined = never written yet.
+  let lastFileReviewKey: string | undefined;
+
+  // Poll-derive the child's file-review gate and surface it (reference-only) on the
+  // parent. No new Temporal signal: the orchestrator already holds the child open
+  // (async-completion) and reads its status here on the same cadence as progress.
+  async function syncFileReviews(childId: string): Promise<void> {
+    let ids: string[];
+    try {
+      ids = await statusProxy.GetAwaitingFileReviewChangeSetIds(childId);
+    } catch (err) {
+      log.warn("Failed to derive child file-review state (non-fatal)", {
+        error: String(err),
+        taskName: input.taskName,
+      });
+      return;
+    }
+    // Deterministic change key (sorted): a stable comparison across replays.
+    const key = [...ids].sort().join(",");
+    if (key === lastFileReviewKey) return;
+    lastFileReviewKey = key;
+    try {
+      await statusProxy.UpdateWorkflowFileReviewStatus(input.workflowExecutionId, childId, ids);
+    } catch (err) {
+      log.warn("Failed to update workflow file-review status (non-fatal)", {
+        error: String(err),
+        taskName: input.taskName,
+      });
+    }
+  }
+
   while (!activityDone) {
     // Wait for a signal, activity completion, or periodic timeout for progress polling.
     // condition() returns false on timeout, true when the predicate became true.
@@ -183,6 +216,7 @@ export async function orchestrateAgentCall(
     if (childExecId && !initialProgressEmitted) {
       initialProgressEmitted = true;
       await emitProgress(input, childExecId, null);
+      await syncFileReviews(childExecId);
     }
 
     // Periodic progress: on timeout, poll the child execution for live data
@@ -199,6 +233,7 @@ export async function orchestrateAgentCall(
       if (progress) {
         await emitProgress(input, childExecId, progress);
       }
+      await syncFileReviews(childExecId);
     }
 
     // Handle HITL approval notification
@@ -228,12 +263,24 @@ export async function orchestrateAgentCall(
     await emitProgress(input, childExecId, null);
   }
 
-  try {
-    await statusProxy.ClearWorkflowApprovalStatus(input.workflowExecutionId);
-  } catch (clearErr) {
-    log.warn("Failed to clear workflow approval status (non-fatal)", {
-      error: String(clearErr),
-    });
+  // Scoped clears for this child only (per-child merge) — a completing child must
+  // not wipe a parallel sibling's still-pending gate. Skipped if the child never
+  // started (nothing was ever surfaced for it).
+  if (childExecId) {
+    try {
+      await statusProxy.ClearWorkflowApprovalStatus(input.workflowExecutionId, childExecId);
+    } catch (clearErr) {
+      log.warn("Failed to clear workflow approval status (non-fatal)", {
+        error: String(clearErr),
+      });
+    }
+    try {
+      await statusProxy.UpdateWorkflowFileReviewStatus(input.workflowExecutionId, childExecId, []);
+    } catch (clearErr) {
+      log.warn("Failed to clear workflow file-review status (non-fatal)", {
+        error: String(clearErr),
+      });
+    }
   }
 
   if (activityError) {

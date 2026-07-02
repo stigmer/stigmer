@@ -1,0 +1,33 @@
+{
+  "name": "terminal-sub-agent-excluded",
+  "description": "A gated tool call inside a COMPLETED sub-agent is an orphan and must NOT surface.",
+  "input": {
+    "sub_agent_executions": [
+      {
+        "name": "researcher",
+        "subject": "Gather context",
+        "status": "SUB_AGENT_COMPLETED",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc-orphan",
+                "name": "write_file",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve write_file",
+                "args_preview": "{}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "pending_approvals": []
+  }
+}

@@ -51,6 +51,11 @@ func (a *AgentExecutionClient) SubmitApproval(ctx context.Context, input *agente
 	return resp, wrapErr(err)
 }
 
+func (a *AgentExecutionClient) SubmitFileDecision(ctx context.Context, input *agentexecutionv1.SubmitFileDecisionInput) (*agentexecutionv1.AgentExecution, error) {
+	resp, err := a.command.SubmitFileDecision(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentExecutionClient) Cancel(ctx context.Context, input *agentexecutionv1.CancelAgentExecutionInput) (*agentexecutionv1.AgentExecution, error) {
 	resp, err := a.command.Cancel(ctx, input)
 	return resp, wrapErr(err)

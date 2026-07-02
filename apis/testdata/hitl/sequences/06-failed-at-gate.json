@@ -1,0 +1,74 @@
+{
+  "name": "failed-at-gate",
+  "description": "The parity-bug-fix case: an execution fails while parked at the gate, and the gated call survives in the transcript (no message wipe). The phase-aware seam projects zero pending, and the reconciler authors NO per-call RETRACTED \u2014 terminal gate-exits are handled by the seam, not the ledger. (Before phase-awareness, OSS cleared pending via an incidental wipe while Cloud retained them.)",
+  "execution_id": "exec-failed-at-gate",
+  "steps": [
+    {
+      "name": "seed: tc1 gated",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc1",
+                "name": "shell",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve shell",
+                "args_preview": "{\"command\":\"deploy\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "pending_approvals": [
+          {
+            "tool_call_id": "tc1",
+            "tool_name": "shell",
+            "message": "Approve shell",
+            "args_preview": "{\"command\":\"deploy\"}",
+            "requested_at": "2026-03-27T10:00:00Z"
+          }
+        ],
+        "stream_events": [
+          { "approval_request_id": "tc1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" }
+        ]
+      }
+    },
+    {
+      "name": "execution fails while parked at the gate",
+      "description": "Terminal phase; tc1 still WAITING in the transcript. Seam projects empty; no RETRACTED authored.",
+      "status": {
+        "phase": "EXECUTION_FAILED",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc1",
+                "name": "shell",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve shell",
+                "args_preview": "{\"command\":\"deploy\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "pending_approvals": [],
+        "stream_events": [
+          { "approval_request_id": "tc1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" }
+        ]
+      }
+    }
+  ]
+}

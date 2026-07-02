@@ -1,0 +1,68 @@
+{
+  "name": "mixed-root-and-sub",
+  "description": "A root approval and an active sub-agent approval coexist; both surface.",
+  "input": {
+    "messages": [
+      {
+        "type": "MESSAGE_AI",
+        "tool_calls": [
+          {
+            "id": "tc-root",
+            "name": "deploy",
+            "status": "TOOL_CALL_WAITING_APPROVAL",
+            "requires_approval": true,
+            "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+            "approval_message": "Approve deploy",
+            "args_preview": "{\"env\":\"prod\"}",
+            "approval_requested_at": "2026-03-27T10:00:00Z"
+          }
+        ]
+      }
+    ],
+    "sub_agent_executions": [
+      {
+        "name": "agent-b",
+        "subject": "Run integration tests",
+        "status": "SUB_AGENT_IN_PROGRESS",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc-sub",
+                "name": "run_tests",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve run_tests",
+                "args_preview": "{}",
+                "approval_requested_at": "2026-03-27T10:00:05Z"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "pending_approvals": [
+      {
+        "tool_call_id": "tc-root",
+        "tool_name": "deploy",
+        "message": "Approve deploy",
+        "args_preview": "{\"env\":\"prod\"}",
+        "requested_at": "2026-03-27T10:00:00Z"
+      },
+      {
+        "tool_call_id": "tc-sub",
+        "tool_name": "run_tests",
+        "message": "Approve run_tests",
+        "args_preview": "{}",
+        "requested_at": "2026-03-27T10:00:05Z",
+        "from_sub_agent": true,
+        "sub_agent_name": "agent-b",
+        "sub_agent_subject": "Run integration tests"
+      }
+    ]
+  }
+}

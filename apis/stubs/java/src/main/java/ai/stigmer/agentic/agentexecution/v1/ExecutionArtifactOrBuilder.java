@@ -88,6 +88,10 @@ public interface ExecutionArtifactOrBuilder extends
    * <pre>
    * Storage location in R2.
    * Format: "artifacts/{execution_id}/{filename}"
+   *
+   * Clients resolve a download URL on demand from this stable key (via
+   * getArtifactDownloadUrl) — there is deliberately no persisted URL, since a
+   * pre-signed URL would expire while the reference does not.
    * </pre>
    *
    * <code>string storage_key = 5 [json_name = "storageKey"];</code>
@@ -98,6 +102,10 @@ public interface ExecutionArtifactOrBuilder extends
    * <pre>
    * Storage location in R2.
    * Format: "artifacts/{execution_id}/{filename}"
+   *
+   * Clients resolve a download URL on demand from this stable key (via
+   * getArtifactDownloadUrl) — there is deliberately no persisted URL, since a
+   * pre-signed URL would expire while the reference does not.
    * </pre>
    *
    * <code>string storage_key = 5 [json_name = "storageKey"];</code>
@@ -105,30 +113,6 @@ public interface ExecutionArtifactOrBuilder extends
    */
   com.google.protobuf.ByteString
       getStorageKeyBytes();
-
-  /**
-   * <pre>
-   * Pre-signed URL for downloading the artifact.
-   * Expires after a configured period (default: 7 days).
-   * Clients can call the refresh endpoint to get a new URL if expired.
-   * </pre>
-   *
-   * <code>string download_url = 6 [json_name = "downloadUrl"];</code>
-   * @return The downloadUrl.
-   */
-  java.lang.String getDownloadUrl();
-  /**
-   * <pre>
-   * Pre-signed URL for downloading the artifact.
-   * Expires after a configured period (default: 7 days).
-   * Clients can call the refresh endpoint to get a new URL if expired.
-   * </pre>
-   *
-   * <code>string download_url = 6 [json_name = "downloadUrl"];</code>
-   * @return The bytes for downloadUrl.
-   */
-  com.google.protobuf.ByteString
-      getDownloadUrlBytes();
 
   /**
    * <pre>

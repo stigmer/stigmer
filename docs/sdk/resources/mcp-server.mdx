@@ -986,6 +986,7 @@ ToolApprovalPolicy defines approval requirements for a specific tool.
   type={{
     toolName: { type: "string", description: "Name of the tool (must match tools/list from MCP server exactly)." },
     message: { type: "string", description: "Human-readable message shown to user when approval is requested." },
+    fromDestructiveHint: { type: "boolean", description: "True when the connect-time fail-closed tightener force-gated this tool because the server's own MCP annotation declared destructiveHint=true, rather than the classifier (or a human) gating it." },
   }}
 />
 
@@ -1287,6 +1288,7 @@ ToolApprovalPolicy defines approval requirements for a specific tool.
   type={{
     toolName: { type: "string", description: "Name of the tool (must match tools/list from MCP server exactly)." },
     message: { type: "string", description: "Human-readable message shown to user when approval is requested." },
+    fromDestructiveHint: { type: "boolean", description: "True when the connect-time fail-closed tightener force-gated this tool because the server's own MCP annotation declared destructiveHint=true, rather than the classifier (or a human) gating it." },
   }}
 />
 

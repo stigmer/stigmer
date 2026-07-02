@@ -10,6 +10,7 @@ go_library(
         "command_grpc.pb.go",
         "context.pb.go",
         "enum.pb.go",
+        "filereview.pb.go",
         "io.pb.go",
         "message.pb.go",
         "query.pb.go",

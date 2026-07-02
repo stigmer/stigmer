@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ApprovalAction, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import { ApprovalAction, ExecutionPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -23,6 +24,7 @@ import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import { useExecutionStream } from "../execution/useExecutionStream";
 import { useAgentExecutionActions } from "../execution/useAgentExecutionActions";
 import { useSubmitApproval } from "../execution/useSubmitApproval";
+import { useFileReview, type FileDecisionOptions } from "../execution/useFileReview";
 import { useSession } from "./useSession";
 import { useSessionExecutions } from "./useSessionExecutions";
 import { useUpdateSession } from "./useUpdateSession";
@@ -196,10 +198,47 @@ export interface UseSessionConversationReturn {
   ) => Promise<void>;
   /** Set of tool call IDs currently being submitted for approval. */
   readonly submittingApprovalIds: ReadonlySet<string>;
-  /** Error from the last approval submission, or `null` when healthy. */
+  /**
+   * Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card by
+   * {@link MessageThread}/{@link ApprovalCard} beside the gate that failed
+   * (inline row or bottom backstop). The keyed parallel of
+   * {@link submittingApprovalIds}.
+   */
+  readonly approvalErrors: ReadonlyMap<string, Error>;
+  /**
+   * Error from the last approval submission, or `null` when healthy — the scalar
+   * mirror of {@link approvalErrors} (symmetric with `fileReviewError`), for a
+   * headless consumer wanting a single error value (e.g. the `ink` surface).
+   */
   readonly approvalError: Error | null;
-  /** Reset `approvalError` to `null`. */
+  /** Reset every approval error (both {@link approvalErrors} and `approvalError`). */
   readonly clearApprovalError: () => void;
+
+  /** Captured change sets awaiting file review on the active execution, empty when none. */
+  readonly fileChangeSets: readonly FileChangeSet[];
+  /** Submit a file-review decision for a change set. The executionId is managed internally. */
+  readonly submitFileDecision: (
+    changeSetId: string,
+    action: FileDecisionAction,
+    options?: FileDecisionOptions,
+  ) => Promise<void>;
+  /** Decision keys ({@link fileDecisionKey}) currently being submitted. */
+  readonly submittingFileDecisionKeys: ReadonlySet<string>;
+  /**
+   * Per-decision failures, keyed by {@link fileDecisionKey} — surfaced in-card
+   * by {@link MessageThread}/{@link FileReviewCard} beside the failed control.
+   */
+  readonly fileDecisionErrors: ReadonlyMap<string, Error>;
+  /** Clear the error for one decision key (e.g. before a retry of that target). */
+  readonly clearFileDecisionError: (key: string) => void;
+  /**
+   * The most-recent file-review failure, or `null` when healthy — the scalar
+   * mirror of {@link fileDecisionErrors} (symmetric with `approvalError`), for a
+   * headless consumer wanting a single error value.
+   */
+  readonly fileReviewError: Error | null;
+  /** Reset every file-review error (both {@link fileDecisionErrors} and `fileReviewError`). */
+  readonly clearFileReviewError: () => void;
 
   /**
    * `true` when the active execution can be stopped — i.e. it is in a phase
@@ -337,9 +376,18 @@ export function useSessionConversation(
   const {
     submitApproval: rawSubmitApproval,
     submittingToolCallIds,
+    errorsByToolCallId: approvalErrors,
     error: approvalError,
     clearError: clearApprovalError,
   } = useSubmitApproval();
+  const {
+    submitFileDecision: rawSubmitFileDecision,
+    submittingDecisionKeys,
+    decisionErrors: fileDecisionErrors,
+    clearDecisionError: clearFileDecisionError,
+    error: fileReviewError,
+    clearError: clearFileReviewError,
+  } = useFileReview();
 
   // Local execution: attach the session's runner worker while it is open and
   // detach it on close. No-op for cloud sessions or when no adapter is set.
@@ -578,6 +626,26 @@ export function useSessionConversation(
     [activeExecutionId, rawSubmitApproval],
   );
 
+  const fileChangeSets = useMemo<readonly FileChangeSet[]>(
+    () =>
+      (activeStreamExecution?.status?.fileChangeSets ?? []).filter(
+        (cs) => cs.status === FileChangeSetStatus.AWAITING_REVIEW,
+      ),
+    [activeStreamExecution],
+  );
+
+  const submitFileDecision = useCallback(
+    async (
+      changeSetId: string,
+      action: FileDecisionAction,
+      options?: FileDecisionOptions,
+    ): Promise<void> => {
+      if (!activeExecutionId) return;
+      await rawSubmitFileDecision(activeExecutionId, changeSetId, action, options);
+    },
+    [activeExecutionId, rawSubmitFileDecision],
+  );
+
   const isLoading = sessionLoading || executionsLoading;
   const loadError = sessionError || executionsError;
 
@@ -605,8 +673,17 @@ export function useSessionConversation(
     pendingApprovals,
     submitApproval,
     submittingApprovalIds: submittingToolCallIds,
+    approvalErrors,
     approvalError,
     clearApprovalError,
+
+    fileChangeSets,
+    submitFileDecision,
+    submittingFileDecisionKeys: submittingDecisionKeys,
+    fileDecisionErrors,
+    clearFileDecisionError,
+    fileReviewError,
+    clearFileReviewError,
 
     isStoppable,
     stop,

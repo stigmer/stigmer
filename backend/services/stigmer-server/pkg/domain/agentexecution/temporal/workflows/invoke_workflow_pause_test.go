@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
 	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"github.com/stretchr/testify/mock"
@@ -19,7 +20,7 @@ import (
 // workflow.ExecuteActivity calls can be matched and mocked.
 func stubEnsureThread(_ string, _ string) (string, error) { return "", nil }
 func stubGenerateSessionSubject(_ string) error           { return nil }
-func stubExecuteDeepAgent(_ string, _ string) (activities.RunnerActivityResult, error) {
+func stubExecuteDeepAgent(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 	return nil, nil
 }
 
@@ -101,8 +102,8 @@ func TestPauseSignalCancelsActivityAndWaitsForResume(t *testing.T) {
 	// The first invocation is cancelled by the pause signal (mock not called).
 	// After resume, the second invocation runs the mock and completes.
 	resumeCallCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			resumeCallCount++
 			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
 		})
@@ -136,7 +137,7 @@ func TestNormalCompletionWithoutPause(t *testing.T) {
 	const executionID = "exec-456"
 	registerCommonMocks(env, threadID)
 
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
 		Return(runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil)
 
 	input := &InvokeAgentExecutionWorkflowInput{
@@ -171,8 +172,8 @@ func TestHitlApprovalLoopWithoutPause(t *testing.T) {
 		}, nil)
 
 	callCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			callCount++
 			if callCount == 1 {
 				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
@@ -198,6 +199,335 @@ func TestHitlApprovalLoopWithoutPause(t *testing.T) {
 	require.Equal(t, 2, callCount)
 }
 
+// TestHitlFileReviewOnlyGateWaitsForSignal verifies the UNIFIED HITL gate for a
+// turn blocked purely on file review (apply-then-review): the execution is
+// WAITING_FOR_APPROVAL with ZERO pending tool approvals but one change set
+// AWAITING_REVIEW. The gate is non-empty (filereview.UnresolvedGateCount counts
+// the change set), so the workflow must WAIT for the approvalGateResolved signal
+// and re-invoke once — exactly like the pending-approval path — rather than
+// tripping the zero-gate fail-fast watchdog (TestHitlZeroPendingApprovalFailsFast)
+// that fires only when BOTH sub-gates are empty. This pins the file-review half
+// of the unified gate that the pending-approval test does not exercise.
+func TestHitlFileReviewOnlyGateWaitsForSignal(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-filereview"
+	const executionID = "exec-filereview-only"
+	registerCommonMocks(env, threadID)
+
+	// The DB reports zero pending approvals but one change set awaiting review —
+	// the pure-file-review gate. UnresolvedGateCount must see it as non-empty.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{
+				FileChangeSets: []*agentexecutionv1.FileChangeSet{
+					{
+						Id:     "cs-1",
+						Status: agentexecutionv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW,
+					},
+				},
+			},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
+			callCount++
+			if callCount == 1 {
+				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+			}
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
+		})
+
+	// The file decision clears the gate and sends the SAME unified signal.
+	env.RegisterDelayedCallback(func() {
+		env.SignalWorkflow(SignalApprovalGateResolved, nil)
+	}, 0)
+
+	input := &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+	}
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError(),
+		"a file-review-only gate must wait for the signal and resume, not fail fast")
+	require.Equal(t, 2, callCount,
+		"workflow must re-invoke once after the file-review gate is resolved")
+}
+
+// TestHitlPolicyDecidedGateResumesWithoutSignal pins the DD-28 policy-resolved
+// resume: the runner finalizes WAITING_FOR_APPROVAL, but by the time the
+// workflow checks the gate, the approved-command auto-keep has already DECIDED
+// the change set (authored in the same write that folded the candidate). The
+// gate is empty AND a set is owed a reconcile — the workflow must re-invoke
+// immediately (no signal will ever come), never the zero-gate anomaly path.
+func TestHitlPolicyDecidedGateResumesWithoutSignal(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-policy-decided"
+	const executionID = "exec-policy-decided"
+	registerCommonMocks(env, threadID)
+
+	// Zero pending approvals, zero AWAITING_REVIEW — but one DECIDED set
+	// awaiting the runner's reconcile: the auto-keep signature.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{
+				FileChangeSets: []*agentexecutionv1.FileChangeSet{
+					{
+						Id:     "cs-1",
+						Status: agentexecutionv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_DECIDED,
+					},
+				},
+			},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
+			callCount++
+			if callCount == 1 {
+				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+			}
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
+		})
+
+	// Deliberately NO approvalGateResolved signal: the decision was authored
+	// before the workflow ever waited, so no signal will fire.
+	input := &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+	}
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError(),
+		"a DECIDED set with an empty gate is a legitimate policy-resolved resume, not an anomaly")
+	require.Equal(t, 2, callCount,
+		"workflow must re-invoke immediately to reconcile the decided set")
+}
+
+// TestHitlZeroPendingApprovalFailsFast verifies the workflow does NOT tight-loop
+// the full agent activity when the execution is WAITING_FOR_APPROVAL but
+// pending_approvals is empty. That state is an inconsistency that should be
+// impossible once the runner<->backend approval-finalize contract holds, but the
+// workflow must still fail safe: it tolerates only a small bounded number of
+// consecutive zero-pending cycles (to absorb a transient read race) then fails
+// fast with a descriptive error — instead of re-invoking up to MaxApprovalCycles
+// (100) full agent runs, the production "RUNNING<->WAITING" churn.
+func TestHitlZeroPendingApprovalFailsFast(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-zero"
+	const executionID = "exec-zero-pending"
+	registerCommonMocks(env, threadID)
+
+	// DB always reports zero pending approvals (empty status) while the activity
+	// keeps returning WAITING_FOR_APPROVAL — the stuck-loop signature.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
+			callCount++
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+		})
+
+	input := &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+	}
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.Error(t, env.GetWorkflowError(),
+		"a persistent zero-pending WAITING_FOR_APPROVAL must fail fast, not tight-loop")
+	// Initial invocation + MaxZeroGateCycles bounded re-invocations
+	// before giving up — well below MaxApprovalCycles (100).
+	require.Equal(t, MaxZeroGateCycles+1, callCount,
+		"workflow must stop after a small bounded number of zero-pending cycles")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cursor-flow parity: the WAITING_FOR_APPROVAL + pending=0 watchdog is duplicated
+// in executeCursorWithHitl (the deny-and-reconcile harness), so it must be pinned
+// independently of the native deep-agent loop. The Cursor flow dispatches on
+// input.Harness == HARNESS_CURSOR and drives ReadHarnessStateId (local) +
+// ExecuteCursor instead of EnsureThread + ExecuteDeepAgent.
+// ─────────────────────────────────────────────────────────────────────────────
+
+func stubExecuteCursor(_ activities.ExecuteCursorActivityInput) (activities.RunnerActivityResult, error) {
+	return nil, nil
+}
+func stubReadHarnessStateId(_ string) (string, error) { return "", nil }
+
+// registerCursorActivities registers the Cursor-flow activities (ExecuteCursor +
+// the ReadHarnessStateId local activity). Temporal's test env forbids any
+// RegisterActivity after the first OnActivity, so this MUST be called BEFORE
+// registerCommonMocks (which issues mocks); the ReadHarnessStateId mock is then
+// set alongside the other OnActivity calls.
+func registerCursorActivities(env *testsuite.TestWorkflowEnvironment) {
+	env.RegisterActivityWithOptions(stubExecuteCursor, activity.RegisterOptions{
+		Name: activities.ExecuteCursorActivityName,
+	})
+	env.RegisterActivityWithOptions(stubReadHarnessStateId, activity.RegisterOptions{
+		Name: activities.ReadHarnessStateIdActivityName,
+	})
+}
+
+func cursorInput(executionID string) *InvokeAgentExecutionWorkflowInput {
+	return &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+		Harness:     int32(sessionv1.Harness_HARNESS_CURSOR),
+	}
+}
+
+// TestCursorHitlApprovalLoopWithoutPause is the Cursor analog of
+// TestHitlApprovalLoopWithoutPause: one gated turn (pending=1) resolved by the
+// approval signal re-invokes ExecuteCursor and completes. The happy-path counter
+// to the fail-fast test below — a non-zero pending count must NOT trip the
+// watchdog, it must wait for the signal.
+func TestCursorHitlApprovalLoopWithoutPause(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-cursor"
+	const executionID = "exec-cursor-hitl"
+	registerCursorActivities(env)
+	registerCommonMocks(env, threadID)
+	env.OnActivity(stubReadHarnessStateId, mock.Anything).Return("harness-state-1", nil).Maybe()
+
+	// DB reports one pending approval (the gated tool), so the watchdog stays
+	// dormant and the workflow waits for the resolution signal.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{
+				PendingApprovals: []*agentexecutionv1.PendingApproval{{ToolCallId: "tc-1"}},
+			},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteCursor, mock.Anything).
+		Return(func(_ activities.ExecuteCursorActivityInput) (activities.RunnerActivityResult, error) {
+			callCount++
+			if callCount == 1 {
+				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+			}
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
+		})
+
+	env.RegisterDelayedCallback(func() {
+		env.SignalWorkflow(SignalApprovalGateResolved, nil)
+	}, 0)
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, cursorInput(executionID))
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError())
+	require.Equal(t, 2, callCount, "Cursor flow must re-invoke once after the approval signal and complete")
+}
+
+// TestCursorHitlPolicyDecidedGateResumesWithoutSignal is the Cursor analog of
+// TestHitlPolicyDecidedGateResumesWithoutSignal: the DD-28 auto-keep decides the
+// set before the gate check; the Cursor flow must re-invoke immediately to
+// reconcile, with no signal and no anomaly fail-fast.
+func TestCursorHitlPolicyDecidedGateResumesWithoutSignal(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-cursor-policy"
+	const executionID = "exec-cursor-policy-decided"
+	registerCursorActivities(env)
+	registerCommonMocks(env, threadID)
+	env.OnActivity(stubReadHarnessStateId, mock.Anything).Return("harness-state-1", nil).Maybe()
+
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{
+				FileChangeSets: []*agentexecutionv1.FileChangeSet{
+					{
+						Id:     "cs-1",
+						Status: agentexecutionv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_DECIDED,
+					},
+				},
+			},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteCursor, mock.Anything).
+		Return(func(_ activities.ExecuteCursorActivityInput) (activities.RunnerActivityResult, error) {
+			callCount++
+			if callCount == 1 {
+				return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+			}
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
+		})
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, cursorInput(executionID))
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError(),
+		"the Cursor flow must treat a DECIDED set with an empty gate as a legitimate resume")
+	require.Equal(t, 2, callCount,
+		"Cursor flow must re-invoke immediately to reconcile the decided set")
+}
+
+// TestCursorHitlZeroPendingApprovalFailsFast is the Cursor analog of
+// TestHitlZeroPendingApprovalFailsFast: the precise production loop from
+// aex_01kvz3pw20j6t0hw80wpevnztb. When ExecuteCursor keeps returning
+// WAITING_FOR_APPROVAL while the DB projects zero pending approvals (the
+// transcript-guard-rejected resume signature), the workflow must tolerate only a
+// small bounded number of zero-pending cycles then fail fast — NOT tight-loop the
+// full Cursor activity up to MaxApprovalCycles.
+func TestCursorHitlZeroPendingApprovalFailsFast(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-cursor-zero"
+	const executionID = "exec-cursor-zero-pending"
+	registerCursorActivities(env)
+	registerCommonMocks(env, threadID)
+	env.OnActivity(stubReadHarnessStateId, mock.Anything).Return("harness-state-1", nil).Maybe()
+
+	// DB always reports zero pending while the activity keeps returning WAITING —
+	// the stuck-loop signature the watchdog must break.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{},
+		}, nil)
+
+	callCount := 0
+	env.OnActivity(stubExecuteCursor, mock.Anything).
+		Return(func(_ activities.ExecuteCursorActivityInput) (activities.RunnerActivityResult, error) {
+			callCount++
+			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, ""), nil
+		})
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, cursorInput(executionID))
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.Error(t, env.GetWorkflowError(),
+		"a persistent zero-pending WAITING_FOR_APPROVAL on the Cursor flow must fail fast, not tight-loop")
+	require.Equal(t, MaxZeroGateCycles+1, callCount,
+		"Cursor flow must stop after a small bounded number of zero-pending cycles")
+}
+
 func TestMultiplePauseResumeCycles(t *testing.T) {
 	s := testsuite.WorkflowTestSuite{}
 	env := s.NewTestWorkflowEnvironment()
@@ -210,8 +540,8 @@ func TestMultiplePauseResumeCycles(t *testing.T) {
 	// In the test env, cancelled invocations don't run the mock, so only the
 	// final (non-cancelled) invocation runs.
 	resumeCallCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			resumeCallCount++
 			return runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil
 		})
@@ -256,8 +586,8 @@ func TestRecoverableInterruptionResumesFromState(t *testing.T) {
 	registerCommonMocks(env, threadID)
 
 	callCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			callCount++
 			if callCount == 1 {
 				// Simulate the worker being reaped mid-run: a heartbeat timeout.
@@ -291,8 +621,8 @@ func TestRecoveryIsBoundedByMaxCycles(t *testing.T) {
 	registerCommonMocks(env, threadID)
 
 	callCount := 0
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string) (activities.RunnerActivityResult, error) {
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(func(_ activities.ExecuteDeepAgentActivityInput) (activities.RunnerActivityResult, error) {
 			callCount++
 			return nil, temporal.NewTimeoutError(enums.TIMEOUT_TYPE_HEARTBEAT, nil)
 		})
@@ -319,7 +649,7 @@ func TestFailedActivityPropagatesError(t *testing.T) {
 	const executionID = "exec-fail"
 	registerCommonMocks(env, threadID)
 
-	env.OnActivity(stubExecuteDeepAgent, mock.Anything, mock.Anything).
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
 		Return(runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_FAILED, "something went wrong"), nil)
 
 	input := &InvokeAgentExecutionWorkflowInput{

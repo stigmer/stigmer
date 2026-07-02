@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -341,6 +342,97 @@ func TestCursorHarness_ToolCallCountReconciliation(t *testing.T) {
 			}
 		}
 	}
+}
+
+// TestCursorHarness_ShellToolResultEnvelope is the live canary for the Cursor
+// SDK's shell-result format. The SDK's built-in Shell tool returns a structured
+// {status, value:{exitCode, stdout, stderr, ...}} envelope, which the runner
+// persists verbatim as a JSON string on ToolCall.result; the web/CLI view layer
+// (normalizeShell) unwraps `.value` to render a clean terminal session.
+//
+// The unit + cross-language fixture tests lock our parsing against that assumed
+// shape. THIS test asserts the assumption still holds against the real upstream
+// SDK: if a future @cursor/sdk bump changes the envelope (drops `value`, renames
+// `stdout`, flattens the shape), this test fails loudly and tells us to update
+// the normalizer + fixtures — instead of the shell card silently regressing to a
+// raw-JSON dump in production.
+//
+// Requires CURSOR_API_KEY.
+func TestCursorHarness_ShellToolResultEnvelope(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 5*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-shell-envelope-agent",
+		"You are a precise assistant. When asked to run a shell command, use the "+
+			"shell/terminal tool to run it exactly as given. Do not skip the tool call.",
+	)
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_CURSOR,
+	)
+
+	exec := harness.CreateTestAgentExecution(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Run this exact shell command and report its output: echo hello-stigmer",
+		// Shell is a gated tool; auto-approve so it executes without parking on
+		// the approval gate (the approval flow is covered by the HITL tests).
+		harness.WithAutoApproveAll(true),
+	)
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+	result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+		result, _ = clients.AgentExecutionQuery.Get(ctx,
+			&agentexecv1.AgentExecutionId{Value: exec.GetMetadata().GetId()})
+	}
+	require.NoError(t, err, "execution should reach COMPLETED phase")
+	require.NotNil(t, result)
+
+	harness.AssertUniqueToolCallIds(t, result)
+
+	// Locate the shell tool call among the persisted messages.
+	var shellCall *agentexecv1.ToolCall
+	for _, tc := range collectToolCalls(result.GetStatus().GetMessages()) {
+		if strings.Contains(strings.ToLower(tc.GetName()), "shell") {
+			shellCall = tc
+			break
+		}
+	}
+	require.NotNil(t, shellCall,
+		"expected at least one Shell tool call; the agent did not use the shell tool "+
+			"(or the Cursor tool name changed)")
+
+	// The persisted result must be the structured {status, value:{stdout,...}}
+	// envelope our normalizer unwraps. A failure here means upstream drift.
+	var envelope struct {
+		Value *struct {
+			Stdout   *string `json:"stdout"`
+			ExitCode *int    `json:"exitCode"`
+		} `json:"value"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(shellCall.GetResult()), &envelope),
+		"shell result must be valid JSON; got: %q", shellCall.GetResult())
+	require.NotNil(t, envelope.Value,
+		"shell result envelope must carry a `value` object — Cursor SDK format may have "+
+			"changed; update normalizeShell + the cursor_shell_envelope fixture. Got: %q",
+		shellCall.GetResult())
+	require.NotNil(t, envelope.Value.Stdout,
+		"shell result `value` must carry `stdout` — Cursor SDK format may have changed. Got: %q",
+		shellCall.GetResult())
+	assert.Contains(t, *envelope.Value.Stdout, "hello-stigmer",
+		"shell stdout should contain the echoed text")
+
+	t.Logf("shell envelope OK: name=%s, exitCode=%v, stdout=%q",
+		shellCall.GetName(), envelope.Value.ExitCode, *envelope.Value.Stdout)
 }
 
 // collectToolCalls returns every tool call across an execution's messages, in

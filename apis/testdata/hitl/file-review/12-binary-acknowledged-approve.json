@@ -1,0 +1,61 @@
+{
+  "name": "binary-acknowledged-approve",
+  "description": "A binary file (no text diff, is_binary=true, diff_complete=false) is the set's only blocker, so the runner rolls it up to BINARY_SUMMARY_ONLY (DD-17). It is consciously KEPT via a FILE-scoped APPROVE carrying acknowledge_unreviewable=true (DD-16). Projects to DECIDED with one decision that preserves the acknowledgment flag identically in Go and Java (protojson round-trip). No reconcile event here: this vector pins projection parity of the audit flag, not the byte-level reconcile (covered by the runner/offline tests).",
+  "execution_id": "aex_binary_ack",
+  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "events": [
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:00Z",
+      "actor": "runner",
+      "baselineCaptured": {
+        "changeSetId": "cs1", "turnId": "t1", "harnessId": "deep-agent",
+        "baselineSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "base", "ref": "refs/stigmer/x/baseline" } }
+      }
+    },
+    {
+      "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+      "timestamp": "2026-06-30T00:00:05Z",
+      "actor": "runner",
+      "candidateCaptured": {
+        "changeSetId": "cs1",
+        "candidateSnapshot": { "kind": "SNAPSHOT_KIND_GIT_TREE_REF", "git": { "treeOid": "cand", "ref": "refs/stigmer/x/candidate" } },
+        "changes": [
+          { "id": "fc1", "pathBefore": "", "pathAfter": "assets/logo.png", "kind": "FILE_CHANGE_KIND_ADD", "afterSha256": "sha-bin", "fileDigest": "d-fc1", "diffComplete": false, "after": { "isBinary": true } }
+        ],
+        "aggregateDigest": "agg1",
+        "diffCompleteness": "DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY"
+      }
+    },
+    {
+      "eventId": "cs1:fc1:FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "changeSetId": "cs1",
+      "eventType": "FILE_REVIEW_EVENT_TYPE_FILE_DECIDED",
+      "timestamp": "2026-06-30T00:01:00Z",
+      "actor": "user",
+      "fileDecided": {
+        "id": "cs1:fc1", "changeSetId": "cs1", "fileChangeId": "fc1",
+        "scope": "FILE_DECISION_SCOPE_FILE", "action": "FILE_DECISION_ACTION_APPROVE",
+        "expectedDigest": "d-fc1", "reviewerId": "u1", "decidedAt": "2026-06-30T00:01:00Z",
+        "acknowledgeUnreviewable": true
+      }
+    }
+  ],
+  "expected": [
+    {
+      "id": "cs1",
+      "status": "FILE_CHANGE_SET_STATUS_DECIDED",
+      "diff_completeness": "DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY",
+      "change_ids": ["fc1"],
+      "blocked_reasons": ["FILE_REVIEW_BLOCK_REASON_UNSPECIFIED"],
+      "decision_count": 1,
+      "acknowledged_change_ids": ["fc1"],
+      "aggregate_digest": "agg1",
+      "has_approved_snapshot": false
+    }
+  ]
+}

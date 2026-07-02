@@ -48,6 +48,10 @@ private static final long serialVersionUID = 0L;
     mcpServerSlug_ = "";
     argsPreview_ = "";
     toolKind_ = 0;
+    approvalPolicySource_ = 0;
+    policyEngineVersion_ = "";
+    approvalContentDigest_ = "";
+    fileChangeSetId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1014,6 +1018,269 @@ private static final long serialVersionUID = 0L;
     return outputRef_ == null ? ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRef.getDefaultInstance() : outputRef_;
   }
 
+  public static final int APPROVAL_POLICY_SOURCE_FIELD_NUMBER = 23;
+  private int approvalPolicySource_ = 0;
+  /**
+   * <pre>
+   * Policy layer that decided this tool call's approval requirement, set by the
+   * runner's approval gate so clients can explain "why was this gated or
+   * auto-approved?".
+   *
+   * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+   * or an execution that predates this field (clients fall back to no provenance,
+   * exactly as for an unset tool_kind). See ApprovalPolicySource.
+   *
+   * Field 23: appended after file_changes (22), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+   * @return The enum numeric value on the wire for approvalPolicySource.
+   */
+  @java.lang.Override public int getApprovalPolicySourceValue() {
+    return approvalPolicySource_;
+  }
+  /**
+   * <pre>
+   * Policy layer that decided this tool call's approval requirement, set by the
+   * runner's approval gate so clients can explain "why was this gated or
+   * auto-approved?".
+   *
+   * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+   * or an execution that predates this field (clients fall back to no provenance,
+   * exactly as for an unset tool_kind). See ApprovalPolicySource.
+   *
+   * Field 23: appended after file_changes (22), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+   * @return The approvalPolicySource.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource() {
+    ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource result = ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.forNumber(approvalPolicySource_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.UNRECOGNIZED : result;
+  }
+
+  public static final int POLICY_ENGINE_VERSION_FIELD_NUMBER = 24;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object policyEngineVersion_ = "";
+  /**
+   * <pre>
+   * Identifier of the policy-engine logic that produced approval_policy_source,
+   * bumped when the merge/classification semantics change so decisions made by
+   * different engine versions stay distinguishable in audits.
+   *
+   * &#64;internal
+   * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+   *
+   * Field 24: appended after approval_policy_source (23), the prior maximum.
+   * </pre>
+   *
+   * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+   * @return The policyEngineVersion.
+   */
+  @java.lang.Override
+  public java.lang.String getPolicyEngineVersion() {
+    java.lang.Object ref = policyEngineVersion_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      policyEngineVersion_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Identifier of the policy-engine logic that produced approval_policy_source,
+   * bumped when the merge/classification semantics change so decisions made by
+   * different engine versions stay distinguishable in audits.
+   *
+   * &#64;internal
+   * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+   *
+   * Field 24: appended after approval_policy_source (23), the prior maximum.
+   * </pre>
+   *
+   * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+   * @return The bytes for policyEngineVersion.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPolicyEngineVersionBytes() {
+    java.lang.Object ref = policyEngineVersion_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      policyEngineVersion_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int APPROVAL_CONTENT_DIGEST_FIELD_NUMBER = 25;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object approvalContentDigest_ = "";
+  /**
+   * <pre>
+   * Stable digest of the authoritative edit content (the hook-captured tool
+   * input) for a gated file-mutating tool call, set by the runner's approval
+   * gate. It is the content discriminator the deny-only Cursor harness needs:
+   * approving one edit must not let a DIFFERENT edit to the same file ride the
+   * approval through, so the grant binds to (category, path, content) rather than
+   * (category, path) alone. A resumed re-attempt that differs from the approved
+   * content re-gates (the "what you approve is what gets applied" contract).
+   *
+   * Carried so it survives at resume immune to the size-limit elision that can
+   * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+   * would be unrecoverable in that case. Empty for tools whose other identity is
+   * already content-exact (shell command, delete path), for read-only tools, and
+   * for executions that predate this field (the runner then degrades to the
+   * coarse (category, path) identity).
+   *
+   * &#64;internal
+   * Runner-written and carried through update_status exactly like tool_kind /
+   * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+   * needed. See the runner's contentDigest() (shared/file-tools.ts).
+   *
+   * Field 25: appended after policy_engine_version (24), the prior maximum.
+   * </pre>
+   *
+   * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+   * @return The approvalContentDigest.
+   */
+  @java.lang.Override
+  public java.lang.String getApprovalContentDigest() {
+    java.lang.Object ref = approvalContentDigest_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      approvalContentDigest_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Stable digest of the authoritative edit content (the hook-captured tool
+   * input) for a gated file-mutating tool call, set by the runner's approval
+   * gate. It is the content discriminator the deny-only Cursor harness needs:
+   * approving one edit must not let a DIFFERENT edit to the same file ride the
+   * approval through, so the grant binds to (category, path, content) rather than
+   * (category, path) alone. A resumed re-attempt that differs from the approved
+   * content re-gates (the "what you approve is what gets applied" contract).
+   *
+   * Carried so it survives at resume immune to the size-limit elision that can
+   * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+   * would be unrecoverable in that case. Empty for tools whose other identity is
+   * already content-exact (shell command, delete path), for read-only tools, and
+   * for executions that predate this field (the runner then degrades to the
+   * coarse (category, path) identity).
+   *
+   * &#64;internal
+   * Runner-written and carried through update_status exactly like tool_kind /
+   * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+   * needed. See the runner's contentDigest() (shared/file-tools.ts).
+   *
+   * Field 25: appended after policy_engine_version (24), the prior maximum.
+   * </pre>
+   *
+   * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+   * @return The bytes for approvalContentDigest.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getApprovalContentDigestBytes() {
+    java.lang.Object ref = approvalContentDigest_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      approvalContentDigest_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int FILE_CHANGE_SET_ID_FIELD_NUMBER = 26;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object fileChangeSetId_ = "";
+  /**
+   * <pre>
+   * Id of the FileChangeSet this flowed file-edit contributed to
+   * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+   * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+   * set's review state and to position the set's decision surface after the
+   * turn's last edit row. It is NEVER a correlation or enforcement key —
+   * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+   * reconcile identity is digest-gated (see filereview.proto's identity rule).
+   *
+   * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+   * those rows), rows from executions that predate this field, and turns whose
+   * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+   * so there is no change set to reference).
+   *
+   * Field 26: appended after approval_content_digest (25), the prior maximum.
+   * </pre>
+   *
+   * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+   * @return The fileChangeSetId.
+   */
+  @java.lang.Override
+  public java.lang.String getFileChangeSetId() {
+    java.lang.Object ref = fileChangeSetId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      fileChangeSetId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Id of the FileChangeSet this flowed file-edit contributed to
+   * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+   * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+   * set's review state and to position the set's decision surface after the
+   * turn's last edit row. It is NEVER a correlation or enforcement key —
+   * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+   * reconcile identity is digest-gated (see filereview.proto's identity rule).
+   *
+   * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+   * those rows), rows from executions that predate this field, and turns whose
+   * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+   * so there is no change set to reference).
+   *
+   * Field 26: appended after approval_content_digest (25), the prior maximum.
+   * </pre>
+   *
+   * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+   * @return The bytes for fileChangeSetId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getFileChangeSetIdBytes() {
+    java.lang.Object ref = fileChangeSetId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      fileChangeSetId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1087,6 +1354,18 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(21, getOutputRef());
+    }
+    if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(23, approvalPolicySource_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policyEngineVersion_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 24, policyEngineVersion_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(approvalContentDigest_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 25, approvalContentDigest_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fileChangeSetId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 26, fileChangeSetId_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1165,6 +1444,19 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(21, getOutputRef());
     }
+    if (approvalPolicySource_ != ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(23, approvalPolicySource_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policyEngineVersion_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(24, policyEngineVersion_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(approvalContentDigest_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(25, approvalContentDigest_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fileChangeSetId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(26, fileChangeSetId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1222,6 +1514,13 @@ private static final long serialVersionUID = 0L;
       if (!getOutputRef()
           .equals(other.getOutputRef())) return false;
     }
+    if (approvalPolicySource_ != other.approvalPolicySource_) return false;
+    if (!getPolicyEngineVersion()
+        .equals(other.getPolicyEngineVersion())) return false;
+    if (!getApprovalContentDigest()
+        .equals(other.getApprovalContentDigest())) return false;
+    if (!getFileChangeSetId()
+        .equals(other.getFileChangeSetId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1279,6 +1578,14 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + OUTPUT_REF_FIELD_NUMBER;
       hash = (53 * hash) + getOutputRef().hashCode();
     }
+    hash = (37 * hash) + APPROVAL_POLICY_SOURCE_FIELD_NUMBER;
+    hash = (53 * hash) + approvalPolicySource_;
+    hash = (37 * hash) + POLICY_ENGINE_VERSION_FIELD_NUMBER;
+    hash = (53 * hash) + getPolicyEngineVersion().hashCode();
+    hash = (37 * hash) + APPROVAL_CONTENT_DIGEST_FIELD_NUMBER;
+    hash = (53 * hash) + getApprovalContentDigest().hashCode();
+    hash = (37 * hash) + FILE_CHANGE_SET_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getFileChangeSetId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1449,6 +1756,10 @@ private static final long serialVersionUID = 0L;
         outputRefBuilder_.dispose();
         outputRefBuilder_ = null;
       }
+      approvalPolicySource_ = 0;
+      policyEngineVersion_ = "";
+      approvalContentDigest_ = "";
+      fileChangeSetId_ = "";
       return this;
     }
 
@@ -1549,6 +1860,18 @@ private static final long serialVersionUID = 0L;
             : outputRefBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00100000) != 0)) {
+        result.approvalPolicySource_ = approvalPolicySource_;
+      }
+      if (((from_bitField0_ & 0x00200000) != 0)) {
+        result.policyEngineVersion_ = policyEngineVersion_;
+      }
+      if (((from_bitField0_ & 0x00400000) != 0)) {
+        result.approvalContentDigest_ = approvalContentDigest_;
+      }
+      if (((from_bitField0_ & 0x00800000) != 0)) {
+        result.fileChangeSetId_ = fileChangeSetId_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1647,6 +1970,24 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasOutputRef()) {
         mergeOutputRef(other.getOutputRef());
+      }
+      if (other.approvalPolicySource_ != 0) {
+        setApprovalPolicySourceValue(other.getApprovalPolicySourceValue());
+      }
+      if (!other.getPolicyEngineVersion().isEmpty()) {
+        policyEngineVersion_ = other.policyEngineVersion_;
+        bitField0_ |= 0x00200000;
+        onChanged();
+      }
+      if (!other.getApprovalContentDigest().isEmpty()) {
+        approvalContentDigest_ = other.approvalContentDigest_;
+        bitField0_ |= 0x00400000;
+        onChanged();
+      }
+      if (!other.getFileChangeSetId().isEmpty()) {
+        fileChangeSetId_ = other.fileChangeSetId_;
+        bitField0_ |= 0x00800000;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1778,6 +2119,26 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00080000;
               break;
             } // case 170
+            case 184: {
+              approvalPolicySource_ = input.readEnum();
+              bitField0_ |= 0x00100000;
+              break;
+            } // case 184
+            case 194: {
+              policyEngineVersion_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00200000;
+              break;
+            } // case 194
+            case 202: {
+              approvalContentDigest_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00400000;
+              break;
+            } // case 202
+            case 210: {
+              fileChangeSetId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00800000;
+              break;
+            } // case 210
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -4046,6 +4407,594 @@ private static final long serialVersionUID = 0L;
         outputRef_ = null;
       }
       return outputRefBuilder_;
+    }
+
+    private int approvalPolicySource_ = 0;
+    /**
+     * <pre>
+     * Policy layer that decided this tool call's approval requirement, set by the
+     * runner's approval gate so clients can explain "why was this gated or
+     * auto-approved?".
+     *
+     * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+     * or an execution that predates this field (clients fall back to no provenance,
+     * exactly as for an unset tool_kind). See ApprovalPolicySource.
+     *
+     * Field 23: appended after file_changes (22), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+     * @return The enum numeric value on the wire for approvalPolicySource.
+     */
+    @java.lang.Override public int getApprovalPolicySourceValue() {
+      return approvalPolicySource_;
+    }
+    /**
+     * <pre>
+     * Policy layer that decided this tool call's approval requirement, set by the
+     * runner's approval gate so clients can explain "why was this gated or
+     * auto-approved?".
+     *
+     * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+     * or an execution that predates this field (clients fall back to no provenance,
+     * exactly as for an unset tool_kind). See ApprovalPolicySource.
+     *
+     * Field 23: appended after file_changes (22), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+     * @param value The enum numeric value on the wire for approvalPolicySource to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicySourceValue(int value) {
+      approvalPolicySource_ = value;
+      bitField0_ |= 0x00100000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Policy layer that decided this tool call's approval requirement, set by the
+     * runner's approval gate so clients can explain "why was this gated or
+     * auto-approved?".
+     *
+     * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+     * or an execution that predates this field (clients fall back to no provenance,
+     * exactly as for an unset tool_kind). See ApprovalPolicySource.
+     *
+     * Field 23: appended after file_changes (22), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+     * @return The approvalPolicySource.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource getApprovalPolicySource() {
+      ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource result = ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.forNumber(approvalPolicySource_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Policy layer that decided this tool call's approval requirement, set by the
+     * runner's approval gate so clients can explain "why was this gated or
+     * auto-approved?".
+     *
+     * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+     * or an execution that predates this field (clients fall back to no provenance,
+     * exactly as for an unset tool_kind). See ApprovalPolicySource.
+     *
+     * Field 23: appended after file_changes (22), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+     * @param value The approvalPolicySource to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalPolicySource(ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00100000;
+      approvalPolicySource_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Policy layer that decided this tool call's approval requirement, set by the
+     * runner's approval gate so clients can explain "why was this gated or
+     * auto-approved?".
+     *
+     * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+     * or an execution that predates this field (clients fall back to no provenance,
+     * exactly as for an unset tool_kind). See ApprovalPolicySource.
+     *
+     * Field 23: appended after file_changes (22), the prior maximum.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySource approval_policy_source = 23 [json_name = "approvalPolicySource"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApprovalPolicySource() {
+      bitField0_ = (bitField0_ & ~0x00100000);
+      approvalPolicySource_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object policyEngineVersion_ = "";
+    /**
+     * <pre>
+     * Identifier of the policy-engine logic that produced approval_policy_source,
+     * bumped when the merge/classification semantics change so decisions made by
+     * different engine versions stay distinguishable in audits.
+     *
+     * &#64;internal
+     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+     *
+     * Field 24: appended after approval_policy_source (23), the prior maximum.
+     * </pre>
+     *
+     * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+     * @return The policyEngineVersion.
+     */
+    public java.lang.String getPolicyEngineVersion() {
+      java.lang.Object ref = policyEngineVersion_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        policyEngineVersion_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Identifier of the policy-engine logic that produced approval_policy_source,
+     * bumped when the merge/classification semantics change so decisions made by
+     * different engine versions stay distinguishable in audits.
+     *
+     * &#64;internal
+     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+     *
+     * Field 24: appended after approval_policy_source (23), the prior maximum.
+     * </pre>
+     *
+     * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+     * @return The bytes for policyEngineVersion.
+     */
+    public com.google.protobuf.ByteString
+        getPolicyEngineVersionBytes() {
+      java.lang.Object ref = policyEngineVersion_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        policyEngineVersion_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Identifier of the policy-engine logic that produced approval_policy_source,
+     * bumped when the merge/classification semantics change so decisions made by
+     * different engine versions stay distinguishable in audits.
+     *
+     * &#64;internal
+     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+     *
+     * Field 24: appended after approval_policy_source (23), the prior maximum.
+     * </pre>
+     *
+     * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+     * @param value The policyEngineVersion to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPolicyEngineVersion(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      policyEngineVersion_ = value;
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Identifier of the policy-engine logic that produced approval_policy_source,
+     * bumped when the merge/classification semantics change so decisions made by
+     * different engine versions stay distinguishable in audits.
+     *
+     * &#64;internal
+     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+     *
+     * Field 24: appended after approval_policy_source (23), the prior maximum.
+     * </pre>
+     *
+     * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPolicyEngineVersion() {
+      policyEngineVersion_ = getDefaultInstance().getPolicyEngineVersion();
+      bitField0_ = (bitField0_ & ~0x00200000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Identifier of the policy-engine logic that produced approval_policy_source,
+     * bumped when the merge/classification semantics change so decisions made by
+     * different engine versions stay distinguishable in audits.
+     *
+     * &#64;internal
+     * Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+     *
+     * Field 24: appended after approval_policy_source (23), the prior maximum.
+     * </pre>
+     *
+     * <code>string policy_engine_version = 24 [json_name = "policyEngineVersion"];</code>
+     * @param value The bytes for policyEngineVersion to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPolicyEngineVersionBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      policyEngineVersion_ = value;
+      bitField0_ |= 0x00200000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object approvalContentDigest_ = "";
+    /**
+     * <pre>
+     * Stable digest of the authoritative edit content (the hook-captured tool
+     * input) for a gated file-mutating tool call, set by the runner's approval
+     * gate. It is the content discriminator the deny-only Cursor harness needs:
+     * approving one edit must not let a DIFFERENT edit to the same file ride the
+     * approval through, so the grant binds to (category, path, content) rather than
+     * (category, path) alone. A resumed re-attempt that differs from the approved
+     * content re-gates (the "what you approve is what gets applied" contract).
+     *
+     * Carried so it survives at resume immune to the size-limit elision that can
+     * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+     * would be unrecoverable in that case. Empty for tools whose other identity is
+     * already content-exact (shell command, delete path), for read-only tools, and
+     * for executions that predate this field (the runner then degrades to the
+     * coarse (category, path) identity).
+     *
+     * &#64;internal
+     * Runner-written and carried through update_status exactly like tool_kind /
+     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+     * needed. See the runner's contentDigest() (shared/file-tools.ts).
+     *
+     * Field 25: appended after policy_engine_version (24), the prior maximum.
+     * </pre>
+     *
+     * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+     * @return The approvalContentDigest.
+     */
+    public java.lang.String getApprovalContentDigest() {
+      java.lang.Object ref = approvalContentDigest_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        approvalContentDigest_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Stable digest of the authoritative edit content (the hook-captured tool
+     * input) for a gated file-mutating tool call, set by the runner's approval
+     * gate. It is the content discriminator the deny-only Cursor harness needs:
+     * approving one edit must not let a DIFFERENT edit to the same file ride the
+     * approval through, so the grant binds to (category, path, content) rather than
+     * (category, path) alone. A resumed re-attempt that differs from the approved
+     * content re-gates (the "what you approve is what gets applied" contract).
+     *
+     * Carried so it survives at resume immune to the size-limit elision that can
+     * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+     * would be unrecoverable in that case. Empty for tools whose other identity is
+     * already content-exact (shell command, delete path), for read-only tools, and
+     * for executions that predate this field (the runner then degrades to the
+     * coarse (category, path) identity).
+     *
+     * &#64;internal
+     * Runner-written and carried through update_status exactly like tool_kind /
+     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+     * needed. See the runner's contentDigest() (shared/file-tools.ts).
+     *
+     * Field 25: appended after policy_engine_version (24), the prior maximum.
+     * </pre>
+     *
+     * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+     * @return The bytes for approvalContentDigest.
+     */
+    public com.google.protobuf.ByteString
+        getApprovalContentDigestBytes() {
+      java.lang.Object ref = approvalContentDigest_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        approvalContentDigest_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Stable digest of the authoritative edit content (the hook-captured tool
+     * input) for a gated file-mutating tool call, set by the runner's approval
+     * gate. It is the content discriminator the deny-only Cursor harness needs:
+     * approving one edit must not let a DIFFERENT edit to the same file ride the
+     * approval through, so the grant binds to (category, path, content) rather than
+     * (category, path) alone. A resumed re-attempt that differs from the approved
+     * content re-gates (the "what you approve is what gets applied" contract).
+     *
+     * Carried so it survives at resume immune to the size-limit elision that can
+     * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+     * would be unrecoverable in that case. Empty for tools whose other identity is
+     * already content-exact (shell command, delete path), for read-only tools, and
+     * for executions that predate this field (the runner then degrades to the
+     * coarse (category, path) identity).
+     *
+     * &#64;internal
+     * Runner-written and carried through update_status exactly like tool_kind /
+     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+     * needed. See the runner's contentDigest() (shared/file-tools.ts).
+     *
+     * Field 25: appended after policy_engine_version (24), the prior maximum.
+     * </pre>
+     *
+     * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+     * @param value The approvalContentDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalContentDigest(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      approvalContentDigest_ = value;
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Stable digest of the authoritative edit content (the hook-captured tool
+     * input) for a gated file-mutating tool call, set by the runner's approval
+     * gate. It is the content discriminator the deny-only Cursor harness needs:
+     * approving one edit must not let a DIFFERENT edit to the same file ride the
+     * approval through, so the grant binds to (category, path, content) rather than
+     * (category, path) alone. A resumed re-attempt that differs from the approved
+     * content re-gates (the "what you approve is what gets applied" contract).
+     *
+     * Carried so it survives at resume immune to the size-limit elision that can
+     * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+     * would be unrecoverable in that case. Empty for tools whose other identity is
+     * already content-exact (shell command, delete path), for read-only tools, and
+     * for executions that predate this field (the runner then degrades to the
+     * coarse (category, path) identity).
+     *
+     * &#64;internal
+     * Runner-written and carried through update_status exactly like tool_kind /
+     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+     * needed. See the runner's contentDigest() (shared/file-tools.ts).
+     *
+     * Field 25: appended after policy_engine_version (24), the prior maximum.
+     * </pre>
+     *
+     * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApprovalContentDigest() {
+      approvalContentDigest_ = getDefaultInstance().getApprovalContentDigest();
+      bitField0_ = (bitField0_ & ~0x00400000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Stable digest of the authoritative edit content (the hook-captured tool
+     * input) for a gated file-mutating tool call, set by the runner's approval
+     * gate. It is the content discriminator the deny-only Cursor harness needs:
+     * approving one edit must not let a DIFFERENT edit to the same file ride the
+     * approval through, so the grant binds to (category, path, content) rather than
+     * (category, path) alone. A resumed re-attempt that differs from the approved
+     * content re-gates (the "what you approve is what gets applied" contract).
+     *
+     * Carried so it survives at resume immune to the size-limit elision that can
+     * drop `args`/`file_changes` for large edits — a recompute-from-args identity
+     * would be unrecoverable in that case. Empty for tools whose other identity is
+     * already content-exact (shell command, delete path), for read-only tools, and
+     * for executions that predate this field (the runner then degrades to the
+     * coarse (category, path) identity).
+     *
+     * &#64;internal
+     * Runner-written and carried through update_status exactly like tool_kind /
+     * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+     * needed. See the runner's contentDigest() (shared/file-tools.ts).
+     *
+     * Field 25: appended after policy_engine_version (24), the prior maximum.
+     * </pre>
+     *
+     * <code>string approval_content_digest = 25 [json_name = "approvalContentDigest"];</code>
+     * @param value The bytes for approvalContentDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalContentDigestBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      approvalContentDigest_ = value;
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object fileChangeSetId_ = "";
+    /**
+     * <pre>
+     * Id of the FileChangeSet this flowed file-edit contributed to
+     * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+     * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+     * set's review state and to position the set's decision surface after the
+     * turn's last edit row. It is NEVER a correlation or enforcement key —
+     * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+     * reconcile identity is digest-gated (see filereview.proto's identity rule).
+     *
+     * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+     * those rows), rows from executions that predate this field, and turns whose
+     * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+     * so there is no change set to reference).
+     *
+     * Field 26: appended after approval_content_digest (25), the prior maximum.
+     * </pre>
+     *
+     * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+     * @return The fileChangeSetId.
+     */
+    public java.lang.String getFileChangeSetId() {
+      java.lang.Object ref = fileChangeSetId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        fileChangeSetId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Id of the FileChangeSet this flowed file-edit contributed to
+     * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+     * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+     * set's review state and to position the set's decision surface after the
+     * turn's last edit row. It is NEVER a correlation or enforcement key —
+     * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+     * reconcile identity is digest-gated (see filereview.proto's identity rule).
+     *
+     * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+     * those rows), rows from executions that predate this field, and turns whose
+     * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+     * so there is no change set to reference).
+     *
+     * Field 26: appended after approval_content_digest (25), the prior maximum.
+     * </pre>
+     *
+     * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+     * @return The bytes for fileChangeSetId.
+     */
+    public com.google.protobuf.ByteString
+        getFileChangeSetIdBytes() {
+      java.lang.Object ref = fileChangeSetId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        fileChangeSetId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Id of the FileChangeSet this flowed file-edit contributed to
+     * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+     * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+     * set's review state and to position the set's decision surface after the
+     * turn's last edit row. It is NEVER a correlation or enforcement key —
+     * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+     * reconcile identity is digest-gated (see filereview.proto's identity rule).
+     *
+     * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+     * those rows), rows from executions that predate this field, and turns whose
+     * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+     * so there is no change set to reference).
+     *
+     * Field 26: appended after approval_content_digest (25), the prior maximum.
+     * </pre>
+     *
+     * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+     * @param value The fileChangeSetId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setFileChangeSetId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      fileChangeSetId_ = value;
+      bitField0_ |= 0x00800000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Id of the FileChangeSet this flowed file-edit contributed to
+     * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+     * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+     * set's review state and to position the set's decision surface after the
+     * turn's last edit row. It is NEVER a correlation or enforcement key —
+     * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+     * reconcile identity is digest-gated (see filereview.proto's identity rule).
+     *
+     * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+     * those rows), rows from executions that predate this field, and turns whose
+     * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+     * so there is no change set to reference).
+     *
+     * Field 26: appended after approval_content_digest (25), the prior maximum.
+     * </pre>
+     *
+     * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearFileChangeSetId() {
+      fileChangeSetId_ = getDefaultInstance().getFileChangeSetId();
+      bitField0_ = (bitField0_ & ~0x00800000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Id of the FileChangeSet this flowed file-edit contributed to
+     * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+     * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+     * set's review state and to position the set's decision surface after the
+     * turn's last edit row. It is NEVER a correlation or enforcement key —
+     * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+     * reconcile identity is digest-gated (see filereview.proto's identity rule).
+     *
+     * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+     * those rows), rows from executions that predate this field, and turns whose
+     * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+     * so there is no change set to reference).
+     *
+     * Field 26: appended after approval_content_digest (25), the prior maximum.
+     * </pre>
+     *
+     * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+     * @param value The bytes for fileChangeSetId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setFileChangeSetIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      fileChangeSetId_ = value;
+      bitField0_ |= 0x00800000;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.ToolCall)

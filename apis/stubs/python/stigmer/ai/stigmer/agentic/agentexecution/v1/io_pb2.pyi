@@ -103,6 +103,26 @@ class ApprovalDecisionList(_message.Message):
     decisions: _containers.RepeatedCompositeFieldContainer[SubmitApprovalInput]
     def __init__(self, decisions: _Optional[_Iterable[_Union[SubmitApprovalInput, _Mapping]]] = ...) -> None: ...
 
+class SubmitFileDecisionInput(_message.Message):
+    __slots__ = ("agent_execution_id", "change_set_id", "scope", "file_change_id", "action", "expected_digest", "reason", "acknowledge_unreviewable")
+    AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
+    SCOPE_FIELD_NUMBER: _ClassVar[int]
+    FILE_CHANGE_ID_FIELD_NUMBER: _ClassVar[int]
+    ACTION_FIELD_NUMBER: _ClassVar[int]
+    EXPECTED_DIGEST_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    ACKNOWLEDGE_UNREVIEWABLE_FIELD_NUMBER: _ClassVar[int]
+    agent_execution_id: str
+    change_set_id: str
+    scope: _enum_pb2.FileDecisionScope
+    file_change_id: str
+    action: _enum_pb2.FileDecisionAction
+    expected_digest: str
+    reason: str
+    acknowledge_unreviewable: bool
+    def __init__(self, agent_execution_id: _Optional[str] = ..., change_set_id: _Optional[str] = ..., scope: _Optional[_Union[_enum_pb2.FileDecisionScope, str]] = ..., file_change_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.FileDecisionAction, str]] = ..., expected_digest: _Optional[str] = ..., reason: _Optional[str] = ..., acknowledge_unreviewable: bool = ...) -> None: ...
+
 class CancelAgentExecutionInput(_message.Message):
     __slots__ = ("id", "reason")
     ID_FIELD_NUMBER: _ClassVar[int]

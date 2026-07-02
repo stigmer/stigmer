@@ -361,40 +361,44 @@ rpc updateStatus(WorkflowExecutionUpdateStatusInput) returns (WorkflowExecution)
 ### Behavioral Changes
 ✅ **Added feature**: Streaming support (was not present before)
 
-## Future Enhancements
+## Subscribe RPC Implementation
 
-### Subscribe RPC Implementation
+**Implemented** (see `subscribe.go`). Note the ordering: the broker channel is
+registered BEFORE the snapshot is read. Reading the snapshot first (the obvious
+order) leaves a lossy seam — a broadcast in the window between the snapshot read
+and the registration has no subscriber and is dropped. Registering first
+guarantees any commit the snapshot missed is delivered over the channel instead.
 
-**When Implemented**:
 ```go
 func (c *WorkflowExecutionController) Subscribe(
-    req *WorkflowExecutionSubscribeRequest,
+    req *SubscribeWorkflowExecutionRequest,
     stream WorkflowExecutionQueryController_SubscribeServer,
 ) error {
     executionID := req.GetExecutionId()
-    
-    // 1. Load initial state
-    initial, err := c.Get(ctx, &WorkflowExecutionId{Value: executionID})
-    if err != nil {
-        return err
-    }
-    
-    // 2. Send initial state
-    if err := stream.Send(initial); err != nil {
-        return err
-    }
-    
-    // 3. Subscribe to updates
+
+    // 1. Register FIRST (before the snapshot read) so no broadcast is dropped.
     ch := c.streamBroker.Subscribe(executionID)
     defer c.streamBroker.Unsubscribe(executionID, ch)
-    
-    // 4. Stream updates
+
+    // 2. Read + send the initial snapshot; seed lastSent for the de-dup guard.
+    snapshot := loadSnapshot(executionID)
+    if err := stream.Send(snapshot); err != nil {
+        return err
+    }
+    lastSent := snapshot
+
+    // 3. Stream updates, suppressing the at-or-before-snapshot overlap frame
+    //    (and any exact repeat) via sameFrame(proto.Equal).
     for {
         select {
         case execution := <-ch:
+            if sameFrame(execution, lastSent) {
+                continue
+            }
             if err := stream.Send(execution); err != nil {
                 return err
             }
+            lastSent = execution
         case <-stream.Context().Done():
             return nil
         }

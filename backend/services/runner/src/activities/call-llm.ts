@@ -16,8 +16,6 @@
  *   Output: LlmCallResult
  */
 
-import { ChatAnthropic } from "@langchain/anthropic";
-import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseMessageChunk } from "@langchain/core/messages";
@@ -28,12 +26,11 @@ import { jsonSchemaToZod } from "../shared/json-schema-to-zod.js";
 import {
   inferProvider,
   stripProviderPrefix,
-  resolveProxyBaseUrl,
-  buildProxyHeaders,
   type LlmProvider,
 } from "../shared/llm-proxy.js";
 import { computeLlmCostMicros, ensureLoaded as ensurePricingLoaded } from "../shared/model-pricing.js";
 import { resolveToApiModelId } from "../shared/model-registry.js";
+import { buildChatModel } from "../shared/model-client.js";
 
 export interface LlmCallConfig {
   readonly model: string;
@@ -52,54 +49,6 @@ export interface LlmCallResult {
   readonly model: string;
   readonly provider: LlmProvider;
   readonly parse_error?: string;
-}
-
-function constructModel(
-  provider: LlmProvider,
-  modelId: string,
-  config: LlmCallConfig,
-  baseUrl?: string,
-  headers?: Record<string, string>,
-): BaseChatModel {
-  if (provider === "openai") {
-    const apiKey = baseUrl
-      ? (headers?.Authorization?.replace("Bearer ", "") ?? "proxy-managed")
-      : (process.env.OPENAI_API_KEY ?? "");
-
-    return new ChatOpenAI({
-      model: modelId,
-      temperature: config.temperature ?? 0,
-      maxTokens: config.max_tokens,
-      ...(baseUrl || headers
-        ? {
-            configuration: {
-              ...(baseUrl ? { baseURL: baseUrl } : {}),
-              ...(headers ? { defaultHeaders: headers } : {}),
-            },
-          }
-        : {}),
-      apiKey,
-    });
-  }
-
-  const apiKey = baseUrl
-    ? (headers?.Authorization?.replace("Bearer ", "") ?? "proxy-managed")
-    : (process.env.ANTHROPIC_API_KEY ?? "");
-
-  return new ChatAnthropic({
-    model: modelId,
-    temperature: config.temperature ?? 0,
-    maxTokens: config.max_tokens ?? 4096,
-    ...(baseUrl || headers
-      ? {
-          clientOptions: {
-            ...(baseUrl ? { baseURL: baseUrl } : {}),
-            ...(headers ? { defaultHeaders: headers } : {}),
-          },
-        }
-      : {}),
-    apiKey,
-  });
 }
 
 /**
@@ -274,22 +223,18 @@ export async function callLlmAction(
     `structured=${!!config.response_schema} execution=${executionId}`,
   );
 
-  let baseUrl: string | undefined;
-  let headers: Record<string, string> | undefined;
-
-  if (proxyActive) {
-    baseUrl = resolveProxyBaseUrl(proxyEndpoint!, provider);
-    headers = buildProxyHeaders(stigmerToken!, { workflowExecutionId: executionId });
-  } else if (provider === "openai") {
-    if (!process.env.OPENAI_API_KEY) {
+  // Direct mode (no proxy) requires the provider's own API key. Validated here
+  // rather than in buildChatModel so the shared module stays free of Temporal
+  // failure types.
+  if (!proxyActive) {
+    if (provider === "openai" && !process.env.OPENAI_API_KEY) {
       throw ApplicationFailure.nonRetryable(
         `OPENAI_API_KEY is not set and no proxy is configured. ` +
         `Set the API key in your environment or connect to a Stigmer Cloud deployment.`,
         "LLM_MISSING_API_KEY",
       );
     }
-  } else {
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (provider === "anthropic" && !process.env.ANTHROPIC_API_KEY) {
       throw ApplicationFailure.nonRetryable(
         `ANTHROPIC_API_KEY is not set and no proxy is configured. ` +
         `Set the API key in your environment or connect to a Stigmer Cloud deployment.`,
@@ -298,7 +243,17 @@ export async function callLlmAction(
     }
   }
 
-  const model = constructModel(provider, modelId, config, baseUrl, headers);
+  // Anthropic requires an explicit maxTokens; preserve the 4096 default here
+  // (buildChatModel intentionally imposes none). resolvedModel is already an
+  // API id, so buildChatModel's resolve step is a no-op for it.
+  const { model } = await buildChatModel({
+    modelName: resolvedModel,
+    proxyEndpoint: proxyActive ? proxyEndpoint : undefined,
+    stigmerToken: proxyActive ? stigmerToken : undefined,
+    headerScope: { workflowExecutionId: executionId },
+    temperature: config.temperature,
+    maxTokens: provider === "anthropic" ? (config.max_tokens ?? 4096) : config.max_tokens,
+  });
 
   const messages: (HumanMessage | SystemMessage)[] = [];
   if (config.system_prompt) {

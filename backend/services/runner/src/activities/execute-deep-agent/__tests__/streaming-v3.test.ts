@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { streamExecutionV3 } from "../streaming-v3.js";
@@ -531,14 +532,13 @@ describe("streamExecutionV3", () => {
       // faithfully (no truncation), and the persist chokepoint offloads the image
       // to artifact storage so the persisted ToolCall carries outputRef.isImage.
       const uploads: { key: string; size: number; contentType?: string }[] = [];
-      const artifactStorage = {
-        upload: vi.fn(async (key: string, content: Buffer, contentType?: string) => {
-          uploads.push({ key, size: content.length, contentType });
-          return key;
-        }),
-        getDownloadUrl: vi.fn(async (key: string) => `https://artifacts.local/${key}`),
-        exists: vi.fn(async () => true),
-      } as any;
+      const { storage: artifactStorage, blobs } = makeInMemoryArtifactStorage({ urlBase: "https://artifacts.local/" });
+      artifactStorage.exists.mockResolvedValue(true);
+      artifactStorage.upload.mockImplementation(async (key: string, content: Buffer, contentType?: string) => {
+        uploads.push({ key, size: content.length, contentType });
+        blobs.set(key, Buffer.from(content));
+        return key;
+      });
 
       const base64 = Buffer.from("PNGBYTES".repeat(64)).toString("base64");
       const imageEnvelope = {
@@ -587,7 +587,7 @@ describe("streamExecutionV3", () => {
       expect(refTc).toBeDefined();
       expect(refTc.outputRef.isImage).toBe(true);
       expect(refTc.outputRef.mimeType).toBe("image/png");
-      expect(refTc.outputRef.downloadUrl).toContain("artifacts/exec-v3-test/toolcalls/toolu_1.png");
+      expect(refTc.outputRef.storageKey).toBe("artifacts/exec-v3-test/toolcalls/toolu_1.png");
       // The base64 must not survive inline on the persisted result.
       expect(refTc.result).not.toContain(base64);
       expect(uploads).toHaveLength(1);

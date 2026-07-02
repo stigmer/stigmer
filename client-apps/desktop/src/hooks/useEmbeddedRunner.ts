@@ -112,9 +112,23 @@ async function getRunnerConfig(): Promise<RunnerConfig> {
   // Resolve the staged runner to an ABSOLUTE path. `node` resolves a relative
   // script argument against the process working directory, which for a packaged
   // app launched from Finder/dock is `/`, not the bundle's resource directory.
-  // `resolveResource` resolves against the resource dir in both dev and packaged
-  // builds (the dev tree symlinks resources/runner to the in-repo runner).
-  const runnerEntry = await resolveResource("resources/runner/dist/main.js");
+  //
+  // In dev we deliberately bypass `resolveResource`. Tauri stages declared
+  // resources by COPYING them into `target/<profile>/resources/` — for the
+  // runner that is a full ~485MB tree (incl. node_modules). That snapshot drifts:
+  // tauri-build refreshes changed files but never prunes deleted ones, so after a
+  // refactor the copy ends up with a fresh `dist/` fingerprint on top of stale
+  // `src/`, which trips the runner's build-freshness guard and refuses to start
+  // (stigmer/stigmer#181). `setup-runner-dev.sh` writes the in-repo runner's
+  // absolute entry into `.env.development.local`; reading the live tree directly
+  // keeps `src/`+`dist/` always consistent and picks up `make build-runner`
+  // without restaging. Packaged builds never see this var (it lives in a
+  // dev-only `.local` file) and the `import.meta.env.DEV` guard is belt-and-suspenders.
+  const devRunnerEntry = import.meta.env.DEV
+    ? import.meta.env.VITE_STIGMER_RUNNER_ENTRY
+    : undefined;
+  const runnerEntry =
+    devRunnerEntry || (await resolveResource("resources/runner/dist/main.js"));
 
   return {
     nodeBinary: "node",

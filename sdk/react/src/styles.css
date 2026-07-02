@@ -1,7 +1,21 @@
 @source "./**/*.{ts,tsx}";
 @source "../node_modules/streamdown/dist/*.js";
 
-@layer stgm;
+/* Declare the standard Tailwind layer order plus our `stgm` utilities layer
+   LAST. In a host app the host's `@import "tailwindcss"` already declares
+   `theme, base, components, utilities` first, so re-stating them here is a
+   harmless no-op that simply pins `stgm` after them; in the standalone SDK build
+   it establishes the full order explicitly.
+
+   Why this matters: the preflight-style reset below (which zeroes `border-width`)
+   MUST live in `base`, not in a layer above `utilities`. When this stylesheet is
+   recompiled by a host's Tailwind v4, the SDK's `border-*` utilities are emitted
+   into the host's `utilities` layer (Tailwind v4 emits each utility once) — NOT
+   into `stgm`. A reset placed in any layer after `utilities` therefore wins and
+   silently zeroes every `border` inside `.stgm`. Keeping the reset in `base`
+   (exactly where stock Tailwind keeps preflight) guarantees the utilities win in
+   the host build, the standalone build, and a third-party embed alike. */
+@layer theme, base, components, utilities, stgm;
 
 @import "tailwindcss/theme.css" layer(stgm);
 @import "tailwindcss/utilities.css" layer(stgm);
@@ -66,6 +80,7 @@
   --color-muted-foreground-subtle: var(--stgm-muted-foreground-subtle);
   --color-muted-foreground-faint: var(--stgm-muted-foreground-faint);
   --color-border-muted: var(--stgm-border-muted);
+  --color-border-prominent: var(--stgm-border-prominent);
   --color-backdrop: var(--stgm-backdrop);
   --color-sidebar: var(--stgm-sidebar);
   --color-sidebar-foreground: var(--stgm-sidebar-foreground);
@@ -115,15 +130,15 @@
   z-index: var(--stgm-z-popover);
 }
 
-@layer stgm {
-  .stgm {
-    --stgm-motion-duration: 150ms;
-    --stgm-motion-easing: var(--stgm-transition-timing, ease-out);
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
+/* Preflight-style reset, scoped to `.stgm`. Lives in the standard `base` layer —
+   exactly where stock Tailwind keeps its preflight — so it ranks BELOW the
+   `utilities` layer where `border-*` utilities are emitted (see the layer
+   declaration at the top of this file). It supplies only the DEFAULTS
+   (`border-style: solid`, width 0, themed color) that a `border` utility then
+   builds on; because `utilities` outranks `base`, the utility's width always
+   wins. Putting this in a layer after `utilities` (the previous `stgm-base`) is
+   what silently zeroed every border inside `.stgm`. */
+@layer base {
   .stgm *,
   .stgm *::before,
   .stgm *::after {
@@ -131,6 +146,16 @@
     border-width: 0;
     border-style: solid;
     border-color: var(--stgm-border, currentColor);
+  }
+}
+
+@layer stgm {
+  .stgm {
+    --stgm-motion-duration: 150ms;
+    --stgm-motion-easing: var(--stgm-transition-timing, ease-out);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   @keyframes stgm-fade-in-up {
@@ -184,5 +209,93 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+@layer stgm {
+  /* Syntax highlighting for fenced code blocks (issue #183).
+     lowlight (highlight.js) emits these `hljs-*` token classes; we map each
+     onto a shared `--stgm-syntax-*` theme token so highlighted code tracks the
+     host's preset and color-mode with zero hardcoded colors — the same token
+     contract the CodeMirror YAML editor uses. Scoped to `.stgm` so nothing
+     leaks into the host application. */
+  .stgm .hljs {
+    color: var(--stgm-foreground);
+  }
+
+  .stgm .hljs-comment,
+  .stgm .hljs-quote {
+    color: var(--stgm-syntax-comment);
+    font-style: italic;
+  }
+
+  .stgm .hljs-keyword,
+  .stgm .hljs-selector-tag,
+  .stgm .hljs-subst {
+    color: var(--stgm-syntax-keyword);
+  }
+
+  .stgm .hljs-literal,
+  .stgm .hljs-symbol,
+  .stgm .hljs-bullet {
+    color: var(--stgm-syntax-bool);
+  }
+
+  .stgm .hljs-string,
+  .stgm .hljs-regexp,
+  .stgm .hljs-addition,
+  .stgm .hljs-template-tag,
+  .stgm .hljs-template-variable,
+  .stgm .hljs-meta .hljs-string {
+    color: var(--stgm-syntax-string);
+  }
+
+  .stgm .hljs-number {
+    color: var(--stgm-syntax-number);
+  }
+
+  .stgm .hljs-title,
+  .stgm .hljs-title.function_,
+  .stgm .hljs-title.class_,
+  .stgm .hljs-section,
+  .stgm .hljs-built_in,
+  .stgm .hljs-type {
+    color: var(--stgm-syntax-property);
+  }
+
+  .stgm .hljs-attr,
+  .stgm .hljs-attribute,
+  .stgm .hljs-property,
+  .stgm .hljs-variable,
+  .stgm .hljs-params,
+  .stgm .hljs-selector-attr,
+  .stgm .hljs-selector-pseudo,
+  .stgm .hljs-selector-class,
+  .stgm .hljs-selector-id {
+    color: var(--stgm-syntax-property);
+  }
+
+  .stgm .hljs-tag,
+  .stgm .hljs-name {
+    color: var(--stgm-syntax-tag);
+  }
+
+  .stgm .hljs-meta,
+  .stgm .hljs-meta .hljs-keyword,
+  .stgm .hljs-doctag {
+    color: var(--stgm-syntax-meta);
+  }
+
+  .stgm .hljs-link,
+  .stgm .hljs-deletion {
+    color: var(--stgm-syntax-atom);
+  }
+
+  .stgm .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .stgm .hljs-strong {
+    font-weight: 600;
   }
 }

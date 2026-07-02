@@ -5,6 +5,7 @@ import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { useArtifactContent } from "./useArtifactContent";
+import { useArtifactDownload } from "./useArtifactDownload";
 import { isTextArtifact, formatArtifactSize } from "./artifact-utils";
 import { ArtifactContentRenderer } from "./ArtifactContentRenderer";
 import { useDetectStigmerResource } from "../library/useDetectStigmerResource";
@@ -46,7 +47,7 @@ export interface ArtifactPreviewContentProps {
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
-   * Optional "Implement" action. When provided, an Implement primary
+   * Optional plan-build action. When provided, a "Build from plan" primary
    * button appears in the action bar (used for plan artifacts: turn the
    * plan into an Agent run). Clicking it calls `onImplement` then closes
    * the modal. Omit for non-actionable artifacts.
@@ -227,9 +228,9 @@ export function ArtifactPreviewContent({
     ctaLabel = `Push Skill to ${org}`;
   }
 
-  // Implement runs the plan; closing the modal lets the host's submit pipeline
-  // take over (switch to Agent + send). Single combined handler keeps the
-  // caller's contract simple ("just give me onImplement").
+  // "Build from plan" runs the plan; closing the modal lets the host's submit
+  // pipeline take over (switch to Agent + send). Single combined handler keeps
+  // the caller's contract simple ("just give me onImplement").
   const handleImplement = useCallback(() => {
     onImplement?.();
     onClose();
@@ -269,6 +270,7 @@ export function ArtifactPreviewContent({
 
       <ActionBar
         artifact={artifact}
+        executionId={executionId}
         isDirectory={isDirectory}
         hasContent={content !== null}
         copied={copied}
@@ -326,8 +328,8 @@ export interface ArtifactPreviewModalProps {
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
-   * Optional "Implement" action (see {@link ArtifactPreviewContentProps.onImplement}).
-   * When provided, an Implement primary button appears; clicking it calls
+   * Optional plan-build action (see {@link ArtifactPreviewContentProps.onImplement}).
+   * When provided, a "Build from plan" primary button appears; clicking it calls
    * `onImplement` then closes the modal.
    */
   readonly onImplement?: () => void;
@@ -622,6 +624,7 @@ function EntryIcon({ name }: { readonly name: string }) {
 
 function ActionBar({
   artifact,
+  executionId,
   isDirectory,
   hasContent,
   copied,
@@ -636,6 +639,7 @@ function ActionBar({
   onImplement,
 }: {
   readonly artifact: ExecutionArtifact;
+  readonly executionId: string;
   readonly isDirectory: boolean;
   readonly hasContent: boolean;
   readonly copied: boolean;
@@ -649,6 +653,7 @@ function ActionBar({
   readonly onApply: () => void;
   readonly onImplement?: () => void;
 }) {
+  const { download, isDownloading } = useArtifactDownload(executionId);
   return (
     <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
       <div className="flex items-center gap-3">
@@ -670,17 +675,18 @@ function ActionBar({
           </button>
         )}
 
-        <a
-          href={artifact.downloadUrl}
-          download
+        <button
+          type="button"
+          onClick={() => download(artifact.storageKey, artifact.name)}
+          disabled={isDownloading}
           className={cn(
-            "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
+            "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
             FOCUS_RING_CLASSES,
           )}
         >
           <DownloadIcon />
-          {isDirectory ? "Download ZIP" : "Download"}
-        </a>
+          {isDownloading ? "Preparing…" : isDirectory ? "Download ZIP" : "Download"}
+        </button>
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
@@ -695,7 +701,7 @@ function ActionBar({
             )}
           >
             <ImplementIcon />
-            Implement
+            Build from plan
           </button>
         )}
         {applyResult ? (

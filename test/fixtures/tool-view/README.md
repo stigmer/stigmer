@@ -42,11 +42,18 @@ in one place, instead of silently drifting across three client implementations.
 (`diff | file | terminal | search | list | contentBlocks | text | json | error`).
 
 Only **deterministic facts** are asserted across languages: `type`, `path`,
-`exitCode`, `count`, and `mcpServerSlug`. Computed diff line counts depend on the
+`exitCode`, `count`, `mcpServerSlug`, and `command` (the shell command echoed
+back from args onto the terminal view). Computed diff line counts depend on the
 per-language diff implementation and are **surface-local** — they are asserted in
 each surface's own unit tests, not here, except when the count is present in the
 source data (e.g. the Cursor edit envelope's `linesAdded`/`linesRemoved`), in
 which case `expected.linesAdded`/`linesRemoved` are included and asserted.
+
+The `search` view also carries `kind` (`"files"` for a glob/file-name search,
+`"content"` for a grep-style search) and `truncated` (the engine capped the
+results). These are presentation hints rather than cross-language scalar facts,
+so they are asserted in each surface's own unit tests (e.g.
+`tool-view.search.test.ts`), not in this shared fixture.
 
 ## Consumers
 

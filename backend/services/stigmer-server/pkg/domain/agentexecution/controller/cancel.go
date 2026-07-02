@@ -72,12 +72,12 @@ func (c *AgentExecutionController) buildCancelPipeline() *pipeline.Pipeline[*age
 		AddStep(NewLoadExecutionByIdStep[*agentexecutionv1.CancelAgentExecutionInput](c.store)).
 		AddStep(NewValidateCancellableStep[*agentexecutionv1.CancelAgentExecutionInput]()).
 		AddStep(NewCancelTemporalWorkflowStep[*agentexecutionv1.CancelAgentExecutionInput](c.temporalClient)).
-		AddStep(NewUpdateExecutionPhaseStep[*agentexecutionv1.CancelAgentExecutionInput](
+		AddStep(NewUpdateExecutionPhaseAndPersistStep[*agentexecutionv1.CancelAgentExecutionInput](
+			c.store,
 			agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
 			false, // don't set error
 			false, // don't clear error
 		)).
-		AddStep(NewLifecyclePersistStep[*agentexecutionv1.CancelAgentExecutionInput](c.store)).
 		AddStep(NewLifecycleBroadcastStep[*agentexecutionv1.CancelAgentExecutionInput](c.streamBroker)).
 		Build()
 }

@@ -20,17 +20,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentExecutionCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create"
-	AgentExecutionCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/update"
-	AgentExecutionCommandController_UpdateStatus_FullMethodName     = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus"
-	AgentExecutionCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete"
-	AgentExecutionCommandController_SubmitApproval_FullMethodName   = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval"
-	AgentExecutionCommandController_Cancel_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/cancel"
-	AgentExecutionCommandController_Terminate_FullMethodName        = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/terminate"
-	AgentExecutionCommandController_Recover_FullMethodName          = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/recover"
-	AgentExecutionCommandController_Pause_FullMethodName            = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/pause"
-	AgentExecutionCommandController_Resume_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/resume"
-	AgentExecutionCommandController_UploadAttachment_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/uploadAttachment"
+	AgentExecutionCommandController_Create_FullMethodName             = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create"
+	AgentExecutionCommandController_Update_FullMethodName             = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/update"
+	AgentExecutionCommandController_UpdateStatus_FullMethodName       = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus"
+	AgentExecutionCommandController_Delete_FullMethodName             = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete"
+	AgentExecutionCommandController_SubmitApproval_FullMethodName     = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval"
+	AgentExecutionCommandController_SubmitFileDecision_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitFileDecision"
+	AgentExecutionCommandController_Cancel_FullMethodName             = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/cancel"
+	AgentExecutionCommandController_Terminate_FullMethodName          = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/terminate"
+	AgentExecutionCommandController_Recover_FullMethodName            = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/recover"
+	AgentExecutionCommandController_Pause_FullMethodName              = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/pause"
+	AgentExecutionCommandController_Resume_FullMethodName             = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/resume"
+	AgentExecutionCommandController_UploadAttachment_FullMethodName   = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/uploadAttachment"
 )
 
 // AgentExecutionCommandControllerClient is the client API for AgentExecutionCommandController service.
@@ -102,6 +103,36 @@ type AgentExecutionCommandControllerClient interface {
 	// If the same approval is submitted twice (same execution, tool_call, action),
 	// the second call is a no-op and returns the current state.
 	SubmitApproval(ctx context.Context, in *SubmitApprovalInput, opts ...grpc.CallOption) (*AgentExecution, error)
+	// Submit a keep/discard decision on a file change set (or a single file).
+	//
+	// Records a FILE_DECIDED event in the append-only file_review stream;
+	// FileChangeSet.decisions is the derived projection. The runner reconciles
+	// the approved bytes (Phase 2) — this RPC records the decision and enforces
+	// that expected_digest still matches the captured content the user reviewed.
+	//
+	// ## Preconditions
+	//
+	//   - Execution must exist and be non-terminal
+	//   - change_set_id must match a status.file_change_sets[].id; for FILE scope,
+	//     file_change_id must match a CapturedFileChange.id within it
+	//   - expected_digest must match the target's current digest
+	//   - User must have can_edit permission on the execution
+	//
+	// @internal
+	//
+	// ## Error Conditions
+	//
+	//   - NOT_FOUND: Execution doesn't exist
+	//   - FAILED_PRECONDITION: Execution terminal, or change set/file not found
+	//   - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
+	//     FILE scope, or expected_digest mismatch
+	//   - PERMISSION_DENIED: User lacks can_edit permission
+	//
+	// ## Idempotency
+	//
+	// Re-submitting the same decision (same change set, scope, target) is a no-op
+	// and returns the current state — appends are keyed by FileReviewEvent.event_id.
+	SubmitFileDecision(ctx context.Context, in *SubmitFileDecisionInput, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Cancel a running agent execution gracefully.
 	//
 	// Sends a cancellation signal to the agent execution. The agent can handle
@@ -423,6 +454,16 @@ func (c *agentExecutionCommandControllerClient) SubmitApproval(ctx context.Conte
 	return out, nil
 }
 
+func (c *agentExecutionCommandControllerClient) SubmitFileDecision(ctx context.Context, in *SubmitFileDecisionInput, opts ...grpc.CallOption) (*AgentExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentExecution)
+	err := c.cc.Invoke(ctx, AgentExecutionCommandController_SubmitFileDecision_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentExecutionCommandControllerClient) Cancel(ctx context.Context, in *CancelAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentExecution)
@@ -552,6 +593,36 @@ type AgentExecutionCommandControllerServer interface {
 	// If the same approval is submitted twice (same execution, tool_call, action),
 	// the second call is a no-op and returns the current state.
 	SubmitApproval(context.Context, *SubmitApprovalInput) (*AgentExecution, error)
+	// Submit a keep/discard decision on a file change set (or a single file).
+	//
+	// Records a FILE_DECIDED event in the append-only file_review stream;
+	// FileChangeSet.decisions is the derived projection. The runner reconciles
+	// the approved bytes (Phase 2) — this RPC records the decision and enforces
+	// that expected_digest still matches the captured content the user reviewed.
+	//
+	// ## Preconditions
+	//
+	//   - Execution must exist and be non-terminal
+	//   - change_set_id must match a status.file_change_sets[].id; for FILE scope,
+	//     file_change_id must match a CapturedFileChange.id within it
+	//   - expected_digest must match the target's current digest
+	//   - User must have can_edit permission on the execution
+	//
+	// @internal
+	//
+	// ## Error Conditions
+	//
+	//   - NOT_FOUND: Execution doesn't exist
+	//   - FAILED_PRECONDITION: Execution terminal, or change set/file not found
+	//   - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
+	//     FILE scope, or expected_digest mismatch
+	//   - PERMISSION_DENIED: User lacks can_edit permission
+	//
+	// ## Idempotency
+	//
+	// Re-submitting the same decision (same change set, scope, target) is a no-op
+	// and returns the current state — appends are keyed by FileReviewEvent.event_id.
+	SubmitFileDecision(context.Context, *SubmitFileDecisionInput) (*AgentExecution, error)
 	// Cancel a running agent execution gracefully.
 	//
 	// Sends a cancellation signal to the agent execution. The agent can handle
@@ -837,6 +908,9 @@ func (UnimplementedAgentExecutionCommandControllerServer) Delete(context.Context
 func (UnimplementedAgentExecutionCommandControllerServer) SubmitApproval(context.Context, *SubmitApprovalInput) (*AgentExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitApproval not implemented")
 }
+func (UnimplementedAgentExecutionCommandControllerServer) SubmitFileDecision(context.Context, *SubmitFileDecisionInput) (*AgentExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitFileDecision not implemented")
+}
 func (UnimplementedAgentExecutionCommandControllerServer) Cancel(context.Context, *CancelAgentExecutionInput) (*AgentExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Cancel not implemented")
 }
@@ -961,6 +1035,24 @@ func _AgentExecutionCommandController_SubmitApproval_Handler(srv interface{}, ct
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentExecutionCommandControllerServer).SubmitApproval(ctx, req.(*SubmitApprovalInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentExecutionCommandController_SubmitFileDecision_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitFileDecisionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionCommandControllerServer).SubmitFileDecision(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionCommandController_SubmitFileDecision_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionCommandControllerServer).SubmitFileDecision(ctx, req.(*SubmitFileDecisionInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1099,6 +1191,10 @@ var AgentExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "submitApproval",
 			Handler:    _AgentExecutionCommandController_SubmitApproval_Handler,
+		},
+		{
+			MethodName: "submitFileDecision",
+			Handler:    _AgentExecutionCommandController_SubmitFileDecision_Handler,
 		},
 		{
 			MethodName: "cancel",

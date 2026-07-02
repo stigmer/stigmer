@@ -28,7 +28,7 @@ class WorkflowExecution(_message.Message):
     def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.WorkflowExecutionSpec, _Mapping]] = ..., status: _Optional[_Union[WorkflowExecutionStatus, _Mapping]] = ...) -> None: ...
 
 class WorkflowExecutionStatus(_message.Message):
-    __slots__ = ("audit", "phase", "tasks", "output", "error", "started_at", "completed_at", "temporal_workflow_id", "pending_approvals", "total_cost_micros", "total_input_tokens", "total_output_tokens", "workflow_version_hash")
+    __slots__ = ("audit", "phase", "tasks", "output", "error", "started_at", "completed_at", "temporal_workflow_id", "pending_approvals", "total_cost_micros", "total_input_tokens", "total_output_tokens", "workflow_version_hash", "pending_file_reviews")
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
     TASKS_FIELD_NUMBER: _ClassVar[int]
@@ -42,6 +42,7 @@ class WorkflowExecutionStatus(_message.Message):
     TOTAL_INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     WORKFLOW_VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
+    PENDING_FILE_REVIEWS_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     phase: _enum_pb2.ExecutionPhase
     tasks: _containers.RepeatedCompositeFieldContainer[WorkflowTask]
@@ -55,7 +56,8 @@ class WorkflowExecutionStatus(_message.Message):
     total_input_tokens: int
     total_output_tokens: int
     workflow_version_hash: str
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., temporal_workflow_id: _Optional[str] = ..., pending_approvals: _Optional[_Iterable[_Union[WorkflowPendingApproval, _Mapping]]] = ..., total_cost_micros: _Optional[int] = ..., total_input_tokens: _Optional[int] = ..., total_output_tokens: _Optional[int] = ..., workflow_version_hash: _Optional[str] = ...) -> None: ...
+    pending_file_reviews: _containers.RepeatedCompositeFieldContainer[WorkflowPendingFileReview]
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., temporal_workflow_id: _Optional[str] = ..., pending_approvals: _Optional[_Iterable[_Union[WorkflowPendingApproval, _Mapping]]] = ..., total_cost_micros: _Optional[int] = ..., total_input_tokens: _Optional[int] = ..., total_output_tokens: _Optional[int] = ..., workflow_version_hash: _Optional[str] = ..., pending_file_reviews: _Optional[_Iterable[_Union[WorkflowPendingFileReview, _Mapping]]] = ...) -> None: ...
 
 class WorkflowPendingApproval(_message.Message):
     __slots__ = ("approval", "child_agent_execution_id")
@@ -64,6 +66,14 @@ class WorkflowPendingApproval(_message.Message):
     approval: _approval_pb2.PendingApproval
     child_agent_execution_id: str
     def __init__(self, approval: _Optional[_Union[_approval_pb2.PendingApproval, _Mapping]] = ..., child_agent_execution_id: _Optional[str] = ...) -> None: ...
+
+class WorkflowPendingFileReview(_message.Message):
+    __slots__ = ("child_agent_execution_id", "change_set_id")
+    CHILD_AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
+    child_agent_execution_id: str
+    change_set_id: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, child_agent_execution_id: _Optional[str] = ..., change_set_id: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class WorkflowTask(_message.Message):
     __slots__ = ("task_id", "task_name", "task_type", "input", "output", "status", "started_at", "completed_at", "error", "metadata", "artifact_ids", "cost_micros", "input_tokens", "output_tokens")

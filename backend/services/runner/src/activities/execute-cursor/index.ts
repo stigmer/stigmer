@@ -27,12 +27,14 @@
  */
 
 import { heartbeat, Context, CancelledFailure } from "@temporalio/activity";
-import { create, type JsonObject } from "@bufbuild/protobuf";
+import { create, clone, type JsonObject } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionControlSignal, ExecutionPhase, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ExecutionControlSignal, ExecutionPhase, FileChangeSetStatus, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage, Run, ConversationTurn } from "@cursor/sdk";
 
 import type { Config } from "../../config.js";
@@ -41,17 +43,20 @@ import { resolveAgent } from "./session-lifecycle.js";
 import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
-import { MessageAccumulator, reconcileDeniedToolCalls, cancelInProgressSubAgentProtos } from "./message-translator.js";
+import { MessageAccumulator, reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
+import { collectSubAgentToolCallIds } from "../../shared/tool-row.js";
 import { startStallWatchdog, StallTimeoutError, formatStallFailure, type StallWatchdog } from "../../shared/stall-watchdog.js";
 import { createArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
+import { shouldPersistStreamingStatus } from "./persist-decision.js";
+import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
 import { resolveMcpServers, validateMcpServerEnv } from "./mcp-resolver.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
-import { hasApproveAllDecision } from "../../shared/approval-policy.js";
+import { deriveActiveLeases } from "../../shared/approval-policy.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
@@ -61,7 +66,19 @@ import { resolveAttachments } from "./attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
-import { buildApprovalState, buildApprovalGrants, readDenialLedger, reconstructAdjudicatedApprovals } from "./approval-state.js";
+import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
+import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, primaryToken, readDenialLedger, reconstructAdjudicatedApprovals, watchDenialLedger } from "./approval-state.js";
+import { deriveTurnCommandProvenance } from "./command-provenance.js";
+import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "./exact-apply.js";
+import { isGitWorkTree } from "../../shared/filereview/git-substrate.js";
+import {
+  captureBaselineToLedger,
+  captureTurnToLedger,
+  applyCaptureDecisions,
+  deriveCaptureMode,
+} from "./capture-flow.js";
+import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
+import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { closeProxySessions } from "./http2-interceptor.js";
@@ -69,6 +86,7 @@ import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pri
 import { UsageAccumulator } from "./usage-accumulator.js";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
+import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
 import { getCapturedRejection, clearCapturedRejection } from "./rejection-capture.js";
 import { synthesizeError, formatClassifiedError, shouldRetryWithFreshAgent } from "./error-classifier.js";
 import type { ClassifiedError } from "./error-classifier.js";
@@ -76,6 +94,12 @@ import { createAgent, createCloudAgent } from "./session-lifecycle.js";
 import { setMaxListeners } from "node:events";
 import { startHeartbeat } from "../../shared/heartbeat.js";
 import { getShutdownSignalForQueue } from "../../runner-manager.js";
+
+// How long Phase 12 waits for the first-denial-stop's run.cancel() to settle
+// before reading the final denial ledger and capturing the turn's tree. Long
+// enough for the SDK's normal teardown, short enough that a wedged cancel
+// cannot noticeably delay the approval pause the user is already waiting on.
+const FIRST_DENIAL_CANCEL_TIMEOUT_MS = 5_000;
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -89,10 +113,18 @@ export function createCursorActivities(config: Config) {
   });
 
   return {
-    ExecuteCursor: async (executionId: string, threadId: string): Promise<unknown> => {
+    // Accepts the new typed object OR the legacy positional args (transitional
+    // dual-shape so the runner can deploy before the control planes — see
+    // shared/activity-input.ts). Drop the positional arm once both control
+    // planes send the object.
+    ExecuteCursor: async (
+      arg0: ExecuteActivityInput | string,
+      arg1?: string,
+    ): Promise<unknown> => {
+      const { executionId, threadId, turnSeq } = normalizeActivityInput(arg0, arg1);
       activityStarted();
       try {
-        return await executeCursor(config, client, executionId, threadId);
+        return await executeCursor(config, client, executionId, threadId, turnSeq);
       } finally {
         activityFinished();
       }
@@ -105,15 +137,16 @@ async function executeCursor(
   client: StigmerClient,
   executionId: string,
   threadId: string,
+  turnSeq: number,
 ): Promise<unknown> {
-  console.log(`ExecuteCursor started: execution=${executionId}, threadId=${threadId || "(new)"}`);
+  console.log(`ExecuteCursor started: execution=${executionId}, threadId=${threadId || "(new)"}, turnSeq=${turnSeq}`);
 
   // Ensure fresh HTTP/2 transport — prevents a degraded session from a
   // prior workflow task from poisoning this execution's agent stream.
   closeProxySessions();
 
   setInterceptorExecutionId(executionId);
-  return runWithExecutionContext(executionId, () => executeCursorInner(config, client, executionId, threadId));
+  return runWithExecutionContext(executionId, () => executeCursorInner(config, client, executionId, threadId, turnSeq));
 }
 
 async function executeCursorInner(
@@ -121,6 +154,10 @@ async function executeCursorInner(
   client: StigmerClient,
   executionId: string,
   threadId: string,
+  // turnSeq is the monotonic HITL-cycle index (0 on the first turn). The
+  // file-review producer consumes it to mint the deterministic change-set id
+  // (executionId:turnSeq) in the capture phase.
+  turnSeq: number,
 ): Promise<unknown> {
 
   const status = create(AgentExecutionStatusSchema, {
@@ -161,6 +198,29 @@ async function executeCursorInner(
   // message surfaced to the user; both feed the Phase 11a stall branch.
   let stallDetected = false;
   let stallError: StallTimeoutError | undefined;
+  // Set the moment the preToolUse hook records its first denial in the ledger.
+  // We then stop consuming the stream and cancel the run so the model never
+  // reacts to Cursor's tool-failure surface (narrate defeat, attempt a second
+  // gated tool) — converging the Cursor harness toward the native harness, which
+  // pauses BEFORE the model sees a denial. Phase 12 reconciles the denied tool
+  // calls into WAITING_FOR_APPROVAL exactly as after a natural stream end.
+  let firstDenialDetected = false;
+  // Flipped by the denial-ledger fs watcher the instant the hook writes a
+  // denial, so the NEXT stream event of ANY type triggers the ledger read —
+  // instead of waiting for the next tool_call event, during which the model's
+  // full post-denial reaction (thinking, narration, a workaround tool) would
+  // stream and persist (observed in production: aex_01kwj07f7g23c3wp9sn8496z5g).
+  // The tool_call-event read below remains the backstop where fs.watch is
+  // unreliable.
+  let denialLedgerDirty = false;
+  let stopDenialWatcher: (() => void) | undefined;
+  // The in-flight run.cancel() started by the first-denial stop. Awaited
+  // (timeboxed) before Phase 12 so the agent process has actually stopped
+  // before the final ledger read and the turn-boundary tree capture — closing
+  // the race where a post-denial workaround's ledger entry lands after the
+  // read (it would then never be collapsed) or a late tool mutates the tree
+  // mid-capture.
+  let denialCancelSettled: Promise<void> | undefined;
   let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
   // Progress-based stall watchdog (see ../../shared/stall-watchdog.ts). Stopped
   // in the finally on every exit path; complements the liveness heartbeat.
@@ -207,6 +267,33 @@ async function executeCursorInner(
     );
     heartbeat();
 
+    // Apply-then-review is the universal file-review model (Slice 2c). When the
+    // primary workspace is a real git work tree, file edits flow during the turn
+    // and are captured per-file from the git diff at the turn boundary
+    // (capture-flow.ts / shared/filereview/git-substrate.ts). A NON-git workspace
+    // has no git snapshot, so it captures every file write via the path-scoped CAS
+    // substrate instead — which requires artifact storage to persist blobs; when
+    // storage is unavailable a non-git workspace falls back to the classic
+    // deny-gate (no regression). `gitWorkspace` selects the substrate; both flow
+    // file edits and review post-hoc, and the deny-gate then survives only for
+    // shell/MCP/irreversible tools. Detected once from the provisioned primary root.
+    const primaryWorkspaceDir = blueprint.workspaceDirs[0];
+    const gitWorkspace = primaryWorkspaceDir
+      ? await isGitWorkTree(primaryWorkspaceDir)
+      : false;
+    const captureMode = deriveCaptureMode(primaryWorkspaceDir, gitWorkspace, !!artifactStorage);
+    // Pre-turn baseline tree, pinned before the agent runs (capture mode only)
+    // so the turn-end capture diffs against it and the tree restores exactly.
+    let baselineTree: string | undefined;
+    // Deterministic id of the change set this turn may produce:
+    // `${executionId}:${turnSeq}`. Minted from the workflow-threaded turn index
+    // so it is stable across a Temporal retry (idempotent ledger authoring) and
+    // unique per turn. The resume reconcile reads the change set id back from the
+    // DECIDED projection, not from turnSeq — so a "wasted" id on a pure-reconcile
+    // resume (which never authors a baseline) is harmless.
+    const changeSetId = `${executionId}:${turnSeq}`;
+    heartbeat();
+
     // Set OTel baggage so downstream calls carry execution context.
     try {
       const { setBaggage, BAGGAGE_EXECUTION_ID, BAGGAGE_SESSION_ID, BAGGAGE_ORG_ID } = await import("../../otel.js");
@@ -240,14 +327,76 @@ async function executeCursorInner(
     // by reinvocation time — the decision survives only on the tool call. This
     // feeds both the grant builder and the reinvocation prompt below.
     let adjudicatedApprovals: PendingApproval[] = [];
+    // tool-call id -> content digest of the approved edit, threaded into the
+    // grant builder so an approved edit is authorized by its exact content (a
+    // sibling edit to the same file re-gates). Sourced from the persisted
+    // approval_content_digest field (see reconstructAdjudicatedApprovals).
+    let adjudicatedContentDigests: Map<string, string> = new Map();
+    // Sub-agent executions carried over from the persisted transcript on a
+    // resume, handed to the MessageAccumulator so a gated tool inside a
+    // delegated sub-agent survives the round-trip (see seeding below).
+    let seededSubAgents: SubAgentExecution[] = [];
 
     if (isReinvocation) {
       const existingStatus = execution.status;
+      // Seed the in-progress status from the persisted execution BEFORE the
+      // MessageAccumulator wraps status.messages, so this resumed turn APPENDS
+      // onto prior history rather than rebuilding from empty. A Cursor resume
+      // re-issues approved tool calls with fresh ids; a from-empty rebuild would
+      // drop the previously-committed ids and the backend's append-only-at-
+      // identity guard would reject the whole update, stalling the run (the
+      // "approval propagation is broken" watchdog failure). The resumed re-runs
+      // are reconciled onto these seeded calls by canonical identity inside the
+      // accumulator. Mirrors the deep-agent seedStatusFromExecution.
+      seededSubAgents = seedCursorTranscriptFromExecution(status, execution);
+
+      // File-review reconcile (the dual-source half): reconcile every change set
+      // the server projected as DECIDED, sourced from the ledger decisions and
+      // the pinned git refs (approved kept at their "after" bytes, rejected
+      // snapped back to baseline — all uncommitted, hash-verified). This is
+      // independent of tool approvals: a single turn can carry BOTH a DECIDED
+      // file change set AND an approved shell/MCP action.
+      let reconciledFileReview = false;
+      let fileReviewFailed = false;
+      let fileReviewFailureDetail = "";
+      const discardedPaths: string[] = [];
+      if (captureMode && primaryWorkspaceDir) {
+        const decidedSets = (existingStatus?.fileChangeSets ?? []).filter(
+          (cs) => cs.status === FileChangeSetStatus.DECIDED,
+        );
+        for (const changeSet of decidedSets) {
+          const capResult = await applyCaptureDecisions({
+            status,
+            gitRoot: primaryWorkspaceDir,
+            executionId,
+            changeSet,
+            // Thread the CAS store so CAS-captured files in the change set
+            // reconcile from the durable manifest (approved after-blobs written,
+            // rejected snapped back). In a non-git workspace this is the ONLY
+            // reconcile; in a git tree it composes with the git-ref reconcile.
+            storage: artifactStorage,
+            gitWorkspace,
+          });
+          if (!capResult.isCaptureTurn) continue;
+          reconciledFileReview = true;
+          if (capResult.failed) {
+            fileReviewFailed = true;
+            fileReviewFailureDetail = capResult.failureDetail ?? "file review reconcile failed";
+          }
+          if (capResult.hadReject) discardedPaths.push(...capResult.rejectedPaths);
+        }
+      }
+
+      // Tool approvals (shell / MCP / gitignored writes) still resolve from the
+      // message transcript — the deny-gate path, unchanged by the file-review
+      // cutover.
       const adjudicated = reconstructAdjudicatedApprovals(existingStatus?.messages ?? []);
       if (adjudicated.decisions.size > 0) {
         approvalDecisions = adjudicated.decisions;
         adjudicatedApprovals = adjudicated.pendingApprovals;
+        adjudicatedContentDigests = adjudicated.contentDigests;
 
+        // A reject of an irreversible action (shell/MCP) fails the execution.
         const hasReject = [...approvalDecisions.values()].some(
           (a) => a === ApprovalAction.REJECT,
         );
@@ -263,6 +412,47 @@ async function executeCursorInner(
           await persist(status);
           return slimStatus(status);
         }
+        // else: fall through to run the approved shell/MCP. The agent may produce
+        // further edits, captured as a new change set in the next cycle.
+      } else if (reconciledFileReview) {
+        // Pure file review: the agent already finished its full turn during
+        // capture, so keeping/discarding a change does NOT re-prompt it
+        // (Cursor-like). The reconcile is done; the execution is complete.
+        status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+        status.completedAt = utcTimestamp();
+        if (fileReviewFailed) {
+          // What-you-approve-is-what-applies could not be honored (on-disk bytes
+          // diverged from the approved digest). Surface it to the human; the
+          // FileReviewFailure(HASH_MISMATCH) event is the audit record.
+          status.messages.push(create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_SYSTEM,
+            content:
+              "Some approved file changes could not be applied because the file " +
+              "changed after review: " + fileReviewFailureDetail + ".",
+            timestamp: utcTimestamp(),
+          }));
+        } else if (discardedPaths.length > 0) {
+          // A reject is a DISCARD that COMPLETES (not FAILED) — surface a SYSTEM
+          // note listing the reverted files. This note is for the human; it does
+          // NOT re-sync the Cursor SDK agent (its native context still believes
+          // those edits stuck). The agent self-corrects by re-reading, and any
+          // edit it makes from that stale belief is itself re-surfaced as a new
+          // change set next turn (the structural safety net). See
+          // design-decisions/capture-reject-next-turn-resync-not-built.md.
+          status.messages.push(create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_SYSTEM,
+            content:
+              "Some proposed file changes were discarded by the user and were not applied: " +
+              discardedPaths.join(", ") + ".",
+            timestamp: utcTimestamp(),
+          }));
+        }
+        await persist(status);
+        console.log(
+          `ExecuteCursor file-review resume short-circuit: execution=${executionId}, ` +
+          `failed=${fileReviewFailed}, discarded=${discardedPaths.length}`,
+        );
+        return slimStatus(status);
       }
     }
 
@@ -282,20 +472,20 @@ async function executeCursorInner(
 
     // Phase 4b: Merge approval policies from all layers.
     //
-    // Effective auto-approve is true when EITHER the execution was pre-armed via
-    // spec.auto_approve_all OR a user chose APPROVE_ALL ("approve and don't ask
-    // again") at some gate earlier in this run. The shared hasApproveAllDecision
-    // helper (used by the native harness too) keeps this contract defined once.
-    // When true, the merged policy map is empty and the hook state file disables
-    // gating for the rest of the run.
-    const effectiveAutoApproveAll =
-      (execution.spec?.autoApproveAll ?? false) || hasApproveAllDecision(execution);
+    // Two bypasses (see ActiveLeases, shared with the native harness): the
+    // pre-armed spec.auto_approve_all is the one whole-run global bypass; an
+    // interactive APPROVE_ALL grants a run-lifetime lease scoped to that action's
+    // class. deriveActiveLeases keeps this contract defined once. Server-scoped
+    // leases drop that server's tools from the merged map (so the hook treats
+    // them as auto-approved); the global bypass empties the map entirely.
+    const leases = deriveActiveLeases(execution);
+    const globalBypass = leases.global;
     const agentOverrides = blueprint.mergedMcpServerUsages
       .flatMap((u) => u.toolApprovalOverrides ?? []);
     const mergedPolicies = mergeApprovalPolicies(
       mcpResolution.resolvedServers,
       agentOverrides,
-      effectiveAutoApproveAll,
+      leases,
     );
     heartbeat();
 
@@ -314,7 +504,7 @@ async function executeCursorInner(
 
     // Phase 5: Resolve skills (merged from agent + session)
     await reportSetupProgress(client, executionId, "Resolving skills");
-    const primaryWorkspaceDir = blueprint.workspaceDirs[0];
+    // (primaryWorkspaceDir / captureMode were resolved right after provisioning.)
     const skillMetadata = await resolveSkills(client, blueprint.mergedSkillRefs, {
       sessionId,
       primaryWorkspaceDir,
@@ -330,6 +520,35 @@ async function executeCursorInner(
     );
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
 
+    // Phase 5b3: Exact-apply approved whole-file writes (HITL "what you approve
+    // is what gets applied"). The Cursor deny-only harness reinvokes the model,
+    // which regenerates content, so a resource grant alone cannot guarantee the
+    // bytes that land match the bytes the user approved. The runner therefore
+    // writes the EXACT approved whole-file content itself, marks those tool calls
+    // COMPLETED, and (below) issues NO grant for them — so any FURTHER change the
+    // model makes to those files is re-gated. Hunk edits / shell / MCP stay on
+    // the grant + reinvocation path. Every uncertain case degrades to that path,
+    // so this can never corrupt a file (see exact-apply.ts).
+    let appliedToolCallIds: ReadonlySet<string> = new Set();
+    // Exact-apply is the deny-gate path's "what you approve is what gets applied"
+    // mechanism (the model regenerates content on reinvocation). Capture mode
+    // does not reinvoke the model for file edits — it applies the exact captured
+    // bytes itself in applyCaptureDecisions — so exact-apply is scoped OUT of it.
+    if (!captureMode && isReinvocation && approvalDecisions) {
+      appliedToolCallIds = await applyApprovedWholeFileWrites({
+        messages: status.messages,
+        workspaceBackend: new LocalWorkspaceBackend(primaryWorkspaceDir),
+        workspaceDirs: blueprint.workspaceDirs,
+        executionId,
+      });
+      if (appliedToolCallIds.size > 0) {
+        // Persist the applied writes (tool calls now COMPLETED with the approved
+        // diff) before reinvocation, so the applied state is durable even if the
+        // continuation fails, and the UI reflects it immediately.
+        await persist(status);
+      }
+    }
+
     // Phase 5c: Install the HITL approval gate BEFORE resolving the agent.
     //
     // The gate's runtime artifacts (hook script, approval-state file, denial
@@ -343,15 +562,56 @@ async function executeCursorInner(
     //
     // On reinvocation, turn the user's approvals into tool-identity grants so
     // the resumed agent's re-attempt (which carries a fresh tool-call id) is
-    // allowed through.
+    // allowed through. Exact-applied writes are EXCLUDED from the grants: with no
+    // grant, a further write to that file is re-gated (the user sees every change).
+    // Capture mode: pin the pre-turn baseline tree before the agent runs (and
+    // before the gate is installed, though the gate files are excluded from the
+    // capture anyway). The turn-end capture diffs the post-turn tree against this
+    // to build the per-file cards; the baseline ref is also what a reject reverts
+    // to on resume. Covers a fresh turn and the approved-irreversible resume
+    // fall-through (the agent will run and may make further edits).
+    if (captureMode && primaryWorkspaceDir) {
+      // Pin the pre-turn tree AND author BASELINE_CAPTURED so the projection can
+      // materialize the change set (status CAPTURING) before any candidate exists.
+      // The event rides the next persist; CAPTURING does not arm the unified gate.
+      baselineTree = await captureBaselineToLedger({
+        status,
+        gitRoot: primaryWorkspaceDir,
+        executionId,
+        changeSetId,
+        gitWorkspace,
+      });
+    }
+
     hitlDir = await ensureHitlDir(sessionId);
+    const grantApprovals = excludeAppliedFromGrants(adjudicatedApprovals, appliedToolCallIds);
     const approvalGrants = approvalDecisions
-      ? buildApprovalGrants(adjudicatedApprovals, approvalDecisions)
+      ? buildApprovalGrants(grantApprovals, approvalDecisions, adjudicatedContentDigests)
       : undefined;
+    if (approvalGrants && approvalGrants.length > 0 && !globalBypass) {
+      emitCursorGrantReceipts(
+        approvalGrants,
+        deriveExecutionFingerprintKey(getRunnerHitlMasterSecret(), executionId),
+        executionId,
+      );
+    }
+    // CAS capture requires artifact storage to persist blobs
+    // (captureCandidateToLedger throws without it). In a git tree, captureMode
+    // alone governs tracked-file capture (no storage needed) and captureIgnored is
+    // the narrower switch (git tree + storage) that also captures gitignored
+    // writes. In a non-git workspace ALL capture is CAS, so captureMode already
+    // required storage — captureIgnored then equals captureMode. When storage is
+    // absent a git tree keeps gating gitignored writes and a non-git workspace
+    // falls back to the deny-gate entirely (no regression).
+    const captureIgnored = captureMode && !!artifactStorage;
     const approvalState = buildApprovalState(
       mergedPolicies,
-      effectiveAutoApproveAll,
+      globalBypass,
+      leases.categories,
       approvalGrants,
+      captureMode,
+      captureIgnored,
+      gitWorkspace,
     );
     const hitlGate = await installHitlGate({
       workspaceRoot: primaryWorkspaceDir,
@@ -363,6 +623,12 @@ async function executeCursorInner(
       await removeHitlGate(hitlGate);
       await removeStigmerSymlink(primaryWorkspaceDir);
     };
+    // Arm the denial watcher as soon as the gate exists. The per-turn ledger
+    // reset may flip the flag once before the run starts; the loop's read then
+    // sees an empty ledger and clears it — harmless by construction.
+    stopDenialWatcher = watchDenialLedger(hitlDir, () => {
+      denialLedgerDirty = true;
+    });
 
     // Phase 5d: Ensure model pricing registry is populated before validation
     await ensurePricingLoaded();
@@ -487,6 +753,7 @@ async function executeCursorInner(
       workspaceFileRefs: spec.workspaceFileRefs ?? [],
       attachmentPaths,
       pendingApprovals: adjudicatedApprovals,
+      appliedToolCallIds,
       interactionMode,
     });
 
@@ -616,7 +883,21 @@ async function executeCursorInner(
       }
     });
 
-    const accumulator = new MessageAccumulator(status.messages, { mergedPolicies });
+    // Everything at an index >= this was produced by THIS turn's stream — the
+    // positional turn boundary the approved-command provenance (DD-28) scopes
+    // its qualification to. Snapshotted before the accumulator can append.
+    const turnStartMessageIndex = status.messages.length;
+
+    const accumulator = new MessageAccumulator(status.messages, {
+      mergedPolicies,
+      provenance: { globalBypass, leasedCategories: leases.categories },
+      workspaceRoot: primaryWorkspaceDir,
+      seededSubAgents,
+    });
+    // Shared cadence with the native harness: discrete state changes force a
+    // flush; high-frequency token deltas ride this scheduler's time cadence
+    // (env-tunable via STREAMING_* — see loadStreamingConfig).
+    const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
     let eventCount = 0;
 
     try {
@@ -644,6 +925,53 @@ async function executeCursorInner(
         );
       }
 
+      // First-denial stop (HITL clean pause). In CAPTURE mode this fires only for
+      // an IRREVERSIBLE tool the hook still gates (shell, MCP, or a gitignored
+      // write/delete) — file edits flow freely and are captured at the turn
+      // boundary, so they never enter the ledger. In the deny-gate FALLBACK
+      // (non-git workspace) it fires for every gated file edit too. Either way:
+      // the preToolUse hook appends to the denial ledger the instant it gates a
+      // tool — before Cursor surfaces the failure to the model — and the fs
+      // watcher flips denialLedgerDirty the moment that write lands. Confirming
+      // the flag with a read on the very next event (of ANY type — thinking
+      // deltas arrive within milliseconds) ends the turn before the model's
+      // reaction can persist: waiting for the next tool_call event let the full
+      // post-denial reaction (thinking, narration, a workaround shell) stream
+      // and persist live (production case aex_01kwj07f7g23c3wp9sn8496z5g). The
+      // tool_call-event read stays as the backstop for platforms where fs.watch
+      // is unreliable; the current event was already accumulated above, so the
+      // anchor's own row is always present for the Phase 12 gate overlay. This
+      // mirrors the native harness's pause-before-react semantics; Phase 12
+      // reconciles the denied calls and its trim remains the last-resort
+      // backstop for anything that persisted before the stop.
+      if (!firstDenialDetected && hitlDir && (denialLedgerDirty || event.type === "tool_call")) {
+        denialLedgerDirty = false;
+        const denials = await readDenialLedger(hitlDir);
+        if (denials.length > 0) {
+          firstDenialDetected = true;
+          console.log(
+            `ExecuteCursor first denial detected (${denials.length} ledger ` +
+            `entr${denials.length === 1 ? "y" : "ies"}); stopping turn to pause ` +
+            `cleanly for approval: execution=${executionId}`,
+          );
+          if (run.supports?.("cancel")) {
+            // Kept (not fire-and-forget): awaited timeboxed before Phase 12 so
+            // the ledger read and tree capture see a stopped agent.
+            denialCancelSettled = run.cancel().then(
+              () => {},
+              (cancelErr: unknown) => {
+                console.warn(
+                  `ExecuteCursor run.cancel() after first denial failed (non-fatal): ` +
+                  `execution=${executionId}, ` +
+                  `error=${cancelErr instanceof Error ? cancelErr.message : cancelErr}`,
+                );
+              },
+            );
+          }
+          break;
+        }
+      }
+
       deltaEnricher.applyEnrichments(status.messages);
       eventCount++;
 
@@ -657,8 +985,15 @@ async function executeCursorInner(
         }
       }
 
-      const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty ||
-        todoTracker.isDirty || accumulator.subAgentDirty;
+      const shouldPersist = shouldPersistStreamingStatus(
+        {
+          deltaEnricherDirty: deltaEnricher.isDirty,
+          todosDirty: todoTracker.isDirty,
+          contentDirty: accumulator.isDirty,
+        },
+        scheduler,
+        eventCount,
+      );
       if (usageAccumulator.hasTurns) {
         status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
       }
@@ -673,7 +1008,8 @@ async function executeCursorInner(
         const signal = await persist(status);
         deltaEnricher.markPersisted();
         todoTracker.markPersisted();
-        accumulator.markSubAgentPersisted();
+        accumulator.markPersisted();
+        scheduler.markUpdateSent(eventCount);
         heartbeat();
         if (signal === ExecutionControlSignal.STOP) {
           platformStopSignaled = true;
@@ -689,12 +1025,16 @@ async function executeCursorInner(
       }
     }
     } catch (streamErr) {
-      // run.cancel() from the stall watchdog can make the stream iterator
-      // reject; that is the expected teardown, so swallow it and fall through
-      // to the stallDetected branch in Phase 11a. Anything else is a genuine
+      // run.cancel() — from the stall watchdog or the first-denial stop — can
+      // make the stream iterator reject as it tears down; that is the expected
+      // teardown for both, so swallow it and fall through (stallDetected ->
+      // Phase 11a; firstDenialDetected -> Phase 12). Anything else is a genuine
       // stream failure — rethrow it to the outer error handler.
-      if (!stallDetected) throw streamErr;
-      console.warn(`ExecuteCursor stream ended via stall cancel: execution=${executionId}`);
+      if (!stallDetected && !firstDenialDetected) throw streamErr;
+      console.warn(
+        `ExecuteCursor stream ended via cancel: execution=${executionId}, ` +
+        `stall=${stallDetected}, firstDenial=${firstDenialDetected}`,
+      );
     }
 
     periodicHeartbeat.stop();
@@ -850,12 +1190,146 @@ async function executeCursorInner(
     // harness — the approval surface is driven entirely by tool-call status. We
     // deliberately do NOT set status.pendingApprovals here: any value would be
     // discarded by the backend's recompute on the next updateStatus.
+    //
+    // Before reading the ledger, wait (timeboxed) for the first-denial-stop's
+    // run.cancel() to settle. run.cancel() races the SDK's auto-execution: until
+    // it lands, the agent process may still attempt a post-denial workaround
+    // whose hook denial would land AFTER a premature ledger read — the row then
+    // never collapses and renders as RUNNING forever (production case
+    // aex_01kwj07f7g23c3wp9sn8496z5g) — or a late tool could mutate the tree
+    // mid-capture. The timebox keeps a wedged cancel from hanging the pause;
+    // the Phase 12 trims below remain the backstop for that degraded case.
+    if (firstDenialDetected && denialCancelSettled) {
+      await Promise.race([
+        denialCancelSettled,
+        new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, FIRST_DENIAL_CANCEL_TIMEOUT_MS);
+          timer.unref();
+        }),
+      ]);
+    }
     const deniedLedger = await readDenialLedger(hitlDir ?? "");
-    const deniedToolCalls = reconcileDeniedToolCalls(status.messages, deniedLedger, mergedPolicies);
-    if (deniedToolCalls.length > 0) {
+
+    // Capture mode: author the net change set to the file_review ledger as the
+    // CANDIDATE_CAPTURED event (projected server-side to a file_change_set
+    // AWAITING_REVIEW — the single review surface). The runner-owned gate files
+    // are excluded from the capture. The agent's edits are LEFT applied on the
+    // working tree (Cursor parity — the user reviews the real change; nothing is
+    // committed and the next turn is blocked until approval, and a reject snaps
+    // each file back on resume). Runs BEFORE the denial reconcile so a denied
+    // (gitignored) write stays on the deny-gate path while every flowed edit is
+    // captured to the ledger.
+    let capturedChangeCount = 0;
+    // `baselineTree !== undefined` means a baseline was authored this turn — the
+    // git tree sha for a git workspace, or "" (empty, but authored) for a non-git
+    // one. A plain truthiness check would wrongly skip the non-git capture.
+    if (captureMode && baselineTree !== undefined && primaryWorkspaceDir) {
+      const deniedTokens = new Set(deniedLedger.map((e) => e.token));
+      // Approved-command turn facts (DD-28): when every mutation-capable call
+      // this turn was a consented shell command, attach the provenance so the
+      // backend can verify the cited consent rows and auto-keep the set instead
+      // of arming a second gate. Fail-closed: any non-qualifying turn attaches
+      // nothing and reviews manually exactly as before.
+      const commandProvenance = deriveTurnCommandProvenance({
+        messages: status.messages,
+        turnStartIndex: turnStartMessageIndex,
+        deniedTokens,
+        grantTokenToConsentId: new Map(
+          (approvalGrants ?? []).map((g) => [
+            primaryToken(g.key, g.salient, g.contentDigest),
+            g.sourceToolCallId,
+          ]),
+        ),
+        globalBypass,
+      });
+      if (commandProvenance) {
+        console.log(
+          `ExecuteCursor capture: turn qualifies for approved-command auto-keep ` +
+          `(consent rows: ${commandProvenance.consentToolCallIds.join(",") || "(auto_approve_all)"}); ` +
+          `attaching provenance to candidate (execution=${executionId})`,
+        );
+      }
+      const captured = await captureTurnToLedger({
+        status,
+        gitRoot: primaryWorkspaceDir,
+        executionId,
+        changeSetId,
+        baselineTree,
+        messages: status.messages,
+        deniedTokens,
+        commandProvenance,
+        // Scope sub-agent row stamping to this turn: the seeded prior sub-agents
+        // (cloned in on resume) are the "before this turn" rows to skip.
+        priorSubAgentToolCallIds: collectSubAgentToolCallIds(seededSubAgents),
+        // The CAS half: read the sidecar the hook staged this turn and compose it
+        // into the change set. hitlDir + storage are present when captureIgnored
+        // was on (a git tree's gitignored writes, or ALL writes in a non-git
+        // workspace). In a git tree this composes with the git diff (HYBRID); in a
+        // non-git workspace it IS the whole change set (CAS-only).
+        hitlDir,
+        storage: artifactStorage,
+        gitWorkspace,
+      });
+      capturedChangeCount = captured.length;
+      if (capturedChangeCount > 0) {
+        console.log(
+          `ExecuteCursor capture: ${capturedChangeCount} file change(s) authored to the ` +
+          `file_review ledger (change_set=${changeSetId}), working tree left applied ` +
+          `for review (execution=${executionId})`,
+        );
+      }
+    }
+
+    // The gate reads each denied file's pre-edit `before` from the workspace the
+    // runner is co-located with (local FS for OSS; the sandbox in cloud), so a
+    // whole-file rewrite gate renders a true before/after diff. The tool was
+    // DENIED, so disk still holds the old content. User files are never platform
+    // paths, so no platformDir routing is needed here.
+    const gateWorkspaceBackend = new LocalWorkspaceBackend(primaryWorkspaceDir);
+    const deniedToolCalls = await reconcileDeniedToolCalls(
+      status.messages,
+      deniedLedger,
+      mergedPolicies,
+      gateWorkspaceBackend,
+    );
+    // Observability: a synthesized placeholder (id `approval:*`) means a denial
+    // correlated to NO streamed tool call in either the exact or the normalized
+    // pass. After the normalized-path fallback this should be ~0; a non-zero rate
+    // is the early-warning signal of a NEW identity drift (the gate would then
+    // show "No preview available" with no diff). Logged, not thrown — the
+    // synthesized gate still safely surfaces the approval.
+    const synthesizedGateCount = deniedToolCalls.filter((tc) =>
+      tc.id.startsWith("approval:"),
+    ).length;
+    if (synthesizedGateCount > 0) {
+      console.warn(
+        `ExecuteCursor reconcile synthesized ${synthesizedGateCount} placeholder gate(s) ` +
+          `with no correlated stream call (execution=${executionId}); ` +
+          `possible hook/stream identity drift — gate(s) will lack a diff`,
+      );
+    }
+    if (deniedToolCalls.length > 0 || capturedChangeCount > 0) {
+      if (deniedToolCalls.length > 0) {
+        // Deterministic clean-pause: a turn that pauses for approval must read as
+        // the same shape the native harness produces — pre-tool text + the gated
+        // tool calls — never the model's provisional reaction to Cursor's deny
+        // (e.g. "blocked by a hook; enable it in your Cursor settings"). We blank
+        // that reaction in place (keeping the message count, so the finalize stays
+        // append-only) rather than removing it. See
+        // clearProvisionalPostDenialNarration for the full rationale.
+        const redactedNarration = clearProvisionalPostDenialNarration(status.messages, deniedToolCalls);
+        if (redactedNarration.length > 0) {
+          console.log(
+            `ExecuteCursor redacted ${redactedNarration.length} provisional post-denial narration message(s) before pausing for approval`,
+          );
+        }
+      }
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
       await persist(status);
-      console.log(`ExecuteCursor returning WAITING_FOR_APPROVAL: ${deniedToolCalls.length} tools pending`);
+      console.log(
+        `ExecuteCursor returning WAITING_FOR_APPROVAL: ${deniedToolCalls.length} gated tool(s), ` +
+        `${capturedChangeCount} file card(s) pending`,
+      );
       return slimStatus(status);
     }
 
@@ -1202,6 +1676,22 @@ async function executeCursorInner(
       }
     }
 
+    // Collapse any redundant same-identity tool-call twin born this turn before
+    // the terminal persist. On a resume turn the gated tool is already granted, so
+    // there is no denial ledger and reconcileDeniedToolCalls never runs — the
+    // extra attempt the model emits beside the approved action (a stuck RUNNING
+    // zombie, a denied-reported-as-success COMPLETED, or an all-no-change double)
+    // would otherwise persist as a second "No preview available" card. The shared
+    // routine keeps the diff/output carrier and blanks the rest to hidden SKIPPED
+    // rows in place, preserving each committed id so the finalize stays append-only.
+    const collapsedTwins = collapseRedundantToolCallTwins(status.messages);
+    if (collapsedTwins > 0) {
+      console.log(
+        `ExecuteCursor collapsed ${collapsedTwins} redundant tool-call twin(s) at ` +
+          `terminal finalize (kept in place as hidden SKIPPED rows): execution=${executionId}`,
+      );
+    }
+
     // NOW persist — subscriber sees COMPLETED + structured_output atomically
     await persist(status);
 
@@ -1376,6 +1866,10 @@ async function executeCursorInner(
     // point so no orphaned timer survives the activity.
     stallWatchdog?.stop();
 
+    // Close the denial-ledger watcher on EVERY exit path (idempotent) so no
+    // orphaned fs.watch handle survives the activity.
+    stopDenialWatcher?.();
+
     // Tear down the HITL gate on EVERY exit path (success, error, approval
     // pause, cancellation) so attaching a real repo leaves the user's
     // .cursor/hooks.json and workspace untouched between turns (issue #173).
@@ -1394,6 +1888,45 @@ async function executeCursorInner(
   }
 }
 
+/**
+ * Seed an in-progress status from the persisted execution on a durable resume
+ * (HITL approval, pause/resume, or transient recovery) so the upcoming turn
+ * APPENDS onto prior history instead of replacing it. This is the Cursor analog
+ * of the deep-agent's seedStatusFromExecution (execute-deep-agent/index.ts).
+ *
+ * Why it is required: a resumed Cursor agent re-issues the previously gated tool
+ * calls with brand-new call ids. Without seeding, the MessageAccumulator would
+ * rebuild the transcript from empty and emit a status that drops the already-
+ * committed tool-call ids. The backend's append-only-at-identity guard
+ * (AgentExecutionUpdateStatusHandler / update_status.go) rejects any non-
+ * terminal update that drops a committed tool-call id, so the resumed progress
+ * would never persist — the run stalls in WAITING_FOR_APPROVAL with no pending
+ * approvals and the workflow watchdog fails it. Seeding makes the resume status
+ * a strict superset; the re-runs are then reconciled in place onto these seeded
+ * calls by canonical identity inside the accumulator.
+ *
+ * The persisted protos are cloned so the input execution stays immutable, and
+ * the seeded messages are pushed into status.messages (which the accumulator
+ * wraps by reference) BEFORE the accumulator is constructed. Sub-agent
+ * executions are returned rather than written to status.subAgentExecutions
+ * directly, because the accumulator owns that array (it overwrites
+ * status.subAgentExecutions with its own on every flush) — handing them to the
+ * accumulator keeps the seeded sub-agent rows from being clobbered.
+ *
+ * @returns the cloned sub-agent executions to seed into the MessageAccumulator.
+ */
+function seedCursorTranscriptFromExecution(
+  status: AgentExecutionStatus,
+  execution: AgentExecution,
+): SubAgentExecution[] {
+  const persisted = execution.status;
+  if (!persisted || persisted.messages.length === 0) return [];
+  for (const message of persisted.messages) {
+    status.messages.push(clone(AgentMessageSchema, message));
+  }
+  return persisted.subAgentExecutions.map((sub) => clone(SubAgentExecutionSchema, sub));
+}
+
 // ---------------------------------------------------------------------------
 // Structured Output Extraction (Cursor Harness Tier 2)
 // ---------------------------------------------------------------------------
@@ -1403,10 +1936,9 @@ async function executeCursorInner(
  * economy-tier LLM with withStructuredOutput (function-calling).
  * Guarantees schema-conformant JSON output via the API's tool-use mechanism.
  *
- * Provider-aware: resolves the economy model via the registry, infers its
- * provider (anthropic / openai), and constructs the correct LangChain client
- * with the matching proxy endpoint. Follows the same pattern as
- * call-llm.ts constructModel().
+ * Construction (registry-id resolution, provider inference, proxy wiring) is
+ * delegated to the shared buildChatModel so the economy model's registry id is
+ * always resolved to a provider API id before the call.
  */
 async function extractStructuredOutput(
   agentResponse: string,
@@ -1414,39 +1946,18 @@ async function extractStructuredOutput(
   config: Config,
   primaryModel: string,
 ): Promise<unknown | null> {
-  const { ChatOpenAI } = await import("@langchain/openai");
-  const { ChatAnthropic } = await import("@langchain/anthropic");
-  const { inferProvider, resolveProxyBaseUrl, buildProxyHeaders } = await import("../../shared/llm-proxy.js");
   const { getEconomyModel } = await import("../../shared/model-registry.js");
+  const { buildChatModel } = await import("../../shared/model-client.js");
 
   const extractionModel = await getEconomyModel(primaryModel);
-  const provider = inferProvider(extractionModel);
-
   const proxyEndpoint = config.proxyEndpoint ?? config.stigmerBackendEndpoint;
-  const baseUrl = resolveProxyBaseUrl(proxyEndpoint, provider);
-  const headers = config.stigmerToken
-    ? buildProxyHeaders(config.stigmerToken, {})
-    : {};
 
-  const apiKey = provider === "openai"
-    ? (config.stigmerToken ?? process.env.OPENAI_API_KEY ?? "proxy-managed")
-    : (config.stigmerToken ?? process.env.ANTHROPIC_API_KEY ?? "proxy-managed");
-
-  const llm = provider === "openai"
-    ? new ChatOpenAI({
-        model: extractionModel,
-        apiKey,
-        temperature: 0,
-        maxTokens: 4096,
-        configuration: { baseURL: baseUrl, defaultHeaders: headers },
-      })
-    : new ChatAnthropic({
-        model: extractionModel,
-        apiKey,
-        temperature: 0,
-        maxTokens: 4096,
-        clientOptions: { baseURL: baseUrl, defaultHeaders: headers },
-      });
+  const { model: llm } = await buildChatModel({
+    modelName: extractionModel,
+    proxyEndpoint,
+    stigmerToken: config.stigmerToken ?? undefined,
+    maxTokens: 4096,
+  });
 
   const zodSchema = jsonSchemaToZod(schema);
   const structured = llm.withStructuredOutput(zodSchema);
@@ -1478,6 +1989,12 @@ export interface BuildPromptInput {
   workspaceFileRefs: string[];
   attachmentPaths: string[];
   pendingApprovals: import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb").PendingApproval[];
+  /**
+   * Approved whole-file writes the runner already applied itself (exact-apply).
+   * The reinvocation prompt marks these as done so the model does not redo them;
+   * the remaining approved actions are the ones it must still carry out.
+   */
+  appliedToolCallIds?: ReadonlySet<string>;
   interactionMode?: InteractionMode;
 }
 
@@ -1514,9 +2031,14 @@ export function buildPrompt(input: BuildPromptInput): string {
   const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
 
   // HITL reinvocation: the agent is resumed, so its native context carries the
-  // prior conversation; the reinvocation prompt conveys the approval decisions.
+  // prior conversation; the reinvocation prompt conveys the approval decisions
+  // (and which approved writes the runner already exact-applied).
   if (isHitlReinvocation) {
-    return buildReinvocationPrompt(input.pendingApprovals, approvalDecisions);
+    return buildReinvocationPrompt(
+      input.pendingApprovals,
+      approvalDecisions,
+      input.appliedToolCallIds,
+    );
   }
 
   // A successfully resumed agent carries its own conversation context via the

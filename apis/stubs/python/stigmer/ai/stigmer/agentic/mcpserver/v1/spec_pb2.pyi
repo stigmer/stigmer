@@ -80,12 +80,14 @@ class HttpServerConfig(_message.Message):
     def __init__(self, url: _Optional[str] = ..., headers: _Optional[_Mapping[str, str]] = ..., query_params: _Optional[_Mapping[str, str]] = ..., timeout_seconds: _Optional[int] = ...) -> None: ...
 
 class ToolApprovalPolicy(_message.Message):
-    __slots__ = ("tool_name", "message")
+    __slots__ = ("tool_name", "message", "from_destructive_hint")
     TOOL_NAME_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    FROM_DESTRUCTIVE_HINT_FIELD_NUMBER: _ClassVar[int]
     tool_name: str
     message: str
-    def __init__(self, tool_name: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
+    from_destructive_hint: bool
+    def __init__(self, tool_name: _Optional[str] = ..., message: _Optional[str] = ..., from_destructive_hint: bool = ...) -> None: ...
 
 class McpServerAuth(_message.Message):
     __slots__ = ("oauth_app_ref", "target_env_var", "token_lifetime_hint", "scope_hints", "discovery_url")

@@ -1499,6 +1499,16 @@
           },
           "description": "Human-readable message shown to user when approval is requested.\n Supports {{args.field}} placeholders for dynamic content.\n\n If empty, a default message is generated: \"Execute tool: {tool_name}\"\n\n Guidelines for effective messages:\n   - Be specific about what will happen\n   - Include the most important argument values using placeholders\n   - Keep under 100 characters for UI display\n   - Use action verbs: \"Delete\", \"Send\", \"Execute\", \"Create\"",
           "required": false
+        },
+        {
+          "name": "FromDestructiveHint",
+          "jsonName": "fromDestructiveHint",
+          "protoField": "from_destructive_hint",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True when the connect-time fail-closed tightener force-gated this tool\n because the server's own MCP annotation declared destructiveHint=true,\n rather than the classifier (or a human) gating it. Lets the runner attribute\n a tightened tool to its true provenance\n (ApprovalPolicySource.APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN)\n instead of collapsing it into the classifier default. Carries no enforcement\n weight — gating is decided by presence in this list — so an absent/false\n value simply means \"not attributed to the destructiveHint tightener\".\n\n Set only on entries written to McpServerStatus.tool_approvals (the classifier\n layer). It is meaningless on McpServerSpec.pinned_tool_approvals (a human\n pin is, by definition, a pinned override) and left false there.",
+          "required": false
         }
       ]
     }

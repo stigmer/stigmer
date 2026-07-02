@@ -85,3 +85,16 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: open-computer-use
+      # Perception and view-navigation are non-mutating and must NEVER prompt for
+      # approval — the agent calls get_app_state every turn (perceive→act→verify),
+      # so gating it would interrupt every single step and (on the Cursor harness)
+      # provoke a misleading "blocked by a hook" narration. This per-agent override
+      # (policy layer 3) authoritatively un-gates them even if the connect-time
+      # classifier (layer 1) misclassified them on a previously-connected server.
+      tool_approval_overrides:
+        - tool_name: get_app_state
+          requires_approval: false
+        - tool_name: list_apps
+          requires_approval: false
+        - tool_name: scroll
+          requires_approval: false

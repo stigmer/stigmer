@@ -1,11 +1,14 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Streamdown } from "streamdown";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { MARKDOWN_COMPONENTS } from "../internal/markdown-components";
+import {
+  MARKDOWN_COMPONENTS,
+  unwrapEnclosingMarkdownFence,
+} from "../internal/markdown-components";
 import { useRenderTracer } from "../internal/dev";
 
 /** Props for {@link MessageEntry}. */
@@ -160,6 +163,14 @@ function AiMessage({
 }) {
   useRenderTracer("AiMessage", { contentLength: content.length, isStreaming });
 
+  // A model that wraps its whole reply in a ```markdown fence (Plan-mode plans
+  // most often) would otherwise render as one flat code block. Unwrap it here,
+  // at the render seam, so the transcript stays faithful to what the agent sent.
+  const markdown = useMemo(
+    () => unwrapEnclosingMarkdownFence(content),
+    [content],
+  );
+
   return (
     <div
       role="article"
@@ -173,7 +184,7 @@ function AiMessage({
           isAnimating={isStreaming}
           caret="block"
         >
-          {content}
+          {markdown}
         </Streamdown>
       </div>
     </div>

@@ -1,0 +1,158 @@
+{
+  "name": "approve-all-co-pending",
+  "description": "An APPROVE_ALL on one shell call also resolves a co-pending shell call (what the handler authors via a plain APPROVE on each same-class co-pending tool), while a different-class call (write_file) stays gated. Both decisions bucket to the coarse APPROVED event type; the precise APPROVE_ALL action survives on the payload (not asserted in the normalized view). Models the authoring result, not the controller's class-selection logic.",
+  "execution_id": "exec-approve-all",
+  "steps": [
+    {
+      "name": "seed: two shell calls and one write_file gated",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc-a",
+                "name": "shell",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve shell",
+                "args_preview": "{\"command\":\"npm ci\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              },
+              {
+                "id": "tc-b",
+                "name": "execute",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve execute",
+                "args_preview": "{\"command\":\"npm run build\"}",
+                "approval_requested_at": "2026-03-27T10:00:01Z"
+              },
+              {
+                "id": "tc-c",
+                "name": "write_file",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve write_file",
+                "args_preview": "{\"path\":\"out.txt\"}",
+                "approval_requested_at": "2026-03-27T10:00:02Z"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "pending_approvals": [
+          {
+            "tool_call_id": "tc-a",
+            "tool_name": "shell",
+            "message": "Approve shell",
+            "args_preview": "{\"command\":\"npm ci\"}",
+            "requested_at": "2026-03-27T10:00:00Z"
+          },
+          {
+            "tool_call_id": "tc-b",
+            "tool_name": "execute",
+            "message": "Approve execute",
+            "args_preview": "{\"command\":\"npm run build\"}",
+            "requested_at": "2026-03-27T10:00:01Z"
+          },
+          {
+            "tool_call_id": "tc-c",
+            "tool_name": "write_file",
+            "message": "Approve write_file",
+            "args_preview": "{\"path\":\"out.txt\"}",
+            "requested_at": "2026-03-27T10:00:02Z"
+          }
+        ],
+        "stream_events": [
+          { "approval_request_id": "tc-a", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "tc-b", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "tc-c", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" }
+        ]
+      }
+    },
+    {
+      "name": "approve all shells (tc-a clicked, tc-b co-pending)",
+      "description": "A SubmitApproval site: tc-a carries APPROVE_ALL (the opt-in), tc-b carries a plain APPROVE (the bulk-approved co-pending of the same class). tc-c (write_file) is a different class and stays gated.",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "tc-a",
+                "name": "shell",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve shell",
+                "args_preview": "{\"command\":\"npm ci\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              },
+              {
+                "id": "tc-b",
+                "name": "execute",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve execute",
+                "args_preview": "{\"command\":\"npm run build\"}",
+                "approval_requested_at": "2026-03-27T10:00:01Z"
+              },
+              {
+                "id": "tc-c",
+                "name": "write_file",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve write_file",
+                "args_preview": "{\"path\":\"out.txt\"}",
+                "approval_requested_at": "2026-03-27T10:00:02Z"
+              }
+            ]
+          }
+        ]
+      },
+      "decisions": [
+        {
+          "tool_call_id": "tc-a",
+          "action": "APPROVAL_ACTION_APPROVE_ALL",
+          "decided_by": "dave",
+          "comment": "trust shell for this run",
+          "decided_at": "2026-03-27T10:04:00Z"
+        },
+        {
+          "tool_call_id": "tc-b",
+          "action": "APPROVAL_ACTION_APPROVE",
+          "decided_by": "dave",
+          "comment": "",
+          "decided_at": "2026-03-27T10:04:00Z"
+        }
+      ],
+      "expected": {
+        "pending_approvals": [
+          {
+            "tool_call_id": "tc-c",
+            "tool_name": "write_file",
+            "message": "Approve write_file",
+            "args_preview": "{\"path\":\"out.txt\"}",
+            "requested_at": "2026-03-27T10:00:02Z"
+          }
+        ],
+        "stream_events": [
+          { "approval_request_id": "tc-a", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "tc-b", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "tc-c", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "tc-a", "event_type": "APPROVAL_EVENT_TYPE_APPROVED" },
+          { "approval_request_id": "tc-b", "event_type": "APPROVAL_EVENT_TYPE_APPROVED" }
+        ]
+      }
+    }
+  ]
+}

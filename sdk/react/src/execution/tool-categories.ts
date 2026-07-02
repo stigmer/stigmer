@@ -1,4 +1,5 @@
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { ToolKind, resolveToolKind, resolveToolKindByName } from "@stigmer/sdk";
 
@@ -26,6 +27,96 @@ export type ToolCategory =
   | "internal"
   | "mcp"
   | "unknown";
+
+/**
+ * How much of a settled tool call to reveal inline by default in the thread.
+ *
+ * - `"summary"` — a compact one-line row. Used when the label + primary arg +
+ *   result summary already tell the story (`Read foo.ts`, `Edit bar.ts +40 -0`,
+ *   `Search … 2 matches`). The full detail is one click away.
+ * - `"preview"` — the row renders its result body **always** (no card chevron),
+ *   because the one-liner cannot convey what happened so the content itself IS
+ *   the information (a shell command's output, an MCP result such as a
+ *   screenshot, a fetched page, a web-search answer, or an unrecognised tool's
+ *   output). The body's own in-place reveal expands it beyond the height budget.
+ *
+ * This is the *disclosure* axis (how much of a result to show); it is
+ * orthogonal to {@link isRunGroupableCategory} (whether consecutive same-kind
+ * calls fold into one chip). A category can be result-rich but never folded
+ * (`shell`), or foldable but never previewed (`read`).
+ */
+export type ToolDisclosure = "summary" | "preview";
+
+/**
+ * Categories whose result is foregrounded as a persistent bounded preview by
+ * default — those for which the compact one-liner cannot convey what happened,
+ * so the output itself carries the meaning. All other categories default to
+ * `"summary"`.
+ *
+ * File edits and writes are previewed: a `+N -M` summary says how much changed
+ * but not *what* — and the change is the decision-relevant content. Surfacing a
+ * bounded diff inline (Cursor-style) is the point of a code agent. The body is
+ * height-clamped with a single in-place reveal for the rest, so density stays
+ * under control even in turns with many edits.
+ */
+const PREVIEW_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
+  "shell",
+  "edit",
+  "write",
+  "mcp",
+  "web-search",
+  "fetch",
+  "unknown",
+]);
+
+/**
+ * Low-signal categories whose consecutive runs fold into a single collapsible
+ * "Read 5 files" chip in the thread. These are the read-only, repetitive
+ * operations whose individual rows are noise in bulk; everything else renders
+ * as a persistent row. This is the *run-grouping* axis, orthogonal to
+ * {@link ToolDisclosure} — see {@link isRunGroupableCategory}.
+ */
+const RUN_GROUPABLE_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
+  "read",
+  "list",
+  "search",
+]);
+
+/**
+ * Returns the default inline {@link ToolDisclosure} for a presentation
+ * category. This is the headless policy behind the thread's "keep a live
+ * preview for shell/MCP/unknown, keep generic tools compact" behaviour;
+ * consumers can override per {@link ToolKind} via {@link registerToolPresenter}.
+ */
+export function defaultDisclosureForCategory(
+  category: ToolCategory,
+): ToolDisclosure {
+  return PREVIEW_CATEGORIES.has(category) ? "preview" : "summary";
+}
+
+/**
+ * Returns whether a presentation category participates in run-grouping — i.e.
+ * whether a maximal run of consecutive calls of this category folds into one
+ * collapsible chip. See {@link RUN_GROUPABLE_CATEGORIES} and `segmentToolCalls`.
+ */
+export function isRunGroupableCategory(category: ToolCategory): boolean {
+  return RUN_GROUPABLE_CATEGORIES.has(category);
+}
+
+/**
+ * Returns whether a category's primary argument is a file path — the file
+ * tools (read / write / edit / delete). These render their path filename-first
+ * via {@link FilePathLink} (full path on hover) in headers and previews, rather
+ * than as a raw, often-absolute string.
+ */
+export function isFileCategory(category: ToolCategory): boolean {
+  return (
+    category === "read" ||
+    category === "write" ||
+    category === "edit" ||
+    category === "delete"
+  );
+}
 
 /** Resolved display metadata for a tool call, returned by {@link resolveToolCategory}. */
 export interface ToolCategoryInfo {
@@ -70,6 +161,31 @@ const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
  */
 export function isInternalTool(toolName: string): boolean {
   return resolveToolKindByName(toolName) === ToolKind.TODO;
+}
+
+/**
+ * Returns true for a tool call the runner collapsed in place — a superseded
+ * same-turn duplicate of an approval gate.
+ *
+ * When the agent emits one resource twice in a turn and both attempts are denied,
+ * the runner overlays the FIRST as the WAITING_APPROVAL gate and blanks the
+ * redundant twin to a content-less SKIPPED row (it cannot drop it — the backend's
+ * append-only-at-identity guard forbids removing a committed tool-call id). This
+ * predicate recognizes that blanked twin so the thread renders one card, not two.
+ *
+ * The signature is precise: a SKIPPED row with no approval flag, no result, no
+ * error, and no args preview. A genuinely user-skipped tool always retains the
+ * preview/args the user reviewed before skipping, so it is never blank and is
+ * never hidden by this.
+ */
+export function isCollapsedToolCall(toolCall: ToolCall): boolean {
+  return (
+    toolCall.status === ToolCallStatus.TOOL_CALL_SKIPPED &&
+    !toolCall.requiresApproval &&
+    !toolCall.result &&
+    !toolCall.error &&
+    !toolCall.argsPreview
+  );
 }
 
 /** Maps a {@link ToolKind} to its presentation metadata. */
@@ -226,11 +342,19 @@ export function extractPrimaryArg(toolCall: ToolCall): string | null {
  * Extracts the primary argument value from a JSON string
  * (typically `PendingApproval.argsPreview`). Returns `null` if
  * parsing fails or the expected field is not found.
+ *
+ * When the caller has the denormalized wire `tool_kind` (as `PendingApproval`
+ * does), pass it so resolution honors the same kind that drives the label/icon —
+ * a file tool whose NAME the classifier doesn't recognize still resolves to its
+ * `path` field. This mirrors {@link extractPrimaryArg}, which uses the wire kind
+ * via `resolveToolCategoryFromCall`. Falls back to name-based resolution when
+ * the kind is unset (legacy executions).
  */
 export function extractPrimaryArgFromPreview(
   toolName: string,
   argsPreview: string,
   mcpServerSlug?: string,
+  toolKind?: ToolKind,
 ): string | null {
   if (!argsPreview) return null;
 
@@ -238,7 +362,10 @@ export function extractPrimaryArgFromPreview(
     const parsed = JSON.parse(argsPreview);
     if (typeof parsed !== "object" || parsed === null) return null;
 
-    const info = resolveToolCategory(toolName, mcpServerSlug);
+    const info =
+      toolKind !== undefined
+        ? resolveToolCategoryFromKind(toolKind, toolName, mcpServerSlug)
+        : resolveToolCategory(toolName, mcpServerSlug);
     return extractArgValue(
       parsed as JsonObject,
       info.primaryArgField,

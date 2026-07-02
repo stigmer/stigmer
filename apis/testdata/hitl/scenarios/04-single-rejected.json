@@ -1,0 +1,27 @@
+{
+  "name": "single-rejected",
+  "description": "A rejected tool call (approval_action = REJECT) is no longer pending.",
+  "input": {
+    "messages": [
+      {
+        "type": "MESSAGE_AI",
+        "tool_calls": [
+          {
+            "id": "tc1",
+            "name": "execute_sql",
+            "status": "TOOL_CALL_WAITING_APPROVAL",
+            "requires_approval": true,
+            "approval_action": "APPROVAL_ACTION_REJECT",
+            "approval_message": "Approve execute_sql",
+            "args_preview": "{\"query\":\"DROP TABLE users\"}",
+            "approval_requested_at": "2026-03-27T10:00:00Z",
+            "approval_decided_at": "2026-03-27T10:03:00Z"
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "pending_approvals": []
+  }
+}

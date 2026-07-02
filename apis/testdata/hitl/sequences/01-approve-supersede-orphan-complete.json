@@ -1,0 +1,412 @@
+{
+  "name": "approve-supersede-orphan-complete",
+  "description": "The canonical adversarial run: a root call is approved, a second root call is superseded without a decision, a sub-agent goes terminal orphaning its gated call, then the execution completes. Equality holds after every write; the ledger ends with one APPROVED and two RETRACTED (one SUPERSEDED, one SUB_AGENT_TERMINAL).",
+  "execution_id": "exec-seq",
+  "steps": [
+    {
+      "name": "seed: root-1, root-2, and sub-1 all gated",
+      "description": "First touch seeds the stream from the scan: one REQUESTED per gated call.",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "root-1",
+                "name": "shell",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve shell",
+                "args_preview": "{\"command\":\"ls\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              },
+              {
+                "id": "root-2",
+                "name": "delete_file",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve delete_file",
+                "args_preview": "{\"path\":\"old.txt\"}",
+                "approval_requested_at": "2026-03-27T10:00:01Z"
+              }
+            ]
+          }
+        ],
+        "sub_agent_executions": [
+          {
+            "name": "worker",
+            "subject": "Apply database migration",
+            "status": "SUB_AGENT_IN_PROGRESS",
+            "messages": [
+              {
+                "type": "MESSAGE_AI",
+                "tool_calls": [
+                  {
+                    "id": "sub-1",
+                    "name": "write_file",
+                    "status": "TOOL_CALL_WAITING_APPROVAL",
+                    "requires_approval": true,
+                    "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                    "approval_message": "Approve write_file",
+                    "args_preview": "{\"path\":\"schema.sql\"}",
+                    "approval_requested_at": "2026-03-27T10:00:02Z"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "pending_approvals": [
+          {
+            "tool_call_id": "root-1",
+            "tool_name": "shell",
+            "message": "Approve shell",
+            "args_preview": "{\"command\":\"ls\"}",
+            "requested_at": "2026-03-27T10:00:00Z"
+          },
+          {
+            "tool_call_id": "root-2",
+            "tool_name": "delete_file",
+            "message": "Approve delete_file",
+            "args_preview": "{\"path\":\"old.txt\"}",
+            "requested_at": "2026-03-27T10:00:01Z"
+          },
+          {
+            "tool_call_id": "sub-1",
+            "tool_name": "write_file",
+            "message": "Approve write_file",
+            "args_preview": "{\"path\":\"schema.sql\"}",
+            "requested_at": "2026-03-27T10:00:02Z",
+            "from_sub_agent": true,
+            "sub_agent_name": "worker",
+            "sub_agent_subject": "Apply database migration"
+          }
+        ],
+        "stream_events": [
+          { "approval_request_id": "root-1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "root-2", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "sub-1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" }
+        ]
+      }
+    },
+    {
+      "name": "decide root-1 (approve)",
+      "description": "A SubmitApproval site: REQUESTED is ensured while root-1 is still gated, then the decision is recorded with decided_by + comment.",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "root-1",
+                "name": "shell",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve shell",
+                "args_preview": "{\"command\":\"ls\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z"
+              },
+              {
+                "id": "root-2",
+                "name": "delete_file",
+                "status": "TOOL_CALL_WAITING_APPROVAL",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve delete_file",
+                "args_preview": "{\"path\":\"old.txt\"}",
+                "approval_requested_at": "2026-03-27T10:00:01Z"
+              }
+            ]
+          }
+        ],
+        "sub_agent_executions": [
+          {
+            "name": "worker",
+            "subject": "Apply database migration",
+            "status": "SUB_AGENT_IN_PROGRESS",
+            "messages": [
+              {
+                "type": "MESSAGE_AI",
+                "tool_calls": [
+                  {
+                    "id": "sub-1",
+                    "name": "write_file",
+                    "status": "TOOL_CALL_WAITING_APPROVAL",
+                    "requires_approval": true,
+                    "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                    "approval_message": "Approve write_file",
+                    "args_preview": "{\"path\":\"schema.sql\"}",
+                    "approval_requested_at": "2026-03-27T10:00:02Z"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "decisions": [
+        {
+          "tool_call_id": "root-1",
+          "action": "APPROVAL_ACTION_APPROVE",
+          "decided_by": "alice",
+          "comment": "looks safe",
+          "decided_at": "2026-03-27T10:05:00Z"
+        }
+      ],
+      "expected": {
+        "pending_approvals": [
+          {
+            "tool_call_id": "root-2",
+            "tool_name": "delete_file",
+            "message": "Approve delete_file",
+            "args_preview": "{\"path\":\"old.txt\"}",
+            "requested_at": "2026-03-27T10:00:01Z"
+          },
+          {
+            "tool_call_id": "sub-1",
+            "tool_name": "write_file",
+            "message": "Approve write_file",
+            "args_preview": "{\"path\":\"schema.sql\"}",
+            "requested_at": "2026-03-27T10:00:02Z",
+            "from_sub_agent": true,
+            "sub_agent_name": "worker",
+            "sub_agent_subject": "Apply database migration"
+          }
+        ],
+        "stream_events": [
+          { "approval_request_id": "root-1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "root-2", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "sub-1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "root-1", "event_type": "APPROVAL_EVENT_TYPE_APPROVED" }
+        ]
+      }
+    },
+    {
+      "name": "supersede root-2 (no decision)",
+      "description": "root-1 has advanced post-approval; root-2's status advances off WAITING with no decision while the execution is live, so the reconciler retracts it (SUPERSEDED).",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "root-1",
+                "name": "shell",
+                "status": "TOOL_CALL_COMPLETED",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_APPROVE",
+                "approval_message": "Approve shell",
+                "args_preview": "{\"command\":\"ls\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z",
+                "approval_decided_at": "2026-03-27T10:05:00Z"
+              },
+              {
+                "id": "root-2",
+                "name": "delete_file",
+                "status": "TOOL_CALL_FAILED",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve delete_file",
+                "args_preview": "{\"path\":\"old.txt\"}",
+                "approval_requested_at": "2026-03-27T10:00:01Z"
+              }
+            ]
+          }
+        ],
+        "sub_agent_executions": [
+          {
+            "name": "worker",
+            "subject": "Apply database migration",
+            "status": "SUB_AGENT_IN_PROGRESS",
+            "messages": [
+              {
+                "type": "MESSAGE_AI",
+                "tool_calls": [
+                  {
+                    "id": "sub-1",
+                    "name": "write_file",
+                    "status": "TOOL_CALL_WAITING_APPROVAL",
+                    "requires_approval": true,
+                    "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                    "approval_message": "Approve write_file",
+                    "args_preview": "{\"path\":\"schema.sql\"}",
+                    "approval_requested_at": "2026-03-27T10:00:02Z"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "pending_approvals": [
+          {
+            "tool_call_id": "sub-1",
+            "tool_name": "write_file",
+            "message": "Approve write_file",
+            "args_preview": "{\"path\":\"schema.sql\"}",
+            "requested_at": "2026-03-27T10:00:02Z",
+            "from_sub_agent": true,
+            "sub_agent_name": "worker",
+            "sub_agent_subject": "Apply database migration"
+          }
+        ],
+        "stream_events": [
+          { "approval_request_id": "root-1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "root-2", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "sub-1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "root-1", "event_type": "APPROVAL_EVENT_TYPE_APPROVED" },
+          { "approval_request_id": "root-2", "event_type": "APPROVAL_EVENT_TYPE_RETRACTED", "reason": "APPROVAL_RETRACTION_REASON_SUPERSEDED" }
+        ]
+      }
+    },
+    {
+      "name": "sub-agent goes terminal with sub-1 undecided",
+      "description": "The worker sub-agent completes while sub-1 is still gated. The scan drops the orphan structurally; the reconciler authors the matching RETRACTED (SUB_AGENT_TERMINAL) so the event projection drops it too.",
+      "status": {
+        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "root-1",
+                "name": "shell",
+                "status": "TOOL_CALL_COMPLETED",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_APPROVE",
+                "approval_message": "Approve shell",
+                "args_preview": "{\"command\":\"ls\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z",
+                "approval_decided_at": "2026-03-27T10:05:00Z"
+              },
+              {
+                "id": "root-2",
+                "name": "delete_file",
+                "status": "TOOL_CALL_FAILED",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve delete_file",
+                "args_preview": "{\"path\":\"old.txt\"}",
+                "approval_requested_at": "2026-03-27T10:00:01Z"
+              }
+            ]
+          }
+        ],
+        "sub_agent_executions": [
+          {
+            "name": "worker",
+            "subject": "Apply database migration",
+            "status": "SUB_AGENT_COMPLETED",
+            "messages": [
+              {
+                "type": "MESSAGE_AI",
+                "tool_calls": [
+                  {
+                    "id": "sub-1",
+                    "name": "write_file",
+                    "status": "TOOL_CALL_WAITING_APPROVAL",
+                    "requires_approval": true,
+                    "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                    "approval_message": "Approve write_file",
+                    "args_preview": "{\"path\":\"schema.sql\"}",
+                    "approval_requested_at": "2026-03-27T10:00:02Z"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "pending_approvals": [],
+        "stream_events": [
+          { "approval_request_id": "root-1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "root-2", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "sub-1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "root-1", "event_type": "APPROVAL_EVENT_TYPE_APPROVED" },
+          { "approval_request_id": "root-2", "event_type": "APPROVAL_EVENT_TYPE_RETRACTED", "reason": "APPROVAL_RETRACTION_REASON_SUPERSEDED" },
+          { "approval_request_id": "sub-1", "event_type": "APPROVAL_EVENT_TYPE_RETRACTED", "reason": "APPROVAL_RETRACTION_REASON_SUB_AGENT_TERMINAL" }
+        ]
+      }
+    },
+    {
+      "name": "execution completes",
+      "description": "A terminal phase projects zero pending via the phase-aware seam and authors no further events (the reconciler short-circuits on terminal).",
+      "status": {
+        "phase": "EXECUTION_COMPLETED",
+        "messages": [
+          {
+            "type": "MESSAGE_AI",
+            "tool_calls": [
+              {
+                "id": "root-1",
+                "name": "shell",
+                "status": "TOOL_CALL_COMPLETED",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_APPROVE",
+                "approval_message": "Approve shell",
+                "args_preview": "{\"command\":\"ls\"}",
+                "approval_requested_at": "2026-03-27T10:00:00Z",
+                "approval_decided_at": "2026-03-27T10:05:00Z"
+              },
+              {
+                "id": "root-2",
+                "name": "delete_file",
+                "status": "TOOL_CALL_FAILED",
+                "requires_approval": true,
+                "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                "approval_message": "Approve delete_file",
+                "args_preview": "{\"path\":\"old.txt\"}",
+                "approval_requested_at": "2026-03-27T10:00:01Z"
+              }
+            ]
+          }
+        ],
+        "sub_agent_executions": [
+          {
+            "name": "worker",
+            "subject": "Apply database migration",
+            "status": "SUB_AGENT_COMPLETED",
+            "messages": [
+              {
+                "type": "MESSAGE_AI",
+                "tool_calls": [
+                  {
+                    "id": "sub-1",
+                    "name": "write_file",
+                    "status": "TOOL_CALL_WAITING_APPROVAL",
+                    "requires_approval": true,
+                    "approval_action": "APPROVAL_ACTION_UNSPECIFIED",
+                    "approval_message": "Approve write_file",
+                    "args_preview": "{\"path\":\"schema.sql\"}",
+                    "approval_requested_at": "2026-03-27T10:00:02Z"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "pending_approvals": [],
+        "stream_events": [
+          { "approval_request_id": "root-1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "root-2", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "sub-1", "event_type": "APPROVAL_EVENT_TYPE_REQUESTED" },
+          { "approval_request_id": "root-1", "event_type": "APPROVAL_EVENT_TYPE_APPROVED" },
+          { "approval_request_id": "root-2", "event_type": "APPROVAL_EVENT_TYPE_RETRACTED", "reason": "APPROVAL_RETRACTION_REASON_SUPERSEDED" },
+          { "approval_request_id": "sub-1", "event_type": "APPROVAL_EVENT_TYPE_RETRACTED", "reason": "APPROVAL_RETRACTION_REASON_SUB_AGENT_TERMINAL" }
+        ]
+      }
+    }
+  ]
+}

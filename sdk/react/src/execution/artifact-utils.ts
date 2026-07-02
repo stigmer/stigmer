@@ -80,24 +80,6 @@ export function isTextArtifact(artifact: ExecutionArtifact): boolean {
   return TEXT_EXTENSIONS.has(ext);
 }
 
-/**
- * Checks whether an artifact's pre-signed download URL has expired.
- *
- * Returns `true` when:
- * - `expiresAt` is empty or cannot be parsed as a valid date
- * - The current time is past the expiration timestamp
- *
- * Expired URLs can be refreshed via `stigmer.agentExecution.getArtifactDownloadUrl()`.
- */
-export function isArtifactExpired(artifact: ExecutionArtifact): boolean {
-  if (!artifact.expiresAt) return true;
-
-  const expiresMs = Date.parse(artifact.expiresAt);
-  if (Number.isNaN(expiresMs)) return true;
-
-  return Date.now() >= expiresMs;
-}
-
 // ---------------------------------------------------------------------------
 // Render mode classification
 // ---------------------------------------------------------------------------

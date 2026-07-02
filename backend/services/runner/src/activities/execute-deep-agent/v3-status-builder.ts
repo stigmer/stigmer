@@ -24,7 +24,7 @@ import {
   MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { type MergedToolPolicy, resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
+import { resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
@@ -36,6 +36,7 @@ import {
   UsageAccumulator,
   extractToolResultV3,
   sanitizeArgsPreview,
+  stampApprovalProvenance,
 } from "./status-builder-shared.js";
 import { SubAgentTracker } from "./subagent-tracker.js";
 
@@ -53,6 +54,15 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
   constructor(executionId: string, initialStatus: AgentExecutionStatus) {
     this.executionId = executionId;
     this.state = new ExecutionState(initialStatus);
+
+    // Resume path: when constructed from a persisted transcript (status seeded
+    // in index.ts on a durable-checkpoint resume), rebuild the tool-call index
+    // so resumed tool_started/tool_finished events reconcile to the existing
+    // calls instead of duplicating them. A first run carries no messages, so
+    // this is a no-op.
+    if (initialStatus.messages.length > 0) {
+      this.state.rebuildToolCallIndex();
+    }
 
     initialStatus.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
     if (!initialStatus.startedAt) {
@@ -244,6 +254,25 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     input: Record<string, unknown>,
     namespace: string,
   ): void {
+    // Resume reconciliation: the gated tool call already exists, seeded from the
+    // persisted transcript of a prior invocation (seedStatusFromExecution in
+    // index.ts). The durable checkpoint re-emits tool_started now that approval
+    // is granted — flip the existing call to RUNNING in place rather than
+    // appending a duplicate or re-triggering the approval gate. v3 keys by
+    // tool_call_id, so this is an exact match (no name heuristics needed).
+    const existing = this.state.toolCalls.get(callId);
+    if (existing) {
+      if (existing.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
+        existing.status = ToolCallStatus.TOOL_CALL_RUNNING;
+      }
+      if (Object.keys(input).length > 0 && !existing.args) {
+        existing.args = input as JsonObject;
+      }
+      this.state.toolStartTimes.set(callId, performance.now());
+      this._forceNextUpdate = true;
+      return;
+    }
+
     const agentNs = this.resolveAgentNamespace(namespace);
     const parentMsg = this.state.currentAiMessage.get(agentNs)
       ?? this.ensureAiMessageForToolCall(agentNs);
@@ -270,6 +299,11 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
 
     // Classify after mcpServerSlug is set so MCP tools resolve correctly.
     tc.toolKind = classifyTool(tc.name, tc.mcpServerSlug);
+
+    // Stamp authorization provenance in the same spot as tool_kind, for every
+    // observed tool call (gated or auto-approved). A gated call is re-seeded on
+    // reinvocation (index.ts) with the same source carried through the interrupt.
+    stampApprovalProvenance(tc, this.approvalProvider);
 
     if (approvalReq.requiresApproval) {
       tc.requiresApproval = true;
@@ -368,7 +402,7 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
 
     const serverSlug = this.approvalProvider.toolServerMap.get(toolName) ?? "";
 
-    if (this.approvalProvider.autoApproveAll) {
+    if (this.approvalProvider.globalBypass) {
       return { requiresApproval: false, message: "", serverSlug };
     }
 

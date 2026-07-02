@@ -1,0 +1,110 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { render, screen, act, waitFor, cleanup } from "@testing-library/react";
+import { ScenarEmbed } from "../scenar-embed";
+
+/**
+ * The docs `ScenarEmbed` is now a thin slug → URL adapter over `@scenar/embed`'s
+ * official React component, so these tests cover only what this wrapper owns: the
+ * id → published-URL mapping, the a11y title, host-theme sync, and the responsive
+ * box. The strict postMessage validation, resize-to-fit, and multi-instance
+ * isolation are covered by `@scenar/embed`'s own suite.
+ */
+function getIframe(): HTMLIFrameElement {
+  return screen.getByTitle("Authentication flow walkthrough") as HTMLIFrameElement;
+}
+
+beforeEach(() => {
+  document.documentElement.className = "";
+});
+
+afterEach(() => {
+  cleanup();
+});
+
+describe("ScenarEmbed", () => {
+  it("frames the published tour by id with a themed src (dark)", () => {
+    document.documentElement.classList.add("dark");
+    render(
+      <ScenarEmbed
+        id="authentication-flow-playback"
+        title="Authentication flow walkthrough"
+      />,
+    );
+
+    expect(getIframe().getAttribute("src")).toBe(
+      "https://stigmer.github.io/stigmer-demos/authentication-flow-playback/?theme=dark",
+    );
+  });
+
+  it("syncs the theme to the light docs theme", () => {
+    render(
+      <ScenarEmbed
+        id="authentication-flow-playback"
+        title="Authentication flow walkthrough"
+      />,
+    );
+
+    expect(getIframe().getAttribute("src")).toBe(
+      "https://stigmer.github.io/stigmer-demos/authentication-flow-playback/?theme=light",
+    );
+  });
+
+  it("reacts to a live theme toggle on <html>", async () => {
+    render(
+      <ScenarEmbed
+        id="authentication-flow-playback"
+        title="Authentication flow walkthrough"
+      />,
+    );
+    expect(getIframe().getAttribute("src")).toContain("?theme=light");
+
+    act(() => {
+      document.documentElement.classList.add("dark");
+    });
+    await waitFor(() =>
+      expect(getIframe().getAttribute("src")).toContain("?theme=dark"),
+    );
+
+    act(() => {
+      document.documentElement.classList.remove("dark");
+    });
+    await waitFor(() =>
+      expect(getIframe().getAttribute("src")).toContain("?theme=light"),
+    );
+  });
+
+  it("sets accessibility, lazy-loading, and fullscreen attributes", () => {
+    render(
+      <ScenarEmbed
+        id="authentication-flow-playback"
+        title="Authentication flow walkthrough"
+      />,
+    );
+
+    const iframe = getIframe();
+    expect(iframe.getAttribute("loading")).toBe("lazy");
+    expect(iframe.getAttribute("allow")).toBe("autoplay; fullscreen");
+    expect(iframe.hasAttribute("allowfullscreen")).toBe(true);
+    expect(iframe.getAttribute("title")).toBe("Authentication flow walkthrough");
+  });
+
+  it("falls back to a generic accessible title", () => {
+    render(<ScenarEmbed id="authentication-flow-playback" />);
+    expect(screen.getByTitle("Interactive product tour")).toBeTruthy();
+  });
+
+  it("renders inside the responsive docs box with the recorded aspect-ratio baseline", () => {
+    render(
+      <ScenarEmbed
+        id="authentication-flow-playback"
+        title="Authentication flow walkthrough"
+      />,
+    );
+
+    const wrapper = getIframe().parentElement as HTMLElement;
+    expect(wrapper.className).toContain("not-prose");
+    expect(wrapper.className).toContain("mx-auto");
+    expect(wrapper.className).toContain("max-w-4xl");
+    expect(wrapper.style.aspectRatio).toBe("896 / 480");
+  });
+});

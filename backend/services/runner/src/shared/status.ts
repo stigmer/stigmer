@@ -21,6 +21,7 @@ import {
 import type { StigmerClient } from "../client/stigmer-client.js";
 import {
   offloadOversizedToolOutputs,
+  offloadCandidateChangesToFit,
   enforceStatusSizeLimit,
   STATUS_PAYLOAD_HARD_LIMIT_BYTES,
   type ToolOutputOffloadContext,
@@ -111,6 +112,18 @@ export async function persistStatus(
       await offloadOversizedToolOutputs(status, offload);
     } catch (err) {
       console.warn(`[persistStatus] ${executionId}: tool-output offload failed (non-fatal): ${err}`);
+    }
+    // File-review ledger: if the status still exceeds the soft cap after per-item
+    // offload, offload the largest still-inline captured bodies to retrievable
+    // refs so those files stay REVIEWABLE (lazily fetched) instead of being
+    // dropped by the backstop below. Guarded on the presence of file-review
+    // events so an ordinary (non-review) turn pays nothing. Non-fatal.
+    if (status.fileReviewEventStream?.events?.length) {
+      try {
+        await offloadCandidateChangesToFit(status, offload);
+      } catch (err) {
+        console.warn(`[persistStatus] ${executionId}: file-review offload-to-fit failed (non-fatal): ${err}`);
+      }
     }
   }
   if (enforceStatusSizeLimit(status)) {

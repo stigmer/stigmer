@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useState } from "react";
+import { memo, useContext, useMemo } from "react";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -9,10 +9,13 @@ import {
   SubAgentStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useRenderTracer } from "../internal/dev";
+import { useAutoDisclosure } from "../internal/useAutoDisclosure";
+import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince";
 import { cn } from "@stigmer/theme";
 import { formatDuration } from "./ToolCallDetail";
 import { MessageEntry } from "./MessageEntry";
 import { ToolCallGroup } from "./ToolCallGroup";
+import { ApprovalContext } from "./ApprovalContext";
 import { isInternalTool } from "./tool-categories";
 import { useThreadSelection } from "./useThreadSelection";
 import {
@@ -144,16 +147,32 @@ function CollapsibleCard({
   selection,
   className,
 }: CollapsibleCardProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  const handleToggle = () => {
-    setExpanded((v) => !v);
-  };
-
   const hasTodos =
     sub.todos != null && Object.keys(sub.todos).length > 0;
   const isRunning = sub.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS;
   const isCompleted = sub.status === SubAgentStatus.SUB_AGENT_COMPLETED;
+
+  // A gate raised inside this sub-agent must be reachable: a delegated tool
+  // can stop the run just like a top-level one. We detect one of this
+  // sub-agent's tool calls awaiting approval and auto-open so its inline
+  // approval (rendered by the nested ToolCallItem) is visible without a click.
+  const { approvalsByToolCallId } = useContext(ApprovalContext);
+  const hasPendingApprovalInside = useMemo(() => {
+    if (approvalsByToolCallId.size === 0) return false;
+    for (const msg of sub.messages) {
+      if (msg.type !== MessageType.MESSAGE_AI) continue;
+      for (const tc of msg.toolCalls) {
+        if (tc.id && approvalsByToolCallId.has(tc.id)) return true;
+      }
+    }
+    return false;
+  }, [sub.messages, approvalsByToolCallId]);
+
+  // Open while running or while a nested gate waits; settle closed (keeping the
+  // todo/summary preview) when done — unless the user takes manual control.
+  const [expanded, handleToggle] = useAutoDisclosure(
+    isRunning || hasPendingApprovalInside,
+  );
 
   const activeTodo = useMemo(() => findActiveTodo(sub.todos), [sub.todos]);
   const completionLabel = useMemo(
@@ -207,10 +226,14 @@ function CollapsibleCard({
         >
           {statusInfo.label}
         </span>
-        {duration && (
-          <span className="shrink-0 tabular-nums text-muted-foreground">
-            {duration}
-          </span>
+        {isRunning ? (
+          <RunningDuration startedAt={sub.startedAt} />
+        ) : (
+          duration && (
+            <span className="shrink-0 tabular-nums text-muted-foreground">
+              {duration}
+            </span>
+          )
         )}
         {selection && (
           <button
@@ -268,6 +291,30 @@ function CollapsibleCard({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Ticking elapsed time for an IN_PROGRESS sub-agent's header, where the
+ * static duration (which needs `completedAt`) is still null.
+ *
+ * This is the honest live affordance for a running sub-agent: the Cursor
+ * SDK returns sub-agent internals only as a blob when the task tool
+ * completes (verified against SDK 1.0.13 and 1.0.22 — zero events reach the
+ * parent stream while the sub-agent runs), so there are no nested tool calls
+ * to stream here. A counter that visibly advances tells the user work is
+ * progressing without fabricating intermediate state. The native harness
+ * streams nested messages as they happen; this counter simply accompanies
+ * them.
+ */
+function RunningDuration({ startedAt }: { readonly startedAt: string }) {
+  const elapsed = useElapsedSince(startedAt);
+  if (elapsed === null) return null;
+
+  return (
+    <span className="shrink-0 tabular-nums text-muted-foreground">
+      {formatElapsed(elapsed)}
+    </span>
   );
 }
 

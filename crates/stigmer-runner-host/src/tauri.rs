@@ -23,15 +23,23 @@ impl RunnerState {
         }
     }
 
-    /// Gracefully stop the runner (IPC shutdown, then force-kill on timeout). Exposed on the
-    /// state so a host's app-exit handler can reap the runner without reaching into the private
-    /// `host` field — e.g. `RunEvent::Exit` in a Tauri app (issue #177). Errors are swallowed:
-    /// an exit-path reap is best-effort and has nowhere to surface a failure.
+    /// Gracefully stop the runner: send the IPC shutdown, wait (bounded) for it to drain, then
+    /// force-kill if it does not exit in time. Use this for an explicit in-app stop while the
+    /// event loop is healthy (e.g. a "stop runner" command), where the bounded wait can actually
+    /// elapse. Errors are swallowed: a best-effort stop has nowhere to surface one.
+    ///
+    /// Do NOT use `stop()` as an app-exit reaper. Its bounded wait relies on the tokio time
+    /// driver, which is no longer pumped at `RunEvent::Exit`; combined with a mid-execution runner
+    /// that never acks the shutdown, a `block_on(stop())` there parks forever (issue #178). Reap
+    /// on exit with [`RunnerState::kill`].
     pub async fn stop(&self) {
         let _ = self.host.stop().await;
     }
 
-    /// Force-kill the runner immediately. Idempotent; safe to call on any exit path.
+    /// Force-kill the runner immediately (synchronous SIGKILL, then reap) and drop the handle.
+    /// Idempotent and timer-free, so it is the correct reaper for an app-exit handler — e.g.
+    /// `tauri::async_runtime::block_on(state.kill())` in a `RunEvent::Exit` arm — where `stop()`
+    /// would hang (issue #178). Safe to call on any exit path.
     pub async fn kill(&self) {
         self.host.kill().await;
     }

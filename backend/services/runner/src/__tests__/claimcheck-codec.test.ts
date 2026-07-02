@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { ClaimcheckPayloadCodec } from "../claimcheck/payload-codec.js";
 import { compress } from "../claimcheck/compressor.js";
 import type { ClaimcheckConfig } from "../claimcheck/config.js";
-import type { ArtifactStorage } from "../shared/artifact-storage.js";
+import { makeInMemoryArtifactStorage } from "../__test-utils__/fake-artifact-storage.js";
 import type { Payload } from "@temporalio/common";
 
 function makeConfig(overrides: Partial<ClaimcheckConfig> = {}): ClaimcheckConfig {
@@ -15,23 +15,12 @@ function makeConfig(overrides: Partial<ClaimcheckConfig> = {}): ClaimcheckConfig
   };
 }
 
-function makeStorage(): ArtifactStorage & {
-  uploads: Map<string, Buffer>;
-} {
-  const uploads = new Map<string, Buffer>();
-  return {
-    uploads,
-    async upload(key: string, content: Buffer) {
-      uploads.set(key, content);
-      return key;
-    },
-    async getDownloadUrl(key: string) {
-      return `mock://storage/${key}`;
-    },
-    async exists(key: string) {
-      return uploads.has(key);
-    },
-  };
+function makeStorage() {
+  // The canonical in-memory double; `uploads` aliases its backing Map so the
+  // existing `storage.uploads.*` assertions keep working, and `download` reads
+  // straight from what `encode` uploaded (no fetch to stub).
+  const { storage, blobs } = makeInMemoryArtifactStorage();
+  return Object.assign(storage, { uploads: blobs });
 }
 
 function makePayload(data: string | Buffer): Payload {
@@ -158,21 +147,9 @@ describe("ClaimcheckPayloadCodec", () => {
       const original = makeLargePayload(2048);
       const [encoded] = await codec.encode([original]);
 
-      const marker = JSON.parse(Buffer.from(encoded.data!).toString());
-      const storedData = storage.uploads.get(marker.key)!;
-
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-        ok: true,
-        arrayBuffer: () => Promise.resolve(storedData.buffer.slice(
-          storedData.byteOffset,
-          storedData.byteOffset + storedData.byteLength,
-        )),
-      }));
-
+      // decode reads back through storage.download from what encode uploaded.
       const [decoded] = await codec.decode([encoded]);
       expect(Buffer.from(decoded.data!)).toEqual(original.data);
-
-      vi.unstubAllGlobals();
     });
 
     it("retrieves uncompressed payloads correctly", async () => {
@@ -184,24 +161,11 @@ describe("ClaimcheckPayloadCodec", () => {
       const original = makeLargePayload(1500);
       const [encoded] = await codec.encode([original]);
 
-      const marker = JSON.parse(Buffer.from(encoded.data!).toString());
-      const storedData = storage.uploads.get(marker.key)!;
-
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-        ok: true,
-        arrayBuffer: () => Promise.resolve(storedData.buffer.slice(
-          storedData.byteOffset,
-          storedData.byteOffset + storedData.byteLength,
-        )),
-      }));
-
       const [decoded] = await codec.decode([encoded]);
       expect(Buffer.from(decoded.data!)).toEqual(original.data);
-
-      vi.unstubAllGlobals();
     });
 
-    it("throws on download failure", async () => {
+    it("wraps a download failure with the claimcheck error contract", async () => {
       const encoded: Payload = {
         metadata: { encoding: Buffer.from("binary/claimcheck") },
         data: Buffer.from(JSON.stringify({
@@ -211,16 +175,15 @@ describe("ClaimcheckPayloadCodec", () => {
         })),
       };
 
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-        ok: false,
-        status: 404,
-      }));
-
-      await expect(codec.decode([encoded])).rejects.toThrow(
-        /Claimcheck retrieve failed.*HTTP 404/,
+      // Drive the failure through the port; the proxy download surfaces the HTTP
+      // status, which the codec must preserve in its wrapped, key-scoped message.
+      storage.download.mockRejectedValueOnce(
+        new Error("Artifact download failed (HTTP 404) for key 'claimcheck/missing'"),
       );
 
-      vi.unstubAllGlobals();
+      await expect(codec.decode([encoded])).rejects.toThrow(
+        /Claimcheck retrieve failed for key claimcheck\/missing.*HTTP 404/,
+      );
     });
   });
 

@@ -7,6 +7,7 @@ import (
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
 	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"go.temporal.io/api/enums/v1"
@@ -130,6 +131,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 
 // MaxApprovalCycles is the maximum number of approval iterations to prevent infinite loops.
 const MaxApprovalCycles = 100
+
+// MaxZeroGateCycles bounds how many consecutive HITL cycles the workflow
+// tolerates with phase=WAITING_FOR_APPROVAL but the unified gate already empty
+// (no pending approvals AND no change set awaiting review). Once the
+// runner<->backend finalize contract holds this state is unreachable, but if it
+// ever occurs the workflow must fail fast rather than tight-loop the full agent
+// activity up to MaxApprovalCycles (the production "RUNNING<->WAITING" churn). A
+// small tolerance absorbs a transient read race between the runner's
+// WAITING_FOR_APPROVAL persist and the workflow's DB read.
+const MaxZeroGateCycles = 3
 
 // MaxPauseCycles is the maximum number of pause/resume cycles to prevent infinite loops.
 const MaxPauseCycles = 100
@@ -261,7 +272,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentFlow(ctx workflow.Con
 
 		// Execute the agent with HITL approval loop (uses cancellable context)
 		finalResult, err = w.executeDeepAgentWithHitl(
-			activityCtx, activityTaskQueue, executionID, threadID,
+			activityCtx, activityTaskQueue, executionID, threadID, input.InvokerIdentityAccountID,
 		)
 
 		if err != nil && pauseRequested {
@@ -363,12 +374,18 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 	activityTaskQueue string,
 	executionID string,
 	threadID string,
+	invokerIdentityAccountID string,
 ) (activities.RunnerActivityResult, error) {
 	logger := workflow.GetLogger(ctx)
 
 	executeDeepAgentActivity := activities.NewExecuteDeepAgentActivityStub(ctx, activityTaskQueue)
 
-	finalResult, err := executeDeepAgentActivity.ExecuteDeepAgent(executionID, threadID)
+	finalResult, err := executeDeepAgentActivity.ExecuteDeepAgent(activities.ExecuteDeepAgentActivityInput{
+		ExecutionID:              executionID,
+		ThreadID:                 threadID,
+		InvokerIdentityAccountID: invokerIdentityAccountID,
+		TurnSeq:                  0,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -385,6 +402,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 		"phase_value", int32(finalPhase))
 
 	approvalCycle := 0
+	zeroGateCycles := 0
 	for finalPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
 		if approvalCycle > MaxApprovalCycles {
@@ -400,27 +418,55 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 				"execution_id", executionID, "error", err.Error())
 		}
 
+		// The HITL gate is unified: count pending approvals AND change sets
+		// awaiting review. A turn blocked purely on file review (zero pending
+		// approvals) must still wait for, and resume from, the same signal.
 		dbExecution, loadErr := w.loadExecution(ctx, executionID)
-		pendingCount := 0
+		gateCount := 0
 		if loadErr != nil {
-			logger.Warn("Failed to load execution from DB for pending count (non-fatal, will wait for signal)",
+			logger.Warn("Failed to load execution from DB for gate count (non-fatal, will wait for signal)",
 				"execution_id", executionID, "error", loadErr.Error())
-			pendingCount = 1
+			gateCount = 1
 		} else {
-			pendingCount = len(dbExecution.GetStatus().GetPendingApprovals())
+			gateCount = filereview.UnresolvedGateCount(dbExecution.GetStatus())
 		}
 
-		logger.Info("Execution waiting for approval — waiting for approvalGateResolved signal",
+		logger.Info("Execution waiting at HITL gate — waiting for approvalGateResolved signal",
 			"execution_id", executionID,
 			"cycle", approvalCycle,
-			"pending_count", pendingCount)
+			"gate_count", gateCount)
 
-		if pendingCount == 0 {
-			logger.Warn("pending_approvals is empty but phase is WAITING_FOR_APPROVAL — "+
-				"re-invoking immediately to resolve inconsistency",
-				"execution_id", executionID,
-				"cycle", approvalCycle)
+		if gateCount == 0 {
+			if loadErr == nil && filereview.HasDecidedAwaitingReconcile(dbExecution.GetStatus()) {
+				// LEGITIMATE empty gate: a change set was decided before this check
+				// — the DD-28 approved-command auto-keep authors its decision in the
+				// same write that folds the candidate (and a fast human decision can
+				// race the check the same way). The runner is owed a reconcile;
+				// re-invoke immediately without waiting for a signal that already
+				// fired or will never come.
+				zeroGateCycles = 0
+				logger.Info("HITL gate resolved before wait (policy auto-keep or early decision) — re-invoking to reconcile",
+					"execution_id", executionID, "cycle", approvalCycle)
+			} else {
+				// WAITING_FOR_APPROVAL with an empty unified gate and NOTHING owed a
+				// reconcile is an inconsistency the finalize contract should make
+				// impossible. Tolerate a few consecutive occurrences (transient read
+				// race) then fail fast, rather than tight-looping the full activity
+				// to MaxApprovalCycles.
+				zeroGateCycles++
+				if zeroGateCycles > MaxZeroGateCycles {
+					logger.Error("WAITING_FOR_APPROVAL with empty HITL gate across consecutive cycles — failing fast to avoid a tight re-invocation loop",
+						"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
+					return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with an empty HITL gate after %d consecutive cycles - gate propagation is broken", zeroGateCycles)
+				}
+				logger.Warn("HITL gate is empty but phase is WAITING_FOR_APPROVAL — "+
+					"re-invoking (bounded) to resolve inconsistency",
+					"execution_id", executionID,
+					"cycle", approvalCycle,
+					"zero_gate_cycles", zeroGateCycles)
+			}
 		} else {
+			zeroGateCycles = 0
 			signalChan := workflow.GetSignalChannel(ctx, SignalApprovalGateResolved)
 			signalChan.Receive(ctx, nil)
 
@@ -429,11 +475,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeDeepAgentWithHitl(
 				"cycle", approvalCycle)
 		}
 
-		logger.Info("Re-invoking deep agent after approval gate resolved",
+		logger.Info("Re-invoking deep agent after HITL gate resolved",
 			"execution_id", executionID,
 			"cycle", approvalCycle)
 
-		finalResult, err = executeDeepAgentActivity.ExecuteDeepAgent(executionID, threadID)
+		finalResult, err = executeDeepAgentActivity.ExecuteDeepAgent(activities.ExecuteDeepAgentActivityInput{
+			ExecutionID:              executionID,
+			ThreadID:                 threadID,
+			InvokerIdentityAccountID: invokerIdentityAccountID,
+			TurnSeq:                  int64(approvalCycle),
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -504,7 +555,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 			cancelActivity()
 		})
 
-		cursorResult, err := w.executeCursorWithHitl(activityCtx, activityTaskQueue, executionID, sessionID)
+		cursorResult, err := w.executeCursorWithHitl(activityCtx, activityTaskQueue, executionID, sessionID, input.InvokerIdentityAccountID)
 
 		if err != nil && pauseRequested {
 			pauseCycle++
@@ -594,6 +645,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 	activityTaskQueue string,
 	executionID string,
 	sessionID string,
+	invokerIdentityAccountID string,
 ) (activities.RunnerActivityResult, error) {
 	logger := workflow.GetLogger(ctx)
 
@@ -606,7 +658,12 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 
 	executeCursorActivity := activities.NewExecuteCursorActivityStub(ctx, activityTaskQueue)
 
-	finalResult, err := executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
+	finalResult, err := executeCursorActivity.ExecuteCursor(activities.ExecuteCursorActivityInput{
+		ExecutionID:              executionID,
+		ThreadID:                 harnessStateID,
+		InvokerIdentityAccountID: invokerIdentityAccountID,
+		TurnSeq:                  0,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -621,6 +678,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 		"phase", finalPhase.String())
 
 	approvalCycle := 0
+	zeroGateCycles := 0
 	for finalPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
 		if approvalCycle > MaxApprovalCycles {
@@ -635,23 +693,50 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 				"execution_id", executionID, "error", err.Error())
 		}
 
+		// The HITL gate is unified: count pending approvals AND change sets
+		// awaiting review. A turn blocked purely on file review (zero pending
+		// approvals) must still wait for, and resume from, the same signal.
 		dbExecution, loadErr := w.loadExecution(ctx, executionID)
-		pendingCount := 0
+		gateCount := 0
 		if loadErr != nil {
-			logger.Warn("Failed to load execution for pending count (non-fatal)",
+			logger.Warn("Failed to load execution for gate count (non-fatal)",
 				"execution_id", executionID, "error", loadErr.Error())
-			pendingCount = 1
+			gateCount = 1
 		} else {
-			pendingCount = len(dbExecution.GetStatus().GetPendingApprovals())
+			gateCount = filereview.UnresolvedGateCount(dbExecution.GetStatus())
 		}
 
-		logger.Info("Cursor execution waiting for approval",
-			"execution_id", executionID, "cycle", approvalCycle, "pending_count", pendingCount)
+		logger.Info("Cursor execution waiting at HITL gate",
+			"execution_id", executionID, "cycle", approvalCycle, "gate_count", gateCount)
 
-		if pendingCount == 0 {
-			logger.Warn("pending_approvals empty but phase is WAITING_FOR_APPROVAL — re-invoking immediately",
-				"execution_id", executionID, "cycle", approvalCycle)
+		if gateCount == 0 {
+			if loadErr == nil && filereview.HasDecidedAwaitingReconcile(dbExecution.GetStatus()) {
+				// LEGITIMATE empty gate: a change set was decided before this check
+				// — the DD-28 approved-command auto-keep authors its decision in the
+				// same write that folds the candidate (and a fast human decision can
+				// race the check the same way). The runner is owed a reconcile;
+				// re-invoke immediately without waiting for a signal that already
+				// fired or will never come.
+				zeroGateCycles = 0
+				logger.Info("HITL gate resolved before wait (policy auto-keep or early decision) — re-invoking to reconcile",
+					"execution_id", executionID, "cycle", approvalCycle)
+			} else {
+				// WAITING_FOR_APPROVAL with an empty unified gate and NOTHING owed a
+				// reconcile is an inconsistency the finalize contract should make
+				// impossible. Tolerate a few consecutive occurrences (transient read
+				// race) then fail fast, rather than tight-looping the full activity
+				// to MaxApprovalCycles.
+				zeroGateCycles++
+				if zeroGateCycles > MaxZeroGateCycles {
+					logger.Error("WAITING_FOR_APPROVAL with empty HITL gate across consecutive cycles — failing fast to avoid a tight re-invocation loop",
+						"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
+					return nil, fmt.Errorf("execution stuck in WAITING_FOR_APPROVAL with an empty HITL gate after %d consecutive cycles - gate propagation is broken", zeroGateCycles)
+				}
+				logger.Warn("HITL gate empty but phase is WAITING_FOR_APPROVAL — re-invoking (bounded)",
+					"execution_id", executionID, "cycle", approvalCycle, "zero_gate_cycles", zeroGateCycles)
+			}
 		} else {
+			zeroGateCycles = 0
 			signalChan := workflow.GetSignalChannel(ctx, SignalApprovalGateResolved)
 			signalChan.Receive(ctx, nil)
 			logger.Info("Received approvalGateResolved signal",
@@ -666,7 +751,12 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
 		logger.Info("Re-invoking Cursor after approval", "execution_id", executionID,
 			"cycle", approvalCycle, "harness_state_id", harnessStateID)
 
-		finalResult, err = executeCursorActivity.ExecuteCursor(executionID, harnessStateID)
+		finalResult, err = executeCursorActivity.ExecuteCursor(activities.ExecuteCursorActivityInput{
+			ExecutionID:              executionID,
+			ThreadID:                 harnessStateID,
+			InvokerIdentityAccountID: invokerIdentityAccountID,
+			TurnSeq:                  int64(approvalCycle),
+		})
 		if err != nil {
 			return nil, err
 		}

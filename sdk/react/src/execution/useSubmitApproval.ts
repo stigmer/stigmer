@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
+import { useKeyedSubmission } from "../internal/useKeyedSubmission";
 
 /** Return value of {@link useSubmitApproval}. */
 export interface UseSubmitApprovalReturn {
@@ -26,9 +27,24 @@ export interface UseSubmitApprovalReturn {
    * approve one tool while another decision is still in flight.
    */
   readonly submittingToolCallIds: ReadonlySet<string>;
-  /** Error from the last failed approval submission, or `null` when healthy. */
+  /**
+   * Per-tool-call failures, keyed by `toolCallId` exactly like
+   * {@link submittingToolCallIds}. This is the per-target parallel of the
+   * in-flight Set: a thread can hold many simultaneous gates (one per inline
+   * tool row, plus the bottom backstop), so a failure must be attributable to
+   * the *one* gate that failed — a single scalar cannot say which. {@link
+   * ApprovalCard} / {@link ApprovalCardBody} consume this (threaded via
+   * {@link ApprovalContext}) to render the error in-card, beside the failed gate.
+   */
+  readonly errorsByToolCallId: ReadonlyMap<string, Error>;
+  /**
+   * Error from the last failed approval submission, or `null` when healthy — a
+   * convenience mirror of {@link errorsByToolCallId} for a headless consumer
+   * that wants a single error value (e.g. a banner, or the `ink` surface). The
+   * map is authoritative for per-gate surfacing.
+   */
   readonly error: Error | null;
-  /** Reset `error` to `null`. */
+  /** Reset every approval error (both {@link errorsByToolCallId} and {@link error}). */
   readonly clearError: () => void;
 }
 
@@ -54,12 +70,16 @@ export interface UseSubmitApprovalReturn {
  */
 export function useSubmitApproval(): UseSubmitApprovalReturn {
   const stigmer = useStigmer();
-  const [submittingIds, setSubmittingIds] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
+  // Per-gate in-flight + error state, keyed by tool-call id, lives in the
+  // shared keyed-submission primitive. The scalar `error` below is a thin
+  // mirror kept in lockstep for headless / ink consumers.
+  const keyed = useKeyedSubmission<void>();
   const [error, setError] = useState<Error | null>(null);
 
-  const clearError = useCallback(() => setError(null), []);
+  const clearError = useCallback(() => {
+    keyed.clearErrors();
+    setError(null);
+  }, [keyed.clearErrors]);
 
   const submitApproval = useCallback(
     async (
@@ -68,34 +88,36 @@ export function useSubmitApproval(): UseSubmitApprovalReturn {
       action: ApprovalAction,
       comment?: string,
     ): Promise<void> => {
-      setSubmittingIds((prev) => {
-        const next = new Set(prev);
-        next.add(toolCallId);
-        return next;
-      });
+      // Clear the scalar mirror at submit-start; `keyed.run` clears this gate's
+      // keyed entry, so the map and `error` are updated together and never drift.
       setError(null);
-
       try {
-        const input = create(SubmitApprovalInputSchema, {
-          agentExecutionId: executionId,
-          toolCallId,
-          action,
-          comment: comment ?? "",
+        await keyed.run(toolCallId, async () => {
+          await stigmer.agentExecution.submitApproval(
+            create(SubmitApprovalInputSchema, {
+              agentExecutionId: executionId,
+              toolCallId,
+              action,
+              comment: comment ?? "",
+            }),
+          );
         });
-        await stigmer.agentExecution.submitApproval(input);
       } catch (err) {
         setError(toError(err));
         throw err;
-      } finally {
-        setSubmittingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(toolCallId);
-          return next;
-        });
       }
     },
-    [stigmer],
+    [stigmer, keyed.run],
   );
 
-  return { submitApproval, submittingToolCallIds: submittingIds, error, clearError };
+  return useMemo(
+    () => ({
+      submitApproval,
+      submittingToolCallIds: keyed.submittingKeys,
+      errorsByToolCallId: keyed.errorsByKey,
+      error,
+      clearError,
+    }),
+    [submitApproval, keyed.submittingKeys, keyed.errorsByKey, error, clearError],
+  );
 }

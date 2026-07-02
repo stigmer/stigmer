@@ -88,8 +88,8 @@
       "slug": "execution",
       "title": "Execution",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
-      "hooks": 10,
-      "components": 23
+      "hooks": 17,
+      "components": 29
     },
     {
       "slug": "file-reference",
@@ -200,7 +200,7 @@
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
-      "hooks": 16,
+      "hooks": 17,
       "components": 3
     },
     {
@@ -243,7 +243,7 @@
       "title": "Workflow",
       "description": "Hooks and components for workflow definitions, instances, executions, and the visual builder.",
       "hooks": 31,
-      "components": 14
+      "components": 15
     },
     {
       "slug": "workspace",

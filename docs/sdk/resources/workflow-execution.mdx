@@ -71,6 +71,7 @@ WorkflowExecution workflowExecution = client.workflowExecutions().get("wex_01j5q
 | [`terminate`](#terminate) | Terminate a workflow execution immediately. | |
 | [`recover`](#recover) | Recover a failed workflow execution. | |
 | [`submitApproval`](#submitapproval) | Submit an approval decision for a child agent's tool execution. | |
+| [`submitFileDecision`](#submitfiledecision) | Submit a keep/discard decision for a child agent's file review. | |
 | [`submitWorkflowTaskApproval`](#submitworkflowtaskapproval) | Submit a human reviewer's decision for a workflow-level human_input task. | |
 | [`sendSignal`](#sendsignal) | Send a signal to a running workflow execution. | |
 | [`subscribeEvents`](#subscribeevents) | Subscribe to real-time execution events (incremental event stream). | Server |
@@ -613,16 +614,20 @@ const workflowExecution = await stigmer.workflowExecution.updateStatus({
   status: {},
   events: [],
   updatePendingApprovals: false,
+  updatePendingFileReviews: false,
+  pendingUpdateChildAgentExecutionId: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 workflowExecution, err := client.WorkflowExecution.UpdateStatus(ctx, &stigmer.WorkflowExecutionUpdateStatusInput{
-  ExecutionId:            "...",
-  Status:                 &stigmer.WorkflowExecutionStatusInput{},
-  Events:                 []stigmer.WorkflowExecutionEventInput{},
-  UpdatePendingApprovals: false,
+  ExecutionId:                        "...",
+  Status:                             &stigmer.WorkflowExecutionStatusInput{},
+  Events:                             []stigmer.WorkflowExecutionEventInput{},
+  UpdatePendingApprovals:             false,
+  UpdatePendingFileReviews:           false,
+  PendingUpdateChildAgentExecutionId: "...",
 })
 ```
 </Tab>
@@ -633,6 +638,8 @@ workflow_execution = client.workflow_executions.update_status(WorkflowExecutionU
     status=None,
     events=[],
     update_pending_approvals=False,
+    update_pending_file_reviews=False,
+    pending_update_child_agent_execution_id="...",
 ))
 ```
 </Tab>
@@ -643,6 +650,8 @@ WorkflowExecution workflowExecution = client.workflowExecutions().updateStatus(W
     .status(null)
     .events(List.of())
     .updatePendingApprovals(false)
+    .updatePendingFileReviews(false)
+    .pendingUpdateChildAgentExecutionId("...")
     .build());
 ```
 </Tab>
@@ -963,6 +972,79 @@ WorkflowExecution workflowExecution = client.workflowExecutions().submitApproval
 
 **Returns**: [`WorkflowExecution`](#workflowexecution)
 
+### submitFileDecision
+
+Submit a keep/discard decision for a child agent's file review.
+
+Forwards the decision to the child AgentExecution whose file-review gate is surfaced on this workflow via status.pending_file_reviews. This is the file-review sibling of submitApproval: submitApproval forwards a tool-call approval, submitFileDecision forwards a FileChangeSet keep/discard.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.submitFileDecision({
+  executionId: "...",
+  childAgentExecutionId: "...",
+  changeSetId: "...",
+  scope: "...",
+  fileChangeId: "...",
+  action: "...",
+  expectedDigest: "...",
+  reason: "...",
+  acknowledgeUnreviewable: false,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.SubmitFileDecision(ctx, &stigmer.SubmitWorkflowFileDecisionInput{
+  ExecutionId:             "...",
+  ChildAgentExecutionId:   "...",
+  ChangeSetId:             "...",
+  Scope:                   "...",
+  FileChangeId:            "...",
+  Action:                  "...",
+  ExpectedDigest:          "...",
+  Reason:                  "...",
+  AcknowledgeUnreviewable: false,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow_execution = client.workflow_executions.submit_file_decision(SubmitWorkflowFileDecisionInput(
+    execution_id="...",
+    child_agent_execution_id="...",
+    change_set_id="...",
+    scope="...",
+    file_change_id="...",
+    action="...",
+    expected_digest="...",
+    reason="...",
+    acknowledge_unreviewable=False,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecutions().submitFileDecision(SubmitWorkflowFileDecisionInput.builder()
+    .executionId("...")
+    .childAgentExecutionId("...")
+    .changeSetId("...")
+    .scope("...")
+    .fileChangeId("...")
+    .action("...")
+    .expectedDigest("...")
+    .reason("...")
+    .acknowledgeUnreviewable(false)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`SubmitWorkflowFileDecisionInput`](#submitworkflowfiledecisioninput)
+
+**Returns**: [`WorkflowExecution`](#workflowexecution)
+
 ### submitWorkflowTaskApproval
 
 Submit a human reviewer's decision for a workflow-level human_input task.
@@ -1167,7 +1249,9 @@ Input for the updateStatus RPC.
     executionId: { type: "string", description: "ID of the workflow execution to update." },
     status: { type: "WorkflowExecutionStatusInput", description: "Status fields to merge into the existing execution status.", required: true },
     events: { type: "WorkflowExecutionEventInput[]", description: "Execution events to append to the event log alongside this status update." },
-    updatePendingApprovals: { type: "boolean", description: "When true, status.pending_approvals will be merged into the existing execution (replacing the stored list)." },
+    updatePendingApprovals: { type: "boolean", description: "When true, status.pending_approvals is merged for the single child named by pending_update_child_agent_execution_id." },
+    updatePendingFileReviews: { type: "boolean", description: "When true, status.pending_file_reviews is merged for the single child named by pending_update_child_agent_execution_id, with the same per-child merge semantics as update_pending_approvals." },
+    pendingUpdateChildAgentExecutionId: { type: "string", description: "The child agent execution a per-child merge targets." },
   }}
 />
 
@@ -1181,6 +1265,24 @@ Input for the submitApproval RPC.
     toolCallId: { type: "string", description: "ID of the tool call to approve, skip, or reject." },
     action: { type: "ApprovalAction", description: "Approval decision: APPROVE, SKIP, or REJECT.", typeDescriptionLink: "#approvalaction" },
     comment: { type: "string", description: "Optional reason or comment for the decision, stored in the audit trail." },
+  }}
+/>
+
+### SubmitWorkflowFileDecisionInput
+
+Input for the WorkflowExecution.submitFileDecision RPC.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "ID of the workflow execution." },
+    childAgentExecutionId: { type: "string", description: "ID of the child agent execution holding the file-review gate." },
+    changeSetId: { type: "string", description: "ID of the change set this decision targets." },
+    scope: { type: "FileDecisionScope", description: "Whether the decision applies to the whole change set or one file.", typeDescriptionLink: "#filedecisionscope" },
+    fileChangeId: { type: "string", description: "ID of the file change to decide; required when scope is FILE, ignored for CHANGE_SET (the cross-field rule is enforced by the child handler)." },
+    action: { type: "FileDecisionAction", description: "Keep (APPROVE) or discard (REJECT).", typeDescriptionLink: "#filedecisionaction" },
+    expectedDigest: { type: "string", description: "Digest of the content the user actually saw — the enforcement gate, forwarded to the child unchanged." },
+    reason: { type: "string", description: "Optional reason/comment for the decision (audit trail)." },
+    acknowledgeUnreviewable: { type: "boolean", description: "Set true on an APPROVE to consciously KEEP a binary change whose diff could not be fully reviewed (forwarded to the child unchanged; see agentexecution.SubmitFileDecisionInput.acknowledge_unreviewable)." },
   }}
 />
 
@@ -1477,6 +1579,7 @@ WorkflowExecutionStatus contains all system-managed execution state and results.
     totalInputTokens: { type: "number", description: "Cumulative input tokens consumed across all LLM and agent tasks." },
     totalOutputTokens: { type: "number", description: "Cumulative output tokens consumed across all LLM and agent tasks." },
     workflowVersionHash: { type: "string", description: "SHA-256 hash identifying which workflow version was used for this execution." },
+    pendingFileReviews: { type: "WorkflowPendingFileReview[]", description: "Pending file reviews from child agent executions, surfaced for workflow-level visibility and in-place keep/discard decisioning.", typeDescriptionLink: "#workflowpendingfilereview" },
   }}
 />
 
@@ -1499,6 +1602,7 @@ A pending approval request for a tool call that requires user consent before exe
     branchAtDeny: { type: "string", description: "Git branch name at the time the tool was denied." },
     headShaAtDeny: { type: "string", description: "Git HEAD SHA at the time the tool was denied." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
+    approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this tool call, copied from ToolCall.approval_policy_source by the server-side projection (exactly as tool_kind above is).", typeDescriptionLink: "#approvalpolicysource" },
   }}
 />
 
@@ -1510,6 +1614,17 @@ WorkflowPendingApproval pairs approval details with routing information for work
   type={{
     approval: { type: "PendingApproval", description: "Approval details from the child agent's tool call.", typeDescriptionLink: "#pendingapproval" },
     childAgentExecutionId: { type: "string", description: "ID of the child agent execution to forward the approval decision to." },
+  }}
+/>
+
+### WorkflowPendingFileReview
+
+WorkflowPendingFileReview references a child agent execution's file-review gate for workflow-level surfacing.
+
+<TypeTable
+  type={{
+    childAgentExecutionId: { type: "string", description: "ID of the child agent execution that holds the file-review gate." },
+    changeSetId: { type: "string[]", description: "IDs of the child's change sets currently AWAITING_REVIEW." },
   }}
 />
 
@@ -1545,7 +1660,25 @@ ApprovalAction represents the user's decision on an approval request.
 | `APPROVAL_ACTION_APPROVE` | Execute the tool normally. |
 | `APPROVAL_ACTION_SKIP` | Skip tool execution, continue without it. |
 | `APPROVAL_ACTION_REJECT` | Reject tool execution, fail the entire execution. |
-| `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND auto-approve every subsequent tool call for the rest of this execution ("approve and don't ask again"). |
+| `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND grant a run-lifetime lease that auto-approves every subsequent tool call of the SAME class for the rest of this execution ("approve all of this kind, don't ask again"). |
+
+### FileDecisionScope
+
+FileDecisionScope is the granularity a FileDecision applies to.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_DECISION_SCOPE_CHANGE_SET` | The decision applies to the whole change set. |
+| `FILE_DECISION_SCOPE_FILE` | The decision applies to one CapturedFileChange (FileDecision.file_change_id). |
+
+### FileDecisionAction
+
+FileDecisionAction is a user's verdict on a change set or file.
+
+| Value | Description |
+|-------|-------------|
+| `FILE_DECISION_ACTION_APPROVE` | Keep the change(s): reconcile the captured bytes into the workspace. |
+| `FILE_DECISION_ACTION_REJECT` | Discard the change(s): reconcile back to baseline for the targeted scope. |
 
 ### ExecutionPhase
 
@@ -1630,6 +1763,20 @@ ToolKind is the harness-agnostic category of a tool call.
 | `TOOL_KIND_TODO` | Manage the agent's todo list. |
 | `TOOL_KIND_SUBAGENT` | Delegate work to a sub-agent. |
 | `TOOL_KIND_MCP` | A tool provided by an MCP server. |
+
+### ApprovalPolicySource
+
+ApprovalPolicySource is the policy layer that decided a tool call's approval requirement — the provenance recorded on every gated or auto-approved tool call so an execution's authorizations are auditable.
+
+| Value | Description |
+|-------|-------------|
+| `APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT` | Layer 1: the connect-time classifier's default for an MCP tool (McpServerStatus.tool_approvals). |
+| `APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE` | Layer 2: an operator's pinned override on the MCP server blueprint (McpServerSpec.pinned_tool_approvals). |
+| `APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE` | Layer 3: an agent-level override for an MCP tool (Agent McpServerUsage.tool_approval_overrides). |
+| `APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL` | Layer 4: the pre-armed AgentExecutionSpec.auto_approve_all whole-run global bypass cleared this call. |
+| `APPROVAL_POLICY_SOURCE_APPROVAL_LEASE` | Layer 4: a run-lifetime scoped lease (the successor to a global "approve all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched the leased class. |
+| `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | A non-MCP built-in tool gated by the shared tool taxonomy (write / delete / shell). |
+| `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The connect-time MCP destructiveHint tightener forced this tool to require approval, overriding a more permissive classifier verdict. |
 
 ### WorkflowTaskType
 

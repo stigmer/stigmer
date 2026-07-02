@@ -56,11 +56,21 @@ export async function waitForAIResponse(
 }
 
 /**
- * Sidebar execution progress region (visible on lg+ viewports).
- * Contains the phase badge and task list for the active/last execution.
+ * Sidebar execution status region (visible on lg+ viewports). Holds the
+ * always-on phase badge for the active/last execution. The agent's plan/todos
+ * now render inline in the thread (see {@link getTodoCard}), not here.
  */
 export function getExecutionProgressRegion(page: Page): Locator {
   return page.getByRole("region", { name: "Execution progress" });
+}
+
+/**
+ * The agent's inline "To-dos" card in the message thread. Present once an
+ * execution has written a plan (`status.todos`); collapsed once the plan is
+ * fully resolved.
+ */
+export function getTodoCard(page: Page): Locator {
+  return page.getByRole("region", { name: "Agent to-dos" });
 }
 
 /**

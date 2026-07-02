@@ -212,6 +212,98 @@ message ToolCall {
   //
   // Field 21: appended after tool_kind (20), the prior maximum.
   ToolCallOutputRef output_ref = 21;
+
+  // Field 22 (file_changes) was removed in Phase 5 Slice 4: file review moved to
+  // the apply-then-review FileChangeSet ledger (AgentExecutionStatus.
+  // file_change_sets + file_review_event_stream), so the tool-call-coupled
+  // FileChange copy is obsolete. See design-decisions 21 & 22.
+  reserved 22;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Authorization Provenance (HITL)
+  //
+  // Which policy layer decided this tool call's approval requirement, recorded so
+  // an execution's authorizations are auditable. Runner-written and carried
+  // through update_status exactly like tool_kind — not owned by SubmitApproval,
+  // so no preserve logic is needed.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Policy layer that decided this tool call's approval requirement, set by the
+  // runner's approval gate so clients can explain "why was this gated or
+  // auto-approved?".
+  //
+  // APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
+  // or an execution that predates this field (clients fall back to no provenance,
+  // exactly as for an unset tool_kind). See ApprovalPolicySource.
+  //
+  // Field 23: appended after file_changes (22), the prior maximum.
+  ApprovalPolicySource approval_policy_source = 23;
+
+  // Identifier of the policy-engine logic that produced approval_policy_source,
+  // bumped when the merge/classification semantics change so decisions made by
+  // different engine versions stay distinguishable in audits.
+  //
+  // @internal
+  // Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
+  //
+  // Field 24: appended after approval_policy_source (23), the prior maximum.
+  string policy_engine_version = 24;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Approval Content Digest (HITL exact-identity)
+  //
+  // Content-identity of an approved mutating tool call, so a resumed re-attempt
+  // is authorized only when its content matches what the user actually approved.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Stable digest of the authoritative edit content (the hook-captured tool
+  // input) for a gated file-mutating tool call, set by the runner's approval
+  // gate. It is the content discriminator the deny-only Cursor harness needs:
+  // approving one edit must not let a DIFFERENT edit to the same file ride the
+  // approval through, so the grant binds to (category, path, content) rather than
+  // (category, path) alone. A resumed re-attempt that differs from the approved
+  // content re-gates (the "what you approve is what gets applied" contract).
+  //
+  // Carried so it survives at resume immune to the size-limit elision that can
+  // drop `args`/`file_changes` for large edits — a recompute-from-args identity
+  // would be unrecoverable in that case. Empty for tools whose other identity is
+  // already content-exact (shell command, delete path), for read-only tools, and
+  // for executions that predate this field (the runner then degrades to the
+  // coarse (category, path) identity).
+  //
+  // @internal
+  // Runner-written and carried through update_status exactly like tool_kind /
+  // approval_policy_source — not owned by SubmitApproval, so no preserve logic is
+  // needed. See the runner's contentDigest() (shared/file-tools.ts).
+  //
+  // Field 25: appended after policy_engine_version (24), the prior maximum.
+  string approval_content_digest = 25;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // File-Review Reference (observational transcript rows)
+  //
+  // A flowed file-edit tool row stays visible in the transcript as an
+  // observational/audit record of WHERE and WHEN the agent edited a file,
+  // while the review itself lives in the FileChangeSet ledger. This is the
+  // research report's "transcript row references change_set_id" — the row is
+  // audit-only; the ledger is the single decision surface.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Id of the FileChangeSet this flowed file-edit contributed to
+  // (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+  // capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+  // set's review state and to position the set's decision surface after the
+  // turn's last edit row. It is NEVER a correlation or enforcement key —
+  // decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+  // reconcile identity is digest-gated (see filereview.proto's identity rule).
+  //
+  // Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+  // those rows), rows from executions that predate this field, and turns whose
+  // edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+  // so there is no change set to reference).
+  //
+  // Field 26: appended after approval_content_digest (25), the prior maximum.
+  string file_change_set_id = 26;
 }
 
 // ToolCallOutputRef points to a tool call's full output after the runner
@@ -228,11 +320,12 @@ message ToolCall {
 message ToolCallOutputRef {
   // Storage location of the full output bytes.
   // Format: "artifacts/{execution_id}/toolcalls/{tool_call_id}.{ext}"
+  //
+  // Clients resolve the bytes/URL on demand from this stable key (via
+  // getArtifactContent or getArtifactDownloadUrl) — there is deliberately no
+  // persisted URL, since a pre-signed URL would expire while the reference does
+  // not.
   string storage_key = 1;
-
-  // URL for fetching the full output — pre-signed in the cloud, locally served
-  // in dev. May be refreshed via the artifact download endpoint if expired.
-  string download_url = 2;
 
   // Size in bytes of the full (original, pre-truncation) output.
   int64 size_bytes = 3;
@@ -253,4 +346,79 @@ message ToolCallOutputRef {
   // Short head of the original text content, kept inline for an at-a-glance
   // preview without fetching the full artifact. Empty for image content.
   string truncated_preview = 7;
+}
+
+// A single file mutation produced by a tool call.
+//
+// Large before/after bodies are offloaded to artifact storage via the existing
+// ToolCallOutputRef envelope; small bodies stay inline. capture_level tells
+// clients how complete the content is so they render whole-file vs hunk-only
+// diffs honestly per harness.
+//
+// @since First-Class Diff Review (#186)
+message FileChange {
+  // Workspace-root-relative path for display, e.g. "src/app/main.ts".
+  // Falls back to absolute_path when the workspace root is unknown.
+  string path = 1;
+
+  // Absolute on-disk path, retained for "open in editor" and diagnostics.
+  string absolute_path = 2;
+
+  // The per-file outcome of this change.
+  //
+  // Distinct from ToolCall.tool_kind, which classifies the tool: one tool call
+  // may yield several FileChanges of different types (multi-file edits), and a
+  // FILE_WRITE tool yields CREATE for a new file or MODIFY when it overwrites
+  // an existing one.
+  FileChangeType change_type = 3 [(buf.validate.field).enum.defined_only = true];
+
+  // How complete the captured content is.
+  //
+  // WHOLE_FILE: before/after carry full content. HUNK_ONLY: only unified_diff
+  // is available (Cursor today).
+  FileChangeCaptureLevel capture_level = 4 [(buf.validate.field).enum.defined_only = true];
+
+  // Pre-edit content. Empty for CREATE, or when capture_level is HUNK_ONLY.
+  FileContent before = 5;
+
+  // Post-edit content. Empty for DELETE, or when capture_level is HUNK_ONLY.
+  FileContent after = 6;
+
+  // Unified hunk-level diff. The primary payload for HUNK_ONLY captures
+  // (Cursor's diffString); small and always safe to render even when
+  // before/after are absent. Derivable from before/after for WHOLE_FILE.
+  string unified_diff = 7;
+
+  // Lines added by this change.
+  int32 lines_added = 8;
+
+  // Lines removed by this change.
+  int32 lines_removed = 9;
+
+  // Source path for RENAME; path holds the destination. Empty otherwise.
+  string rename_from = 10;
+}
+
+// One side (before or after) of a file's content.
+//
+// Small bodies are carried inline; large bodies are offloaded to artifact
+// storage and referenced via the existing tool-output offload envelope. Exactly
+// one of inline or ref is set; when offloaded, the head preview lives in
+// ref.truncated_preview and the full size in ref.size_bytes.
+//
+// @since First-Class Diff Review (#186)
+message FileContent {
+  // The body of this side — inline when small, an offload pointer when large.
+  oneof body {
+    // Full UTF-8 content, inline. Set only when under the inline cap.
+    string inline = 1;
+
+    // Offload pointer for large content; reuses the tool-output offload
+    // envelope (storage_key, size_bytes, content_hash, truncated_preview).
+    ToolCallOutputRef ref = 2;
+  }
+
+  // True when this side is binary; clients skip text diffing and render
+  // "binary file changed" instead.
+  bool is_binary = 3;
 }

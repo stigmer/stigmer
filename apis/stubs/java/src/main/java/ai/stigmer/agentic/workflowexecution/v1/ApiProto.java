@@ -42,6 +42,11 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingApproval_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingFileReview_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingFileReview_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowTask_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -74,7 +79,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "stigmer.agentic.workflowexecution.v1.Wor" +
       "kflowExecutionSpecR\004spec\022X\n\006status\030\005 \001(\013" +
       "2@.ai.stigmer.agentic.workflowexecution." +
-      "v1.WorkflowExecutionStatusR\006status\"\357\005\n\027W" +
+      "v1.WorkflowExecutionStatusR\006status\"\345\006\n\027W" +
       "orkflowExecutionStatus\022F\n\005audit\030c \001(\01320." +
       "ai.stigmer.commons.apiresource.ApiResour" +
       "ceAuditR\005audit\022W\n\005phase\030\001 \001(\01627.ai.stigm" +
@@ -93,11 +98,17 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "os\022,\n\022total_input_tokens\030\013 \001(\003R\020totalInp" +
       "utTokens\022.\n\023total_output_tokens\030\014 \001(\003R\021t" +
       "otalOutputTokens\0222\n\025workflow_version_has" +
-      "h\030\r \001(\tR\023workflowVersionHash\"\245\001\n\027Workflo" +
-      "wPendingApproval\022Q\n\010approval\030\001 \001(\01325.ai." +
-      "stigmer.agentic.agentexecution.v1.Pendin" +
-      "gApprovalR\010approval\0227\n\030child_agent_execu" +
-      "tion_id\030\002 \001(\tR\025childAgentExecutionId\"\376\004\n" +
+      "h\030\r \001(\tR\023workflowVersionHash\022t\n\024pending_" +
+      "file_reviews\030\016 \003(\0132B.ai.stigmer.agentic." +
+      "workflowexecution.v1.WorkflowPendingFile" +
+      "ReviewR\022pendingFileReviews\"\245\001\n\027WorkflowP" +
+      "endingApproval\022Q\n\010approval\030\001 \001(\01325.ai.st" +
+      "igmer.agentic.agentexecution.v1.PendingA" +
+      "pprovalR\010approval\0227\n\030child_agent_executi" +
+      "on_id\030\002 \001(\tR\025childAgentExecutionId\"x\n\031Wo" +
+      "rkflowPendingFileReview\0227\n\030child_agent_e" +
+      "xecution_id\030\001 \001(\tR\025childAgentExecutionId" +
+      "\022\"\n\rchange_set_id\030\002 \003(\tR\013changeSetId\"\376\004\n" +
       "\014WorkflowTask\022\027\n\007task_id\030\001 \001(\tR\006taskId\022\033" +
       "\n\ttask_name\030\002 \001(\tR\010taskName\022`\n\ttask_type" +
       "\030\003 \001(\01629.ai.stigmer.agentic.workflowexec" +
@@ -143,15 +154,21 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionStatus_descriptor,
-        new java.lang.String[] { "Audit", "Phase", "Tasks", "Output", "Error", "StartedAt", "CompletedAt", "TemporalWorkflowId", "PendingApprovals", "TotalCostMicros", "TotalInputTokens", "TotalOutputTokens", "WorkflowVersionHash", });
+        new java.lang.String[] { "Audit", "Phase", "Tasks", "Output", "Error", "StartedAt", "CompletedAt", "TemporalWorkflowId", "PendingApprovals", "TotalCostMicros", "TotalInputTokens", "TotalOutputTokens", "WorkflowVersionHash", "PendingFileReviews", });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingApproval_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingApproval_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingApproval_descriptor,
         new java.lang.String[] { "Approval", "ChildAgentExecutionId", });
-    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowTask_descriptor =
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingFileReview_descriptor =
       getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingFileReview_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowPendingFileReview_descriptor,
+        new java.lang.String[] { "ChildAgentExecutionId", "ChangeSetId", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowTask_descriptor =
+      getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowTask_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowTask_descriptor,

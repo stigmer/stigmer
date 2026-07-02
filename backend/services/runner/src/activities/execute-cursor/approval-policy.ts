@@ -16,21 +16,20 @@
  * a separate local policy applies.
  */
 
-import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
-import type { ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ResolvedMcpServer } from "./mcp-resolver.js";
-import { classifyTool } from "../../shared/tool-kind.js";
+import { toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 
-/**
- * A single tool's merged approval decision after evaluating all policy layers.
- */
-export interface MergedToolPolicy {
-  toolName: string;
-  mcpServerSlug: string;
-  requiresApproval: boolean;
-  approvalMessage: string;
-}
+// The four-level MCP policy merge is harness-agnostic and lives in exactly one
+// place (shared/approval-policy.ts) so the Cursor and native harnesses can never
+// diverge. Re-exported here so existing Cursor-harness imports
+// (`from "./approval-policy.js"`) keep working unchanged. This module now owns
+// only the Cursor-specific built-in-tool gating helpers below.
+export {
+  mergeApprovalPolicies,
+  lookupMcpToolPolicy,
+  resolveApprovalMessage,
+  POLICY_ENGINE_VERSION,
+} from "../../shared/approval-policy.js";
+export type { MergedToolPolicy, PolicySource } from "../../shared/approval-policy.js";
 
 /**
  * Built-in Cursor tools the preToolUse hook gates, named as the hook receives
@@ -53,36 +52,24 @@ const BUILT_IN_GATED: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Canonical approval category for a gated tool, derived from EITHER taxonomy's
- * name via the shared {@link classifyTool}.
+ * Canonical approval category for a gated tool.
  *
- * The hook (`Write`/`Shell`/`Delete`) and the stream (`edit`/`shell`/`delete`)
- * name the same operation differently, so neither raw name is a stable
- * cross-layer identity. The category collapses both onto one value so the denial
- * ledger (recorded by the hook) correlates to the streamed tool call (read by
- * the runner) and so an approval grant matches the agent's re-attempt on
- * reinvocation regardless of which taxonomy named it. `FILE_WRITE` and
- * `FILE_EDIT` both map to `write` because the Cursor hook reports every file
- * mutation — create or edit — as `Write`.
+ * This is the cross-substrate identity, and it lives in ONE place:
+ * {@link toolApprovalCategory} in shared/tool-kind.ts (shared with the deep-agent
+ * gateway). The names below are kept as the Cursor harness's public surface
+ * (`approvalCategory` / `ApprovalCategory`) so existing imports do not churn, but
+ * they are exact aliases — there is no second implementation to drift.
  *
- * Returns undefined for non-gated tools (read-only built-ins, MCP tools, and
- * anything `classifyTool` does not place in a mutating kind).
+ * Why this matters here: the hook (`Write`/`Shell`/`Delete`) and the stream
+ * (`edit`/`shell`/`delete`) name the same operation differently, so neither raw
+ * name is a stable cross-layer identity. The category collapses both onto one
+ * value so the denial ledger (recorded by the hook) correlates to the streamed
+ * tool call (read by the runner) and an approval grant matches the agent's
+ * re-attempt on reinvocation regardless of which taxonomy named it.
  */
-export type ApprovalCategory = "write" | "delete" | "shell";
+export type ApprovalCategory = ToolApprovalCategory;
 
-export function approvalCategory(toolName: string): ApprovalCategory | undefined {
-  switch (classifyTool(toolName)) {
-    case ToolKind.FILE_WRITE:
-    case ToolKind.FILE_EDIT:
-      return "write";
-    case ToolKind.FILE_DELETE:
-      return "delete";
-    case ToolKind.SHELL:
-      return "shell";
-    default:
-      return undefined;
-  }
-}
+export const approvalCategory = toolApprovalCategory;
 
 /**
  * Human-readable approval-message template per canonical category. Keyed by
@@ -186,121 +173,3 @@ export function extractArgKey(args: Record<string, unknown> | undefined): string
   return "";
 }
 
-/**
- * Merge approval policies from all four levels into a single lookup map.
- *
- * Keys are the raw tool name (e.g., "apply_cloud_resource"). Each MCP server
- * contributes its own set of policies, so the map is keyed by
- * "serverSlug/toolName" to avoid collisions between servers.
- *
- * Policy chain (each level overrides the previous):
- * 1. status.toolApprovals — presence means "requires approval"
- * 2. spec.pinnedToolApprovals — presence means "requires approval" (overrides)
- * 3. agent tool_approval_overrides — explicit boolean per tool
- * 4. auto_approve_all — bypasses everything
- *
- * When auto_approve_all is true, the returned map is empty (no tool
- * requires approval).
- */
-export function mergeApprovalPolicies(
-  resolvedServers: ResolvedMcpServer[],
-  agentOverrides: ToolApprovalOverride[],
-  autoApproveAll: boolean,
-): Map<string, MergedToolPolicy> {
-  const merged = new Map<string, MergedToolPolicy>();
-
-  if (autoApproveAll) return merged;
-
-  for (const server of resolvedServers) {
-    const serverPolicies = new Map<string, { requiresApproval: boolean; message: string }>();
-
-    // Layer 1: system-generated defaults (presence = requires approval)
-    for (const policy of server.toolApprovals) {
-      if (!policy.toolName) continue;
-      serverPolicies.set(policy.toolName, {
-        requiresApproval: true,
-        message: policy.message || `Execute tool: ${policy.toolName}`,
-      });
-    }
-
-    // Layer 2: manual overrides (presence = requires approval, overrides layer 1)
-    for (const pinned of server.pinnedToolApprovals) {
-      if (!pinned.toolName) continue;
-      serverPolicies.set(pinned.toolName, {
-        requiresApproval: true,
-        message: pinned.message || serverPolicies.get(pinned.toolName)?.message || `Execute tool: ${pinned.toolName}`,
-      });
-    }
-
-    // Layer 3: per-agent overrides (explicit boolean, can enable or disable)
-    for (const override of agentOverrides) {
-      if (!override.toolName) continue;
-      const existing = serverPolicies.get(override.toolName);
-      if (existing) {
-        existing.requiresApproval = override.requiresApproval;
-        if (override.message) {
-          existing.message = override.message;
-        }
-      } else if (override.requiresApproval) {
-        serverPolicies.set(override.toolName, {
-          requiresApproval: true,
-          message: override.message || `Execute tool: ${override.toolName}`,
-        });
-      }
-    }
-
-    // Write merged policies into the result map
-    for (const [toolName, policy] of serverPolicies) {
-      if (!policy.requiresApproval) continue;
-      const key = `${server.slug}/${toolName}`;
-      merged.set(key, {
-        toolName,
-        mcpServerSlug: server.slug,
-        requiresApproval: true,
-        approvalMessage: policy.message,
-      });
-    }
-  }
-
-  return merged;
-}
-
-/**
- * Look up whether an MCP tool requires approval.
- *
- * @param toolName - The actual MCP tool name (e.g., "apply_cloud_resource")
- * @param mcpServerSlug - The MCP server slug (e.g., "planton")
- * @param policies - The merged policy map from mergeApprovalPolicies()
- * @returns The policy if approval is required, undefined if auto-approved
- */
-export function lookupMcpToolPolicy(
-  toolName: string,
-  mcpServerSlug: string,
-  policies: Map<string, MergedToolPolicy>,
-): MergedToolPolicy | undefined {
-  return policies.get(`${mcpServerSlug}/${toolName}`);
-}
-
-/**
- * Resolve {{args.field}} placeholders in an approval message using the
- * tool's actual arguments.
- *
- * Placeholder syntax matches the proto-documented format:
- * - {{args.field_name}} — replaced with the argument value
- * - {{tool_name}} — replaced with the tool name
- * - Missing fields are replaced with "<unknown>"
- */
-export function resolveApprovalMessage(
-  template: string,
-  toolName: string,
-  args: Record<string, unknown>,
-): string {
-  return template
-    .replace(/\{\{tool_name\}\}/g, toolName)
-    .replace(/\{\{args\.(\w+)\}\}/g, (_match, field: string) => {
-      const value = args[field];
-      if (value === undefined || value === null) return "<unknown>";
-      if (typeof value === "string") return value;
-      return JSON.stringify(value);
-    });
-}

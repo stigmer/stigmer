@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "File Review Projection Fixture",
+  "description": "A persisted file_review ledger plus the expected file_change_sets projection summary, replayed identically by Go and Java.",
+  "type": "object",
+  "required": ["name", "execution_id", "phase", "events", "expected"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "execution_id": { "type": "string" },
+    "phase": { "type": "string", "description": "ExecutionPhase enum value name, e.g. EXECUTION_IN_PROGRESS." },
+    "events": {
+      "type": "array",
+      "description": "Ordered FileReviewEvent protojson objects (the persisted ledger).",
+      "items": { "type": "object" }
+    },
+    "expected": {
+      "type": "array",
+      "description": "Expected projected FileChangeSet summaries, in projection order.",
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "change_ids", "decision_count", "aggregate_digest", "has_approved_snapshot"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "type": "string", "description": "FileChangeSetStatus enum value name." },
+          "diff_completeness": {
+            "type": "string",
+            "description": "Optional: expected DiffCompleteness enum value name (e.g. DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY). Asserted only when present, proving the runner-derived rollup projects identically in Go and Java."
+          },
+          "change_ids": { "type": "array", "items": { "type": "string" } },
+          "blocked_reasons": {
+            "type": "array",
+            "description": "Optional: expected FileReviewBlockReason enum value name per change, aligned with change_ids order (doc 15). Asserted only when present, so it never forces every fixture to declare it.",
+            "items": { "type": "string" }
+          },
+          "acknowledged_change_ids": {
+            "type": "array",
+            "description": "Optional: file_change_ids of decisions carrying acknowledge_unreviewable=true, in decision order (DD-16). Asserted only when present, proving the audit flag survives persist->project identically in Go and Java.",
+            "items": { "type": "string" }
+          },
+          "decision_count": { "type": "integer" },
+          "aggregate_digest": { "type": "string" },
+          "has_approved_snapshot": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

@@ -611,7 +611,11 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		execution.Status.Phase = agentexecutionv1.ExecutionPhase_EXECUTION_FAILED
 		execution.Status.Error = fmt.Sprintf("Failed to start Temporal workflow: %v", err)
 
-		// Persist the failed state
+		// Persist the failed state. Whole-resource save is intentional (exempt from
+		// the atomic UpdateStatus path): this is the creation path marking a brand-new
+		// execution FAILED because its workflow never started — no approval gate has
+		// ever existed, so there is no approval_event_stream to preserve and no
+		// concurrent appender to lose a write to.
 		kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 		if updateErr := s.store.SaveResource(ctx.Context(), kind, executionID, execution); updateErr != nil {
 			log.Error().

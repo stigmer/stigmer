@@ -1,0 +1,53 @@
+{
+  "description": "Cross-language HITL authorization-provenance vectors. Each vector pins one ApprovalPolicySource to its proto enum name and number. The runner (TS) maps its internal PolicySource union to the proto enum via toProtoPolicySource and must land on `number`; the Go and Java editions consume the generated enum directly and assert the same `name` resolves to the same `number`. Together this guarantees the runner's union->enum mapping and the proto enum numbering agree across all three editions, so a persisted approval_policy_source means the same thing everywhere. `policySource` is the runner's union string, or null for the UNSPECIFIED default (a tool no policy layer governs).",
+  "vectors": [
+    {
+      "name": "unspecified",
+      "policySource": null,
+      "name_proto": "APPROVAL_POLICY_SOURCE_UNSPECIFIED",
+      "number": 0
+    },
+    {
+      "name": "classifier-default",
+      "policySource": "classifier_default",
+      "name_proto": "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT",
+      "number": 1
+    },
+    {
+      "name": "pinned-override",
+      "policySource": "pinned_override",
+      "name_proto": "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE",
+      "number": 2
+    },
+    {
+      "name": "agent-override",
+      "policySource": "agent_override",
+      "name_proto": "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE",
+      "number": 3
+    },
+    {
+      "name": "auto-approve-all",
+      "policySource": "auto_approve_all",
+      "name_proto": "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
+      "number": 4
+    },
+    {
+      "name": "approval-lease",
+      "policySource": "approval_lease",
+      "name_proto": "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
+      "number": 5
+    },
+    {
+      "name": "builtin-category",
+      "policySource": "builtin_category",
+      "name_proto": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+      "number": 6
+    },
+    {
+      "name": "annotation-destructive-tighten",
+      "policySource": "annotation_destructive_tighten",
+      "name_proto": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
+      "number": 7
+    }
+  ]
+}

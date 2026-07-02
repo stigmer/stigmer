@@ -312,3 +312,90 @@ func TestProjectToolCallCopiesToolKind(t *testing.T) {
 		t.Errorf("McpServerSlug = %q, want %q", got[0].GetMcpServerSlug(), "github")
 	}
 }
+
+// TestProjectToolCallSingleGatePerCreate verifies the projection shape the Cursor
+// runner persists after its denial-correlation fix: ONE WAITING_APPROVAL create
+// projects a pending approval. A settled (FAILED) tool call for the same file — a
+// leftover the append-only-at-identity transcript guard forbids removing — must
+// NOT project a second approval (it is not WAITING_APPROVAL). Mirrors the Java
+// PendingApprovalComputerTest case of the same name.
+func TestProjectToolCallSingleGatePerCreate(t *testing.T) {
+	gated := makeToolCall("tc-create", "write_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+	settledDuplicate := makeToolCall("tc-create-dup", "write_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_FAILED, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+
+	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(gated, settledDuplicate)}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1 (only the WAITING_APPROVAL create projects)", len(got))
+	}
+	if got[0].GetToolCallId() != "tc-create" {
+		t.Errorf("ToolCallId = %q, want %q", got[0].GetToolCallId(), "tc-create")
+	}
+}
+
+// TestProjectToolCallCollapsedTwinProjectsSingleGate locks the projection shape
+// the Cursor runner persists after its duplicate-collapse fix: one
+// WAITING_APPROVAL edit beside a same-resource twin the runner collapsed IN PLACE
+// to a SKIPPED row (it cannot drop the committed id). The SKIPPED twin must NOT
+// project a second approval. Mirrors the Java PendingApprovalComputerTest case.
+func TestProjectToolCallCollapsedTwinProjectsSingleGate(t *testing.T) {
+	gated := makeToolCall("tc-edit", "edit", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+	// The collapsed twin: SKIPPED, no longer requires approval.
+	collapsedTwin := makeToolCall("tc-edit-dup", "edit", agentexecutionv1.ToolCallStatus_TOOL_CALL_SKIPPED, false, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+
+	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(gated, collapsedTwin)}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1 (only the WAITING_APPROVAL edit projects; the SKIPPED twin must not)", len(got))
+	}
+	if got[0].GetToolCallId() != "tc-edit" {
+		t.Errorf("ToolCallId = %q, want %q", got[0].GetToolCallId(), "tc-edit")
+	}
+}
+
+// TestProjectToolCallCopiesSubAgentSubject locks the Go projection to the Java
+// PendingApprovalComputer: a sub-agent approval must carry the sub-agent's task
+// subject so approval surfaces label the card with the task instead of the
+// generic agent type. Before this was fixed the Go side dropped the field,
+// producing a live cross-edition divergence (OSS empty, Cloud populated) that
+// the shared HITL fixture corpus depends on being resolved.
+func TestProjectToolCallCopiesSubAgentSubject(t *testing.T) {
+	subAgents := []*agentexecutionv1.SubAgentExecution{
+		{
+			Name:    "code-reviewer",
+			Subject: "Explore CLI rendering code",
+			Status:  agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
+			Messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(
+					makeToolCall("tc-sub1", "run_tests", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+				),
+			},
+		},
+	}
+
+	got := ComputePendingApprovals(nil, subAgents)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1", len(got))
+	}
+	if !got[0].GetFromSubAgent() {
+		t.Errorf("FromSubAgent = false, want true")
+	}
+	if got[0].GetSubAgentName() != "code-reviewer" {
+		t.Errorf("SubAgentName = %q, want %q", got[0].GetSubAgentName(), "code-reviewer")
+	}
+	if got[0].GetSubAgentSubject() != "Explore CLI rendering code" {
+		t.Errorf("SubAgentSubject = %q, want %q", got[0].GetSubAgentSubject(), "Explore CLI rendering code")
+	}
+}
+
+// TestProjectToolCallRootHasNoSubAgentSubject verifies a root tool call leaves
+// sub_agent_subject empty (the field is sub-agent-only).
+func TestProjectToolCallRootHasNoSubAgentSubject(t *testing.T) {
+	tc := makeToolCall("tc1", "deploy", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED)
+
+	got := ComputePendingApprovals([]*agentexecutionv1.AgentMessage{makeAIMessage(tc)}, nil)
+	if len(got) != 1 {
+		t.Fatalf("got %d pending approvals, want 1", len(got))
+	}
+	if got[0].GetSubAgentSubject() != "" {
+		t.Errorf("SubAgentSubject = %q, want empty for a root tool call", got[0].GetSubAgentSubject())
+	}
+}

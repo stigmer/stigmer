@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import { ConnectError, Code } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -144,13 +145,11 @@ describe("persistStatus", () => {
 
   it("offloads oversized tool outputs before persisting when given an offload context", async () => {
     const uploaded: string[] = [];
+    const { storage: offloadStorage } = makeInMemoryArtifactStorage({ urlBase: "https://artifacts.local/" });
+    offloadStorage.upload.mockImplementation(async (key: string) => { uploaded.push(key); return key; });
     const offload = {
       executionId: "exec-off",
-      artifactStorage: {
-        upload: vi.fn(async (key: string) => { uploaded.push(key); return key; }),
-        getDownloadUrl: vi.fn(async (key: string) => `https://artifacts.local/${key}`),
-        exists: vi.fn(async () => true),
-      },
+      artifactStorage: offloadStorage,
       maxInlineBytes: 256,
     };
     const mockClient = {
