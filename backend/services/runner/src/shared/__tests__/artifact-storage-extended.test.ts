@@ -190,24 +190,26 @@ describe("ProxyArtifactStorage", () => {
     );
   });
 
-  it("exists returns true when presign succeeds", async () => {
+  it("exists returns true when the object is present (presign + ranged GET)", async () => {
     const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
 
-    globalThis.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ url: "https://r2.example.com/dl" }),
-    } as any);
+    // Two-step probe: presign mints the URL, then a ranged GET hits the object.
+    // Presign success alone is NOT existence — the object fetch is authoritative.
+    globalThis.fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("presigned-download-url")) {
+        return new Response(JSON.stringify({ url: "https://r2.example.com/dl" }), { status: 200 });
+      }
+      return new Response(Buffer.from("x"), { status: 206 });
+    }) as typeof fetch;
 
     expect(await storage.exists("key.txt")).toBe(true);
   });
 
-  it("exists returns false when presign fails", async () => {
+  it("exists returns false when the presign endpoint fails", async () => {
     const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
 
-    globalThis.fetch = vi.fn().mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-    } as any);
+    globalThis.fetch = vi.fn(async () => new Response("nope", { status: 404 })) as typeof fetch;
 
     expect(await storage.exists("missing.txt")).toBe(false);
   });

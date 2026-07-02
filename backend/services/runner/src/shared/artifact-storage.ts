@@ -185,19 +185,30 @@ export class ProxyArtifactStorage implements ArtifactStorage {
   }
 
   async exists(key: string): Promise<boolean> {
+    // A presigned URL is minted for ANY key — the presign endpoint does not check
+    // the object — so "did presign succeed?" is NOT existence (that bug turned a
+    // git-only file-review reconcile into a doomed manifest download + 404 crash).
+    // Probe the object itself with a 1-byte ranged GET: the presigned URL is
+    // SigV4-signed for GET (a HEAD would break the signature), and `Range:
+    // bytes=0-0` transfers at most one byte. Missing => 404; present => 200/206
+    // (or 416 for a 0-byte object, whose range is unsatisfiable yet it exists).
+    let url: string;
     try {
-      const resp = await fetch(`${this.baseUrl}/presigned-download-url`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${this.authToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ key }),
-      });
-      return resp.ok;
+      url = await this.getDownloadUrl(key);
     } catch {
+      // Presign endpoint unreachable: report absent. The sole caller (content-
+      // addressed CAS blob dedup) then re-uploads, which is idempotent.
       return false;
     }
+    const resp = await fetch(url, { headers: { Range: "bytes=0-0" } });
+    await resp.arrayBuffer().catch(() => undefined); // drain the <=1-byte body
+    if (resp.status === 404) return false;
+    if (resp.status === 200 || resp.status === 206 || resp.status === 416) return true;
+    // Any other status (e.g. 403 expired/misconfigured, 5xx) is a real fault, not
+    // an existence answer — surface it rather than silently mis-reporting.
+    throw new Error(
+      `Artifact existence check failed (HTTP ${resp.status}) for key '${key}'`,
+    );
   }
 }
 

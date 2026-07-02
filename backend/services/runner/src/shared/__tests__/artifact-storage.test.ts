@@ -283,31 +283,79 @@ describe("ProxyArtifactStorage", () => {
     );
   });
 
-  it("exists returns true on 200", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ url: "https://r2.example.com/dl" }), { status: 200 }),
-    ) as typeof fetch;
+  // exists() is a TWO-step probe: presign the download URL, then a 1-byte ranged
+  // GET against the object. The presign endpoint mints a URL for ANY key, so the
+  // OBJECT fetch — not the presign — is the source of truth for existence.
+  function mockProxyFetch(objectResponse: () => Response) {
+    globalThis.fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("presigned-download-url")) {
+        return new Response(JSON.stringify({ url: "https://r2.example.com/obj" }), { status: 200 });
+      }
+      return objectResponse();
+    }) as typeof fetch;
+  }
 
+  it("exists returns true when the object GET is 200", async () => {
+    mockProxyFetch(() => new Response(Buffer.from("x"), { status: 200 }));
     const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
     expect(await storage.exists("key")).toBe(true);
   });
 
-  it("exists returns false on 404", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response("not found", { status: 404 }),
-    ) as typeof fetch;
+  it("exists returns true when the object GET is 206 (ranged)", async () => {
+    mockProxyFetch(() => new Response(Buffer.from("x"), { status: 206 }));
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    expect(await storage.exists("key")).toBe(true);
+  });
 
+  it("exists returns true on 416 (0-byte object, range unsatisfiable but present)", async () => {
+    mockProxyFetch(() => new Response("", { status: 416 }));
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    expect(await storage.exists("key")).toBe(true);
+  });
+
+  it("exists returns false when presign succeeds but the object 404s (regression: presign != existence)", async () => {
+    // The exact proxy bug: the presign endpoint mints a URL for a nonexistent key;
+    // only the object fetch reveals it is absent. The old exists() returned true
+    // here (presign.ok), which crashed the file-review reconcile on the R2 404.
+    mockProxyFetch(() => new Response("<Error><Code>NoSuchKey</Code></Error>", { status: 404 }));
     const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
     expect(await storage.exists("key")).toBe(false);
   });
 
-  it("exists returns false on network error", async () => {
+  it("exists probes the object with a 1-byte ranged GET (never a HEAD, which breaks the presign signature)", async () => {
+    const seen: Array<{ url: string; range: string | null; method: string }> = [];
+    globalThis.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("presigned-download-url")) {
+        return new Response(JSON.stringify({ url: "https://r2.example.com/obj" }), { status: 200 });
+      }
+      seen.push({
+        url,
+        range: new Headers(init?.headers).get("range"),
+        method: (init?.method ?? "GET").toUpperCase(),
+      });
+      return new Response(Buffer.from("x"), { status: 206 });
+    }) as typeof fetch;
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    await storage.exists("key");
+    expect(seen).toEqual([{ url: "https://r2.example.com/obj", range: "bytes=0-0", method: "GET" }]);
+  });
+
+  it("exists returns false when the presign endpoint is unreachable", async () => {
     globalThis.fetch = vi.fn(async () => {
       throw new Error("network unreachable");
     }) as typeof fetch;
-
     const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
     expect(await storage.exists("key")).toBe(false);
+  });
+
+  it("exists throws on an unexpected object status (a fault, not an existence answer)", async () => {
+    mockProxyFetch(() => new Response("boom", { status: 500 }));
+    const storage = new ProxyArtifactStorage("https://proxy.example.com", "tok");
+    await expect(storage.exists("key")).rejects.toThrow(
+      /Artifact existence check failed \(HTTP 500\) for key 'key'/,
+    );
   });
 });
 

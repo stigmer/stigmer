@@ -289,9 +289,16 @@ export async function applyCaptureDecisions(opts: {
   readonly harnessId: string;
   readonly excludePaths?: readonly string[];
   /**
-   * The CAS blob store + reader, required to reconcile ignored / non-git files
-   * captured this turn. Omit for a git-only harness/turn — the CAS branch is
-   * then skipped entirely.
+   * The CAS blob reader, used to reconcile ignored / non-git (CAS) files from the
+   * durable manifest — approved after-blobs re-written (hash-verified), rejected
+   * files snapped back to their before-blobs. Whether the CAS branch runs at all
+   * is decided by the change set's CANDIDATE snapshot (a git-only turn carries no
+   * CAS ref), NOT by probing storage. Omit for a harness with no artifact storage;
+   * a CAS/HYBRID change set then cannot be reconciled.
+   *
+   * `storage` is accepted so callers can pass the store they derived `readBlob`
+   * from (via {@link casBlobReader}); the reconcile itself reads only through
+   * `readBlob` and never probes `storage`.
    */
   readonly storage?: ArtifactStorage;
   readonly readBlob?: BlobReader;
@@ -303,17 +310,26 @@ export async function applyCaptureDecisions(opts: {
    */
   readonly gitWorkspace?: boolean;
 }): Promise<CaptureResumeResult> {
-  const { status, gitRoot, executionId, changeSet, harnessId, excludePaths, storage, readBlob } = opts;
+  const { status, gitRoot, executionId, changeSet, harnessId, excludePaths, readBlob } = opts;
   const gitWorkspace = opts.gitWorkspace ?? true;
 
   // The two substrates are resolved up front and reconciled independently below:
   // git-tracked files from the pinned baseline/after refs, ignored/non-git files
   // from the durable CAS manifest. A resume is a capture turn iff at least one is
   // present; with neither this is an ordinary (non-capture) resume.
+  //
+  // Whether this turn captured any CAS (ignored / non-git) files is a fact the
+  // ledger already records: the change set's CANDIDATE snapshot carries a CAS
+  // manifest ref for a CAS/HYBRID turn and none for a git-only turn. We branch on
+  // that ledger fact — NOT on probing artifact storage. A git-only turn writes no
+  // manifest, and asking storage "does the manifest exist?" is both redundant and
+  // unsafe: a presigned/proxy backend answers true for any key, which turned a
+  // git-only reconcile into a doomed manifest download and a 404 crash. Single
+  // source of truth: derive the substrate from the ledger, never from storage.
   const recomputed = gitWorkspace ? await recomputeChangeSet(gitRoot, executionId) : undefined;
   const manifest =
-    storage && readBlob
-      ? await loadCasManifest({ storage, readBlob, executionId, changeSetId: changeSet.id })
+    candidateCasRef(changeSet) && readBlob
+      ? await loadCasManifest({ readBlob, executionId, changeSetId: changeSet.id })
       : undefined;
   if (!recomputed && !manifest) {
     return {

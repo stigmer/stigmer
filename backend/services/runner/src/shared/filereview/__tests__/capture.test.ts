@@ -41,6 +41,7 @@ import {
   captureBaselineToLedger,
   captureCandidateToLedger,
 } from "../capture.js";
+import { casBlobReader } from "../cas-substrate.js";
 
 const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-da-1";
@@ -194,6 +195,52 @@ describe("capture orchestration — deep-agent harness", () => {
     expect(reconciled).toHaveLength(1);
     expect(reconciled[0].actor).toBe("runner");
     expect((await git(["for-each-ref", "refs/stigmer/"])).trim()).toBe("");
+  });
+
+  it("git-only reconcile never probes storage for a CAS manifest, even when exists() lies (regression: proxy 404 crash)", async () => {
+    // Regression for the file-review reconcile crash in cloud/desktop (proxy)
+    // artifact mode. `ProxyArtifactStorage.exists()` reports true for ANY key
+    // (the presign endpoint mints a URL regardless of object existence), so the
+    // old reconcile "found" a CAS manifest that a git-only turn never wrote,
+    // downloaded it, and died on the R2 `NoSuchKey` 404 (see the ExecuteCursor
+    // crash in _cursor/error.md). The reconcile must decide "is this a CAS turn?"
+    // from the change set's CANDIDATE snapshot — a git-only turn carries no cas
+    // ref — so a lying `exists()` can no longer turn a git reconcile into a
+    // doomed download.
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await write("notes.md", "planton notes\n");
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS,
+    });
+
+    const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.APPROVE });
+    // Precondition: this is a git-only turn — its candidate snapshot has no CAS ref.
+    expect(changeSet.candidateSnapshot?.kind).toBe(SnapshotKind.GIT_TREE_REF);
+    expect(changeSet.candidateSnapshot?.cas).toBeUndefined();
+
+    // A storage that behaves like the proxy: `exists()` lies (true for every key)
+    // and a download of the absent manifest fails (the R2 404 from error.md).
+    const { storage } = makeInMemoryArtifactStorage();
+    storage.exists.mockResolvedValue(true);
+
+    const result = await applyCaptureDecisions({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+      storage, readBlob: casBlobReader(storage),
+    });
+
+    // Reconciles via git; the approved edit is kept and nothing crashed.
+    expect(result.isCaptureTurn).toBe(true);
+    expect(result.failed).toBe(false);
+    expect(result.approvedPaths).toEqual(["notes.md"]);
+    expect(await read("notes.md")).toBe("planton notes\n");
+    // The proof: the git-only reconcile never asked storage for the CAS manifest.
+    const manifestKey =
+      `artifacts/${EXEC_ID}/filereview/cas/${CHANGE_SET_ID.replace(/[^A-Za-z0-9._-]/g, "_")}.manifest.json`;
+    expect(storage.download).not.toHaveBeenCalledWith(manifestKey);
   });
 
   it("reconciles an APPROVED binary byte-exact — the digest gate accepts a byte-true binary", async () => {

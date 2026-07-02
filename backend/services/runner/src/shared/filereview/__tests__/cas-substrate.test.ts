@@ -193,17 +193,19 @@ describe("snapshotCasChangeSet — storage", () => {
     expect(r1.ref.artifactUri).toBe(casManifestKey(EXEC, CHANGE_SET));
 
     const loaded = await loadCasManifest({
-      storage: a.storage, readBlob: a.readBlob, executionId: EXEC, changeSetId: CHANGE_SET,
+      readBlob: a.readBlob, executionId: EXEC, changeSetId: CHANGE_SET,
     });
-    expect(loaded?.files.map((f) => f.pathAfter)).toEqual(["a", "b"]);
+    expect(loaded.files.map((f) => f.pathAfter)).toEqual(["a", "b"]);
   });
 
-  it("loadCasManifest returns undefined when no manifest exists", async () => {
-    const { storage, readBlob } = makeFakeStorage();
-    const loaded = await loadCasManifest({
-      storage, readBlob, executionId: "other", changeSetId: "nope:1",
-    });
-    expect(loaded).toBeUndefined();
+  it("loadCasManifest surfaces the reader error when the manifest is absent (callers gate on the candidate snapshot, never on a storage probe)", async () => {
+    const { readBlob } = makeFakeStorage();
+    // loadCasManifest no longer probes existence — it is invoked ONLY when the
+    // change set's CANDIDATE snapshot says this was a CAS turn, so a missing blob
+    // is a genuine integrity error, not a "git-only turn" signal.
+    await expect(
+      loadCasManifest({ readBlob, executionId: "other", changeSetId: "nope:1" }),
+    ).rejects.toThrow(/Artifact not found/);
   });
 });
 

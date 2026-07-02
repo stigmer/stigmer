@@ -245,19 +245,24 @@ async function storeBlob(
 // ---------------------------------------------------------------------------
 
 /**
- * Load a change set's manifest for the resume-time reconcile. Returns
- * `undefined` when this execution has no CAS manifest (not a CAS turn), so the
- * caller can fall through — mirroring the git substrate's `recomputeChangeSet`.
+ * Load a change set's CAS manifest for the resume-time reconcile.
+ *
+ * Called ONLY when the caller has already determined this turn captured CAS files
+ * — from the change set's CANDIDATE snapshot (the ledger's record of the
+ * substrate), never by probing storage. The manifest is therefore expected to
+ * exist; a download failure is a genuine integrity error surfaced by the reader,
+ * not a "this was a git-only turn" signal. (Deciding the substrate from storage
+ * existence was unsafe: a presigned/proxy backend cannot answer "does this key
+ * exist?" reliably, and a git-only turn — which writes no manifest — would then
+ * attempt a doomed download.)
  */
 export async function loadCasManifest(opts: {
-  readonly storage: ArtifactStorage;
   readonly readBlob: BlobReader;
   readonly executionId: string;
   readonly changeSetId: string;
-}): Promise<CasManifest | undefined> {
-  const { storage, readBlob, executionId, changeSetId } = opts;
+}): Promise<CasManifest> {
+  const { readBlob, executionId, changeSetId } = opts;
   const key = casManifestKey(executionId, changeSetId);
-  if (!(await storage.exists(key))) return undefined;
   const bytes = await readBlob(key);
   return JSON.parse(bytes.toString("utf8")) as CasManifest;
 }
