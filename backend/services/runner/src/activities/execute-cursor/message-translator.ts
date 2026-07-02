@@ -479,6 +479,15 @@ function blockText(b: Record<string, unknown>): string | undefined {
  *
  * The Cursor SDK returns sub-agent work as a blob in the task tool's
  * completed event (not as streaming events with a distinct agent_id).
+ * Re-verified 2026-07-02 with live recordings on both the pinned SDK (1.0.13)
+ * and the latest (1.0.22): zero events reach the parent's run.stream() between
+ * the task tool's "running" and "completed" events, every event carries the
+ * parent's agent_id, and the child agentId visible in the task args at spawn
+ * is NOT queryable mid-run through any public read surface (Agent.listRuns /
+ * Agent.messages.list / Agent.getRun all return not-found for it; the SDK's
+ * on-disk sub-agent transcript is written only at completion). Live nested
+ * visibility is therefore an upstream SDK limitation — do not try to fake it
+ * here; the UI shows an elapsed-time affordance instead (SubAgentSection).
  * The result shape is:
  *
  *   { status: "success", value: { conversationSteps: ConversationStep[] } }

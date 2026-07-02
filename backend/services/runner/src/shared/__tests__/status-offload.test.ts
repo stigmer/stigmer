@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { create, toBinary } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
@@ -387,6 +388,97 @@ describe("offloadOversizedToolOutputs", () => {
     expect(out.outputRef).toBeUndefined();
     expect(out.result).toContain("offload failed");
     expect(out.result.length).toBeLessThan(result.length);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sub-agent coverage — the size-bounding walks must include
+// sub_agent_executions[].messages, not just the parent transcript. A delegated
+// read/grep/screenshot result is as unbounded as a top-level one; missing this
+// location was a hole in the persist boundary's bounded-payload guarantee.
+// ---------------------------------------------------------------------------
+
+function statusWithSubAgentToolCall(tc: ToolCall): AgentExecutionStatus {
+  return create(AgentExecutionStatusSchema, {
+    subAgentExecutions: [
+      create(SubAgentExecutionSchema, {
+        id: "sa-1",
+        name: "researcher",
+        messages: [create(AgentMessageSchema, { toolCalls: [tc] })],
+      }),
+    ],
+  });
+}
+
+describe("sub-agent message size bounding", () => {
+  it("offloads an oversized sub-agent tool result exactly like a parent one", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const result = "LOG ".repeat(2000); // ~8 KB
+    const tc = create(ToolCallSchema, { id: "tc-sub", name: "Shell", result });
+    const status = statusWithSubAgentToolCall(tc);
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineBytes: 256,
+    });
+
+    const out = status.subAgentExecutions[0].messages[0].toolCalls[0];
+    expect(out.outputRef?.mimeType).toBe("text/plain");
+    expect(out.result).toContain("view full output");
+    expect(uploads).toHaveLength(1);
+  });
+
+  it("offloads a sub-agent image result into a renderable ref", async () => {
+    const { storage, uploads } = makeFakeStorage();
+    const result = JSON.stringify([
+      { type: "image", data: BIG_BASE64_IMAGE, mimeType: "image/png" },
+    ]);
+    const tc = create(ToolCallSchema, { id: "tc-sub-img", name: "screenshot", result });
+    const status = statusWithSubAgentToolCall(tc);
+
+    await offloadOversizedToolOutputs(status, {
+      artifactStorage: storage,
+      executionId: "exec-1",
+      maxInlineBytes: 256,
+    });
+
+    const out = status.subAgentExecutions[0].messages[0].toolCalls[0];
+    expect(out.outputRef?.isImage).toBe(true);
+    expect(out.result).not.toContain(BIG_BASE64_IMAGE);
+    expect(uploads).toHaveLength(1);
+  });
+
+  it("enforceStatusSizeLimit elides oversized sub-agent tool results", () => {
+    const big = "Z".repeat(50_000);
+    const tc = create(ToolCallSchema, { id: "tc-sub-big", name: "Shell", result: big });
+    const status = statusWithSubAgentToolCall(tc);
+    expect(encodedSize(status)).toBeGreaterThan(40_000);
+
+    const elided = enforceStatusSizeLimit(status, 4_000);
+
+    expect(elided).toBe(true);
+    expect(encodedSize(status)).toBeLessThanOrEqual(4_000);
+    expect(status.subAgentExecutions[0].messages[0].toolCalls[0].result)
+      .not.toBe(big);
+  });
+
+  it("enforceStatusSizeLimit last-resort elides oversized sub-agent message content", () => {
+    const status = create(AgentExecutionStatusSchema, {
+      subAgentExecutions: [
+        create(SubAgentExecutionSchema, {
+          id: "sa-2",
+          messages: [create(AgentMessageSchema, { content: "W".repeat(50_000) })],
+        }),
+      ],
+    });
+    expect(encodedSize(status)).toBeGreaterThan(40_000);
+
+    const elided = enforceStatusSizeLimit(status, 8_000);
+
+    expect(elided).toBe(true);
+    expect(encodedSize(status)).toBeLessThanOrEqual(8_000);
+    expect(status.subAgentExecutions[0].messages[0].content).toContain("elided");
   });
 });
 

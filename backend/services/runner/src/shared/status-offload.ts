@@ -3,8 +3,10 @@
  *
  * Tool outputs (an MCP screenshot's base64 image, a giant accessibility-tree
  * dump, a multi-MB shell log, a huge file write) are stored inline in
- * `ToolCall.result`/`args_preview`, which live in `status.messages` and are
- * re-serialized whole on every `persistStatus` -> `updateStatus` gRPC call.
+ * `ToolCall.result`/`args_preview`, which live in `status.messages` AND in
+ * each `status.sub_agent_executions[].messages` (a delegated tool call's
+ * result is just as unbounded), and are re-serialized whole on every
+ * `persistStatus` -> `updateStatus` gRPC call.
  * Left unchecked, a single large result pushes the message past the server's
  * 4 MiB gRPC receive cap; the call fails with `resource_exhausted`, progress
  * stops persisting, and the live UI freezes mid-execution.
@@ -46,7 +48,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { FileContent, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentMessage, FileContent, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
@@ -125,6 +127,29 @@ function formatBytes(n: number): string {
   if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
   if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${n} B`;
+}
+
+/**
+ * Every message list carried on the status: the parent transcript plus each
+ * sub-agent's nested transcript. Sub-agent tool calls hold real results (a
+ * delegated read/grep/screenshot can be as large as a top-level one), so every
+ * size-bounding pass in this module walks THIS set — a location covered by
+ * offload but not elision (or vice versa) would be a hole in the persist
+ * boundary's bounded-payload guarantee.
+ */
+function allMessageLists(status: AgentExecutionStatus): readonly (readonly AgentMessage[])[] {
+  return [status.messages, ...status.subAgentExecutions.map((sa) => sa.messages)];
+}
+
+/** Every tool call in the status, across the parent and all sub-agents. */
+function allToolCalls(status: AgentExecutionStatus): ToolCall[] {
+  const out: ToolCall[] = [];
+  for (const messages of allMessageLists(status)) {
+    for (const msg of messages) {
+      for (const tc of msg.toolCalls) out.push(tc);
+    }
+  }
+  return out;
 }
 
 function extFromMime(mimeType: string): string {
@@ -445,20 +470,18 @@ export async function offloadOversizedToolOutputs(
 ): Promise<void> {
   const maxBytes = ctx.maxInlineBytes ?? INLINE_TOOL_OUTPUT_MAX_BYTES;
   const maxFileBytes = ctx.maxInlineFileBytes ?? INLINE_FILE_CONTENT_MAX_BYTES;
-  for (const msg of status.messages) {
-    for (const tc of msg.toolCalls) {
-      try {
-        await maybeOffloadToolCall(tc, ctx, maxBytes);
-      } catch (err) {
-        const original = tc.result ?? "";
-        tc.result =
-          headChars(original, TEXT_PREVIEW_HEAD_CHARS) +
-          `\n\n[output truncated — offload failed: ${err instanceof Error ? err.message : String(err)}]`;
-        console.warn(
-          `[status-offload] execution=${ctx.executionId} tool=${tc.name} ` +
-          `offload failed (non-fatal); truncated inline`,
-        );
-      }
+  for (const tc of allToolCalls(status)) {
+    try {
+      await maybeOffloadToolCall(tc, ctx, maxBytes);
+    } catch (err) {
+      const original = tc.result ?? "";
+      tc.result =
+        headChars(original, TEXT_PREVIEW_HEAD_CHARS) +
+        `\n\n[output truncated — offload failed: ${err instanceof Error ? err.message : String(err)}]`;
+      console.warn(
+        `[status-offload] execution=${ctx.executionId} tool=${tc.name} ` +
+        `offload failed (non-fatal); truncated inline`,
+      );
     }
   }
 
@@ -590,10 +613,7 @@ export function enforceStatusSizeLimit(
 ): boolean {
   if (encodedSize(status) <= softLimitBytes) return false;
 
-  const toolCalls: ToolCall[] = [];
-  for (const msg of status.messages) {
-    for (const tc of msg.toolCalls) toolCalls.push(tc);
-  }
+  const toolCalls = allToolCalls(status);
   // Largest inline footprint first so we shed the most bytes per elision.
   toolCalls.sort(
     (a, b) =>
@@ -659,9 +679,10 @@ export function enforceStatusSizeLimit(
     }
   }
 
-  // Last resort: oversized message content (e.g. a huge AI response).
+  // Last resort: oversized message content (e.g. a huge AI response),
+  // parent and sub-agent alike.
   if (encodedSize(status) > softLimitBytes) {
-    const byContent = [...status.messages].sort(
+    const byContent = allMessageLists(status).flat().sort(
       (a, b) => byteLen(b.content) - byteLen(a.content),
     );
     for (const msg of byContent) {
