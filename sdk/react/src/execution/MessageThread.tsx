@@ -41,6 +41,7 @@ import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
 import { ApprovalContext, type ApprovalContextValue } from "./ApprovalContext";
+import { FileReviewContext, type FileReviewContextValue } from "./FileReviewContext";
 import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev";
 import { useAutoScroll } from "../internal/useAutoScroll";
 import { JumpToLatestButton } from "../internal/JumpToLatestButton";
@@ -319,6 +320,67 @@ function collectSubAgentInlineToolCallIds(
 }
 
 /**
+ * Records, for each change set referenced by a just-pushed tool-group item, the
+ * item's index — later groups overwrite, so the map converges on each set's
+ * LAST stamped row. That index is where the set's decision bar anchors: the
+ * review surface appears where the turn's editing activity ended, not at the
+ * thread tail.
+ */
+function recordFileReviewAnchors(
+  toolCalls: readonly ToolCall[],
+  itemIndex: number,
+  anchorIndexBySetId: Map<string, number>,
+): void {
+  for (const tc of toolCalls) {
+    if (tc.fileChangeSetId) anchorIndexBySetId.set(tc.fileChangeSetId, itemIndex);
+  }
+}
+
+/**
+ * Inserts one execution's decision bars into its own thread segment: each
+ * change set's `file-review-request` item is spliced immediately after the
+ * set's last stamped tool row ({@link recordFileReviewAnchors}); a set with no
+ * stamped row (its changes were made by shell commands, or the rows predate
+ * stamping) falls back to the segment's tail — a pending review is never
+ * invisible. Interactivity is gated on THIS execution's phase: only a live
+ * (non-terminal) execution's AWAITING_REVIEW set is actionable; every other
+ * set — decided, reconciled, failed, or on a historical execution — renders
+ * read-only, a record of what changed and how it was decided. A CAPTURING set
+ * (baseline only, no diff yet) has nothing to show and is skipped.
+ */
+function insertFileReviewItems(
+  items: ThreadItem[],
+  changeSets: readonly FileChangeSet[],
+  anchorIndexBySetId: ReadonlyMap<string, number>,
+  execTerminal: boolean,
+): void {
+  const anchored: { index: number; item: ThreadItem }[] = [];
+  const tail: ThreadItem[] = [];
+  for (const changeSet of changeSets) {
+    if (changeSet.changes.length === 0) continue;
+    const item: ThreadItem = {
+      kind: "file-review-request",
+      fileChangeSet: changeSet,
+      interactive:
+        !execTerminal && changeSet.status === FileChangeSetStatus.AWAITING_REVIEW,
+      key: `file-review-${changeSet.id}`,
+    };
+    const index = anchorIndexBySetId.get(changeSet.id);
+    if (index !== undefined) anchored.push({ index, item });
+    else tail.push(item);
+  }
+  // Splice in ascending anchor order with a running offset so earlier inserts
+  // do not displace later anchors.
+  anchored.sort((a, b) => a.index - b.index);
+  let offset = 0;
+  for (const { index, item } of anchored) {
+    items.splice(index + 1 + offset, 0, item);
+    offset++;
+  }
+  items.push(...tail);
+}
+
+/**
  * Builds a flat list of renderable thread items from execution data.
  *
  * Keys use stable execution IDs (not array indices) so React can
@@ -396,6 +458,16 @@ export function buildThreadItems(
     const isActiveStreamExec = ei === activeStreamIndex;
     const messages = exec.status?.messages ?? [];
     const subAgents = exec.status?.subAgentExecutions ?? [];
+
+    // This execution's change sets render as decision bars inside its own
+    // segment, anchored to the last stamped edit row of each set. The display
+    // seam reads the server's live projection when present and folds the
+    // durable ledger for a terminal execution (whose projection is nil), so
+    // live AND settled sets surface — for EVERY execution, not just the last.
+    const execChangeSets = includeFileReview
+      ? displayFileChangeSets(exec.status)
+      : [];
+    const fileReviewAnchors = new Map<string, number>();
 
     // The agent's plan renders as one inline card per turn, anchored to the
     // first of: the opening AI/thinking message, the first unit of work
@@ -509,6 +581,7 @@ export function buildThreadItems(
               subAgentExecutions: subAgents,
               key: `${execId}-m${mi}-tc`,
             });
+            recordFileReviewAnchors(regularTools, items.length - 1, fileReviewAnchors);
             for (const tc of regularTools) {
               if (tc.id) inlineToolCallIds.add(tc.id);
             }
@@ -528,6 +601,7 @@ export function buildThreadItems(
             subAgentExecutions: subAgents,
             key: `${execId}-m${mi}-tc`,
           });
+          recordFileReviewAnchors(renderableToolCalls, items.length - 1, fileReviewAnchors);
           for (const tc of renderableToolCalls) {
             if (tc.id) inlineToolCallIds.add(tc.id);
           }
@@ -538,6 +612,16 @@ export function buildThreadItems(
     // Anchor (3): a plan that produced no rendered narration or work item still
     // surfaces — never silently dropped.
     emitTodos();
+
+    // Decision bars land inside this execution's segment, at their anchors.
+    if (execChangeSets.length > 0) {
+      insertFileReviewItems(
+        items,
+        execChangeSets,
+        fileReviewAnchors,
+        isTerminalPhase(exec.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED),
+      );
+    }
   }
 
   // Flush any remaining summarization events that occurred after all messages
@@ -640,28 +724,9 @@ export function buildThreadItems(
     }
   }
 
-  if (includeFileReview) {
-    // File edits are reviewed as captured change sets — a dedicated surface,
-    // separate from the message transcript and the tool-approval cards. The
-    // display seam reads the server's live projection when present and folds the
-    // durable ledger for a terminal execution (whose projection is nil), so both
-    // live AND settled sets surface here. An AWAITING_REVIEW set on a non-terminal
-    // execution is actionable (interactive card); every other set — decided,
-    // reconciled, failed, or any set on a terminal execution — is shown read-only,
-    // a historical record of what changed and how it was decided. A CAPTURING set
-    // (baseline only, no diff yet) has nothing to show and is skipped.
-    const terminal = isTerminalPhase(lastPhase);
-    for (const changeSet of displayFileChangeSets(lastExec?.status)) {
-      if (changeSet.changes.length === 0) continue;
-      items.push({
-        kind: "file-review-request",
-        fileChangeSet: changeSet,
-        interactive:
-          !terminal && changeSet.status === FileChangeSetStatus.AWAITING_REVIEW,
-        key: `file-review-${changeSet.id}`,
-      });
-    }
-  }
+  // File-review decision bars are emitted inside each execution's segment
+  // (see insertFileReviewItems in the loop above) — anchored to the last
+  // stamped edit row, never appended at the thread tail.
 
   if (pendingUserMessage) {
     const alreadySynthesized =
@@ -786,6 +851,26 @@ export function MessageThread({
     [approvalsByToolCallId, onApprovalSubmit, submittingApprovalIds, approvalErrors],
   );
 
+  // Every displayable change set across the session, keyed by id, so a stamped
+  // edit row (ToolCall.file_change_set_id) can badge its set's live review
+  // state wherever it renders (parent thread or nested groups). The map is
+  // rebuilt only when the execution list reference changes; structural sharing
+  // keeps each FileChangeSet reference stable across streaming frames, so
+  // subscribing rows re-render on review events, not every snapshot.
+  const fileReviewCtx = useMemo<FileReviewContextValue>(() => {
+    const map = new Map<string, FileChangeSet>();
+    const all = activeStreamExecution
+      ? [...executions, activeStreamExecution]
+      : executions;
+    for (const exec of all) {
+      for (const changeSet of displayFileChangeSets(exec.status)) {
+        // Later wins: the active stream's copy supersedes a stale fetched one.
+        map.set(changeSet.id, changeSet);
+      }
+    }
+    return { changeSetsById: map };
+  }, [executions, activeStreamExecution]);
+
   // Drives the global "approval needed" peek affordance — a count, not the
   // cards, so the bar reuses the existing scroll machine without a new observer.
   const unresolvedApprovalCount = pendingApprovals.length;
@@ -806,6 +891,7 @@ export function MessageThread({
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
             approvalCtx={approvalCtx}
+            fileReviewCtx={fileReviewCtx}
             unresolvedApprovalCount={unresolvedApprovalCount}
             onBuildFromPlan={onBuildFromPlan}
             org={org}
@@ -835,6 +921,7 @@ export function MessageThread({
       filePathCtx={filePathCtx}
       sandboxCtx={sandboxCtx}
       approvalCtx={approvalCtx}
+      fileReviewCtx={fileReviewCtx}
       unresolvedApprovalCount={unresolvedApprovalCount}
       onBuildFromPlan={onBuildFromPlan}
       org={org}
@@ -872,6 +959,7 @@ interface NonVirtualizedThreadProps {
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly approvalCtx: ApprovalContextValue;
+  readonly fileReviewCtx: FileReviewContextValue;
   readonly unresolvedApprovalCount: number;
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
@@ -895,6 +983,7 @@ function NonVirtualizedThread({
   filePathCtx,
   sandboxCtx,
   approvalCtx,
+  fileReviewCtx,
   unresolvedApprovalCount,
   onBuildFromPlan,
   org,
@@ -926,6 +1015,7 @@ function NonVirtualizedThread({
         <SandboxContext.Provider value={sandboxCtx}>
         <FilePathContext.Provider value={filePathCtx}>
         <ApprovalContext.Provider value={approvalCtx}>
+        <FileReviewContext.Provider value={fileReviewCtx}>
         <DevProfiler id="MessageThread">
           <div ref={contentRef} className={cn("flex flex-col gap-4", centerContent && "mx-auto w-full max-w-3xl px-4")}>
             {items.map((item) => (
@@ -950,6 +1040,7 @@ function NonVirtualizedThread({
             ))}
           </div>
         </DevProfiler>
+        </FileReviewContext.Provider>
         </ApprovalContext.Provider>
         </FilePathContext.Provider>
         </SandboxContext.Provider>

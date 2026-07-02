@@ -21,6 +21,7 @@ import { InCardDecisionError } from "../internal/InCardDecisionError";
 import { fileDecisionKey, type FileDecisionOptions } from "./useFileReview";
 import {
   changeSetReviewability,
+  deriveEffectiveVerdicts,
   fileReviewability,
   type FileReviewability,
 } from "./file-review-status";
@@ -74,12 +75,16 @@ export interface FileReviewCardProps {
 }
 
 /**
- * Renders a captured {@link FileChangeSet} for review: a summary bar, the
- * per-file before/after diffs (reusing {@link FileChangeDiff}), and the
- * decision controls.
+ * Renders a captured {@link FileChangeSet} as a **compact decision bar**: one
+ * line carrying the set summary and the whole-set decision controls, with the
+ * authoritative per-file diffs behind a "Review" expander. The transcript's
+ * stamped edit rows already show each edit's streamed preview at its own
+ * position, so the bar never duplicates diffs by default — it is the *verdict*
+ * surface, expanded on demand for verification. A set that needs per-file
+ * attention (binary acknowledgment, blocked files, mid-review) starts expanded.
  *
  * File edits are reviewed as a captured workspace delta, not tool calls, so this
- * is a dedicated review surface distinct from the message transcript and the
+ * is a dedicated decision surface distinct from the message transcript and the
  * tool-approval {@link ApprovalCard}. The reviewer can decide each file
  * individually (Keep / Discard, a `FILE`-scoped decision) or act on the whole
  * set at once (Approve / Reject, a `CHANGE_SET` decision). Either way the runner
@@ -141,6 +146,15 @@ export const FileReviewCard = memo(function FileReviewCard({
   );
   const decidedCount = verdictByFileId.size;
 
+  // The EFFECTIVE verdicts for history (a CHANGE_SET decision covers every file
+  // a FILE decision does not override — the reconcile's own precedence), so a
+  // settled "Keep all" set reads every file as kept, never "Not reviewed".
+  // Interactive per-file selection deliberately keeps the FILE-only fold above.
+  const effectiveVerdicts = useMemo(
+    () => deriveEffectiveVerdicts(fileChangeSet),
+    [fileChangeSet],
+  );
+
   // The set-level reviewability drives the bulk affordance. A "binary-only" set
   // (binary files are the ONLY blocker) is keepable in one acknowledged action
   // ("Keep all", DD-17); a "blocked" set (a secret/elided file with no keepable
@@ -151,14 +165,25 @@ export const FileReviewCard = memo(function FileReviewCard({
 
   // Per-file controls earn their space when there is more than one file OR when a
   // lone file is not reviewable — a single binary needs its per-file "Keep anyway"
-  // (FILE-scope, acknowledged), which the CHANGE_SET-scoped bulk footer can't
-  // offer. A single COMPLETE file stays decided once via the bulk footer.
+  // (FILE-scope, acknowledged), which the CHANGE_SET-scoped bulk controls can't
+  // offer. A single COMPLETE file stays decided once via the bar's bulk controls.
   const showPerFile = total > 1 || incomplete;
-  // The bulk (CHANGE_SET) footer is shown for multi-file sets and for a single
-  // complete file; it is hidden for a single incomplete file, whose only honest
-  // decision is the per-file control above (a single binary uses its per-file
-  // "Keep anyway" — DD-16 — and a blocked lone file can only be discarded).
-  const showBulkFooter = total > 1 || !incomplete;
+  // The bulk (CHANGE_SET) controls live on the bar for multi-file sets and for a
+  // single complete file; they are hidden for a single incomplete file, whose
+  // only honest decision is the per-file control in the expanded body (a single
+  // binary uses its per-file "Keep anyway" — DD-16 — and a blocked lone file can
+  // only be discarded).
+  const showBulkControls = total > 1 || !incomplete;
+
+  // The bar starts expanded exactly when the collapsed bar cannot honestly carry
+  // the decision: an incomplete set (binary acknowledgment / blocked files need
+  // their per-file context) or a review already in progress. A complete set and
+  // a settled record start collapsed — the transcript's stamped rows already
+  // show what changed, and "Review" expands the authoritative diffs on demand.
+  const [expanded, setExpanded] = useState(
+    () => interactive && (incomplete || decidedCount > 0),
+  );
+  const bodyId = useId();
 
   const wholeSetSubmitting = submittingDecisionKeys.has(setId);
   const wholeSetError = decisionErrors.get(setId) ?? null;
@@ -238,6 +263,9 @@ export const FileReviewCard = memo(function FileReviewCard({
   const incompleteNoticeId = useId();
 
   const labels = bulkLabels(total, decidedCount, binaryOnly);
+  const summary = interactive
+    ? `${total} file${total === 1 ? "" : "s"} awaiting review`
+    : settledSummary(total, changes, effectiveVerdicts);
 
   return (
     <div
@@ -255,69 +283,17 @@ export const FileReviewCard = memo(function FileReviewCard({
         className,
       )}
     >
-      <div className="flex items-center gap-2 border-b border-border-muted px-2.5 py-1.5 text-xs">
+      {/* The bar: summary + whole-set verdict + the diff expander, one line. */}
+      <div className="flex flex-wrap items-center gap-2 px-2.5 py-1.5 text-xs">
         <span className="shrink-0 font-medium text-foreground">
           {interactive ? "Review file changes" : "File changes"}
         </span>
-        <span className="text-muted-foreground">
-          {total} file{total === 1 ? "" : "s"}{" "}
-          {interactive ? "awaiting review" : "changed"}
+        <span className="min-w-0 flex-1 truncate text-muted-foreground">
+          {summary}
         </span>
-      </div>
 
-      <div className="space-y-2 px-3 py-2.5">
-        <DiffSummary
-          fileCount={total}
-          additions={totals.additions}
-          deletions={totals.deletions}
-        />
-
-        {!interactive
-          ? // Settled: every file's diff paired with its committed verdict, no
-            // controls — a historical record of what changed and how it was decided.
-            changes.map((change) => (
-              <SettledFileRow
-                key={change.id}
-                change={change}
-                verdict={verdictByFileId.get(change.id) ?? null}
-              />
-            ))
-          : showPerFile
-            ? changes.map((change) => (
-                <FileChangeReviewRow
-                  key={change.id}
-                  change={change}
-                  verdict={verdictByFileId.get(change.id) ?? null}
-                  isSubmitting={
-                    submittingDecisionKeys.has(fileDecisionKey(setId, change.id)) ||
-                    wholeSetSubmitting
-                  }
-                  error={decisionErrors.get(fileDecisionKey(setId, change.id)) ?? null}
-                  onDecide={handleFileDecide}
-                />
-              ))
-            : changes.map((change) => (
-                <div key={change.id} className="space-y-1.5">
-                  <CaptureBadge change={change} />
-                  <FileChangeDiff change={toDisplayFileChange(change)} bounded />
-                </div>
-              ))}
-
-        {interactive && showPerFile && (
-          <ReviewProgress decided={decidedCount} total={total} />
-        )}
-
-        {interactive && incomplete && showBulkFooter && (
-          <p
-            id={incompleteNoticeId}
-            className="text-[11px] italic text-muted-foreground"
-          >
-            {incompleteNotice(showPerFile, blockSummary, binaryOnly)}
-          </p>
-        )}
-
-        {interactive && showBulkFooter && (
-          <div className="flex items-center gap-2 pt-1">
+        {interactive && showBulkControls && (
+          <>
             <DecisionButton
               label={labels.approve}
               variant="primary"
@@ -336,27 +312,156 @@ export const FileReviewCard = memo(function FileReviewCard({
               isSubmitting={wholeSetSubmitting}
               cursorTarget="file-review-reject"
             />
-          </div>
+          </>
         )}
 
-        {/* A failed whole-set decision is surfaced HERE, in-card, not via the
-            session's global error banner. A review card has many decision
-            targets (the whole set plus each file), so a failure must name the
-            control it belongs to — something a single global banner cannot do.
-            The tool-approval ApprovalCard now surfaces failures in-card the same
-            way (via the shared InCardDecisionError); the workflow approval cards
-            are the remaining convergence — see their breadcrumbs. */}
-        {interactive && wholeSetError && (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={bodyId}
+          onClick={() => setExpanded((v) => !v)}
+          data-cursor-target="file-review-expander"
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1",
+            "text-xs font-medium text-muted-foreground transition-colors",
+            "hover:bg-accent-hover hover:text-foreground",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          {expanded ? "Hide" : interactive ? "Review" : "Show"}
+          <ExpanderChevron expanded={expanded} />
+        </button>
+      </div>
+
+      {/* The disabled whole-set Approve's explanation must be visible even when
+          the diffs are collapsed, so it lives on the bar, not in the body. */}
+      {interactive && incomplete && showBulkControls && (
+        <p
+          id={incompleteNoticeId}
+          className="px-2.5 pb-1.5 text-[11px] italic text-muted-foreground"
+        >
+          {incompleteNotice(showPerFile, blockSummary, binaryOnly)}
+        </p>
+      )}
+
+      {/* A failed whole-set decision is surfaced HERE, in-card, not via the
+          session's global error banner. A review surface has many decision
+          targets (the whole set plus each file), so a failure must name the
+          control it belongs to — something a single global banner cannot do.
+          Rendered on the bar so it is visible regardless of expansion. */}
+      {interactive && wholeSetError && (
+        <div className="px-2.5 pb-1.5">
           <InCardDecisionError
             error={wholeSetError}
             leadIn="submit decision"
             cursorTarget="file-review-error"
           />
-        )}
-      </div>
+        </div>
+      )}
+
+      {expanded && (
+        <div
+          id={bodyId}
+          className="space-y-2 border-t border-border-muted px-3 py-2.5"
+        >
+          <DiffSummary
+            fileCount={total}
+            additions={totals.additions}
+            deletions={totals.deletions}
+          />
+
+          {!interactive
+            ? // Settled: every file's diff paired with its committed EFFECTIVE
+              // verdict (a bulk decision covers files without their own), no
+              // controls — a record of what changed and how it was decided.
+              changes.map((change) => (
+                <SettledFileRow
+                  key={change.id}
+                  change={change}
+                  verdict={effectiveVerdicts.get(change.id) ?? null}
+                />
+              ))
+            : showPerFile
+              ? changes.map((change) => (
+                  <FileChangeReviewRow
+                    key={change.id}
+                    change={change}
+                    verdict={verdictByFileId.get(change.id) ?? null}
+                    isSubmitting={
+                      submittingDecisionKeys.has(fileDecisionKey(setId, change.id)) ||
+                      wholeSetSubmitting
+                    }
+                    error={decisionErrors.get(fileDecisionKey(setId, change.id)) ?? null}
+                    onDecide={handleFileDecide}
+                  />
+                ))
+              : changes.map((change) => (
+                  <div key={change.id} className="space-y-1.5">
+                    <CaptureBadge change={change} />
+                    <FileChangeDiff change={toDisplayFileChange(change)} bounded />
+                  </div>
+                ))}
+
+          {interactive && showPerFile && (
+            <ReviewProgress decided={decidedCount} total={total} />
+          )}
+        </div>
+      )}
     </div>
   );
 });
+
+/**
+ * The settled bar's one-line history: verdict counts folded from the effective
+ * decisions ("2 kept · 1 discarded"), with an honest "not reviewed" bucket for
+ * files a terminated set never decided. Falls back to a plain changed-count
+ * when nothing was decided at all.
+ */
+function settledSummary(
+  total: number,
+  changes: readonly CapturedFileChange[],
+  effectiveVerdicts: ReadonlyMap<string, FileDecisionAction>,
+): string {
+  let kept = 0;
+  let discarded = 0;
+  for (const c of changes) {
+    const v = effectiveVerdicts.get(c.id);
+    if (v === FileDecisionAction.APPROVE) kept++;
+    else if (v === FileDecisionAction.REJECT) discarded++;
+  }
+  const undecided = total - kept - discarded;
+  if (kept === 0 && discarded === 0) {
+    return `${total} file${total === 1 ? "" : "s"} changed`;
+  }
+  const parts: string[] = [];
+  if (kept > 0) parts.push(`${kept} kept`);
+  if (discarded > 0) parts.push(`${discarded} discarded`);
+  if (undecided > 0) parts.push(`${undecided} not reviewed`);
+  return parts.join(" · ");
+}
+
+/** The bar expander's disclosure chevron (rotates when open). */
+function ExpanderChevron({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 10 10"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn(
+        "shrink-0 transition-transform duration-150",
+        expanded && "rotate-90",
+      )}
+      aria-hidden="true"
+    >
+      <path d="M3.5 2L6.5 5L3.5 8" />
+    </svg>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // FileChangeReviewRow — one file's diff paired with its Keep/Discard verdict

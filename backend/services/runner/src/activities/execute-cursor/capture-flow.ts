@@ -9,8 +9,10 @@
  *  - `harnessId = "cursor"` (stamped on the BASELINE payload the projection reads);
  *  - the Cursor gate files written into the workspace, excluded from the captured
  *    diff (`CURSOR_RUNNER_OWNED_PATHS`);
- *  - hiding the streamed file-edit transcript rows that flowed this turn, so
- *    `file_change_sets` is the single review surface (`hideFlowedFileEditRows`).
+ *  - stamping the streamed file-edit transcript rows that flowed this turn with
+ *    the change set id (`stampFlowedFileEditRows`) — the rows stay visible as
+ *    observational/audit records at their transcript positions, while
+ *    `file_change_sets` remains the single DECISION surface.
  *
  * The three turn-boundary functions keep their original signatures so the
  * activity wiring (index.ts) and the cutover tests are unchanged.
@@ -26,13 +28,14 @@ import { approvalCategory } from "./approval-policy.js";
 import { toolIdentity, primaryToken } from "./approval-state.js";
 import { readCasObservations } from "./cas-observations.js";
 import { contentDigest } from "../../shared/file-tools.js";
-import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
+import { isToolCallRowHidden, stampFileEditRow } from "../../shared/tool-row.js";
 import {
   applyCaptureDecisions as sharedApplyCaptureDecisions,
   captureBaselineToLedger as sharedCaptureBaselineToLedger,
   captureCandidateToLedger as sharedCaptureCandidateToLedger,
   type CaptureResumeResult,
 } from "../../shared/filereview/capture.js";
+import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import type { GitSubstrateChange as GitCapturedChange } from "../../shared/filereview/git-substrate.js";
@@ -99,9 +102,11 @@ export function captureBaselineToLedger(opts: {
 }
 
 /**
- * Turn end: capture the change set + author CANDIDATE_CAPTURED, then hide the
- * streamed file-edit rows that flowed this turn so `file_change_sets` is the
- * single review surface. The working tree is LEFT applied (Cursor parity).
+ * Turn end: capture the change set + author CANDIDATE_CAPTURED, then stamp the
+ * streamed file-edit rows that flowed this turn with the change set id — the
+ * rows stay visible in place as observational records while `file_change_sets`
+ * remains the single decision surface. The working tree is LEFT applied
+ * (Cursor parity).
  *
  * The change set is HYBRID (git tree) or CAS-only (non-git): the hook-staged
  * writes from the cas-observations sidecar this turn ({@link readCasObservations})
@@ -117,8 +122,8 @@ export function captureBaselineToLedger(opts: {
  * `deniedTokens` are the identities the hook gated this turn (shell/MCP, or a
  * gitignored delete). A streamed file-edit row whose identity is in that set is
  * left for the deny-gate reconcile path — it did NOT flow. A flowed gitignored
- * write is NOT in that set (the hook allowed it), so it is hidden like any other
- * flowed edit and surfaced as its CAS card.
+ * write is NOT in that set (the hook allowed it), so it is stamped like any
+ * other flowed edit and its captured delta surfaces as a CAS entry in the set.
  *
  * `hitlDir`/`storage` are omitted only by callers with no artifact storage
  * (captureIgnored off); the CAS half is then skipped and this is a git-only
@@ -174,12 +179,16 @@ export async function captureTurnToLedger(opts: {
     gitWorkspace,
   });
 
-  // Single review surface: the per-file edits now live on the file_review ledger
-  // (projected to file_change_sets), so hide the streamed file-edit rows that
-  // flowed this turn. Denied (gitignored-delete/shell) rows stay on the deny-gate
-  // path. Runs regardless of the change count (a denied-only turn still hides
-  // nothing and is a no-op).
-  hideFlowedFileEditRows(messages, deniedTokens);
+  // Observational rows: the reviewable diff lives on the file_review ledger
+  // (projected to file_change_sets); the streamed file-edit rows that flowed
+  // this turn stay visible in place, stamped with the change set id so clients
+  // badge them and anchor the decision surface. Denied (gitignored-delete/
+  // shell) rows stay on the deny-gate path. Gated on an authored CANDIDATE —
+  // a no-op turn (every edit reverted before the boundary) authors no event,
+  // and a row must never reference a change set that does not exist.
+  if (hasCandidateCaptured(status, changeSetId)) {
+    stampFlowedFileEditRows(messages, deniedTokens, changeSetId);
+  }
 
   return changes;
 }
@@ -274,17 +283,24 @@ export function applyCaptureDecisions(opts: {
 // ---------------------------------------------------------------------------
 
 /**
- * Hide every streamed file-edit row (category write/delete) that flowed this
- * turn, so the file_change_sets projection is the single review surface. Skips:
- *  - already-hidden rows (idempotent across re-persists / activity retries);
+ * Stamp every streamed file-edit row (category write/delete) that flowed this
+ * turn with the change set id, so the row stays visible as an observational
+ * record and clients can badge it / anchor the decision surface. Skips:
+ *  - already-stamped rows — the stamp is the idempotency AND cross-turn guard:
+ *    a resume seeds prior turns' rows into this transcript, and re-stamping
+ *    them with this turn's id would mis-attribute them ({@link stampFileEditRow});
+ *  - legacy hidden rows (sessions persisted before stamping existed) — they
+ *    belong to an earlier turn's change set, not this one;
  *  - denied identities (the deny-gate reconcile path owns those rows).
  */
-function hideFlowedFileEditRows(
+function stampFlowedFileEditRows(
   messages: AgentMessage[],
   deniedTokens: ReadonlySet<string>,
+  changeSetId: string,
 ): void {
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
+      if (tc.fileChangeSetId) continue;
       if (isToolCallRowHidden(tc)) continue;
       const category = approvalCategory(tc.name);
       if (category !== "write" && category !== "delete") continue;
@@ -292,7 +308,7 @@ function hideFlowedFileEditRows(
       const id = toolIdentity(tc.name, tc.mcpServerSlug, args);
       const token = primaryToken(id.key, id.salient, contentDigest(args));
       if (deniedTokens.has(token)) continue; // denied -> reconcile path owns it
-      hideToolCallRow(tc);
+      stampFileEditRow(tc, changeSetId);
     }
   }
 }

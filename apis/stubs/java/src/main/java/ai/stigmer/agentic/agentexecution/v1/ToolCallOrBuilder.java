@@ -699,4 +699,50 @@ public interface ToolCallOrBuilder extends
    */
   com.google.protobuf.ByteString
       getApprovalContentDigestBytes();
+
+  /**
+   * <pre>
+   * Id of the FileChangeSet this flowed file-edit contributed to
+   * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+   * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+   * set's review state and to position the set's decision surface after the
+   * turn's last edit row. It is NEVER a correlation or enforcement key —
+   * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+   * reconcile identity is digest-gated (see filereview.proto's identity rule).
+   *
+   * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+   * those rows), rows from executions that predate this field, and turns whose
+   * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+   * so there is no change set to reference).
+   *
+   * Field 26: appended after approval_content_digest (25), the prior maximum.
+   * </pre>
+   *
+   * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+   * @return The fileChangeSetId.
+   */
+  java.lang.String getFileChangeSetId();
+  /**
+   * <pre>
+   * Id of the FileChangeSet this flowed file-edit contributed to
+   * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+   * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+   * set's review state and to position the set's decision surface after the
+   * turn's last edit row. It is NEVER a correlation or enforcement key —
+   * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+   * reconcile identity is digest-gated (see filereview.proto's identity rule).
+   *
+   * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+   * those rows), rows from executions that predate this field, and turns whose
+   * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+   * so there is no change set to reference).
+   *
+   * Field 26: appended after approval_content_digest (25), the prior maximum.
+   * </pre>
+   *
+   * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+   * @return The bytes for fileChangeSetId.
+   */
+  com.google.protobuf.ByteString
+      getFileChangeSetIdBytes();
 }

@@ -290,8 +290,23 @@ type ToolCall struct {
 	//
 	// Field 25: appended after policy_engine_version (24), the prior maximum.
 	ApprovalContentDigest string `protobuf:"bytes,25,opt,name=approval_content_digest,json=approvalContentDigest,proto3" json:"approval_content_digest,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Id of the FileChangeSet this flowed file-edit contributed to
+	// (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+	// capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+	// set's review state and to position the set's decision surface after the
+	// turn's last edit row. It is NEVER a correlation or enforcement key —
+	// decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+	// reconcile identity is digest-gated (see filereview.proto's identity rule).
+	//
+	// Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+	// those rows), rows from executions that predate this field, and turns whose
+	// edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+	// so there is no change set to reference).
+	//
+	// Field 26: appended after approval_content_digest (25), the prior maximum.
+	FileChangeSetId string `protobuf:"bytes,26,opt,name=file_change_set_id,json=fileChangeSetId,proto3" json:"file_change_set_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ToolCall) Reset() {
@@ -481,6 +496,13 @@ func (x *ToolCall) GetPolicyEngineVersion() string {
 func (x *ToolCall) GetApprovalContentDigest() string {
 	if x != nil {
 		return x.ApprovalContentDigest
+	}
+	return ""
+}
+
+func (x *ToolCall) GetFileChangeSetId() string {
+	if x != nil {
+		return x.FileChangeSetId
 	}
 	return ""
 }
@@ -859,7 +881,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"tool_calls\x18\x04 \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x123\n" +
 	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
-	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\xc0\t\n" +
+	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\xed\t\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -887,7 +909,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"output_ref\x18\x15 \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefR\toutputRef\x12p\n" +
 	"\x16approval_policy_source\x18\x17 \x01(\x0e2:.ai.stigmer.agentic.agentexecution.v1.ApprovalPolicySourceR\x14approvalPolicySource\x122\n" +
 	"\x15policy_engine_version\x18\x18 \x01(\tR\x13policyEngineVersion\x126\n" +
-	"\x17approval_content_digest\x18\x19 \x01(\tR\x15approvalContentDigestJ\x04\b\x16\x10\x17\"\xdb\x01\n" +
+	"\x17approval_content_digest\x18\x19 \x01(\tR\x15approvalContentDigest\x12+\n" +
+	"\x12file_change_set_id\x18\x1a \x01(\tR\x0ffileChangeSetIdJ\x04\b\x16\x10\x17\"\xdb\x01\n" +
 	"\x11ToolCallOutputRef\x12\x1f\n" +
 	"\vstorage_key\x18\x01 \x01(\tR\n" +
 	"storageKey\x12\x1d\n" +

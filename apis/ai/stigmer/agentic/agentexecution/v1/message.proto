@@ -278,6 +278,32 @@ message ToolCall {
   //
   // Field 25: appended after policy_engine_version (24), the prior maximum.
   string approval_content_digest = 25;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // File-Review Reference (observational transcript rows)
+  //
+  // A flowed file-edit tool row stays visible in the transcript as an
+  // observational/audit record of WHERE and WHEN the agent edited a file,
+  // while the review itself lives in the FileChangeSet ledger. This is the
+  // research report's "transcript row references change_set_id" — the row is
+  // audit-only; the ledger is the single decision surface.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Id of the FileChangeSet this flowed file-edit contributed to
+  // (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+  // capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+  // set's review state and to position the set's decision surface after the
+  // turn's last edit row. It is NEVER a correlation or enforcement key —
+  // decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+  // reconcile identity is digest-gated (see filereview.proto's identity rule).
+  //
+  // Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+  // those rows), rows from executions that predate this field, and turns whose
+  // edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+  // so there is no change set to reference).
+  //
+  // Field 26: appended after approval_content_digest (25), the prior maximum.
+  string file_change_set_id = 26;
 }
 
 // ToolCallOutputRef points to a tool call's full output after the runner

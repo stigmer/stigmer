@@ -1,9 +1,13 @@
 import type {
   CapturedFileChange,
   FileChangeSet,
+  FileDecision,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
   DiffCompleteness,
+  FileChangeSetStatus,
+  FileDecisionAction,
+  FileDecisionScope,
   FileReviewBlockReason,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
@@ -118,5 +122,98 @@ export function changeSetReviewability(set: FileChangeSet): ChangeSetReviewabili
       return "binary-only";
     default:
       return "blocked";
+  }
+}
+
+/**
+ * Each file's EFFECTIVE verdict for a settled set, folding the decisions the
+ * way the runner reconcile does (most-specific-wins): the last CHANGE_SET
+ * decision is the baseline for every file, and a later-or-earlier FILE decision
+ * overrides it for that file (FILE > CHANGE_SET regardless of ledger order;
+ * within a scope, last write wins).
+ *
+ * This is the fold for DISPLAYING history — a set decided via "Keep all"
+ * correctly reads every file as kept. The interactive per-file selected state
+ * deliberately uses the FILE-only fold instead (a CHANGE_SET decision cannot
+ * coexist with an open review, so it never pre-selects anything there).
+ */
+export function deriveEffectiveVerdicts(
+  set: FileChangeSet,
+): ReadonlyMap<string, FileDecisionAction> {
+  let bulk: FileDecisionAction | null = null;
+  const byFileId = new Map<string, FileDecisionAction>();
+  for (const d of set.decisions as readonly FileDecision[]) {
+    if (d.scope === FileDecisionScope.CHANGE_SET) bulk = d.action;
+    else if (d.scope === FileDecisionScope.FILE && d.fileChangeId) {
+      byFileId.set(d.fileChangeId, d.action);
+    }
+  }
+  const effective = new Map<string, FileDecisionAction>();
+  for (const c of set.changes) {
+    const verdict = byFileId.get(c.id) ?? bulk;
+    if (verdict != null) effective.set(c.id, verdict);
+  }
+  return effective;
+}
+
+/**
+ * The captured change a transcript row's file path refers to, or `null`. The
+ * row's path may be absolute (harness tool args) while captured paths are
+ * workspace-root-relative, so the match accepts an exact match or a
+ * `/`-boundary suffix. Presentation-only — never a correlation key.
+ */
+export function changeForRowPath(
+  set: FileChangeSet,
+  rowPath: string,
+): CapturedFileChange | null {
+  if (!rowPath) return null;
+  const normalized = rowPath.replace(/\\/g, "/");
+  for (const c of set.changes) {
+    const path = c.pathAfter || c.pathBefore;
+    if (path && (normalized === path || normalized.endsWith(`/${path}`))) {
+      return c;
+    }
+  }
+  return null;
+}
+
+/**
+ * The review state a stamped transcript row should badge — how this file edit
+ * stands in its change set's review lifecycle. `null` means "show no badge",
+ * chosen over guessing: a missing set (not yet projected), a CAPTURING set, or
+ * a row whose file is absent from the set (its edit was superseded or fully
+ * reverted within the turn) renders unbadged, never mislabeled.
+ *
+ * - `"pending"` — the set is AWAITING_REVIEW; this edit's net result is on the
+ *   decision surface now.
+ * - `"kept"` / `"discarded"` — the set is decided/reconciled and this file's
+ *   effective verdict is known ({@link deriveEffectiveVerdicts}).
+ * - `"failed"` — the set's reconcile failed; the workspace outcome for this
+ *   edit is not the reviewed one.
+ */
+export type FileReviewRowState = "pending" | "kept" | "discarded" | "failed";
+
+export function fileReviewRowState(
+  set: FileChangeSet | undefined,
+  rowPath: string | null,
+): FileReviewRowState | null {
+  if (!set) return null;
+  switch (set.status) {
+    case FileChangeSetStatus.AWAITING_REVIEW:
+      return "pending";
+    case FileChangeSetStatus.FAILED:
+      return "failed";
+    case FileChangeSetStatus.DECIDED:
+    case FileChangeSetStatus.RECONCILED: {
+      if (!rowPath) return null;
+      const change = changeForRowPath(set, rowPath);
+      if (!change) return null;
+      const verdict = deriveEffectiveVerdicts(set).get(change.id);
+      if (verdict === FileDecisionAction.APPROVE) return "kept";
+      if (verdict === FileDecisionAction.REJECT) return "discarded";
+      return null;
+    }
+    default:
+      return null;
   }
 }

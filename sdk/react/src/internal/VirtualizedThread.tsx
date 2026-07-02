@@ -20,6 +20,7 @@ import type { FileDecisionOptions } from "../execution/useFileReview";
 import { FilePathContext, type FilePathContextValue } from "../execution/FilePathContext";
 import { SandboxContext, type SandboxContextValue } from "../execution/SandboxContext";
 import { ApprovalContext, type ApprovalContextValue } from "../execution/ApprovalContext";
+import { FileReviewContext, type FileReviewContextValue } from "../execution/FileReviewContext";
 import { DevProfiler, useDomNodeCount } from "./dev";
 import { JumpToLatestButton } from "./JumpToLatestButton";
 import { ApprovalPeekBar } from "./ApprovalPeekBar";
@@ -49,6 +50,7 @@ export interface VirtualizedThreadProps {
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly approvalCtx: ApprovalContextValue;
+  readonly fileReviewCtx: FileReviewContextValue;
   readonly unresolvedApprovalCount: number;
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
@@ -118,6 +120,7 @@ export function VirtualizedThread({
   filePathCtx,
   sandboxCtx,
   approvalCtx,
+  fileReviewCtx,
   unresolvedApprovalCount,
   onBuildFromPlan,
   org,
@@ -173,6 +176,7 @@ export function VirtualizedThread({
       <SandboxContext.Provider value={sandboxCtx}>
       <FilePathContext.Provider value={filePathCtx}>
       <ApprovalContext.Provider value={approvalCtx}>
+      <FileReviewContext.Provider value={fileReviewCtx}>
       <DevProfiler id="MessageThread:virtualized">
         <Virtuoso
           ref={virtuosoRef}
@@ -198,6 +202,7 @@ export function VirtualizedThread({
           )}
         />
       </DevProfiler>
+      </FileReviewContext.Provider>
       </ApprovalContext.Provider>
       </FilePathContext.Provider>
       </SandboxContext.Provider>

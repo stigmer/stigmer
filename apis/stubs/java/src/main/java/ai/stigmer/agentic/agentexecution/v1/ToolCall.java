@@ -51,6 +51,7 @@ private static final long serialVersionUID = 0L;
     approvalPolicySource_ = 0;
     policyEngineVersion_ = "";
     approvalContentDigest_ = "";
+    fileChangeSetId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1207,6 +1208,79 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int FILE_CHANGE_SET_ID_FIELD_NUMBER = 26;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object fileChangeSetId_ = "";
+  /**
+   * <pre>
+   * Id of the FileChangeSet this flowed file-edit contributed to
+   * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+   * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+   * set's review state and to position the set's decision surface after the
+   * turn's last edit row. It is NEVER a correlation or enforcement key —
+   * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+   * reconcile identity is digest-gated (see filereview.proto's identity rule).
+   *
+   * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+   * those rows), rows from executions that predate this field, and turns whose
+   * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+   * so there is no change set to reference).
+   *
+   * Field 26: appended after approval_content_digest (25), the prior maximum.
+   * </pre>
+   *
+   * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+   * @return The fileChangeSetId.
+   */
+  @java.lang.Override
+  public java.lang.String getFileChangeSetId() {
+    java.lang.Object ref = fileChangeSetId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      fileChangeSetId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Id of the FileChangeSet this flowed file-edit contributed to
+   * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+   * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+   * set's review state and to position the set's decision surface after the
+   * turn's last edit row. It is NEVER a correlation or enforcement key —
+   * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+   * reconcile identity is digest-gated (see filereview.proto's identity rule).
+   *
+   * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+   * those rows), rows from executions that predate this field, and turns whose
+   * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+   * so there is no change set to reference).
+   *
+   * Field 26: appended after approval_content_digest (25), the prior maximum.
+   * </pre>
+   *
+   * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+   * @return The bytes for fileChangeSetId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getFileChangeSetIdBytes() {
+    java.lang.Object ref = fileChangeSetId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      fileChangeSetId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1289,6 +1363,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(approvalContentDigest_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 25, approvalContentDigest_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fileChangeSetId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 26, fileChangeSetId_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1377,6 +1454,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(approvalContentDigest_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(25, approvalContentDigest_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fileChangeSetId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(26, fileChangeSetId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1439,6 +1519,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getPolicyEngineVersion())) return false;
     if (!getApprovalContentDigest()
         .equals(other.getApprovalContentDigest())) return false;
+    if (!getFileChangeSetId()
+        .equals(other.getFileChangeSetId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1502,6 +1584,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getPolicyEngineVersion().hashCode();
     hash = (37 * hash) + APPROVAL_CONTENT_DIGEST_FIELD_NUMBER;
     hash = (53 * hash) + getApprovalContentDigest().hashCode();
+    hash = (37 * hash) + FILE_CHANGE_SET_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getFileChangeSetId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1675,6 +1759,7 @@ private static final long serialVersionUID = 0L;
       approvalPolicySource_ = 0;
       policyEngineVersion_ = "";
       approvalContentDigest_ = "";
+      fileChangeSetId_ = "";
       return this;
     }
 
@@ -1783,6 +1868,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00400000) != 0)) {
         result.approvalContentDigest_ = approvalContentDigest_;
+      }
+      if (((from_bitField0_ & 0x00800000) != 0)) {
+        result.fileChangeSetId_ = fileChangeSetId_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1894,6 +1982,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getApprovalContentDigest().isEmpty()) {
         approvalContentDigest_ = other.approvalContentDigest_;
         bitField0_ |= 0x00400000;
+        onChanged();
+      }
+      if (!other.getFileChangeSetId().isEmpty()) {
+        fileChangeSetId_ = other.fileChangeSetId_;
+        bitField0_ |= 0x00800000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -2041,6 +2134,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00400000;
               break;
             } // case 202
+            case 210: {
+              fileChangeSetId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00800000;
+              break;
+            } // case 210
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -4738,6 +4836,163 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       approvalContentDigest_ = value;
       bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object fileChangeSetId_ = "";
+    /**
+     * <pre>
+     * Id of the FileChangeSet this flowed file-edit contributed to
+     * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+     * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+     * set's review state and to position the set's decision surface after the
+     * turn's last edit row. It is NEVER a correlation or enforcement key —
+     * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+     * reconcile identity is digest-gated (see filereview.proto's identity rule).
+     *
+     * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+     * those rows), rows from executions that predate this field, and turns whose
+     * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+     * so there is no change set to reference).
+     *
+     * Field 26: appended after approval_content_digest (25), the prior maximum.
+     * </pre>
+     *
+     * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+     * @return The fileChangeSetId.
+     */
+    public java.lang.String getFileChangeSetId() {
+      java.lang.Object ref = fileChangeSetId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        fileChangeSetId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Id of the FileChangeSet this flowed file-edit contributed to
+     * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+     * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+     * set's review state and to position the set's decision surface after the
+     * turn's last edit row. It is NEVER a correlation or enforcement key —
+     * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+     * reconcile identity is digest-gated (see filereview.proto's identity rule).
+     *
+     * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+     * those rows), rows from executions that predate this field, and turns whose
+     * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+     * so there is no change set to reference).
+     *
+     * Field 26: appended after approval_content_digest (25), the prior maximum.
+     * </pre>
+     *
+     * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+     * @return The bytes for fileChangeSetId.
+     */
+    public com.google.protobuf.ByteString
+        getFileChangeSetIdBytes() {
+      java.lang.Object ref = fileChangeSetId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        fileChangeSetId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Id of the FileChangeSet this flowed file-edit contributed to
+     * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+     * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+     * set's review state and to position the set's decision surface after the
+     * turn's last edit row. It is NEVER a correlation or enforcement key —
+     * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+     * reconcile identity is digest-gated (see filereview.proto's identity rule).
+     *
+     * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+     * those rows), rows from executions that predate this field, and turns whose
+     * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+     * so there is no change set to reference).
+     *
+     * Field 26: appended after approval_content_digest (25), the prior maximum.
+     * </pre>
+     *
+     * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+     * @param value The fileChangeSetId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setFileChangeSetId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      fileChangeSetId_ = value;
+      bitField0_ |= 0x00800000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Id of the FileChangeSet this flowed file-edit contributed to
+     * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+     * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+     * set's review state and to position the set's decision surface after the
+     * turn's last edit row. It is NEVER a correlation or enforcement key —
+     * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+     * reconcile identity is digest-gated (see filereview.proto's identity rule).
+     *
+     * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+     * those rows), rows from executions that predate this field, and turns whose
+     * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+     * so there is no change set to reference).
+     *
+     * Field 26: appended after approval_content_digest (25), the prior maximum.
+     * </pre>
+     *
+     * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearFileChangeSetId() {
+      fileChangeSetId_ = getDefaultInstance().getFileChangeSetId();
+      bitField0_ = (bitField0_ & ~0x00800000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Id of the FileChangeSet this flowed file-edit contributed to
+     * (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary
+     * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
+     * set's review state and to position the set's decision surface after the
+     * turn's last edit row. It is NEVER a correlation or enforcement key —
+     * decisions reference FileChangeSet.id / CapturedFileChange.id directly, and
+     * reconcile identity is digest-gated (see filereview.proto's identity rule).
+     *
+     * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
+     * those rows), rows from executions that predate this field, and turns whose
+     * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
+     * so there is no change set to reference).
+     *
+     * Field 26: appended after approval_content_digest (25), the prior maximum.
+     * </pre>
+     *
+     * <code>string file_change_set_id = 26 [json_name = "fileChangeSetId"];</code>
+     * @param value The bytes for fileChangeSetId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setFileChangeSetIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      fileChangeSetId_ = value;
+      bitField0_ |= 0x00800000;
       onChanged();
       return this;
     }

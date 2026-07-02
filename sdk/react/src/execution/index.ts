@@ -189,11 +189,18 @@ export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
 export { useFileReview, fileDecisionKey } from "./useFileReview";
 export type { UseFileReviewReturn, FileDecisionOptions } from "./useFileReview";
 
-export { fileReviewability, changeSetReviewability } from "./file-review-status";
+export {
+  fileReviewability,
+  changeSetReviewability,
+  deriveEffectiveVerdicts,
+  changeForRowPath,
+  fileReviewRowState,
+} from "./file-review-status";
 export type {
   FileReviewability,
   FileBlockReason,
   ChangeSetReviewability,
+  FileReviewRowState,
 } from "./file-review-status";
 
 // Settled/historical file-review display: the ledger fold + its read seam +
@@ -216,6 +223,9 @@ export type { FileReviewCardProps } from "./FileReviewCard";
 
 export { ApprovalContext, useApproval } from "./ApprovalContext";
 export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext";
+
+export { FileReviewContext, useFileReviewRowState } from "./FileReviewContext";
+export type { FileReviewContextValue } from "./FileReviewContext";
 
 export { ArtifactCard } from "./ArtifactCard";
 export type { ArtifactCardProps } from "./ArtifactCard";

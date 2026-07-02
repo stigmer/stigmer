@@ -196,11 +196,18 @@ func TestOffline_FileReview_Approve_ReconcilesApprovedBytes(t *testing.T) {
 	assert.True(t, harness.FileReviewStreamHasEvent(stream, setID, agentexecv1.FileReviewEventType_FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED),
 		"the ledger must carry CANDIDATE_CAPTURED for the set")
 
-	// The flowed file-edit row is collapsed (file_change_sets is the single surface).
-	if tc := harness.FindToolCall(waiting, "write_file"); tc != nil {
-		assert.Equal(t, agentexecv1.ToolCallStatus_TOOL_CALL_SKIPPED, tc.GetStatus(),
-			"a flowed file-edit row must be hidden (SKIPPED) once captured for review")
-	}
+	// The flowed file-edit row stays VISIBLE at its transcript position as an
+	// observational record, stamped with the change set id it contributed to
+	// (file_change_sets remains the single DECISION surface). The projected set
+	// id and the row's stamp must agree end to end through the real service.
+	tc := harness.FindToolCall(waiting, "write_file")
+	require.NotNil(t, tc, "the flowed file-edit row must remain in the transcript")
+	assert.Equal(t, agentexecv1.ToolCallStatus_TOOL_CALL_COMPLETED, tc.GetStatus(),
+		"a flowed file-edit row stays COMPLETED (visible in place), never hidden")
+	assert.Equal(t, setID, tc.GetFileChangeSetId(),
+		"the row's stamp must reference exactly the projected change set")
+	assert.NotNil(t, tc.GetArgs(),
+		"an observational row keeps its args (the per-edit preview the user watched)")
 
 	// --- Decision: keep the file ---
 	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, path,
@@ -271,6 +278,16 @@ func TestOffline_FileReview_Reject_SnapsBackByteForByte(t *testing.T) {
 		"the ledger must carry RECONCILED after the discard is reconciled")
 	assert.Equal(t, headBefore, harness.WorkspaceHeadSHA(t, gitDir), "capture mode must never move HEAD")
 	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review reject must NOT re-invoke the model")
+
+	// The audit trail survives the discard: the stamped row stays in the
+	// transcript, still referencing its (now reconciled) change set — "the agent
+	// edited this file here, and the edit was later discarded".
+	if tc := harness.FindToolCall(result, "edit_file"); assert.NotNil(t, tc) {
+		assert.Equal(t, agentexecv1.ToolCallStatus_TOOL_CALL_COMPLETED, tc.GetStatus(),
+			"a rejected turn's edit row remains a visible historical record")
+		assert.Equal(t, setID, tc.GetFileChangeSetId(),
+			"the row's stamp must survive reconcile")
+	}
 }
 
 // TestOffline_FileReview_PartialDecision_OnlyApprovedLands proves per-file
@@ -919,8 +936,10 @@ func TestOffline_FileReview_MixedTurn_TrackedKeptSecretDiscarded(t *testing.T) {
 // What must STILL hold is the durable-storage contract: the secret's CONTENT must
 // never reach the persisted transcript (incl. tool-call args) or artifact storage.
 // Two backstops enforce it — the turn-boundary secret re-check that withholds the
-// path from CAS, and hideToolCallRow scrubbing tc.args — and this test would FAIL
-// before either was in place (the secret would ride along in args / a CAS blob).
+// path from CAS, and stampFileEditRow's defensive secret clear (the stamped row
+// stays visible with its PATH, but its args/result/preview are withheld for a
+// secret-like path; DD-12 D4) — and this test would FAIL before either was in
+// place (the secret would ride along in args / a CAS blob).
 func TestOffline_FileReview_SecretUnderGlobalBypass_NeverPersisted(t *testing.T) {
 	requireOfflineService(t)
 

@@ -394,6 +394,25 @@ export function buildFailedEvent(
 }
 
 /**
+ * Whether a CANDIDATE_CAPTURED event exists for `changeSetId` on the status's
+ * file_review stream — i.e. this turn actually produced a reviewable change
+ * set. The capture seam authors no event for a no-op turn (an edit fully
+ * reverted before the boundary), so this is the single signal both harnesses
+ * gate on before opening a review or stamping transcript rows: a row must
+ * never reference a change set that does not exist.
+ */
+export function hasCandidateCaptured(
+  status: AgentExecutionStatus,
+  changeSetId: string,
+): boolean {
+  return (status.fileReviewEventStream?.events ?? []).some(
+    (e) =>
+      e.changeSetId === changeSetId &&
+      e.eventType === FileReviewEventType.CANDIDATE_CAPTURED,
+  );
+}
+
+/**
  * Append the runner-authored events onto the status's file_review stream
  * (seeding it if absent), idempotently by event_id. The server re-applies the
  * same append-only/by-id discipline on receipt, so re-sending across throttled

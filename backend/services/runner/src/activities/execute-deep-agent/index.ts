@@ -17,7 +17,7 @@ import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/a
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionPhase, FileCaptureClass, FileChangeSetStatus, FileReviewEventType, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase, FileCaptureClass, FileChangeSetStatus, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
 import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
@@ -45,11 +45,12 @@ import {
   captureBaselineToLedger,
   captureCandidateToLedger,
 } from "../../shared/filereview/capture.js";
+import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import { toolApprovalCategory } from "../../shared/tool-kind.js";
-import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
+import { isToolCallRowHidden, stampFileEditRow } from "../../shared/tool-row.js";
 
 /** The harness id stamped on the deep-agent's file-review ledger events. */
 const DEEP_AGENT_HARNESS_ID = "deep-agent";
@@ -295,10 +296,12 @@ export function createDeepAgentActivities(config: Config) {
         });
 
         // Turn boundary (capture mode): capture the candidate change set from the
-        // git diff and author CANDIDATE_CAPTURED, then hide the flowed file-edit
-        // rows so file_change_sets is the single review surface. Skipped on an
-        // abnormal terminal (pause / stop / recursion limit) — there is no review
-        // to open. `fileReviewPending` then composes with any tool gate below.
+        // git diff and author CANDIDATE_CAPTURED, then stamp the flowed file-edit
+        // rows with the change set id — they stay visible in place as
+        // observational records while file_change_sets remains the single
+        // decision surface. Skipped on an abnormal terminal (pause / stop /
+        // recursion limit) — there is no review to open. `fileReviewPending`
+        // then composes with any tool gate below.
         let fileReviewPending = false;
         const abnormalTerminal =
           !!result.terminalStatus &&
@@ -332,15 +335,15 @@ export function createDeepAgentActivities(config: Config) {
             unreviewableCaptureClass: casCaptureClass,
             gitWorkspace: setup.gitWorkspace,
           });
-          hideFlowedFileEditRows(initialStatus.messages);
           // Review is pending iff a CANDIDATE was actually authored (the seam
           // drops no-op captures), so a turn that only touched-then-unchanged an
-          // ignored file does not open an empty review.
-          fileReviewPending = (initialStatus.fileReviewEventStream?.events ?? []).some(
-            (e) =>
-              e.changeSetId === changeSetId &&
-              e.eventType === FileReviewEventType.CANDIDATE_CAPTURED,
-          );
+          // ignored file does not open an empty review. Stamping is gated on the
+          // same signal: a row must never reference a change set that does not
+          // exist.
+          fileReviewPending = hasCandidateCaptured(initialStatus, changeSetId);
+          if (fileReviewPending) {
+            stampFlowedFileEditRows(initialStatus.messages, changeSetId);
+          }
         }
 
         if (result.terminalStatus) {
@@ -350,7 +353,7 @@ export function createDeepAgentActivities(config: Config) {
             throw new CancelledFailure("Activity paused by orchestrator");
           }
           // Capture mode: a tool gate set WAITING during the stream while file
-          // edits also flowed this turn. The CANDIDATE event + hidden file-edit
+          // edits also flowed this turn. The CANDIDATE event + stamped file-edit
           // rows post-date the stream's slim, so persist + return the current
           // status (both review surfaces — the file change set and the tool gate —
           // are now pending). `!abnormalTerminal` means the capture block ran.
@@ -630,13 +633,6 @@ function hasPendingToolApprovals(execution: AgentExecution): boolean {
 }
 
 /**
- * Hide the streamed file-edit tool rows (write/delete category) so the captured
- * `file_change_sets` is the single review surface — the deep-agent analogue of the
- * Cursor capture flow's row hiding. No deny-token coordination is needed here: the
- * deep-agent has no deny gate, so every flowed file-edit row is collapsed. Uses
- * the shared {@link toolApprovalCategory} oracle and {@link hideToolCallRow} shape.
- */
-/**
  * Assemble the turn's CAS captures and secret-blocked paths from the shared
  * observer (the pre-turn bytes recorded by the parent AND every sub-agent CAS
  * backend, plus the gate's secret-blocked set).
@@ -686,13 +682,27 @@ async function readFileOrNull(absolutePath: string): Promise<Uint8Array | null> 
   }
 }
 
-function hideFlowedFileEditRows(messages: readonly AgentMessage[]): void {
+/**
+ * Stamp every flowed file-edit row (category write/delete) with this turn's
+ * change set id — the deep-agent analog of the Cursor adapter's
+ * `stampFlowedFileEditRows`, minus deny-token coordination (this harness has no
+ * deny gate; every write/delete flowed). Rows stay visible in place as
+ * observational records; `file_change_sets` remains the single decision
+ * surface. Skips already-stamped rows (a resume seeds prior turns' rows into
+ * this transcript — re-stamping would mis-attribute them) and legacy hidden
+ * rows from pre-stamping sessions (they belong to an earlier turn's set).
+ */
+function stampFlowedFileEditRows(
+  messages: readonly AgentMessage[],
+  changeSetId: string,
+): void {
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
+      if (tc.fileChangeSetId) continue;
       if (isToolCallRowHidden(tc)) continue;
       const category = toolApprovalCategory(tc.name);
       if (category !== "write" && category !== "delete") continue;
-      hideToolCallRow(tc);
+      stampFileEditRow(tc, changeSetId);
     }
   }
 }

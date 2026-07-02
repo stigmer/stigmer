@@ -5295,6 +5295,16 @@
           },
           "description": "Stable digest of the authoritative edit content (the hook-captured tool\n input) for a gated file-mutating tool call, set by the runner's approval\n gate. It is the content discriminator the deny-only Cursor harness needs:\n approving one edit must not let a DIFFERENT edit to the same file ride the\n approval through, so the grant binds to (category, path, content) rather than\n (category, path) alone. A resumed re-attempt that differs from the approved\n content re-gates (the \"what you approve is what gets applied\" contract).\n\n Carried so it survives at resume immune to the size-limit elision that can\n drop `args`/`file_changes` for large edits — a recompute-from-args identity\n would be unrecoverable in that case. Empty for tools whose other identity is\n already content-exact (shell command, delete path), for read-only tools, and\n for executions that predate this field (the runner then degrades to the\n coarse (category, path) identity).\n\n @internal\n Runner-written and carried through update_status exactly like tool_kind /\n approval_policy_source — not owned by SubmitApproval, so no preserve logic is\n needed. See the runner's contentDigest() (shared/file-tools.ts).\n\n Field 25: appended after policy_engine_version (24), the prior maximum.",
           "required": false
+        },
+        {
+          "name": "FileChangeSetId",
+          "jsonName": "fileChangeSetId",
+          "protoField": "file_change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Id of the FileChangeSet this flowed file-edit contributed to\n (`{execution_id}:{turn_seq}`), stamped by the runner at the turn-boundary\n capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the\n set's review state and to position the set's decision surface after the\n turn's last edit row. It is NEVER a correlation or enforcement key —\n decisions reference FileChangeSet.id / CapturedFileChange.id directly, and\n reconcile identity is digest-gated (see filereview.proto's identity rule).\n\n Empty for: non-file tools, denied edits (the deny-gate reconcile path owns\n those rows), rows from executions that predate this field, and turns whose\n edits netted no captured change (no CANDIDATE_CAPTURED event was authored,\n so there is no change set to reference).\n\n Field 26: appended after approval_content_digest (25), the prior maximum.",
+          "required": false
         }
       ]
     },

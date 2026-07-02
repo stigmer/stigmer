@@ -15,6 +15,8 @@ import { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 import { SubAgentSection } from "./SubAgentSection";
 import { ApprovalCardBody } from "./ApprovalCard";
 import { useApproval } from "./ApprovalContext";
+import { useFileReviewRowState } from "./FileReviewContext";
+import type { FileReviewRowState } from "./file-review-status";
 import { FilePathLink } from "./FilePathLink";
 import { isFileCategory, type ToolCategory } from "./tool-categories";
 import { useToolPresentation } from "./tool-presenter";
@@ -125,6 +127,14 @@ export const ToolCallItem = memo(function ToolCallItem({
     : label;
 
   const approvalBadge = getApprovalBadge(toolCall);
+
+  // A flowed file edit stamped with its change set id badges the set's live
+  // review state (pending review / kept / discarded) right on the row — the
+  // observational record stays in place while the decision surface is the
+  // set's own bar. Null for unstamped rows and honest-degradation cases.
+  const reviewState = useFileReviewRowState(toolCall.fileChangeSetId, primaryArg);
+  const reviewBadge = reviewState ? REVIEW_BADGE[reviewState] : null;
+
   const selection = useThreadSelection("tool-call", toolCall.id);
 
   // Search/list show their query/path as the header subtitle (truncated). Track
@@ -178,6 +188,18 @@ export const ToolCallItem = memo(function ToolCallItem({
           )}
         >
           {approvalBadge.label}
+        </span>
+      )}
+
+      {reviewBadge && (
+        <span
+          className={cn(
+            "shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none",
+            reviewBadge.colorClass,
+          )}
+          data-cursor-target="file-review-row-badge"
+        >
+          {reviewBadge.label}
         </span>
       )}
 
@@ -410,6 +432,23 @@ function getApprovalBadge(toolCall: ToolCall): ApprovalBadgeInfo | null {
       return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// File-review badge — a stamped edit row's live review state
+// ---------------------------------------------------------------------------
+
+/**
+ * The badge pill for each {@link FileReviewRowState}, in the approval badge's
+ * visual vocabulary. "Kept"/"Discarded" match the decision surface's verdict
+ * copy (see FileReviewCard's VerdictBadge) so the row and the bar always speak
+ * the same language.
+ */
+const REVIEW_BADGE: Record<FileReviewRowState, ApprovalBadgeInfo> = {
+  pending: { label: "Pending review", colorClass: "bg-warning/15 text-warning" },
+  kept: { label: "Kept", colorClass: "bg-success/15 text-success" },
+  discarded: { label: "Discarded", colorClass: "bg-destructive/15 text-destructive" },
+  failed: { label: "Review failed", colorClass: "bg-destructive/15 text-destructive" },
+};
 
 // ---------------------------------------------------------------------------
 // Status mapping

@@ -8,13 +8,24 @@ import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecut
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
+  FileDecisionSchema,
+  type FileDecision,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
   DiffCompleteness,
   FileChangeKind,
+  FileChangeSetStatus,
+  FileDecisionAction,
+  FileDecisionScope,
   FileReviewBlockReason,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { changeSetReviewability, fileReviewability } from "../file-review-status";
+import {
+  changeForRowPath,
+  changeSetReviewability,
+  deriveEffectiveVerdicts,
+  fileReviewability,
+  fileReviewRowState,
+} from "../file-review-status";
 
 /** Inline text side (the git substrate's shape). */
 function inline(value: string, isBinary = false): FileContent {
@@ -176,5 +187,157 @@ describe("changeSetReviewability", () => {
 
   it("treats UNSPECIFIED as blocked (fail-closed)", () => {
     expect(changeSetReviewability(set(DiffCompleteness.UNSPECIFIED))).toBe("blocked");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Effective verdicts + the stamped row's badge state
+// ---------------------------------------------------------------------------
+
+function fileChange(id: string, path: string) {
+  return create(CapturedFileChangeSchema, {
+    id,
+    pathBefore: path,
+    pathAfter: path,
+    kind: FileChangeKind.MODIFY,
+    diffComplete: true,
+  });
+}
+
+function decision(opts: {
+  scope: FileDecisionScope;
+  action: FileDecisionAction;
+  fileChangeId?: string;
+}): FileDecision {
+  return create(FileDecisionSchema, {
+    changeSetId: "cs:0",
+    scope: opts.scope,
+    action: opts.action,
+    fileChangeId: opts.fileChangeId ?? "",
+  });
+}
+
+function reviewSet(opts: {
+  status: FileChangeSetStatus;
+  changes?: ReturnType<typeof fileChange>[];
+  decisions?: FileDecision[];
+}) {
+  return create(FileChangeSetSchema, {
+    id: "cs:0",
+    status: opts.status,
+    changes: opts.changes ?? [fileChange("cs:0:a.ts", "a.ts")],
+    decisions: opts.decisions ?? [],
+  });
+}
+
+describe("deriveEffectiveVerdicts", () => {
+  it("applies a CHANGE_SET decision to every file (a settled 'Keep all')", () => {
+    const set = reviewSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [fileChange("f1", "a.ts"), fileChange("f2", "b.ts")],
+      decisions: [decision({ scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.APPROVE })],
+    });
+    const verdicts = deriveEffectiveVerdicts(set);
+    expect(verdicts.get("f1")).toBe(FileDecisionAction.APPROVE);
+    expect(verdicts.get("f2")).toBe(FileDecisionAction.APPROVE);
+  });
+
+  it("lets a FILE decision override the CHANGE_SET baseline (most-specific-wins)", () => {
+    const set = reviewSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [fileChange("f1", "a.ts"), fileChange("f2", "b.ts")],
+      decisions: [
+        decision({ scope: FileDecisionScope.FILE, action: FileDecisionAction.REJECT, fileChangeId: "f2" }),
+        decision({ scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.APPROVE }),
+      ],
+    });
+    const verdicts = deriveEffectiveVerdicts(set);
+    expect(verdicts.get("f1")).toBe(FileDecisionAction.APPROVE);
+    // FILE beats CHANGE_SET regardless of ledger order.
+    expect(verdicts.get("f2")).toBe(FileDecisionAction.REJECT);
+  });
+
+  it("leaves an undecided file absent (a set terminated mid-review)", () => {
+    const set = reviewSet({
+      status: FileChangeSetStatus.DECIDED,
+      changes: [fileChange("f1", "a.ts"), fileChange("f2", "b.ts")],
+      decisions: [decision({ scope: FileDecisionScope.FILE, action: FileDecisionAction.APPROVE, fileChangeId: "f1" })],
+    });
+    const verdicts = deriveEffectiveVerdicts(set);
+    expect(verdicts.get("f1")).toBe(FileDecisionAction.APPROVE);
+    expect(verdicts.has("f2")).toBe(false);
+  });
+});
+
+describe("changeForRowPath", () => {
+  const set = reviewSet({
+    status: FileChangeSetStatus.AWAITING_REVIEW,
+    changes: [fileChange("f1", "src/a.ts")],
+  });
+
+  it("matches an exact workspace-relative path", () => {
+    expect(changeForRowPath(set, "src/a.ts")?.id).toBe("f1");
+  });
+
+  it("matches an absolute row path by /-boundary suffix", () => {
+    expect(changeForRowPath(set, "/home/user/ws/src/a.ts")?.id).toBe("f1");
+    // A partial-segment overlap is NOT a match.
+    expect(changeForRowPath(set, "othersrc/a.ts")).toBeNull();
+  });
+
+  it("returns null for an unknown or empty path", () => {
+    expect(changeForRowPath(set, "src/b.ts")).toBeNull();
+    expect(changeForRowPath(set, "")).toBeNull();
+  });
+});
+
+describe("fileReviewRowState", () => {
+  it("returns null with no set (not yet projected / unknown id)", () => {
+    expect(fileReviewRowState(undefined, "a.ts")).toBeNull();
+  });
+
+  it("reads AWAITING_REVIEW as pending regardless of path", () => {
+    const set = reviewSet({ status: FileChangeSetStatus.AWAITING_REVIEW });
+    expect(fileReviewRowState(set, "a.ts")).toBe("pending");
+    expect(fileReviewRowState(set, null)).toBe("pending");
+  });
+
+  it("reads FAILED as failed", () => {
+    expect(
+      fileReviewRowState(reviewSet({ status: FileChangeSetStatus.FAILED }), "a.ts"),
+    ).toBe("failed");
+  });
+
+  it("resolves a decided file's verdict by row path (kept / discarded)", () => {
+    const set = reviewSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [fileChange("f1", "a.ts"), fileChange("f2", "b.ts")],
+      decisions: [
+        decision({ scope: FileDecisionScope.FILE, action: FileDecisionAction.APPROVE, fileChangeId: "f1" }),
+        decision({ scope: FileDecisionScope.FILE, action: FileDecisionAction.REJECT, fileChangeId: "f2" }),
+      ],
+    });
+    expect(fileReviewRowState(set, "a.ts")).toBe("kept");
+    expect(fileReviewRowState(set, "/abs/ws/b.ts")).toBe("discarded");
+  });
+
+  it("degrades to null — never a wrong badge — for a file absent from the set or with no verdict", () => {
+    const set = reviewSet({
+      status: FileChangeSetStatus.DECIDED,
+      changes: [fileChange("f1", "a.ts")],
+      decisions: [],
+    });
+    // Superseded/reverted within the turn: the row's file is not in the set.
+    expect(fileReviewRowState(set, "gone.ts")).toBeNull();
+    // In the set but never decided (terminated mid-review).
+    expect(fileReviewRowState(set, "a.ts")).toBeNull();
+    // No usable path on the row.
+    expect(fileReviewRowState(set, null)).toBeNull();
+  });
+
+  it("returns null for a CAPTURING set (no reviewable state yet)", () => {
+    expect(
+      fileReviewRowState(reviewSet({ status: FileChangeSetStatus.CAPTURING }), "a.ts"),
+    ).toBeNull();
   });
 });

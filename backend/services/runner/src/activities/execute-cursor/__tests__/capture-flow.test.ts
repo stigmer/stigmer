@@ -3,7 +3,8 @@
  *
  * Tests for capture-mode turn orchestration against the file_review LEDGER (the
  * Cursor cutover): the turn-start baseline event, the turn-end candidate event
- * (streamed edits hidden, tree LEFT applied for Cursor-parity review), and the
+ * (streamed edit rows STAMPED with the change set id — observational rows, kept
+ * visible in place — tree LEFT applied for Cursor-parity review), and the
  * resume reconcile (decisions read from a DECIDED FileChangeSet projection,
  * approved kept / rejected reverted, hash-verified, RECONCILED authored). Runs
  * against a REAL temp git repo with in-memory transcript + status protos.
@@ -44,6 +45,8 @@ import {
   captureBaselineToLedger,
   captureTurnToLedger,
 } from "../capture-flow.js";
+import { toolIdentity, primaryToken } from "../approval-state.js";
+import { contentDigest } from "../../../shared/file-tools.js";
 import { buildObservationStagingScript, casObservationsDir } from "../cas-observations.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 
@@ -159,7 +162,7 @@ afterEach(async () => {
 });
 
 describe("captureTurnToLedger (producer)", () => {
-  it("authors BASELINE + CANDIDATE, keeps edits applied, hides streamed rows", async () => {
+  it("authors BASELINE + CANDIDATE, keeps edits applied, stamps streamed rows", async () => {
     const status = newStatus();
     const baseline = await captureBaselineToLedger({
       status,
@@ -208,10 +211,13 @@ describe("captureTurnToLedger (producer)", () => {
     expect(await read("notes.md")).toBe("planton notes\n\n## TODO\n- ship\n");
     expect(await exists("src/new.ts")).toBe(true);
 
-    // The streamed edit rows are hidden (collapsed SKIPPED): the ledger is the
-    // single review surface.
+    // The streamed edit rows stay visible in place as observational records,
+    // stamped with the change set id and with their content intact — the ledger
+    // remains the single DECISION surface, the row is the audit trail.
     for (const tc of messages.flatMap((m) => m.toolCalls)) {
-      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+      expect(tc.fileChangeSetId).toBe(CHANGE_SET_ID);
+      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+      expect(tc.args).toBeDefined();
     }
 
     // CANDIDATE_CAPTURED authored with one change per file + the byte-exact
@@ -246,6 +252,144 @@ describe("captureTurnToLedger (producer)", () => {
     });
     expect(changes).toHaveLength(0);
     expect(eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)).toHaveLength(0);
+  });
+
+  it("stamps NO rows on a no-net-change turn (an edit fully reverted before the boundary)", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+    });
+
+    // The agent edited notes.md and then reverted it — the tool row flowed, but
+    // the workspace nets ZERO delta, so no CANDIDATE is authored and no change
+    // set exists. The row must NOT be stamped: a row must never reference a
+    // change set that does not exist.
+    const messages: AgentMessage[] = [streamedEdit("tc-1", "notes.md", "platon notes\n")];
+    await captureTurnToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline,
+      messages,
+      deniedTokens: new Set(),
+    });
+
+    expect(eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)).toHaveLength(0);
+    expect(messages[0].toolCalls[0].fileChangeSetId).toBe("");
+    expect(messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  });
+
+  it("never re-stamps a prior turn's seeded rows with the current turn's change set id", async () => {
+    // Turn 2 of a resumed execution: the transcript is seeded with turn 1's
+    // rows (already stamped `exec:0`). The turn-2 boundary pass walks the WHOLE
+    // transcript — the stamp itself must be the guard, or turn 1's rows would
+    // be silently mis-attributed to turn 2's change set.
+    const turn2SetId = `${EXEC_ID}:1`;
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: turn2SetId,
+    });
+
+    const seededTurn1 = streamedEdit("tc-old", "notes.md", "from turn 1\n");
+    seededTurn1.toolCalls[0].fileChangeSetId = CHANGE_SET_ID; // exec:0
+    await write("src/new.ts", "export const y = 2;\n");
+    const turn2Row = streamedEdit("tc-new", "src/new.ts", "export const y = 2;\n");
+    const messages: AgentMessage[] = [seededTurn1, turn2Row];
+
+    await captureTurnToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: turn2SetId,
+      baselineTree: baseline,
+      messages,
+      deniedTokens: new Set(),
+    });
+
+    expect(seededTurn1.toolCalls[0].fileChangeSetId).toBe(CHANGE_SET_ID);
+    expect(turn2Row.toolCalls[0].fileChangeSetId).toBe(turn2SetId);
+  });
+
+  it("skips legacy hidden rows (pre-stamping sessions) — they belong to an earlier turn's set", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+    });
+
+    // A row hidden by the pre-stamping runner: collapsed SKIPPED, no args.
+    const legacyHidden = create(AgentMessageSchema, {
+      type: 1, // MESSAGE_AI
+      toolCalls: [
+        create(ToolCallSchema, {
+          id: "tc-legacy",
+          name: "edit",
+          status: ToolCallStatus.TOOL_CALL_SKIPPED,
+        }),
+      ],
+    });
+    await write("notes.md", "changed\n");
+    const messages: AgentMessage[] = [
+      legacyHidden,
+      streamedEdit("tc-1", "notes.md", "changed\n"),
+    ];
+
+    await captureTurnToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline,
+      messages,
+      deniedTokens: new Set(),
+    });
+
+    expect(legacyHidden.toolCalls[0].fileChangeSetId).toBe("");
+    expect(legacyHidden.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(messages[1].toolCalls[0].fileChangeSetId).toBe(CHANGE_SET_ID);
+  });
+
+  it("leaves a DENIED edit row unstamped — the deny-gate reconcile path owns it", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+    });
+
+    // A denied gitignored-delete style row alongside a flowed edit. Its denial
+    // token is derived exactly as the hook records it.
+    const deniedArgs = { path: "secretish.txt", content: "nope" };
+    const deniedRow = streamedEdit("tc-denied", "secretish.txt", "nope");
+    const id = toolIdentity("edit", "", deniedArgs);
+    const deniedToken = primaryToken(id.key, id.salient, contentDigest(deniedArgs));
+
+    await write("notes.md", "changed\n");
+    const flowedRow = streamedEdit("tc-flowed", "notes.md", "changed\n");
+    const messages: AgentMessage[] = [deniedRow, flowedRow];
+
+    await captureTurnToLedger({
+      status,
+      gitRoot: repo,
+      executionId: EXEC_ID,
+      changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline,
+      messages,
+      deniedTokens: new Set([deniedToken]),
+    });
+
+    expect(deniedRow.toolCalls[0].fileChangeSetId).toBe("");
+    expect(flowedRow.toolCalls[0].fileChangeSetId).toBe(CHANGE_SET_ID);
   });
 });
 

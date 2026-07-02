@@ -21,6 +21,7 @@ export {
   buildFailedEvent,
   buildReconciledEvent,
   eventId,
+  hasCandidateCaptured,
   type CapturedChangeInput,
   type ChangeSetContext,
 } from "./events.js";

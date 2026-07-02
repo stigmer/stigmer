@@ -10,11 +10,22 @@ import {
   type PendingApproval,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import {
+  CapturedFileChangeSchema,
+  FileChangeSetSchema,
+  FileDecisionSchema,
+  type FileChangeSet,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import {
   ApprovalAction,
+  FileChangeKind,
+  FileChangeSetStatus,
+  FileDecisionAction,
+  FileDecisionScope,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
+import { FileReviewContext } from "../FileReviewContext";
 
 afterEach(cleanup);
 
@@ -25,6 +36,7 @@ function makeToolCall(opts: {
   result?: string;
   mcpServerSlug?: string;
   status?: ToolCallStatus;
+  fileChangeSetId?: string;
 }): ToolCall {
   return create(ToolCallSchema, {
     id: opts.id ?? opts.name,
@@ -33,6 +45,7 @@ function makeToolCall(opts: {
     result: opts.result ?? "",
     mcpServerSlug: opts.mcpServerSlug ?? "",
     status: opts.status ?? ToolCallStatus.TOOL_CALL_COMPLETED,
+    fileChangeSetId: opts.fileChangeSetId ?? "",
   });
 }
 
@@ -406,5 +419,103 @@ describe("ToolCallItem disclosure", () => {
     row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
     expect(row.className).not.toContain("rounded-lg");
     expect(row.className).toContain("border-b");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// File-review badge — a stamped edit row's live review state
+// ---------------------------------------------------------------------------
+
+describe("ToolCallItem file-review badge", () => {
+  const SET_ID = "aex-1:0";
+
+  function reviewSet(
+    status: FileChangeSetStatus,
+    decisions: { action: FileDecisionAction }[] = [],
+  ): FileChangeSet {
+    return create(FileChangeSetSchema, {
+      id: SET_ID,
+      status,
+      changes: [
+        create(CapturedFileChangeSchema, {
+          id: `${SET_ID}:notes.md`,
+          pathBefore: "notes.md",
+          pathAfter: "notes.md",
+          kind: FileChangeKind.MODIFY,
+          diffComplete: true,
+        }),
+      ],
+      decisions: decisions.map((d) =>
+        create(FileDecisionSchema, {
+          changeSetId: SET_ID,
+          scope: FileDecisionScope.CHANGE_SET,
+          action: d.action,
+        }),
+      ),
+    });
+  }
+
+  function renderStampedRow(set: FileChangeSet) {
+    const tc = makeToolCall({
+      id: "tc-edit",
+      name: "edit",
+      args: { path: "notes.md", old_string: "a", new_string: "b" },
+      fileChangeSetId: SET_ID,
+    });
+    return render(
+      <FileReviewContext.Provider value={{ changeSetsById: new Map([[SET_ID, set]]) }}>
+        <ToolCallItem toolCall={tc} />
+      </FileReviewContext.Provider>,
+    );
+  }
+
+  function badge(container: HTMLElement): Element | null {
+    return container.querySelector('[data-cursor-target="file-review-row-badge"]');
+  }
+
+  it("badges a stamped row 'Pending review' while its set awaits review", () => {
+    const { container } = renderStampedRow(reviewSet(FileChangeSetStatus.AWAITING_REVIEW));
+    expect(badge(container)?.textContent).toBe("Pending review");
+  });
+
+  it("flips the badge to the file's verdict once the set is decided", () => {
+    const kept = renderStampedRow(
+      reviewSet(FileChangeSetStatus.RECONCILED, [{ action: FileDecisionAction.APPROVE }]),
+    );
+    expect(badge(kept.container)?.textContent).toBe("Kept");
+    cleanup();
+
+    const discarded = renderStampedRow(
+      reviewSet(FileChangeSetStatus.RECONCILED, [{ action: FileDecisionAction.REJECT }]),
+    );
+    expect(badge(discarded.container)?.textContent).toBe("Discarded");
+  });
+
+  it("shows no badge for an unstamped row or without a provider", () => {
+    // Unstamped (a plain edit outside capture mode) — provider present.
+    const unstamped = makeToolCall({
+      id: "tc-plain",
+      name: "edit",
+      args: { path: "notes.md", old_string: "a", new_string: "b" },
+    });
+    const withProvider = render(
+      <FileReviewContext.Provider
+        value={{ changeSetsById: new Map([[SET_ID, reviewSet(FileChangeSetStatus.AWAITING_REVIEW)]]) }}
+      >
+        <ToolCallItem toolCall={unstamped} />
+      </FileReviewContext.Provider>,
+    );
+    expect(badge(withProvider.container)).toBeNull();
+    cleanup();
+
+    // Stamped but no provider (a consumer without file review) — no badge.
+    const stamped = makeToolCall({
+      id: "tc-edit",
+      name: "edit",
+      args: { path: "notes.md", old_string: "a", new_string: "b" },
+      fileChangeSetId: SET_ID,
+    });
+    const bare = render(<ToolCallItem toolCall={stamped} />);
+    expect(badge(bare.container)).toBeNull();
   });
 });

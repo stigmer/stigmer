@@ -47,6 +47,18 @@ afterEach(cleanup);
 
 const noop = () => {};
 
+/**
+ * Open the bar's diff expander. A COMPLETE undecided set and a settled record
+ * start collapsed (the bar carries the verdict; the transcript's stamped rows
+ * carry the previews), so tests that assert on per-file content expand first —
+ * exactly the user's own path to the authoritative diffs.
+ */
+function expandCard() {
+  fireEvent.click(
+    screen.getByRole("button", { name: /^(Review|Show)$/ }),
+  );
+}
+
 function inline(value: string, isBinary = false) {
   return create(FileContentSchema, { body: { case: "inline", value }, isBinary });
 }
@@ -235,8 +247,9 @@ describe("FileReviewCard", () => {
   });
 
   describe("multi-file set (per-file controls)", () => {
-    it("renders a Keep/Discard radio per file plus a whole-set footer", () => {
+    it("renders a Keep/Discard radio per file plus whole-set controls", () => {
       render(<FileReviewCard fileChangeSet={multiChangeSet()} onSubmit={noop} />);
+      expandCard();
 
       expect(screen.getByRole("radio", { name: "Keep src/a.ts" })).toBeTruthy();
       expect(screen.getByRole("radio", { name: "Discard src/a.ts" })).toBeTruthy();
@@ -249,6 +262,7 @@ describe("FileReviewCard", () => {
     it("submits a FILE APPROVE bound to the file digest on Keep", () => {
       const onSubmit = vi.fn();
       render(<FileReviewCard fileChangeSet={multiChangeSet()} onSubmit={onSubmit} />);
+      expandCard();
 
       fireEvent.click(screen.getByRole("radio", { name: "Keep src/a.ts" }));
 
@@ -263,6 +277,7 @@ describe("FileReviewCard", () => {
     it("submits a FILE REJECT bound to the file digest on Discard", () => {
       const onSubmit = vi.fn();
       render(<FileReviewCard fileChangeSet={multiChangeSet()} onSubmit={onSubmit} />);
+      expandCard();
 
       fireEvent.click(screen.getByRole("radio", { name: "Discard src/b.ts" }));
 
@@ -397,6 +412,7 @@ describe("FileReviewCard", () => {
           submittingDecisionKeys={submitting}
         />,
       );
+      expandCard();
 
       expect(
         (screen.getByRole("radio", { name: "Keep src/a.ts" }) as HTMLButtonElement)
@@ -465,6 +481,7 @@ describe("FileReviewCard", () => {
           decisionErrors={decisionErrors}
         />,
       );
+      expandCard();
       // Exactly one per-file error, and it carries fc1's message.
       const fileErrors = screen.getAllByText(/Couldn.t save/);
       expect(fileErrors).toHaveLength(1);
@@ -589,6 +606,7 @@ describe("FileReviewCard", () => {
           onSubmit={noop}
         />,
       );
+      expandCard();
       const badge = screen.getByText("gitignored");
       expect(badge).toBeTruthy();
       expect(badge.getAttribute("aria-label")).toMatch(/ignored by git/i);
@@ -741,6 +759,10 @@ describe("FileReviewCard", () => {
           interactive={false}
         />,
       );
+      // The collapsed bar already tells the verdict story in one line…
+      expect(screen.getByText("1 kept · 1 discarded")).toBeTruthy();
+      // …and expanding shows each file's committed verdict beside its diff.
+      expandCard();
       expect(screen.getByText("Kept")).toBeTruthy();
       expect(screen.getByText("Discarded")).toBeTruthy();
       expect(screen.queryByRole("radio")).toBeNull();
@@ -748,7 +770,29 @@ describe("FileReviewCard", () => {
 
     it("labels an undecided file 'Not reviewed'", () => {
       render(<FileReviewCard fileChangeSet={changeSet()} interactive={false} />);
+      expandCard();
       expect(screen.getByText("Not reviewed")).toBeTruthy();
+    });
+
+    it("reads every file as kept when the set was decided via a whole-set approve", () => {
+      // A "Keep all" set carries only a CHANGE_SET decision; the settled record
+      // folds it onto every file (the reconcile's own precedence) rather than
+      // showing "Not reviewed" for files without their own FILE decision.
+      const bulkApprove = create(FileDecisionSchema, {
+        changeSetId: "aex-1:0",
+        scope: FileDecisionScope.CHANGE_SET,
+        action: FileDecisionAction.APPROVE,
+      });
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({ decisions: [bulkApprove] })}
+          interactive={false}
+        />,
+      );
+      expect(screen.getByText("2 kept")).toBeTruthy();
+      expandCard();
+      expect(screen.getAllByText("Kept")).toHaveLength(2);
+      expect(screen.queryByText("Not reviewed")).toBeNull();
     });
   });
 });
