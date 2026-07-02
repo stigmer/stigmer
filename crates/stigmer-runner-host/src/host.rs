@@ -505,7 +505,11 @@ mod tests {
             ControlFlow::Continue(())
         }));
 
-        assert_eq!(got.len(), 3, "every line must survive a bad-byte line: {got:?}");
+        assert_eq!(
+            got.len(),
+            3,
+            "every line must survive a bad-byte line: {got:?}"
+        );
         assert_eq!(got[0], "first");
         assert!(
             got[1].contains("bad"),

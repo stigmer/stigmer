@@ -27,6 +27,7 @@ Use this mapping to decide which targets to run. A file matching **any** row tri
 | `sdk/ink/src/**` | `npm run typecheck -w @stigmer/ink` | Ink SDK type check |
 | `client-apps/web/src/**` | `npm run lint -w client-apps/web` | Web console lint (includes theme token rules) |
 | `client-apps/desktop/src/**`, `client-apps/desktop/src-tauri/**` | `make verify-desktop` | Desktop lint + typecheck + cargo check |
+| `crates/stigmer-runner-host/**` | `cd crates/stigmer-runner-host && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo build && cargo test` (mirrors `ci.crate`) | Rust fmt + clippy + build + test |
 | `client-apps/cli/src/**`, `client-apps/cli/scripts/**` | `npm run typecheck -w @stigmer/cli && npm run test -w @stigmer/cli` | CLI type check + tests |
 | `client-apps/cli/docs/**`, `client-apps/cli/src/**` | `make gen-cli-docs-check` | CLI reference docs are up to date |
 | `backend/services/stigmer-server/**/*.go` | `make build` (server binary) | Server builds cleanly |

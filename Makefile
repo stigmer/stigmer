@@ -678,8 +678,10 @@ check-site: ## check bucket: docs lint/format/links + site lint/typecheck/build 
 	$(MAKE) -C site validate-demos
 	@lychee --config .lychee.toml --root-dir . docs/
 
-check-rust: ## check bucket: desktop cargo check + runner-host crate
+check-rust: ## check bucket: desktop cargo check + runner-host crate (mirrors ci.crate: fmt/clippy/build/test)
 	cd client-apps/desktop/src-tauri && cargo check --quiet
+	cd crates/stigmer-runner-host && cargo fmt --check
+	cd crates/stigmer-runner-host && cargo clippy --all-targets -- -D warnings
 	cd crates/stigmer-runner-host && cargo build && cargo test
 
 check-java: ## check bucket: Java proto stubs + SDK (mvn)
