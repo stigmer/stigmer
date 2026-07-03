@@ -4,7 +4,7 @@ import { memo, useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
-import { useTaskKindRegistryContext } from "./TaskKindRegistryContext";
+import { useTaskKindRegistryContext } from "./TaskKindRegistryContext.js";
 
 /** Props for {@link WorkflowTaskList}. */
 export interface WorkflowTaskListProps {

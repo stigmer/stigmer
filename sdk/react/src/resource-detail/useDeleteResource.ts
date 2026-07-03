@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { toast } from "../feedback/toast";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { toast } from "../feedback/toast.js";
 
 /** Resource types that support deletion from detail pages. */
 export type DeletableResourceKind = "agent" | "skill" | "mcpServer" | "workflow";

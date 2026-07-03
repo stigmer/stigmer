@@ -1,11 +1,11 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { WorkflowGraphModel } from "./workflow-graph-model";
-import type { CanvasSelection } from "./useWorkflowCanvas";
-import type { TaskKindDescriptor } from "./types";
-import { InspectorShell } from "./inspector/InspectorShell";
-import type { InspectorMutations } from "./inspector/types";
+import type { WorkflowGraphModel } from "./workflow-graph-model.js";
+import type { CanvasSelection } from "./useWorkflowCanvas.js";
+import type { TaskKindDescriptor } from "./types.js";
+import { InspectorShell } from "./inspector/InspectorShell.js";
+import type { InspectorMutations } from "./inspector/types.js";
 
 /** Props for {@link WorkflowInspectorPanel}. */
 export interface WorkflowInspectorPanelProps {

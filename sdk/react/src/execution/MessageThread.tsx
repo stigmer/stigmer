@@ -20,34 +20,34 @@ import {
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { displayFileChangeSets } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import { isTerminalPhase } from "./execution-phases";
-import { MessageEntry } from "./MessageEntry";
-import { ToolCallGroup } from "./ToolCallGroup";
-import { SubAgentSection } from "./SubAgentSection";
-import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
-import { SetupProgress } from "./SetupProgress";
-import { ApprovalCard } from "./ApprovalCard";
-import { FileReviewCard } from "./FileReviewCard";
-import { SummarizationCard } from "./SummarizationCard";
-import { PlanCompletionCard } from "./PlanCompletionCard";
-import { PlanArtifactCard } from "./PlanArtifactCard";
-import { TodoCard } from "./TodoCard";
-import { findPlanArtifact } from "../library/detect-plan-artifact";
-import type { SummarizationEventView } from "./useContextWindow";
-import { isInternalTool, isCollapsedToolCall } from "./tool-categories";
-import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
-import type { ResolvedPathAction } from "./file-path-resolver";
-import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
-import { ApprovalContext, type ApprovalContextValue } from "./ApprovalContext";
-import { FileReviewContext, type FileReviewContextValue } from "./FileReviewContext";
-import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev";
-import { useAutoScroll } from "../internal/useAutoScroll";
-import { JumpToLatestButton } from "../internal/JumpToLatestButton";
-import { ApprovalPeekBar } from "../internal/ApprovalPeekBar";
-import { ThreadItemWrapper } from "../internal/ThreadItemWrapper";
+import { isTerminalPhase } from "./execution-phases.js";
+import { MessageEntry } from "./MessageEntry.js";
+import { ToolCallGroup } from "./ToolCallGroup.js";
+import { SubAgentSection } from "./SubAgentSection.js";
+import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge.js";
+import { SetupProgress } from "./SetupProgress.js";
+import { ApprovalCard } from "./ApprovalCard.js";
+import { FileReviewCard } from "./FileReviewCard.js";
+import { SummarizationCard } from "./SummarizationCard.js";
+import { PlanCompletionCard } from "./PlanCompletionCard.js";
+import { PlanArtifactCard } from "./PlanArtifactCard.js";
+import { TodoCard } from "./TodoCard.js";
+import { findPlanArtifact } from "../library/detect-plan-artifact.js";
+import type { SummarizationEventView } from "./useContextWindow.js";
+import { isInternalTool, isCollapsedToolCall } from "./tool-categories.js";
+import { FilePathContext, type FilePathContextValue } from "./FilePathContext.js";
+import type { ResolvedPathAction } from "./file-path-resolver.js";
+import { SandboxContext, type SandboxContextValue } from "./SandboxContext.js";
+import { ApprovalContext, type ApprovalContextValue } from "./ApprovalContext.js";
+import { FileReviewContext, type FileReviewContextValue } from "./FileReviewContext.js";
+import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev/index.js";
+import { useAutoScroll } from "../internal/useAutoScroll.js";
+import { JumpToLatestButton } from "../internal/JumpToLatestButton.js";
+import { ApprovalPeekBar } from "../internal/ApprovalPeekBar.js";
+import { ThreadItemWrapper } from "../internal/ThreadItemWrapper.js";
 
 const LazyVirtualizedThread = lazy(() =>
-  import("../internal/VirtualizedThread").then((m) => ({
+  import("../internal/VirtualizedThread.js").then((m) => ({
     default: m.VirtualizedThread,
   })),
 );

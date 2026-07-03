@@ -2,19 +2,19 @@
 
 import { createContext, useContext, useRef, useSyncExternalStore } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ConversationStore, type StreamState } from "./conversation-store";
+import { ConversationStore, type StreamState } from "./conversation-store.js";
 
-export { ConversationStore, type StreamState } from "./conversation-store";
-export { structuralShare } from "./structural-share";
+export { ConversationStore, type StreamState } from "./conversation-store.js";
+export { structuralShare } from "./structural-share.js";
 export {
   WorkflowExecutionEventStore,
   type WorkflowEventStreamState,
   type DerivedTaskState,
   type DerivedCostSummary,
-} from "./workflow-execution-event-store";
+} from "./workflow-execution-event-store.js";
 
-export { SelectionStore } from "./selection-store";
-export type { SelectedThreadItem } from "./selection-store";
+export { SelectionStore } from "./selection-store.js";
+export type { SelectedThreadItem } from "./selection-store.js";
 
 // ---------------------------------------------------------------------------
 // Context

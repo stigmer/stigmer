@@ -4,8 +4,8 @@ import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { RemoveEnvironmentVariablesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /**
  * Input for removing specific variables from an environment by key.

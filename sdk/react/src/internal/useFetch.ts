@@ -1,8 +1,8 @@
 "use client";
 
 import { type DependencyList, useCallback, useEffect, useRef, useState } from "react";
-import { useFetchCache } from "./FetchCacheProvider";
-import { toError } from "./toError";
+import { useFetchCache } from "./FetchCacheProvider.js";
+import { toError } from "./toError.js";
 
 /** Options for {@link useFetch}. */
 export interface UseFetchOptions {

@@ -14,13 +14,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowEventStreamState } from "../../internal/store/workflow-execution-event-store";
+import type { WorkflowEventStreamState } from "../../internal/store/workflow-execution-event-store.js";
 import {
   deriveWaterfallEntries,
   deriveWaterfallScale,
   type WaterfallEntry,
   type WaterfallScale,
-} from "./derive-waterfall-entries";
+} from "./derive-waterfall-entries.js";
 
 // ---------------------------------------------------------------------------
 // Public types

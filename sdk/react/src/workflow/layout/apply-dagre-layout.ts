@@ -1,8 +1,8 @@
 import dagre from "@dagrejs/dagre";
-import type { WorkflowGraphModel, WorkflowGraphNode } from "../workflow-graph-model";
-import { DAGRE_CONFIG } from "../canvas-constants";
-import type { DagreLayoutConfig } from "../canvas-constants";
-import { registryNodeDimensions } from "./registry-dimensions";
+import type { WorkflowGraphModel, WorkflowGraphNode } from "../workflow-graph-model.js";
+import { DAGRE_CONFIG } from "../canvas-constants.js";
+import type { DagreLayoutConfig } from "../canvas-constants.js";
+import { registryNodeDimensions } from "./registry-dimensions.js";
 
 /**
  * Synchronous dagre layout that uses per-node dimensions from the visual

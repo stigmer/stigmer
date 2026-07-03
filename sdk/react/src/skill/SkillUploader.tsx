@@ -4,10 +4,10 @@ import { type DragEvent, useCallback, useEffect, useRef, useState } from "react"
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
-import { useSkillUpload } from "./useSkillUpload";
-import { usePushSkill } from "./usePushSkill";
-import { useSkillDuplicateCheck } from "./useSkillDuplicateCheck";
+import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
+import { useSkillUpload } from "./useSkillUpload.js";
+import { usePushSkill } from "./usePushSkill.js";
+import { useSkillDuplicateCheck } from "./useSkillDuplicateCheck.js";
 
 // ---------------------------------------------------------------------------
 // Public types

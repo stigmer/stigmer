@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 import type { BillingAccount } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 
 /** Input for {@link useSetAutoRechargeConfig}. */

@@ -7,16 +7,16 @@ import {
   FileChangeType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { BoundedContent } from "../internal/BoundedContent";
-import { computeDiff } from "../version-history/computeDiff";
-import { DiffViewer } from "../version-history/DiffViewer";
-import { DiffFileList } from "../version-history/DiffFileList";
-import { DiffSummary } from "../version-history/DiffSummary";
-import { UnifiedDiffView } from "../version-history/UnifiedDiffView";
-import type { DiffHunk, FileDiffEntry } from "../version-history/types";
-import { FilePathLink } from "./FilePathLink";
-import { EmptyChangeNotice } from "./EmptyChangeNotice";
-import { useFileChangeContent } from "./useFileChangeContent";
+import { BoundedContent } from "../internal/BoundedContent.js";
+import { computeDiff } from "../version-history/computeDiff.js";
+import { DiffViewer } from "../version-history/DiffViewer.js";
+import { DiffFileList } from "../version-history/DiffFileList.js";
+import { DiffSummary } from "../version-history/DiffSummary.js";
+import { UnifiedDiffView } from "../version-history/UnifiedDiffView.js";
+import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
+import { FilePathLink } from "./FilePathLink.js";
+import { EmptyChangeNotice } from "./EmptyChangeNotice.js";
+import { useFileChangeContent } from "./useFileChangeContent.js";
 
 /** Props for {@link FileChangesView}. */
 export interface FileChangesViewProps {

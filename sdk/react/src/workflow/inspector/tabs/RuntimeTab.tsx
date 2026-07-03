@@ -2,8 +2,8 @@
 
 import { memo, useCallback } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { WorkflowGraphNode } from "../../workflow-graph-model";
-import type { TaskKindDescriptor } from "../../types";
+import type { WorkflowGraphNode } from "../../workflow-graph-model.js";
+import type { TaskKindDescriptor } from "../../types.js";
 
 /** Props for {@link RuntimeTab}. */
 export interface RuntimeTabProps {

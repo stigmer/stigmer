@@ -2,11 +2,11 @@
 
 import { memo } from "react";
 import type { NodeProps } from "@xyflow/react";
-import { CATEGORY_COLORS } from "./canvas-constants";
-import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
-import { getVisualSpec } from "./task-type-visual-registry";
-import { NodeShell, NodeContent, NodeHandles, NodeActions, ExecutionBadge, BranchBadge, DiffBadge } from "./node-shell";
-import { useWorkflowGraphMode } from "./WorkflowGraphModeContext";
+import { CATEGORY_COLORS } from "./canvas-constants.js";
+import type { CanvasTaskNodeData } from "./workflow-graph-conversions.js";
+import { getVisualSpec } from "./task-type-visual-registry.js";
+import { NodeShell, NodeContent, NodeHandles, NodeActions, ExecutionBadge, BranchBadge, DiffBadge } from "./node-shell/index.js";
+import { useWorkflowGraphMode } from "./WorkflowGraphModeContext.js";
 
 const NESTED_TASK_KINDS = new Set(["fork", "for_each", "try_catch"]);
 

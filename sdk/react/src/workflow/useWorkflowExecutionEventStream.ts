@@ -17,20 +17,20 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { isTransientStreamError } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 import {
   computeBackoffDelay,
   sleep,
   DEFAULT_RECONNECT_MAX_ATTEMPTS,
   type BackoffOptions,
-} from "../internal/backoff";
+} from "../internal/backoff.js";
 import {
   WorkflowExecutionEventStore,
   type WorkflowEventStreamState,
   type DerivedTaskState,
   type DerivedCostSummary,
-} from "../internal/store";
+} from "../internal/store/index.js";
 
 /** Options for {@link useWorkflowExecutionEventStream}. */
 export interface UseWorkflowExecutionEventStreamOptions {

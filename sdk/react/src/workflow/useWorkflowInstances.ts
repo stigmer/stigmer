@@ -3,8 +3,8 @@
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import { GetWorkflowInstancesByWorkflowRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useWorkflowInstances}. */
 export interface UseWorkflowInstancesReturn {

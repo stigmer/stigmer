@@ -5,8 +5,8 @@ import type {
   FileChange,
   FileContent,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { useArtifactContent } from "./useArtifactContent";
-import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
+import { useArtifactContent } from "./useArtifactContent.js";
+import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
 
 /** Return value of {@link useFileChangeContent}. */
 export interface UseFileChangeContentReturn {

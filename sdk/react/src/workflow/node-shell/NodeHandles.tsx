@@ -2,8 +2,8 @@
 
 import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
-import type { PortPattern } from "../task-type-visual-registry";
-import type { CanvasTaskNodeData } from "../workflow-graph-conversions";
+import type { PortPattern } from "../task-type-visual-registry.js";
+import type { CanvasTaskNodeData } from "../workflow-graph-conversions.js";
 
 export interface NodeHandlesProps {
   portPattern: PortPattern;

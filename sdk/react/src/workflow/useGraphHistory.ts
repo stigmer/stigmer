@@ -2,9 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { RefObject } from "react";
-import type { WorkflowGraphModel } from "./workflow-graph-model";
-import type { GraphCommand } from "./graph-commands";
-import { GraphHistory } from "./graph-commands";
+import type { WorkflowGraphModel } from "./workflow-graph-model.js";
+import type { GraphCommand } from "./graph-commands.js";
+import { GraphHistory } from "./graph-commands.js";
 
 /** Return value of {@link useGraphHistory}. */
 export interface UseGraphHistoryReturn {

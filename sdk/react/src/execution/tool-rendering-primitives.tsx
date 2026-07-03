@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
-import { RevealToggle } from "../internal/RevealToggle";
+import { RevealToggle } from "../internal/RevealToggle.js";
 
 /**
  * Shared truncation threshold for all collapsible tool rendering

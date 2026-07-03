@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { WorkflowGraphModel, WorkflowGraphNode } from "../workflow-graph-model";
-import type { LayoutEngine, LayoutInput, LayoutResult, LayoutScope, NodeDimensions } from "./types";
-import { createDagreLayoutEngine } from "./dagre-layout-engine";
+import type { WorkflowGraphModel, WorkflowGraphNode } from "../workflow-graph-model.js";
+import type { LayoutEngine, LayoutInput, LayoutResult, LayoutScope, NodeDimensions } from "./types.js";
+import { createDagreLayoutEngine } from "./dagre-layout-engine.js";
 
 // ---------------------------------------------------------------------------
 // Types

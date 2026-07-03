@@ -7,8 +7,8 @@ import {
   FileDecisionScope,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SubmitFileDecisionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Options narrowing a file decision to a single file and binding its digest. */
 export interface FileDecisionOptions {

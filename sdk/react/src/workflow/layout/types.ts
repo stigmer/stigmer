@@ -1,4 +1,4 @@
-import type { WorkflowGraphModel, WorkflowGraphNode } from "../workflow-graph-model";
+import type { WorkflowGraphModel, WorkflowGraphNode } from "../workflow-graph-model.js";
 
 // ---------------------------------------------------------------------------
 // Layout Engine

@@ -1,7 +1,7 @@
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
-import type { EnvVarEntry } from "../../resource-creation/types";
+import type { EnvVarEntry } from "../../resource-creation/types.js";
 
-export type { EnvVarEntry } from "../../resource-creation/types";
+export type { EnvVarEntry } from "../../resource-creation/types.js";
 
 /**
  * Accumulated form state for the agent creation wizard.

@@ -3,9 +3,9 @@
 import { memo, useState, useCallback, useMemo } from "react";
 import type { DragEvent } from "react";
 import { cn } from "@stigmer/theme";
-import { useTaskKindRegistry } from "./useTaskKindRegistry";
-import type { TaskKindDescriptor, TaskKindCategory } from "./types";
-import { CATEGORY_COLORS, CATEGORY_DISPLAY_NAMES, CATEGORY_ORDER } from "./canvas-constants";
+import { useTaskKindRegistry } from "./useTaskKindRegistry.js";
+import type { TaskKindDescriptor, TaskKindCategory } from "./types.js";
+import { CATEGORY_COLORS, CATEGORY_DISPLAY_NAMES, CATEGORY_ORDER } from "./canvas-constants.js";
 
 /** MIME type for the drag transfer carrying the task kind identifier. */
 export const TASK_KIND_DRAG_MIME = "application/stigmer-task-kind";

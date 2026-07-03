@@ -5,11 +5,11 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import {
   useSessionArtifacts,
   type SessionArtifactEntry,
-} from "../useSessionArtifacts";
-import { ArtifactCard } from "../../execution/ArtifactCard";
-import { ArtifactPreviewModal } from "../../execution/ArtifactPreviewModal";
-import { isPlanArtifact } from "../../library/detect-plan-artifact";
-import type { ApplyResourceResult } from "../../library/useApplyResource";
+} from "../useSessionArtifacts.js";
+import { ArtifactCard } from "../../execution/ArtifactCard.js";
+import { ArtifactPreviewModal } from "../../execution/ArtifactPreviewModal.js";
+import { isPlanArtifact } from "../../library/detect-plan-artifact.js";
+import type { ApplyResourceResult } from "../../library/useApplyResource.js";
 
 export interface ArtifactsTabProps {
   readonly executions: readonly AgentExecution[];

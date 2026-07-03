@@ -1,5 +1,5 @@
-export { ExecutionInspector, type ExecutionInspectorProps } from "./ExecutionInspector";
-export { useExecutionTaskDetail, type UseExecutionTaskDetailReturn } from "./useExecutionTaskDetail";
+export { ExecutionInspector, type ExecutionInspectorProps } from "./ExecutionInspector.js";
+export { useExecutionTaskDetail, type UseExecutionTaskDetailReturn } from "./useExecutionTaskDetail.js";
 export {
   deriveTaskDetail,
   type TaskDetail,
@@ -11,4 +11,4 @@ export {
   type TaskDetailAgentCall,
   type TaskDetailApproval,
   type TaskDetailApprovalDecision,
-} from "./derive-task-detail";
+} from "./derive-task-detail.js";

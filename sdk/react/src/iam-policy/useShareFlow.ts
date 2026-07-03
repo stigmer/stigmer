@@ -10,10 +10,10 @@ import {
   ApiResourceRefSchema,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { iamRoleToString } from "@stigmer/sdk";
-import { useResourceAccess, type ResourceAccessRef } from "./useResourceAccess";
-import { useCreateIamPolicy } from "./useCreateIamPolicy";
-import { useDeleteIamPolicy } from "./useDeleteIamPolicy";
-import { useGrantableRoles } from "./useGrantableRoles";
+import { useResourceAccess, type ResourceAccessRef } from "./useResourceAccess.js";
+import { useCreateIamPolicy } from "./useCreateIamPolicy.js";
+import { useDeleteIamPolicy } from "./useDeleteIamPolicy.js";
+import { useGrantableRoles } from "./useGrantableRoles.js";
 
 /** Identifies a resource for the share flow. */
 export interface ShareFlowResource {

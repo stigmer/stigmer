@@ -2,10 +2,10 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { UseWorkspaceEntriesReturn, WorkspaceEntry } from "../../workspace/useWorkspaceEntries";
-import type { WorkspaceFileLister } from "../../workspace/WorkspaceFileLister";
-import { WorkspaceEntryFiles } from "../../workspace/WorkspaceEntryFiles";
-import type { UseGitHubConnectionReturn } from "../../github/useGitHubConnection";
+import type { UseWorkspaceEntriesReturn, WorkspaceEntry } from "../../workspace/useWorkspaceEntries.js";
+import type { WorkspaceFileLister } from "../../workspace/WorkspaceFileLister.js";
+import { WorkspaceEntryFiles } from "../../workspace/WorkspaceEntryFiles.js";
+import type { UseGitHubConnectionReturn } from "../../github/useGitHubConnection.js";
 
 /**
  * Interactive workspace actions required by the Workspace tab.

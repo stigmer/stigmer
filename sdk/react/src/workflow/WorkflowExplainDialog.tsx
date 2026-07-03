@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
-import { useExplainWorkflowFlow, type ExplainPhase } from "./useExplainWorkflowFlow";
-import { MessageThread } from "../execution/MessageThread";
+import { useExplainWorkflowFlow, type ExplainPhase } from "./useExplainWorkflowFlow.js";
+import { MessageThread } from "../execution/MessageThread.js";
 
 /** Props for {@link WorkflowExplainDialog}. */
 export interface WorkflowExplainDialogProps {

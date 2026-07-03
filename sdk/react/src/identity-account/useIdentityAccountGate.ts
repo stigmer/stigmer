@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { isNotFound } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 // ---------------------------------------------------------------------------
 // Types

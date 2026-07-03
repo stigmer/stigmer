@@ -2,8 +2,8 @@
 
 import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { WorkflowGraphNode, WorkflowGraphModel } from "../../workflow-graph-model";
-import type { InspectorMutations } from "../types";
+import type { WorkflowGraphNode, WorkflowGraphModel } from "../../workflow-graph-model.js";
+import type { InspectorMutations } from "../types.js";
 
 export interface BranchesTabProps {
   readonly node: WorkflowGraphNode;

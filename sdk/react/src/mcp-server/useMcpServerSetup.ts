@@ -7,15 +7,15 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import { GetOAuthGrantStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { useStigmer } from "../hooks";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
-import { diffEnv } from "../environment/diffEnv";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
+import { diffEnv } from "../environment/diffEnv.js";
+import { toError } from "../internal/toError.js";
 import {
   mcpServerSetupReducer,
   INITIAL_MCP_SETUP_STATE,
   toServerKey,
-} from "./mcpServerSetupReducer";
+} from "./mcpServerSetupReducer.js";
 
 // ---------------------------------------------------------------------------
 // Public types (re-exported from mcpServerSetupReducer for convenience)
@@ -25,9 +25,9 @@ export type {
   McpServerSetupEntry,
   McpServerSetupPhase,
   McpServerSetupState,
-} from "./mcpServerSetupReducer";
+} from "./mcpServerSetupReducer.js";
 
-export { toServerKey } from "./mcpServerSetupReducer";
+export { toServerKey } from "./mcpServerSetupReducer.js";
 
 /** Options for {@link UseMcpServerSetupReturn.submitEnvVars}. */
 export interface SubmitMcpEnvVarsOptions {

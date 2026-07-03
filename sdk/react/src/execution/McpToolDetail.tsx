@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { cn } from "@stigmer/theme";
-import { formatDuration } from "./ToolCallDetail";
-import { humanizeToolName } from "./tool-categories";
+import { formatDuration } from "./ToolCallDetail.js";
+import { humanizeToolName } from "./tool-categories.js";
 import {
   CollapsiblePre,
   CollapsibleJsonBlock,
@@ -12,11 +12,11 @@ import {
   formatJson,
   isScalar,
   humanizeArgKey,
-} from "./tool-rendering-primitives";
-import { execIdFromStorageKey } from "./useFileChangeContent";
-import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
-import { useArtifactDownload } from "./useArtifactDownload";
-import { useToolOutputContent } from "./useToolOutputContent";
+} from "./tool-rendering-primitives.js";
+import { execIdFromStorageKey } from "./useFileChangeContent.js";
+import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
+import { useArtifactDownload } from "./useArtifactDownload.js";
+import { useToolOutputContent } from "./useToolOutputContent.js";
 
 /** Props for {@link McpToolDetail}. */
 export interface McpToolDetailProps {

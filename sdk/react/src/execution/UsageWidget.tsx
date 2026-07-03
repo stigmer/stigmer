@@ -5,7 +5,7 @@ import { cn } from "@stigmer/theme";
 import {
   useSessionUsage,
   type ModelCostEntry,
-} from "../session/useSessionUsage";
+} from "../session/useSessionUsage.js";
 
 /** Props for {@link UsageWidget}. */
 export interface UsageWidgetProps {

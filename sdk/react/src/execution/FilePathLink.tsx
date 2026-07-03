@@ -2,8 +2,8 @@
 
 import { useCallback, useContext, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { FilePathContext } from "./FilePathContext";
-import { resolvePathAction, splitDisplayPath } from "./file-path-resolver";
+import { FilePathContext } from "./FilePathContext.js";
+import { resolvePathAction, splitDisplayPath } from "./file-path-resolver.js";
 
 /** How much of the directory prefix {@link FilePathLink} shows. */
 export type FilePathDirDisplay =

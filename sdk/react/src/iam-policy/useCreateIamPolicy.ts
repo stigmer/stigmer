@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useCreateIamPolicy}. */
 export interface UseCreateIamPolicyReturn {

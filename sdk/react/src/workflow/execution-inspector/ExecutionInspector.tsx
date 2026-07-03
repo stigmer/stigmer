@@ -5,19 +5,19 @@ import { cn } from "@stigmer/theme";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowTask, WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
-import { Tabs, type TabItem } from "../../tabs/Tabs";
-import { useExecutionTaskDetail } from "./useExecutionTaskDetail";
-import { formatDuration, formatMicroUsd, formatTokenCount } from "../format-utils";
-import { SummaryTab } from "./SummaryTab";
-import { InputOutputTab } from "./InputOutputTab";
-import { ErrorTab } from "./ErrorTab";
-import { RetriesTab } from "./RetriesTab";
-import { AgentCallTab } from "./AgentCallTab";
-import { EventLogTab } from "./EventLogTab";
-import { WorkflowExecutionApprovalCard } from "../WorkflowExecutionApprovalCard";
-import { WorkflowTaskApprovalCard } from "../WorkflowTaskApprovalCard";
-import { WorkflowTaskApprovalSummary } from "../WorkflowTaskApprovalSummary";
+import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
+import { Tabs, type TabItem } from "../../tabs/Tabs.js";
+import { useExecutionTaskDetail } from "./useExecutionTaskDetail.js";
+import { formatDuration, formatMicroUsd, formatTokenCount } from "../format-utils.js";
+import { SummaryTab } from "./SummaryTab.js";
+import { InputOutputTab } from "./InputOutputTab.js";
+import { ErrorTab } from "./ErrorTab.js";
+import { RetriesTab } from "./RetriesTab.js";
+import { AgentCallTab } from "./AgentCallTab.js";
+import { EventLogTab } from "./EventLogTab.js";
+import { WorkflowExecutionApprovalCard } from "../WorkflowExecutionApprovalCard.js";
+import { WorkflowTaskApprovalCard } from "../WorkflowTaskApprovalCard.js";
+import { WorkflowTaskApprovalSummary } from "../WorkflowTaskApprovalSummary.js";
 
 /** Props for {@link ExecutionInspector}. */
 export interface ExecutionInspectorProps {

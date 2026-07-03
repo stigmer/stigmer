@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useAgent } from "../agent";
-import { useMcpServer } from "../mcp-server";
-import { useSkill } from "../skill";
-import { serializeAgentYaml, serializeMcpServerYaml } from "../library";
-import type { DraftResourceType } from "./draft";
+import { useStigmer } from "../hooks.js";
+import { useAgent } from "../agent/index.js";
+import { useMcpServer } from "../mcp-server/index.js";
+import { useSkill } from "../skill/index.js";
+import { serializeAgentYaml, serializeMcpServerYaml } from "../library/index.js";
+import type { DraftResourceType } from "./draft.js";
 
 /** Return value of {@link useEditSessionPrep}. */
 export interface UseEditSessionPrepReturn {

@@ -4,7 +4,7 @@ import { useCallback, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { useCreateEnvironment } from "./useCreateEnvironment";
+import { useCreateEnvironment } from "./useCreateEnvironment.js";
 
 // ---------------------------------------------------------------------------
 // Public API

@@ -1,8 +1,8 @@
-import { getVisualSpec } from "../task-type-visual-registry";
-import { taskKindToString } from "../workflow-graph-conversions";
-import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
-import type { WorkflowGraphNode } from "../workflow-graph-model";
-import type { NodeDimensions } from "./types";
+import { getVisualSpec } from "../task-type-visual-registry.js";
+import { taskKindToString } from "../workflow-graph-conversions.js";
+import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
+import type { WorkflowGraphNode } from "../workflow-graph-model.js";
+import type { NodeDimensions } from "./types.js";
 
 /**
  * Resolves per-node dimensions from the visual registry (T01).

@@ -1,20 +1,20 @@
-export { OrgProvider, useOrg, useActiveOrgSlug, useActiveOrgId } from "./OrgProvider";
-export type { OrgContextValue } from "./OrgProvider";
-export { useOrgGate } from "./useOrgGate";
+export { OrgProvider, useOrg, useActiveOrgSlug, useActiveOrgId } from "./OrgProvider.js";
+export type { OrgContextValue } from "./OrgProvider.js";
+export { useOrgGate } from "./useOrgGate.js";
 export type {
   UseOrgGateOptions,
   OrgGateState,
   UseOrgGateReturn,
-} from "./useOrgGate";
-export { useOrganization } from "./useOrganization";
-export type { UseOrganizationReturn } from "./useOrganization";
-export { useCreateOrganization } from "./useCreateOrganization";
-export type { UseCreateOrganizationReturn } from "./useCreateOrganization";
-export { useUpdateOrganization } from "./useUpdateOrganization";
-export type { UseUpdateOrganizationReturn } from "./useUpdateOrganization";
-export { CreateOrganizationForm } from "./CreateOrganizationForm";
-export type { CreateOrganizationFormProps } from "./CreateOrganizationForm";
-export { OrgProfilePanel } from "./OrgProfilePanel";
-export type { OrgProfilePanelProps } from "./OrgProfilePanel";
-export { OrgSwitcher } from "./OrgSwitcher";
-export type { OrgSwitcherProps } from "./OrgSwitcher";
+} from "./useOrgGate.js";
+export { useOrganization } from "./useOrganization.js";
+export type { UseOrganizationReturn } from "./useOrganization.js";
+export { useCreateOrganization } from "./useCreateOrganization.js";
+export type { UseCreateOrganizationReturn } from "./useCreateOrganization.js";
+export { useUpdateOrganization } from "./useUpdateOrganization.js";
+export type { UseUpdateOrganizationReturn } from "./useUpdateOrganization.js";
+export { CreateOrganizationForm } from "./CreateOrganizationForm.js";
+export type { CreateOrganizationFormProps } from "./CreateOrganizationForm.js";
+export { OrgProfilePanel } from "./OrgProfilePanel.js";
+export type { OrgProfilePanelProps } from "./OrgProfilePanel.js";
+export { OrgSwitcher } from "./OrgSwitcher.js";
+export type { OrgSwitcherProps } from "./OrgSwitcher.js";

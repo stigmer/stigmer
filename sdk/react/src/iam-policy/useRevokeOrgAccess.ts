@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { RevokeOrgAccessInputSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useRevokeOrgAccess}. */
 export interface UseRevokeOrgAccessReturn {

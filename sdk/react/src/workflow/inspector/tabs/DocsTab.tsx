@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { TaskKindDescriptor } from "../../types";
+import type { TaskKindDescriptor } from "../../types.js";
 
 /** Props for {@link DocsTab}. */
 export interface DocsTabProps {

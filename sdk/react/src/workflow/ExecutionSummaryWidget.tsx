@@ -4,7 +4,7 @@ import { memo, useMemo } from "react";
 import type { ExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { formatDurationSec } from "./format-utils";
+import { formatDurationSec } from "./format-utils.js";
 
 export interface ExecutionSummaryWidgetProps {
   readonly summary: ExecutionSummary | null;

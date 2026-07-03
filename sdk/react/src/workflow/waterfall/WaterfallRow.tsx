@@ -2,9 +2,9 @@
 
 import { memo, useCallback } from "react";
 import { cn } from "@stigmer/theme";
-import type { WaterfallEntry } from "../execution/derive-waterfall-entries";
-import { WaterfallBar } from "./WaterfallBar";
-import { formatDuration, formatMicroUsd } from "../format-utils";
+import type { WaterfallEntry } from "../execution/derive-waterfall-entries.js";
+import { WaterfallBar } from "./WaterfallBar.js";
+import { formatDuration, formatMicroUsd } from "../format-utils.js";
 
 export interface WaterfallRowProps {
   readonly entry: WaterfallEntry;

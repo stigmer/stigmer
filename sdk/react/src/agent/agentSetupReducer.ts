@@ -1,5 +1,5 @@
 import type { EnvVarInput, ResourceRef } from "@stigmer/sdk";
-import type { AgentEnvFormVariable } from "./AgentEnvForm";
+import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
 
 // ---------------------------------------------------------------------------
 // Resolution — the outcome of agent setup, consumed by session creation

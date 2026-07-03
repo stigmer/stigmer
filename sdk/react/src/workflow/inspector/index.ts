@@ -5,51 +5,51 @@
  */
 
 // Shell
-export { InspectorShell } from "./InspectorShell";
-export type { InspectorShellProps } from "./InspectorShell";
+export { InspectorShell } from "./InspectorShell.js";
+export type { InspectorShellProps } from "./InspectorShell.js";
 
 // Header
-export { InspectorHeader } from "./InspectorHeader";
-export type { InspectorHeaderProps } from "./InspectorHeader";
+export { InspectorHeader } from "./InspectorHeader.js";
+export type { InspectorHeaderProps } from "./InspectorHeader.js";
 
 // Tabs hook
-export { useInspectorTabs } from "./useInspectorTabs";
-export type { UseInspectorTabsInput, UseInspectorTabsReturn } from "./useInspectorTabs";
+export { useInspectorTabs } from "./useInspectorTabs.js";
+export type { UseInspectorTabsInput, UseInspectorTabsReturn } from "./useInspectorTabs.js";
 
 // Sub-inspectors
-export { EdgeInspector } from "./EdgeInspector";
-export type { EdgeInspectorProps } from "./EdgeInspector";
-export { SentinelInspector } from "./SentinelInspector";
-export type { SentinelInspectorProps } from "./SentinelInspector";
+export { EdgeInspector } from "./EdgeInspector.js";
+export type { EdgeInspectorProps } from "./EdgeInspector.js";
+export { SentinelInspector } from "./SentinelInspector.js";
+export type { SentinelInspectorProps } from "./SentinelInspector.js";
 
 // Tab content components
-export { ConfigureTab } from "./tabs/ConfigureTab";
-export type { ConfigureTabProps } from "./tabs/ConfigureTab";
-export { DataTab } from "./tabs/DataTab";
-export type { DataTabProps } from "./tabs/DataTab";
-export { RuntimeTab } from "./tabs/RuntimeTab";
-export type { RuntimeTabProps } from "./tabs/RuntimeTab";
-export { AdvancedTab } from "./tabs/AdvancedTab";
-export type { AdvancedTabProps } from "./tabs/AdvancedTab";
-export { DocsTab } from "./tabs/DocsTab";
-export type { DocsTabProps } from "./tabs/DocsTab";
+export { ConfigureTab } from "./tabs/ConfigureTab.js";
+export type { ConfigureTabProps } from "./tabs/ConfigureTab.js";
+export { DataTab } from "./tabs/DataTab.js";
+export type { DataTabProps } from "./tabs/DataTab.js";
+export { RuntimeTab } from "./tabs/RuntimeTab.js";
+export type { RuntimeTabProps } from "./tabs/RuntimeTab.js";
+export { AdvancedTab } from "./tabs/AdvancedTab.js";
+export type { AdvancedTabProps } from "./tabs/AdvancedTab.js";
+export { DocsTab } from "./tabs/DocsTab.js";
+export type { DocsTabProps } from "./tabs/DocsTab.js";
 
 // Execution mode adapter
-export { ExecutionInspectorAdapter } from "./ExecutionInspectorAdapter";
-export type { ExecutionInspectorAdapterProps } from "./ExecutionInspectorAdapter";
+export { ExecutionInspectorAdapter } from "./ExecutionInspectorAdapter.js";
+export type { ExecutionInspectorAdapterProps } from "./ExecutionInspectorAdapter.js";
 
 // Per-kind forms
-export { AgentCallForm } from "./forms/AgentCallForm";
-export type { AgentCallFormProps } from "./forms/AgentCallForm";
-export { HttpCallForm } from "./forms/HttpCallForm";
-export type { HttpCallFormProps } from "./forms/HttpCallForm";
+export { AgentCallForm } from "./forms/AgentCallForm.js";
+export type { AgentCallFormProps } from "./forms/AgentCallForm.js";
+export { HttpCallForm } from "./forms/HttpCallForm.js";
+export type { HttpCallFormProps } from "./forms/HttpCallForm.js";
 
 // Task YAML serialization
-export { taskToYaml } from "./task-to-yaml";
+export { taskToYaml } from "./task-to-yaml.js";
 
 // Workflow summary (empty state)
-export { WorkflowSummaryPanel } from "./WorkflowSummaryPanel";
-export type { WorkflowSummaryPanelProps } from "./WorkflowSummaryPanel";
+export { WorkflowSummaryPanel } from "./WorkflowSummaryPanel.js";
+export type { WorkflowSummaryPanelProps } from "./WorkflowSummaryPanel.js";
 
 // Types
 export type {
@@ -60,4 +60,4 @@ export type {
   InspectorNodeIdentity,
   InspectorTabDefinition,
   InspectorMutations,
-} from "./types";
+} from "./types.js";

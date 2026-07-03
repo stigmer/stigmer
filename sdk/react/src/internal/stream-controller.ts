@@ -1,6 +1,6 @@
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { StreamState } from "./store/conversation-store";
-import { isTerminalPhase } from "../execution/execution-phases";
+import type { StreamState } from "./store/conversation-store.js";
+import { isTerminalPhase } from "../execution/execution-phases.js";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 // ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@ import * as React from "react";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { cn } from "@stigmer/theme";
 import { CheckIcon } from "lucide-react";
-import { useStigmerPortalContainer } from "../portal-container";
+import { useStigmerPortalContainer } from "../portal-container.js";
 
 // ---------------------------------------------------------------------------
 // SDK-internal styled Menu primitives over @base-ui/react.

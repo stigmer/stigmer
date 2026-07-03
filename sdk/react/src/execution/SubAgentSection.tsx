@@ -8,22 +8,22 @@ import {
   MessageType,
   SubAgentStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { useRenderTracer } from "../internal/dev";
-import { useAutoDisclosure } from "../internal/useAutoDisclosure";
-import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince";
+import { useRenderTracer } from "../internal/dev/index.js";
+import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
+import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince.js";
 import { cn } from "@stigmer/theme";
-import { formatDuration } from "./ToolCallDetail";
-import { MessageEntry } from "./MessageEntry";
-import { ToolCallGroup } from "./ToolCallGroup";
-import { ApprovalContext } from "./ApprovalContext";
-import { isInternalTool } from "./tool-categories";
-import { useThreadSelection } from "./useThreadSelection";
+import { formatDuration } from "./ToolCallDetail.js";
+import { MessageEntry } from "./MessageEntry.js";
+import { ToolCallGroup } from "./ToolCallGroup.js";
+import { ApprovalContext } from "./ApprovalContext.js";
+import { isInternalTool } from "./tool-categories.js";
+import { useThreadSelection } from "./useThreadSelection.js";
 import {
   TodoList,
   TodoInProgressIcon,
   findActiveTodo,
   todoCompletionSummary,
-} from "./TodoList";
+} from "./TodoList.js";
 
 /** Props for {@link SubAgentSection}. */
 export interface SubAgentSectionProps {

@@ -67,6 +67,11 @@ jobs:
       - name: Build SDK libraries
         run: npm run build:libs
 
+      # Regression lock for #209: fail the PR if any published dist ships an
+      # extension-less relative specifier that crashes under plain Node ESM.
+      - name: Verify Node-ESM output
+        run: node scripts/verify-esm-node.mjs
+
       - name: Run SDK tests
         run: npm test
 

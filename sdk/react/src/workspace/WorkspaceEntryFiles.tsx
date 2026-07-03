@@ -2,10 +2,10 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { FileTreeNode, filterFileTree } from "../internal/file-tree";
-import { useWorkspaceFiles } from "./useWorkspaceFiles";
-import type { WorkspaceEntry } from "./useWorkspaceEntries";
-import type { WorkspaceFileLister } from "./WorkspaceFileLister";
+import { FileTreeNode, filterFileTree } from "../internal/file-tree/index.js";
+import { useWorkspaceFiles } from "./useWorkspaceFiles.js";
+import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
+import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
 
 export interface WorkspaceEntryFilesProps {
   /** The workspace entry whose files to browse. */

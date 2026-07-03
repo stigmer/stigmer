@@ -1,14 +1,14 @@
 "use client";
 
 import { memo } from "react";
-import type { WorkflowGraphNode, WorkflowGraphModel } from "../../workflow-graph-model";
-import type { TaskKindDescriptor } from "../../types";
-import { TaskConfigForm } from "../../TaskConfigForm";
-import { BranchConditionBuilder } from "../../BranchConditionBuilder";
-import { ApprovalFormBuilder } from "../../ApprovalFormBuilder";
-import { AgentCallForm } from "../forms/AgentCallForm";
-import { HttpCallForm } from "../forms/HttpCallForm";
-import type { InspectorMutations } from "../types";
+import type { WorkflowGraphNode, WorkflowGraphModel } from "../../workflow-graph-model.js";
+import type { TaskKindDescriptor } from "../../types.js";
+import { TaskConfigForm } from "../../TaskConfigForm.js";
+import { BranchConditionBuilder } from "../../BranchConditionBuilder.js";
+import { ApprovalFormBuilder } from "../../ApprovalFormBuilder.js";
+import { AgentCallForm } from "../forms/AgentCallForm.js";
+import { HttpCallForm } from "../forms/HttpCallForm.js";
+import type { InspectorMutations } from "../types.js";
 
 /** Props for {@link ConfigureTab}. */
 export interface ConfigureTabProps {

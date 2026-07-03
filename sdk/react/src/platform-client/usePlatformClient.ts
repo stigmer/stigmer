@@ -1,8 +1,8 @@
 "use client";
 
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link usePlatformClient}. */
 export interface UsePlatformClientReturn {

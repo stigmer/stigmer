@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
-import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
-import { buildFileTree, FileTreeNode } from "../internal/file-tree";
-import { useSkillArtifact } from "./useSkillArtifact";
+import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
+import { buildFileTree, FileTreeNode } from "../internal/file-tree/index.js";
+import { useSkillArtifact } from "./useSkillArtifact.js";
 
 // ---------------------------------------------------------------------------
 // Public types

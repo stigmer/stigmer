@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useModelRegistry } from "../models";
-import { parseModelKey } from "../models/registry";
-import type { HarnessOption } from "../models/harness";
+import { useModelRegistry } from "../models/index.js";
+import { parseModelKey } from "../models/registry.js";
+import type { HarnessOption } from "../models/harness.js";
 
 /** Options for {@link usePersistedModel}. */
 export interface UsePersistedModelOptions {

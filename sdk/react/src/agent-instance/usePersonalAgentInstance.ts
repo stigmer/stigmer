@@ -3,10 +3,10 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { ResourceRef } from "@stigmer/sdk";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { useAgentInstanceList } from "./useAgentInstanceList";
-import { buildPersonalInstanceInput } from "./buildPersonalInstanceInput";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { useAgentInstanceList } from "./useAgentInstanceList.js";
+import { buildPersonalInstanceInput } from "./buildPersonalInstanceInput.js";
 
 const PERSONAL_LABELS: Record<string, string> = {
   "stigmer.ai/personal": "true",

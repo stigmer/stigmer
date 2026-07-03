@@ -3,11 +3,11 @@
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { useArtifactContent } from "./useArtifactContent";
-import { useArtifactDownload } from "./useArtifactDownload";
-import { isTextArtifact, formatArtifactSize } from "./artifact-utils";
-import { useDetectStigmerResource } from "../library/useDetectStigmerResource";
-import { useDetectSkillPackage } from "../library/useDetectSkillPackage";
+import { useArtifactContent } from "./useArtifactContent.js";
+import { useArtifactDownload } from "./useArtifactDownload.js";
+import { isTextArtifact, formatArtifactSize } from "./artifact-utils.js";
+import { useDetectStigmerResource } from "../library/useDetectStigmerResource.js";
+import { useDetectSkillPackage } from "../library/useDetectSkillPackage.js";
 
 /**
  * Artifacts larger than this threshold skip the content fetch used for

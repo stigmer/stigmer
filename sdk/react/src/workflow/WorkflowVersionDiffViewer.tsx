@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import { useWorkflowVersionDiff } from "./useWorkflowVersionDiff";
-import type { DiffLine } from "./workflow-yaml-diff";
+import { useWorkflowVersionDiff } from "./useWorkflowVersionDiff.js";
+import type { DiffLine } from "./workflow-yaml-diff.js";
 
 /** Props for {@link WorkflowVersionDiffViewer}. */
 export interface WorkflowVersionDiffViewerProps {

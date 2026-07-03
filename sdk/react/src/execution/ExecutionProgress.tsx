@@ -2,8 +2,8 @@
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { cn } from "@stigmer/theme";
-import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
-import { TodoList } from "./TodoList";
+import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge.js";
+import { TodoList } from "./TodoList.js";
 
 /** Props for {@link ExecutionProgress}. */
 export interface ExecutionProgressProps {

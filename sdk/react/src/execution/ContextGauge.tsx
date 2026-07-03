@@ -7,8 +7,8 @@ import {
   useContextWindow,
   type ContextHealth,
   type UseContextWindowReturn,
-} from "./useContextWindow";
-import { formatTokenCount } from "./UsageWidget";
+} from "./useContextWindow.js";
+import { formatTokenCount } from "./UsageWidget.js";
 
 /** Props for {@link ContextGauge}. */
 export interface ContextGaugeProps {

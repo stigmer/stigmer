@@ -2,8 +2,8 @@
 
 import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
-import type { ResourceTemplate, TemplateCategory } from "./templates/types";
-import { TEMPLATE_CATEGORY_LABELS } from "./templates/types";
+import type { ResourceTemplate, TemplateCategory } from "./templates/types.js";
+import { TEMPLATE_CATEGORY_LABELS } from "./templates/types.js";
 
 // ---------------------------------------------------------------------------
 // Public API

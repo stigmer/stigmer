@@ -3,7 +3,7 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import type { ExecutionClientFilters } from "./derive-execution-row";
+import type { ExecutionClientFilters } from "./derive-execution-row.js";
 
 // ---------------------------------------------------------------------------
 // Phase chip config

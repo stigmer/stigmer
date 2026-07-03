@@ -1,103 +1,103 @@
-export { useMcpServerList } from "./useMcpServerList";
+export { useMcpServerList } from "./useMcpServerList.js";
 export type {
   UseMcpServerListOptions,
   UseMcpServerListReturn,
-} from "./useMcpServerList";
+} from "./useMcpServerList.js";
 
-export { useMcpServerCount } from "./useMcpServerCount";
+export { useMcpServerCount } from "./useMcpServerCount.js";
 export type {
   UseMcpServerCountOptions,
   UseMcpServerCountReturn,
-} from "./useMcpServerCount";
+} from "./useMcpServerCount.js";
 
-export { useMcpServerSearch } from "./useMcpServerSearch";
+export { useMcpServerSearch } from "./useMcpServerSearch.js";
 export type {
   UseMcpServerSearchOptions,
   UseMcpServerSearchReturn,
-} from "./useMcpServerSearch";
+} from "./useMcpServerSearch.js";
 
-export { useMcpServer } from "./useMcpServer";
-export type { UseMcpServerReturn } from "./useMcpServer";
+export { useMcpServer } from "./useMcpServer.js";
+export type { UseMcpServerReturn } from "./useMcpServer.js";
 
-export { useOAuthGrantStatus } from "./useOAuthGrantStatus";
-export type { UseOAuthGrantStatusReturn } from "./useOAuthGrantStatus";
+export { useOAuthGrantStatus } from "./useOAuthGrantStatus.js";
+export type { UseOAuthGrantStatusReturn } from "./useOAuthGrantStatus.js";
 
-export { useDisconnectOAuth } from "./useDisconnectOAuth";
-export type { UseDisconnectOAuthReturn } from "./useDisconnectOAuth";
+export { useDisconnectOAuth } from "./useDisconnectOAuth.js";
+export type { UseDisconnectOAuthReturn } from "./useDisconnectOAuth.js";
 
-export { useOrgOAuthApp } from "./useOrgOAuthApp";
-export type { UseOrgOAuthAppReturn } from "./useOrgOAuthApp";
+export { useOrgOAuthApp } from "./useOrgOAuthApp.js";
+export type { UseOrgOAuthAppReturn } from "./useOrgOAuthApp.js";
 
-export { OAuthAppForm } from "./OAuthAppForm";
-export type { OAuthAppFormProps } from "./OAuthAppForm";
+export { OAuthAppForm } from "./OAuthAppForm.js";
+export type { OAuthAppFormProps } from "./OAuthAppForm.js";
 
-export { McpServerPicker } from "./McpServerPicker";
+export { McpServerPicker } from "./McpServerPicker.js";
 export type {
   McpServerPickerProps,
   McpServerSetupIntegration,
-} from "./McpServerPicker";
+} from "./McpServerPicker.js";
 
-export { McpToolSelector } from "./McpToolSelector";
-export type { McpToolSelectorProps } from "./McpToolSelector";
+export { McpToolSelector } from "./McpToolSelector.js";
+export type { McpToolSelectorProps } from "./McpToolSelector.js";
 
-export { McpServerConfigPanel } from "./McpServerConfigPanel";
+export { McpServerConfigPanel } from "./McpServerConfigPanel.js";
 export type {
   McpServerConfigPanelProps,
   McpServerCredentialsProps,
   McpServerOAuthSignInProps,
-} from "./McpServerConfigPanel";
+} from "./McpServerConfigPanel.js";
 
-export { useMcpServerSetup, toServerKey } from "./useMcpServerSetup";
+export { useMcpServerSetup, toServerKey } from "./useMcpServerSetup.js";
 export type {
   UseMcpServerSetupReturn,
   SubmitMcpEnvVarsOptions,
   McpServerSetupEntry,
   McpServerSetupPhase,
   McpServerSetupState,
-} from "./useMcpServerSetup";
+} from "./useMcpServerSetup.js";
 
-export { McpServerDetailView } from "./McpServerDetailView";
+export { McpServerDetailView } from "./McpServerDetailView.js";
 export type {
   McpServerDetailViewProps,
   CapabilityTab,
-} from "./McpServerDetailView";
+} from "./McpServerDetailView.js";
 
-export { useMcpServerConnect } from "./useMcpServerConnect";
-export type { UseMcpServerConnectReturn } from "./useMcpServerConnect";
+export { useMcpServerConnect } from "./useMcpServerConnect.js";
+export type { UseMcpServerConnectReturn } from "./useMcpServerConnect.js";
 
-export { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect";
+export { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
 export type {
   UseMcpServerOAuthConnectReturn,
   OAuthConnectPhase,
-} from "./useMcpServerOAuthConnect";
+} from "./useMcpServerOAuthConnect.js";
 
-export { OAuthCallbackHandler } from "./OAuthCallbackHandler";
+export { OAuthCallbackHandler } from "./OAuthCallbackHandler.js";
 export type {
   OAuthCallbackHandlerProps,
   OAuthCallbackParams,
-} from "./OAuthCallbackHandler";
+} from "./OAuthCallbackHandler.js";
 
-export { useMcpServerCredentials } from "./useMcpServerCredentials";
+export { useMcpServerCredentials } from "./useMcpServerCredentials.js";
 export type {
   UseMcpServerCredentialsReturn,
   McpServerAuthMode,
-} from "./useMcpServerCredentials";
+} from "./useMcpServerCredentials.js";
 
-export { McpServerConnectDialog } from "./McpServerConnectDialog";
-export type { McpServerConnectDialogProps } from "./McpServerConnectDialog";
+export { McpServerConnectDialog } from "./McpServerConnectDialog.js";
+export type { McpServerConnectDialogProps } from "./McpServerConnectDialog.js";
 
-export { useCreateMcpServer } from "./useCreateMcpServer";
-export type { UseCreateMcpServerReturn } from "./useCreateMcpServer";
+export { useCreateMcpServer } from "./useCreateMcpServer.js";
+export type { UseCreateMcpServerReturn } from "./useCreateMcpServer.js";
 
-export { useUpdateMcpServer } from "./useUpdateMcpServer";
-export type { UseUpdateMcpServerReturn } from "./useUpdateMcpServer";
+export { useUpdateMcpServer } from "./useUpdateMcpServer.js";
+export type { UseUpdateMcpServerReturn } from "./useUpdateMcpServer.js";
 
-export { mcpServerToInput } from "./internal/mcpServerToInput";
+export { mcpServerToInput } from "./internal/mcpServerToInput.js";
 
-export { McpServerCreationWizard } from "./McpServerCreationWizard";
+export { McpServerCreationWizard } from "./McpServerCreationWizard.js";
 export type {
   McpServerCreationWizardProps,
   McpServerCreationResult,
-} from "./McpServerCreationWizard";
+} from "./McpServerCreationWizard.js";
 
-export type { McpServerWizardData } from "./steps/types";
+export type { McpServerWizardData } from "./steps/types.js";

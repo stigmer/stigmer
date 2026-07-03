@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useStigmer } from "../hooks";
-import { parseWorkflowYaml } from "./serialize-workflow-yaml";
+import { useStigmer } from "../hooks.js";
+import { parseWorkflowYaml } from "./serialize-workflow-yaml.js";
 
 /** Options for a single save invocation. */
 export interface WorkflowSaveOptions {

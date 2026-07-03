@@ -1,8 +1,8 @@
 "use client";
 
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import { useStigmer } from "../../hooks";
-import { useFetch } from "../../internal/useFetch";
+import { useStigmer } from "../../hooks.js";
+import { useFetch } from "../../internal/useFetch.js";
 
 /** Return value of {@link useWorkflowInstance}. */
 export interface UseWorkflowInstanceReturn {

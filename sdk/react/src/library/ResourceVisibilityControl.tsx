@@ -2,18 +2,18 @@
 
 import { useCallback } from "react";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { useDeploymentMode } from "../deployment-mode";
-import { PermissionGate } from "../iam-policy/PermissionGate";
-import { useSsoProvider } from "../identity-provider/useSsoProvider";
-import { VisibilityBadge, VisibilitySelector } from "./VisibilitySelector";
+import { useDeploymentMode } from "../deployment-mode.js";
+import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { useSsoProvider } from "../identity-provider/useSsoProvider.js";
+import { VisibilityBadge, VisibilitySelector } from "./VisibilitySelector.js";
 import {
   blueprintVisibilityLevels,
   INSTANCE_VISIBILITY_LEVELS,
-} from "./visibilityLevels";
+} from "./visibilityLevels.js";
 import {
   useUpdateVisibility,
   type VisibilityResourceKind,
-} from "./useUpdateVisibility";
+} from "./useUpdateVisibility.js";
 
 /**
  * Maps a {@link VisibilityResourceKind} (which mirrors the SDK method namespace,

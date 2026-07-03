@@ -1,4 +1,4 @@
-import type { WorkspaceEntry } from "./useWorkspaceEntries";
+import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 
 /**
  * A single file or directory entry returned by a {@link WorkspaceFileLister}.

@@ -2,8 +2,8 @@
 
 import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
-import { generateSlug } from "../../internal/slug";
-import type { AgentWizardData } from "./types";
+import { generateSlug } from "../../internal/slug.js";
+import type { AgentWizardData } from "./types.js";
 
 /** Props for {@link IdentityStep}. */
 export interface IdentityStepProps {

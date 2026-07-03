@@ -1,42 +1,42 @@
 export {
   useIdentityProviderList,
   type UseIdentityProviderListReturn,
-} from "./useIdentityProviderList";
+} from "./useIdentityProviderList.js";
 
 export {
   useIdentityProvider,
   type UseIdentityProviderReturn,
-} from "./useIdentityProvider";
+} from "./useIdentityProvider.js";
 
 export {
   useSsoProvider,
   type UseSsoProviderReturn,
-} from "./useSsoProvider";
+} from "./useSsoProvider.js";
 
 export {
   useCreateIdentityProvider,
   type UseCreateIdentityProviderReturn,
-} from "./useCreateIdentityProvider";
+} from "./useCreateIdentityProvider.js";
 
 export {
   useUpdateIdentityProvider,
   type UseUpdateIdentityProviderReturn,
-} from "./useUpdateIdentityProvider";
+} from "./useUpdateIdentityProvider.js";
 
 export {
   useDeleteIdentityProvider,
   type UseDeleteIdentityProviderReturn,
-} from "./useDeleteIdentityProvider";
+} from "./useDeleteIdentityProvider.js";
 
 export {
   IdentityProviderListPanel,
   type IdentityProviderListPanelProps,
-} from "./IdentityProviderListPanel";
+} from "./IdentityProviderListPanel.js";
 
 export {
   CreateIdentityProviderForm,
   type CreateIdentityProviderFormProps,
-} from "./CreateIdentityProviderForm";
+} from "./CreateIdentityProviderForm.js";
 
 export {
   type ProviderPreset,
@@ -44,24 +44,24 @@ export {
   type ProviderConfig,
   PROVIDER_PRESETS,
   getPreset,
-} from "./presets";
+} from "./presets.js";
 
 export {
   ProviderPicker,
   type ProviderPickerProps,
-} from "./ProviderPicker";
+} from "./ProviderPicker.js";
 
 export {
   IdentityProviderWizard,
   type IdentityProviderWizardProps,
-} from "./IdentityProviderWizard";
+} from "./IdentityProviderWizard.js";
 
 export {
   IdentityProviderDetailPanel,
   type IdentityProviderDetailPanelProps,
-} from "./IdentityProviderDetailPanel";
+} from "./IdentityProviderDetailPanel.js";
 
 export {
   SsoLoginPrompt,
   type SsoLoginPromptProps,
-} from "./SsoLoginPrompt";
+} from "./SsoLoginPrompt.js";

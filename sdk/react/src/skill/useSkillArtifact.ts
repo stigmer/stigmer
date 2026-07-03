@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import type { SkillFileEntry } from "./useSkillUpload";
-import { fetchAndUnpackArtifact } from "./internal/fetchAndUnpackArtifact";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import type { SkillFileEntry } from "./useSkillUpload.js";
+import { fetchAndUnpackArtifact } from "./internal/fetchAndUnpackArtifact.js";
 
 // ---------------------------------------------------------------------------
 // Public types

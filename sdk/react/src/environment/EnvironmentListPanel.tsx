@@ -4,8 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { useEnvironmentList } from "./useEnvironmentList";
-import { EnvironmentVariableEditor } from "./EnvironmentVariableEditor";
+import { useEnvironmentList } from "./useEnvironmentList.js";
+import { EnvironmentVariableEditor } from "./EnvironmentVariableEditor.js";
 
 // ---------------------------------------------------------------------------
 // Public API

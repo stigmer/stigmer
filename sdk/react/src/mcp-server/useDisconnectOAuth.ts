@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { DisconnectOAuthInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useDisconnectOAuth}. */
 export interface UseDisconnectOAuthReturn {

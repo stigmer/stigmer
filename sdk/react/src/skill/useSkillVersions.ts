@@ -8,9 +8,9 @@ import {
   ListSkillVersionsInputSchema,
   type SkillVersionEntry as ProtoSkillVersionEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
-import type { VersionEntry } from "../version-history/types";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
+import type { VersionEntry } from "../version-history/types.js";
 
 // gRPC/Connect Code.Unimplemented = 12
 const CODE_UNIMPLEMENTED = 12;

@@ -1,84 +1,84 @@
 export {
   useGrantableRoles,
   type UseGrantableRolesReturn,
-} from "./useGrantableRoles";
+} from "./useGrantableRoles.js";
 
 export {
   useRoleSelector,
   type RoleOption,
   type UseRoleSelectorReturn,
-} from "./useRoleSelector";
+} from "./useRoleSelector.js";
 
 export {
   useResourceAccess,
   type ResourceAccessRef,
   type UseResourceAccessOptions,
   type UseResourceAccessReturn,
-} from "./useResourceAccess";
+} from "./useResourceAccess.js";
 
 export {
   usePrincipalsCount,
   type UsePrincipalsCountReturn,
-} from "./usePrincipalsCount";
+} from "./usePrincipalsCount.js";
 
 export {
   useWhoAmI,
   type UseWhoAmIReturn,
-} from "./useWhoAmI";
+} from "./useWhoAmI.js";
 
 export {
   useCreateIamPolicy,
   type UseCreateIamPolicyReturn,
-} from "./useCreateIamPolicy";
+} from "./useCreateIamPolicy.js";
 
 export {
   useDeleteIamPolicy,
   type UseDeleteIamPolicyReturn,
-} from "./useDeleteIamPolicy";
+} from "./useDeleteIamPolicy.js";
 
 export {
   useRevokeOrgAccess,
   type UseRevokeOrgAccessReturn,
-} from "./useRevokeOrgAccess";
+} from "./useRevokeOrgAccess.js";
 
-export { RoleSelector, type RoleSelectorProps } from "./RoleSelector";
+export { RoleSelector, type RoleSelectorProps } from "./RoleSelector.js";
 
 export {
   PrincipalPicker,
   type PrincipalPickerProps,
   type SelectedPrincipal,
-} from "./PrincipalPicker";
+} from "./PrincipalPicker.js";
 
 export {
   ProviderBadge,
   providerLabel,
   type ProviderBadgeProps,
-} from "./ProviderBadge";
+} from "./ProviderBadge.js";
 
-export { GrantAccessForm, type GrantAccessFormProps } from "./GrantAccessForm";
+export { GrantAccessForm, type GrantAccessFormProps } from "./GrantAccessForm.js";
 
 export {
   PeopleWithAccess,
   type PeopleWithAccessProps,
-} from "./PeopleWithAccess";
+} from "./PeopleWithAccess.js";
 
 export {
   OrgMembersPanel,
   type OrgMembersPanelProps,
-} from "./OrgMembersPanel";
+} from "./OrgMembersPanel.js";
 
 export {
   useShareFlow,
   type ShareFlowResource,
   type UseShareFlowReturn,
-} from "./useShareFlow";
+} from "./useShareFlow.js";
 
 export {
   useCheckPermission,
   type PermissionCheckResource,
   type UseCheckPermissionReturn,
-} from "./useCheckPermission";
+} from "./useCheckPermission.js";
 
-export { PermissionGate, type PermissionGateProps } from "./PermissionGate";
+export { PermissionGate, type PermissionGateProps } from "./PermissionGate.js";
 
-export { SharePanel, type SharePanelProps } from "./SharePanel";
+export { SharePanel, type SharePanelProps } from "./SharePanel.js";

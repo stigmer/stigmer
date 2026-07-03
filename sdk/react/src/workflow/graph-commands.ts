@@ -1,12 +1,12 @@
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { TopologyNodeCategory } from "./useWorkflowTopology";
+import type { TopologyNodeCategory } from "./useWorkflowTopology.js";
 import type {
   WorkflowGraphModel,
   WorkflowGraphNode,
   WorkflowGraphEdge,
-} from "./workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
+} from "./workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model.js";
 
 // ---------------------------------------------------------------------------
 // GraphCommand interface

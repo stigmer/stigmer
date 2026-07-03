@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { FilterValue, FilterDef } from "../types";
+import type { FilterValue, FilterDef } from "../types.js";
 
 /** Props for {@link FilterBar}. */
 export interface FilterBarProps {

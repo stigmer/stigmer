@@ -1,7 +1,7 @@
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { WorkflowGraphNode, WorkflowGraphEdge } from "../workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
-import type { NodePortAssignment, PortDefinition, PortSide } from "./types";
+import type { WorkflowGraphNode, WorkflowGraphEdge } from "../workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
+import type { NodePortAssignment, PortDefinition, PortSide } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Public API

@@ -9,9 +9,9 @@ import {
   modelKey,
   type ModelInfo,
   type Provider,
-} from "./registry";
-import type { HarnessOption } from "./harness";
-import { useModelRegistryContext } from "./ModelRegistryContext";
+} from "./registry.js";
+import type { HarnessOption } from "./harness.js";
+import { useModelRegistryContext } from "./ModelRegistryContext.js";
 
 /** Options for {@link useModelRegistry}. */
 export interface UseModelRegistryOptions {

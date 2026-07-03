@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { InvitationInput } from "@stigmer/sdk";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useCreateInvitation}. */
 export interface UseCreateInvitationReturn {

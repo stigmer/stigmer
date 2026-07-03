@@ -2,13 +2,13 @@
 
 import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { useWorkflowDashboardSummary } from "../useWorkflowDashboardSummary";
-import { useWorkflowExecutionList } from "../useWorkflowExecutionList";
-import { deriveExecutionRows, filterExecutionRows, type ExecutionClientFilters } from "./derive-execution-row";
-import { ExecutionHistoryTable } from "./ExecutionHistoryTable";
-import { ExecutionFilterBar } from "./ExecutionFilterBar";
-import { HealthMetricsStrip } from "./HealthMetricsStrip";
-import { FailureAnalysisPanel } from "./FailureAnalysisPanel";
+import { useWorkflowDashboardSummary } from "../useWorkflowDashboardSummary.js";
+import { useWorkflowExecutionList } from "../useWorkflowExecutionList.js";
+import { deriveExecutionRows, filterExecutionRows, type ExecutionClientFilters } from "./derive-execution-row.js";
+import { ExecutionHistoryTable } from "./ExecutionHistoryTable.js";
+import { ExecutionFilterBar } from "./ExecutionFilterBar.js";
+import { HealthMetricsStrip } from "./HealthMetricsStrip.js";
+import { FailureAnalysisPanel } from "./FailureAnalysisPanel.js";
 
 // ---------------------------------------------------------------------------
 // Props

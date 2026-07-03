@@ -5,8 +5,8 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { useApiKeyList } from "./useApiKeyList";
-import { useDeleteApiKey } from "./useDeleteApiKey";
+import { useApiKeyList } from "./useApiKeyList.js";
+import { useDeleteApiKey } from "./useDeleteApiKey.js";
 
 // ---------------------------------------------------------------------------
 // Public API

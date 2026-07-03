@@ -1,4 +1,4 @@
-import type { ResourceTemplate, TemplateCategory } from "../../resource-creation/templates/types";
+import type { ResourceTemplate, TemplateCategory } from "../../resource-creation/templates/types.js";
 
 /**
  * Workflow-specific template categories for the gallery filter tabs.

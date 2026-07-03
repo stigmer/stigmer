@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { RefObject } from "react";
-import type { CanvasSelection } from "./useWorkflowCanvas";
+import type { CanvasSelection } from "./useWorkflowCanvas.js";
 
 /** Options for {@link useCanvasKeyboardShortcuts}. */
 export interface UseCanvasKeyboardShortcutsOptions {

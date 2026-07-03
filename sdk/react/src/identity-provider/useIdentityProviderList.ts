@@ -3,8 +3,8 @@
 import { create } from "@bufbuild/protobuf";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { ListIdentityProvidersByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useIdentityProviderList}. */
 export interface UseIdentityProviderListReturn {

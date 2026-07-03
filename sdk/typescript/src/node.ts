@@ -1,11 +1,11 @@
 import { createGrpcWebTransport } from "@connectrpc/connect-node";
 import type { Transport, Interceptor } from "@connectrpc/connect";
-import { Stigmer, type TokenProvider } from "./index";
+import { Stigmer, type TokenProvider } from "./index.js";
 import {
   createAuthInterceptor,
   rpcMetadataInterceptor,
   errorStripInterceptor,
-} from "./internal/interceptors";
+} from "./internal/interceptors.js";
 
 export {
   createPlatformClientAuth,
@@ -13,7 +13,7 @@ export {
   type PlatformClientAuthConfig,
   type MintUserTokenInput,
   type MintUserTokenResult,
-} from "./platform-client-auth";
+} from "./platform-client-auth.js";
 
 /**
  * Configuration for creating a Node.js-compatible Stigmer client.

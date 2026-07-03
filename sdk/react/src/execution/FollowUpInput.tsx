@@ -8,7 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "@stigmer/theme";
-import { ModelSelector } from "../models/ModelSelector";
+import { ModelSelector } from "../models/ModelSelector.js";
 
 /** Props for {@link FollowUpInput}. */
 export interface FollowUpInputProps {

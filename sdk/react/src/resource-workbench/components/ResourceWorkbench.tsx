@@ -12,21 +12,21 @@ import type {
   SortValue,
   BulkAction,
   ViewMode,
-} from "../types";
-import { useResourceCollection } from "../hooks/useResourceCollection";
-import { useResourceFilters } from "../hooks/useResourceFilters";
-import { useResourceSelection } from "../hooks/useResourceSelection";
-import { useViewPreference } from "../hooks/useViewPreference";
-import { ResourceTable } from "./ResourceTable";
-import { ResourceCards } from "./ResourceCards";
-import { ResourceList } from "./ResourceList";
-import { FilterBar } from "./FilterBar";
-import { ViewSwitcher } from "./ViewSwitcher";
-import { BulkActionBar } from "./BulkActionBar";
-import { ResourceInspector } from "./ResourceInspector";
-import { EmptyState } from "../../empty-state";
-import { ResourceAvatar } from "./ResourceAvatar";
-import { ScopeToggle } from "../../library/ScopeToggle";
+} from "../types.js";
+import { useResourceCollection } from "../hooks/useResourceCollection.js";
+import { useResourceFilters } from "../hooks/useResourceFilters.js";
+import { useResourceSelection } from "../hooks/useResourceSelection.js";
+import { useViewPreference } from "../hooks/useViewPreference.js";
+import { ResourceTable } from "./ResourceTable.js";
+import { ResourceCards } from "./ResourceCards.js";
+import { ResourceList } from "./ResourceList.js";
+import { FilterBar } from "./FilterBar.js";
+import { ViewSwitcher } from "./ViewSwitcher.js";
+import { BulkActionBar } from "./BulkActionBar.js";
+import { ResourceInspector } from "./ResourceInspector.js";
+import { EmptyState } from "../../empty-state/index.js";
+import { ResourceAvatar } from "./ResourceAvatar.js";
+import { ScopeToggle } from "../../library/ScopeToggle.js";
 
 // ---------------------------------------------------------------------------
 // Props

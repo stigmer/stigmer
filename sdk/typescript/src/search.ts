@@ -5,7 +5,7 @@ import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb"
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { wrapError } from "./gen/errors";
+import { wrapError } from "./gen/errors.js";
 
 /** Re-export ApiResourceKind for use with SearchClient. */
 export { ApiResourceKind };

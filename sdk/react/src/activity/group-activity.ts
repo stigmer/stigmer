@@ -1,4 +1,4 @@
-import type { RecentActivityEntry, RecentActivityGroup } from "./types";
+import type { RecentActivityEntry, RecentActivityGroup } from "./types.js";
 
 interface Bucket {
   label: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { WorkflowGraphEdge, WorkflowGraphModel } from "../workflow-graph-model";
+import type { WorkflowGraphEdge, WorkflowGraphModel } from "../workflow-graph-model.js";
 
 /** Props for {@link EdgeInspector}. */
 export interface EdgeInspectorProps {

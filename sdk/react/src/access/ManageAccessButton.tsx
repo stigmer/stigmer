@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
-import { PermissionGate } from "../iam-policy/PermissionGate";
-import { ManageAccessDialog } from "./ManageAccessDialog";
+import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { ManageAccessDialog } from "./ManageAccessDialog.js";
 import type {
   AccessResource,
   AccessVisibility,
   AccessExtraSection,
-} from "./types";
+} from "./types.js";
 
 /** Props for {@link ManageAccessButton}. */
 export interface ManageAccessButtonProps {

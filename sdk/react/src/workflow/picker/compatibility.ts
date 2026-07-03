@@ -1,6 +1,6 @@
-import type { WorkflowGraphModel } from "../workflow-graph-model";
-import { END_NODE_ID } from "../workflow-graph-model";
-import type { InsertionContext } from "./insertion-context";
+import type { WorkflowGraphModel } from "../workflow-graph-model.js";
+import { END_NODE_ID } from "../workflow-graph-model.js";
+import type { InsertionContext } from "./insertion-context.js";
 
 /**
  * A task kind that is disabled in the current context, with a reason.

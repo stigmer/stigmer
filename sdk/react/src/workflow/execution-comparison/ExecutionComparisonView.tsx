@@ -2,10 +2,10 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import { WorkflowExecutionPhaseBadge } from "../WorkflowExecutionPhaseBadge";
-import { useExecutionComparison } from "./useExecutionComparison";
-import { ComparisonSummaryCards } from "./ComparisonSummaryCards";
-import { TaskComparisonTable } from "./TaskComparisonTable";
+import { WorkflowExecutionPhaseBadge } from "../WorkflowExecutionPhaseBadge.js";
+import { useExecutionComparison } from "./useExecutionComparison.js";
+import { ComparisonSummaryCards } from "./ComparisonSummaryCards.js";
+import { TaskComparisonTable } from "./TaskComparisonTable.js";
 
 /** Props for {@link ExecutionComparisonView}. */
 export interface ExecutionComparisonViewProps {

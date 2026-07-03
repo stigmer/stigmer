@@ -3,7 +3,7 @@ export {
   deriveForkProgress,
   type EdgeExecutionState,
   type ForkProgress,
-} from "./derive-execution-overlays";
+} from "./derive-execution-overlays.js";
 
 export {
   deriveWaterfallEntries,
@@ -12,10 +12,10 @@ export {
   type WaterfallAttempt,
   type WaterfallSpan,
   type WaterfallScale,
-} from "./derive-waterfall-entries";
+} from "./derive-waterfall-entries.js";
 
 export {
   useWaterfallEntries,
   type UseWaterfallEntriesOptions,
   type UseWaterfallEntriesReturn,
-} from "./useWaterfallEntries";
+} from "./useWaterfallEntries.js";

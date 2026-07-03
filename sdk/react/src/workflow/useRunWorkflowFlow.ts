@@ -6,12 +6,12 @@ import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workfl
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { getUserMessage } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { useExecutionTarget } from "../execution-target-context";
-import { useRunnerAdapter } from "../runner-adapter";
-import { toProtoExecutionTarget } from "../session/execution-target";
-import { workflowUsesTriggerInput } from "./workflow-uses-trigger-input";
-import { useInstanceEnvKeys } from "./useInstanceEnvKeys";
+import { useStigmer } from "../hooks.js";
+import { useExecutionTarget } from "../execution-target-context.js";
+import { useRunnerAdapter } from "../runner-adapter.js";
+import { toProtoExecutionTarget } from "../session/execution-target.js";
+import { workflowUsesTriggerInput } from "./workflow-uses-trigger-input.js";
+import { useInstanceEnvKeys } from "./useInstanceEnvKeys.js";
 
 /** Field-level validation errors keyed by field name. */
 export type RunWorkflowFieldErrors = Record<string, string>;

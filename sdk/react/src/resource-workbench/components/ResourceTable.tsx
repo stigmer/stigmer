@@ -3,9 +3,9 @@
 import type { ReactNode } from "react";
 import { flexRender, type Table, type Row } from "@tanstack/react-table";
 import { cn } from "@stigmer/theme";
-import type { SortDirection } from "../types";
-import { ColumnHeader } from "./ColumnHeader";
-import { SelectionCheckbox } from "./SelectionCheckbox";
+import type { SortDirection } from "../types.js";
+import { ColumnHeader } from "./ColumnHeader.js";
+import { SelectionCheckbox } from "./SelectionCheckbox.js";
 
 /** Props for {@link ResourceTable}. */
 export interface ResourceTableProps<TData> {

@@ -2,10 +2,10 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { VisualClass } from "../task-type-visual-registry";
-import type { NodeExecutionStatus } from "../workflow-graph-conversions";
-import type { NodeDiffStatus } from "../diff/types";
-import { getShapePath, SVG_SHAPE_CLASSES } from "./shape-paths";
+import type { VisualClass } from "../task-type-visual-registry.js";
+import type { NodeExecutionStatus } from "../workflow-graph-conversions.js";
+import type { NodeDiffStatus } from "../diff/types.js";
+import { getShapePath, SVG_SHAPE_CLASSES } from "./shape-paths.js";
 
 export interface NodeShellProps {
   visualClass: VisualClass;

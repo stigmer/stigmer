@@ -4,9 +4,9 @@ import { memo, useCallback, useMemo } from "react";
 import { Menu } from "@base-ui/react/menu";
 import { Separator } from "@base-ui/react/separator";
 import { cn } from "@stigmer/theme";
-import { useStigmerPortalContainer } from "../portal-container";
-import { TrashIcon, DuplicateIcon, PlusIcon } from "./canvas-icons";
-import { getShortcutHint } from "./shortcut-registry";
+import { useStigmerPortalContainer } from "../portal-container.js";
+import { TrashIcon, DuplicateIcon, PlusIcon } from "./canvas-icons.js";
+import { getShortcutHint } from "./shortcut-registry.js";
 
 // ---------------------------------------------------------------------------
 // Types

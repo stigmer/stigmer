@@ -1,8 +1,8 @@
 "use client";
 
 import type { ListParams, ListResult } from "@stigmer/sdk";
-import type { ResourceListScope } from "./useResourceList";
-import { useFetch } from "../internal/useFetch";
+import type { ResourceListScope } from "./useResourceList.js";
+import { useFetch } from "../internal/useFetch.js";
 
 export interface UseResourceCountOptions {
   /** Text query to filter results before counting. */

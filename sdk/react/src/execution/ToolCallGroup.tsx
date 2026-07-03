@@ -4,11 +4,11 @@ import { memo, useMemo } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { cn } from "@stigmer/theme";
-import { useRenderTracer } from "../internal/dev";
-import { ToolCallItem } from "./ToolCallItem";
-import { ToolRunGroup } from "./ToolRunGroup";
-import { segmentToolCalls } from "./segment-tool-calls";
-import { isCollapsedToolCall } from "./tool-categories";
+import { useRenderTracer } from "../internal/dev/index.js";
+import { ToolCallItem } from "./ToolCallItem.js";
+import { ToolRunGroup } from "./ToolRunGroup.js";
+import { segmentToolCalls } from "./segment-tool-calls.js";
+import { isCollapsedToolCall } from "./tool-categories.js";
 
 /** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {

@@ -4,8 +4,8 @@ import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 // ---------------------------------------------------------------------------
 // Public types

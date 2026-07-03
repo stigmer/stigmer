@@ -10,17 +10,17 @@ import {
 } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
-import { useStigmerPortalContainer } from "../portal-container";
-import { useTaskKindRegistry } from "./useTaskKindRegistry";
-import type { TaskKindCategory } from "./types";
+import { useStigmerPortalContainer } from "../portal-container.js";
+import { useTaskKindRegistry } from "./useTaskKindRegistry.js";
+import type { TaskKindCategory } from "./types.js";
 import {
   CATEGORY_COLORS,
   CATEGORY_DISPLAY_NAMES,
-} from "./canvas-constants";
-import type { InsertionContext } from "./picker/insertion-context";
-import { recordRecentKind } from "./picker/recents";
-import { usePickerData, type PickerItem, type PickerSection } from "./picker/usePickerData";
-import type { WorkflowGraphModel } from "./workflow-graph-model";
+} from "./canvas-constants.js";
+import type { InsertionContext } from "./picker/insertion-context.js";
+import { recordRecentKind } from "./picker/recents.js";
+import { usePickerData, type PickerItem, type PickerSection } from "./picker/usePickerData.js";
+import type { WorkflowGraphModel } from "./workflow-graph-model.js";
 
 /** Props for {@link TaskPickerPopover}. */
 export interface TaskPickerPopoverProps {

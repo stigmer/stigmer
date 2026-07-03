@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import { useStigmer } from "../hooks";
-import { useResourceCount, type ResourceListScope } from "../search";
+import { useStigmer } from "../hooks.js";
+import { useResourceCount, type ResourceListScope } from "../search/index.js";
 
 /** Options for {@link useWorkflowCount}. */
 export interface UseWorkflowCountOptions {

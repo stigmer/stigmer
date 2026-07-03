@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback } from "react";
-import type { WorkspaceFileEntry, WorkspaceFileLister } from "../workspace/WorkspaceFileLister";
-import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries";
-import { parseGitUrl } from "./parseGitUrl";
+import type { WorkspaceFileEntry, WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
+import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
+import { parseGitUrl } from "./parseGitUrl.js";
 
 const GITHUB_TREES_API = "https://api.github.com/repos";
 

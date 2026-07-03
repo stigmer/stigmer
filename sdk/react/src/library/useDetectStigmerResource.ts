@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import {
   detectStigmerResource,
   type StigmerResourceDetection,
-} from "./detect-stigmer-resource";
+} from "./detect-stigmer-resource.js";
 
 const NOT_DETECTED: StigmerResourceDetection = { detected: false } as const;
 

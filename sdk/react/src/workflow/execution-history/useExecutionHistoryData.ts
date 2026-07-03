@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { useWorkflowExecutionList } from "../useWorkflowExecutionList";
+import { useWorkflowExecutionList } from "../useWorkflowExecutionList.js";
 import {
   deriveExecutionRows,
   filterExecutionRows,
   type ExecutionRow,
   type ExecutionClientFilters,
-} from "./derive-execution-row";
+} from "./derive-execution-row.js";
 
 /** Options for {@link useExecutionHistoryData}. */
 export interface UseExecutionHistoryDataOptions {

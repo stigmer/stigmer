@@ -3,12 +3,12 @@
 import { forwardRef, memo, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { Position, NodeToolbar } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
-import { CanvasActionsContext } from "../CanvasActionsContext";
-import { TaskPickerPopover } from "../TaskPickerPopover";
-import { BranchAddPopover } from "../picker/BranchAddPopover";
-import type { BranchAddMode, BranchAddResult } from "../picker/BranchAddPopover";
-import type { InsertionContext } from "../picker/insertion-context";
-import { TrashIcon, DuplicateIcon, PlusIcon } from "../canvas-icons";
+import { CanvasActionsContext } from "../CanvasActionsContext.js";
+import { TaskPickerPopover } from "../TaskPickerPopover.js";
+import { BranchAddPopover } from "../picker/BranchAddPopover.js";
+import type { BranchAddMode, BranchAddResult } from "../picker/BranchAddPopover.js";
+import type { InsertionContext } from "../picker/insertion-context.js";
+import { TrashIcon, DuplicateIcon, PlusIcon } from "../canvas-icons.js";
 
 export interface NodeActionsProps {
   nodeId: string;

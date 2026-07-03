@@ -1,4 +1,4 @@
-import type { EnvVarFormVariable } from "./EnvVarForm";
+import type { EnvVarFormVariable } from "./EnvVarForm.js";
 
 /**
  * Computes the list of environment variables a resource requires that

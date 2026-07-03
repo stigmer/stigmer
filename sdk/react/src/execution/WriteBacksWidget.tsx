@@ -2,8 +2,8 @@
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { cn } from "@stigmer/theme";
-import { useSessionWriteBacks } from "../session/useSessionWriteBacks";
-import { WriteBackCard } from "./WriteBackCard";
+import { useSessionWriteBacks } from "../session/useSessionWriteBacks.js";
+import { WriteBackCard } from "./WriteBackCard.js";
 
 /** Props for {@link WriteBacksWidget}. */
 export interface WriteBacksWidgetProps {

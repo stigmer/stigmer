@@ -18,11 +18,11 @@ import type {
   OnConnect,
   IsValidConnection,
 } from "@xyflow/react";
-import { WorkflowNode } from "./WorkflowNode";
-import { CanvasTransitionEdge } from "./CanvasTransitionEdge";
-import { CATEGORY_COLORS } from "./canvas-constants";
-import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
-import { CANVAS_TASK_NODE_TYPE, CANVAS_TRANSITION_EDGE_TYPE } from "./workflow-graph-conversions";
+import { WorkflowNode } from "./WorkflowNode.js";
+import { CanvasTransitionEdge } from "./CanvasTransitionEdge.js";
+import { CATEGORY_COLORS } from "./canvas-constants.js";
+import type { CanvasTaskNodeData } from "./workflow-graph-conversions.js";
+import { CANVAS_TASK_NODE_TYPE, CANVAS_TRANSITION_EDGE_TYPE } from "./workflow-graph-conversions.js";
 
 interface WorkflowCanvasInnerProps {
   nodes: Node[];

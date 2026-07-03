@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useContext, useSyncExternalStore } from "react";
-import type { SelectedThreadItem } from "../internal/store/selection-store";
-import { ThreadSelectionContext } from "./ThreadSelectionContext";
+import type { SelectedThreadItem } from "../internal/store/selection-store.js";
+import { ThreadSelectionContext } from "./ThreadSelectionContext.js";
 
 /**
  * Return value of {@link useThreadSelection} when a provider is present.

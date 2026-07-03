@@ -2,12 +2,12 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { OAuthAppListPanel } from "../oauth-app/OAuthAppListPanel";
-import { CreateOAuthAppForm } from "../oauth-app/CreateOAuthAppForm";
-import { OAuthAppDetailPanel } from "../oauth-app/OAuthAppDetailPanel";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
-import { useActiveOrgSlug } from "../organization/OrgProvider";
+import { OAuthAppListPanel } from "../oauth-app/OAuthAppListPanel.js";
+import { CreateOAuthAppForm } from "../oauth-app/CreateOAuthAppForm.js";
+import { OAuthAppDetailPanel } from "../oauth-app/OAuthAppDetailPanel.js";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { useActiveOrgSlug } from "../organization/OrgProvider.js";
 
 type FlowState =
   | { phase: "idle" }

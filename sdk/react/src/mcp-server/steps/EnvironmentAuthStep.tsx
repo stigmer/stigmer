@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { McpServerWizardData, EnvVarEntry } from "./types";
+import type { McpServerWizardData, EnvVarEntry } from "./types.js";
 
 /** Props for {@link EnvironmentAuthStep}. */
 export interface EnvironmentAuthStepProps {

@@ -7,7 +7,7 @@ import {
   formatPackPrice,
   formatCreditCount,
   type CreditPackInfo,
-} from "./credit-packs";
+} from "./credit-packs.js";
 
 /** Props for {@link CreditPackGrid}. */
 export interface CreditPackGridProps {

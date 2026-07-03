@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { DiffHunk, DiffLine } from "./types";
+import type { DiffHunk, DiffLine } from "./types.js";
 
 /** Props for {@link DiffViewer}. */
 export interface DiffViewerProps {

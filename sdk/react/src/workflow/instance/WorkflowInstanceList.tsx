@@ -4,11 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { useWorkflowInstances } from "../useWorkflowInstances";
-import { useEnvironmentList } from "../../environment/useEnvironmentList";
-import { ResourceVisibilityControl } from "../../library/ResourceVisibilityControl";
-import { PermissionGate } from "../../iam-policy/PermissionGate";
-import { WorkflowInstanceEmptyState } from "./WorkflowInstanceEmptyState";
+import { useWorkflowInstances } from "../useWorkflowInstances.js";
+import { useEnvironmentList } from "../../environment/useEnvironmentList.js";
+import { ResourceVisibilityControl } from "../../library/ResourceVisibilityControl.js";
+import { PermissionGate } from "../../iam-policy/PermissionGate.js";
+import { WorkflowInstanceEmptyState } from "./WorkflowInstanceEmptyState.js";
 
 /** Props for {@link WorkflowInstanceList}. */
 export interface WorkflowInstanceListProps {

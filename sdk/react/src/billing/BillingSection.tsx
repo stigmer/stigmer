@@ -4,18 +4,18 @@ import { useState, useCallback } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
-import { useDeploymentMode } from "../deployment-mode";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
-import { useOrg } from "../organization/OrgProvider";
-import { useBillingAccount } from "./useBillingAccount";
-import { useCreateCheckoutSession } from "./useCreateCheckoutSession";
-import { useCreateBillingPortalSession } from "./useCreateBillingPortalSession";
-import { CreditBalanceCard } from "./CreditBalanceCard";
-import { PaymentMethodCard } from "./PaymentMethodCard";
-import { AutoRechargeCard } from "./AutoRechargeCard";
-import { CreditPackGrid } from "./CreditPackGrid";
-import { CreditLedgerTable } from "./CreditLedgerTable";
-import { LowBalanceBanner } from "./LowBalanceBanner";
+import { useDeploymentMode } from "../deployment-mode.js";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { useOrg } from "../organization/OrgProvider.js";
+import { useBillingAccount } from "./useBillingAccount.js";
+import { useCreateCheckoutSession } from "./useCreateCheckoutSession.js";
+import { useCreateBillingPortalSession } from "./useCreateBillingPortalSession.js";
+import { CreditBalanceCard } from "./CreditBalanceCard.js";
+import { PaymentMethodCard } from "./PaymentMethodCard.js";
+import { AutoRechargeCard } from "./AutoRechargeCard.js";
+import { CreditPackGrid } from "./CreditPackGrid.js";
+import { CreditLedgerTable } from "./CreditLedgerTable.js";
+import { LowBalanceBanner } from "./LowBalanceBanner.js";
 
 /** Props for {@link BillingSection}. */
 export interface BillingSectionProps {

@@ -2,8 +2,8 @@
 
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
-import { useStigmerPortalContainer } from "../portal-container";
-import { ConfigureIcon } from "./icons";
+import { useStigmerPortalContainer } from "../portal-container.js";
+import { ConfigureIcon } from "./icons.js";
 
 export interface ConfigureMenuItem {
   readonly id: string;

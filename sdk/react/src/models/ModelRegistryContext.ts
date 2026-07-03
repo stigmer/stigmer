@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { ModelInfo } from "./registry";
+import type { ModelInfo } from "./registry.js";
 
 /** Internal state held by the model registry context provider. */
 export interface ModelRegistryState {

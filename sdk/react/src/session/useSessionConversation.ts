@@ -16,24 +16,24 @@ import type {
   ResourceRef,
   WorkspaceEntryInput,
 } from "@stigmer/sdk";
-import { isTerminalPhase } from "../execution/execution-phases";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { useConversationStoreRef } from "../internal/store";
-import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
-import { useExecutionStream } from "../execution/useExecutionStream";
-import { useAgentExecutionActions } from "../execution/useAgentExecutionActions";
-import { useSubmitApproval } from "../execution/useSubmitApproval";
-import { useFileReview, type FileDecisionOptions } from "../execution/useFileReview";
-import { useSession } from "./useSession";
-import { useSessionExecutions } from "./useSessionExecutions";
-import { useUpdateSession } from "./useUpdateSession";
-import { useLocalSessionWorker } from "./useLocalSessionWorker";
+import { isTerminalPhase } from "../execution/execution-phases.js";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { useConversationStoreRef } from "../internal/store/index.js";
+import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
+import { useExecutionStream } from "../execution/useExecutionStream.js";
+import { useAgentExecutionActions } from "../execution/useAgentExecutionActions.js";
+import { useSubmitApproval } from "../execution/useSubmitApproval.js";
+import { useFileReview, type FileDecisionOptions } from "../execution/useFileReview.js";
+import { useSession } from "./useSession.js";
+import { useSessionExecutions } from "./useSessionExecutions.js";
+import { useUpdateSession } from "./useUpdateSession.js";
+import { useLocalSessionWorker } from "./useLocalSessionWorker.js";
 import {
   specWorkspaceToInput,
   specMcpUsagesToInput,
   specSkillRefsToInput,
-} from "./session-spec-converters";
+} from "./session-spec-converters.js";
 
 /**
  * Cadence for re-discovering the session's executions while the live stream

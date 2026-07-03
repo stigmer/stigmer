@@ -1,5 +1,5 @@
 // ─── Types ──────────────────────────────────────────────────────────────────
-export type { DashboardSummary, DashboardFailedRun } from "./types";
+export type { DashboardSummary, DashboardFailedRun } from "./types.js";
 
 // ─── Data Hooks ─────────────────────────────────────────────────────────────
 export {
@@ -7,31 +7,31 @@ export {
   AgentExecutionSummaryTimeWindow,
   type UseAgentExecutionSummaryOptions,
   type UseAgentExecutionSummaryReturn,
-} from "./useAgentExecutionSummary";
+} from "./useAgentExecutionSummary.js";
 
 export {
   useDashboardSummary,
   type UseDashboardSummaryOptions,
   type UseDashboardSummaryReturn,
-} from "./useDashboardSummary";
+} from "./useDashboardSummary.js";
 
 export {
   useDashboardFailedRuns,
   type UseDashboardFailedRunsReturn,
-} from "./useDashboardFailedRuns";
+} from "./useDashboardFailedRuns.js";
 
 // ─── Styled Components ─────────────────────────────────────────────────────
 export {
   DashboardKPICards,
   type DashboardKPICardsProps,
-} from "./DashboardKPICards";
+} from "./DashboardKPICards.js";
 
 export {
   DashboardFailedRuns,
   type DashboardFailedRunsProps,
-} from "./DashboardFailedRuns";
+} from "./DashboardFailedRuns.js";
 
 export {
   OperationalDashboard,
   type OperationalDashboardProps,
-} from "./OperationalDashboard";
+} from "./OperationalDashboard.js";

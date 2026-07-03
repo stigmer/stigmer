@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useOrg } from "./OrgProvider";
+import { useOrg } from "./OrgProvider.js";
 
 const PROVISIONING_POLL_MS = 2_000;
 const PROVISIONING_TIMEOUT_MS = 10_000;

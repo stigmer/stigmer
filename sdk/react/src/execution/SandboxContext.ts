@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext } from "react";
-import { normalizeSandboxPaths } from "./sandbox-path-normalizer";
+import { normalizeSandboxPaths } from "./sandbox-path-normalizer.js";
 
 /**
  * Context value that carries the sandbox workspace root for display-time

@@ -2,7 +2,7 @@
 
 import type { ListParams, ListResult } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { useFetch } from "../internal/useFetch";
+import { useFetch } from "../internal/useFetch.js";
 
 /**
  * Scope controls resource listing boundaries.

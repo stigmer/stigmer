@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext } from "react";
-import type { SelectionStore } from "../internal/store/selection-store";
+import type { SelectionStore } from "../internal/store/selection-store.js";
 
 /**
  * Carries the {@link SelectionStore} instance (stable ref) into the

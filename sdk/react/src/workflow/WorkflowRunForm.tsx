@@ -4,7 +4,7 @@ import { useId } from "react";
 import { cn } from "@stigmer/theme";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import type { RunWorkflowFieldErrors } from "./useRunWorkflowFlow";
+import type { RunWorkflowFieldErrors } from "./useRunWorkflowFlow.js";
 
 /** Props for {@link WorkflowRunForm}. */
 export interface WorkflowRunFormProps {

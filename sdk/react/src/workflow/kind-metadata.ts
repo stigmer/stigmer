@@ -1,4 +1,4 @@
-import type { TopologyNodeCategory } from "./useWorkflowTopology";
+import type { TopologyNodeCategory } from "./useWorkflowTopology.js";
 
 /**
  * Canonical kind → category mapping, aligned with sidecar YAML metadata

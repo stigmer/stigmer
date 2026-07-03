@@ -2,10 +2,10 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { stringify as stringifyYaml } from "yaml";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { parseResourceYaml, type ParsedResource } from "./parse-resource-yaml";
-import type { ApplyResourceResult } from "./useApplyResource";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { parseResourceYaml, type ParsedResource } from "./parse-resource-yaml.js";
+import type { ApplyResourceResult } from "./useApplyResource.js";
 
 // ---------------------------------------------------------------------------
 // Types

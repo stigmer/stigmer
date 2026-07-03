@@ -1,8 +1,8 @@
 "use client";
 
 import { Toaster } from "sonner";
-import { useColorMode } from "../color-mode";
-import type { StigmerToasterProps } from "./types";
+import { useColorMode } from "../color-mode.js";
+import type { StigmerToasterProps } from "./types.js";
 
 /**
  * Themed toast container for Stigmer SDK components.

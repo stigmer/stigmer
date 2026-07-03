@@ -12,9 +12,9 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
-import { useUpdatePlatformClient } from "./useUpdatePlatformClient";
-import { useRotatePlatformClientSecret } from "./useRotatePlatformClientSecret";
-import { useDeletePlatformClient } from "./useDeletePlatformClient";
+import { useUpdatePlatformClient } from "./useUpdatePlatformClient.js";
+import { useRotatePlatformClientSecret } from "./useRotatePlatformClientSecret.js";
+import { useDeletePlatformClient } from "./useDeletePlatformClient.js";
 
 /** Props for {@link PlatformClientDetailPanel}. */
 export interface PlatformClientDetailPanelProps {

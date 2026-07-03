@@ -1,19 +1,19 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import { ContextPopover } from "./ContextPopover";
-import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu";
-import { ModelSelector } from "../models/ModelSelector";
-import { HarnessSelector } from "../models/HarnessSelector";
-import type { HarnessOption } from "../models/harness";
-import { InteractionModePicker, type InteractionModeOption } from "./InteractionModePicker";
+import { ContextPopover } from "./ContextPopover.js";
+import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu.js";
+import { ModelSelector } from "../models/ModelSelector.js";
+import { HarnessSelector } from "../models/HarnessSelector.js";
+import type { HarnessOption } from "../models/harness.js";
+import { InteractionModePicker, type InteractionModeOption } from "./InteractionModePicker.js";
 import {
   PaperclipIcon,
   WorkspaceIcon,
   ArrowUpIcon,
   SpinnerIcon,
   StopIcon,
-} from "./icons";
+} from "./icons.js";
 
 export interface ComposerToolbarProps {
   readonly disabled: boolean;

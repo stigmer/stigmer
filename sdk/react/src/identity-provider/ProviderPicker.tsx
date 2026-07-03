@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import { PROVIDER_PRESETS, type ProviderPreset } from "./presets";
+import { PROVIDER_PRESETS, type ProviderPreset } from "./presets.js";
 
 /** Props for {@link ProviderPicker}. */
 export interface ProviderPickerProps {

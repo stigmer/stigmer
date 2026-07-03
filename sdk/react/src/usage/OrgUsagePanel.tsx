@@ -8,20 +8,20 @@ import type {
   DailyCostEntry,
   GetOrgUsageReportOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { formatCost, formatTokenCount } from "../execution/UsageWidget";
-import { useOrgUsageReport } from "./useOrgUsageReport";
+import { formatCost, formatTokenCount } from "../execution/UsageWidget.js";
+import { useOrgUsageReport } from "./useOrgUsageReport.js";
 import {
   DATE_RANGE_PRESETS,
   dateRangeFromPreset,
   formatDateRange,
   presetLabel,
   type DateRangePreset,
-} from "./date-range";
-import { CreditRunwayIndicator } from "./CreditRunwayIndicator";
-import { AgentBreakdownList } from "./AgentBreakdownList";
-import { HarnessSplitCard } from "./HarnessSplitCard";
-import { ExportButton } from "./ExportButton";
-import { useExportCSV } from "./useExportCSV";
+} from "./date-range.js";
+import { CreditRunwayIndicator } from "./CreditRunwayIndicator.js";
+import { AgentBreakdownList } from "./AgentBreakdownList.js";
+import { HarnessSplitCard } from "./HarnessSplitCard.js";
+import { ExportButton } from "./ExportButton.js";
+import { useExportCSV } from "./useExportCSV.js";
 
 // ---------------------------------------------------------------------------
 // Public API

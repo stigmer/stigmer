@@ -1,30 +1,30 @@
-export { useWorkspaceEntries } from "./useWorkspaceEntries";
+export { useWorkspaceEntries } from "./useWorkspaceEntries.js";
 export type {
   WorkspaceEntry,
   UseWorkspaceEntriesReturn,
-} from "./useWorkspaceEntries";
+} from "./useWorkspaceEntries.js";
 export type {
   WorkspaceFileEntry,
   WorkspaceFileLister,
-} from "./WorkspaceFileLister";
-export { useWorkspaceFiles } from "./useWorkspaceFiles";
+} from "./WorkspaceFileLister.js";
+export { useWorkspaceFiles } from "./useWorkspaceFiles.js";
 export type {
   UseWorkspaceFilesOptions,
   UseWorkspaceFilesReturn,
-} from "./useWorkspaceFiles";
-export { WorkspaceEntryFiles } from "./WorkspaceEntryFiles";
-export type { WorkspaceEntryFilesProps } from "./WorkspaceEntryFiles";
-export { WorkspaceEditor } from "./WorkspaceEditor";
-export type { WorkspaceEditorProps } from "./WorkspaceEditor";
-export { WorkspaceSummary } from "./WorkspaceSummary";
-export type { WorkspaceSummaryProps } from "./WorkspaceSummary";
-export { useRecentWorkspaces } from "./useRecentWorkspaces";
+} from "./useWorkspaceFiles.js";
+export { WorkspaceEntryFiles } from "./WorkspaceEntryFiles.js";
+export type { WorkspaceEntryFilesProps } from "./WorkspaceEntryFiles.js";
+export { WorkspaceEditor } from "./WorkspaceEditor.js";
+export type { WorkspaceEditorProps } from "./WorkspaceEditor.js";
+export { WorkspaceSummary } from "./WorkspaceSummary.js";
+export type { WorkspaceSummaryProps } from "./WorkspaceSummary.js";
+export { useRecentWorkspaces } from "./useRecentWorkspaces.js";
 export type {
   RecentWorkspace,
   UseRecentWorkspacesReturn,
-} from "./useRecentWorkspaces";
-export { useWorkspaceSources } from "./useWorkspaceSources";
+} from "./useRecentWorkspaces.js";
+export { useWorkspaceSources } from "./useWorkspaceSources.js";
 export type {
   UseWorkspaceSourcesOptions,
   UseWorkspaceSourcesReturn,
-} from "./useWorkspaceSources";
+} from "./useWorkspaceSources.js";

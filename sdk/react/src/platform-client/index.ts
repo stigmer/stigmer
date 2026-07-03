@@ -1,49 +1,49 @@
 export {
   usePlatformClientList,
   type UsePlatformClientListReturn,
-} from "./usePlatformClientList";
+} from "./usePlatformClientList.js";
 
 export {
   usePlatformClient,
   type UsePlatformClientReturn,
-} from "./usePlatformClient";
+} from "./usePlatformClient.js";
 
 export {
   useCreatePlatformClient,
   type UseCreatePlatformClientReturn,
-} from "./useCreatePlatformClient";
+} from "./useCreatePlatformClient.js";
 
 export {
   useUpdatePlatformClient,
   type UseUpdatePlatformClientReturn,
-} from "./useUpdatePlatformClient";
+} from "./useUpdatePlatformClient.js";
 
 export {
   useDeletePlatformClient,
   type UseDeletePlatformClientReturn,
-} from "./useDeletePlatformClient";
+} from "./useDeletePlatformClient.js";
 
 export {
   useRotatePlatformClientSecret,
   type UseRotatePlatformClientSecretReturn,
-} from "./useRotatePlatformClientSecret";
+} from "./useRotatePlatformClientSecret.js";
 
 export {
   PlatformClientListPanel,
   type PlatformClientListPanelProps,
-} from "./PlatformClientListPanel";
+} from "./PlatformClientListPanel.js";
 
 export {
   CreatePlatformClientForm,
   type CreatePlatformClientFormProps,
-} from "./CreatePlatformClientForm";
+} from "./CreatePlatformClientForm.js";
 
 export {
   PlatformClientDetailPanel,
   type PlatformClientDetailPanelProps,
-} from "./PlatformClientDetailPanel";
+} from "./PlatformClientDetailPanel.js";
 
 export {
   PlatformClientSecretAlert,
   type PlatformClientSecretAlertProps,
-} from "./PlatformClientSecretAlert";
+} from "./PlatformClientSecretAlert.js";

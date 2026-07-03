@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { OrganizationInput } from "@stigmer/sdk";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useCreateOrganization}. */
 export interface UseCreateOrganizationReturn {

@@ -4,17 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { useArtifactContent } from "./useArtifactContent";
-import { useArtifactDownload } from "./useArtifactDownload";
-import { isTextArtifact, formatArtifactSize } from "./artifact-utils";
-import { ArtifactContentRenderer } from "./ArtifactContentRenderer";
-import { useDetectStigmerResource } from "../library/useDetectStigmerResource";
-import { useDetectSkillPackage } from "../library/useDetectSkillPackage";
-import type { SkillPackageDetection } from "../library/detect-skill-package";
+import { useArtifactContent } from "./useArtifactContent.js";
+import { useArtifactDownload } from "./useArtifactDownload.js";
+import { isTextArtifact, formatArtifactSize } from "./artifact-utils.js";
+import { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
+import { useDetectStigmerResource } from "../library/useDetectStigmerResource.js";
+import { useDetectSkillPackage } from "../library/useDetectSkillPackage.js";
+import type { SkillPackageDetection } from "../library/detect-skill-package.js";
 import {
   useApplyResource,
   type ApplyResourceResult,
-} from "../library/useApplyResource";
+} from "../library/useApplyResource.js";
 
 const COPIED_FEEDBACK_MS = 2000;
 

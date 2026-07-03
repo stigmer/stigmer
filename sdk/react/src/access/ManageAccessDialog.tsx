@@ -3,13 +3,13 @@
 import { useCallback, useRef, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { hasGrantableRoles } from "@stigmer/sdk";
-import { PeopleWithAccess } from "../iam-policy/PeopleWithAccess";
-import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
+import { PeopleWithAccess } from "../iam-policy/PeopleWithAccess.js";
+import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
 import type {
   AccessResource,
   AccessVisibility,
   AccessExtraSection,
-} from "./types";
+} from "./types.js";
 
 /** Props for {@link ManageAccessDialog}. */
 export interface ManageAccessDialogProps {

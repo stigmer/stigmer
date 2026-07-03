@@ -2,21 +2,21 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
-import type { AgentResolution } from "../agent";
-import { useDefaultAgent } from "../agent";
-import { useModelRegistry } from "../models";
-import { parseModelKey } from "../models/registry";
-import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness";
-import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace";
-import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables";
-import type { SessionComposerSubmitContext } from "../composer";
-import { withTimeout } from "../internal/withTimeout";
-import { useCreateSession } from "./useCreateSession";
-import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
-import type { ExecutionTargetOption } from "./execution-target";
-import { useExecutionTarget } from "../execution-target-context";
-import { useRunnerAdapter } from "../runner-adapter";
-import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env";
+import type { AgentResolution } from "../agent/index.js";
+import { useDefaultAgent } from "../agent/index.js";
+import { useModelRegistry } from "../models/index.js";
+import { parseModelKey } from "../models/registry.js";
+import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
+import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
+import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
+import type { SessionComposerSubmitContext } from "../composer/index.js";
+import { withTimeout } from "../internal/withTimeout.js";
+import { useCreateSession } from "./useCreateSession.js";
+import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
+import type { ExecutionTargetOption } from "./execution-target.js";
+import { useExecutionTarget } from "../execution-target-context.js";
+import { useRunnerAdapter } from "../runner-adapter.js";
+import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 

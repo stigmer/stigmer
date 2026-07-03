@@ -4,13 +4,13 @@ import { useCallback, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { AttachmentInput } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 import {
   detectContentType,
   formatFileSize,
   validateAttachmentSize,
-} from "./attachment-utils";
+} from "./attachment-utils.js";
 
 // ---------------------------------------------------------------------------
 // Types

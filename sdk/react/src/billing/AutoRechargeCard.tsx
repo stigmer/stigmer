@@ -5,7 +5,7 @@ import { cn } from "@stigmer/theme";
 import type { AutoRechargeConfig } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
-import { useSetAutoRechargeConfig } from "./useSetAutoRechargeConfig";
+import { useSetAutoRechargeConfig } from "./useSetAutoRechargeConfig.js";
 
 /** Props for {@link AutoRechargeCard}. */
 export interface AutoRechargeCardProps {

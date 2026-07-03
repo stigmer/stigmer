@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { toError } from "./toError";
+import { toError } from "./toError.js";
 
 /** A stable empty set so an idle hook keeps a constant `submittingKeys` ref. */
 const NO_KEYS: ReadonlySet<string> = new Set();

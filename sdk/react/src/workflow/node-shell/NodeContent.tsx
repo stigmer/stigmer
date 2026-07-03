@@ -1,8 +1,8 @@
 "use client";
 
 import { memo } from "react";
-import type { VisualClass } from "../task-type-visual-registry";
-import { SVG_SHAPE_CLASSES, getContentInsets } from "./shape-paths";
+import type { VisualClass } from "../task-type-visual-registry.js";
+import { SVG_SHAPE_CLASSES, getContentInsets } from "./shape-paths.js";
 
 export interface NodeContentProps {
   visualClass: VisualClass;

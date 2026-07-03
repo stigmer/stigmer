@@ -5,8 +5,8 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage, iamRoleDisplayName, iamRoleDescription } from "@stigmer/sdk";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { useInvitationPreview } from "./useInvitationPreview";
-import { useRedeemInvitation } from "./useRedeemInvitation";
+import { useInvitationPreview } from "./useInvitationPreview.js";
+import { useRedeemInvitation } from "./useRedeemInvitation.js";
 
 // ---------------------------------------------------------------------------
 // Public API

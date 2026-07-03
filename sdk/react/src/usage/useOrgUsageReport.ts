@@ -6,9 +6,9 @@ import {
   type GetOrgUsageReportOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
-import type { DateRange } from "./date-range";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
+import type { DateRange } from "./date-range.js";
 
 /**
  * Lightweight summary of an agent's usage within an org report.

@@ -9,9 +9,9 @@
  */
 
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { WorkflowGraphEdge, WorkflowGraphNode } from "../workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+import type { WorkflowGraphEdge, WorkflowGraphNode } from "../workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
+import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 
 // ---------------------------------------------------------------------------
 // Types

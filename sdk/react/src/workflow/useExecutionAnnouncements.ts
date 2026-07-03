@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
+import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
 
 /**
  * Behavior hook that generates screen reader announcements when task

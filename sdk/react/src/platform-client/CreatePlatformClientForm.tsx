@@ -10,7 +10,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
-import { useCreatePlatformClient } from "./useCreatePlatformClient";
+import { useCreatePlatformClient } from "./useCreatePlatformClient.js";
 
 /** Props for {@link CreatePlatformClientForm}. */
 export interface CreatePlatformClientFormProps {

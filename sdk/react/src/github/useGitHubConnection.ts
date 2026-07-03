@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
+import { useStigmer } from "../hooks.js";
+import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
 
 const STORAGE_KEY_STATE = "stigmer:github:oauth-state";
 const GITHUB_USER_API = "https://api.github.com/user";

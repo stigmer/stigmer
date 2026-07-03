@@ -3,11 +3,11 @@
 import { useCallback, useMemo, useState } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { serializeWorkflowYaml } from "./serialize-workflow-yaml";
-import { yamlToGraph } from "./workflow-graph-conversions";
-import { toReactFlowElements } from "./workflow-graph-conversions";
-import { applyDagreLayout } from "./layout";
-import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
+import { serializeWorkflowYaml } from "./serialize-workflow-yaml.js";
+import { yamlToGraph } from "./workflow-graph-conversions.js";
+import { toReactFlowElements } from "./workflow-graph-conversions.js";
+import { applyDagreLayout } from "./layout/index.js";
+import type { CanvasTaskNodeData } from "./workflow-graph-conversions.js";
 
 /** Options for {@link useWorkflowOverviewGraph}. */
 export interface UseWorkflowOverviewGraphOptions {

@@ -3,8 +3,8 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { parseDocument, type Document, type YAMLMap, type Pair, isMap, isSeq, isScalar } from "yaml";
 import type { Diagnostic } from "@codemirror/lint";
-import type { UseTaskKindRegistryReturn } from "./useTaskKindRegistry";
-import { TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "./canvas-constants";
+import type { UseTaskKindRegistryReturn } from "./useTaskKindRegistry.js";
+import { TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "./canvas-constants.js";
 
 /** Return value of {@link useWorkflowValidation}. */
 export interface UseWorkflowValidationReturn {

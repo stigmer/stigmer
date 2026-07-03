@@ -5,8 +5,8 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import { usePlatformClientList } from "./usePlatformClientList";
-import { useDeletePlatformClient } from "./useDeletePlatformClient";
+import { usePlatformClientList } from "./usePlatformClientList.js";
+import { useDeletePlatformClient } from "./useDeletePlatformClient.js";
 
 /** Props for {@link PlatformClientListPanel}. */
 export interface PlatformClientListPanelProps {

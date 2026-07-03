@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type Keyboard
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { SsoProviderInfo } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
-import { useSsoProvider } from "./useSsoProvider";
+import { useSsoProvider } from "./useSsoProvider.js";
 
 /** Props for {@link SsoLoginPrompt}. */
 export interface SsoLoginPromptProps {

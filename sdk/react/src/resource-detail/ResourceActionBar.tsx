@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
-import { ActionMenu } from "../action-menu";
-import type { DetailAction } from "./types";
+import { ActionMenu } from "../action-menu/index.js";
+import type { DetailAction } from "./types.js";
 
 export interface ResourceActionBarProps {
   /**

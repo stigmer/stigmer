@@ -1,8 +1,8 @@
 "use client";
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { useSessionUsage } from "../useSessionUsage";
-import { UsageWidget } from "../../execution/UsageWidget";
+import { useSessionUsage } from "../useSessionUsage.js";
+import { UsageWidget } from "../../execution/UsageWidget.js";
 
 export interface UsageTabProps {
   readonly executions: readonly AgentExecution[];

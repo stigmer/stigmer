@@ -1,4 +1,4 @@
-export { ActionMenu } from "./ActionMenu";
+export { ActionMenu } from "./ActionMenu.js";
 export type {
   ActionMenuProps,
   ActionMenuTriggerProps,
@@ -6,4 +6,4 @@ export type {
   ActionMenuItemProps,
   ActionMenuSeparatorProps,
   ActionMenuGroupProps,
-} from "./types";
+} from "./types.js";

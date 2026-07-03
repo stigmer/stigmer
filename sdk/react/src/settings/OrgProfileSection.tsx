@@ -2,8 +2,8 @@
 
 import { useCallback } from "react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrgProfilePanel } from "../organization/OrgProfilePanel";
-import { useOrg } from "../organization/OrgProvider";
+import { OrgProfilePanel } from "../organization/OrgProfilePanel.js";
+import { useOrg } from "../organization/OrgProvider.js";
 
 /** Settings section for editing the active organization profile. */
 export function OrgProfileSection() {

@@ -5,7 +5,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import { useCreateOAuthApp } from "./useCreateOAuthApp";
+import { useCreateOAuthApp } from "./useCreateOAuthApp.js";
 
 // ---------------------------------------------------------------------------
 // Public API

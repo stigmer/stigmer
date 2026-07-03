@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import type { WorkflowInstanceInput } from "@stigmer/sdk";
-import { useStigmer } from "../../hooks";
-import { toError } from "../../internal/toError";
+import { useStigmer } from "../../hooks.js";
+import { toError } from "../../internal/toError.js";
 
 /** Return value of {@link useCreateWorkflowInstance}. */
 export interface UseCreateWorkflowInstanceReturn {

@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { McpServerInput } from "@stigmer/sdk";
-import { serializeMcpServerInputYaml } from "../../library/serialize-resource-yaml";
-import type { McpServerWizardData } from "./types";
+import { serializeMcpServerInputYaml } from "../../library/serialize-resource-yaml.js";
+import type { McpServerWizardData } from "./types.js";
 
 /** Props for {@link ReviewStep}. */
 export interface ReviewStepProps {

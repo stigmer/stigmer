@@ -8,19 +8,19 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { useRenderTracer } from "../internal/dev";
-import { useAutoDisclosure } from "../internal/useAutoDisclosure";
-import { useIsTextTruncated } from "../internal/useIsTextTruncated";
-import { ToolCallDetail, formatDuration } from "./ToolCallDetail";
-import { SubAgentSection } from "./SubAgentSection";
-import { ApprovalCardBody } from "./ApprovalCard";
-import { useApproval } from "./ApprovalContext";
-import { useFileReviewRowState } from "./FileReviewContext";
-import type { FileReviewRowState } from "./file-review-status";
-import { FilePathLink } from "./FilePathLink";
-import { isFileCategory, type ToolCategory } from "./tool-categories";
-import { useToolPresentation } from "./tool-presenter";
-import { useThreadSelection } from "./useThreadSelection";
+import { useRenderTracer } from "../internal/dev/index.js";
+import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
+import { useIsTextTruncated } from "../internal/useIsTextTruncated.js";
+import { ToolCallDetail, formatDuration } from "./ToolCallDetail.js";
+import { SubAgentSection } from "./SubAgentSection.js";
+import { ApprovalCardBody } from "./ApprovalCard.js";
+import { useApproval } from "./ApprovalContext.js";
+import { useFileReviewRowState } from "./FileReviewContext.js";
+import type { FileReviewRowState } from "./file-review-status.js";
+import { FilePathLink } from "./FilePathLink.js";
+import { isFileCategory, type ToolCategory } from "./tool-categories.js";
+import { useToolPresentation } from "./tool-presenter.js";
+import { useThreadSelection } from "./useThreadSelection.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {

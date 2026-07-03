@@ -8,7 +8,7 @@ import {
 import {
   ApiResourceRefSchema,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
-import { useStigmer } from "../hooks";
+import { useStigmer } from "../hooks.js";
 
 /** Resource reference for permission checks. */
 export interface PermissionCheckResource {

@@ -1,9 +1,9 @@
 "use client";
 
-import { InvitationManager } from "../invitation/InvitationManager";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
-import { useActiveOrgSlug } from "../organization/OrgProvider";
+import { InvitationManager } from "../invitation/InvitationManager.js";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { useActiveOrgSlug } from "../organization/OrgProvider.js";
 
 /** Settings section for creating and managing organization invitations. */
 export function InvitationsSection() {

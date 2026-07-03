@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { useExecutionTarget } from "../execution-target-context";
-import { useDeploymentMode } from "../deployment-mode";
+import { useExecutionTarget } from "../execution-target-context.js";
+import { useDeploymentMode } from "../deployment-mode.js";
 
 /** Options for {@link useWorkspaceSources}. */
 export interface UseWorkspaceSourcesOptions {

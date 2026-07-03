@@ -3,9 +3,9 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
-import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components";
-import { DecisionButton, type DecisionVariant } from "../internal/DecisionButton";
-import { InCardDecisionError } from "../internal/InCardDecisionError";
+import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components.js";
+import { DecisionButton, type DecisionVariant } from "../internal/DecisionButton.js";
+import { InCardDecisionError } from "../internal/InCardDecisionError.js";
 
 /** Outcome descriptor for UI rendering. */
 export interface TaskOutcome {

@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import type { TaskKindDescriptor } from "../types";
+import type { TaskKindDescriptor } from "../types.js";
 import type {
   DesignTabId,
   InspectorTabDefinition,
   InspectorMode,
-} from "./types";
+} from "./types.js";
 
 /** Arguments for {@link useInspectorTabs}. */
 export interface UseInspectorTabsInput {

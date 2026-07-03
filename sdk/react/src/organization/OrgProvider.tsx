@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useStigmer } from "../hooks";
+import { useStigmer } from "../hooks.js";
 
 /** Value exposed by {@link OrgProvider} via {@link useOrg}. */
 export interface OrgContextValue {

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import type { WorkflowGraphNode, WorkflowGraphEdge, WorkflowGraphModel } from "../workflow-graph-model";
-import type { TaskKindDescriptor, TaskKindCategory } from "../types";
-import type { TopologyNodeCategory } from "../useWorkflowTopology";
+import type { WorkflowGraphNode, WorkflowGraphEdge, WorkflowGraphModel } from "../workflow-graph-model.js";
+import type { TaskKindDescriptor, TaskKindCategory } from "../types.js";
+import type { TopologyNodeCategory } from "../useWorkflowTopology.js";
 
 /** Identifiers for design-mode inspector tabs. */
 export type DesignTabId = "configure" | "branches" | "catch" | "iteration" | "data" | "runtime" | "advanced" | "docs";

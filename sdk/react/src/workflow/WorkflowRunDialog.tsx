@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import { useRunWorkflowFlow } from "./useRunWorkflowFlow";
-import { WorkflowRunForm } from "./WorkflowRunForm";
+import { useRunWorkflowFlow } from "./useRunWorkflowFlow.js";
+import { WorkflowRunForm } from "./WorkflowRunForm.js";
 
 /** Props for {@link WorkflowRunDialog}. */
 export interface WorkflowRunDialogProps {

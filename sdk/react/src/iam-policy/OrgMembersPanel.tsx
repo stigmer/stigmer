@@ -15,14 +15,14 @@ import {
   iamRoleFromString,
   iamRoleToString,
 } from "@stigmer/sdk";
-import { useResourceAccess } from "./useResourceAccess";
-import { usePrincipalsCount } from "./usePrincipalsCount";
-import { useWhoAmI } from "./useWhoAmI";
-import { useRevokeOrgAccess } from "./useRevokeOrgAccess";
-import { useCreateIamPolicy } from "./useCreateIamPolicy";
-import { useDeleteIamPolicy } from "./useDeleteIamPolicy";
-import { RoleSelector } from "./RoleSelector";
-import { ProviderBadge } from "./ProviderBadge";
+import { useResourceAccess } from "./useResourceAccess.js";
+import { usePrincipalsCount } from "./usePrincipalsCount.js";
+import { useWhoAmI } from "./useWhoAmI.js";
+import { useRevokeOrgAccess } from "./useRevokeOrgAccess.js";
+import { useCreateIamPolicy } from "./useCreateIamPolicy.js";
+import { useDeleteIamPolicy } from "./useDeleteIamPolicy.js";
+import { RoleSelector } from "./RoleSelector.js";
+import { ProviderBadge } from "./ProviderBadge.js";
 
 // ---------------------------------------------------------------------------
 // Public API

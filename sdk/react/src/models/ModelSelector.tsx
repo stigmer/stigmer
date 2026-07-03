@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
-import { useStigmerPortalContainer } from "../portal-container";
-import { useModelRegistry } from "./useModelRegistry";
-import type { ModelInfo, CostTier, SpeedTier } from "./registry";
-import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "./harness";
+import { useStigmerPortalContainer } from "../portal-container.js";
+import { useModelRegistry } from "./useModelRegistry.js";
+import type { ModelInfo, CostTier, SpeedTier } from "./registry.js";
+import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "./harness.js";
 
 const COST_TIER_LABEL: Record<CostTier, string> = {
   economy: "$",

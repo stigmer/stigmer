@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { TabItem } from "../tabs/Tabs";
-import type { AdditionalTab } from "./types";
+import type { TabItem } from "../tabs/Tabs.js";
+import type { AdditionalTab } from "./types.js";
 
 /**
  * Return type for the internal detail tabs hook.

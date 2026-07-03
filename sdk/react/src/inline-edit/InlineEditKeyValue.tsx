@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { InlineEditBaseProps, KeyValueRow } from "./types";
+import type { InlineEditBaseProps, KeyValueRow } from "./types.js";
 
 /** Props for {@link InlineEditKeyValue}. */
 export interface InlineEditKeyValueProps extends InlineEditBaseProps {

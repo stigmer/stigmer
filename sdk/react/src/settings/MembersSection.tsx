@@ -1,10 +1,10 @@
 "use client";
 
-import { OrgMembersPanel } from "../iam-policy/OrgMembersPanel";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
-import { useOrg } from "../organization/OrgProvider";
-import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList";
+import { OrgMembersPanel } from "../iam-policy/OrgMembersPanel.js";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { useOrg } from "../organization/OrgProvider.js";
+import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
 
 /** Settings section for organization membership and role management. */
 export function MembersSection() {

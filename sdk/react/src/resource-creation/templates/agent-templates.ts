@@ -1,5 +1,5 @@
-import type { AgentWizardData } from "../../agent/steps/types";
-import type { ResourceTemplate } from "./types";
+import type { AgentWizardData } from "../../agent/steps/types.js";
+import type { ResourceTemplate } from "./types.js";
 
 /**
  * Built-in agent templates shipped with the SDK.

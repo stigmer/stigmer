@@ -11,8 +11,8 @@ import {
   ledgerEntryLabel,
   isCredit,
   isHold,
-} from "./format";
-import { useCreditLedger, type UseCreditLedgerOptions } from "./useCreditLedger";
+} from "./format.js";
+import { useCreditLedger, type UseCreditLedgerOptions } from "./useCreditLedger.js";
 
 /** Props for {@link CreditLedgerTable}. */
 export interface CreditLedgerTableProps {

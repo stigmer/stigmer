@@ -8,9 +8,9 @@ import {
 import type { WorkflowPendingFileReview } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { displayFileChangeSets } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import { FileReviewCard } from "../execution/FileReviewCard";
-import type { FileDecisionOptions } from "../execution/useFileReview";
-import { useExecutionStream } from "../execution/useExecutionStream";
+import { FileReviewCard } from "../execution/FileReviewCard.js";
+import type { FileDecisionOptions } from "../execution/useFileReview.js";
+import { useExecutionStream } from "../execution/useExecutionStream.js";
 
 /**
  * Submit handler for a workflow-level file decision, matching

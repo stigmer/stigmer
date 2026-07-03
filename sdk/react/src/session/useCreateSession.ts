@@ -7,11 +7,11 @@ import {
   type ResourceRef,
   type WorkspaceEntryInput,
 } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { toProtoHarness, type HarnessOption } from "../models/harness";
-import { toProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target";
-import { useExecutionTarget } from "../execution-target-context";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { toProtoHarness, type HarnessOption } from "../models/harness.js";
+import { toProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target.js";
+import { useExecutionTarget } from "../execution-target-context.js";
 
 /** Shared fields present in both variants of {@link CreateSessionInput}. */
 export interface SharedSessionFields {

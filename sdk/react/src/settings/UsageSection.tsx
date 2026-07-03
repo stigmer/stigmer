@@ -1,7 +1,7 @@
 "use client";
 
-import { OrgUsagePanel } from "../usage/OrgUsagePanel";
-import { useOrg } from "../organization/OrgProvider";
+import { OrgUsagePanel } from "../usage/OrgUsagePanel.js";
+import { useOrg } from "../organization/OrgProvider.js";
 
 /** Settings section for organization usage and cost reporting. */
 export function UsageSection() {

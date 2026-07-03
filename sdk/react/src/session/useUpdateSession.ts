@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import type { SessionInput } from "@stigmer/sdk";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { useStigmer } from "../hooks";
+import { useStigmer } from "../hooks.js";
 
 /** Return value of {@link useUpdateSession}. */
 export interface UseUpdateSessionReturn {

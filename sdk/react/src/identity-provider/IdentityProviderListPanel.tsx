@@ -5,8 +5,8 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { useIdentityProviderList } from "./useIdentityProviderList";
-import { useDeleteIdentityProvider } from "./useDeleteIdentityProvider";
+import { useIdentityProviderList } from "./useIdentityProviderList.js";
+import { useDeleteIdentityProvider } from "./useDeleteIdentityProvider.js";
 
 /** Props for {@link IdentityProviderListPanel}. */
 export interface IdentityProviderListPanelProps {

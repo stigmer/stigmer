@@ -1,6 +1,6 @@
 import { parsePatch } from "diff";
-import { mapPatchHunks } from "./diff-hunks";
-import type { DiffHunk } from "./types";
+import { mapPatchHunks } from "./diff-hunks.js";
+import type { DiffHunk } from "./types.js";
 
 /**
  * Parses a unified-diff patch *string* into presentation {@link DiffHunk}s.

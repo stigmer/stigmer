@@ -8,7 +8,7 @@ import {
   formatJson,
   humanizeArgKey,
   isScalar,
-} from "../../execution/tool-rendering-primitives";
+} from "../../execution/tool-rendering-primitives.js";
 
 /**
  * Threshold (in characters) above which a string value is rendered

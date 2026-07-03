@@ -2,12 +2,12 @@
 
 import { memo, useMemo } from "react";
 import { cn } from "@stigmer/theme";
-import type { TaskDetailAgentCall } from "./derive-task-detail";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
-import { formatMicroUsd, formatTokenCount } from "../format-utils";
-import { useExecutionStream } from "../../execution/useExecutionStream";
-import { useConversationStoreRef } from "../../internal/store";
-import { MessageThread } from "../../execution/MessageThread";
+import type { TaskDetailAgentCall } from "./derive-task-detail.js";
+import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
+import { formatMicroUsd, formatTokenCount } from "../format-utils.js";
+import { useExecutionStream } from "../../execution/useExecutionStream.js";
+import { useConversationStoreRef } from "../../internal/store/index.js";
+import { MessageThread } from "../../execution/MessageThread.js";
 
 export interface AgentCallTabProps {
   readonly agentCall: TaskDetailAgentCall;

@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useState, type ReactNode } from "react";
-import { useCheckPermission } from "../iam-policy/useCheckPermission";
-import type { DetailAction } from "../resource-detail/types";
-import { ManageAccessDialog } from "./ManageAccessDialog";
+import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import type { DetailAction } from "../resource-detail/types.js";
+import { ManageAccessDialog } from "./ManageAccessDialog.js";
 import type {
   AccessResource,
   AccessVisibility,
   AccessExtraSection,
-} from "./types";
+} from "./types.js";
 
 /** Arguments for {@link useManageAccess}. */
 export interface UseManageAccessArgs {

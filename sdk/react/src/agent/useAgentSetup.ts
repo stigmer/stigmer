@@ -6,11 +6,11 @@ import type { EnvVarInput, ResourceRef, Stigmer } from "@stigmer/sdk";
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
-import { buildPersonalInstanceInput } from "../agent-instance/buildPersonalInstanceInput";
-import { diffEnv } from "../environment/diffEnv";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
+import { buildPersonalInstanceInput } from "../agent-instance/buildPersonalInstanceInput.js";
+import { diffEnv } from "../environment/diffEnv.js";
 import {
   agentSetupReducer,
   INITIAL_STATE,
@@ -18,7 +18,7 @@ import {
   type AgentSetupResult,
   type AgentSetupReadyResult,
   type AgentSetupState,
-} from "./agentSetupReducer";
+} from "./agentSetupReducer.js";
 
 const PERSONAL_LABEL = "stigmer.ai/personal";
 const FOR_AGENT_LABEL = "stigmer.ai/for-agent";
@@ -69,7 +69,7 @@ export type {
   AgentSetupReadyResult,
   AgentSetupState,
   AgentSetupPhase,
-} from "./agentSetupReducer";
+} from "./agentSetupReducer.js";
 
 /** Options for {@link UseAgentSetupReturn.submitEnvVars}. */
 export interface SubmitEnvVarsOptions {

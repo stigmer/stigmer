@@ -21,9 +21,9 @@ import {
   extractPrimaryArg,
   defaultDisclosureForCategory,
   isRunGroupableCategory,
-} from "./tool-categories";
-import type { ToolCategory, ToolDisclosure } from "./tool-categories";
-import { summarizeResultView } from "./ResultView";
+} from "./tool-categories.js";
+import type { ToolCategory, ToolDisclosure } from "./tool-categories.js";
+import { summarizeResultView } from "./ResultView.js";
 
 /** Optional per-kind overrides for label, summary, disclosure, and run-grouping. */
 export interface ToolPresenter {

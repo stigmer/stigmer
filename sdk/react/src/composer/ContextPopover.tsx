@@ -1,6 +1,6 @@
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
-import { useStigmerPortalContainer } from "../portal-container";
+import { useStigmerPortalContainer } from "../portal-container.js";
 
 export function ContextPopover({
   icon,

@@ -4,10 +4,10 @@ import { memo, useMemo, type ReactNode } from "react";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge";
-import type { UseWorkflowExecutionActionsReturn } from "./useWorkflowExecutionActions";
-import type { WorkflowEventStreamState, DerivedCostSummary } from "../internal/store/workflow-execution-event-store";
-import { formatDuration, formatMicroUsd } from "./format-utils";
+import { WorkflowExecutionPhaseBadge } from "./WorkflowExecutionPhaseBadge.js";
+import type { UseWorkflowExecutionActionsReturn } from "./useWorkflowExecutionActions.js";
+import type { WorkflowEventStreamState, DerivedCostSummary } from "../internal/store/workflow-execution-event-store.js";
+import { formatDuration, formatMicroUsd } from "./format-utils.js";
 
 /** Props for {@link WorkflowExecutionHeader}. */
 export interface WorkflowExecutionHeaderProps {

@@ -8,13 +8,13 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { getUserMessage } from "@stigmer/sdk";
-import { useUpdateAgentInstance } from "./useUpdateAgentInstance";
-import { useDeleteAgentInstance } from "./useDeleteAgentInstance";
-import { VisibilityBadge } from "../library/VisibilitySelector";
-import { PermissionGate } from "../iam-policy/PermissionGate";
-import { ManageAccessButton } from "../access/ManageAccessButton";
-import { EnvironmentPicker } from "../environment/EnvironmentPicker";
-import { useEnvironmentList } from "../environment/useEnvironmentList";
+import { useUpdateAgentInstance } from "./useUpdateAgentInstance.js";
+import { useDeleteAgentInstance } from "./useDeleteAgentInstance.js";
+import { VisibilityBadge } from "../library/VisibilitySelector.js";
+import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { ManageAccessButton } from "../access/ManageAccessButton.js";
+import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { useEnvironmentList } from "../environment/useEnvironmentList.js";
 
 /** Props for {@link AgentInstanceDetailPanel}. */
 export interface AgentInstanceDetailPanelProps {

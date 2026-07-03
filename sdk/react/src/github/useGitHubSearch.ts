@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GitHubRepo } from "./useGitHubRepos";
+import type { GitHubRepo } from "./useGitHubRepos.js";
 
 const GITHUB_SEARCH_API = "https://api.github.com/search/repositories";
 const DEBOUNCE_MS = 350;

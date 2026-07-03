@@ -6,9 +6,9 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { useCreateOrganization } from "./useCreateOrganization";
-import { generateSlug } from "../internal/slug";
-import { validateMessage, getFieldError } from "../internal/validate";
+import { useCreateOrganization } from "./useCreateOrganization.js";
+import { generateSlug } from "../internal/slug.js";
+import { validateMessage, getFieldError } from "../internal/validate.js";
 
 // ---------------------------------------------------------------------------
 // Public API

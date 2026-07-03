@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@stigmer/theme";
-import type { ExportFormat } from "./useExportCSV";
+import type { ExportFormat } from "./useExportCSV.js";
 
 /** Props for {@link ExportButton}. */
 export interface ExportButtonProps {

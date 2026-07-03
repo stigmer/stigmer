@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { McpServerInput } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useUpdateMcpServer}. */
 export interface UseUpdateMcpServerReturn {

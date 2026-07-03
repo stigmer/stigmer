@@ -4,16 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
-import { useCreateSession } from "../session/useCreateSession";
-import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
-import { useExecutionStream } from "../execution/useExecutionStream";
-import { isTerminalPhase } from "../execution/execution-phases";
-import { useConversationStoreRef } from "../internal/store";
+import { useCreateSession } from "../session/useCreateSession.js";
+import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
+import { useExecutionStream } from "../execution/useExecutionStream.js";
+import { isTerminalPhase } from "../execution/execution-phases.js";
+import { useConversationStoreRef } from "../internal/store/index.js";
 import {
   extractWorkflowYaml,
   type ExtractedWorkflowYaml,
-} from "./extract-workflow-yaml";
-import { WORKFLOW_DIAGNOSIS_RESPONSE_SCHEMA } from "./architect-response-schema";
+} from "./extract-workflow-yaml.js";
+import { WORKFLOW_DIAGNOSIS_RESPONSE_SCHEMA } from "./architect-response-schema.js";
 
 /**
  * Lifecycle phases for the workflow execution diagnosis flow.

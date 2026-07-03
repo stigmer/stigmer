@@ -1,5 +1,5 @@
 import type { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import type { ExecutionRow } from "../execution-history/derive-execution-row";
+import type { ExecutionRow } from "../execution-history/derive-execution-row.js";
 
 /**
  * Per-task comparison entry aligning the same task across two executions.

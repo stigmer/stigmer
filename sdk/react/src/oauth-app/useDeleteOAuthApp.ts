@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from "react";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useDeleteOAuthApp}. */
 export interface UseDeleteOAuthAppReturn {

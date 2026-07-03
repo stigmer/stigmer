@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { isTerminalPhase } from "../execution/execution-phases";
+import { isTerminalPhase } from "../execution/execution-phases.js";
 
 /**
  * A single artifact entry enriched with the execution context needed

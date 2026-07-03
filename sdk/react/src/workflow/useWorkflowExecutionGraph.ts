@@ -7,20 +7,20 @@ import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflow
 import { create } from "@bufbuild/protobuf";
 import { isNotFound } from "@stigmer/sdk";
 import { GetWorkflowVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
-import { useWorkflowExecution } from "./useWorkflowExecution";
-import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream";
-import { serializeWorkflowYaml } from "./serialize-workflow-yaml";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
+import { useWorkflowExecution } from "./useWorkflowExecution.js";
+import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream.js";
+import { serializeWorkflowYaml } from "./serialize-workflow-yaml.js";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { yamlToGraph, toReactFlowElements } from "./workflow-graph-conversions";
-import { cncfYamlToGraph, isCncfWorkflowYaml } from "./cncf-yaml-to-graph";
-import type { CanvasTaskNodeData, NodeExecutionState } from "./workflow-graph-conversions";
-import { applyDagreLayout } from "./layout";
-import { EXECUTION_DAGRE_CONFIG } from "./canvas-constants";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
-import type { WorkflowGraphModel } from "./workflow-graph-model";
-import { deriveEdgeExecutionStates, deriveForkProgress } from "./execution";
+import { yamlToGraph, toReactFlowElements } from "./workflow-graph-conversions.js";
+import { cncfYamlToGraph, isCncfWorkflowYaml } from "./cncf-yaml-to-graph.js";
+import type { CanvasTaskNodeData, NodeExecutionState } from "./workflow-graph-conversions.js";
+import { applyDagreLayout } from "./layout/index.js";
+import { EXECUTION_DAGRE_CONFIG } from "./canvas-constants.js";
+import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
+import type { WorkflowGraphModel } from "./workflow-graph-model.js";
+import { deriveEdgeExecutionStates, deriveForkProgress } from "./execution/index.js";
 
 /** Options for {@link useWorkflowExecutionGraph}. */
 export interface UseWorkflowExecutionGraphOptions {

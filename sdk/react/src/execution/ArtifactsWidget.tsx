@@ -6,10 +6,10 @@ import { cn } from "@stigmer/theme";
 import {
   useSessionArtifacts,
   type SessionArtifactEntry,
-} from "../session/useSessionArtifacts";
-import { ArtifactCard } from "./ArtifactCard";
-import { ArtifactPreviewModal } from "./ArtifactPreviewModal";
-import type { ApplyResourceResult } from "../library/useApplyResource";
+} from "../session/useSessionArtifacts.js";
+import { ArtifactCard } from "./ArtifactCard.js";
+import { ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
+import type { ApplyResourceResult } from "../library/useApplyResource.js";
 
 /** Props for {@link ArtifactsWidget}. */
 export interface ArtifactsWidgetProps {

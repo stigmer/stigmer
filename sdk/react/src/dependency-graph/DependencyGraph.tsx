@@ -2,8 +2,8 @@
 
 import { useCallback, useRef, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
-import type { DependencyGraphProps } from "./types";
-import { DependencyTreeNode } from "./DependencyTreeNode";
+import type { DependencyGraphProps } from "./types.js";
+import { DependencyTreeNode } from "./DependencyTreeNode.js";
 
 /**
  * Accessible CSS-based tree visualization of an agent's dependencies.

@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import type { TaskKindDescriptor, TaskKindCategory } from "../types";
-import type { WorkflowGraphModel } from "../workflow-graph-model";
-import { CATEGORY_ORDER } from "../canvas-constants";
-import type { InsertionContext } from "./insertion-context";
-import { buildInsertionHeader } from "./insertion-context";
-import { getSuggestedKinds, type TaskKindSuggestion } from "./suggestions";
-import { getDisabledKinds, getHiddenKinds, type DisabledKindEntry } from "./compatibility";
-import { getRecentKinds } from "./recents";
+import type { TaskKindDescriptor, TaskKindCategory } from "../types.js";
+import type { WorkflowGraphModel } from "../workflow-graph-model.js";
+import { CATEGORY_ORDER } from "../canvas-constants.js";
+import type { InsertionContext } from "./insertion-context.js";
+import { buildInsertionHeader } from "./insertion-context.js";
+import { getSuggestedKinds, type TaskKindSuggestion } from "./suggestions.js";
+import { getDisabledKinds, getHiddenKinds, type DisabledKindEntry } from "./compatibility.js";
+import { getRecentKinds } from "./recents.js";
 
 /**
  * A picker item enriched with context-awareness metadata.

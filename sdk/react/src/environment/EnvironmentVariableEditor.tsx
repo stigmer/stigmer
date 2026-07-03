@@ -10,11 +10,11 @@ import {
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type EnvVarInput } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { useUpdateEnvironmentVariables } from "./useUpdateEnvironmentVariables";
-import { useRemoveEnvironmentVariables } from "./useRemoveEnvironmentVariables";
-import { useRevealSecretValue } from "./useRevealSecretValue";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { useUpdateEnvironmentVariables } from "./useUpdateEnvironmentVariables.js";
+import { useRemoveEnvironmentVariables } from "./useRemoveEnvironmentVariables.js";
+import { useRevealSecretValue } from "./useRevealSecretValue.js";
 
 // ---------------------------------------------------------------------------
 // Public API

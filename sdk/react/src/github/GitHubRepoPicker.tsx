@@ -8,8 +8,8 @@ import {
   useMemo,
   type KeyboardEvent,
 } from "react";
-import { useGitHubRepos, type GitHubRepo, type GitHubBranch } from "./useGitHubRepos";
-import { useGitHubSearch } from "./useGitHubSearch";
+import { useGitHubRepos, type GitHubRepo, type GitHubBranch } from "./useGitHubRepos.js";
+import { useGitHubSearch } from "./useGitHubSearch.js";
 
 /** Props for {@link GitHubRepoPicker}. */
 export interface GitHubRepoPickerProps {

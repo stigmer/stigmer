@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { Node, Edge } from "@xyflow/react";
-import { yamlToGraph, toReactFlowElements } from "./workflow-graph-conversions";
-import type { CanvasTaskNodeData, CanvasTransitionEdgeData } from "./workflow-graph-conversions";
-import { applyDagreLayout } from "./layout";
-import { computeGraphDiff, buildDiffGraph } from "./diff";
-import type { GraphDiff, NodeDiffEntry } from "./diff";
+import { yamlToGraph, toReactFlowElements } from "./workflow-graph-conversions.js";
+import type { CanvasTaskNodeData, CanvasTransitionEdgeData } from "./workflow-graph-conversions.js";
+import { applyDagreLayout } from "./layout/index.js";
+import { computeGraphDiff, buildDiffGraph } from "./diff/index.js";
+import type { GraphDiff, NodeDiffEntry } from "./diff/index.js";
 
 /** Options for {@link useWorkflowDiffGraph}. */
 export interface UseWorkflowDiffGraphOptions {

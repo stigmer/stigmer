@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { NodeExecutionStatus } from "../workflow-graph-conversions";
+import type { NodeExecutionStatus } from "../workflow-graph-conversions.js";
 
 /** Fork branch completion progress (T06). */
 export interface ForkProgressInfo {

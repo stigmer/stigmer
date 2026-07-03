@@ -1,17 +1,17 @@
 // Public API for @stigmer/sdk
 
 // Top-level client
-export { Stigmer } from "./stigmer";
+export { Stigmer } from "./stigmer.js";
 
 // Runner adapter
 export {
   type RunnerAdapter,
   type RunnerWorkerHost,
   createRunnerAdapter,
-} from "./runner-adapter";
+} from "./runner-adapter.js";
 
 // Configuration
-export { type StigmerConfig, type TokenProvider } from "./config";
+export { type StigmerConfig, type TokenProvider } from "./config.js";
 
 // Error handling
 export {
@@ -30,26 +30,26 @@ export {
   type RpcErrorMetadata,
   annotateRpcError,
   getRpcMetadata,
-} from "./errors";
+} from "./errors.js";
 
 // Resource availability
 export {
   type DeploymentMode,
   isResourceAvailable,
-} from "./resource-availability";
+} from "./resource-availability.js";
 
 // Authorization config and IAM role utilities
 export {
   getGrantableRoles,
   hasGrantableRoles,
   isRoleGrantable,
-} from "./authorization-config";
+} from "./authorization-config.js";
 export {
   iamRoleToString,
   iamRoleFromString,
   iamRoleDisplayName,
   iamRoleDescription,
-} from "./iam-role";
+} from "./iam-role.js";
 export { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 // Activity client (unified recents)
@@ -57,8 +57,8 @@ export {
   ActivityClient,
   type ListRecentActivityParams,
   type ListRecentActivityResponse,
-} from "./activity";
-export type { RecentActivityEntry as RecentActivityEntryProto } from "./activity";
+} from "./activity.js";
+export type { RecentActivityEntry as RecentActivityEntryProto } from "./activity.js";
 
 // Billing client
 export {
@@ -69,7 +69,7 @@ export {
   type GetCreditLedgerParams,
   type GetBillingUsageReportParams,
   type GetCustomerModelPricingParams,
-} from "./billing";
+} from "./billing.js";
 
 // Search client
 export {
@@ -77,7 +77,7 @@ export {
   type SearchParams,
   type SearchResponse,
   ApiResourceKind,
-} from "./search";
+} from "./search.js";
 
 // GitHub OAuth client
 export {
@@ -86,13 +86,13 @@ export {
   type OAuthAuthorizeUrlResponse,
   type ExchangeOAuthCodeParams,
   type OAuthTokenResponse,
-} from "./github";
+} from "./github.js";
 
 // Platform client (server info / edition detection)
 export {
   PlatformClient,
   type ServerInfo,
-} from "./platform";
+} from "./platform.js";
 
 // Shared types (from generated code)
 export {
@@ -103,7 +103,7 @@ export {
   type ListResult,
   type EnvSpecInput,
   type EnvVarInput,
-} from "./gen/types";
+} from "./gen/types.js";
 
 // Re-export all resource client classes and input types
 export {
@@ -113,64 +113,64 @@ export {
   type ToolApprovalOverrideInput,
   type SubAgentInput,
   type McpAccessInput,
-} from "./gen/agent";
+} from "./gen/agent.js";
 export {
   AgentExecutionClient,
   type AgentExecutionInput,
   type ExecutionConfigInput,
   type ContextManagementConfigInput,
   type AttachmentInput,
-} from "./gen/agentexecution";
+} from "./gen/agentexecution.js";
 export {
   AgentInstanceClient,
   type AgentInstanceInput,
-} from "./gen/agentinstance";
-export { ApiKeyClient, type ApiKeyInput } from "./gen/apikey";
+} from "./gen/agentinstance.js";
+export { ApiKeyClient, type ApiKeyInput } from "./gen/apikey.js";
 export {
   EnvironmentClient,
   type EnvironmentInput,
-} from "./gen/environment";
+} from "./gen/environment.js";
 export {
   ExecutionContextClient,
   type ExecutionContextInput,
-} from "./gen/executioncontext";
+} from "./gen/executioncontext.js";
 export {
   IamPolicyClient,
   type IamPolicyInput,
   type ApiResourceRefInput,
-} from "./gen/iampolicy";
+} from "./gen/iampolicy.js";
 export {
   IdentityAccountClient,
   type IdentityAccountInput,
-} from "./gen/identityaccount";
+} from "./gen/identityaccount.js";
 export {
   InvitationClient,
   type InvitationInput,
-} from "./gen/invitation";
+} from "./gen/invitation.js";
 export {
   IdentityProviderClient,
   type IdentityProviderInput,
-} from "./gen/identityprovider";
+} from "./gen/identityprovider.js";
 export {
   OAuthAppClient,
   type OAuthAppInput,
-} from "./gen/oauthapp";
+} from "./gen/oauthapp.js";
 export {
   McpServerClient,
   type McpServerInput,
   type StdioServerConfigInput,
   type HttpServerConfigInput,
   type ToolApprovalPolicyInput,
-} from "./gen/mcpserver";
+} from "./gen/mcpserver.js";
 export {
   OrganizationClient,
   type OrganizationInput,
-} from "./gen/organization";
+} from "./gen/organization.js";
 export {
   PlatformClientClient,
   type PlatformClientInput,
-} from "./gen/platformclient";
-export { ProjectClient, type ProjectInput } from "./gen/project";
+} from "./gen/platformclient.js";
+export { ProjectClient, type ProjectInput } from "./gen/project.js";
 export {
   SessionClient,
   type SessionInput,
@@ -178,10 +178,10 @@ export {
   type WorkspaceSourceInput,
   type GitRepoSourceInput,
   type LocalPathSourceInput,
-} from "./gen/session";
+} from "./gen/session.js";
 
 // Session utilities (hand-written)
-export { PENDING_SUBJECT, resolvedSubject } from "./session";
+export { PENDING_SUBJECT, resolvedSubject } from "./session.js";
 
 // Tool-call view model (framework-agnostic; shared by @stigmer/react and @stigmer/ink)
 export {
@@ -193,19 +193,19 @@ export {
   type ToolResultView,
   type ToolSearchMatch,
   type ToolContentBlock,
-} from "./execution/tool-view";
+} from "./execution/tool-view.js";
 export {
   ApprovalPolicySource,
   describeApprovalPolicySource,
   isInformativePolicySource,
-} from "./execution/approval-provenance";
-export { isTerminalPhase } from "./execution/execution-phases";
+} from "./execution/approval-provenance.js";
+export { isTerminalPhase } from "./execution/execution-phases.js";
 export {
   foldFileReviewEventStream,
   displayFileChangeSets,
-} from "./execution/file-review-fold";
-export { toDisplayFileChange } from "./execution/to-display-file-change";
-export { SkillClient, type SkillInput } from "./gen/skill";
+} from "./execution/file-review-fold.js";
+export { toDisplayFileChange } from "./execution/to-display-file-change.js";
+export { SkillClient, type SkillInput } from "./gen/skill.js";
 export {
   WorkflowClient,
   type WorkflowInput,
@@ -213,12 +213,12 @@ export {
   type WorkflowTaskInput,
   type ExportInput,
   type FlowControlInput,
-} from "./gen/workflow";
+} from "./gen/workflow.js";
 export {
   WorkflowExecutionClient,
   type WorkflowExecutionInput,
-} from "./gen/workflowexecution";
+} from "./gen/workflowexecution.js";
 export {
   WorkflowInstanceClient,
   type WorkflowInstanceInput,
-} from "./gen/workflowinstance";
+} from "./gen/workflowinstance.js";

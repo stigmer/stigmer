@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import { SelectionCheckbox } from "./SelectionCheckbox";
+import { SelectionCheckbox } from "./SelectionCheckbox.js";
 
 /** Props for {@link ResourceList}. */
 export interface ResourceListProps<TData> {

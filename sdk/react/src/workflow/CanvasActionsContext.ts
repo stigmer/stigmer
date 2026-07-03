@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext } from "react";
-import type { WorkflowGraphModel } from "./workflow-graph-model";
+import type { WorkflowGraphModel } from "./workflow-graph-model.js";
 
 export interface CanvasActions {
   insertTaskOnEdge: (edgeId: string, kindString: string) => void;

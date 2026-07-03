@@ -3,8 +3,8 @@
 import { memo, useState, useCallback, useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { WorkflowGraphEdge } from "./workflow-graph-model";
-import { TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "./canvas-constants";
+import type { WorkflowGraphEdge } from "./workflow-graph-model.js";
+import { TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "./canvas-constants.js";
 
 // ---------------------------------------------------------------------------
 // Types

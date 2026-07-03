@@ -4,8 +4,8 @@ import { useCallback, useId, useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
-import { useScrollShadows } from "../internal/useScrollShadows";
-import { ScrollFade } from "../internal/ScrollFade";
+import { useScrollShadows } from "../internal/useScrollShadows.js";
+import { ScrollFade } from "../internal/ScrollFade.js";
 
 /** Props for {@link McpToolSelector}. */
 export interface McpToolSelectorProps {

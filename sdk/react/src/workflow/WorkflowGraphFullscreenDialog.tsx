@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph";
+import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph.js";
 
 /** Props for {@link WorkflowGraphFullscreenDialog}. */
 export interface WorkflowGraphFullscreenDialogProps {

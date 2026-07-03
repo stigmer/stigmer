@@ -18,10 +18,10 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { SkillSynthSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/synth_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { buildAgentProto } from "../gen/agent";
-import { buildMcpServerProto } from "../gen/mcpserver";
-import { buildWorkflowProto } from "../gen/workflow";
-import type { Registration } from "./context";
+import { buildAgentProto } from "../gen/agent.js";
+import { buildMcpServerProto } from "../gen/mcpserver.js";
+import { buildWorkflowProto } from "../gen/workflow.js";
+import type { Registration } from "./context.js";
 
 /** One serialized synthesis artifact: its file name and binary proto bytes. */
 export interface SynthFile {

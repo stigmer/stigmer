@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { NodeDiffStatus } from "../diff/types";
+import type { NodeDiffStatus } from "../diff/types.js";
 
 export interface DiffBadgeProps {
   readonly status: NodeDiffStatus;

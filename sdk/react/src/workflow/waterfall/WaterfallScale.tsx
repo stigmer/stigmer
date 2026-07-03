@@ -2,8 +2,8 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { WaterfallScale as WaterfallScaleData } from "../execution/derive-waterfall-entries";
-import { formatDuration } from "../format-utils";
+import type { WaterfallScale as WaterfallScaleData } from "../execution/derive-waterfall-entries.js";
+import { formatDuration } from "../format-utils.js";
 
 export interface WaterfallScaleProps {
   readonly scale: WaterfallScaleData;

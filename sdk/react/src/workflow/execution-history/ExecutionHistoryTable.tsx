@@ -2,14 +2,14 @@
 
 import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import { WorkflowExecutionPhaseBadge } from "../WorkflowExecutionPhaseBadge";
-import { formatDuration, formatMicroUsd, formatTokenCount } from "../format-utils";
+import { WorkflowExecutionPhaseBadge } from "../WorkflowExecutionPhaseBadge.js";
+import { formatDuration, formatMicroUsd, formatTokenCount } from "../format-utils.js";
 import {
   sortExecutionRows,
   type ExecutionRow,
   type ExecutionSortField,
   type SortDirection,
-} from "./derive-execution-row";
+} from "./derive-execution-row.js";
 
 // ---------------------------------------------------------------------------
 // Column definitions

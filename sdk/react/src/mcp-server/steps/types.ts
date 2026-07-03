@@ -1,6 +1,6 @@
-import type { EnvVarEntry, KeyValueEntry } from "../../resource-creation/types";
+import type { EnvVarEntry, KeyValueEntry } from "../../resource-creation/types.js";
 
-export type { EnvVarEntry, KeyValueEntry } from "../../resource-creation/types";
+export type { EnvVarEntry, KeyValueEntry } from "../../resource-creation/types.js";
 
 /**
  * Accumulated form state for the MCP server creation wizard.

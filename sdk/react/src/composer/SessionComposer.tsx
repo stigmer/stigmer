@@ -3,38 +3,38 @@
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type AttachmentInput, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
-import { useComposer } from "./useComposer";
-import { ComposerToolbar } from "./ComposerToolbar";
-import { type ConfigureMenuItem } from "./ConfigureMenu";
-import type { HarnessOption } from "../models/harness";
-import type { InteractionModeOption } from "./InteractionModePicker";
-import { parseModelKey } from "../models/registry";
-import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
-import { AgentPicker } from "../agent/AgentPicker";
-import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm";
-import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup";
-import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErrorGuide";
-import { McpServerPicker } from "../mcp-server/McpServerPicker";
-import { useMcpServerSetup } from "../mcp-server/useMcpServerSetup";
+import { useComposer } from "./useComposer.js";
+import { ComposerToolbar } from "./ComposerToolbar.js";
+import { type ConfigureMenuItem } from "./ConfigureMenu.js";
+import type { HarnessOption } from "../models/harness.js";
+import type { InteractionModeOption } from "./InteractionModePicker.js";
+import { parseModelKey } from "../models/registry.js";
+import { WorkspaceEditor } from "../workspace/WorkspaceEditor.js";
+import { AgentPicker } from "../agent/AgentPicker.js";
+import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm.js";
+import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup.js";
+import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErrorGuide.js";
+import { McpServerPicker } from "../mcp-server/McpServerPicker.js";
+import { useMcpServerSetup } from "../mcp-server/useMcpServerSetup.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { SkillPicker } from "../skill/SkillPicker";
-import { SessionVariablesInput } from "../execution/SessionVariablesInput";
-import type { UseSessionVariablesReturn } from "../execution/useSessionVariables";
-import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
-import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
-import { useAttachments } from "../attachment/useAttachments";
-import { AttachmentChipList } from "../attachment/AttachmentChipList";
-import { useFileReferences } from "../file-reference/useFileReferences";
-import { FileReferenceChipList } from "../file-reference/FileReferenceChipList";
-import { FILE_REF_MIME } from "../internal/file-tree";
-import { useSessionEnvPool } from "../environment/useSessionEnvPool";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
-import { useStigmer } from "../hooks";
+import { SkillPicker } from "../skill/SkillPicker.js";
+import { SessionVariablesInput } from "../execution/SessionVariablesInput.js";
+import type { UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
+import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries.js";
+import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
+import { useAttachments } from "../attachment/useAttachments.js";
+import { AttachmentChipList } from "../attachment/AttachmentChipList.js";
+import { useFileReferences } from "../file-reference/useFileReferences.js";
+import { FileReferenceChipList } from "../file-reference/FileReferenceChipList.js";
+import { FILE_REF_MIME } from "../internal/file-tree/index.js";
+import { useSessionEnvPool } from "../environment/useSessionEnvPool.js";
+import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
+import { useStigmer } from "../hooks.js";
 import {
   SYSTEM_ENV_VAR_KEYS,
   resolveSystemEnvVarValues,
-} from "../environment/systemEnvVars";
-import { useRenderTracer } from "../internal/dev";
+} from "../environment/systemEnvVars.js";
+import { useRenderTracer } from "../internal/dev/index.js";
 import {
   AgentIcon,
   McpServerIcon,
@@ -42,7 +42,7 @@ import {
   SecretsIcon,
   AlertTriangleIcon,
   ResolveSpinner,
-} from "./icons";
+} from "./icons.js";
 
 /**
  * Imperative handle exposed by {@link SessionComposer} via `ref`.

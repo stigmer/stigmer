@@ -5,7 +5,7 @@ import {
   GetOAuthAuthorizeUrlRequestSchema,
   GitHubService,
 } from "@stigmer/protos/ai/stigmer/platform/github/v1/service_pb";
-import { wrapError } from "./gen/errors";
+import { wrapError } from "./gen/errors.js";
 
 /** Parameters for getting the OAuth authorize URL. */
 export interface GetOAuthAuthorizeUrlParams {

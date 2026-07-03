@@ -9,10 +9,10 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { ProviderPicker } from "./ProviderPicker";
-import { useCreateIdentityProvider } from "./useCreateIdentityProvider";
-import { useOidcDiscovery } from "./useOidcDiscovery";
-import type { ProviderPreset, ProviderConfig } from "./presets";
+import { ProviderPicker } from "./ProviderPicker.js";
+import { useCreateIdentityProvider } from "./useCreateIdentityProvider.js";
+import { useOidcDiscovery } from "./useOidcDiscovery.js";
+import type { ProviderPreset, ProviderConfig } from "./presets.js";
 
 /** Props for {@link IdentityProviderWizard}. */
 export interface IdentityProviderWizardProps {

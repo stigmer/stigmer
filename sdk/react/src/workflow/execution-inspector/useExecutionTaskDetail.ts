@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
-import { deriveTaskDetail, type TaskDetail } from "./derive-task-detail";
+import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
+import { deriveTaskDetail, type TaskDetail } from "./derive-task-detail.js";
 
 /** Return value of {@link useExecutionTaskDetail}. */
 export interface UseExecutionTaskDetailReturn {

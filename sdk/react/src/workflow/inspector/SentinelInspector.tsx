@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { WorkflowGraphNode } from "../workflow-graph-model";
-import { START_NODE_ID } from "../workflow-graph-model";
+import type { WorkflowGraphNode } from "../workflow-graph-model.js";
+import { START_NODE_ID } from "../workflow-graph-model.js";
 
 /** Props for {@link SentinelInspector}. */
 export interface SentinelInspectorProps {

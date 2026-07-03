@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { useWorkflow } from "./useWorkflow";
-import { serializeWorkflowYaml } from "./serialize-workflow-yaml";
+import { useWorkflow } from "./useWorkflow.js";
+import { serializeWorkflowYaml } from "./serialize-workflow-yaml.js";
 
 /** Return value of {@link useWorkflowYaml}. */
 export interface UseWorkflowYamlReturn {

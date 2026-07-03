@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { TaskKindDescriptor, TaskKindCategory } from "./types";
-import { useTaskKindRegistryContext } from "./TaskKindRegistryContext";
+import type { TaskKindDescriptor, TaskKindCategory } from "./types.js";
+import { useTaskKindRegistryContext } from "./TaskKindRegistryContext.js";
 
 /** Return value of {@link useTaskKindRegistry}. */
 export interface UseTaskKindRegistryReturn {

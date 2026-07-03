@@ -4,18 +4,18 @@ import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useWorkflowCanvas } from "./useWorkflowCanvas";
-import type { LayoutEngine } from "./layout";
-import { WorkflowTaskPalette } from "./WorkflowTaskPalette";
-import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel";
-import { WorkflowSummaryPanel } from "./inspector/WorkflowSummaryPanel";
-import { CanvasActionsContext } from "./CanvasActionsContext";
-import type { CanvasActions } from "./CanvasActionsContext";
-import { CanvasContextMenu } from "./CanvasContextMenu";
-import type { CanvasContextMenuTarget } from "./CanvasContextMenu";
-import { TaskPickerPopover } from "./TaskPickerPopover";
-import { useCanvasKeyboardShortcuts } from "./useCanvasKeyboardShortcuts";
-import { ViewYamlDialog } from "./ViewYamlDialog";
+import { useWorkflowCanvas } from "./useWorkflowCanvas.js";
+import type { LayoutEngine } from "./layout/index.js";
+import { WorkflowTaskPalette } from "./WorkflowTaskPalette.js";
+import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel.js";
+import { WorkflowSummaryPanel } from "./inspector/WorkflowSummaryPanel.js";
+import { CanvasActionsContext } from "./CanvasActionsContext.js";
+import type { CanvasActions } from "./CanvasActionsContext.js";
+import { CanvasContextMenu } from "./CanvasContextMenu.js";
+import type { CanvasContextMenuTarget } from "./CanvasContextMenu.js";
+import { TaskPickerPopover } from "./TaskPickerPopover.js";
+import { useCanvasKeyboardShortcuts } from "./useCanvasKeyboardShortcuts.js";
+import { ViewYamlDialog } from "./ViewYamlDialog.js";
 
 /** Props for {@link WorkflowCanvasEditor}. */
 export interface WorkflowCanvasEditorProps {
@@ -52,7 +52,7 @@ export interface WorkflowCanvasEditorProps {
 }
 
 const LazyCanvasInner = lazy(() =>
-  import("./WorkflowCanvasInner").then((m) => ({ default: m.WorkflowCanvasInner })),
+  import("./WorkflowCanvasInner.js").then((m) => ({ default: m.WorkflowCanvasInner })),
 );
 
 /**

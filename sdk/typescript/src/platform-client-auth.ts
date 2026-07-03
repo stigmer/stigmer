@@ -3,11 +3,11 @@ import { createClient, type Client } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { PlatformClientTokenController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { MintUserTokenRequestSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
-import { StigmerError, wrapError } from "./gen/errors";
+import { StigmerError, wrapError } from "./gen/errors.js";
 import {
   rpcMetadataInterceptor,
   errorStripInterceptor,
-} from "./internal/interceptors";
+} from "./internal/interceptors.js";
 
 /**
  * Configuration for a PlatformClient token-minting helper.

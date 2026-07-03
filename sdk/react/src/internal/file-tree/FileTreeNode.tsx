@@ -2,7 +2,7 @@
 
 import { useCallback, useState, type DragEvent } from "react";
 import { cn } from "@stigmer/theme";
-import type { TreeNode } from "./tree-node";
+import type { TreeNode } from "./tree-node.js";
 
 /**
  * MIME type used to transfer workspace file-reference data during

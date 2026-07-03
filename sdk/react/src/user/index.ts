@@ -1,2 +1,2 @@
-export { UserMenu } from "./UserMenu";
-export type { UserMenuProps } from "./UserMenu";
+export { UserMenu } from "./UserMenu.js";
+export type { UserMenuProps } from "./UserMenu.js";

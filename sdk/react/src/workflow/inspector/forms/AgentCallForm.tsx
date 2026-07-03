@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback, useMemo } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { WorkflowGraphNode } from "../../workflow-graph-model";
+import type { WorkflowGraphNode } from "../../workflow-graph-model.js";
 
 /** Props for {@link AgentCallForm}. */
 export interface AgentCallFormProps {

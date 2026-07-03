@@ -3,21 +3,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentResolution } from "../agent";
-import { useDefaultAgent } from "../agent";
-import { useStigmer } from "../hooks";
-import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace";
-import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables";
-import type { SessionComposerSubmitContext, InteractionModeOption } from "../composer";
-import { fromProtoInteractionMode } from "../composer";
-import { fromProtoHarness, type HarnessOption } from "../models/harness";
+import type { AgentResolution } from "../agent/index.js";
+import { useDefaultAgent } from "../agent/index.js";
+import { useStigmer } from "../hooks.js";
+import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
+import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
+import type { SessionComposerSubmitContext, InteractionModeOption } from "../composer/index.js";
+import { fromProtoInteractionMode } from "../composer/index.js";
+import { fromProtoHarness, type HarnessOption } from "../models/harness.js";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target";
-import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation";
-import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env";
-import { useAgentRefFromSession } from "./useAgentRefFromSession";
-import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel";
-import { specMcpUsagesToInput, specSkillRefsToInput } from "./session-spec-converters";
+import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target.js";
+import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation.js";
+import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
+import { useAgentRefFromSession } from "./useAgentRefFromSession.js";
+import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
+import { specMcpUsagesToInput, specSkillRefsToInput } from "./session-spec-converters.js";
 
 /**
  * Well-known Daytona sandbox workspace root. Used as the SDK safety-net

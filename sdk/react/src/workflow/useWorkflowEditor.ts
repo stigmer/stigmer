@@ -2,11 +2,11 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { Diagnostic } from "@codemirror/lint";
-import { useWorkflowValidation } from "./useWorkflowValidation";
-import { useWorkflowTopology } from "./useWorkflowTopology";
-import { useWorkflowSave } from "./useWorkflowSave";
-import { useTaskKindRegistryContext } from "./TaskKindRegistryContext";
-import { useTaskKindRegistry } from "./useTaskKindRegistry";
+import { useWorkflowValidation } from "./useWorkflowValidation.js";
+import { useWorkflowTopology } from "./useWorkflowTopology.js";
+import { useWorkflowSave } from "./useWorkflowSave.js";
+import { useTaskKindRegistryContext } from "./TaskKindRegistryContext.js";
+import { useTaskKindRegistry } from "./useTaskKindRegistry.js";
 
 /** Options for {@link useWorkflowEditor}. */
 export interface UseWorkflowEditorOptions {

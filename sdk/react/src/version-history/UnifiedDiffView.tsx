@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
-import { DiffViewer } from "./DiffViewer";
-import { parseUnifiedDiff } from "./parseUnifiedDiff";
+import { DiffViewer } from "./DiffViewer.js";
+import { parseUnifiedDiff } from "./parseUnifiedDiff.js";
 
 /** Props for {@link UnifiedDiffView}. */
 export interface UnifiedDiffViewProps {

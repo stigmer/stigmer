@@ -1,4 +1,4 @@
-import type { TreeNode } from "./tree-node";
+import type { TreeNode } from "./tree-node.js";
 
 /**
  * Filters a {@link TreeNode} hierarchy by a search query.

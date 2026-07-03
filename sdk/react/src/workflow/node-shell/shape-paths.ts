@@ -1,4 +1,4 @@
-import type { VisualClass } from "../task-type-visual-registry";
+import type { VisualClass } from "../task-type-visual-registry.js";
 
 /**
  * Inset rectangle defining the safe content area within a node shape.

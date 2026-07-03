@@ -3,7 +3,7 @@ import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexec
 import {
   fileReviewRowState,
   type FileReviewRowState,
-} from "./file-review-status";
+} from "./file-review-status.js";
 
 /**
  * Context value that carries the session's captured change sets to the

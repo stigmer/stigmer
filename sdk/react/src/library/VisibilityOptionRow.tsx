@@ -2,7 +2,7 @@
 
 import { forwardRef } from "react";
 import { cn } from "@stigmer/theme";
-import type { VisibilityLevelOption } from "./visibilityLevels";
+import type { VisibilityLevelOption } from "./visibilityLevels.js";
 
 /** Color treatment key shared by every visibility surface. */
 export type VisibilityTone = VisibilityLevelOption["tone"];

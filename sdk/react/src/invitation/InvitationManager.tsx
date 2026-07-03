@@ -11,11 +11,11 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { useOrgInvitations } from "./useOrgInvitations";
-import { useCreateInvitation } from "./useCreateInvitation";
-import { useRevokeInvitation } from "./useRevokeInvitation";
-import { InvitationCreatedAlert } from "./InvitationCreatedAlert";
-import { RoleSelector } from "../iam-policy/RoleSelector";
+import { useOrgInvitations } from "./useOrgInvitations.js";
+import { useCreateInvitation } from "./useCreateInvitation.js";
+import { useRevokeInvitation } from "./useRevokeInvitation.js";
+import { InvitationCreatedAlert } from "./InvitationCreatedAlert.js";
+import { RoleSelector } from "../iam-policy/RoleSelector.js";
 
 // ---------------------------------------------------------------------------
 // Public API

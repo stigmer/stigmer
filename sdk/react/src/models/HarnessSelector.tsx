@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, type KeyboardEvent } from "react";
-import { HARNESS_LABELS, type HarnessOption } from "./harness";
+import { HARNESS_LABELS, type HarnessOption } from "./harness.js";
 
 const OPTIONS: readonly HarnessOption[] = ["native", "cursor"];
 

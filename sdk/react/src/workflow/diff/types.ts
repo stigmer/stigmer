@@ -1,4 +1,4 @@
-import type { WorkflowGraphNode } from "../workflow-graph-model";
+import type { WorkflowGraphNode } from "../workflow-graph-model.js";
 
 /**
  * Diff status for a single node in the merged diff graph.

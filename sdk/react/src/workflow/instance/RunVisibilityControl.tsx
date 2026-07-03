@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
 import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import { getUserMessage } from "@stigmer/sdk";
-import { useUpdateWorkflowInstanceExecutionVisibility } from "./useUpdateWorkflowInstanceExecutionVisibility";
+import { useUpdateWorkflowInstanceExecutionVisibility } from "./useUpdateWorkflowInstanceExecutionVisibility.js";
 
 /** Props for {@link RunVisibilityControl}. */
 export interface RunVisibilityControlProps {

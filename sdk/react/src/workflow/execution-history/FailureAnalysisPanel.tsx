@@ -3,7 +3,7 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { deriveFailureAnalysis, type FailureGroup } from "./derive-failure-analysis";
+import { deriveFailureAnalysis, type FailureGroup } from "./derive-failure-analysis.js";
 
 /** Props for {@link FailureAnalysisPanel}. */
 export interface FailureAnalysisPanelProps {

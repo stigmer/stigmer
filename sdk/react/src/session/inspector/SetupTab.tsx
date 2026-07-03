@@ -2,10 +2,10 @@
 
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import type { HarnessOption } from "../../models/harness";
-import { HARNESS_META } from "../../models/harness";
-import type { ExecutionTargetOption } from "../execution-target";
-import type { UseSessionVariablesReturn } from "../../execution/useSessionVariables";
+import type { HarnessOption } from "../../models/harness.js";
+import { HARNESS_META } from "../../models/harness.js";
+import type { ExecutionTargetOption } from "../execution-target.js";
+import type { UseSessionVariablesReturn } from "../../execution/useSessionVariables.js";
 
 /** Interactive mutation callbacks for config items in SetupTab. */
 export interface SetupTabMutationCallbacks {

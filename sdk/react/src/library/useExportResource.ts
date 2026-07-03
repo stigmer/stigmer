@@ -5,9 +5,9 @@ import { parse as parseYaml } from "yaml";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { toast } from "../feedback/toast";
-import { serializeAgentYaml, serializeMcpServerYaml } from "./serialize-resource-yaml";
-import { serializeWorkflowYaml } from "../workflow/serialize-workflow-yaml";
+import { toast } from "../feedback/toast.js";
+import { serializeAgentYaml, serializeMcpServerYaml } from "./serialize-resource-yaml.js";
+import { serializeWorkflowYaml } from "../workflow/serialize-workflow-yaml.js";
 
 // ---------------------------------------------------------------------------
 // Types

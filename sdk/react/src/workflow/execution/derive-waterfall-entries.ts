@@ -13,7 +13,7 @@
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowTaskKind as WTK } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 
 // ---------------------------------------------------------------------------
 // Public types

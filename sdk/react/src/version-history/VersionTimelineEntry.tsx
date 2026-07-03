@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { VersionTimelineEntryProps } from "./types";
+import type { VersionTimelineEntryProps } from "./types.js";
 
 /**
  * A single row in a version timeline.

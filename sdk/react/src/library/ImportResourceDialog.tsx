@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
-import { toast } from "../feedback/toast";
-import { useImportResource } from "./useImportResource";
-import type { ApplyResourceResult } from "./useApplyResource";
+import { toast } from "../feedback/toast.js";
+import { useImportResource } from "./useImportResource.js";
+import type { ApplyResourceResult } from "./useApplyResource.js";
 
 // ---------------------------------------------------------------------------
 // Props

@@ -4,7 +4,7 @@ import { useCallback, useId, useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { ResourceRef } from "@stigmer/sdk";
-import { useEnvironmentList } from "./useEnvironmentList";
+import { useEnvironmentList } from "./useEnvironmentList.js";
 
 /** Props for {@link EnvironmentPicker}. */
 export interface EnvironmentPickerProps {

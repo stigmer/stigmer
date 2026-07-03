@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import type { WizardStepDef } from "../resource-creation/types";
-import { useWizardState } from "../resource-creation/useWizardState";
-import { WizardShell } from "../resource-creation/WizardShell";
-import { useCreateMcpServer } from "./useCreateMcpServer";
-import { IdentityTransportStep } from "./steps/IdentityTransportStep";
-import { EnvironmentAuthStep } from "./steps/EnvironmentAuthStep";
-import { ReviewStep, buildMcpServerInput } from "./steps/ReviewStep";
-import { createInitialMcpServerWizardData } from "./steps/types";
-import type { McpServerWizardData } from "./steps/types";
+import type { WizardStepDef } from "../resource-creation/types.js";
+import { useWizardState } from "../resource-creation/useWizardState.js";
+import { WizardShell } from "../resource-creation/WizardShell.js";
+import { useCreateMcpServer } from "./useCreateMcpServer.js";
+import { IdentityTransportStep } from "./steps/IdentityTransportStep.js";
+import { EnvironmentAuthStep } from "./steps/EnvironmentAuthStep.js";
+import { ReviewStep, buildMcpServerInput } from "./steps/ReviewStep.js";
+import { createInitialMcpServerWizardData } from "./steps/types.js";
+import type { McpServerWizardData } from "./steps/types.js";
 
 // ---------------------------------------------------------------------------
 // Public API

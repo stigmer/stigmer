@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { ViewMode } from "../types";
+import type { ViewMode } from "../types.js";
 
 /** Props for {@link ViewSwitcher}. */
 export interface ViewSwitcherProps {

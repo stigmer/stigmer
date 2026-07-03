@@ -2,12 +2,12 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderListPanel } from "../identity-provider/IdentityProviderListPanel";
-import { IdentityProviderWizard } from "../identity-provider/IdentityProviderWizard";
-import { IdentityProviderDetailPanel } from "../identity-provider/IdentityProviderDetailPanel";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
-import { useOrg } from "../organization/OrgProvider";
+import { IdentityProviderListPanel } from "../identity-provider/IdentityProviderListPanel.js";
+import { IdentityProviderWizard } from "../identity-provider/IdentityProviderWizard.js";
+import { IdentityProviderDetailPanel } from "../identity-provider/IdentityProviderDetailPanel.js";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { useOrg } from "../organization/OrgProvider.js";
 
 /** Props for {@link IdentityProvidersSection}. */
 export interface IdentityProvidersSectionProps {

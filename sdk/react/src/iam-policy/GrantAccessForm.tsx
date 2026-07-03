@@ -9,9 +9,9 @@ import { IamPolicySpecSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, iamRoleToString } from "@stigmer/sdk";
-import { useCreateIamPolicy } from "./useCreateIamPolicy";
-import { RoleSelector } from "./RoleSelector";
-import { PrincipalPicker, type SelectedPrincipal } from "./PrincipalPicker";
+import { useCreateIamPolicy } from "./useCreateIamPolicy.js";
+import { RoleSelector } from "./RoleSelector.js";
+import { PrincipalPicker, type SelectedPrincipal } from "./PrincipalPicker.js";
 
 /** Props for {@link GrantAccessForm}. */
 export interface GrantAccessFormProps {

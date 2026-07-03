@@ -2,8 +2,8 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { SummarizationEventView } from "./useContextWindow";
-import { formatTokenCount } from "./UsageWidget";
+import type { SummarizationEventView } from "./useContextWindow.js";
+import { formatTokenCount } from "./UsageWidget.js";
 
 /** Props for {@link SummarizationCard}. */
 export interface SummarizationCardProps {

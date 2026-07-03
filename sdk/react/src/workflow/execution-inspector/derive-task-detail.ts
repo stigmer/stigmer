@@ -12,9 +12,9 @@ import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/
 import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
-import { kindToDisplayName } from "../kind-metadata";
-import { taskKindToString } from "../workflow-graph-conversions";
+import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
+import { kindToDisplayName } from "../kind-metadata.js";
+import { taskKindToString } from "../workflow-graph-conversions.js";
 
 // ---------------------------------------------------------------------------
 // Public types

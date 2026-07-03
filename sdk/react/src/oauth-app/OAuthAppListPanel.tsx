@@ -4,7 +4,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { useOAuthAppList } from "./useOAuthAppList";
+import { useOAuthAppList } from "./useOAuthAppList.js";
 
 // ---------------------------------------------------------------------------
 // Public API

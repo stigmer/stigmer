@@ -12,15 +12,15 @@
  */
 
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { WorkflowGraphModel, WorkflowGraphNode } from "../workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
+import type { WorkflowGraphModel, WorkflowGraphNode } from "../workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
 import type {
   NodeDiffStatus,
   NodeDiffEntry,
   EdgeDiffEntry,
   EdgeDiffStatus,
   GraphDiff,
-} from "./types";
+} from "./types.js";
 
 // ---------------------------------------------------------------------------
 // JSON deep equality

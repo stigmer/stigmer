@@ -12,11 +12,11 @@ import type { ResourceRef } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { cn } from "@stigmer/theme";
-import { useSkillSearch } from "./useSkillSearch";
-import { useScrollShadows } from "../internal/useScrollShadows";
-import { ScrollFade } from "../internal/ScrollFade";
-import { ScopeToggle } from "../library/ScopeToggle";
-import type { ResourceListScope } from "../search";
+import { useSkillSearch } from "./useSkillSearch.js";
+import { useScrollShadows } from "../internal/useScrollShadows.js";
+import { ScrollFade } from "../internal/ScrollFade.js";
+import { ScopeToggle } from "../library/ScopeToggle.js";
+import type { ResourceListScope } from "../search/index.js";
 
 /** Props for {@link SkillPicker}. */
 export interface SkillPickerProps {

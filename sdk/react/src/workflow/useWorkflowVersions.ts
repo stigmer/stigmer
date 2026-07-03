@@ -8,9 +8,9 @@ import {
   ListWorkflowVersionsInputSchema,
   type WorkflowVersionEntry as ProtoWorkflowVersionEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
-import type { VersionEntry } from "../version-history/types";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
+import type { VersionEntry } from "../version-history/types.js";
 
 const CODE_UNIMPLEMENTED = 12;
 

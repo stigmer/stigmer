@@ -1,5 +1,5 @@
-export { useRenderTracer } from "./use-render-tracer";
-export { useKeyStability } from "./use-key-stability";
-export { useStreamRate, type StreamRateTracker } from "./use-stream-rate";
-export { DevProfiler } from "./profiler-wrapper";
-export { useDomNodeCount } from "./dom-counter";
+export { useRenderTracer } from "./use-render-tracer.js";
+export { useKeyStability } from "./use-key-stability.js";
+export { useStreamRate, type StreamRateTracker } from "./use-stream-rate.js";
+export { DevProfiler } from "./profiler-wrapper.js";
+export { useDomNodeCount } from "./dom-counter.js";

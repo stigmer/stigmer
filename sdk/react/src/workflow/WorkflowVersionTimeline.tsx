@@ -2,9 +2,9 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { useWorkflowVersions } from "./useWorkflowVersions";
-import { WorkflowVersionBadge } from "./WorkflowVersionBadge";
-import type { VersionEntry } from "../version-history/types";
+import { useWorkflowVersions } from "./useWorkflowVersions.js";
+import { WorkflowVersionBadge } from "./WorkflowVersionBadge.js";
+import type { VersionEntry } from "../version-history/types.js";
 
 /** Props for {@link WorkflowVersionTimeline}. */
 export interface WorkflowVersionTimelineProps {

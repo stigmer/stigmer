@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback } from "react";
-import { useStigmer } from "../hooks";
+import { useStigmer } from "../hooks.js";
 import {
   useResourceSearch,
   type UseResourceSearchOptions,
   type UseResourceSearchReturn,
-} from "../search";
+} from "../search/index.js";
 
 /** Options for {@link useAgentSearch}. Delegates to the shared resource search options. */
 export type UseAgentSearchOptions = UseResourceSearchOptions;

@@ -5,16 +5,16 @@ import { cn } from "@stigmer/theme";
 import {
   resolveToolCategory,
   extractWriteContentFromPreview,
-} from "./tool-categories";
-import type { ToolCategory, ToolCategoryInfo } from "./tool-categories";
-import { FilePathLink } from "./FilePathLink";
-import { McpArgsView, McpMetadataRow } from "./McpToolDetail";
-import { TerminalSession } from "./TerminalSession";
+} from "./tool-categories.js";
+import type { ToolCategory, ToolCategoryInfo } from "./tool-categories.js";
+import { FilePathLink } from "./FilePathLink.js";
+import { McpArgsView, McpMetadataRow } from "./McpToolDetail.js";
+import { TerminalSession } from "./TerminalSession.js";
 import {
   CollapsibleCode,
   FilePathIcon,
   formatJson,
-} from "./tool-rendering-primitives";
+} from "./tool-rendering-primitives.js";
 
 // ---------------------------------------------------------------------------
 // Public API

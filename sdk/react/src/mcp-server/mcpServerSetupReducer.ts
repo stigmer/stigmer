@@ -2,7 +2,7 @@ import type { ResourceRef } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
-import type { EnvVarFormVariable } from "../environment/EnvVarForm";
+import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
 
 // ---------------------------------------------------------------------------
 // Key utility

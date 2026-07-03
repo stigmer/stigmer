@@ -3,17 +3,17 @@
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { ToolResultView } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import { BoundedContent } from "../internal/BoundedContent";
-import { McpToolDetail } from "./McpToolDetail";
-import { ToolArgsView } from "./ToolArgsView";
-import { ResultView } from "./ResultView";
-import { useToolPresentation } from "./tool-presenter";
-import type { ToolCategory } from "./tool-categories";
-import { CollapsiblePre } from "./tool-rendering-primitives";
+import { BoundedContent } from "../internal/BoundedContent.js";
+import { McpToolDetail } from "./McpToolDetail.js";
+import { ToolArgsView } from "./ToolArgsView.js";
+import { ResultView } from "./ResultView.js";
+import { useToolPresentation } from "./tool-presenter.js";
+import type { ToolCategory } from "./tool-categories.js";
+import { CollapsiblePre } from "./tool-rendering-primitives.js";
 import {
   describeApprovalPolicySource,
   isInformativePolicySource,
-} from "./approval-provenance";
+} from "./approval-provenance.js";
 
 /** Props for {@link ToolCallDetail}. */
 export interface ToolCallDetailProps {

@@ -1,4 +1,4 @@
-import type { InsertionContext } from "./insertion-context";
+import type { InsertionContext } from "./insertion-context.js";
 
 /**
  * A suggested task kind with a human-readable reason.

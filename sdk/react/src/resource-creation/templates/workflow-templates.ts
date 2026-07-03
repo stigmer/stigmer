@@ -1,4 +1,4 @@
-import type { ResourceTemplate } from "./types";
+import type { ResourceTemplate } from "./types.js";
 
 /**
  * Data payload for workflow templates.

@@ -2,8 +2,8 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import { ExecutionInspector } from "../execution-inspector";
-import type { ExecutionInspectorProps } from "../execution-inspector";
+import { ExecutionInspector } from "../execution-inspector/index.js";
+import type { ExecutionInspectorProps } from "../execution-inspector/index.js";
 
 /**
  * Props for {@link ExecutionInspectorAdapter}.

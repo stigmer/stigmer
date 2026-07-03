@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import type { StatusPhase } from "../resource-workbench/types";
-import type { TabItem } from "../tabs/Tabs";
+import type { StatusPhase } from "../resource-workbench/types.js";
+import type { TabItem } from "../tabs/Tabs.js";
 
 // ---------------------------------------------------------------------------
 // Additional tab — consumer-provided extension tabs for detail views

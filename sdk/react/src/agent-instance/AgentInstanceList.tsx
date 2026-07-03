@@ -4,11 +4,11 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { useAgentInstances } from "./useAgentInstances";
-import { useEnvironmentList } from "../environment/useEnvironmentList";
-import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl";
-import { PermissionGate } from "../iam-policy/PermissionGate";
-import { AgentInstanceEmptyState } from "./AgentInstanceEmptyState";
+import { useAgentInstances } from "./useAgentInstances.js";
+import { useEnvironmentList } from "../environment/useEnvironmentList.js";
+import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
+import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { AgentInstanceEmptyState } from "./AgentInstanceEmptyState.js";
 
 /** Label marking a user's auto-managed personal instance. */
 const PERSONAL_LABEL = "stigmer.ai/personal";

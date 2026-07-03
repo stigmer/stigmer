@@ -1,6 +1,6 @@
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { GRANTABLE_ROLES } from "./gen/authorization-config";
+import { GRANTABLE_ROLES } from "./gen/authorization-config.js";
 
 const EMPTY_ROLES: readonly IamRole[] = Object.freeze([]);
 

@@ -22,7 +22,7 @@ import type { BillingAccount, CreditBalance } from "@stigmer/protos/ai/stigmer/b
 import type { LedgerEntryType, LedgerView } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { wrapError } from "./gen/errors";
+import { wrapError } from "./gen/errors.js";
 
 /** Parameters for creating a Stripe Checkout Session. */
 export interface CreateCheckoutSessionParams {

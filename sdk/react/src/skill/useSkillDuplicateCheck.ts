@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useStigmer } from "../hooks";
-import { computeArtifactHash } from "./internal/computeArtifactHash";
+import { useStigmer } from "../hooks.js";
+import { computeArtifactHash } from "./internal/computeArtifactHash.js";
 
 /** Return value of {@link useSkillDuplicateCheck}. */
 export interface UseSkillDuplicateCheckReturn {

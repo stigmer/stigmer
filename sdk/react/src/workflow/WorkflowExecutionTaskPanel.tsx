@@ -3,8 +3,8 @@
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
-import { formatDuration } from "./format-utils";
+import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
+import { formatDuration } from "./format-utils.js";
 
 /** Props for {@link WorkflowExecutionTaskPanel}. */
 export interface WorkflowExecutionTaskPanelProps {

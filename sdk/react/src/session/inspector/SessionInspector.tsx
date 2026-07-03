@@ -4,20 +4,20 @@ import { memo } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { Tabs } from "../../tabs/Tabs";
-import { ExecutionPhaseBadge } from "../../execution/ExecutionPhaseBadge";
-import { useSessionArtifacts } from "../useSessionArtifacts";
-import { useSessionWriteBacks } from "../useSessionWriteBacks";
-import { useSessionUsage } from "../useSessionUsage";
-import { useSessionInspector } from "./useSessionInspector";
-import { ChangesTab } from "./ChangesTab";
-import { ArtifactsTab } from "./ArtifactsTab";
-import { UsageTab } from "./UsageTab";
-import { InspectTab } from "./InspectTab";
-import { SetupTab, type SetupTabProps } from "./SetupTab";
-import { WorkspaceTab, type WorkspaceTabProps } from "./WorkspaceTab";
-import type { SelectedThreadItem } from "../../internal/store/selection-store";
-import type { ApplyResourceResult } from "../../library/useApplyResource";
+import { Tabs } from "../../tabs/Tabs.js";
+import { ExecutionPhaseBadge } from "../../execution/ExecutionPhaseBadge.js";
+import { useSessionArtifacts } from "../useSessionArtifacts.js";
+import { useSessionWriteBacks } from "../useSessionWriteBacks.js";
+import { useSessionUsage } from "../useSessionUsage.js";
+import { useSessionInspector } from "./useSessionInspector.js";
+import { ChangesTab } from "./ChangesTab.js";
+import { ArtifactsTab } from "./ArtifactsTab.js";
+import { UsageTab } from "./UsageTab.js";
+import { InspectTab } from "./InspectTab.js";
+import { SetupTab, type SetupTabProps } from "./SetupTab.js";
+import { WorkspaceTab, type WorkspaceTabProps } from "./WorkspaceTab.js";
+import type { SelectedThreadItem } from "../../internal/store/selection-store.js";
+import type { ApplyResourceResult } from "../../library/useApplyResource.js";
 
 /** Props for {@link SessionInspector}. */
 export interface SessionInspectorProps {

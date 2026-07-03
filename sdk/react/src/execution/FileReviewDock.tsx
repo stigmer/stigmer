@@ -4,8 +4,8 @@ import { memo, useCallback } from "react";
 import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import type { FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { FileReviewCard } from "./FileReviewCard";
-import type { FileDecisionOptions } from "./useFileReview";
+import { FileReviewCard } from "./FileReviewCard.js";
+import type { FileDecisionOptions } from "./useFileReview.js";
 
 /** Props for {@link FileReviewDock}. */
 export interface FileReviewDockProps {

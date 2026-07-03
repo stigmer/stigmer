@@ -12,14 +12,14 @@ import {
 } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
-import { WorkflowNode } from "./WorkflowNode";
-import { CanvasTransitionEdge } from "./CanvasTransitionEdge";
-import { CANVAS_TASK_NODE_TYPE, CANVAS_TRANSITION_EDGE_TYPE } from "./workflow-graph-conversions";
-import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
-import { WorkflowGraphModeProvider } from "./WorkflowGraphModeContext";
-import { useWorkflowDiffGraph } from "./useWorkflowDiffGraph";
-import type { NodeDiffEntry } from "./diff";
-import { DiffSummaryBar } from "./diff";
+import { WorkflowNode } from "./WorkflowNode.js";
+import { CanvasTransitionEdge } from "./CanvasTransitionEdge.js";
+import { CANVAS_TASK_NODE_TYPE, CANVAS_TRANSITION_EDGE_TYPE } from "./workflow-graph-conversions.js";
+import type { CanvasTaskNodeData } from "./workflow-graph-conversions.js";
+import { WorkflowGraphModeProvider } from "./WorkflowGraphModeContext.js";
+import { useWorkflowDiffGraph } from "./useWorkflowDiffGraph.js";
+import type { NodeDiffEntry } from "./diff/index.js";
+import { DiffSummaryBar } from "./diff/index.js";
 
 /** Props for {@link WorkflowDiffGraph}. */
 export interface WorkflowDiffGraphProps {

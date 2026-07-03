@@ -1,33 +1,33 @@
-export { SessionInspector } from "./SessionInspector";
-export type { SessionInspectorProps } from "./SessionInspector";
+export { SessionInspector } from "./SessionInspector.js";
+export type { SessionInspectorProps } from "./SessionInspector.js";
 
-export { useSessionInspector, buildVisibleTabs } from "./useSessionInspector";
+export { useSessionInspector, buildVisibleTabs } from "./useSessionInspector.js";
 export type {
   SessionInspectorTabId,
   UseSessionInspectorOptions,
   UseSessionInspectorReturn,
-} from "./useSessionInspector";
+} from "./useSessionInspector.js";
 
-export { ChangesTab } from "./ChangesTab";
-export type { ChangesTabProps } from "./ChangesTab";
+export { ChangesTab } from "./ChangesTab.js";
+export type { ChangesTabProps } from "./ChangesTab.js";
 
-export { ArtifactsTab } from "./ArtifactsTab";
-export type { ArtifactsTabProps } from "./ArtifactsTab";
+export { ArtifactsTab } from "./ArtifactsTab.js";
+export type { ArtifactsTabProps } from "./ArtifactsTab.js";
 
-export { UsageTab } from "./UsageTab";
-export type { UsageTabProps } from "./UsageTab";
+export { UsageTab } from "./UsageTab.js";
+export type { UsageTabProps } from "./UsageTab.js";
 
-export { InspectTab } from "./InspectTab";
-export type { InspectTabProps } from "./InspectTab";
+export { InspectTab } from "./InspectTab.js";
+export type { InspectTabProps } from "./InspectTab.js";
 
-export { SetupTab } from "./SetupTab";
+export { SetupTab } from "./SetupTab.js";
 export type {
   SetupTabProps,
   SetupTabMutationCallbacks,
-} from "./SetupTab";
+} from "./SetupTab.js";
 
-export { WorkspaceTab } from "./WorkspaceTab";
+export { WorkspaceTab } from "./WorkspaceTab.js";
 export type {
   WorkspaceTabProps,
   WorkspaceTabActions,
-} from "./WorkspaceTab";
+} from "./WorkspaceTab.js";

@@ -4,8 +4,8 @@ import type {
   TopologyNode,
   TopologyEdge,
   UseWorkflowTopologyReturn,
-} from "./useWorkflowTopology";
-import { categorizeKind } from "./kind-metadata";
+} from "./useWorkflowTopology.js";
+import { categorizeKind } from "./kind-metadata.js";
 
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 40;

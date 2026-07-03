@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { AgentInput } from "@stigmer/sdk";
-import { serializeAgentInputYaml } from "../../library/serialize-resource-yaml";
-import type { AgentWizardData } from "./types";
+import { serializeAgentInputYaml } from "../../library/serialize-resource-yaml.js";
+import type { AgentWizardData } from "./types.js";
 
 /** Props for {@link ReviewStep}. */
 export interface ReviewStepProps {

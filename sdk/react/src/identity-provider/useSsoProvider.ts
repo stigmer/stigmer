@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { OrganizationSsoLookupSchema, type SsoProviderInfo } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { isNotFound } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useSsoProvider}. */
 export interface UseSsoProviderReturn {

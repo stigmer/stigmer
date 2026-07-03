@@ -2,9 +2,9 @@
 
 import { memo, useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
-import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
-import { kindToDisplayName, categorizeKind } from "./kind-metadata";
-import { CATEGORY_COLORS } from "./canvas-constants";
+import type { CanvasTaskNodeData } from "./workflow-graph-conversions.js";
+import { kindToDisplayName, categorizeKind } from "./kind-metadata.js";
+import { CATEGORY_COLORS } from "./canvas-constants.js";
 
 /** Props for {@link WorkflowNodePopover}. */
 export interface WorkflowNodePopoverProps {

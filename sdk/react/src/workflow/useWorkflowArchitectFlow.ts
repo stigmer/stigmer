@@ -4,18 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { useCreateSession } from "../session/useCreateSession";
-import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
-import { useExecutionStream } from "../execution/useExecutionStream";
-import { isTerminalPhase } from "../execution/execution-phases";
-import { useConversationStoreRef } from "../internal/store";
-import { parseWorkflowYaml } from "./serialize-workflow-yaml";
+import { useStigmer } from "../hooks.js";
+import { useCreateSession } from "../session/useCreateSession.js";
+import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
+import { useExecutionStream } from "../execution/useExecutionStream.js";
+import { isTerminalPhase } from "../execution/execution-phases.js";
+import { useConversationStoreRef } from "../internal/store/index.js";
+import { parseWorkflowYaml } from "./serialize-workflow-yaml.js";
 import {
   extractWorkflowYaml,
   type ExtractedWorkflowYaml,
-} from "./extract-workflow-yaml";
-import { WORKFLOW_ARCHITECT_RESPONSE_SCHEMA } from "./architect-response-schema";
+} from "./extract-workflow-yaml.js";
+import { WORKFLOW_ARCHITECT_RESPONSE_SCHEMA } from "./architect-response-schema.js";
 
 /**
  * Lifecycle phases for the Workflow Architect generate flow.

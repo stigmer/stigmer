@@ -2,7 +2,7 @@ import type { ComponentProps, JSX } from "react";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@stigmer/theme";
-import { highlightToReact } from "./code-highlight";
+import { highlightToReact } from "./code-highlight.js";
 
 const LANGUAGE_CLASS_PREFIX = "language-";
 

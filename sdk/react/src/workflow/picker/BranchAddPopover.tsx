@@ -3,7 +3,7 @@
 import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
-import { useStigmerPortalContainer } from "../../portal-container";
+import { useStigmerPortalContainer } from "../../portal-container.js";
 
 /** The type of branch being added. */
 export type BranchAddMode = "switch-case" | "fork-branch" | "catch-handler";

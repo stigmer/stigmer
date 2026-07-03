@@ -2,8 +2,8 @@
 
 import { useCallback } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useResourceList, type ResourceListScope } from "../search";
+import { useStigmer } from "../hooks.js";
+import { useResourceList, type ResourceListScope } from "../search/index.js";
 
 /** Options for {@link useAgentList}. */
 export interface UseAgentListOptions {

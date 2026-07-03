@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { IdentityProviderInput } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useCreateIdentityProvider}. */
 export interface UseCreateIdentityProviderReturn {

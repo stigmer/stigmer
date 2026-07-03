@@ -1,6 +1,6 @@
 "use client";
 
-import type { SelectedThreadItem } from "../../internal/store/selection-store";
+import type { SelectedThreadItem } from "../../internal/store/selection-store.js";
 
 export interface InspectTabProps {
   readonly selectedItem: SelectedThreadItem | null;

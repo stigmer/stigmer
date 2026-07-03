@@ -1,5 +1,5 @@
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { InteractionModeOption } from "./InteractionModePicker";
+import type { InteractionModeOption } from "./InteractionModePicker.js";
 
 /**
  * Convert an {@link InteractionModeOption} string to the proto

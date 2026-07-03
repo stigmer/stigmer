@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { InlineEditBaseProps, ResourceRefRow } from "./types";
+import type { InlineEditBaseProps, ResourceRefRow } from "./types.js";
 
 /** Props for {@link InlineEditResourceList}. */
 export interface InlineEditResourceListProps extends InlineEditBaseProps {

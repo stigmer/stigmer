@@ -1,18 +1,18 @@
-export { useResourceSearch } from "./useResourceSearch";
+export { useResourceSearch } from "./useResourceSearch.js";
 export type {
   UseResourceSearchOptions,
   UseResourceSearchReturn,
-} from "./useResourceSearch";
+} from "./useResourceSearch.js";
 
-export { useResourceList } from "./useResourceList";
+export { useResourceList } from "./useResourceList.js";
 export type {
   ResourceListScope,
   UseResourceListOptions,
   UseResourceListReturn,
-} from "./useResourceList";
+} from "./useResourceList.js";
 
-export { useResourceCount } from "./useResourceCount";
+export { useResourceCount } from "./useResourceCount.js";
 export type {
   UseResourceCountOptions,
   UseResourceCountReturn,
-} from "./useResourceCount";
+} from "./useResourceCount.js";

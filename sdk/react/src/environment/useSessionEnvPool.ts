@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { EnvVarInput } from "@stigmer/sdk";
-import type { SessionVariableEntry } from "../execution/useSessionVariables";
+import type { SessionVariableEntry } from "../execution/useSessionVariables.js";
 
 /**
  * Inputs to the session env pool from all env-var sources.

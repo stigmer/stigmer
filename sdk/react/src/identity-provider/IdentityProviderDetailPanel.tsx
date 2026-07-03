@@ -6,7 +6,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
-import { useUpdateIdentityProvider } from "./useUpdateIdentityProvider";
+import { useUpdateIdentityProvider } from "./useUpdateIdentityProvider.js";
 
 /** Props for {@link IdentityProviderDetailPanel}. */
 export interface IdentityProviderDetailPanelProps {

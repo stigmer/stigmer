@@ -58,6 +58,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Pre-publish hard gate for #209: build the libs and prove every published
+      # dist is resolvable under plain Node ESM before anything reaches npm. A
+      # broken build fails here instead of shipping (publish-libs rebuilds from
+      # the same source, so this never drifts from what is published).
+      - name: Verify Node-ESM output (pre-publish gate)
+        run: |
+          npm run build:libs
+          node scripts/verify-esm-node.mjs
+
       - name: Publish to npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -9,7 +9,7 @@
  * same endpoint, each with their own local TTL cache.
  */
 
-import type { HarnessOption } from "./harness";
+import type { HarnessOption } from "./harness.js";
 
 /**
  * Pricing bracket for a model.

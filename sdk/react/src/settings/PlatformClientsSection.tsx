@@ -3,13 +3,13 @@
 import { useCallback, useRef, useState } from "react";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
-import { PlatformClientListPanel } from "../platform-client/PlatformClientListPanel";
-import { CreatePlatformClientForm } from "../platform-client/CreatePlatformClientForm";
-import { PlatformClientDetailPanel } from "../platform-client/PlatformClientDetailPanel";
-import { PlatformClientSecretAlert } from "../platform-client/PlatformClientSecretAlert";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
-import { useActiveOrgSlug } from "../organization/OrgProvider";
+import { PlatformClientListPanel } from "../platform-client/PlatformClientListPanel.js";
+import { CreatePlatformClientForm } from "../platform-client/CreatePlatformClientForm.js";
+import { PlatformClientDetailPanel } from "../platform-client/PlatformClientDetailPanel.js";
+import { PlatformClientSecretAlert } from "../platform-client/PlatformClientSecretAlert.js";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { useActiveOrgSlug } from "../organization/OrgProvider.js";
 
 type FlowState =
   | { phase: "idle" }

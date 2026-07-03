@@ -5,9 +5,9 @@ import { cn } from "@stigmer/theme";
 import {
   useWorkflowArchitectFlow,
   type ArchitectPhase,
-} from "./useWorkflowArchitectFlow";
-import { MessageThread } from "../execution/MessageThread";
-import { WorkflowDiffGraph } from "./WorkflowDiffGraph";
+} from "./useWorkflowArchitectFlow.js";
+import { MessageThread } from "../execution/MessageThread.js";
+import { WorkflowDiffGraph } from "./WorkflowDiffGraph.js";
 
 /** Props for {@link WorkflowArchitectDialog}. */
 export interface WorkflowArchitectDialogProps {

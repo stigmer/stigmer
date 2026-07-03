@@ -2,8 +2,8 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { TaskDetailSummary } from "./derive-task-detail";
-import { formatDuration, formatMicroUsd, formatTokenCount, formatTimestamp } from "../format-utils";
+import type { TaskDetailSummary } from "./derive-task-detail.js";
+import { formatDuration, formatMicroUsd, formatTokenCount, formatTimestamp } from "../format-utils.js";
 
 export interface SummaryTabProps {
   readonly summary: TaskDetailSummary;

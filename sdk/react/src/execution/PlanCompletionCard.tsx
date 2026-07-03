@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey";
+import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
 /** Props for {@link PlanCompletionCard}. */
 export interface PlanCompletionCardProps {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ListParams, ListResult } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { useFetch } from "../internal/useFetch";
+import { useFetch } from "../internal/useFetch.js";
 
 /** Shared options for resource search hooks (`useAgentSearch`, `useMcpServerSearch`, `useSkillSearch`). */
 export interface UseResourceSearchOptions {

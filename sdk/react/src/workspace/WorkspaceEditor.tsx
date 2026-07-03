@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect, type KeyboardEvent } from "react";
-import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
-import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
-import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
-import { useScrollShadows } from "../internal/useScrollShadows";
-import { ScrollFade } from "../internal/ScrollFade";
+import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries.js";
+import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
+import { GitHubRepoPicker } from "../github/GitHubRepoPicker.js";
+import { useScrollShadows } from "../internal/useScrollShadows.js";
+import { ScrollFade } from "../internal/ScrollFade.js";
 
 type ActivePanel = "github" | null;
 

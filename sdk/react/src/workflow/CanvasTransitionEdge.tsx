@@ -4,12 +4,12 @@ import { memo, useCallback, useContext, useMemo, useRef, useState } from "react"
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from "@xyflow/react";
 import type { EdgeProps } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
-import type { CanvasTransitionEdgeData } from "./workflow-graph-conversions";
-import type { EdgeExecutionState } from "./execution";
-import type { EdgeDiffStatus } from "./diff/types";
-import { CanvasActionsContext } from "./CanvasActionsContext";
-import { TaskPickerPopover } from "./TaskPickerPopover";
-import { useWorkflowGraphMode } from "./WorkflowGraphModeContext";
+import type { CanvasTransitionEdgeData } from "./workflow-graph-conversions.js";
+import type { EdgeExecutionState } from "./execution/index.js";
+import type { EdgeDiffStatus } from "./diff/types.js";
+import { CanvasActionsContext } from "./CanvasActionsContext.js";
+import { TaskPickerPopover } from "./TaskPickerPopover.js";
+import { useWorkflowGraphMode } from "./WorkflowGraphModeContext.js";
 
 // ---------------------------------------------------------------------------
 // Execution-state visual mapping (DD-T06-005)

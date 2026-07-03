@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
-import { useSkillDiff } from "./useSkillDiff";
-import { MultiFileDiffView } from "../version-history/MultiFileDiffView";
-import { ErrorMessage } from "../error/ErrorMessage";
+import { useSkillDiff } from "./useSkillDiff.js";
+import { MultiFileDiffView } from "../version-history/MultiFileDiffView.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 // ---------------------------------------------------------------------------
 // Public types

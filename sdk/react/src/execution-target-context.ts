@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { ExecutionTargetOption } from "./session/execution-target";
+import type { ExecutionTargetOption } from "./session/execution-target.js";
 
 /**
  * React context for the app-level execution target.

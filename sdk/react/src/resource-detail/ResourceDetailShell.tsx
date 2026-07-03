@@ -1,10 +1,10 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import { StatusBadge } from "../resource-workbench/components/StatusBadge";
-import { Tabs } from "../tabs/Tabs";
-import { ResourceActionBar } from "./ResourceActionBar";
-import type { ResourceDetailShellProps } from "./types";
+import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
+import { Tabs } from "../tabs/Tabs.js";
+import { ResourceActionBar } from "./ResourceActionBar.js";
+import type { ResourceDetailShellProps } from "./types.js";
 
 /**
  * Shared layout shell for resource detail pages.

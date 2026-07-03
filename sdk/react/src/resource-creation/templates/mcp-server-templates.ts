@@ -1,5 +1,5 @@
-import type { McpServerWizardData } from "../../mcp-server/steps/types";
-import type { ResourceTemplate } from "./types";
+import type { McpServerWizardData } from "../../mcp-server/steps/types.js";
+import type { ResourceTemplate } from "./types.js";
 
 /**
  * Built-in MCP server templates shipped with the SDK.

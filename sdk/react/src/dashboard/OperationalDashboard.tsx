@@ -2,13 +2,13 @@
 
 import { memo, useCallback } from "react";
 import { cn } from "@stigmer/theme";
-import { usePendingApprovals } from "../workflow/usePendingApprovals";
-import { PendingApprovalsWidget } from "../workflow/PendingApprovalsWidget";
-import { useDashboardSummary, type UseDashboardSummaryOptions } from "./useDashboardSummary";
-import { useDashboardFailedRuns } from "./useDashboardFailedRuns";
-import { DashboardKPICards } from "./DashboardKPICards";
-import { DashboardFailedRuns } from "./DashboardFailedRuns";
-import type { DashboardFailedRun } from "./types";
+import { usePendingApprovals } from "../workflow/usePendingApprovals.js";
+import { PendingApprovalsWidget } from "../workflow/PendingApprovalsWidget.js";
+import { useDashboardSummary, type UseDashboardSummaryOptions } from "./useDashboardSummary.js";
+import { useDashboardFailedRuns } from "./useDashboardFailedRuns.js";
+import { DashboardKPICards } from "./DashboardKPICards.js";
+import { DashboardFailedRuns } from "./DashboardFailedRuns.js";
+import type { DashboardFailedRun } from "./types.js";
 
 export interface OperationalDashboardProps {
   /** Organization slug for execution summaries and pending approvals. */

@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { DashboardSummary } from "./types";
+import type { DashboardSummary } from "./types.js";
 
 export interface DashboardKPICardsProps {
   readonly summary: DashboardSummary | null;

@@ -4,8 +4,8 @@ import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/
 import type { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { create } from "@bufbuild/protobuf";
 import { GetEventLogRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 
 /** Options for {@link useWorkflowExecutionEventLog}. */
 export interface UseWorkflowExecutionEventLogOptions {

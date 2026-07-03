@@ -2,8 +2,8 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { WaterfallEntry } from "../execution/derive-waterfall-entries";
-import { formatDuration, formatMicroUsd, formatTokenCount } from "../format-utils";
+import type { WaterfallEntry } from "../execution/derive-waterfall-entries.js";
+import { formatDuration, formatMicroUsd, formatTokenCount } from "../format-utils.js";
 
 export interface WaterfallTooltipProps {
   readonly entry: WaterfallEntry;

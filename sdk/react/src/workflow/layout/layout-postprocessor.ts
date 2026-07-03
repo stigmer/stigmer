@@ -1,11 +1,11 @@
-import type { WorkflowGraphModel, WorkflowGraphEdge } from "../workflow-graph-model";
+import type { WorkflowGraphModel, WorkflowGraphEdge } from "../workflow-graph-model.js";
 import type {
   ElkLayoutResult,
   ElkEdgeSection,
   LayoutResult,
   LayoutScope,
   Position2D,
-} from "./types";
+} from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Public API

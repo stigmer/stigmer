@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { ResourceTemplate, TemplateCategory } from "./templates/types";
+import type { ResourceTemplate, TemplateCategory } from "./templates/types.js";
 
 // ---------------------------------------------------------------------------
 // Public API

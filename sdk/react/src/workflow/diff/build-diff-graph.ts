@@ -15,9 +15,9 @@ import type {
   WorkflowGraphModel,
   WorkflowGraphNode,
   WorkflowGraphEdge,
-} from "../workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
-import type { GraphDiff } from "./types";
+} from "../workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
+import type { GraphDiff } from "./types.js";
 
 /**
  * Creates a unified graph model containing nodes/edges from both the

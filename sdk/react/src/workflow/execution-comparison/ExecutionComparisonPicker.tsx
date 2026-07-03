@@ -3,9 +3,9 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { useWorkflowExecutionList } from "../useWorkflowExecutionList";
-import { WorkflowExecutionPhaseBadge } from "../WorkflowExecutionPhaseBadge";
-import { formatDuration } from "../format-utils";
+import { useWorkflowExecutionList } from "../useWorkflowExecutionList.js";
+import { WorkflowExecutionPhaseBadge } from "../WorkflowExecutionPhaseBadge.js";
+import { formatDuration } from "../format-utils.js";
 
 /** Props for {@link ExecutionComparisonPicker}. */
 export interface ExecutionComparisonPickerProps {

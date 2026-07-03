@@ -1,8 +1,8 @@
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { deriveExecutionRow } from "../execution-history/derive-execution-row";
-import type { TaskComparison, ExecutionComparison } from "./types";
+import { deriveExecutionRow } from "../execution-history/derive-execution-row.js";
+import type { TaskComparison, ExecutionComparison } from "./types.js";
 
 const BIGINT_ZERO = BigInt(0);
 

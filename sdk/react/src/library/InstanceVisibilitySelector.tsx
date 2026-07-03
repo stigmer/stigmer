@@ -4,8 +4,8 @@ import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/a
 import {
   VisibilitySelector,
   type VisibilitySelectorMode,
-} from "./VisibilitySelector";
-import { INSTANCE_VISIBILITY_LEVELS } from "./visibilityLevels";
+} from "./VisibilitySelector.js";
+import { INSTANCE_VISIBILITY_LEVELS } from "./visibilityLevels.js";
 
 /** Props for {@link InstanceVisibilitySelector}. */
 export interface InstanceVisibilitySelectorProps {

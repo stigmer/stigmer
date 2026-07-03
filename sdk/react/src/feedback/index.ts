@@ -1,3 +1,3 @@
-export { StigmerToaster } from "./StigmerToaster";
-export { toast } from "./toast";
-export type { StigmerToasterProps } from "./types";
+export { StigmerToaster } from "./StigmerToaster.js";
+export { toast } from "./toast.js";
+export type { StigmerToasterProps } from "./types.js";

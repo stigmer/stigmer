@@ -6,14 +6,14 @@ import { ExecutionPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic
 import {
   useWorkflowDashboardSummary,
   type UseWorkflowDashboardSummaryOptions,
-} from "../workflow/useWorkflowDashboardSummary";
-import { useOrgUsageReport } from "../usage/useOrgUsageReport";
-import { dateRangeFromPreset } from "../usage/date-range";
+} from "../workflow/useWorkflowDashboardSummary.js";
+import { useOrgUsageReport } from "../usage/useOrgUsageReport.js";
+import { dateRangeFromPreset } from "../usage/date-range.js";
 import {
   useAgentExecutionSummary,
   AgentExecutionSummaryTimeWindow,
-} from "./useAgentExecutionSummary";
-import type { DashboardSummary } from "./types";
+} from "./useAgentExecutionSummary.js";
+import type { DashboardSummary } from "./types.js";
 
 /** Options for {@link useDashboardSummary}. */
 export interface UseDashboardSummaryOptions {

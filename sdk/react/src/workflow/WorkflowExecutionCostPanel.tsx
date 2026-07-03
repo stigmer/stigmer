@@ -2,8 +2,8 @@
 
 import { memo, useMemo } from "react";
 import { cn } from "@stigmer/theme";
-import type { DerivedCostSummary } from "../internal/store/workflow-execution-event-store";
-import { formatMicroUsd, formatTokenCount } from "./format-utils";
+import type { DerivedCostSummary } from "../internal/store/workflow-execution-event-store.js";
+import { formatMicroUsd, formatTokenCount } from "./format-utils.js";
 
 /** Props for {@link WorkflowExecutionCostPanel}. */
 export interface WorkflowExecutionCostPanelProps {

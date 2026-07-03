@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import {
   useCheckPermission,
   type PermissionCheckResource,
-} from "./useCheckPermission";
+} from "./useCheckPermission.js";
 
 /** Props for {@link PermissionGate}. */
 export interface PermissionGateProps {

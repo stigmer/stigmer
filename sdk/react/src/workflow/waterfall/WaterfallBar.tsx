@@ -2,8 +2,8 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { WaterfallEntry, WaterfallAttempt, WaterfallSpan } from "../execution/derive-waterfall-entries";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+import type { WaterfallEntry, WaterfallAttempt, WaterfallSpan } from "../execution/derive-waterfall-entries.js";
+import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 
 export interface WaterfallBarProps {
   readonly entry: WaterfallEntry;

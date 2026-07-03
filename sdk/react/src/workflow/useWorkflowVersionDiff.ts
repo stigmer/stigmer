@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { StigmerError } from "@stigmer/sdk";
 import { GetWorkflowVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff.js";
 
 const CODE_UNIMPLEMENTED = 12;
 

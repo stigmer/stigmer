@@ -13,20 +13,20 @@ import {
 } from "@xyflow/react";
 import type { Node, NodeChange, Viewport } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
-import { WorkflowNode } from "./WorkflowNode";
-import { CanvasTransitionEdge } from "./CanvasTransitionEdge";
-import { CANVAS_TASK_NODE_TYPE, CANVAS_TRANSITION_EDGE_TYPE } from "./workflow-graph-conversions";
-import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
-import { WorkflowGraphModeProvider } from "./WorkflowGraphModeContext";
-import { useWorkflowExecutionGraph } from "./useWorkflowExecutionGraph";
-import type { UseWorkflowExecutionGraphReturn } from "./useWorkflowExecutionGraph";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
+import { WorkflowNode } from "./WorkflowNode.js";
+import { CanvasTransitionEdge } from "./CanvasTransitionEdge.js";
+import { CANVAS_TASK_NODE_TYPE, CANVAS_TRANSITION_EDGE_TYPE } from "./workflow-graph-conversions.js";
+import type { CanvasTaskNodeData } from "./workflow-graph-conversions.js";
+import { WorkflowGraphModeProvider } from "./WorkflowGraphModeContext.js";
+import { useWorkflowExecutionGraph } from "./useWorkflowExecutionGraph.js";
+import type { UseWorkflowExecutionGraphReturn } from "./useWorkflowExecutionGraph.js";
+import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { useFollowExecution, computeFollowSelection } from "./useFollowExecution";
-import { useActiveTaskName } from "./useActiveTaskName";
-import { useExecutionAnnouncements } from "./useExecutionAnnouncements";
-import { ExecutionActiveTaskIndicator } from "./ExecutionActiveTaskIndicator";
-import { getAnimationDuration } from "./motion-preference";
+import { useFollowExecution, computeFollowSelection } from "./useFollowExecution.js";
+import { useActiveTaskName } from "./useActiveTaskName.js";
+import { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
+import { ExecutionActiveTaskIndicator } from "./ExecutionActiveTaskIndicator.js";
+import { getAnimationDuration } from "./motion-preference.js";
 
 /** Props for {@link WorkflowExecutionGraph}. */
 export interface WorkflowExecutionGraphProps {

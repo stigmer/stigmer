@@ -2,12 +2,12 @@
 
 import { useCallback, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import type { WorkflowTemplate } from "./types";
-import { WORKFLOW_CATEGORY_LABELS } from "./types";
-import { useTemplateFilter } from "../../resource-creation/useTemplateFilter";
-import type { WorkflowTemplateData } from "./types";
-import { WorkflowTemplateCard } from "./WorkflowTemplateCard";
-import { WorkflowTemplatePreview } from "./WorkflowTemplatePreview";
+import type { WorkflowTemplate } from "./types.js";
+import { WORKFLOW_CATEGORY_LABELS } from "./types.js";
+import { useTemplateFilter } from "../../resource-creation/useTemplateFilter.js";
+import type { WorkflowTemplateData } from "./types.js";
+import { WorkflowTemplateCard } from "./WorkflowTemplateCard.js";
+import { WorkflowTemplatePreview } from "./WorkflowTemplatePreview.js";
 
 export interface WorkflowTemplateGalleryProps {
   readonly templates: readonly WorkflowTemplate[];

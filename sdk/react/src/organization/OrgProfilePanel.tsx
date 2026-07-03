@@ -10,10 +10,10 @@ import {
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useOrganization } from "./useOrganization";
-import { useUpdateOrganization } from "./useUpdateOrganization";
-import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList";
-import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
+import { useOrganization } from "./useOrganization.js";
+import { useUpdateOrganization } from "./useUpdateOrganization.js";
+import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 
 // ---------------------------------------------------------------------------
 // Constants

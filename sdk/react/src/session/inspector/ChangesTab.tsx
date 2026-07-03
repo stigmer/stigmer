@@ -1,8 +1,8 @@
 "use client";
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { useSessionWriteBacks } from "../useSessionWriteBacks";
-import { WriteBackCard } from "../../execution/WriteBackCard";
+import { useSessionWriteBacks } from "../useSessionWriteBacks.js";
+import { WriteBackCard } from "../../execution/WriteBackCard.js";
 
 export interface ChangesTabProps {
   readonly executions: readonly AgentExecution[];

@@ -9,7 +9,7 @@ import type {
   ExportInput,
   FlowControlInput,
 } from "@stigmer/sdk";
-import type { TopologyNodeCategory } from "./useWorkflowTopology";
+import type { TopologyNodeCategory } from "./useWorkflowTopology.js";
 import type {
   WorkflowGraphModel,
   WorkflowGraphNode,
@@ -17,10 +17,10 @@ import type {
   WorkflowGraphDocument,
   WorkflowGraphBudget,
   WorkflowGraphEnvVar,
-} from "./workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
-import { categorizeKind, kindToDisplayName } from "./kind-metadata";
-import { getVisualSpec, type VisualClass } from "./task-type-visual-registry";
+} from "./workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model.js";
+import { categorizeKind, kindToDisplayName } from "./kind-metadata.js";
+import { getVisualSpec, type VisualClass } from "./task-type-visual-registry.js";
 
 // ---------------------------------------------------------------------------
 // React Flow node/edge type identifiers
@@ -34,7 +34,7 @@ export const CANVAS_TRANSITION_EDGE_TYPE = "canvasTransition" as const;
 // Callers that previously imported from this file continue to work.
 // ---------------------------------------------------------------------------
 
-export { categorizeKind } from "./kind-metadata";
+export { categorizeKind } from "./kind-metadata.js";
 
 // ---------------------------------------------------------------------------
 // Enum maps (reuse the same logic as serialize-workflow-yaml.ts)

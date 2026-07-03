@@ -13,16 +13,16 @@ import {
 } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
-import { WorkflowNode } from "./WorkflowNode";
-import { CanvasTransitionEdge } from "./CanvasTransitionEdge";
+import { WorkflowNode } from "./WorkflowNode.js";
+import { CanvasTransitionEdge } from "./CanvasTransitionEdge.js";
 import {
   CANVAS_TASK_NODE_TYPE,
   CANVAS_TRANSITION_EDGE_TYPE,
   yamlToGraph,
   toReactFlowElements,
-} from "./workflow-graph-conversions";
-import { applyDagreLayout } from "./layout";
-import { WorkflowGraphModeProvider } from "./WorkflowGraphModeContext";
+} from "./workflow-graph-conversions.js";
+import { applyDagreLayout } from "./layout/index.js";
+import { WorkflowGraphModeProvider } from "./WorkflowGraphModeContext.js";
 
 /** Props for {@link WorkflowCodePreviewGraph}. */
 export interface WorkflowCodePreviewGraphProps {

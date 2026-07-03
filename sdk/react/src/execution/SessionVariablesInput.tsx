@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
-import type { UseSessionVariablesReturn } from "./useSessionVariables";
-import { useScrollShadows } from "../internal/useScrollShadows";
-import { ScrollFade } from "../internal/ScrollFade";
+import type { UseSessionVariablesReturn } from "./useSessionVariables.js";
+import { useScrollShadows } from "../internal/useScrollShadows.js";
+import { ScrollFade } from "../internal/ScrollFade.js";
 
 /** Props for {@link SessionVariablesInput}. */
 export interface SessionVariablesInputProps {

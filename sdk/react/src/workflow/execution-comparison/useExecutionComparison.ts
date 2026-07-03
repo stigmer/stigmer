@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { useWorkflowExecution } from "../useWorkflowExecution";
-import { deriveExecutionComparison } from "./derive-execution-comparison";
-import type { ExecutionComparison } from "./types";
+import { useWorkflowExecution } from "../useWorkflowExecution.js";
+import { deriveExecutionComparison } from "./derive-execution-comparison.js";
+import type { ExecutionComparison } from "./types.js";
 
 /** Options for {@link useExecutionComparison}. */
 export interface UseExecutionComparisonOptions {

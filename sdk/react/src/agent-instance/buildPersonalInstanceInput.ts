@@ -1,5 +1,5 @@
 import type { AgentInstanceInput, ResourceRef } from "@stigmer/sdk";
-import { generateSlugSuffix } from "../internal/slug";
+import { generateSlugSuffix } from "../internal/slug.js";
 
 const PERSONAL_LABEL = "stigmer.ai/personal";
 const FOR_AGENT_LABEL = "stigmer.ai/for-agent";

@@ -1,4 +1,4 @@
-export { cn } from "./utils";
-export type { ClassValue } from "./utils";
-export { THEME_PRESETS, resolvePresetClass } from "./presets/index";
-export type { ThemePreset, ThemePresetId } from "./presets/index";
+export { cn } from "./utils.js";
+export type { ClassValue } from "./utils.js";
+export { THEME_PRESETS, resolvePresetClass } from "./presets/index.js";
+export type { ThemePreset, ThemePresetId } from "./presets/index.js";

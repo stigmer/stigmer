@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
-import type { ConfirmState } from "./types";
+import type { ConfirmState } from "./types.js";
 
 export interface ConfirmDialogProps {
   /** Pending confirmation state from {@link useConfirmAction}. */

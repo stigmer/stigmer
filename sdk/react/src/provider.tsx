@@ -11,21 +11,21 @@ import {
 import type { Stigmer, DeploymentMode } from "@stigmer/sdk";
 import { cn, resolvePresetClass } from "@stigmer/theme";
 import type { ThemePresetId } from "@stigmer/theme";
-import { StigmerContext } from "./context";
-import { DeploymentModeContext } from "./deployment-mode";
-import { ExecutionTargetContext } from "./execution-target-context";
-import type { ExecutionTargetOption } from "./session/execution-target";
-import type { RunnerAdapter } from "./runner-adapter";
-import { RunnerAdapterContext } from "./runner-adapter";
-import type { ColorMode, ResolvedColorMode } from "./color-mode";
-import { ColorModeContext, useSystemColorMode } from "./color-mode";
-import { PortalContainerContext } from "./portal-container";
-import { ModelRegistryContext } from "./models/ModelRegistryContext";
-import type { ModelRegistryState } from "./models/ModelRegistryContext";
-import { fetchModelRegistry } from "./models/registry";
-import { TaskKindRegistryContext } from "./workflow/TaskKindRegistryContext";
-import type { TaskKindRegistryState } from "./workflow/TaskKindRegistryContext";
-import type { TaskKindDescriptor } from "./workflow/types";
+import { StigmerContext } from "./context.js";
+import { DeploymentModeContext } from "./deployment-mode.js";
+import { ExecutionTargetContext } from "./execution-target-context.js";
+import type { ExecutionTargetOption } from "./session/execution-target.js";
+import type { RunnerAdapter } from "./runner-adapter.js";
+import { RunnerAdapterContext } from "./runner-adapter.js";
+import type { ColorMode, ResolvedColorMode } from "./color-mode.js";
+import { ColorModeContext, useSystemColorMode } from "./color-mode.js";
+import { PortalContainerContext } from "./portal-container.js";
+import { ModelRegistryContext } from "./models/ModelRegistryContext.js";
+import type { ModelRegistryState } from "./models/ModelRegistryContext.js";
+import { fetchModelRegistry } from "./models/registry.js";
+import { TaskKindRegistryContext } from "./workflow/TaskKindRegistryContext.js";
+import type { TaskKindRegistryState } from "./workflow/TaskKindRegistryContext.js";
+import type { TaskKindDescriptor } from "./workflow/types.js";
 
 /** Props for {@link StigmerProvider}. */
 export interface StigmerProviderProps {

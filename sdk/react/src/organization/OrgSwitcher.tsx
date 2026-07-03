@@ -12,7 +12,7 @@ import {
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { cn } from "@stigmer/theme";
-import { useStigmerPortalContainer } from "../portal-container";
+import { useStigmerPortalContainer } from "../portal-container.js";
 import {
   Menu,
   MenuContent,
@@ -21,9 +21,9 @@ import {
   MenuRadioItem,
   MenuSeparator,
   MenuTrigger,
-} from "../internal/menu";
-import { useOrg } from "./OrgProvider";
-import { CreateOrganizationForm } from "./CreateOrganizationForm";
+} from "../internal/menu.js";
+import { useOrg } from "./OrgProvider.js";
+import { CreateOrganizationForm } from "./CreateOrganizationForm.js";
 
 // ---------------------------------------------------------------------------
 // Public API

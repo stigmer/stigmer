@@ -1,6 +1,6 @@
 import { createContext } from "react";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { ResolvedPathAction } from "./file-path-resolver";
+import type { ResolvedPathAction } from "./file-path-resolver.js";
 
 /**
  * Context value that carries workspace entries and an optional click

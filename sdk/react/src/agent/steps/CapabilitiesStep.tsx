@@ -3,9 +3,9 @@
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
-import { McpServerPicker } from "../../mcp-server/McpServerPicker";
-import { SkillPicker } from "../../skill/SkillPicker";
-import type { AgentWizardData, EnvVarEntry } from "./types";
+import { McpServerPicker } from "../../mcp-server/McpServerPicker.js";
+import { SkillPicker } from "../../skill/SkillPicker.js";
+import type { AgentWizardData, EnvVarEntry } from "./types.js";
 
 /** Props for {@link CapabilitiesStep}. */
 export interface CapabilitiesStepProps {

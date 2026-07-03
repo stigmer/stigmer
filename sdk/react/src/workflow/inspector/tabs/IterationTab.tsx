@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useCallback, useState, useMemo } from "react";
-import type { WorkflowGraphNode } from "../../workflow-graph-model";
-import type { InspectorMutations } from "../types";
+import type { WorkflowGraphNode } from "../../workflow-graph-model.js";
+import type { InspectorMutations } from "../types.js";
 
 export interface IterationTabProps {
   readonly node: WorkflowGraphNode;

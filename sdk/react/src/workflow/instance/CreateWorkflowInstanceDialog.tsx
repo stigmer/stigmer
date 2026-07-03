@@ -6,9 +6,9 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { getUserMessage } from "@stigmer/sdk";
-import { useCreateWorkflowInstance } from "./useCreateWorkflowInstance";
-import { EnvironmentPicker } from "../../environment/EnvironmentPicker";
-import { InstanceVisibilitySelector } from "../../library/InstanceVisibilitySelector";
+import { useCreateWorkflowInstance } from "./useCreateWorkflowInstance.js";
+import { EnvironmentPicker } from "../../environment/EnvironmentPicker.js";
+import { InstanceVisibilitySelector } from "../../library/InstanceVisibilitySelector.js";
 
 /** Props for {@link CreateWorkflowInstanceDialog}. */
 export interface CreateWorkflowInstanceDialogProps {

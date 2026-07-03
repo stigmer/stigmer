@@ -4,7 +4,7 @@ import { useCallback, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { useCreateApiKey } from "./useCreateApiKey";
+import { useCreateApiKey } from "./useCreateApiKey.js";
 
 // ---------------------------------------------------------------------------
 // Public API

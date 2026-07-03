@@ -6,9 +6,9 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { getUserMessage } from "@stigmer/sdk";
-import { useCreateAgentInstance } from "./useCreateAgentInstance";
-import { EnvironmentPicker } from "../environment/EnvironmentPicker";
-import { InstanceVisibilitySelector } from "../library/InstanceVisibilitySelector";
+import { useCreateAgentInstance } from "./useCreateAgentInstance.js";
+import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { InstanceVisibilitySelector } from "../library/InstanceVisibilitySelector.js";
 
 /** Props for {@link CreateAgentInstanceDialog}. */
 export interface CreateAgentInstanceDialogProps {

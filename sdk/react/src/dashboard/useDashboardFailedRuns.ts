@@ -9,9 +9,9 @@ import { ListAgentExecutionsRequestSchema } from "@stigmer/protos/ai/stigmer/age
 import { ListWorkflowExecutionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
-import type { DashboardFailedRun } from "./types";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
+import type { DashboardFailedRun } from "./types.js";
 
 const EPOCH = new Date(0);
 const EMPTY: readonly DashboardFailedRun[] = [];

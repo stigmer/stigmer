@@ -9,7 +9,7 @@ import {
   MenuSeparator as InternalMenuSeparator,
   MenuGroup as InternalMenuGroup,
   MenuLabel,
-} from "../internal/menu";
+} from "../internal/menu.js";
 import type {
   ActionMenuProps,
   ActionMenuTriggerProps,
@@ -17,7 +17,7 @@ import type {
   ActionMenuItemProps,
   ActionMenuSeparatorProps,
   ActionMenuGroupProps,
-} from "./types";
+} from "./types.js";
 
 /**
  * Compound menu component for resource item actions.

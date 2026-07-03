@@ -5,8 +5,8 @@ import { create } from "@bufbuild/protobuf";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { UpdateExecutionVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
 import type { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
-import { useStigmer } from "../../hooks";
-import { toError } from "../../internal/toError";
+import { useStigmer } from "../../hooks.js";
+import { toError } from "../../internal/toError.js";
 
 /** Return value of {@link useUpdateWorkflowInstanceExecutionVisibility}. */
 export interface UseUpdateWorkflowInstanceExecutionVisibilityReturn {

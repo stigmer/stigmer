@@ -3,7 +3,7 @@
 import { memo, useState, useCallback } from "react";
 import { cn } from "@stigmer/theme";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { TaskFieldDescriptor, TaskFieldGroup, TaskFieldType } from "./types";
+import type { TaskFieldDescriptor, TaskFieldGroup, TaskFieldType } from "./types.js";
 
 /** Props for {@link TaskConfigForm}. */
 export interface TaskConfigFormProps {

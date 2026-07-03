@@ -15,15 +15,15 @@ import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import {
   ThreadItemRenderer,
   type ThreadItem,
-} from "../execution/MessageThread";
-import { FilePathContext, type FilePathContextValue } from "../execution/FilePathContext";
-import { SandboxContext, type SandboxContextValue } from "../execution/SandboxContext";
-import { ApprovalContext, type ApprovalContextValue } from "../execution/ApprovalContext";
-import { FileReviewContext, type FileReviewContextValue } from "../execution/FileReviewContext";
-import { DevProfiler, useDomNodeCount } from "./dev";
-import { JumpToLatestButton } from "./JumpToLatestButton";
-import { ApprovalPeekBar } from "./ApprovalPeekBar";
-import { ThreadItemWrapper } from "./ThreadItemWrapper";
+} from "../execution/MessageThread.js";
+import { FilePathContext, type FilePathContextValue } from "../execution/FilePathContext.js";
+import { SandboxContext, type SandboxContextValue } from "../execution/SandboxContext.js";
+import { ApprovalContext, type ApprovalContextValue } from "../execution/ApprovalContext.js";
+import { FileReviewContext, type FileReviewContextValue } from "../execution/FileReviewContext.js";
+import { DevProfiler, useDomNodeCount } from "./dev/index.js";
+import { JumpToLatestButton } from "./JumpToLatestButton.js";
+import { ApprovalPeekBar } from "./ApprovalPeekBar.js";
+import { ThreadItemWrapper } from "./ThreadItemWrapper.js";
 
 // ---------------------------------------------------------------------------
 // Props

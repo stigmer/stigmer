@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { GetDefaultAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 
 /**
  * Milliseconds the cached result can age before a visibility change

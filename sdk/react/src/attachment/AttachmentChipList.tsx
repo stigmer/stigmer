@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { AttachmentEntry } from "./useAttachments";
-import { formatFileSize } from "./attachment-utils";
+import type { AttachmentEntry } from "./useAttachments.js";
+import { formatFileSize } from "./attachment-utils.js";
 
 /** Props for {@link AttachmentChipList}. */
 export interface AttachmentChipListProps {

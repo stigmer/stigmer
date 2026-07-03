@@ -1,7 +1,7 @@
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { resolveToolCategoryFromCall } from "./tool-categories";
-import type { ToolCategory } from "./tool-categories";
-import { resolveRunGroupable } from "./tool-presenter";
+import { resolveToolCategoryFromCall } from "./tool-categories.js";
+import type { ToolCategory } from "./tool-categories.js";
+import { resolveRunGroupable } from "./tool-presenter.js";
 
 /**
  * Minimum number of consecutive same-category groupable calls before they fold

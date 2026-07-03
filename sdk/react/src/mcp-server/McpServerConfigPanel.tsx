@@ -12,9 +12,9 @@ import {
   EnvVarForm,
   type EnvVarFormVariable,
   type EnvVarFormSubmitOptions,
-} from "../environment/EnvVarForm";
-import { McpToolSelector } from "./McpToolSelector";
-import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect";
+} from "../environment/EnvVarForm.js";
+import { McpToolSelector } from "./McpToolSelector.js";
+import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect.js";
 
 // ---------------------------------------------------------------------------
 // Credential sub-props

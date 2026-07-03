@@ -4,8 +4,8 @@ import { useCallback, useId, useMemo, useRef, useState } from "react";
 import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
-import { useResourceAccess } from "./useResourceAccess";
-import { ProviderBadge, providerLabel } from "./ProviderBadge";
+import { useResourceAccess } from "./useResourceAccess.js";
+import { ProviderBadge, providerLabel } from "./ProviderBadge.js";
 
 /** A principal selected through {@link PrincipalPicker}. */
 export interface SelectedPrincipal {

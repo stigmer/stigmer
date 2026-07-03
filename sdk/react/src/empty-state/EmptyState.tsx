@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import { useEmptyState } from "./useEmptyState";
-import type { EmptyStateProps } from "./types";
+import { useEmptyState } from "./useEmptyState.js";
+import type { EmptyStateProps } from "./types.js";
 
 /**
  * A semantic, accessible empty state component supporting four distinct

@@ -1,5 +1,5 @@
 import { cn } from "@stigmer/theme";
-import { ChipSpinner, XIcon } from "./icons";
+import { ChipSpinner, XIcon } from "./icons.js";
 
 export interface ChipItem {
   key: string;

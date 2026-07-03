@@ -6,10 +6,10 @@ export type {
   DependencyGraphProps,
   UseDependencyGraphOptions,
   UseDependencyGraphReturn,
-} from "./types";
+} from "./types.js";
 
 // Hooks
-export { useDependencyGraph } from "./useDependencyGraph";
+export { useDependencyGraph } from "./useDependencyGraph.js";
 
 // Components
-export { DependencyGraph } from "./DependencyGraph";
+export { DependencyGraph } from "./DependencyGraph.js";

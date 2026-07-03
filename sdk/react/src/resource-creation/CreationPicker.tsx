@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { ResourceTemplate } from "./templates/types";
-import { TemplateGallery } from "./TemplateGallery";
+import type { ResourceTemplate } from "./templates/types.js";
+import { TemplateGallery } from "./TemplateGallery.js";
 
 // ---------------------------------------------------------------------------
 // Public API

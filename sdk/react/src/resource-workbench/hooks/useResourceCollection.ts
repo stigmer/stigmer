@@ -12,12 +12,12 @@ import {
 } from "@tanstack/react-table";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import type { ListParams, ListResult } from "@stigmer/sdk";
-import { useFetch } from "../../internal/useFetch";
+import { useFetch } from "../../internal/useFetch.js";
 import type {
   WorkbenchColumnDef,
   SortValue,
   SortDirection,
-} from "../types";
+} from "../types.js";
 
 // ---------------------------------------------------------------------------
 // Options

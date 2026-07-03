@@ -1,15 +1,15 @@
-import { ActivityClient } from "./activity";
-import { BillingClient } from "./billing";
-import { GeneratedClient } from "./gen/client";
-import { GitHubClient } from "./github";
-import { PlatformClient } from "./platform";
-import { SearchClient } from "./search";
-import { createStigmerTransport } from "./transport";
+import { ActivityClient } from "./activity.js";
+import { BillingClient } from "./billing.js";
+import { GeneratedClient } from "./gen/client.js";
+import { GitHubClient } from "./github.js";
+import { PlatformClient } from "./platform.js";
+import { SearchClient } from "./search.js";
+import { createStigmerTransport } from "./transport.js";
 import {
   validateConfig,
   type StigmerConfig,
   type TokenProvider,
-} from "./config";
+} from "./config.js";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 type ExecutionTargetOption = StigmerConfig["executionTarget"];

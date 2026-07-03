@@ -1,5 +1,5 @@
 import { parse as parseYaml } from "yaml";
-import type { WorkflowTemplateMeta, WorkflowPattern } from "./types";
+import type { WorkflowTemplateMeta, WorkflowPattern } from "./types.js";
 
 /**
  * Derive display metadata from a workflow template's YAML string.

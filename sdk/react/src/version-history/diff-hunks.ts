@@ -1,5 +1,5 @@
 import type { StructuredPatchHunk } from "diff";
-import type { DiffHunk, DiffLine } from "./types";
+import type { DiffHunk, DiffLine } from "./types.js";
 
 /**
  * Maps the `diff` library's structured-patch hunks into our presentation

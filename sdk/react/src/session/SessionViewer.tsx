@@ -3,23 +3,23 @@
 import { useCallback, useMemo, useRef, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
-import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
-import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister";
-import type { InteractionModeOption, SessionComposerHandle } from "../composer";
-import type { ApplyResourceResult } from "../library/useApplyResource";
-import { ResizableSplit } from "../internal/ResizableSplit";
-import { SelectionStore } from "../internal/store/selection-store";
-import { ThreadSelectionContext } from "../execution/ThreadSelectionContext";
-import { useSelectedThreadItem } from "../execution/useThreadSelection";
-import { MessageThread } from "../execution/MessageThread";
-import { FileReviewDock } from "../execution/FileReviewDock";
-import { ThreadSkeleton } from "../execution/ThreadSkeleton";
-import { SessionComposer } from "../composer";
-import { SecretFlowErrorGuide, isSecretFlowError } from "../error";
-import { useSessionPageFlow } from "./useSessionPageFlow";
-import { SessionInspector } from "./inspector/SessionInspector";
-import type { RuntimeEnvProvider } from "./runtime-env";
-import type { SessionAudience } from "./audience";
+import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
+import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
+import type { InteractionModeOption, SessionComposerHandle } from "../composer/index.js";
+import type { ApplyResourceResult } from "../library/useApplyResource.js";
+import { ResizableSplit } from "../internal/ResizableSplit.js";
+import { SelectionStore } from "../internal/store/selection-store.js";
+import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
+import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
+import { MessageThread } from "../execution/MessageThread.js";
+import { FileReviewDock } from "../execution/FileReviewDock.js";
+import { ThreadSkeleton } from "../execution/ThreadSkeleton.js";
+import { SessionComposer } from "../composer/index.js";
+import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
+import { useSessionPageFlow } from "./useSessionPageFlow.js";
+import { SessionInspector } from "./inspector/SessionInspector.js";
+import type { RuntimeEnvProvider } from "./runtime-env.js";
+import type { SessionAudience } from "./audience.js";
 
 /**
  * Message submitted when the user implements a plan. References the published

@@ -2,8 +2,8 @@
 
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { isNotFound } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useSkill}. */
 export interface UseSkillReturn {

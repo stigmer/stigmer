@@ -1,35 +1,35 @@
 // Provider and context
-export { StigmerProvider, type StigmerProviderProps } from "./provider";
-export { StigmerContext } from "./context";
+export { StigmerProvider, type StigmerProviderProps } from "./provider.js";
+export { StigmerContext } from "./context.js";
 
 // Runner adapter
-export { type RunnerAdapter, useRunnerAdapter } from "./runner-adapter";
+export { type RunnerAdapter, useRunnerAdapter } from "./runner-adapter.js";
 // Construction helper lives in @stigmer/sdk (framework-agnostic); re-exported
 // here so React embedders import it alongside the adapter interface.
 export { type RunnerWorkerHost, createRunnerAdapter } from "@stigmer/sdk";
 
 // Fetch cache
-export { FetchCacheProvider } from "./internal/FetchCacheProvider";
-export type { FetchCacheOptions } from "./internal/fetch-cache";
+export { FetchCacheProvider } from "./internal/FetchCacheProvider.js";
+export type { FetchCacheOptions } from "./internal/fetch-cache.js";
 
 // Hooks
-export { useStigmer } from "./hooks";
+export { useStigmer } from "./hooks.js";
 
 // Color mode
-export { ColorModeContext, useColorMode } from "./color-mode";
-export type { ColorMode, ResolvedColorMode } from "./color-mode";
+export { ColorModeContext, useColorMode } from "./color-mode.js";
+export type { ColorMode, ResolvedColorMode } from "./color-mode.js";
 
 // Portal container
-export { useStigmerPortalContainer } from "./portal-container";
+export { useStigmerPortalContainer } from "./portal-container.js";
 
 // Deployment mode and resource availability
 export {
   DeploymentModeContext,
   useDeploymentMode,
   useResourceAvailable,
-} from "./deployment-mode";
+} from "./deployment-mode.js";
 export { type DeploymentMode, isResourceAvailable, ApiResourceKind } from "@stigmer/sdk";
-export { CloudFeatureNotice, type CloudFeatureNoticeProps } from "./internal/CloudFeatureNotice";
+export { CloudFeatureNotice, type CloudFeatureNoticeProps } from "./internal/CloudFeatureNotice.js";
 
 // Models — data hook, styled components, and registry data
 export {
@@ -48,7 +48,7 @@ export {
   HARNESS_LABELS,
   toProtoHarness,
   fromProtoHarness,
-} from "./models";
+} from "./models/index.js";
 export type {
   ModelInfo,
   ModelRegistryState,
@@ -60,7 +60,7 @@ export type {
   ModelSelectorProps,
   HarnessSelectorProps,
   HarnessOption,
-} from "./models";
+} from "./models/index.js";
 
 // Workspace — behavior hooks and styled components
 export {
@@ -70,7 +70,7 @@ export {
   WorkspaceEditor,
   WorkspaceEntryFiles,
   WorkspaceSummary,
-} from "./workspace";
+} from "./workspace/index.js";
 export type {
   WorkspaceEntry,
   WorkspaceFileEntry,
@@ -83,7 +83,7 @@ export type {
   UseWorkspaceSourcesReturn,
   WorkspaceEditorProps,
   WorkspaceSummaryProps,
-} from "./workspace";
+} from "./workspace/index.js";
 
 // Session — data hooks, behavior hooks, utilities (Session aggregate + conversation lifecycle)
 export {
@@ -116,7 +116,7 @@ export {
   useSessionInspector,
   buildVisibleTabs,
   SetupTab,
-} from "./session";
+} from "./session/index.js";
 export type {
   SharedSessionFields,
   CreateSessionInput,
@@ -162,20 +162,20 @@ export type {
   SetupTabProps,
   SetupTabMutationCallbacks,
   SelectedThreadItem,
-} from "./session";
+} from "./session/index.js";
 
 // Activity — unified recent activity (sessions + workflow executions)
 export {
   useRecentActivity,
   groupRecentActivityByTime,
-} from "./activity";
+} from "./activity/index.js";
 export type {
   RecentActivityType,
   RecentActivityEntry,
   RecentActivityGroup,
   UseRecentActivityOptions,
   UseRecentActivityReturn,
-} from "./activity";
+} from "./activity/index.js";
 
 // Execution — behavior hooks, styled components, and utilities (AgentExecution aggregate)
 export {
@@ -276,7 +276,7 @@ export {
   getArtifactExtension,
   getFileExtension,
   getArtifactRenderMode,
-} from "./execution";
+} from "./execution/index.js";
 export type {
   CreateAgentExecutionInput,
   CreateAgentExecutionResult,
@@ -358,7 +358,7 @@ export type {
   FileChangeDiffProps,
   EmptyChangeNoticeProps,
   EmptyChangeKind,
-} from "./execution";
+} from "./execution/index.js";
 
 // Execution — proto type re-exports for artifact consumers
 export type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
@@ -372,32 +372,32 @@ export {
   detectContentType,
   formatFileSize,
   validateAttachmentSize,
-} from "./attachment";
+} from "./attachment/index.js";
 export type {
   AttachmentPhase,
   AttachmentEntry,
   UseAttachmentsOptions,
   UseAttachmentsReturn,
   AttachmentChipListProps,
-} from "./attachment";
+} from "./attachment/index.js";
 
 // File Reference — workspace file-reference behavior hook and styled chip list
 export {
   useFileReferences,
   FileReferenceChipList,
-} from "./file-reference";
+} from "./file-reference/index.js";
 export type {
   UseFileReferencesReturn,
   FileReferenceChipListProps,
-} from "./file-reference";
-export { FILE_REF_MIME } from "./internal/file-tree";
+} from "./file-reference/index.js";
+export { FILE_REF_MIME } from "./internal/file-tree/index.js";
 
 // Composer — unified message input with model, workspace, and file attachments
 export {
   useComposer,
   SessionComposer,
   InteractionModePicker,
-} from "./composer";
+} from "./composer/index.js";
 export type {
   UseComposerOptions,
   UseComposerReturn,
@@ -406,7 +406,7 @@ export type {
   SessionComposerSubmitContext,
   InteractionModePickerProps,
   InteractionModeOption,
-} from "./composer";
+} from "./composer/index.js";
 
 // MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, detail view, setup orchestration, OAuth connect, and update
 export {
@@ -431,7 +431,7 @@ export {
   useUpdateMcpServer,
   mcpServerToInput,
   toServerKey,
-} from "./mcp-server";
+} from "./mcp-server/index.js";
 export type {
   UseMcpServerReturn,
   UseMcpServerCountOptions,
@@ -468,7 +468,7 @@ export type {
   McpServerCreationWizardProps,
   McpServerCreationResult,
   McpServerWizardData,
-} from "./mcp-server";
+} from "./mcp-server/index.js";
 
 // Skill — data hooks, upload, file browser, and mutation
 export {
@@ -487,7 +487,7 @@ export {
   SkillUploader,
   SkillFileBrowser,
   SkillDiffDialog,
-} from "./skill";
+} from "./skill/index.js";
 export type {
   UseSkillReturn,
   UseSkillCountOptions,
@@ -511,7 +511,7 @@ export type {
   SkillDiffDialogState,
   SkillUploaderProps,
   SkillFileBrowserProps,
-} from "./skill";
+} from "./skill/index.js";
 
 // GitHub — OAuth connection, repo picker, tree lister, and hooks
 export {
@@ -522,7 +522,7 @@ export {
   parseGitUrl,
   GitHubRepoPicker,
   GITHUB_CALLBACK_MESSAGE_TYPE,
-} from "./github";
+} from "./github/index.js";
 export type {
   GitHubUser,
   GitHubConnectOptions,
@@ -534,7 +534,7 @@ export type {
   UseGitHubSearchReturn,
   GitHubRepoPickerProps,
   ParsedGitRepo,
-} from "./github";
+} from "./github/index.js";
 
 // Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, default agent, creation wizard, update
 export {
@@ -552,7 +552,7 @@ export {
   useUpdateAgent,
   agentToInput,
   AgentCreationWizard,
-} from "./agent";
+} from "./agent/index.js";
 export type {
   UseAgentReturn,
   UseAgentCountOptions,
@@ -579,7 +579,7 @@ export type {
   AgentCreationWizardProps,
   AgentCreationResult,
   AgentWizardData,
-} from "./agent";
+} from "./agent/index.js";
 
 // Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, system env vars, and styled components
 export {
@@ -602,7 +602,7 @@ export {
   resolveSystemEnvVarValues,
   resolveDeclaredSystemEnvVars,
   EnvironmentPicker,
-} from "./environment";
+} from "./environment/index.js";
 export type {
   UseEnvironmentReturn,
   UseEnvironmentListReturn,
@@ -624,16 +624,16 @@ export type {
   SessionEnvPoolInput,
   UseSessionEnvPoolReturn,
   EnvironmentPickerProps,
-} from "./environment";
+} from "./environment/index.js";
 
 // Identity Account — gate hook for ensuring the caller's identity account exists before app render
 export {
   useIdentityAccountGate,
-} from "./identity-account";
+} from "./identity-account/index.js";
 export type {
   IdentityAccountGateState,
   UseIdentityAccountGateReturn,
-} from "./identity-account";
+} from "./identity-account/index.js";
 
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
 export {
@@ -656,7 +656,7 @@ export {
   OrgMembersPanel,
   SharePanel,
   PermissionGate,
-} from "./iam-policy";
+} from "./iam-policy/index.js";
 export type {
   UseGrantableRolesReturn,
   RoleOption,
@@ -682,7 +682,7 @@ export type {
   OrgMembersPanelProps,
   SharePanelProps,
   PermissionGateProps,
-} from "./iam-policy";
+} from "./iam-policy/index.js";
 
 // Access — unified "Manage access" experience (visibility + people) as one
 // dialog, with a kebab hook and a visible-button trigger.
@@ -690,7 +690,7 @@ export {
   ManageAccessDialog,
   ManageAccessButton,
   useManageAccess,
-} from "./access";
+} from "./access/index.js";
 export type {
   ManageAccessDialogProps,
   ManageAccessButtonProps,
@@ -699,7 +699,7 @@ export type {
   AccessResource,
   AccessVisibility,
   AccessExtraSection,
-} from "./access";
+} from "./access/index.js";
 
 // Organization — context provider, hooks, data hooks, behavior hooks, styled form, profile panel, and org switcher
 export {
@@ -714,7 +714,7 @@ export {
   CreateOrganizationForm,
   OrgProfilePanel,
   OrgSwitcher,
-} from "./organization";
+} from "./organization/index.js";
 export type {
   OrgContextValue,
   UseOrgGateOptions,
@@ -726,7 +726,7 @@ export type {
   CreateOrganizationFormProps,
   OrgProfilePanelProps,
   OrgSwitcherProps,
-} from "./organization";
+} from "./organization/index.js";
 
 // Billing — data hooks, behavior hooks, styled components, catalog, and formatting utilities
 export {
@@ -753,7 +753,7 @@ export {
   isCredit,
   isHold,
   formatLedgerDate,
-} from "./billing";
+} from "./billing/index.js";
 export type {
   UseBillingAccountReturn,
   UseCreditLedgerReturn,
@@ -773,25 +773,25 @@ export type {
   CreditLedgerTableProps,
   LowBalanceBannerProps,
   CreditPackInfo,
-} from "./billing";
+} from "./billing/index.js";
 
 // Settings — navigation structure + section components shared across app shells
-export { SETTINGS_NAV_GROUPS } from "./settings";
-export type { SettingsNavItem, SettingsNavGroup } from "./settings";
-export { ApiKeysSection } from "./settings";
-export { MembersSection } from "./settings";
-export { OrgProfileSection } from "./settings";
-export { EnvironmentsSection } from "./settings";
-export { InvitationsSection } from "./settings";
-export { IdentityProvidersSection } from "./settings";
-export type { IdentityProvidersSectionProps } from "./settings";
-export { PlatformClientsSection } from "./settings";
-export { OAuthAppsSection } from "./settings";
-export { UsageSection } from "./settings";
+export { SETTINGS_NAV_GROUPS } from "./settings/index.js";
+export type { SettingsNavItem, SettingsNavGroup } from "./settings/index.js";
+export { ApiKeysSection } from "./settings/index.js";
+export { MembersSection } from "./settings/index.js";
+export { OrgProfileSection } from "./settings/index.js";
+export { EnvironmentsSection } from "./settings/index.js";
+export { InvitationsSection } from "./settings/index.js";
+export { IdentityProvidersSection } from "./settings/index.js";
+export type { IdentityProvidersSectionProps } from "./settings/index.js";
+export { PlatformClientsSection } from "./settings/index.js";
+export { OAuthAppsSection } from "./settings/index.js";
+export { UsageSection } from "./settings/index.js";
 
 // User — app shell user menu
-export { UserMenu } from "./user";
-export type { UserMenuProps } from "./user";
+export { UserMenu } from "./user/index.js";
+export type { UserMenuProps } from "./user/index.js";
 
 // API Key — data hooks, behavior hooks, and styled components for API key lifecycle
 export {
@@ -801,7 +801,7 @@ export {
   ApiKeyListPanel,
   CreateApiKeyForm,
   ApiKeyCreatedAlert,
-} from "./api-key";
+} from "./api-key/index.js";
 export type {
   UseApiKeyListReturn,
   UseCreateApiKeyReturn,
@@ -809,7 +809,7 @@ export type {
   ApiKeyListPanelProps,
   CreateApiKeyFormProps,
   ApiKeyCreatedAlertProps,
-} from "./api-key";
+} from "./api-key/index.js";
 
 // Platform Client — data hooks, mutation hooks, and styled components for platform client lifecycle
 export {
@@ -823,7 +823,7 @@ export {
   CreatePlatformClientForm,
   PlatformClientDetailPanel,
   PlatformClientSecretAlert,
-} from "./platform-client";
+} from "./platform-client/index.js";
 export type {
   UsePlatformClientListReturn,
   UsePlatformClientReturn,
@@ -835,7 +835,7 @@ export type {
   CreatePlatformClientFormProps,
   PlatformClientDetailPanelProps,
   PlatformClientSecretAlertProps,
-} from "./platform-client";
+} from "./platform-client/index.js";
 
 // OAuth App — data hooks, mutation hooks, and styled components for OAuth app management
 export {
@@ -846,7 +846,7 @@ export {
   OAuthAppListPanel,
   CreateOAuthAppForm,
   OAuthAppDetailPanel,
-} from "./oauth-app";
+} from "./oauth-app/index.js";
 export type {
   UseOAuthAppListReturn,
   UseCreateOAuthAppReturn,
@@ -855,7 +855,7 @@ export type {
   OAuthAppListPanelProps,
   CreateOAuthAppFormProps,
   OAuthAppDetailPanelProps,
-} from "./oauth-app";
+} from "./oauth-app/index.js";
 
 // Identity Provider — data hooks, mutation hooks, styled components, presets, and guided wizard for IdP management and SSO discovery
 export {
@@ -873,7 +873,7 @@ export {
   IdentityProviderWizard,
   IdentityProviderDetailPanel,
   SsoLoginPrompt,
-} from "./identity-provider";
+} from "./identity-provider/index.js";
 export type {
   UseIdentityProviderListReturn,
   UseIdentityProviderReturn,
@@ -890,7 +890,7 @@ export type {
   IdentityProviderWizardProps,
   IdentityProviderDetailPanelProps,
   SsoLoginPromptProps,
-} from "./identity-provider";
+} from "./identity-provider/index.js";
 
 // Invitation — data hooks, behavior hooks, and feature components for org invite links
 export {
@@ -902,7 +902,7 @@ export {
   InvitationCreatedAlert,
   InvitationManager,
   InvitationRedemption,
-} from "./invitation";
+} from "./invitation/index.js";
 export type {
   UseOrgInvitationsReturn,
   UseCreateInvitationReturn,
@@ -912,11 +912,11 @@ export type {
   InvitationCreatedAlertProps,
   InvitationManagerProps,
   InvitationRedemptionProps,
-} from "./invitation";
+} from "./invitation/index.js";
 
 // Error — structured error display with classification, retry, and contextual guidance
-export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error";
-export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error";
+export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error/index.js";
+export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error/index.js";
 
 // Library — cross-resource UI components, resource detection, apply flow, browsing, and visibility management
 export {
@@ -947,7 +947,7 @@ export {
   INSTANCE_VISIBILITY_LEVELS,
   visibilityLabel,
   useUpdateVisibility,
-} from "./library";
+} from "./library/index.js";
 export type {
   ScopeToggleProps,
   ResourceCountCardProps,
@@ -970,10 +970,10 @@ export type {
   BlueprintVisibilityLevelsContext,
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
-} from "./library";
+} from "./library/index.js";
 
 // Action menu — compound component for resource item actions
-export { ActionMenu } from "./action-menu";
+export { ActionMenu } from "./action-menu/index.js";
 export type {
   ActionMenuProps,
   ActionMenuTriggerProps,
@@ -981,27 +981,27 @@ export type {
   ActionMenuItemProps,
   ActionMenuSeparatorProps,
   ActionMenuGroupProps,
-} from "./action-menu";
+} from "./action-menu/index.js";
 
 // Feedback — toast notification system wrapping Sonner
-export { StigmerToaster, toast } from "./feedback";
-export type { StigmerToasterProps } from "./feedback";
+export { StigmerToaster, toast } from "./feedback/index.js";
+export type { StigmerToasterProps } from "./feedback/index.js";
 
 // Empty state — reusable empty/zero/permission/error state primitives
-export { EmptyState, useEmptyState } from "./empty-state";
+export { EmptyState, useEmptyState } from "./empty-state/index.js";
 export type {
   EmptyStateVariant,
   EmptyStateAction,
   EmptyStateProps,
   UseEmptyStateOptions,
   UseEmptyStateReturn,
-} from "./empty-state";
+} from "./empty-state/index.js";
 
 // Search — shared search/list/count infrastructure re-exported for public API surface
 export type {
   UseResourceSearchOptions,
   UseResourceSearchReturn,
-} from "./search";
+} from "./search/index.js";
 
 // Usage — org-level usage report hook, dashboard panel, and date-range utilities
 export {
@@ -1016,7 +1016,7 @@ export {
   dateRangeFromPreset,
   formatDateRange,
   presetLabel,
-} from "./usage";
+} from "./usage/index.js";
 export type {
   UseOrgUsageReportReturn,
   OrgUsagePanelProps,
@@ -1028,7 +1028,7 @@ export type {
   ExportButtonProps,
   DateRange,
   DateRangePreset,
-} from "./usage";
+} from "./usage/index.js";
 
 // Agent Instance — data hooks, mutation hooks, management components, and behavior hook
 export {
@@ -1043,7 +1043,7 @@ export {
   AgentInstanceEmptyState,
   CreateAgentInstanceDialog,
   AgentInstanceDetailPanel,
-} from "./agent-instance";
+} from "./agent-instance/index.js";
 export type {
   UseAgentInstanceReturn,
   UseAgentInstanceListReturn,
@@ -1057,11 +1057,11 @@ export type {
   AgentInstanceEmptyStateProps,
   CreateAgentInstanceDialogProps,
   AgentInstanceDetailPanelProps,
-} from "./agent-instance";
+} from "./agent-instance/index.js";
 
 // Tabs — accessible tabbed panel primitive
-export { Tabs } from "./tabs";
-export type { TabsProps, TabItem } from "./tabs";
+export { Tabs } from "./tabs/index.js";
+export type { TabsProps, TabItem } from "./tabs/index.js";
 
 // Resource Detail — headless hooks, action bar, and composed shell for resource detail pages
 export {
@@ -1072,7 +1072,7 @@ export {
   ResourceDetailShell,
   Section,
   ConfirmDialog,
-} from "./resource-detail";
+} from "./resource-detail/index.js";
 export type {
   AdditionalTab,
   DetailAction,
@@ -1087,7 +1087,7 @@ export type {
   UseDeleteResourceReturn,
   ResourceActionBarProps,
   ConfirmDialogProps,
-} from "./resource-detail";
+} from "./resource-detail/index.js";
 
 // Resource Creation — shared wizard infrastructure for multi-step creation flows
 export {
@@ -1103,7 +1103,7 @@ export {
   AGENT_TEMPLATES,
   MCP_SERVER_TEMPLATES,
   WORKFLOW_TEMPLATES,
-} from "./resource-creation";
+} from "./resource-creation/index.js";
 export type {
   EnvVarEntry,
   KeyValueEntry,
@@ -1122,10 +1122,10 @@ export type {
   TemplateGalleryProps,
   CreationPickerProps,
   CreationPath,
-} from "./resource-creation";
+} from "./resource-creation/index.js";
 
 // Dependency Graph — visual tree of agent dependencies (MCP servers, skills, sub-agents)
-export { DependencyGraph, useDependencyGraph } from "./dependency-graph";
+export { DependencyGraph, useDependencyGraph } from "./dependency-graph/index.js";
 export type {
   NodeKind,
   DependencyNode,
@@ -1133,7 +1133,7 @@ export type {
   DependencyGraphProps,
   UseDependencyGraphOptions,
   UseDependencyGraphReturn,
-} from "./dependency-graph";
+} from "./dependency-graph/index.js";
 
 // Version History — generic timeline, diff infrastructure for versioned resources
 export {
@@ -1145,7 +1145,7 @@ export {
   MultiFileDiffView,
   computeDiff,
   computeMultiFileDiff,
-} from "./version-history";
+} from "./version-history/index.js";
 export type {
   VersionEntry,
   VersionTimelineProps,
@@ -1159,7 +1159,7 @@ export type {
   FileDiffEntry,
   MultiFileDiffResult,
   DiffViewMode,
-} from "./version-history";
+} from "./version-history/index.js";
 
 // Inline Edit — click-to-edit field primitives for detail page inline editing
 export {
@@ -1170,7 +1170,7 @@ export {
   InlineEditKeyValue,
   InlineEditResourceList,
   useInlineFieldSave,
-} from "./inline-edit";
+} from "./inline-edit/index.js";
 export type {
   InlineEditTextProps,
   InlineEditTextareaProps,
@@ -1183,7 +1183,7 @@ export type {
   KeyValueRow,
   ResourceRefRow,
   SelectOption,
-} from "./inline-edit";
+} from "./inline-edit/index.js";
 
 // Resource Workbench — headless hooks, view components, and composed shell for resource collection management
 export {
@@ -1203,7 +1203,7 @@ export {
   ResourceInspector,
   ResourceWorkbench,
   ResourceAvatar,
-} from "./resource-workbench";
+} from "./resource-workbench/index.js";
 export type {
   ViewMode,
   StatusPhase,
@@ -1237,7 +1237,7 @@ export type {
   ResourceInspectorProps,
   ResourceWorkbenchProps,
   ResourceAvatarProps,
-} from "./resource-workbench";
+} from "./resource-workbench/index.js";
 
 // Workflow — data hooks, styled components, task kind registry
 export {
@@ -1341,7 +1341,7 @@ export {
   WorkflowTemplateCard,
   WorkflowTemplatePreview,
   WorkflowTemplateGallery,
-} from "./workflow";
+} from "./workflow/index.js";
 export type {
   TaskKindDescriptor,
   TaskKindCategory,
@@ -1474,7 +1474,7 @@ export type {
   WorkflowTemplateCardProps,
   WorkflowTemplatePreviewProps,
   WorkflowTemplateGalleryProps,
-} from "./workflow";
+} from "./workflow/index.js";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────
 export {
@@ -1498,4 +1498,4 @@ export {
   type DashboardFailedRunsProps,
   OperationalDashboard,
   type OperationalDashboardProps,
-} from "./dashboard";
+} from "./dashboard/index.js";

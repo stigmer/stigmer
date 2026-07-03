@@ -11,7 +11,7 @@ import type {
   ToolApprovalPolicyInput,
   ResourceRef,
 } from "@stigmer/sdk";
-import type { StigmerResourceKind } from "./detect-stigmer-resource";
+import type { StigmerResourceKind } from "./detect-stigmer-resource.js";
 
 /**
  * Result of parsing a Stigmer resource YAML into an SDK input type.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
+import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
 
 /**
  * Active task status returned by {@link useActiveTaskName}.

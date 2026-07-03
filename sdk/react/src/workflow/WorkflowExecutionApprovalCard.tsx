@@ -3,8 +3,8 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { DecisionButton } from "../internal/DecisionButton";
-import { InCardDecisionError } from "../internal/InCardDecisionError";
+import { DecisionButton } from "../internal/DecisionButton.js";
+import { InCardDecisionError } from "../internal/InCardDecisionError.js";
 
 /** Props for {@link WorkflowExecutionApprovalCard}. */
 export interface WorkflowExecutionApprovalCardProps {

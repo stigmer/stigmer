@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import type { ToolCallOutputRef } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { useArtifactContent } from "./useArtifactContent";
-import { execIdFromStorageKey } from "./useFileChangeContent";
+import { useArtifactContent } from "./useArtifactContent.js";
+import { execIdFromStorageKey } from "./useFileChangeContent.js";
 
 /** Return value of {@link useToolOutputContent}. */
 export interface UseToolOutputContentReturn {

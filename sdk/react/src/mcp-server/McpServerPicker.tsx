@@ -14,15 +14,15 @@ import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import type { EnvVarFormSubmitOptions } from "../environment/EnvVarForm";
-import { useMcpServerSearch } from "./useMcpServerSearch";
-import { useScrollShadows } from "../internal/useScrollShadows";
-import { ScrollFade } from "../internal/ScrollFade";
-import { McpServerConfigPanel } from "./McpServerConfigPanel";
-import type { McpServerSetupEntry } from "./mcpServerSetupReducer";
-import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect";
-import { ScopeToggle } from "../library/ScopeToggle";
-import type { ResourceListScope } from "../search";
+import type { EnvVarFormSubmitOptions } from "../environment/EnvVarForm.js";
+import { useMcpServerSearch } from "./useMcpServerSearch.js";
+import { useScrollShadows } from "../internal/useScrollShadows.js";
+import { ScrollFade } from "../internal/ScrollFade.js";
+import { McpServerConfigPanel } from "./McpServerConfigPanel.js";
+import type { McpServerSetupEntry } from "./mcpServerSetupReducer.js";
+import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
+import { ScopeToggle } from "../library/ScopeToggle.js";
+import type { ResourceListScope } from "../search/index.js";
 
 // ---------------------------------------------------------------------------
 // Setup integration props

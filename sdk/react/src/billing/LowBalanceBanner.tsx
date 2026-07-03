@@ -2,7 +2,7 @@
 
 import { cn } from "@stigmer/theme";
 import { AlertTriangle } from "lucide-react";
-import { formatCreditBalance } from "./format";
+import { formatCreditBalance } from "./format.js";
 
 /** Props for {@link LowBalanceBanner}. */
 export interface LowBalanceBannerProps {

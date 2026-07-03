@@ -6,10 +6,10 @@ import type {
   WorkflowGraphNode,
   WorkflowGraphEdge,
   WorkflowGraphDocument,
-} from "./workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
-import { categorizeKind } from "./kind-metadata";
-import { stringToTaskKind } from "./workflow-graph-conversions";
+} from "./workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model.js";
+import { categorizeKind } from "./kind-metadata.js";
+import { stringToTaskKind } from "./workflow-graph-conversions.js";
 
 // ---------------------------------------------------------------------------
 // CNCF call type -> Stigmer kind string mapping

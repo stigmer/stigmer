@@ -2,10 +2,10 @@
 
 import { useCallback, useMemo } from "react";
 import { cn } from "@stigmer/theme";
-import type { WorkflowTemplate, WorkflowTemplateMeta } from "./types";
-import { PATTERN_LABELS } from "./types";
-import { deriveTemplateMeta } from "./derive-template-metadata";
-import { TEMPLATE_CATEGORY_LABELS } from "../../resource-creation/templates/types";
+import type { WorkflowTemplate, WorkflowTemplateMeta } from "./types.js";
+import { PATTERN_LABELS } from "./types.js";
+import { deriveTemplateMeta } from "./derive-template-metadata.js";
+import { TEMPLATE_CATEGORY_LABELS } from "../../resource-creation/templates/types.js";
 
 export interface WorkflowTemplateCardProps {
   readonly template: WorkflowTemplate;

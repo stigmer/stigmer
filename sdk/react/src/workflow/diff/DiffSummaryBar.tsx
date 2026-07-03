@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { GraphDiff } from "./types";
+import type { GraphDiff } from "./types.js";
 
 export interface DiffSummaryBarProps {
   readonly diff: GraphDiff;

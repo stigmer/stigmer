@@ -40,7 +40,7 @@ export interface UseWorkflowTopologyReturn {
   readonly edges: readonly TopologyEdge[];
 }
 
-import { categorizeKind } from "./kind-metadata";
+import { categorizeKind } from "./kind-metadata.js";
 
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 40;

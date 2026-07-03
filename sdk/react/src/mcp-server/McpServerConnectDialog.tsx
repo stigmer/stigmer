@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { EnvVarInput } from "@stigmer/sdk";
-import { useMcpServer } from "./useMcpServer";
-import { useMcpServerCredentials } from "./useMcpServerCredentials";
-import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect";
-import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect";
-import { useMcpServerConnect } from "./useMcpServerConnect";
-import { useDisconnectOAuth } from "./useDisconnectOAuth";
-import { EnvVarForm } from "../environment/EnvVarForm";
-import { ErrorMessage } from "../error/ErrorMessage";
+import { useMcpServer } from "./useMcpServer.js";
+import { useMcpServerCredentials } from "./useMcpServerCredentials.js";
+import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
+import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect.js";
+import { useMcpServerConnect } from "./useMcpServerConnect.js";
+import { useDisconnectOAuth } from "./useDisconnectOAuth.js";
+import { EnvVarForm } from "../environment/EnvVarForm.js";
+import { ErrorMessage } from "../error/ErrorMessage.js";
 
 /** Props for {@link McpServerConnectDialog}. */
 export interface McpServerConnectDialogProps {

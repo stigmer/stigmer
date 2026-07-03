@@ -1,13 +1,13 @@
 import dagre from "@dagrejs/dagre";
-import type { WorkflowGraphModel, WorkflowGraphNode } from "../workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
+import type { WorkflowGraphModel, WorkflowGraphNode } from "../workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
 import {
   CANVAS_NODE_WIDTH,
   CANVAS_NODE_HEIGHT,
   SENTINEL_NODE_WIDTH,
   SENTINEL_NODE_HEIGHT,
-} from "../canvas-constants";
-import type { LayoutEngine, LayoutInput, LayoutResult, NodeDimensions, Position2D } from "./types";
+} from "../canvas-constants.js";
+import type { LayoutEngine, LayoutInput, LayoutResult, NodeDimensions, Position2D } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Default node dimension provider

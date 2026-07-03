@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { StatusPhase } from "../types";
+import type { StatusPhase } from "../types.js";
 
 /** Props for {@link StatusBadge}. */
 export interface StatusBadgeProps {

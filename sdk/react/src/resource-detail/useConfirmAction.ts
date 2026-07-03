@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { ConfirmOptions, ConfirmState } from "./types";
+import type { ConfirmOptions, ConfirmState } from "./types.js";
 
 export interface UseConfirmActionReturn {
   /**

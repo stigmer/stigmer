@@ -15,14 +15,14 @@ import {
 import type { Node, NodeChange } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowNode } from "./WorkflowNode";
-import { CanvasTransitionEdge } from "./CanvasTransitionEdge";
-import { CANVAS_TASK_NODE_TYPE, CANVAS_TRANSITION_EDGE_TYPE } from "./workflow-graph-conversions";
-import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
-import { WorkflowGraphModeProvider } from "./WorkflowGraphModeContext";
-import { useWorkflowOverviewGraph } from "./useWorkflowOverviewGraph";
-import { WorkflowNodePopover } from "./WorkflowNodePopover";
-import { getVisualSpec } from "./task-type-visual-registry";
+import { WorkflowNode } from "./WorkflowNode.js";
+import { CanvasTransitionEdge } from "./CanvasTransitionEdge.js";
+import { CANVAS_TASK_NODE_TYPE, CANVAS_TRANSITION_EDGE_TYPE } from "./workflow-graph-conversions.js";
+import type { CanvasTaskNodeData } from "./workflow-graph-conversions.js";
+import { WorkflowGraphModeProvider } from "./WorkflowGraphModeContext.js";
+import { useWorkflowOverviewGraph } from "./useWorkflowOverviewGraph.js";
+import { WorkflowNodePopover } from "./WorkflowNodePopover.js";
+import { getVisualSpec } from "./task-type-visual-registry.js";
 
 /** Props for {@link WorkflowOverviewGraph}. */
 export interface WorkflowOverviewGraphProps {

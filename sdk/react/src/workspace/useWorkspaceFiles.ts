@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { buildFileTree, type TreeNode } from "../internal/file-tree";
-import { toError } from "../internal/toError";
-import type { WorkspaceEntry } from "./useWorkspaceEntries";
-import type { WorkspaceFileEntry, WorkspaceFileLister } from "./WorkspaceFileLister";
+import { buildFileTree, type TreeNode } from "../internal/file-tree/index.js";
+import { toError } from "../internal/toError.js";
+import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
+import type { WorkspaceFileEntry, WorkspaceFileLister } from "./WorkspaceFileLister.js";
 
 /** Options for {@link useWorkspaceFiles}. */
 export interface UseWorkspaceFilesOptions {

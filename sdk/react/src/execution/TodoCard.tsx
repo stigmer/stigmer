@@ -4,9 +4,9 @@ import { memo, useMemo } from "react";
 import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { useRenderTracer } from "../internal/dev";
-import { useAutoDisclosure } from "../internal/useAutoDisclosure";
-import { TodoList, findActiveTodo, todoCompletionSummary } from "./TodoList";
+import { useRenderTracer } from "../internal/dev/index.js";
+import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
+import { TodoList, findActiveTodo, todoCompletionSummary } from "./TodoList.js";
 
 /** Props for {@link TodoCard}. */
 export interface TodoCardProps {

@@ -3,10 +3,10 @@
 import { memo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ArtifactPreviewModal } from "./ArtifactPreviewModal";
-import { formatArtifactSize } from "./artifact-utils";
-import { useArtifactDownload } from "./useArtifactDownload";
-import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey";
+import { ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
+import { formatArtifactSize } from "./artifact-utils.js";
+import { useArtifactDownload } from "./useArtifactDownload.js";
+import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
 /** Props for {@link PlanArtifactCard}. */
 export interface PlanArtifactCardProps {

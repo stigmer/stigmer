@@ -3,26 +3,26 @@
 import { memo, useMemo, useCallback } from "react";
 import { cn } from "@stigmer/theme";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { WorkflowGraphModel, WorkflowGraphNode, WorkflowGraphEdge } from "../workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
-import type { CanvasSelection } from "../useWorkflowCanvas";
-import type { TaskKindDescriptor } from "../types";
-import { Tabs } from "../../tabs/Tabs";
-import { CATEGORY_COLORS } from "../canvas-constants";
-import { taskKindToString } from "../workflow-graph-conversions";
-import { InspectorHeader } from "./InspectorHeader";
-import { useInspectorTabs } from "./useInspectorTabs";
-import { ConfigureTab } from "./tabs/ConfigureTab";
-import { BranchesTab } from "./tabs/BranchesTab";
-import { CatchTab } from "./tabs/CatchTab";
-import { IterationTab } from "./tabs/IterationTab";
-import { DataTab } from "./tabs/DataTab";
-import { RuntimeTab } from "./tabs/RuntimeTab";
-import { AdvancedTab } from "./tabs/AdvancedTab";
-import { DocsTab } from "./tabs/DocsTab";
-import { EdgeInspector } from "./EdgeInspector";
-import { SentinelInspector } from "./SentinelInspector";
-import type { InspectorMutations, InspectorNodeIdentity, DesignTabId } from "./types";
+import type { WorkflowGraphModel, WorkflowGraphNode, WorkflowGraphEdge } from "../workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
+import type { CanvasSelection } from "../useWorkflowCanvas.js";
+import type { TaskKindDescriptor } from "../types.js";
+import { Tabs } from "../../tabs/Tabs.js";
+import { CATEGORY_COLORS } from "../canvas-constants.js";
+import { taskKindToString } from "../workflow-graph-conversions.js";
+import { InspectorHeader } from "./InspectorHeader.js";
+import { useInspectorTabs } from "./useInspectorTabs.js";
+import { ConfigureTab } from "./tabs/ConfigureTab.js";
+import { BranchesTab } from "./tabs/BranchesTab.js";
+import { CatchTab } from "./tabs/CatchTab.js";
+import { IterationTab } from "./tabs/IterationTab.js";
+import { DataTab } from "./tabs/DataTab.js";
+import { RuntimeTab } from "./tabs/RuntimeTab.js";
+import { AdvancedTab } from "./tabs/AdvancedTab.js";
+import { DocsTab } from "./tabs/DocsTab.js";
+import { EdgeInspector } from "./EdgeInspector.js";
+import { SentinelInspector } from "./SentinelInspector.js";
+import type { InspectorMutations, InspectorNodeIdentity, DesignTabId } from "./types.js";
 
 /** Props for {@link InspectorShell}. */
 export interface InspectorShellProps {

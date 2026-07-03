@@ -9,15 +9,15 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { getUserMessage } from "@stigmer/sdk";
-import { useUpdateWorkflowInstance } from "./useUpdateWorkflowInstance";
-import { useDeleteWorkflowInstance } from "./useDeleteWorkflowInstance";
-import { RunVisibilityControl } from "./RunVisibilityControl";
-import { VisibilityBadge } from "../../library/VisibilitySelector";
-import { PermissionGate } from "../../iam-policy/PermissionGate";
-import { useCheckPermission } from "../../iam-policy/useCheckPermission";
-import { ManageAccessButton } from "../../access/ManageAccessButton";
-import { EnvironmentPicker } from "../../environment/EnvironmentPicker";
-import { useEnvironmentList } from "../../environment/useEnvironmentList";
+import { useUpdateWorkflowInstance } from "./useUpdateWorkflowInstance.js";
+import { useDeleteWorkflowInstance } from "./useDeleteWorkflowInstance.js";
+import { RunVisibilityControl } from "./RunVisibilityControl.js";
+import { VisibilityBadge } from "../../library/VisibilitySelector.js";
+import { PermissionGate } from "../../iam-policy/PermissionGate.js";
+import { useCheckPermission } from "../../iam-policy/useCheckPermission.js";
+import { ManageAccessButton } from "../../access/ManageAccessButton.js";
+import { EnvironmentPicker } from "../../environment/EnvironmentPicker.js";
+import { useEnvironmentList } from "../../environment/useEnvironmentList.js";
 
 /** Props for {@link WorkflowInstanceDetailPanel}. */
 export interface WorkflowInstanceDetailPanelProps {

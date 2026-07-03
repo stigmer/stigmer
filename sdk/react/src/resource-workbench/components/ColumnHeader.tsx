@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { SortDirection } from "../types";
+import type { SortDirection } from "../types.js";
 
 /** Props for {@link ColumnHeader}. */
 export interface ColumnHeaderProps {

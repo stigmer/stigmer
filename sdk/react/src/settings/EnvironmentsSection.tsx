@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getUserMessage } from "@stigmer/sdk";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
-import { EnvironmentVariableEditor } from "../environment/EnvironmentVariableEditor";
-import { EnvironmentListPanel } from "../environment/EnvironmentListPanel";
-import { CreateEnvironmentForm } from "../environment/CreateEnvironmentForm";
-import { useActiveOrgSlug } from "../organization/OrgProvider";
+import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
+import { EnvironmentVariableEditor } from "../environment/EnvironmentVariableEditor.js";
+import { EnvironmentListPanel } from "../environment/EnvironmentListPanel.js";
+import { CreateEnvironmentForm } from "../environment/CreateEnvironmentForm.js";
+import { useActiveOrgSlug } from "../organization/OrgProvider.js";
 
 const ENV_EXCLUDE_LABELS: Record<string, string>[] = [
   { "stigmer.ai/personal": "true" },

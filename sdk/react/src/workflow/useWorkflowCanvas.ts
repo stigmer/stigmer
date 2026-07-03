@@ -13,21 +13,21 @@ import type {
 } from "@xyflow/react";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { WorkflowGraphModel, WorkflowGraphNode } from "./workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
+import type { WorkflowGraphModel, WorkflowGraphNode } from "./workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model.js";
 import {
   yamlToGraph,
   toReactFlowElements,
   categorizeKind,
   stringToTaskKind,
   taskKindToString,
-} from "./workflow-graph-conversions";
-import { TASK_KIND_DRAG_MIME } from "./WorkflowTaskPalette";
+} from "./workflow-graph-conversions.js";
+import { TASK_KIND_DRAG_MIME } from "./WorkflowTaskPalette.js";
 import {
   DAGRE_CONFIG,
   CANVAS_NODE_HEIGHT,
-} from "./canvas-constants";
-import type { GraphCommand } from "./graph-commands";
+} from "./canvas-constants.js";
+import type { GraphCommand } from "./graph-commands.js";
 import {
   AddNodeCommand,
   DeleteNodeCommand,
@@ -58,15 +58,15 @@ import {
   generateTaskName,
   createTaskNode,
   isSentinelNode,
-} from "./graph-commands";
-import { graphToYaml } from "./workflow-graph-conversions";
-import { useTaskKindRegistry } from "./useTaskKindRegistry";
-import type { TaskKindDescriptor } from "./types";
-import { useGraphHistory } from "./useGraphHistory";
-import { useWorkflowLayout, applyDagreLayout, registryNodeDimensions } from "./layout";
-import type { LayoutEngine } from "./layout";
-import { serializeSelection, pasteClipboard } from "./clipboard";
-import type { ClipboardEntry } from "./clipboard";
+} from "./graph-commands.js";
+import { graphToYaml } from "./workflow-graph-conversions.js";
+import { useTaskKindRegistry } from "./useTaskKindRegistry.js";
+import type { TaskKindDescriptor } from "./types.js";
+import { useGraphHistory } from "./useGraphHistory.js";
+import { useWorkflowLayout, applyDagreLayout, registryNodeDimensions } from "./layout/index.js";
+import type { LayoutEngine } from "./layout/index.js";
+import { serializeSelection, pasteClipboard } from "./clipboard.js";
+import type { ClipboardEntry } from "./clipboard.js";
 
 /** Selection state for the canvas inspector. */
 export interface CanvasSelection {

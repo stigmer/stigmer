@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { EnvironmentInput } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useUpdateEnvironment}. */
 export interface UseUpdateEnvironmentReturn {

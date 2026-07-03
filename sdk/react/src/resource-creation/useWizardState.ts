@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useReducer } from "react";
-import type { WizardStepDef, WizardState } from "./types";
+import type { WizardStepDef, WizardState } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Public API

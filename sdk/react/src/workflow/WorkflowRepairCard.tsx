@@ -2,10 +2,10 @@
 
 import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { useDiagnoseExecutionFlow, type DiagnosePhase } from "./useDiagnoseExecutionFlow";
-import { MessageThread } from "../execution/MessageThread";
-import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff";
-import { WorkflowDiffGraph } from "./WorkflowDiffGraph";
+import { useDiagnoseExecutionFlow, type DiagnosePhase } from "./useDiagnoseExecutionFlow.js";
+import { MessageThread } from "../execution/MessageThread.js";
+import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff.js";
+import { WorkflowDiffGraph } from "./WorkflowDiffGraph.js";
 
 /** Props for {@link WorkflowRepairCard}. */
 export interface WorkflowRepairCardProps {

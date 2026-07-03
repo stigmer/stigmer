@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import type { ExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { formatDurationSec, formatTokenCount } from "../format-utils";
+import { formatDurationSec, formatTokenCount } from "../format-utils.js";
 
 /** Props for {@link HealthMetricsStrip}. */
 export interface HealthMetricsStripProps {

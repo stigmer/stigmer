@@ -2,8 +2,8 @@
 
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { cn } from "@stigmer/theme";
-import type { ShareFlowResource } from "./useShareFlow";
-import { PeopleWithAccess } from "./PeopleWithAccess";
+import type { ShareFlowResource } from "./useShareFlow.js";
+import { PeopleWithAccess } from "./PeopleWithAccess.js";
 
 /** Props for {@link SharePanel}. */
 export interface SharePanelProps {

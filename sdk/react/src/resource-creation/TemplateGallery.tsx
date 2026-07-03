@@ -2,10 +2,10 @@
 
 import { useCallback, useRef, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import type { ResourceTemplate, TemplateCategory } from "./templates/types";
-import { TEMPLATE_CATEGORY_LABELS } from "./templates/types";
-import { useTemplateFilter } from "./useTemplateFilter";
-import { TemplateCard } from "./TemplateCard";
+import type { ResourceTemplate, TemplateCategory } from "./templates/types.js";
+import { TEMPLATE_CATEGORY_LABELS } from "./templates/types.js";
+import { useTemplateFilter } from "./useTemplateFilter.js";
+import { TemplateCard } from "./TemplateCard.js";
 
 // ---------------------------------------------------------------------------
 // Public API

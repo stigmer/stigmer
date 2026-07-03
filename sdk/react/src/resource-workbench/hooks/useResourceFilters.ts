@@ -6,7 +6,7 @@ import type {
   FilterDef,
   SortValue,
   SortDef,
-} from "../types";
+} from "../types.js";
 
 // ---------------------------------------------------------------------------
 // Options

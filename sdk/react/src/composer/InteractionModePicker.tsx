@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
-import { useStigmerPortalContainer } from "../portal-container";
+import { useStigmerPortalContainer } from "../portal-container.js";
 
 /**
  * Interaction mode options for agent executions.

@@ -15,10 +15,10 @@ import {
   SubmitWorkflowTaskApprovalInputSchema,
   SubmitWorkflowFileDecisionInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { useKeyedSubmission } from "../internal/useKeyedSubmission";
-import { fileDecisionKey, type FileDecisionOptions } from "../execution/useFileReview";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { useKeyedSubmission } from "../internal/useKeyedSubmission.js";
+import { fileDecisionKey, type FileDecisionOptions } from "../execution/useFileReview.js";
 
 /** Options for {@link useWorkflowExecutionActions}. */
 export interface UseWorkflowExecutionActionsOptions {

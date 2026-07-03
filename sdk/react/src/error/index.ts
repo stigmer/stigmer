@@ -1,5 +1,5 @@
-export { ErrorMessage } from "./ErrorMessage";
-export type { ErrorMessageProps } from "./ErrorMessage";
+export { ErrorMessage } from "./ErrorMessage.js";
+export type { ErrorMessageProps } from "./ErrorMessage.js";
 
-export { SecretFlowErrorGuide, isSecretFlowError } from "./SecretFlowErrorGuide";
-export type { SecretFlowErrorGuideProps } from "./SecretFlowErrorGuide";
+export { SecretFlowErrorGuide, isSecretFlowError } from "./SecretFlowErrorGuide.js";
+export type { SecretFlowErrorGuideProps } from "./SecretFlowErrorGuide.js";

@@ -7,8 +7,8 @@ import {
   GetWorkflowVersionInputSchema,
   type WorkflowVersionEntry,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/version_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 const CODE_UNIMPLEMENTED = 12;
 

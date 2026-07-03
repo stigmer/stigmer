@@ -3,9 +3,9 @@
 import { useCallback, useState } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { AttachmentInput, EnvVarInput } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { toProtoInteractionMode } from "../composer/interaction-mode";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { toProtoInteractionMode } from "../composer/interaction-mode.js";
 
 /** Input for {@link UseCreateAgentExecutionReturn.create}. */
 export interface CreateAgentExecutionInput {

@@ -6,7 +6,7 @@ import {
   type EnvVarFormVariable,
   type EnvVarFormSubmitOptions,
   type EnvVarFormProps,
-} from "../environment/EnvVarForm";
+} from "../environment/EnvVarForm.js";
 
 // ---------------------------------------------------------------------------
 // Backward-compatible type aliases

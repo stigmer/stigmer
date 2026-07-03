@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useCallback, useContext } from "react";
-import type { WorkflowGraphNode } from "../workflow-graph-model";
-import { CanvasActionsContext } from "../CanvasActionsContext";
-import type { NestedTaskEntry } from "./NestedTaskList";
+import type { WorkflowGraphNode } from "../workflow-graph-model.js";
+import { CanvasActionsContext } from "../CanvasActionsContext.js";
+import type { NestedTaskEntry } from "./NestedTaskList.js";
 
 export interface UseNestedTaskEditorInput {
   /** The container node (fork, try_catch, or for_each). */

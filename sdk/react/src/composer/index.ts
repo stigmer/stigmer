@@ -1,20 +1,20 @@
-export { useComposer } from "./useComposer";
-export type { UseComposerOptions, UseComposerReturn } from "./useComposer";
+export { useComposer } from "./useComposer.js";
+export type { UseComposerOptions, UseComposerReturn } from "./useComposer.js";
 
-export { SessionComposer } from "./SessionComposer";
+export { SessionComposer } from "./SessionComposer.js";
 export type {
   SessionComposerHandle,
   SessionComposerProps,
   SessionComposerSubmitContext,
-} from "./SessionComposer";
+} from "./SessionComposer.js";
 
-export { InteractionModePicker } from "./InteractionModePicker";
+export { InteractionModePicker } from "./InteractionModePicker.js";
 export type {
   InteractionModePickerProps,
   InteractionModeOption,
-} from "./InteractionModePicker";
+} from "./InteractionModePicker.js";
 
 export {
   toProtoInteractionMode,
   fromProtoInteractionMode,
-} from "./interaction-mode";
+} from "./interaction-mode.js";

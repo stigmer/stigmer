@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { VersionTimelineProps } from "./types";
-import { VersionTimelineEntry } from "./VersionTimelineEntry";
+import type { VersionTimelineProps } from "./types.js";
+import { VersionTimelineEntry } from "./VersionTimelineEntry.js";
 
 /**
  * Accessible vertical timeline for version history.

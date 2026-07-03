@@ -2,12 +2,12 @@
 
 import { useMemo } from "react";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { useArtifactContent } from "../execution/useArtifactContent";
+import { useArtifactContent } from "../execution/useArtifactContent.js";
 import {
   detectSkillPackage,
   isSkillPackage,
   type SkillPackageDetection,
-} from "./detect-skill-package";
+} from "./detect-skill-package.js";
 
 const NOT_DETECTED: SkillPackageDetection = { detected: false } as const;
 

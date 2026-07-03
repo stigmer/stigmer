@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import type { WizardStepDef } from "../resource-creation/types";
-import { useWizardState } from "../resource-creation/useWizardState";
-import { WizardShell } from "../resource-creation/WizardShell";
-import { useCreateAgent } from "./useCreateAgent";
-import { IdentityStep } from "./steps/IdentityStep";
-import { CapabilitiesStep } from "./steps/CapabilitiesStep";
-import { ReviewStep, buildAgentInput } from "./steps/ReviewStep";
-import { createInitialWizardData } from "./steps/types";
-import type { AgentWizardData } from "./steps/types";
+import type { WizardStepDef } from "../resource-creation/types.js";
+import { useWizardState } from "../resource-creation/useWizardState.js";
+import { WizardShell } from "../resource-creation/WizardShell.js";
+import { useCreateAgent } from "./useCreateAgent.js";
+import { IdentityStep } from "./steps/IdentityStep.js";
+import { CapabilitiesStep } from "./steps/CapabilitiesStep.js";
+import { ReviewStep, buildAgentInput } from "./steps/ReviewStep.js";
+import { createInitialWizardData } from "./steps/types.js";
+import type { AgentWizardData } from "./steps/types.js";
 
 // ---------------------------------------------------------------------------
 // Public API

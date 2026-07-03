@@ -15,18 +15,18 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { toDisplayFileChange } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import { FileChangeDiff } from "./FileChangesView";
-import { DiffSummary } from "../version-history/DiffSummary";
-import { DecisionButton } from "../internal/DecisionButton";
-import { InCardDecisionError } from "../internal/InCardDecisionError";
-import { splitDisplayPath } from "./file-path-resolver";
-import { fileDecisionKey, type FileDecisionOptions } from "./useFileReview";
+import { FileChangeDiff } from "./FileChangesView.js";
+import { DiffSummary } from "../version-history/DiffSummary.js";
+import { DecisionButton } from "../internal/DecisionButton.js";
+import { InCardDecisionError } from "../internal/InCardDecisionError.js";
+import { splitDisplayPath } from "./file-path-resolver.js";
+import { fileDecisionKey, type FileDecisionOptions } from "./useFileReview.js";
 import {
   changeSetReviewability,
   deriveEffectiveVerdicts,
   fileReviewability,
   type FileReviewability,
-} from "./file-review-status";
+} from "./file-review-status.js";
 
 /** A stable empty set so the default `submittingDecisionKeys` keeps a constant ref. */
 const NO_KEYS: ReadonlySet<string> = new Set();

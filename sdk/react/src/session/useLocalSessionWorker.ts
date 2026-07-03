@@ -3,9 +3,9 @@
 import { useEffect, useMemo } from "react";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { useRunnerAdapter } from "../runner-adapter";
-import { useExecutionTarget } from "../execution-target-context";
-import { fromProtoExecutionTarget } from "./execution-target";
+import { useRunnerAdapter } from "../runner-adapter.js";
+import { useExecutionTarget } from "../execution-target-context.js";
+import { fromProtoExecutionTarget } from "./execution-target.js";
 
 /**
  * Drives the local runner worker lifecycle for an open session.

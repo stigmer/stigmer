@@ -4,19 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { useStigmerPortalContainer } from "../portal-container";
-import { ConfirmDialog } from "../resource-detail/ConfirmDialog";
-import { useConfirmAction } from "../resource-detail/useConfirmAction";
+import { useStigmerPortalContainer } from "../portal-container.js";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import {
   PROMPT_STYLES,
   VISIBILITY_CHIP_CLASS,
   VisibilityIcon,
   VisibilityOptionRow,
-} from "./VisibilityOptionRow";
+} from "./VisibilityOptionRow.js";
 import {
   visibilityOption,
   type VisibilityLevelOption,
-} from "./visibilityLevels";
+} from "./visibilityLevels.js";
 
 /** How the selector presents itself and how it confirms escalations. */
 export type VisibilitySelectorMode = "manage" | "create";

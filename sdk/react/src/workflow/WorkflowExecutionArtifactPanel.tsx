@@ -3,8 +3,8 @@
 import { memo, useCallback, useState } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { cn } from "@stigmer/theme";
-import { useStigmer } from "../hooks";
-import { formatBytes } from "./format-utils";
+import { useStigmer } from "../hooks.js";
+import { formatBytes } from "./format-utils.js";
 
 /** Props for {@link WorkflowExecutionArtifactPanel}. */
 export interface WorkflowExecutionArtifactPanelProps {

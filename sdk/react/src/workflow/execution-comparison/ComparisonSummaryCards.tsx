@@ -2,8 +2,8 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import { formatDuration, formatMicroUsd, formatTokenCount } from "../format-utils";
-import type { ExecutionComparison } from "./types";
+import { formatDuration, formatMicroUsd, formatTokenCount } from "../format-utils.js";
+import type { ExecutionComparison } from "./types.js";
 
 /** Props for {@link ComparisonSummaryCards}. */
 export interface ComparisonSummaryCardsProps {

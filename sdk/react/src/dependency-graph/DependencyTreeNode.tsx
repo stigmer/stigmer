@@ -2,7 +2,7 @@
 
 import { useCallback, useState, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
-import type { DependencyNode, NodeKind } from "./types";
+import type { DependencyNode, NodeKind } from "./types.js";
 
 interface DependencyTreeNodeProps {
   readonly node: DependencyNode;

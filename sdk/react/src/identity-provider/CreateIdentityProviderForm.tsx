@@ -5,7 +5,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { useCreateIdentityProvider } from "./useCreateIdentityProvider";
+import { useCreateIdentityProvider } from "./useCreateIdentityProvider.js";
 
 /** Props for {@link CreateIdentityProviderForm}. */
 export interface CreateIdentityProviderFormProps {

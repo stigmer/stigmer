@@ -3,8 +3,8 @@
 import { create } from "@bufbuild/protobuf";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { ListPendingApprovalsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 
 export interface UsePendingApprovalsOptions {
   /** Organization slug. When empty, the hook does not fetch. */

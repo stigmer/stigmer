@@ -1,5 +1,5 @@
-import type { WorkflowGraphNode } from "../workflow-graph-model";
-import { taskKindToString } from "../workflow-graph-conversions";
+import type { WorkflowGraphNode } from "../workflow-graph-model.js";
+import { taskKindToString } from "../workflow-graph-conversions.js";
 
 /**
  * Serializes a single graph node to its YAML representation.

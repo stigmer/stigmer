@@ -17,9 +17,9 @@
 // trivially testable via `synth({ outDir })` (DD-009 §1). Node-only — it writes
 // files — and exported from the dedicated `/synth` subpath (DD-009 §2).
 
-import { RegistrationContext } from "./context";
-import { countRegistrations, type SynthCounts, writeRegistrations } from "./writer";
-import type { ProjectContext } from "./context";
+import { RegistrationContext } from "./context.js";
+import { countRegistrations, type SynthCounts, writeRegistrations } from "./writer.js";
+import type { ProjectContext } from "./context.js";
 
 export type {
   ProjectContext,
@@ -27,9 +27,9 @@ export type {
   SkillFromDirOptions,
   SkillFromGitInput,
   SkillHandle,
-} from "./context";
-export type { SynthCounts, SynthFile } from "./writer";
-export { serializeRegistrations } from "./writer";
+} from "./context.js";
+export type { SynthCounts, SynthFile } from "./writer.js";
+export { serializeRegistrations } from "./writer.js";
 
 /** Options for {@link ProjectApp.synth}. */
 export interface SynthOptions {

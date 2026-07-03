@@ -2,8 +2,8 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { WorkflowGraphModel } from "./workflow-graph-model";
-import { taskToYaml } from "./inspector/task-to-yaml";
+import type { WorkflowGraphModel } from "./workflow-graph-model.js";
+import { taskToYaml } from "./inspector/task-to-yaml.js";
 
 /** Props for {@link ViewYamlDialog}. */
 export interface ViewYamlDialogProps {

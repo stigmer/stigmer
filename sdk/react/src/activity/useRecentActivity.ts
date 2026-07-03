@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { RecentActivityEntry as ProtoEntry } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useActiveOrgSlug } from "../organization/OrgProvider";
-import { useFetch } from "../internal/useFetch";
-import type { RecentActivityEntry, RecentActivityType } from "./types";
+import { useStigmer } from "../hooks.js";
+import { useActiveOrgSlug } from "../organization/OrgProvider.js";
+import { useFetch } from "../internal/useFetch.js";
+import type { RecentActivityEntry, RecentActivityType } from "./types.js";
 
 /** Options for {@link useRecentActivity}. */
 export interface UseRecentActivityOptions {

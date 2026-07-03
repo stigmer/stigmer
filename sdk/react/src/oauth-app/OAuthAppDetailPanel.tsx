@@ -6,8 +6,8 @@ import { getUserMessage } from "@stigmer/sdk";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
-import { useUpdateOAuthApp } from "./useUpdateOAuthApp";
-import { useDeleteOAuthApp } from "./useDeleteOAuthApp";
+import { useUpdateOAuthApp } from "./useUpdateOAuthApp.js";
+import { useDeleteOAuthApp } from "./useDeleteOAuthApp.js";
 
 // ---------------------------------------------------------------------------
 // Public API

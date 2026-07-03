@@ -9,7 +9,7 @@ import {
   User,
 } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import type { ColorMode } from "../color-mode";
+import type { ColorMode } from "../color-mode.js";
 import {
   Menu,
   MenuContent,
@@ -20,7 +20,7 @@ import {
   MenuRadioItem,
   MenuSeparator,
   MenuTrigger,
-} from "../internal/menu";
+} from "../internal/menu.js";
 
 // ---------------------------------------------------------------------------
 // Public API

@@ -1,11 +1,11 @@
-import type { WorkflowGraphModel, WorkflowGraphNode, WorkflowGraphEdge } from "../workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
+import type { WorkflowGraphModel, WorkflowGraphNode, WorkflowGraphEdge } from "../workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
 import {
   CANVAS_NODE_WIDTH,
   CANVAS_NODE_HEIGHT,
   SENTINEL_NODE_WIDTH,
   SENTINEL_NODE_HEIGHT,
-} from "../canvas-constants";
+} from "../canvas-constants.js";
 import type {
   ElkGraph,
   ElkNode,
@@ -14,8 +14,8 @@ import type {
   LayoutInput,
   NodeDimensions,
   NodePortAssignment,
-} from "./types";
-import { computePortAssignments } from "./port-assignment";
+} from "./types.js";
+import { computePortAssignments } from "./port-assignment.js";
 
 // ---------------------------------------------------------------------------
 // ELK Layout Options (workflow-optimized defaults)

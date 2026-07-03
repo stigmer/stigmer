@@ -2,7 +2,7 @@
 
 import { cn } from "@stigmer/theme";
 import type { CreditBalance } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
-import { formatCreditBalance } from "./format";
+import { formatCreditBalance } from "./format.js";
 
 /** Props for {@link CreditBalanceCard}. */
 export interface CreditBalanceCardProps {

@@ -2,10 +2,10 @@
 
 import { memo, useMemo, useState, useCallback } from "react";
 import { cn } from "@stigmer/theme";
-import type { WorkflowGraphModel, WorkflowGraphBudget, WorkflowGraphEnvVar } from "../workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model";
-import { CATEGORY_DISPLAY_NAMES } from "../canvas-constants";
-import type { TopologyNodeCategory } from "../useWorkflowTopology";
+import type { WorkflowGraphModel, WorkflowGraphBudget, WorkflowGraphEnvVar } from "../workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "../workflow-graph-model.js";
+import { CATEGORY_DISPLAY_NAMES } from "../canvas-constants.js";
+import type { TopologyNodeCategory } from "../useWorkflowTopology.js";
 
 /** Props for {@link WorkflowSummaryPanel}. */
 export interface WorkflowSummaryPanelProps {

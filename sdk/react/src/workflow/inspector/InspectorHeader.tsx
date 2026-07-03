@@ -2,9 +2,9 @@
 
 import { memo, useState, useCallback } from "react";
 import { cn } from "@stigmer/theme";
-import type { WorkflowGraphModel } from "../workflow-graph-model";
-import { TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "../canvas-constants";
-import type { InspectorNodeIdentity, InspectorMutations } from "./types";
+import type { WorkflowGraphModel } from "../workflow-graph-model.js";
+import { TASK_NAME_PATTERN, TASK_NAME_PATTERN_ERROR } from "../canvas-constants.js";
+import type { InspectorNodeIdentity, InspectorMutations } from "./types.js";
 
 /** Props for {@link InspectorHeader}. */
 export interface InspectorHeaderProps {

@@ -5,9 +5,9 @@ import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
-import { WorkflowTaskApprovalCard } from "./WorkflowTaskApprovalCard";
-import { formatDuration, formatMicroUsd, formatBytes, formatTimestamp, formatMetaChips } from "./format-utils";
+import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
+import { WorkflowTaskApprovalCard } from "./WorkflowTaskApprovalCard.js";
+import { formatDuration, formatMicroUsd, formatBytes, formatTimestamp, formatMetaChips } from "./format-utils.js";
 
 interface TimelineEventProps {
   readonly event: WorkflowExecutionEvent;

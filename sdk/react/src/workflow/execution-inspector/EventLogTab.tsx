@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import { formatTimestamp } from "../format-utils";
+import { formatTimestamp } from "../format-utils.js";
 
 export interface EventLogTabProps {
   readonly events: readonly WorkflowExecutionEvent[];

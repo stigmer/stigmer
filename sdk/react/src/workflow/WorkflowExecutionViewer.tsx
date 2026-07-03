@@ -4,26 +4,26 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode
 import { cn } from "@stigmer/theme";
 import { WorkflowTaskStatus, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { useWorkflowExecution } from "./useWorkflowExecution";
-import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream";
-import { useWorkflowExecutionArtifacts } from "./useWorkflowExecutionArtifacts";
-import { useWorkflowExecutionActions } from "./useWorkflowExecutionActions";
-import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader";
-import { WorkflowExecutionTimeline, type WorkflowExecutionTimelineProps } from "./WorkflowExecutionTimeline";
-import { WaterfallTimeline } from "./waterfall";
-import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel";
-import { WorkflowExecutionArtifactPanel } from "./WorkflowExecutionArtifactPanel";
-import { WorkflowRepairCard } from "./WorkflowRepairCard";
-import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store";
-import { ExecutionInspector } from "./execution-inspector";
-import { ExecutionComparisonPicker } from "./execution-comparison/ExecutionComparisonPicker";
-import { ExecutionComparisonView } from "./execution-comparison/ExecutionComparisonView";
-import { WorkflowExecutionApprovalCard } from "./WorkflowExecutionApprovalCard";
-import { WorkflowFileReviewList, type WorkflowFileDecisionSubmit } from "./WorkflowFileReviewList";
+import { useWorkflowExecution } from "./useWorkflowExecution.js";
+import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream.js";
+import { useWorkflowExecutionArtifacts } from "./useWorkflowExecutionArtifacts.js";
+import { useWorkflowExecutionActions } from "./useWorkflowExecutionActions.js";
+import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader.js";
+import { WorkflowExecutionTimeline, type WorkflowExecutionTimelineProps } from "./WorkflowExecutionTimeline.js";
+import { WaterfallTimeline } from "./waterfall/index.js";
+import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel.js";
+import { WorkflowExecutionArtifactPanel } from "./WorkflowExecutionArtifactPanel.js";
+import { WorkflowRepairCard } from "./WorkflowRepairCard.js";
+import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph.js";
+import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
+import { ExecutionInspector } from "./execution-inspector/index.js";
+import { ExecutionComparisonPicker } from "./execution-comparison/ExecutionComparisonPicker.js";
+import { ExecutionComparisonView } from "./execution-comparison/ExecutionComparisonView.js";
+import { WorkflowExecutionApprovalCard } from "./WorkflowExecutionApprovalCard.js";
+import { WorkflowFileReviewList, type WorkflowFileDecisionSubmit } from "./WorkflowFileReviewList.js";
 import type { WorkflowPendingApproval, WorkflowPendingFileReview } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ResizableSplit } from "../internal/ResizableSplit";
+import { ResizableSplit } from "../internal/ResizableSplit.js";
 
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {

@@ -2,8 +2,8 @@
 
 import { memo, useState, useCallback } from "react";
 import { cn } from "@stigmer/theme";
-import type { TaskDetailError } from "./derive-task-detail";
-import { formatDuration } from "../format-utils";
+import type { TaskDetailError } from "./derive-task-detail.js";
+import { formatDuration } from "../format-utils.js";
 
 export interface ErrorTabProps {
   readonly error: TaskDetailError;

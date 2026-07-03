@@ -1,5 +1,5 @@
-import type { TopologyNodeCategory } from "./useWorkflowTopology";
-import type { TaskKindCategory } from "./types";
+import type { TopologyNodeCategory } from "./useWorkflowTopology.js";
+import type { TaskKindCategory } from "./types.js";
 
 /**
  * Category-to-color mapping using `--stgm-*` CSS custom properties.

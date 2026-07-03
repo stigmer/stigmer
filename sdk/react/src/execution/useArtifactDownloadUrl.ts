@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 
 /** Return value of {@link useArtifactDownloadUrl}. */
 export interface UseArtifactDownloadUrlReturn {

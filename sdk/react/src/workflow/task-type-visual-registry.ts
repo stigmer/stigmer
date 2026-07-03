@@ -3,7 +3,7 @@ import {
   CANVAS_NODE_HEIGHT,
   SENTINEL_NODE_WIDTH,
   SENTINEL_NODE_HEIGHT,
-} from "./canvas-constants";
+} from "./canvas-constants.js";
 
 /**
  * Semantic shape identifier for workflow nodes.

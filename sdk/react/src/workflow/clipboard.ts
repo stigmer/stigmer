@@ -16,16 +16,16 @@ import type {
   WorkflowGraphModel,
   WorkflowGraphNode,
   WorkflowGraphEdge,
-} from "./workflow-graph-model";
-import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
-import type { GraphCommand } from "./graph-commands";
+} from "./workflow-graph-model.js";
+import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model.js";
+import type { GraphCommand } from "./graph-commands.js";
 import {
   AddNodeCommand,
   AddEdgeCommand,
   CompoundCommand,
   generateEdgeId,
   generateTaskName,
-} from "./graph-commands";
+} from "./graph-commands.js";
 
 // ---------------------------------------------------------------------------
 // Types

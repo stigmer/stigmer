@@ -2,14 +2,14 @@
 
 import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { useWorkflowEditor } from "./useWorkflowEditor";
-import { WorkflowYamlEditor } from "./WorkflowYamlEditor";
-import { WorkflowCodePreviewGraph } from "./WorkflowCodePreviewGraph";
-import { WorkflowCanvasEditor } from "./WorkflowCanvasEditor";
-import type { LayoutEngine } from "./layout";
-import { WorkflowRefinePanel } from "./WorkflowRefinePanel";
-import { WorkflowExplainDialog } from "./WorkflowExplainDialog";
-import { yamlToGraph } from "./workflow-graph-conversions";
+import { useWorkflowEditor } from "./useWorkflowEditor.js";
+import { WorkflowYamlEditor } from "./WorkflowYamlEditor.js";
+import { WorkflowCodePreviewGraph } from "./WorkflowCodePreviewGraph.js";
+import { WorkflowCanvasEditor } from "./WorkflowCanvasEditor.js";
+import type { LayoutEngine } from "./layout/index.js";
+import { WorkflowRefinePanel } from "./WorkflowRefinePanel.js";
+import { WorkflowExplainDialog } from "./WorkflowExplainDialog.js";
+import { yamlToGraph } from "./workflow-graph-conversions.js";
 
 /** Props for {@link WorkflowEditorView}. */
 export interface WorkflowEditorViewProps {

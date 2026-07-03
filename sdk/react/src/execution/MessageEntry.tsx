@@ -8,8 +8,8 @@ import { cn } from "@stigmer/theme";
 import {
   MARKDOWN_COMPONENTS,
   unwrapEnclosingMarkdownFence,
-} from "../internal/markdown-components";
-import { useRenderTracer } from "../internal/dev";
+} from "../internal/markdown-components.js";
+import { useRenderTracer } from "../internal/dev/index.js";
 
 /** Props for {@link MessageEntry}. */
 export interface MessageEntryProps {

@@ -7,11 +7,11 @@ import {
   MARKDOWN_COMPONENTS,
   REMARK_PLUGINS,
   unwrapEnclosingMarkdownFence,
-} from "../internal/markdown-components";
+} from "../internal/markdown-components.js";
 import {
   getArtifactRenderMode,
   type ArtifactRenderMode,
-} from "./artifact-utils";
+} from "./artifact-utils.js";
 
 /** Props for {@link ArtifactContentRenderer}. */
 export interface ArtifactContentRendererProps {

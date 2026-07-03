@@ -3,8 +3,8 @@
 import { useState, useCallback, useRef, useId, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import type { EnvVarInput } from "@stigmer/sdk";
-import { useScrollShadows } from "../internal/useScrollShadows";
-import { ScrollFade } from "../internal/ScrollFade";
+import { useScrollShadows } from "../internal/useScrollShadows.js";
+import { ScrollFade } from "../internal/ScrollFade.js";
 
 /**
  * Describes a single environment variable the form should collect.

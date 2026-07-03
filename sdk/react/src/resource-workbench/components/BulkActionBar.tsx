@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import type { BulkAction } from "../types";
+import type { BulkAction } from "../types.js";
 
 /** Props for {@link BulkActionBar}. */
 export interface BulkActionBarProps<TData> {

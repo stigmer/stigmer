@@ -5,9 +5,9 @@ import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apireso
 import type { PrincipalAccess } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
-import { useShareFlow, type ShareFlowResource } from "./useShareFlow";
-import { GrantAccessForm } from "./GrantAccessForm";
-import { PermissionGate } from "./PermissionGate";
+import { useShareFlow, type ShareFlowResource } from "./useShareFlow.js";
+import { GrantAccessForm } from "./GrantAccessForm.js";
+import { PermissionGate } from "./PermissionGate.js";
 
 /** Props for {@link PeopleWithAccess}. */
 export interface PeopleWithAccessProps {

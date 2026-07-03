@@ -3,10 +3,10 @@
 import { memo, useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowEventStreamState } from "../../internal/store/workflow-execution-event-store";
-import { useWaterfallEntries } from "../execution/useWaterfallEntries";
-import { WaterfallScaleComponent } from "./WaterfallScale";
-import { WaterfallRow } from "./WaterfallRow";
+import type { WorkflowEventStreamState } from "../../internal/store/workflow-execution-event-store.js";
+import { useWaterfallEntries } from "../execution/useWaterfallEntries.js";
+import { WaterfallScaleComponent } from "./WaterfallScale.js";
+import { WaterfallRow } from "./WaterfallRow.js";
 
 /** Props for {@link WaterfallTimeline}. */
 export interface WaterfallTimelineProps {

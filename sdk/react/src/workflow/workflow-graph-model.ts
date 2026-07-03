@@ -1,6 +1,6 @@
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { TopologyNodeCategory } from "./useWorkflowTopology";
+import type { TopologyNodeCategory } from "./useWorkflowTopology.js";
 
 /**
  * Complete graph representation of a workflow, serving as the source

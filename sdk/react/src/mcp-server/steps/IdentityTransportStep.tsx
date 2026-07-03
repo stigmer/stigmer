@@ -2,8 +2,8 @@
 
 import { useCallback } from "react";
 import { cn } from "@stigmer/theme";
-import { generateSlug } from "../../internal/slug";
-import type { McpServerWizardData, KeyValueEntry } from "./types";
+import { generateSlug } from "../../internal/slug.js";
+import type { McpServerWizardData, KeyValueEntry } from "./types.js";
 
 /** Props for {@link IdentityTransportStep}. */
 export interface IdentityTransportStepProps {

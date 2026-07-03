@@ -3,9 +3,9 @@
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { PushSkillFromExecutionArtifactRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { parseResourceYaml } from "./parse-resource-yaml";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { parseResourceYaml } from "./parse-resource-yaml.js";
 
 /**
  * Result returned after successfully applying a resource to an organization.

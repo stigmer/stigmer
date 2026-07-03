@@ -6,8 +6,8 @@
 // bespoke dark box — so it tracks the host theme, preset, and color mode.
 
 import { cn } from "@stigmer/theme";
-import { CollapsiblePre } from "./tool-rendering-primitives";
-import { useSandboxNormalize } from "./SandboxContext";
+import { CollapsiblePre } from "./tool-rendering-primitives.js";
+import { useSandboxNormalize } from "./SandboxContext.js";
 
 /** Props for {@link TerminalSession}. */
 export interface TerminalSessionProps {

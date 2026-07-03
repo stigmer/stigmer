@@ -3,8 +3,8 @@
 import { memo, useCallback, useEffect, useRef } from "react";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { cn } from "@stigmer/theme";
-import { WorkflowExecutionTimelineEvent } from "./WorkflowExecutionTimelineEvent";
-import type { WorkflowEventStreamState, DerivedTaskState } from "../internal/store/workflow-execution-event-store";
+import { WorkflowExecutionTimelineEvent } from "./WorkflowExecutionTimelineEvent.js";
+import type { WorkflowEventStreamState, DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
 
 /** Props for {@link WorkflowExecutionTimeline}. */
 export interface WorkflowExecutionTimelineProps {

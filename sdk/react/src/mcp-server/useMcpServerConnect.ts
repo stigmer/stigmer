@@ -5,9 +5,9 @@ import { create } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { EnvVarInput } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { resolveDeclaredSystemEnvVars } from "../environment/systemEnvVars";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { resolveDeclaredSystemEnvVars } from "../environment/systemEnvVars.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useMcpServerConnect}. */
 export interface UseMcpServerConnectReturn {

@@ -6,8 +6,8 @@ import {
   ServerEdition,
 } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import type { GetServerInfoOutput } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { wrapError } from "./gen/errors";
-import type { DeploymentMode } from "./resource-availability";
+import { wrapError } from "./gen/errors.js";
+import type { DeploymentMode } from "./resource-availability.js";
 
 /** Server identity information returned by {@link PlatformClient.getServerInfo}. */
 export interface ServerInfo {

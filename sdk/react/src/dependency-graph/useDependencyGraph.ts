@@ -6,7 +6,7 @@ import type {
   DependencyTree,
   UseDependencyGraphOptions,
   UseDependencyGraphReturn,
-} from "./types";
+} from "./types.js";
 
 /**
  * Pure transformation hook that converts an `AgentSpec` into a

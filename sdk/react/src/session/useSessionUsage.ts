@@ -8,9 +8,9 @@ import {
   type GetSessionUsageReportOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { ModelUsage, StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
-import { useStigmer } from "../hooks";
-import { isTerminalPhase } from "../execution/execution-phases";
-import { useFetch } from "../internal/useFetch";
+import { useStigmer } from "../hooks.js";
+import { isTerminalPhase } from "../execution/execution-phases.js";
+import { useFetch } from "../internal/useFetch.js";
 
 /**
  * Poll cadence for the session usage report while an execution is in flight.

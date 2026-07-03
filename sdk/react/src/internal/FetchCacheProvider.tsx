@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useRef, type ReactNode } from "react";
-import { FetchCache, type FetchCacheOptions } from "./fetch-cache";
+import { FetchCache, type FetchCacheOptions } from "./fetch-cache.js";
 
 // ---------------------------------------------------------------------------
 // Context

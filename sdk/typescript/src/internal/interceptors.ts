@@ -1,6 +1,6 @@
 import { ConnectError, Code, type Interceptor } from "@connectrpc/connect";
-import type { TokenProvider } from "../config";
-import { annotateRpcError } from "../errors";
+import type { TokenProvider } from "../config.js";
+import { annotateRpcError } from "../errors.js";
 
 /**
  * Create an interceptor that attaches `Authorization: Bearer <token>` to

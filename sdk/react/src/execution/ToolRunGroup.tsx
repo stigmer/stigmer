@@ -7,11 +7,11 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { useRenderTracer } from "../internal/dev";
-import { useAutoDisclosure } from "../internal/useAutoDisclosure";
-import { ApprovalContext } from "./ApprovalContext";
-import { ToolCallItem, CATEGORY_ICON } from "./ToolCallItem";
-import type { ToolCategory } from "./tool-categories";
+import { useRenderTracer } from "../internal/dev/index.js";
+import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
+import { ApprovalContext } from "./ApprovalContext.js";
+import { ToolCallItem, CATEGORY_ICON } from "./ToolCallItem.js";
+import type { ToolCategory } from "./tool-categories.js";
 
 /** Props for {@link ToolRunGroup}. */
 export interface ToolRunGroupProps {

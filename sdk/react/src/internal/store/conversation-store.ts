@@ -1,5 +1,5 @@
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { structuralShare } from "./structural-share";
+import { structuralShare } from "./structural-share.js";
 
 // ---------------------------------------------------------------------------
 // Stream state

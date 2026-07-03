@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { LayoutEngine } from "./types";
-import { createElkLayoutEngine } from "./elk-layout-engine";
-import type { ElkLayoutEngineOptions } from "./elk-layout-engine";
+import type { LayoutEngine } from "./types.js";
+import { createElkLayoutEngine } from "./elk-layout-engine.js";
+import type { ElkLayoutEngineOptions } from "./elk-layout-engine.js";
 
 /**
  * Options for {@link useElkLayoutEngine}.

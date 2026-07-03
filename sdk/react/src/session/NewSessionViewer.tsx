@@ -3,17 +3,17 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import type { ResourceRef } from "@stigmer/sdk";
-import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
-import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister";
-import type { InteractionModeOption } from "../composer";
-import { SessionComposer } from "../composer";
-import type { HarnessOption } from "../models/harness";
-import { ResizableSplit } from "../internal/ResizableSplit";
-import { SessionInspector } from "./inspector/SessionInspector";
-import type { SetupTabProps } from "./inspector/SetupTab";
-import { useNewSessionFlow } from "./useNewSessionFlow";
-import type { RuntimeEnvProvider } from "./runtime-env";
-import type { SessionAudience } from "./audience";
+import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
+import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
+import type { InteractionModeOption } from "../composer/index.js";
+import { SessionComposer } from "../composer/index.js";
+import type { HarnessOption } from "../models/harness.js";
+import { ResizableSplit } from "../internal/ResizableSplit.js";
+import { SessionInspector } from "./inspector/SessionInspector.js";
+import type { SetupTabProps } from "./inspector/SetupTab.js";
+import { useNewSessionFlow } from "./useNewSessionFlow.js";
+import type { RuntimeEnvProvider } from "./runtime-env.js";
+import type { SessionAudience } from "./audience.js";
 
 /** Props for {@link NewSessionViewer}. */
 export interface NewSessionViewerProps {

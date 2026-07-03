@@ -8,21 +8,21 @@ import { cn } from "@stigmer/theme";
 import {
   describeApprovalPolicySource,
   isInformativePolicySource,
-} from "./approval-provenance";
+} from "./approval-provenance.js";
 import {
   resolveToolCategoryFromKind,
   extractPrimaryArgFromPreview,
   extractWriteContentFromPreview,
   isFileCategory,
   type ToolCategory,
-} from "./tool-categories";
-import { CATEGORY_ICON } from "./ToolCallItem";
-import { ToolArgsView } from "./ToolArgsView";
-import { EmptyChangeNotice } from "./EmptyChangeNotice";
-import { FilePathLink } from "./FilePathLink";
-import { DecisionButton } from "../internal/DecisionButton";
-import { InCardDecisionError } from "../internal/InCardDecisionError";
-import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince";
+} from "./tool-categories.js";
+import { CATEGORY_ICON } from "./ToolCallItem.js";
+import { ToolArgsView } from "./ToolArgsView.js";
+import { EmptyChangeNotice } from "./EmptyChangeNotice.js";
+import { FilePathLink } from "./FilePathLink.js";
+import { DecisionButton } from "../internal/DecisionButton.js";
+import { InCardDecisionError } from "../internal/InCardDecisionError.js";
+import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince.js";
 
 /** Props for {@link ApprovalCard}. */
 export interface ApprovalCardProps {

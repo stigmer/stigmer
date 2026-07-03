@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from "react";
 import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useRotatePlatformClientSecret}. */
 export interface UseRotatePlatformClientSecretReturn {

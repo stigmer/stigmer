@@ -2,8 +2,8 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { TaskDetailRetryHistory } from "./derive-task-detail";
-import { formatDuration, formatTimestamp } from "../format-utils";
+import type { TaskDetailRetryHistory } from "./derive-task-detail.js";
+import { formatDuration, formatTimestamp } from "../format-utils.js";
 
 export interface RetriesTabProps {
   readonly retries: TaskDetailRetryHistory;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { ViewMode } from "../types";
+import type { ViewMode } from "../types.js";
 
 /** Return value of {@link useViewPreference}. */
 export interface UseViewPreferenceReturn {

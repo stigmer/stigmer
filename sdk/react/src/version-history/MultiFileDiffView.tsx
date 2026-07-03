@@ -2,10 +2,10 @@
 
 import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { MultiFileDiffResult } from "./types";
-import { DiffViewer } from "./DiffViewer";
-import { DiffFileList } from "./DiffFileList";
-import { DiffSummary } from "./DiffSummary";
+import type { MultiFileDiffResult } from "./types.js";
+import { DiffViewer } from "./DiffViewer.js";
+import { DiffFileList } from "./DiffFileList.js";
+import { DiffSummary } from "./DiffSummary.js";
 
 /** Props for {@link MultiFileDiffView}. */
 export interface MultiFileDiffViewProps {

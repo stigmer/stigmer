@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import type { WorkflowGraphNode } from "../../workflow-graph-model";
+import type { WorkflowGraphNode } from "../../workflow-graph-model.js";
 
 /** Props for {@link AdvancedTab}. */
 export interface AdvancedTabProps {

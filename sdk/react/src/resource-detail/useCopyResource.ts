@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { toast } from "../feedback/toast";
+import { toast } from "../feedback/toast.js";
 
 export interface UseCopyResourceReturn {
   /** Copy arbitrary text to the clipboard with toast feedback. */

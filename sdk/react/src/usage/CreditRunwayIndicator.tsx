@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import { useBillingAccount } from "../billing/useBillingAccount";
-import { useOrg } from "../organization/OrgProvider";
-import { useDeploymentMode } from "../deployment-mode";
+import { useBillingAccount } from "../billing/useBillingAccount.js";
+import { useOrg } from "../organization/OrgProvider.js";
+import { useDeploymentMode } from "../deployment-mode.js";
 
 /** Props for {@link CreditRunwayIndicator}. */
 export interface CreditRunwayIndicatorProps {

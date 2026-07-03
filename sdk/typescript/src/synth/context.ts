@@ -21,9 +21,9 @@ import {
   type SkillSynth,
   SkillSynthSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/synth_pb";
-import type { AgentInput } from "../gen/agent";
-import type { McpServerInput } from "../gen/mcpserver";
-import type { WorkflowInput } from "../gen/workflow";
+import type { AgentInput } from "../gen/agent.js";
+import type { McpServerInput } from "../gen/mcpserver.js";
+import type { WorkflowInput } from "../gen/workflow.js";
 
 /** Options for registering a skill from a local directory. */
 export interface SkillFromDirOptions {

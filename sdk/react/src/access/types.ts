@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import type { VisibilityResourceKind } from "../library/useUpdateVisibility";
+import type { VisibilityResourceKind } from "../library/useUpdateVisibility.js";
 
 /**
  * The resource whose access is being managed. Carries everything the People

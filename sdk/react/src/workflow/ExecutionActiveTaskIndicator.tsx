@@ -2,8 +2,8 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { ActiveTaskInfo } from "./useActiveTaskName";
-import { formatDuration } from "./format-utils";
+import type { ActiveTaskInfo } from "./useActiveTaskName.js";
+import { formatDuration } from "./format-utils.js";
 
 /** Props for {@link ExecutionActiveTaskIndicator}. */
 export interface ExecutionActiveTaskIndicatorProps {

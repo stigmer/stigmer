@@ -2,13 +2,13 @@ export type {
   RecentActivityType,
   RecentActivityEntry,
   RecentActivityGroup,
-} from "./types";
+} from "./types.js";
 
 export {
   useRecentActivity,
   type UseRecentActivityOptions,
   type UseRecentActivityReturn,
   type OptimisticEntryInput,
-} from "./useRecentActivity";
+} from "./useRecentActivity.js";
 
-export { groupRecentActivityByTime } from "./group-activity";
+export { groupRecentActivityByTime } from "./group-activity.js";

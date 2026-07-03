@@ -9,10 +9,10 @@ import {
   RemoveEnvironmentVariablesRequestSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import { useStigmer } from "../hooks";
-import { generateSlugSuffix } from "../internal/slug";
-import { toError } from "../internal/toError";
-import { useEnvironmentList } from "./useEnvironmentList";
+import { useStigmer } from "../hooks.js";
+import { generateSlugSuffix } from "../internal/slug.js";
+import { toError } from "../internal/toError.js";
+import { useEnvironmentList } from "./useEnvironmentList.js";
 
 const PERSONAL_LABELS: Record<string, string> = {
   "stigmer.ai/personal": "true",

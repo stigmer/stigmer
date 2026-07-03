@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { cn } from "@stigmer/theme";
-import type { ResourceListScope } from "../search";
+import type { ResourceListScope } from "../search/index.js";
 
 /** Props for {@link ScopeToggle}. */
 export interface ScopeToggleProps {

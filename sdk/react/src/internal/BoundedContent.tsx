@@ -3,8 +3,8 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import { useIsOverflowing } from "./useIsOverflowing";
-import { RevealToggle } from "./RevealToggle";
+import { useIsOverflowing } from "./useIsOverflowing.js";
+import { RevealToggle } from "./RevealToggle.js";
 
 /**
  * The single shared height budget for a bounded tool-card block. Tall enough

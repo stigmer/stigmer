@@ -4,18 +4,18 @@
 export {
   ManageAccessDialog,
   type ManageAccessDialogProps,
-} from "./ManageAccessDialog";
+} from "./ManageAccessDialog.js";
 export {
   ManageAccessButton,
   type ManageAccessButtonProps,
-} from "./ManageAccessButton";
+} from "./ManageAccessButton.js";
 export {
   useManageAccess,
   type UseManageAccessArgs,
   type UseManageAccessReturn,
-} from "./useManageAccess";
+} from "./useManageAccess.js";
 export type {
   AccessResource,
   AccessVisibility,
   AccessExtraSection,
-} from "./types";
+} from "./types.js";

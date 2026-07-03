@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowVersionTimeline } from "./WorkflowVersionTimeline";
-import { WorkflowVersionDiffViewer } from "./WorkflowVersionDiffViewer";
-import { useWorkflowVersions } from "./useWorkflowVersions";
+import { WorkflowVersionTimeline } from "./WorkflowVersionTimeline.js";
+import { WorkflowVersionDiffViewer } from "./WorkflowVersionDiffViewer.js";
+import { useWorkflowVersions } from "./useWorkflowVersions.js";
 
 /** Props for {@link WorkflowVersionsTab}. */
 export interface WorkflowVersionsTabProps {

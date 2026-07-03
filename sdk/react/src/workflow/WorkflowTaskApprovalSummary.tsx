@@ -4,10 +4,10 @@ import { memo, useMemo } from "react";
 import Markdown from "react-markdown";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
-import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components";
-import { formatDuration, formatTimestamp } from "./format-utils";
-import type { TaskOutcome } from "./WorkflowTaskApprovalCard";
-import type { TaskDetailApprovalDecision } from "./execution-inspector";
+import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components.js";
+import { formatDuration, formatTimestamp } from "./format-utils.js";
+import type { TaskOutcome } from "./WorkflowTaskApprovalCard.js";
+import type { TaskDetailApprovalDecision } from "./execution-inspector/index.js";
 
 /** Props for {@link WorkflowTaskApprovalSummary}. */
 export interface WorkflowTaskApprovalSummaryProps {

@@ -13,61 +13,61 @@ export type {
   ResourceAction,
   BulkAction,
   WorkbenchState,
-} from "./types";
+} from "./types.js";
 
 // Hooks
-export { useViewPreference } from "./hooks/useViewPreference";
-export type { UseViewPreferenceReturn } from "./hooks/useViewPreference";
+export { useViewPreference } from "./hooks/useViewPreference.js";
+export type { UseViewPreferenceReturn } from "./hooks/useViewPreference.js";
 
-export { useResourceCollection } from "./hooks/useResourceCollection";
+export { useResourceCollection } from "./hooks/useResourceCollection.js";
 export type {
   UseResourceCollectionOptions,
   UseResourceCollectionReturn,
-} from "./hooks/useResourceCollection";
+} from "./hooks/useResourceCollection.js";
 
-export { useResourceSelection } from "./hooks/useResourceSelection";
-export type { UseResourceSelectionReturn } from "./hooks/useResourceSelection";
+export { useResourceSelection } from "./hooks/useResourceSelection.js";
+export type { UseResourceSelectionReturn } from "./hooks/useResourceSelection.js";
 
-export { useResourceFilters } from "./hooks/useResourceFilters";
+export { useResourceFilters } from "./hooks/useResourceFilters.js";
 export type {
   UseResourceFiltersOptions,
   UseResourceFiltersReturn,
   FilterSortState,
-} from "./hooks/useResourceFilters";
+} from "./hooks/useResourceFilters.js";
 
 // Components
-export { StatusBadge } from "./components/StatusBadge";
-export type { StatusBadgeProps } from "./components/StatusBadge";
+export { StatusBadge } from "./components/StatusBadge.js";
+export type { StatusBadgeProps } from "./components/StatusBadge.js";
 
-export { ColumnHeader } from "./components/ColumnHeader";
-export type { ColumnHeaderProps } from "./components/ColumnHeader";
+export { ColumnHeader } from "./components/ColumnHeader.js";
+export type { ColumnHeaderProps } from "./components/ColumnHeader.js";
 
-export { SelectionCheckbox } from "./components/SelectionCheckbox";
-export type { SelectionCheckboxProps } from "./components/SelectionCheckbox";
+export { SelectionCheckbox } from "./components/SelectionCheckbox.js";
+export type { SelectionCheckboxProps } from "./components/SelectionCheckbox.js";
 
-export { ResourceTable } from "./components/ResourceTable";
-export type { ResourceTableProps } from "./components/ResourceTable";
+export { ResourceTable } from "./components/ResourceTable.js";
+export type { ResourceTableProps } from "./components/ResourceTable.js";
 
-export { ResourceCards } from "./components/ResourceCards";
-export type { ResourceCardsProps } from "./components/ResourceCards";
+export { ResourceCards } from "./components/ResourceCards.js";
+export type { ResourceCardsProps } from "./components/ResourceCards.js";
 
-export { ResourceList } from "./components/ResourceList";
-export type { ResourceListProps } from "./components/ResourceList";
+export { ResourceList } from "./components/ResourceList.js";
+export type { ResourceListProps } from "./components/ResourceList.js";
 
-export { BulkActionBar } from "./components/BulkActionBar";
-export type { BulkActionBarProps } from "./components/BulkActionBar";
+export { BulkActionBar } from "./components/BulkActionBar.js";
+export type { BulkActionBarProps } from "./components/BulkActionBar.js";
 
-export { FilterBar } from "./components/FilterBar";
-export type { FilterBarProps } from "./components/FilterBar";
+export { FilterBar } from "./components/FilterBar.js";
+export type { FilterBarProps } from "./components/FilterBar.js";
 
-export { ViewSwitcher } from "./components/ViewSwitcher";
-export type { ViewSwitcherProps } from "./components/ViewSwitcher";
+export { ViewSwitcher } from "./components/ViewSwitcher.js";
+export type { ViewSwitcherProps } from "./components/ViewSwitcher.js";
 
-export { ResourceInspector } from "./components/ResourceInspector";
-export type { ResourceInspectorProps } from "./components/ResourceInspector";
+export { ResourceInspector } from "./components/ResourceInspector.js";
+export type { ResourceInspectorProps } from "./components/ResourceInspector.js";
 
-export { ResourceWorkbench } from "./components/ResourceWorkbench";
-export type { ResourceWorkbenchProps } from "./components/ResourceWorkbench";
+export { ResourceWorkbench } from "./components/ResourceWorkbench.js";
+export type { ResourceWorkbenchProps } from "./components/ResourceWorkbench.js";
 
-export { ResourceAvatar } from "./components/ResourceAvatar";
-export type { ResourceAvatarProps } from "./components/ResourceAvatar";
+export { ResourceAvatar } from "./components/ResourceAvatar.js";
+export type { ResourceAvatarProps } from "./components/ResourceAvatar.js";

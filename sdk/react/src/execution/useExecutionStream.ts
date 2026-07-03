@@ -12,23 +12,23 @@ import {
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { isTransientStreamError } from "@stigmer/sdk";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
-import { useStreamRate } from "../internal/dev";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
+import { useStreamRate } from "../internal/dev/index.js";
 import {
   StreamController,
   DEFAULT_CONNECT_TIMEOUT_MS,
   DEFAULT_SLOW_THRESHOLD_MS,
   type StreamControllerSink,
-} from "../internal/stream-controller";
+} from "../internal/stream-controller.js";
 import {
   computeBackoffDelay,
   sleep,
   DEFAULT_RECONNECT_MAX_ATTEMPTS,
   type BackoffOptions,
-} from "../internal/backoff";
-import { ConversationStore } from "../internal/store";
-import { isTerminalPhase } from "./execution-phases";
+} from "../internal/backoff.js";
+import { ConversationStore } from "../internal/store/index.js";
+import { isTerminalPhase } from "./execution-phases.js";
 
 /** Return value of {@link useExecutionStream}. */
 export interface UseExecutionStreamReturn {

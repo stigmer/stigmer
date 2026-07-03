@@ -13,18 +13,18 @@ import type {
   ToolContentBlock,
 } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import { computeDiff } from "../version-history/computeDiff";
-import { DiffViewer } from "../version-history/DiffViewer";
-import { UnifiedDiffView } from "../version-history/UnifiedDiffView";
-import type { DiffHunk } from "../version-history/types";
-import { CollapsibleCode, CollapsiblePre, formatJson } from "./tool-rendering-primitives";
-import { FilePathLink } from "./FilePathLink";
-import { EmptyChangeNotice } from "./EmptyChangeNotice";
-import { TerminalSession } from "./TerminalSession";
-import { execIdFromStorageKey } from "./useFileChangeContent";
-import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl";
-import { useArtifactDownload } from "./useArtifactDownload";
-import { useToolOutputContent } from "./useToolOutputContent";
+import { computeDiff } from "../version-history/computeDiff.js";
+import { DiffViewer } from "../version-history/DiffViewer.js";
+import { UnifiedDiffView } from "../version-history/UnifiedDiffView.js";
+import type { DiffHunk } from "../version-history/types.js";
+import { CollapsibleCode, CollapsiblePre, formatJson } from "./tool-rendering-primitives.js";
+import { FilePathLink } from "./FilePathLink.js";
+import { EmptyChangeNotice } from "./EmptyChangeNotice.js";
+import { TerminalSession } from "./TerminalSession.js";
+import { execIdFromStorageKey } from "./useFileChangeContent.js";
+import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
+import { useArtifactDownload } from "./useArtifactDownload.js";
+import { useToolOutputContent } from "./useToolOutputContent.js";
 
 /** Props for {@link ResultView}. */
 export interface ResultViewProps {

@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import type { ResourceRef } from "@stigmer/sdk";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useStigmer } from "../hooks.js";
+import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useAgentRefFromSession}. */
 export interface UseAgentRefFromSessionReturn {

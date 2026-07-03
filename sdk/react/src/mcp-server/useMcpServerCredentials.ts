@@ -6,11 +6,11 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { OAuthAppSource } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
-import { diffEnv } from "../environment/diffEnv";
-import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars";
-import type { EnvVarFormVariable } from "../environment/EnvVarForm";
-import { useOAuthGrantStatus } from "./useOAuthGrantStatus";
+import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
+import { diffEnv } from "../environment/diffEnv.js";
+import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars.js";
+import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
+import { useOAuthGrantStatus } from "./useOAuthGrantStatus.js";
 
 /**
  * Credential acquisition mode for an MCP server.

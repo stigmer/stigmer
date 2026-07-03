@@ -1,5 +1,5 @@
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { CLOUD_ONLY_KINDS } from "./gen/resource-availability";
+import { CLOUD_ONLY_KINDS } from "./gen/resource-availability.js";
 
 /**
  * Deployment mode of the Stigmer backend the client is connected to.

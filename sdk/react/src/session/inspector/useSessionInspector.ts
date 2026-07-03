@@ -2,9 +2,9 @@
 
 import { useCallback, useRef, useState } from "react";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { TabItem } from "../../tabs/Tabs";
-import { isTerminalPhase } from "../../execution/execution-phases";
-import type { SelectedThreadItem } from "../../internal/store/selection-store";
+import type { TabItem } from "../../tabs/Tabs.js";
+import { isTerminalPhase } from "../../execution/execution-phases.js";
+import type { SelectedThreadItem } from "../../internal/store/selection-store.js";
 
 export type SessionInspectorTabId =
   | "workspace"

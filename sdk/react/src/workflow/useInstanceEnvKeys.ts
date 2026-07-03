@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import { useStigmer } from "../hooks";
+import { useStigmer } from "../hooks.js";
 
 /** Return value of {@link useInstanceEnvKeys}. */
 export interface UseInstanceEnvKeysReturn {

@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { WizardShellProps } from "./types";
-import { StepIndicator } from "./StepIndicator";
-import { WizardNav } from "./WizardNav";
+import type { WizardShellProps } from "./types.js";
+import { StepIndicator } from "./StepIndicator.js";
+import { WizardNav } from "./WizardNav.js";
 
 /**
  * Reusable multi-step wizard layout for resource creation flows.

@@ -2,8 +2,8 @@
 
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
 
 interface ArtifactContentData {
   content: string | null;

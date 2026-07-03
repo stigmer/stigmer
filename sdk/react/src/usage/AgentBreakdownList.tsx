@@ -2,7 +2,7 @@
 
 import { cn } from "@stigmer/theme";
 import type { AgentUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { formatCost } from "../execution/UsageWidget";
+import { formatCost } from "../execution/UsageWidget.js";
 
 /** Props for {@link AgentBreakdownList}. */
 export interface AgentBreakdownListProps {

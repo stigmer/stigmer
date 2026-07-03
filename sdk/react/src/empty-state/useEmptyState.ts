@@ -1,6 +1,6 @@
 import { useMemo, createElement } from "react";
 import { Package, SearchX, Lock, AlertCircle } from "lucide-react";
-import type { UseEmptyStateOptions, UseEmptyStateReturn } from "./types";
+import type { UseEmptyStateOptions, UseEmptyStateReturn } from "./types.js";
 
 const ICON_CLASSES = "h-10 w-10";
 

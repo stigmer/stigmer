@@ -3,4 +3,4 @@
 // Provides domain-specific data builders for unit tests, Storybook,
 // Playwright, and Scenar preview scenarios.
 
-export { samples } from "./samples";
+export { samples } from "./samples.js";

@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import type { DashboardFailedRun } from "./types";
+import type { DashboardFailedRun } from "./types.js";
 
 export interface DashboardFailedRunsProps {
   readonly failedRuns: readonly DashboardFailedRun[];
