@@ -10,6 +10,7 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 import { useNativeWorkspaceFiles } from "../hooks/useNativeWorkspaceFiles";
+import { useNativeWorkspaceFileReader } from "../hooks/useNativeWorkspaceFileReader";
 
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +24,7 @@ function SessionPageInner({ id }: { id: string }) {
   const browseLocalFolder = useNativeFolderPicker();
   const { enableGitHub, enableLocal } = useWorkspaceSources({ hasLocalPicker: true });
   const workspaceFileLister = useNativeWorkspaceFiles();
+  const workspaceFileReader = useNativeWorkspaceFileReader();
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -33,6 +35,7 @@ function SessionPageInner({ id }: { id: string }) {
         enableLocal={enableLocal}
         onBrowseLocalFolder={browseLocalFolder}
         workspaceFileLister={workspaceFileLister}
+        workspaceFileReader={workspaceFileReader}
         headerActions={
           <ManageAccessButton
             resource={{

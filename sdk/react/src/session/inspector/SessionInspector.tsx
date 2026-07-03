@@ -16,7 +16,9 @@ import { UsageTab } from "./UsageTab.js";
 import { InspectTab } from "./InspectTab.js";
 import { SetupTab, type SetupTabProps } from "./SetupTab.js";
 import { WorkspaceTab, type WorkspaceTabProps } from "./WorkspaceTab.js";
+import { FileViewer } from "../../workspace/FileViewer.js";
 import type { SelectedThreadItem } from "../../internal/store/selection-store.js";
+import type { SelectedWorkspaceFile } from "../../internal/store/workspace-file-selection-store.js";
 import type { ApplyResourceResult } from "../../library/useApplyResource.js";
 
 /** Props for {@link SessionInspector}. */
@@ -35,6 +37,15 @@ export interface SessionInspectorProps {
   readonly org: string;
   /** Currently selected thread item, or null. */
   readonly selectedItem: SelectedThreadItem | null;
+  /**
+   * The workspace file open in the viewer, or null. When set, a contextual
+   * "Viewer" tab surfaces and renders {@link FileViewer}. Prop-driven (like
+   * `selectedItem`) so this component stays pure and memoizable; the owning
+   * viewer reads the selection store and passes the result down.
+   */
+  readonly selectedFile?: SelectedWorkspaceFile | null;
+  /** Closes the file viewer (deselects the open file). */
+  readonly onCloseFile?: () => void;
   /** Called after a resource is applied from the Artifacts tab. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
@@ -82,6 +93,8 @@ export const SessionInspector = memo(function SessionInspector({
   allExecutions,
   org,
   selectedItem,
+  selectedFile,
+  onCloseFile,
   onApplied,
   onImplementPlan,
   sessionConfig,
@@ -104,6 +117,7 @@ export const SessionInspector = memo(function SessionInspector({
     artifactCount,
     hasUsage,
     selectedItem,
+    selectedFile,
   });
 
   return (
@@ -131,31 +145,43 @@ export const SessionInspector = memo(function SessionInspector({
         aria-label="Session details"
         className="min-h-0 flex-1"
       >
-        <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
-          {activeTab === "workspace" && workspaceConfig && (
-            <WorkspaceTab {...workspaceConfig} />
-          )}
-          {activeTab === "configure" && sessionConfig && (
-            <SetupTab {...sessionConfig} />
-          )}
-          {activeTab === "changes" && (
-            <ChangesTab executions={allExecutions} />
-          )}
-          {activeTab === "artifacts" && (
-            <ArtifactsTab
-              executions={allExecutions}
-              org={org}
-              onApplied={onApplied}
-              onImplementPlan={onImplementPlan}
-            />
-          )}
-          {activeTab === "usage" && (
-            <UsageTab executions={allExecutions} />
-          )}
-          {activeTab === "inspect" && (
-            <InspectTab selectedItem={selectedItem} />
-          )}
-        </div>
+        {activeTab === "viewer" && selectedFile && workspaceConfig ? (
+          // The viewer owns its own header + scroll, so it fills the panel
+          // without the shared padded/scroll wrapper the other tabs use.
+          <FileViewer
+            selectedFile={selectedFile}
+            entries={workspaceConfig.actions.workspace.entries}
+            reader={workspaceConfig.actions.workspaceFileReader}
+            onClose={onCloseFile}
+            className="h-full"
+          />
+        ) : (
+          <div className="h-full min-h-0 overflow-y-auto px-3 py-3">
+            {activeTab === "workspace" && workspaceConfig && (
+              <WorkspaceTab {...workspaceConfig} selectedFile={selectedFile ?? null} />
+            )}
+            {activeTab === "configure" && sessionConfig && (
+              <SetupTab {...sessionConfig} />
+            )}
+            {activeTab === "changes" && (
+              <ChangesTab executions={allExecutions} />
+            )}
+            {activeTab === "artifacts" && (
+              <ArtifactsTab
+                executions={allExecutions}
+                org={org}
+                onApplied={onApplied}
+                onImplementPlan={onImplementPlan}
+              />
+            )}
+            {activeTab === "usage" && (
+              <UsageTab executions={allExecutions} />
+            )}
+            {activeTab === "inspect" && (
+              <InspectTab selectedItem={selectedItem} />
+            )}
+          </div>
+        )}
       </Tabs>
     </div>
   );

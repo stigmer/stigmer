@@ -4,8 +4,10 @@ import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { UseWorkspaceEntriesReturn, WorkspaceEntry } from "../../workspace/useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "../../workspace/WorkspaceFileLister.js";
+import type { WorkspaceFileReader } from "../../workspace/WorkspaceFileReader.js";
 import { WorkspaceEntryFiles } from "../../workspace/WorkspaceEntryFiles.js";
 import type { UseGitHubConnectionReturn } from "../../github/useGitHubConnection.js";
+import type { SelectedWorkspaceFile } from "../../internal/store/workspace-file-selection-store.js";
 
 /**
  * Interactive workspace actions required by the Workspace tab.
@@ -19,11 +21,25 @@ export interface WorkspaceTabActions {
   readonly gitHubConnection?: UseGitHubConnectionReturn;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
+  /**
+   * Content reader for the viewer. Not consumed here — carried on the same
+   * actions channel as the lister so the inspector can hand it to
+   * {@link FileViewer} in the Viewer tab.
+   */
+  readonly workspaceFileReader?: WorkspaceFileReader;
+  /**
+   * Opens a file in the viewer. When present, file-tree rows become
+   * open-in-viewer triggers; when absent, the tree keeps its drag-only
+   * behavior (backward compatible).
+   */
+  readonly onOpenFile?: (entryId: string, path: string) => void;
 }
 
 /** Props for {@link WorkspaceTab}. */
 export interface WorkspaceTabProps {
   readonly actions: WorkspaceTabActions;
+  /** The file currently open in the viewer, used to highlight it in the tree. */
+  readonly selectedFile?: SelectedWorkspaceFile | null;
 }
 
 /**
@@ -39,13 +55,14 @@ export interface WorkspaceTabProps {
  *
  * All visual properties flow through `--stgm-*` tokens (DD-005).
  */
-export function WorkspaceTab({ actions }: WorkspaceTabProps) {
+export function WorkspaceTab({ actions, selectedFile }: WorkspaceTabProps) {
   const {
     workspace,
     enableGitHub = true,
     enableLocal = false,
     onBrowseLocalFolder,
     workspaceFileLister,
+    onOpenFile,
   } = actions;
 
   const canBrowse = enableLocal && onBrowseLocalFolder;
@@ -58,6 +75,8 @@ export function WorkspaceTab({ actions }: WorkspaceTabProps) {
           entries={workspace.entries}
           onRemove={workspace.remove}
           lister={workspaceFileLister}
+          onOpenFile={onOpenFile}
+          selectedFile={selectedFile ?? null}
         />
       )}
 
@@ -105,10 +124,14 @@ function WorkspaceEntryList({
   entries,
   onRemove,
   lister,
+  onOpenFile,
+  selectedFile,
 }: {
   readonly entries: readonly WorkspaceEntry[];
   readonly onRemove: (id: string) => void;
   readonly lister: WorkspaceFileLister | undefined;
+  readonly onOpenFile?: (entryId: string, path: string) => void;
+  readonly selectedFile: SelectedWorkspaceFile | null;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -180,6 +203,10 @@ function WorkspaceEntryList({
                 entry={entry}
                 lister={lister}
                 isExpanded={isExpanded}
+                onOpenFile={onOpenFile}
+                selectedPath={
+                  selectedFile?.entryId === entry.id ? selectedFile.path : undefined
+                }
               />
             )}
           </div>

@@ -66,11 +66,13 @@ export type {
 export {
   useWorkspaceEntries,
   useWorkspaceFiles,
+  useWorkspaceFileContent,
   useWorkspaceSources,
   MAX_WORKSPACE_FILE_READ_BYTES,
   WorkspaceEditor,
   WorkspaceEntryFiles,
   WorkspaceSummary,
+  FileViewer,
 } from "./workspace/index.js";
 export type {
   WorkspaceEntry,
@@ -81,7 +83,11 @@ export type {
   UseWorkspaceEntriesReturn,
   UseWorkspaceFilesOptions,
   UseWorkspaceFilesReturn,
+  UseWorkspaceFileContentOptions,
+  UseWorkspaceFileContentReturn,
   WorkspaceEntryFilesProps,
+  FileViewerProps,
+  SelectedWorkspaceFile,
   UseWorkspaceSourcesOptions,
   UseWorkspaceSourcesReturn,
   WorkspaceEditorProps,

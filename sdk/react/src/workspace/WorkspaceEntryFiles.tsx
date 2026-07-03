@@ -14,6 +14,19 @@ export interface WorkspaceEntryFilesProps {
   readonly lister: WorkspaceFileLister;
   /** Whether the file tree panel is currently expanded. */
   readonly isExpanded: boolean;
+  /**
+   * Opens a file in the viewer. When provided, the tree is **controlled**:
+   * clicking a file calls `onOpenFile(entry.id, path)` and the highlight comes
+   * from {@link WorkspaceEntryFilesProps.selectedPath}. When omitted, the tree
+   * falls back to local selection state (drag-and-drop-only usage).
+   */
+  readonly onOpenFile?: (entryId: string, path: string) => void;
+  /**
+   * The highlighted path in controlled mode — the shared selection scoped to
+   * this entry (empty/undefined when the open file belongs to another entry).
+   * Ignored unless {@link WorkspaceEntryFilesProps.onOpenFile} is set.
+   */
+  readonly selectedPath?: string;
 }
 
 /**
@@ -30,13 +43,28 @@ export function WorkspaceEntryFiles({
   entry,
   lister,
   isExpanded,
+  onOpenFile,
+  selectedPath,
 }: WorkspaceEntryFilesProps) {
   const { tree, isLoading, error, refresh } = useWorkspaceFiles({
     entry: isExpanded ? entry : null,
     lister,
   });
 
-  const [selectedPath, setSelectedPath] = useState<string>("");
+  // Controlled when a viewer sink (`onOpenFile`) is wired; otherwise the tree
+  // tracks its own selection so drag-only usage keeps working unchanged.
+  const controlled = !!onOpenFile;
+  const [localSelectedPath, setLocalSelectedPath] = useState<string>("");
+  const effectiveSelectedPath = controlled ? selectedPath ?? "" : localSelectedPath;
+
+  const handleSelect = useCallback(
+    (path: string) => {
+      if (onOpenFile) onOpenFile(entry.id, path);
+      else setLocalSelectedPath(path);
+    },
+    [onOpenFile, entry.id],
+  );
+
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredTree = useMemo(
@@ -151,8 +179,8 @@ export function WorkspaceEntryFiles({
               <FileTreeNode
                 key={node.path}
                 node={node}
-                selectedPath={selectedPath}
-                onSelect={setSelectedPath}
+                selectedPath={effectiveSelectedPath}
+                onSelect={handleSelect}
                 depth={0}
                 enableDrag
                 maxInitialDepth={isFiltering ? Infinity : 0}

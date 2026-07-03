@@ -5,10 +5,16 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
+import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
 import type { InteractionModeOption, SessionComposerHandle } from "../composer/index.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import { SelectionStore } from "../internal/store/selection-store.js";
+import {
+  useWorkspaceFileSelectionStoreRef,
+  useWorkspaceFileSelection,
+  type WorkspaceFileSelectionStore,
+} from "../internal/store/index.js";
 import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
 import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
 import { MessageThread } from "../execution/MessageThread.js";
@@ -70,6 +76,13 @@ export interface SessionViewerProps {
    * expandable file tree. (DD-004 capability injection, DD-011 opt-in.)
    */
   readonly workspaceFileLister?: WorkspaceFileLister;
+  /**
+   * Platform-injected content reader for the read-only file viewer. When
+   * provided, clicking a file in the Workspace tree opens it in a contextual
+   * "Viewer" tab. GitHub Contents/blob on web, Tauri fs on desktop; `undefined`
+   * degrades the viewer to an "unavailable here" state (DD-004, DD-011 opt-in).
+   */
+  readonly workspaceFileReader?: WorkspaceFileReader;
   /**
    * Supplies host-app environment variables for every follow-up
    * execution (e.g. short-lived credentials for MCP tools, minted as
@@ -150,6 +163,7 @@ export function SessionViewer({
   enableLocal = false,
   onBrowseLocalFolder,
   workspaceFileLister,
+  workspaceFileReader,
   getRuntimeEnv,
   audience = "integrator",
   headerActions,
@@ -169,6 +183,13 @@ export function SessionViewer({
     selectionStoreRef.current = new SelectionStore();
   }
   const selectionStore = selectionStoreRef.current;
+
+  // The single owner of "which workspace file is open". Created here (ref only,
+  // never subscribed at this level) so a file-open re-renders only the
+  // inspector subtree — the InspectorPanel subscribes, not the conversation
+  // column — preserving streaming render isolation (DD-009/DD-010). This
+  // mirrors how `selectionStore` above is owned here but read in InspectorPanel.
+  const fileSelectionStore = useWorkspaceFileSelectionStoreRef();
 
   const handleBuildFromPlan = useCallback(() => {
     // Switch the picker to Agent (so subsequent turns stay in Agent) and submit
@@ -237,6 +258,7 @@ export function SessionViewer({
               flow={flow}
               org={org}
               selectionStore={selectionStore}
+              fileSelectionStore={fileSelectionStore}
               onApplied={onApplied}
               onImplementPlan={handleBuildFromPlan}
               enableGitHub={enableGitHub}
@@ -244,6 +266,7 @@ export function SessionViewer({
               gitHubConnection={gitHubConnection}
               onBrowseLocalFolder={onBrowseLocalFolder}
               workspaceFileLister={workspaceFileLister}
+              workspaceFileReader={workspaceFileReader}
               isEndUser={isEndUser}
             />
           }
@@ -417,6 +440,12 @@ interface InspectorPanelProps {
   readonly flow: ReturnType<typeof useSessionPageFlow>;
   readonly org: string;
   readonly selectionStore: SelectionStore;
+  /**
+   * The workspace-file selection store, owned by `SessionViewer`. Subscribed
+   * here (not at `SessionViewer`) so a file-open re-renders only this panel,
+   * never the conversation column.
+   */
+  readonly fileSelectionStore: WorkspaceFileSelectionStore;
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /** Implement a plan from the Artifacts tab (same action as the thread card). */
   readonly onImplementPlan?: () => void;
@@ -425,6 +454,7 @@ interface InspectorPanelProps {
   readonly gitHubConnection?: UseGitHubConnectionReturn;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
+  readonly workspaceFileReader?: WorkspaceFileReader;
   readonly isEndUser: boolean;
 }
 
@@ -432,6 +462,7 @@ function InspectorPanel({
   flow,
   org,
   selectionStore,
+  fileSelectionStore,
   onApplied,
   onImplementPlan,
   enableGitHub,
@@ -439,9 +470,22 @@ function InspectorPanel({
   gitHubConnection,
   onBrowseLocalFolder,
   workspaceFileLister,
+  workspaceFileReader,
   isEndUser,
 }: InspectorPanelProps) {
   const selectedItem = useSelectedThreadItem();
+  const selectedFile = useWorkspaceFileSelection(fileSelectionStore);
+
+  const handleOpenFile = useCallback(
+    (entryId: string, path: string) => {
+      fileSelectionStore.select({ entryId, path });
+    },
+    [fileSelectionStore],
+  );
+
+  const handleCloseFile = useCallback(() => {
+    fileSelectionStore.deselect();
+  }, [fileSelectionStore]);
 
   const handleRemoveAgent = useCallback(() => {
     flow.setAgentRef(null);
@@ -506,9 +550,11 @@ function InspectorPanel({
         gitHubConnection,
         onBrowseLocalFolder,
         workspaceFileLister,
+        workspaceFileReader,
+        onOpenFile: handleOpenFile,
       },
     }),
-    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister],
+    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister, workspaceFileReader, handleOpenFile],
   );
 
   return (
@@ -518,6 +564,8 @@ function InspectorPanel({
         allExecutions={flow.allExecutions}
         org={org}
         selectedItem={selectedItem}
+        selectedFile={selectedFile}
+        onCloseFile={handleCloseFile}
         onApplied={onApplied}
         onImplementPlan={onImplementPlan}
         sessionConfig={sessionConfig}

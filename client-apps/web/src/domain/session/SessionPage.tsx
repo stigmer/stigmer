@@ -4,6 +4,7 @@ import {
   SessionViewer,
   useGitHubConnection,
   useGitHubTreeLister,
+  useGitHubFileReader,
   useWorkspaceSources,
   useActiveOrgSlug,
   useActiveOrgId,
@@ -25,6 +26,7 @@ export function SessionPageInner({ id }: { id: string }) {
   const gitHubConnection = useGitHubConnection(org);
   const { enableGitHub, enableLocal } = useWorkspaceSources();
   const workspaceFileLister = useGitHubTreeLister(gitHubConnection.token);
+  const workspaceFileReader = useGitHubFileReader(gitHubConnection.token);
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -35,6 +37,7 @@ export function SessionPageInner({ id }: { id: string }) {
         enableGitHub={enableGitHub}
         enableLocal={enableLocal}
         workspaceFileLister={workspaceFileLister}
+        workspaceFileReader={workspaceFileReader}
         headerActions={
           <ManageAccessButton
             resource={{

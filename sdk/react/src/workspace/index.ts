@@ -17,8 +17,18 @@ export type {
   UseWorkspaceFilesOptions,
   UseWorkspaceFilesReturn,
 } from "./useWorkspaceFiles.js";
+export { useWorkspaceFileContent } from "./useWorkspaceFileContent.js";
+export type {
+  UseWorkspaceFileContentOptions,
+  UseWorkspaceFileContentReturn,
+} from "./useWorkspaceFileContent.js";
 export { WorkspaceEntryFiles } from "./WorkspaceEntryFiles.js";
 export type { WorkspaceEntryFilesProps } from "./WorkspaceEntryFiles.js";
+export { FileViewer } from "./FileViewer.js";
+export type { FileViewerProps } from "./FileViewer.js";
+// The viewer's selection shape is part of the public FileViewer API; re-export
+// the type (not the store) so consumers can construct/inspect a selection.
+export type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 export { WorkspaceEditor } from "./WorkspaceEditor.js";
 export type { WorkspaceEditorProps } from "./WorkspaceEditor.js";
 export { WorkspaceSummary } from "./WorkspaceSummary.js";

@@ -5,10 +5,15 @@ import { cn } from "@stigmer/theme";
 import type { ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
+import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
 import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer } from "../composer/index.js";
 import type { HarnessOption } from "../models/harness.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
+import {
+  useWorkspaceFileSelectionStoreRef,
+  useWorkspaceFileSelection,
+} from "../internal/store/index.js";
 import { SessionInspector } from "./inspector/SessionInspector.js";
 import type { SetupTabProps } from "./inspector/SetupTab.js";
 import { useNewSessionFlow } from "./useNewSessionFlow.js";
@@ -46,6 +51,13 @@ export interface NewSessionViewerProps {
    * expandable file tree. (DD-004 capability injection, DD-011 opt-in.)
    */
   readonly workspaceFileLister?: WorkspaceFileLister;
+
+  /**
+   * Platform-injected content reader for the read-only file viewer. When set,
+   * clicking a file in the Workspace tree opens it in a contextual "Viewer"
+   * tab — the same capability `SessionViewer` accepts (DD-016 parity).
+   */
+  readonly workspaceFileReader?: WorkspaceFileReader;
 
   /**
    * Supplies host-app environment variables for the session's first
@@ -156,6 +168,7 @@ export function NewSessionViewer({
   enableLocal = false,
   onBrowseLocalFolder,
   workspaceFileLister,
+  workspaceFileReader,
   getRuntimeEnv,
   audience = "integrator",
   defaultHarness,
@@ -178,6 +191,23 @@ export function NewSessionViewer({
   });
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const isEndUser = audience === "endUser";
+
+  // Owns "which workspace file is open" for the viewer. The launcher has a
+  // single column (no transcript to isolate from), so subscribing in the body
+  // is harmless — unlike `SessionViewer`, which subscribes one level down.
+  const fileSelectionStore = useWorkspaceFileSelectionStoreRef();
+  const selectedFile = useWorkspaceFileSelection(fileSelectionStore);
+
+  const handleOpenFile = useCallback(
+    (entryId: string, path: string) => {
+      fileSelectionStore.select({ entryId, path });
+    },
+    [fileSelectionStore],
+  );
+
+  const handleCloseFile = useCallback(() => {
+    fileSelectionStore.deselect();
+  }, [fileSelectionStore]);
 
   const hasContext =
     flow.workspace.hasEntries ||
@@ -249,9 +279,11 @@ export function NewSessionViewer({
         gitHubConnection,
         onBrowseLocalFolder,
         workspaceFileLister,
+        workspaceFileReader,
+        onOpenFile: handleOpenFile,
       },
     }),
-    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister],
+    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister, workspaceFileReader, handleOpenFile],
   );
 
   const composerNode = (
@@ -335,6 +367,8 @@ export function NewSessionViewer({
               allExecutions={[]}
               org={org}
               selectedItem={null}
+              selectedFile={selectedFile}
+              onCloseFile={handleCloseFile}
               sessionConfig={sessionConfig}
               workspaceConfig={workspaceConfig}
               className="min-h-0 flex-1"
