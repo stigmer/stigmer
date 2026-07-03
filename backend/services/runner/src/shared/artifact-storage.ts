@@ -16,7 +16,7 @@
  * DD-6: No direct R2 backend. Local + Proxy only.
  */
 
-import { mkdir, writeFile, readFile, access } from "node:fs/promises";
+import { mkdir, writeFile, readFile, access, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Config } from "../config.js";
 
@@ -255,4 +255,86 @@ export function createArtifactStorage(cfg: ArtifactStorageConfig): ArtifactStora
   }
 
   return new LocalArtifactStorage(cfg.localPath, cfg.localServeUrl);
+}
+
+/**
+ * Prove that `basePath` can actually be written to, the way {@link
+ * LocalArtifactStorage.upload} writes: create the directory tree, write a
+ * throwaway file, then remove it. Returns `false` on any failure.
+ *
+ * We do an actual write rather than `access(basePath, W_OK)` deliberately:
+ * `access` can lie under root / ACLs / overlay filesystems (it checks the
+ * permission bits, not the real outcome), it does not exercise the recursive
+ * `mkdir` + `writeFile` that `upload` performs (so it misses a `basePath` whose
+ * parent is a file, an ENOTDIR), and it cannot catch a full disk. The scratch
+ * file is uniquely named so concurrent runners never collide, and is removed
+ * even though `basePath` (which we want to exist anyway) is left in place.
+ */
+async function isLocalPathWritable(basePath: string): Promise<boolean> {
+  const probePath = join(basePath, `.write-probe-${process.pid}-${Date.now()}`);
+  try {
+    await mkdir(basePath, { recursive: true });
+    await writeFile(probePath, "");
+    await rm(probePath, { force: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve a *usable* artifact store for the file-review capture / status-offload
+ * path, degrading to `undefined` instead of crashing when there is no working
+ * substrate. This is the single construct-or-degrade seam shared by both
+ * harnesses (the deep-agent and Cursor activities) so they degrade identically.
+ *
+ * Two degrade paths:
+ *  - **Proxy misconfig** — {@link createArtifactStorage} throws for a missing
+ *    endpoint/token; caught here and reported absent.
+ *  - **Unwritable local path** — {@link LocalArtifactStorage} constructs around a
+ *    path string and never throws, so an unwritable base path (bad mount, EPERM,
+ *    full disk) would otherwise let file writes FLOW during the turn and only
+ *    crash at the turn-boundary upload, with the workspace already mutated and no
+ *    review authored. We probe writability up front and report absent instead.
+ *
+ * Proxy is intentionally NOT probed at the network layer: a live-endpoint check
+ * would add a round-trip to every cloud setup and risk falsely degrading on a
+ * transient blip; construction already validates its config.
+ *
+ * An absent store is a first-class, already-supported state (DD-26): capture
+ * degrades to the deny-gate (via {@link deriveCaptureMode}'s `hasArtifactStorage`
+ * argument), tool-output offload is disabled (the aggregate size guard still
+ * applies), and attachment / plan-artifact publishing surface a clear error.
+ * This is the fail-safe realization of DD-26 follow-up #1.
+ *
+ * NOTE: this resolver is for the capture/offload path only. Claimcheck (Temporal
+ * payload offload) MUST have storage and has no deny-gate to fall back to, so it
+ * deliberately keeps calling {@link createArtifactStorage} directly (fail-hard).
+ */
+export async function resolveUsableArtifactStorage(
+  cfg: ArtifactStorageConfig,
+  ctx: { executionId: string },
+): Promise<ArtifactStorage | undefined> {
+  let storage: ArtifactStorage;
+  try {
+    storage = createArtifactStorage(cfg);
+  } catch (err) {
+    console.warn(
+      `[artifact-storage] unavailable — file capture degrades to the deny-gate ` +
+      `and tool-output offload is disabled: execution=${ctx.executionId}, ` +
+      `type=${cfg.type}, error=${err}`,
+    );
+    return undefined;
+  }
+
+  if (cfg.type === "local" && !(await isLocalPathWritable(cfg.localPath))) {
+    console.warn(
+      `[artifact-storage] local path not writable — file capture degrades to the ` +
+      `deny-gate and tool-output offload is disabled: execution=${ctx.executionId}, ` +
+      `path=${cfg.localPath}`,
+    );
+    return undefined;
+  }
+
+  return storage;
 }

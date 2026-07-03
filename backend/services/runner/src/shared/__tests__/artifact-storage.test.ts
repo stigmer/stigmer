@@ -1,14 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtemp, rm, readFile } from "node:fs/promises";
+import { mkdtemp, rm, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   LocalArtifactStorage,
   ProxyArtifactStorage,
   createArtifactStorage,
+  resolveUsableArtifactStorage,
   loadArtifactStorageConfig,
   type ArtifactStorageConfig,
 } from "../artifact-storage.js";
+import { deriveCaptureMode } from "../filereview/capture.js";
 
 // ── LocalArtifactStorage ─────────────────────────────────────────────
 
@@ -474,5 +476,112 @@ describe("loadArtifactStorageConfig", () => {
       stigmerToken: "tok",
     });
     expect(cfg.type).toBe("proxy");
+  });
+});
+
+// ── resolveUsableArtifactStorage (DD-26 follow-up #1) ─────────────────
+//
+// The shared construct-or-degrade seam: it must return `undefined` (never throw)
+// for every "no working substrate" condition so both harnesses fall to the
+// deny-gate up front, instead of flowing file writes then crashing at the
+// turn-boundary upload.
+
+describe("resolveUsableArtifactStorage", () => {
+  const ctx = { executionId: "exec-test" };
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "resolve-artifact-test-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  const localCfg = (localPath: string): ArtifactStorageConfig => ({
+    type: "local",
+    localPath,
+    localServeUrl: "http://localhost:7235",
+    proxyEndpoint: null,
+    proxyAuthToken: null,
+  });
+
+  it("returns a LocalArtifactStorage for a writable path and leaves no residue", async () => {
+    const base = join(tempDir, "artifacts");
+    const storage = await resolveUsableArtifactStorage(localCfg(base), ctx);
+
+    expect(storage).toBeInstanceOf(LocalArtifactStorage);
+    // The write-probe file must be cleaned up; the base dir may be created.
+    const entries = await readdir(base);
+    expect(entries).toEqual([]);
+  });
+
+  it("returns undefined for an unwritable local path (mkdir ENOTDIR)", async () => {
+    // Deterministic, cross-platform: point localPath at a child of a regular
+    // FILE, so the resolver's recursive mkdir fails with ENOTDIR.
+    const filePath = join(tempDir, "not-a-dir");
+    await writeFile(filePath, "");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const storage = await resolveUsableArtifactStorage(
+      localCfg(join(filePath, "sub")),
+      ctx,
+    );
+
+    expect(storage).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("local path not writable"),
+    );
+  });
+
+  it("returns undefined when proxy config is a misconfig (construct throws)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const cfg: ArtifactStorageConfig = {
+      type: "proxy",
+      localPath: "/tmp/artifacts",
+      localServeUrl: "http://localhost:7235",
+      proxyEndpoint: "https://proxy.example.com",
+      proxyAuthToken: null, // missing token
+    };
+
+    const storage = await resolveUsableArtifactStorage(cfg, ctx);
+
+    expect(storage).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("unavailable"));
+  });
+
+  it("returns a ProxyArtifactStorage for a valid proxy config without any network call", async () => {
+    // Proxy is never probed at the network layer — assert no fetch happens.
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const cfg: ArtifactStorageConfig = {
+      type: "proxy",
+      localPath: "/tmp/artifacts",
+      localServeUrl: "http://localhost:7235",
+      proxyEndpoint: "https://proxy.example.com",
+      proxyAuthToken: "token-123",
+    };
+
+    const storage = await resolveUsableArtifactStorage(cfg, ctx);
+
+    expect(storage).toBeInstanceOf(ProxyArtifactStorage);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("wires through to deriveCaptureMode: an unwritable local store degrades a non-git turn to the deny-gate", async () => {
+    const filePath = join(tempDir, "not-a-dir");
+    await writeFile(filePath, "");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const storage = await resolveUsableArtifactStorage(
+      localCfg(join(filePath, "sub")),
+      ctx,
+    );
+
+    // Non-git workspace + no usable storage => no capture substrate => deny-gate.
+    expect(deriveCaptureMode("/some/workspace", false, !!storage)).toBe(false);
+    // A git workspace still captures (git substrate needs no storage), but its
+    // gitignored->CAS edits and offload are off because the store is absent.
+    expect(deriveCaptureMode("/some/workspace", true, !!storage)).toBe(true);
   });
 });

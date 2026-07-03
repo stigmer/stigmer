@@ -49,7 +49,7 @@ import { getDefaultModel } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
 import {
   loadArtifactStorageConfig,
-  createArtifactStorage,
+  resolveUsableArtifactStorage,
   type ArtifactStorage,
 } from "../../shared/artifact-storage.js";
 import {
@@ -201,20 +201,14 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     await reportSetupProgress(client, executionId, "Resolving environment…");
     const envResult: EnvironmentResult = await resolveEnvironment(client, executionId);
 
-    // Step 6: Create artifact storage. Best-effort, mirroring the Cursor harness:
-    // `createArtifactStorage` throws only for proxy transport with a missing
-    // token/endpoint (a misconfiguration; local storage never throws). We degrade
-    // rather than crash — an absent store flips capture mode off (deny-gate
-    // fallback below) and disables offload, instead of failing the whole execution.
-    let artifactStorage: ArtifactStorage | undefined;
-    try {
-      artifactStorage = createArtifactStorage(loadArtifactStorageConfig(config));
-    } catch (storageErr) {
-      console.warn(
-        `[setup] artifact storage unavailable — capture degrades to the deny-gate ` +
-        `and tool-output offload is disabled: execution=${executionId}, error=${storageErr}`,
-      );
-    }
+    // Step 6: Resolve a usable artifact store (shared with the Cursor harness so
+    // both degrade identically). Returns `undefined` — never throws — when there
+    // is no working substrate: a proxy misconfig OR an unwritable local path
+    // (which `createArtifactStorage` cannot detect, since it just holds a path).
+    // An absent store flips capture mode off (deny-gate fallback below) and
+    // disables offload, instead of flowing writes then crashing at the boundary.
+    const artifactStorage: ArtifactStorage | undefined =
+      await resolveUsableArtifactStorage(loadArtifactStorageConfig(config), { executionId });
 
     // Step 7: Provision workspace
     await reportSetupProgress(client, executionId, "Initializing workspace…");

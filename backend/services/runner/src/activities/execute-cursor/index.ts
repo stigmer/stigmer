@@ -47,7 +47,7 @@ import { MessageAccumulator, reconcileDeniedToolCalls, clearProvisionalPostDenia
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { collectSubAgentToolCallIds } from "../../shared/tool-row.js";
 import { startStallWatchdog, StallTimeoutError, formatStallFailure, type StallWatchdog } from "../../shared/stall-watchdog.js";
-import { createArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
+import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
@@ -167,19 +167,13 @@ async function executeCursorInner(
 
   // Artifact storage for offloading oversized tool outputs (screenshots, giant
   // dumps) out of the persisted status, and for publishing the plan artifact.
-  // Created once here so it is available to EVERY persist below. Best-effort:
-  // if it can't be built (e.g. proxy mode without a token), offload is disabled
-  // but persistStatus still enforces the aggregate size cap, so persistence can
-  // never silently blow past the gRPC limit.
-  let artifactStorage: ArtifactStorage | undefined;
-  try {
-    artifactStorage = createArtifactStorage(loadArtifactStorageConfig(config));
-  } catch (storageErr) {
-    console.warn(
-      `ExecuteCursor artifact storage unavailable — tool-output offload disabled ` +
-      `(aggregate size guard still active): execution=${executionId}, error=${storageErr}`,
-    );
-  }
+  // Resolved once here so it is available to EVERY persist below. Best-effort via
+  // the shared resolver (identical to the deep-agent harness): `undefined` — never
+  // a throw — when there is no working substrate (proxy misconfig OR an unwritable
+  // local path). An absent store disables offload (persistStatus still enforces
+  // the aggregate size cap) and flips capture mode off (deny-gate fallback).
+  const artifactStorage: ArtifactStorage | undefined =
+    await resolveUsableArtifactStorage(loadArtifactStorageConfig(config), { executionId });
   const statusOffload = artifactStorage
     ? { artifactStorage, executionId }
     : undefined;
