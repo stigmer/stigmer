@@ -1011,6 +1011,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
     org: { type: "string", description: "Organization slug. Required for session creation.", required: true },
     placeholder: { type: "string", description: "Placeholder for the composer textarea." },
     workspaceFileLister: { type: "WorkspaceFileLister", description: "Platform-injected file lister for workspace entries. When provided, each entry in the Setup tab's workspace section renders an expandable file tree. (DD-004 capability injection, DD-011 opt-in.)", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
+    workspaceFileReader: { type: "WorkspaceFileReader", description: "Platform-injected content reader for the read-only file viewer. When set, clicking a file in the Workspace tree opens it in a contextual \"Viewer\" tab — the same capability `SessionViewer` accepts (DD-016 parity).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilereader" },
   }}
 />
 
@@ -1070,6 +1071,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
     org: { type: "string", description: "Organization slug.", required: true },
     sessionId: { type: "string", description: "Session ID to load and display.", required: true },
     workspaceFileLister: { type: "WorkspaceFileLister", description: "Platform-injected file lister for workspace entries. When provided, each entry in the Setup tab's workspace section renders an expandable file tree. (DD-004 capability injection, DD-011 opt-in.)", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
+    workspaceFileReader: { type: "WorkspaceFileReader", description: "Platform-injected content reader for the read-only file viewer. When provided, clicking a file in the Workspace tree opens it in a contextual \"Viewer\" tab. GitHub Contents/blob on web, Tauri fs on desktop; `undefined` degrades the viewer to an \"unavailable here\" state (DD-004, DD-011 opt-in).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilereader" },
   }}
 />
 
@@ -1140,7 +1142,7 @@ render in the transcript (stamped edit rows + the per-turn decision bar),
 which is their single review surface.
 
 ```tsx
-function buildVisibleTabs(opts: { artifactCount: number; hasArtifacts: boolean; hasUsage: boolean; hasWriteBacks: boolean; selectedItem: SelectedThreadItem | null; writeBackCount: number }): TabItem[]
+function buildVisibleTabs(opts: { artifactCount: number; hasArtifacts: boolean; hasUsage: boolean; hasWriteBacks: boolean; selectedFile?: SelectedWorkspaceFile | null; selectedItem: SelectedThreadItem | null; writeBackCount: number }): TabItem[]
 ```
 
 
@@ -1456,8 +1458,10 @@ Props for [`SessionInspector`](#sessioninspector).
     className: { type: "string", description: "Additional CSS classes." },
     displayExecution: { type: "AgentExecution | null", description: "The most relevant execution — the active streaming execution, or the last completed one. Drives the run-status header (phase badge).", required: true },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied from the Artifacts tab." },
+    onCloseFile: { type: "() => void", description: "Closes the file viewer (deselects the open file)." },
     onImplementPlan: { type: "() => void", description: "Implement a plan from the Artifacts tab. When provided, plan artifacts (`plan.md`) surface an Implement action in their preview." },
     org: { type: "string", description: "Organization slug for artifact Apply CTA.", required: true },
+    selectedFile: { type: "SelectedWorkspaceFile | null", description: "The workspace file open in the viewer, or null. When set, a contextual \"Viewer\" tab surfaces and renders FileViewer. Prop-driven (like `selectedItem`) so this component stays pure and memoizable; the owning viewer reads the selection store and passes the result down." },
     selectedItem: { type: "SelectedThreadItem | null", description: "Currently selected thread item, or null.", required: true },
     sessionConfig: { type: "SetupTabProps", description: "Session-level configuration for the Configure tab. Includes core config fields and optional interactive mutation callbacks. When mutation callbacks are absent, sections render read-only (DD-011 backward compatibility).", typeDescriptionLink: "#setuptabprops" },
     workspaceConfig: { type: "WorkspaceTabProps", description: "Workspace tab configuration. When provided, the Workspace tab renders interactive workspace actions (add/remove entries, file tree browsing). When absent, the tab shows an empty state." },
@@ -1555,6 +1559,7 @@ Return value of [`usePersistedModel`](#usepersistedmodel).
     hasUsage: { type: "boolean", description: "", required: true },
     hasWriteBacks: { type: "boolean", description: "", required: true },
     phase: { type: "ExecutionPhase | null", description: "", required: true },
+    selectedFile: { type: "SelectedWorkspaceFile | null", description: "The workspace file currently open in the viewer, or `null`. When set, a contextual \"Viewer\" tab surfaces (right after Workspace) and is auto-selected — mirroring how `selectedItem` surfaces the \"Inspect\" tab. Optional so existing call sites that predate the viewer stay unchanged." },
     selectedItem: { type: "SelectedThreadItem | null", description: "", required: true },
     writeBackCount: { type: "number", description: "", required: true },
   }}

@@ -2149,6 +2149,19 @@ Props for [`ExecutionPhaseBadge`](#executionphasebadge).
 />
 
 
+### extractPrimaryArg
+
+Extracts the most relevant argument value from a tool call
+based on its category (command for shell tools, path for file
+tools, slug for MCP tools, etc.).
+
+Returns `null` when the tool has no recognised arguments.
+
+```tsx
+function extractPrimaryArg(toolCall: ToolCall): string | null
+```
+
+
 ### FileBlockReason
 
 Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the

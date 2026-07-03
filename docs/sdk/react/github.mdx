@@ -99,6 +99,42 @@ function DesktopGitHubConnect({ org }: { org: string }) {
 ```
 
 
+### useGitHubFileReader
+
+Creates a [`WorkspaceFileReader`](/docs/sdk/react/workspace#workspacefilereader) backed by the GitHub Contents API,
+with a Blob-API fallback for files above the Contents 1 MB cap.
+
+Uses the same client-side OAuth token as `import("./useGitHubTreeLister.js").useGitHubTreeLister`
+(`Authorization: Bearer`), inheriting its private-repo scope. Returns
+`undefined` when no token is present, mirroring the tree lister so callers
+can treat "no reader" and "no lister" identically.
+
+The reader itself:
+- Returns `null` when the entry is not a readable GitHub git repo
+  (non-git entry, missing/unparseable URL) — the "unsupported here" state.
+- **Throws** on a real failure: a non-OK response, or a directory path
+  (which the Contents API returns as a JSON array). Consumers surface these
+  as an error, distinct from the null "unsupported" state.
+
+**Signature**
+
+```tsx
+function useGitHubFileReader(token: string | null): WorkspaceFileReader | undefined
+```
+
+<TypeTable
+  type={{
+    token: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+```tsx
+const gitHubConnection = useGitHubConnection(org);
+const fileReader = useGitHubFileReader(gitHubConnection.token);
+<SessionViewer workspaceFileReader={fileReader} />
+```
+
+
 ### useGitHubRepos
 
 Data hook that fetches the authenticated user's GitHub repositories.

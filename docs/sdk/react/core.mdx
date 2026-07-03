@@ -418,6 +418,24 @@ only the identifying key — not the full data. The `InspectTab`
 derives display detail from the execution snapshot separately.
 
 
+### SelectedWorkspaceFile
+
+A file selected for viewing.
+
+Keyed by `entryId` (not the entry value): the workspace entry id is stable
+within a page load but regenerated on reload, and selection is transient UI
+state anyway (reset on reload). Consumers must resolve the live entry via
+`workspace.entries.find(e => e.id === sel.entryId)` so a removed entry
+deselects naturally instead of holding a stale value.
+
+<TypeTable
+  type={{
+    entryId: { type: "string", description: "Stable-within-page id of the owning workspace entry.", required: true },
+    path: { type: "string", description: "Repo-relative (git) or root-relative (local) file path.", required: true },
+  }}
+/>
+
+
 ### StigmerContext
 
 React context for the Stigmer SDK client instance.
