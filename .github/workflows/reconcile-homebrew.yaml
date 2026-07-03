@@ -1,0 +1,143 @@
+name: reconcile-homebrew
+
+# Bumps the stigmer/homebrew-tap formula to the current npm `latest` of
+# @stigmer/cli — but only once that version has cleared Homebrew's
+# `--min-release-age=1` window (~24h). Homebrew runs the formula's npm install
+# with that supply-chain guard, so bumping the tap the same day a release
+# publishes makes `brew install stigmer` fail for everyone until the @stigmer/*
+# deps age out (stigmer/stigmer#210). Rather than bypass the guard (e.g. by
+# bundling deps), we respect it and reconcile the tap on a schedule.
+#
+# The job is idempotent: it is a no-op when the formula already matches the
+# aged `latest`, or when `latest` is still inside the age window.
+
+on:
+  schedule:
+    # Daily at 08:17 UTC (off the top of the hour to avoid scheduler congestion).
+    - cron: '17 8 * * *'
+  workflow_dispatch:
+    inputs:
+      min_age_hours:
+        description: 'Minimum published age (hours) before bumping the tap'
+        required: false
+        default: '24'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reconcile-homebrew
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: stigmer/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Reconcile formula to aged npm latest
+        env:
+          MIN_AGE_HOURS: ${{ github.event.inputs.min_age_hours || '24' }}
+        run: |
+          set -euo pipefail
+          PKG="@stigmer/cli"
+
+          # Target = current npm `latest`; Homebrew tracks the stable channel.
+          TARGET=$(npm view "$PKG" dist-tags.latest)
+          echo "npm latest:      $TARGET"
+
+          # Age gate: the formula's `npm install` resolves the @stigmer/* deps at
+          # the same version, and Homebrew rejects any published < min-release-age
+          # ago. Skip until TARGET has aged past the window.
+          PUBLISHED=$(npm view "$PKG" time --json | node -e "
+            const t = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+            process.stdout.write(t[process.env.TARGET] || '');
+          ")
+          if [ -z "$PUBLISHED" ]; then
+            echo "ERROR: could not resolve publish time for $PKG@$TARGET"
+            exit 1
+          fi
+          AGE_HOURS=$(( ( $(date -u +%s) - $(date -u -d "$PUBLISHED" +%s) ) / 3600 ))
+          echo "published:       $PUBLISHED (${AGE_HOURS}h ago)"
+          echo "min age:         ${MIN_AGE_HOURS}h"
+          if [ "$AGE_HOURS" -lt "$MIN_AGE_HOURS" ]; then
+            echo "Still inside the min-release-age window; leaving the tap unchanged."
+            exit 0
+          fi
+
+          # Current formula version, parsed from the pinned registry tarball URL
+          # (.../@stigmer/cli/-/cli-<version>.tgz). No-op if already current.
+          CURRENT=""
+          if [ -f Formula/stigmer.rb ]; then
+            CURRENT=$(sed -n 's#.*/cli/-/cli-\(.*\)\.tgz".*#\1#p' Formula/stigmer.rb | head -n1)
+          fi
+          echo "formula version: ${CURRENT:-<none>}"
+          if [ "$CURRENT" = "$TARGET" ]; then
+            echo "Formula already at $TARGET; nothing to do."
+            exit 0
+          fi
+
+          # Resolve the exact tarball + sha256 Homebrew requires (npm dist
+          # metadata only exposes sha1/sha512, so we hash the tarball ourselves).
+          TARBALL_URL=$(npm view "$PKG@$TARGET" dist.tarball)
+          echo "tarball:         $TARBALL_URL"
+          curl -sL "$TARBALL_URL" -o /tmp/stigmer-cli.tgz
+          SHA256=$(sha256sum /tmp/stigmer-cli.tgz | awk '{print $1}')
+          echo "sha256:          $SHA256"
+          echo "bumping formula: ${CURRENT:-<none>} -> $TARGET"
+
+          # Canonical Language::Node formula: Homebrew downloads the npm tarball,
+          # installs it (and its @stigmer/* deps) into libexec, and symlinks the
+          # `stigmer` launcher into bin. The backend server is downloaded on first
+          # use, so nothing else is bundled (DD-003).
+          cat > Formula/stigmer.rb <<EOF
+          require "language/node"
+
+          class Stigmer < Formula
+            desc "AI-powered workflow automation — agents, skills, MCP servers, workflows"
+            homepage "https://github.com/stigmer/stigmer"
+            url "${TARBALL_URL}"
+            sha256 "${SHA256}"
+            license "Apache-2.0"
+
+            depends_on "node"
+
+            def install
+              system "npm", "install", *std_npm_args
+              bin.install_symlink Dir["#{libexec}/bin/*"]
+            end
+
+            def caveats
+              <<~CAVEATS
+                The Stigmer backend server is downloaded automatically on first use,
+                so no extra binaries are bundled. Provide a model API key first:
+
+                  Option 1 (recommended):         export ANTHROPIC_API_KEY=sk-ant-...
+                  Option 2:                        export OPENAI_API_KEY=sk-...
+                  Option 3 (local, lower quality): brew install ollama && ollama serve
+
+                Then start the local stack with:  stigmer up
+              CAVEATS
+            end
+
+            test do
+              system "#{bin}/stigmer", "--version"
+            end
+          end
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/stigmer.rb
+          git commit -m "Update stigmer to ${TARGET}"
+          git push

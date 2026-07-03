@@ -51,13 +51,10 @@ export const PACKAGES = [
   "mcp-server",
   // @stigmer/seedpack has no @stigmer/* deps (it stages bundled resource
   // content), so its position is order-free. A published @stigmer/cli acquires
-  // @stigmer/seedpack at its exact version on demand, so it MUST publish too. It
-  // pins itself off `latest` via `stigmerPublish.tag` until parity, alongside cli.
+  // @stigmer/seedpack at its exact version on demand, so it MUST publish too.
   "seedpack",
   // @stigmer/cli depends on @stigmer/protos + @stigmer/sdk + @stigmer/ink, all
-  // above it, so it publishes last with its deps already resolved. It pins itself
-  // off `latest` via `stigmerPublish.tag` until its local-stack surface reaches
-  // parity (see resolvePackageTag below).
+  // above it, so it publishes last with its deps already resolved.
   "client-apps/cli",
 ];
 
@@ -101,11 +98,11 @@ function isPrerelease(version) {
  *
  * Otherwise a package may pin itself below the inferred tag via
  * `stigmerPublish.tag` in its package.json. This lets a not-yet-GA package ship
- * to npm (so it is installable + CI-testable) without ever landing on `latest`:
- * `@stigmer/cli` uses this so a stable `v*` release does not promote its
- * still-incomplete local-stack surface to `latest`. The pin is removed when the
- * package reaches parity. A package never pins itself ABOVE the inferred tag
- * (e.g. it cannot force `latest` onto a prerelease run).
+ * to npm (so it is installable + CI-testable) without ever landing on `latest`;
+ * the pin is removed when the package reaches parity. (No package currently
+ * pins — `@stigmer/cli` and `@stigmer/seedpack` did until they went GA.) A
+ * package never pins itself ABOVE the inferred tag (e.g. it cannot force
+ * `latest` onto a prerelease run).
  */
 export function resolvePackageTag(srcPkg, explicitTag, inferredTag) {
   if (explicitTag) return explicitTag;
