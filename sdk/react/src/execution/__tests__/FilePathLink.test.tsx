@@ -5,6 +5,7 @@ import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
   LocalPathSourceSchema,
+  GitRepoSourceSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { FilePathLink } from "../FilePathLink";
@@ -88,5 +89,91 @@ describe("FilePathLink interaction", () => {
     expect(onFilePathClick).toHaveBeenCalledTimes(1);
     expect(onFilePathClick.mock.calls[0][0]).toBe("src/main.go");
     expect(onFilePathClick.mock.calls[0][1].action).toBe("copy");
+  });
+
+  it("falls back to copy when a copy-action handler declines (returns false)", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const onFilePathClick = vi.fn().mockReturnValue(false);
+    render(
+      <FilePathContext.Provider value={{ workspaceEntries: [], onFilePathClick }}>
+        <FilePathLink path="src/main.go" />
+      </FilePathContext.Provider>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    expect(onFilePathClick).toHaveBeenCalledTimes(1);
+    expect(writeText).toHaveBeenCalledWith("src/main.go");
+    vi.unstubAllGlobals();
+  });
+
+  it("suppresses the copy default when a copy-action handler returns void", () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const onFilePathClick = vi.fn(); // returns undefined -> handled
+    render(
+      <FilePathContext.Provider value={{ workspaceEntries: [], onFilePathClick }}>
+        <FilePathLink path="src/main.go" />
+      </FilePathContext.Provider>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    expect(onFilePathClick).toHaveBeenCalledTimes(1);
+    expect(writeText).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("FilePathLink link-action with an injected handler", () => {
+  const gitEntries = [
+    create(WorkspaceEntrySchema, {
+      name: "acme/app",
+      source: create(WorkspaceSourceSchema, {
+        source: {
+          case: "gitRepo",
+          value: create(GitRepoSourceSchema, {
+            url: "https://github.com/acme/app.git",
+            branch: "main",
+          }),
+        },
+      }),
+    }),
+  ];
+
+  it("renders a real <a href> even when a handler is present (native link semantics)", () => {
+    const onFilePathClick = vi.fn().mockReturnValue(true);
+    render(
+      <FilePathContext.Provider value={{ workspaceEntries: gitEntries, onFilePathClick }}>
+        <FilePathLink path="src/main.go" />
+      </FilePathContext.Provider>,
+    );
+    const anchor = screen.getByRole("link");
+    expect(anchor.getAttribute("href")).toBe(
+      "https://github.com/acme/app/blob/main/src/main.go",
+    );
+  });
+
+  it("prevents native navigation when the handler opens it in-app (returns true)", () => {
+    const onFilePathClick = vi.fn().mockReturnValue(true);
+    render(
+      <FilePathContext.Provider value={{ workspaceEntries: gitEntries, onFilePathClick }}>
+        <FilePathLink path="src/main.go" />
+      </FilePathContext.Provider>,
+    );
+    const evt = new MouseEvent("click", { bubbles: true, cancelable: true });
+    screen.getByRole("link").dispatchEvent(evt);
+    expect(onFilePathClick).toHaveBeenCalledTimes(1);
+    expect(evt.defaultPrevented).toBe(true);
+  });
+
+  it("leaves native navigation intact when the handler declines (returns false)", () => {
+    const onFilePathClick = vi.fn().mockReturnValue(false);
+    render(
+      <FilePathContext.Provider value={{ workspaceEntries: gitEntries, onFilePathClick }}>
+        <FilePathLink path="src/main.go" />
+      </FilePathContext.Provider>,
+    );
+    const evt = new MouseEvent("click", { bubbles: true, cancelable: true });
+    screen.getByRole("link").dispatchEvent(evt);
+    expect(onFilePathClick).toHaveBeenCalledTimes(1);
+    expect(evt.defaultPrevented).toBe(false);
   });
 });

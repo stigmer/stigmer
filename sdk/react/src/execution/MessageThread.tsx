@@ -172,7 +172,7 @@ export interface MessageThreadProps {
   readonly onFilePathClick?: (
     path: string,
     resolved: ResolvedPathAction,
-  ) => void;
+  ) => boolean | void;
   /**
    * Absolute sandbox workspace root (e.g. `/home/daytona/workspace`).
    * When provided, shell commands and tool output normalize absolute

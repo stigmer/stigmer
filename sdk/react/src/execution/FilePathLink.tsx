@@ -92,15 +92,26 @@ export function FilePathLink({
       // (ToolCallItem's role=button header); copying/opening a path must not
       // also expand the row.
       e.stopPropagation();
+
+      // Offer the click to the injected handler first. It returns `false` to
+      // DECLINE (e.g. an in-app viewer that can't open this particular path),
+      // in which case we fall through to the default action below. A `true`/
+      // `void` return means it fully handled the click.
       if (onFilePathClick) {
-        e.preventDefault();
-        onFilePathClick(path, resolved);
-        return;
+        const handled = onFilePathClick(path, resolved);
+        if (handled !== false) {
+          // For a link, also stop the browser from navigating (the file opened
+          // in-app instead). A modifier/middle-click bypasses this onClick, so
+          // the real <a href> still opens the target in a new tab.
+          if (resolved.action === "link") e.preventDefault();
+          return;
+        }
       }
+
       if (resolved.action === "copy") {
         handleCopy();
       }
-      // For "link" action the <a> default navigation handles it.
+      // For a declined/un-handled "link", the <a>'s native navigation runs.
     },
     [onFilePathClick, path, resolved, handleCopy],
   );
@@ -125,13 +136,18 @@ export function FilePathLink({
     </>
   );
 
-  if (resolved.action === "link" && !onFilePathClick) {
+  // A link-action path always renders a real anchor — even when an
+  // `onFilePathClick` handler is present — so native link affordances
+  // (middle-click, open-in-new-tab, copy-link-address) survive. `handleClick`
+  // intercepts a plain left-click to route it through the handler (e.g. into an
+  // in-app viewer) and only calls `preventDefault` when the handler took it.
+  if (resolved.action === "link") {
     return (
       <a
         href={resolved.url}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
+        onClick={handleClick}
         aria-label={ariaLabel}
         title={title}
         className={cn(sharedClasses, "group/fpl")}

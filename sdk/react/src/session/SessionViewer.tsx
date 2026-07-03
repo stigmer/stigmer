@@ -6,6 +6,7 @@ import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
+import { resolveWorkspaceFileSelection } from "../workspace/resolveWorkspaceFileSelection.js";
 import type { InteractionModeOption, SessionComposerHandle } from "../composer/index.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
@@ -202,6 +203,26 @@ export function SessionViewer({
     });
   }, [setInteractionMode]);
 
+  // Open a transcript tool-call file path in the read-only Viewer. Resolves the
+  // (possibly absolute / subdir-prefixed) path to a repo/root-relative selection
+  // the Viewer can fetch; on a definite hit it writes the shared file-selection
+  // store and returns `true` (handled), otherwise returns `false` so the path
+  // keeps its default copy / GitHub-link behavior. Writing the store re-renders
+  // only the inspector subtree (which subscribes), never this streaming column.
+  const handleTranscriptFilePathClick = useCallback(
+    (path: string): boolean => {
+      const selection = resolveWorkspaceFileSelection(
+        path,
+        flow.workspace.entries,
+        flow.sandboxWorkspaceRoot,
+      );
+      if (!selection) return false;
+      fileSelectionStore.select(selection);
+      return true;
+    },
+    [flow.workspace.entries, flow.sandboxWorkspaceRoot, fileSelectionStore],
+  );
+
   if (conv.isLoading) {
     return (
       <div className={cn("flex h-full w-full flex-col", className)}>
@@ -250,6 +271,7 @@ export function SessionViewer({
               enableLocal={enableLocal}
               onBrowseLocalFolder={onBrowseLocalFolder}
               onBuildFromPlan={handleBuildFromPlan}
+              onFilePathClick={handleTranscriptFilePathClick}
               isEndUser={isEndUser}
             />
           }
@@ -293,6 +315,12 @@ interface ConversationColumnProps {
   readonly enableLocal: boolean;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly onBuildFromPlan: () => void;
+  /**
+   * Opens a transcript tool-call file path in the Viewer. Returns `true` when it
+   * resolved and opened the file (suppressing the link's default), `false` to
+   * let the path keep its copy / GitHub-link behavior.
+   */
+  readonly onFilePathClick: (path: string) => boolean;
   readonly isEndUser: boolean;
 }
 
@@ -309,6 +337,7 @@ function ConversationColumn({
   enableLocal,
   onBrowseLocalFolder,
   onBuildFromPlan,
+  onFilePathClick,
   isEndUser,
 }: ConversationColumnProps) {
   const { conv } = flow;
@@ -363,6 +392,7 @@ function ConversationColumn({
         showFileReviewRecords
         onEditMessage={conv.isStoppable ? handleEditMessage : undefined}
         workspaceEntries={conv.workspaceEntries}
+        onFilePathClick={onFilePathClick}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
         onBuildFromPlan={onBuildFromPlan}
         org={org}
