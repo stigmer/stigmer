@@ -1,13 +1,17 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import type { UseWorkspaceEntriesReturn, WorkspaceEntry } from "../../workspace/useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "../../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../../workspace/WorkspaceFileReader.js";
 import { WorkspaceEntryFiles } from "../../workspace/WorkspaceEntryFiles.js";
+import { WorkspaceFileSearch } from "../../workspace/WorkspaceFileSearch.js";
 import type { UseGitHubConnectionReturn } from "../../github/useGitHubConnection.js";
 import type { SelectedWorkspaceFile } from "../../internal/store/workspace-file-selection-store.js";
+
+/** Which face of the Workspace tab is showing: the file tree or search. */
+type WorkspaceViewMode = "files" | "search";
 
 /**
  * Interactive workspace actions required by the Workspace tab.
@@ -65,11 +69,36 @@ export function WorkspaceTab({ actions, selectedFile }: WorkspaceTabProps) {
     onOpenFile,
   } = actions;
 
+  const [viewMode, setViewMode] = useState<WorkspaceViewMode>("files");
+
   const canBrowse = enableLocal && onBrowseLocalFolder;
   const hasEntries = workspace.entries.length > 0;
 
+  // Search is offered only when there is something to search (a lister and at
+  // least one entry) and a viewer sink to open a hit into (DD-10). Without a
+  // viewer sink the tree is drag-only, so search would have nowhere to route.
+  const canSearch = !!workspaceFileLister && hasEntries && !!onOpenFile;
+  const effectiveMode: WorkspaceViewMode = canSearch ? viewMode : "files";
+
+  if (effectiveMode === "search" && workspaceFileLister && onOpenFile) {
+    return (
+      <div className="flex h-full flex-col gap-2">
+        <WorkspaceViewToggle value="search" onChange={setViewMode} />
+        <WorkspaceFileSearch
+          entries={workspace.entries}
+          lister={workspaceFileLister}
+          onOpenFile={onOpenFile}
+          selectedFile={selectedFile ?? null}
+          className="min-h-0 flex-1"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col gap-3">
+      {canSearch && <WorkspaceViewToggle value="files" onChange={setViewMode} />}
+
       {hasEntries && (
         <WorkspaceEntryList
           entries={workspace.entries}
@@ -112,6 +141,74 @@ export function WorkspaceTab({ actions, selectedFile }: WorkspaceTabProps) {
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Files | Search mode toggle
+// ---------------------------------------------------------------------------
+
+/**
+ * Segmented control switching the Workspace tab between the file tree and
+ * workspace-wide search. A mutually-exclusive choice, so it follows the
+ * platform's `role="radiogroup"` pattern (see `FileViewer`'s `ViewerModeToggle`
+ * / `library/ScopeToggle`) rather than a tablist nested in the inspector's tabs.
+ */
+function WorkspaceViewToggle({
+  value,
+  onChange,
+}: {
+  readonly value: WorkspaceViewMode;
+  readonly onChange: (next: WorkspaceViewMode) => void;
+}) {
+  const options: readonly { readonly value: WorkspaceViewMode; readonly label: string }[] = [
+    { value: "files", label: "Files" },
+    { value: "search", label: "Search" },
+  ];
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLButtonElement>) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        onChange("search");
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        onChange("files");
+      }
+    },
+    [onChange],
+  );
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Workspace view"
+      className="inline-flex rounded-md bg-muted p-0.5"
+    >
+      {options.map((option) => {
+        const isSelected = value === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            tabIndex={isSelected ? 0 : -1}
+            onClick={() => onChange(option.value)}
+            onKeyDown={handleKeyDown}
+            className={cn(
+              "inline-flex cursor-pointer items-center rounded-sm px-2.5 py-0.5 text-xs font-medium transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isSelected
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -223,7 +320,7 @@ function WorkspaceEntryList({
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-      <FolderIcon className="h-8 w-8 text-muted-foreground/40" />
+      <FolderIcon className="h-8 w-8 text-muted-foreground-subtle" />
       <div className="space-y-1">
         <p className="text-xs font-medium text-foreground">No workspace attached</p>
         <p className="text-[0.65rem] text-muted-foreground">

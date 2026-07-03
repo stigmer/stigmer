@@ -46,7 +46,7 @@ export function WorkspaceEntryFiles({
   onOpenFile,
   selectedPath,
 }: WorkspaceEntryFilesProps) {
-  const { tree, isLoading, error, refresh } = useWorkspaceFiles({
+  const { tree, isLoading, error, truncated, refresh } = useWorkspaceFiles({
     entry: isExpanded ? entry : null,
     lister,
   });
@@ -189,7 +189,21 @@ export function WorkspaceEntryFiles({
           </ul>
         </nav>
       )}
+      {truncated && <TruncationBanner />}
     </div>
+  );
+}
+
+/**
+ * Advisory shown when a listing was truncated by the backend (repository too
+ * large). Rendered from the `truncated` flag rather than as a fake file row, so
+ * it can never be clicked into a broken viewer (DD-11).
+ */
+function TruncationBanner() {
+  return (
+    <p className="border-t border-border px-2.5 py-1.5 text-[0.65rem] text-muted-foreground">
+      Showing a partial listing — this repository has too many files to load in full.
+    </p>
   );
 }
 

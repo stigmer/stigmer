@@ -22,8 +22,18 @@ export type {
   UseWorkspaceFileContentOptions,
   UseWorkspaceFileContentReturn,
 } from "./useWorkspaceFileContent.js";
+export { useWorkspaceFileSearch } from "./useWorkspaceFileSearch.js";
+export type {
+  UseWorkspaceFileSearchOptions,
+  UseWorkspaceFileSearchReturn,
+  WorkspaceFileSearchGroup,
+} from "./useWorkspaceFileSearch.js";
+// The match type is part of the public search return; the matcher itself stays @internal.
+export type { WorkspaceFileMatch } from "./matchWorkspaceFiles.js";
 export { WorkspaceEntryFiles } from "./WorkspaceEntryFiles.js";
 export type { WorkspaceEntryFilesProps } from "./WorkspaceEntryFiles.js";
+export { WorkspaceFileSearch } from "./WorkspaceFileSearch.js";
+export type { WorkspaceFileSearchProps } from "./WorkspaceFileSearch.js";
 export { FileViewer } from "./FileViewer.js";
 export type { FileViewerProps } from "./FileViewer.js";
 // The viewer's selection shape is part of the public FileViewer API; re-export
