@@ -7,6 +7,7 @@ import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
 import { UsageWidget } from "../components/UsageWidget.js";
 import { ExecutionProgress } from "../components/ExecutionProgress.js";
+import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
 
 /** Interaction mode type used for follow-up executions. */
 export type InteractionMode = "agent" | "plan";
@@ -135,9 +136,15 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
         </Box>
       )}
 
-      {conv.activePhase != null && conv.activePhase !== 0 && (
-        <ExecutionProgress phase={conv.activePhase} />
-      )}
+      {conv.activePhase != null &&
+        conv.activePhase !== 0 &&
+        conv.fileChangeSets.length === 0 && (
+          // Suppressed while a set awaits review: there is no execution phase
+          // for review (it lives on FileChangeSet.status), so the phase would
+          // otherwise read as an active "Running" spinner while the agent is
+          // idle awaiting the reviewer — the FileReviewPrompt is the honest cue.
+          <ExecutionProgress phase={conv.activePhase} />
+        )}
 
       <MessageThread
         executions={conv.completedExecutions}
@@ -146,6 +153,7 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
         onApprovalSubmit={conv.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
         expandToolCalls={expandTools}
+        showFileReviewRecords
       />
 
       {activeTodos && Object.keys(activeTodos).length > 0 && (
@@ -171,6 +179,34 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
       )}
 
       <UsageWidget executions={allExecutions} />
+
+      {conv.fileChangeSets.length > 0 && (
+        <Box flexDirection="column">
+          <FileReviewPrompt
+            changeSet={conv.fileChangeSets[0]}
+            onSubmit={conv.submitFileDecision}
+            submittingDecisionKeys={conv.submittingFileDecisionKeys}
+            decisionErrors={conv.fileDecisionErrors}
+            // Single active decision surface: yield to a pending tool approval.
+            isActive={conv.pendingApprovals.length === 0}
+          />
+          {conv.fileChangeSets.length > 1 && (
+            <Box paddingLeft={2}>
+              <Text dimColor>
+                {conv.fileChangeSets.length - 1} more awaiting review
+              </Text>
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {conv.fileReviewError && (
+        <Box paddingLeft={1}>
+          <Text color="red">
+            File review error: {conv.fileReviewError.message}
+          </Text>
+        </Box>
+      )}
 
       {conv.canSendFollowUp && (
         <Box paddingLeft={1}>

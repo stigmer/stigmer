@@ -224,6 +224,7 @@ export {
   resolveToolCategoryFromKind,
   toolKindToCategoryInfo,
   defaultDisclosureForCategory,
+  extractPrimaryArg,
   McpToolDetail,
   parseMcpResult,
   formatDuration,
