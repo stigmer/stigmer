@@ -79,17 +79,7 @@ describe("buildVisibleTabs", () => {
     expect(inspectTab).toBeDefined();
   });
 
-  it("includes Viewer directly after Workspace when a file is open", () => {
-    const tabs = buildVisibleTabs(
-      tabOpts({ selectedFile: { entryId: "e1", path: "a.ts" } }),
-    );
-    const ids = tabs.map((t) => t.id);
-    expect(ids).toContain("viewer");
-    expect(ids.indexOf("viewer")).toBe(ids.indexOf("workspace") + 1);
-    expect(ids.indexOf("viewer")).toBeLessThan(ids.indexOf("configure"));
-  });
-
-  it("omits Viewer when no file is open", () => {
+  it("never includes a Viewer tab (file viewing lives in the workspace surface)", () => {
     const tabs = buildVisibleTabs(tabOpts());
     expect(tabs.map((t) => t.id)).not.toContain("viewer");
   });
@@ -262,89 +252,5 @@ describe("useSessionInspector", () => {
       defaultOpts({ phase: ExecutionPhase.EXECUTION_COMPLETED }),
     );
     expect(result.current.activeTab).toBe("workspace");
-  });
-
-  // -------------------------------------------------------------------------
-  // Viewer tab (contextual — surfaces while a workspace file is open)
-  // -------------------------------------------------------------------------
-
-  it("auto-switches to viewer when a file is opened", () => {
-    const { result, rerender } = renderHook(
-      (props: UseSessionInspectorOptions) => useSessionInspector(props),
-      { initialProps: defaultOpts() },
-    );
-    expect(result.current.activeTab).toBe("workspace");
-
-    rerender(defaultOpts({ selectedFile: { entryId: "e1", path: "a.ts" } }));
-    expect(result.current.activeTab).toBe("viewer");
-  });
-
-  it("reverts from viewer to workspace when the file is closed", () => {
-    const { result, rerender } = renderHook(
-      (props: UseSessionInspectorOptions) => useSessionInspector(props),
-      {
-        initialProps: defaultOpts({
-          selectedFile: { entryId: "e1", path: "a.ts" },
-        }),
-      },
-    );
-    expect(result.current.activeTab).toBe("viewer");
-
-    rerender(defaultOpts({ selectedFile: null }));
-    expect(result.current.activeTab).toBe("workspace");
-  });
-
-  it("keeps a user-picked tab sticky when a file opens", () => {
-    const { result, rerender } = renderHook(
-      (props: UseSessionInspectorOptions) => useSessionInspector(props),
-      { initialProps: defaultOpts({ hasUsage: true }) },
-    );
-
-    act(() => {
-      result.current.onTabChange("usage");
-    });
-    expect(result.current.activeTab).toBe("usage");
-
-    rerender(
-      defaultOpts({ hasUsage: true, selectedFile: { entryId: "e1", path: "a.ts" } }),
-    );
-    expect(result.current.activeTab).toBe("usage");
-  });
-
-  it("falls back off the viewer when the open file is removed while active", () => {
-    const { result, rerender } = renderHook(
-      (props: UseSessionInspectorOptions) => useSessionInspector(props),
-      {
-        initialProps: defaultOpts({
-          selectedFile: { entryId: "e1", path: "a.ts" },
-        }),
-      },
-    );
-    act(() => {
-      result.current.onTabChange("viewer");
-    });
-    expect(result.current.activeTab).toBe("viewer");
-
-    rerender(defaultOpts({ selectedFile: null }));
-    expect(result.current.activeTab).toBe("workspace");
-  });
-
-  it("prefers inspect over viewer when a thread item is selected while a file stays open", () => {
-    // The store hands out a stable ref for an unchanged selection, so the test
-    // reuses one object to model "same file still open" across the rerender.
-    const file = { entryId: "e1", path: "a.ts" };
-    const { result, rerender } = renderHook(
-      (props: UseSessionInspectorOptions) => useSessionInspector(props),
-      { initialProps: defaultOpts({ selectedFile: file }) },
-    );
-    expect(result.current.activeTab).toBe("viewer");
-
-    rerender(
-      defaultOpts({
-        selectedFile: file,
-        selectedItem: { kind: "tool-call", toolCallId: "tc-1" },
-      }),
-    );
-    expect(result.current.activeTab).toBe("inspect");
   });
 });

@@ -1,20 +1,20 @@
 "use client";
 
-import { useCallback, useMemo, useRef, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
 import { resolveWorkspaceFileSelection } from "../workspace/resolveWorkspaceFileSelection.js";
+import { WorkspaceSurface } from "../workspace/WorkspaceSurface.js";
 import type { InteractionModeOption, SessionComposerHandle } from "../composer/index.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import { SelectionStore } from "../internal/store/selection-store.js";
 import {
-  useWorkspaceFileSelectionStoreRef,
-  useWorkspaceFileSelection,
-  type WorkspaceFileSelectionStore,
+  useWorkspaceEditors,
+  type WorkspaceEditorsStore,
 } from "../internal/store/index.js";
 import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
 import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
@@ -25,6 +25,8 @@ import { SessionComposer } from "../composer/index.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
 import { SessionInspector } from "./inspector/SessionInspector.js";
+import { useOpenFileChange } from "./useOpenFileChange.js";
+import { useWorkspaceMode } from "./useWorkspaceMode.js";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
 
@@ -185,12 +187,13 @@ export function SessionViewer({
   }
   const selectionStore = selectionStoreRef.current;
 
-  // The single owner of "which workspace file is open". Created here (ref only,
-  // never subscribed at this level) so a file-open re-renders only the
-  // inspector subtree — the InspectorPanel subscribes, not the conversation
-  // column — preserving streaming render isolation (DD-009/DD-010). This
-  // mirrors how `selectionStore` above is owned here but read in InspectorPanel.
-  const fileSelectionStore = useWorkspaceFileSelectionStoreRef();
+  // The workspace-surface layout controller: owns the open-editor group store
+  // and the `workspaceMode` flip. Shared with the launcher (DD-016). The store
+  // is owned here (never subscribed at this level) so opening/switching files
+  // re-renders only the inspector subtree — the InspectorPanel subscribes, not
+  // the conversation column — preserving streaming render isolation
+  // (DD-009/DD-010, invariant 2).
+  const ws = useWorkspaceMode();
 
   const handleBuildFromPlan = useCallback(() => {
     // Switch the picker to Agent (so subsequent turns stay in Agent) and submit
@@ -217,10 +220,10 @@ export function SessionViewer({
         flow.sandboxWorkspaceRoot,
       );
       if (!selection) return false;
-      fileSelectionStore.select(selection);
+      ws.openFileInWorkspace(selection.entryId, selection.path);
       return true;
     },
-    [flow.workspace.entries, flow.sandboxWorkspaceRoot, fileSelectionStore],
+    [flow.workspace.entries, flow.sandboxWorkspaceRoot, ws],
   );
 
   if (conv.isLoading) {
@@ -248,15 +251,25 @@ export function SessionViewer({
       )}
 
       <ThreadSelectionContext.Provider value={selectionStore}>
+        {/* The layout inverts by mode: chat mode keeps the inspector as a fixed
+            right panel; workspace mode makes chat the fixed narrow pane on the
+            left and hands the flexible region to the workspace surface. The
+            conversation is always the first child, so flipping re-flows without
+            remounting it (invariant 1). Storage key + resizable side swap
+            together, so each mode keeps its own persisted width. */}
         <ResizableSplit
-          defaultSize={384}
-          minSize={280}
-          maxSize={600}
-          storageKey="stgm-session-inspector-width"
-          className={cn(
-            "min-h-0 flex-1",
-            "[&>*:nth-child(2)]:max-lg:hidden [&>*:nth-child(3)]:max-lg:hidden",
-          )}
+          resizablePane={ws.workspaceMode ? "primary" : "secondary"}
+          defaultSize={ws.workspaceMode ? 420 : 384}
+          minSize={ws.workspaceMode ? 320 : 280}
+          maxSize={ws.workspaceMode ? 640 : 600}
+          storageKey={
+            ws.workspaceMode
+              ? "stgm-session-chat-width"
+              : "stgm-session-inspector-width"
+          }
+          responsiveCollapse={ws.workspaceMode ? "primary" : "secondary"}
+          ariaLabel={ws.workspaceMode ? "Resize chat panel" : "Resize inspector panel"}
+          className="min-h-0 flex-1"
           primary={
             <ConversationColumn
               flow={flow}
@@ -280,7 +293,15 @@ export function SessionViewer({
               flow={flow}
               org={org}
               selectionStore={selectionStore}
-              fileSelectionStore={fileSelectionStore}
+              editorsStore={ws.editorsStore}
+              workspaceMode={ws.workspaceMode}
+              onOpenFile={ws.openFileInWorkspace}
+              onEnterWorkspace={ws.enterWorkspace}
+              onActivateEditor={ws.activateEditor}
+              onPinEditor={ws.pinEditor}
+              onCloseEditor={ws.closeEditor}
+              onCollapseWorkspace={ws.collapseWorkspace}
+              onExitWorkspaceForInspect={ws.exitWorkspaceForInspect}
               onApplied={onApplied}
               onImplementPlan={handleBuildFromPlan}
               enableGitHub={enableGitHub}
@@ -324,7 +345,7 @@ interface ConversationColumnProps {
   readonly isEndUser: boolean;
 }
 
-function ConversationColumn({
+const ConversationColumn = memo(function ConversationColumn({
   flow,
   modelId,
   setModelId,
@@ -460,7 +481,7 @@ function ConversationColumn({
       </div>
     </div>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Inspector panel (right/secondary) — reads selection from store
@@ -471,11 +492,27 @@ interface InspectorPanelProps {
   readonly org: string;
   readonly selectionStore: SelectionStore;
   /**
-   * The workspace-file selection store, owned by `SessionViewer`. Subscribed
-   * here (not at `SessionViewer`) so a file-open re-renders only this panel,
+   * The open-editor group store, owned by `SessionViewer`. Subscribed here (not
+   * at `SessionViewer`) so opening/switching files re-renders only this panel,
    * never the conversation column.
    */
-  readonly fileSelectionStore: WorkspaceFileSelectionStore;
+  readonly editorsStore: WorkspaceEditorsStore;
+  /** Whether the layout is flipped into workspace mode (renders the surface). */
+  readonly workspaceMode: boolean;
+  /** Opens a file (preview) and enters workspace mode (owned by `SessionViewer`). */
+  readonly onOpenFile: (entryId: string, path: string) => void;
+  /** Enters workspace mode without opening a file (browse / search). */
+  readonly onEnterWorkspace: () => void;
+  /** Focuses an already-open editor tab. */
+  readonly onActivateEditor: (entryId: string, path: string) => void;
+  /** Pins an editor tab (clears its preview state). */
+  readonly onPinEditor: (entryId: string, path: string) => void;
+  /** Closes an editor tab (collapsing to chat when it was the last one). */
+  readonly onCloseEditor: (entryId: string, path: string) => void;
+  /** Collapses the surface back to chat, preserving the open-editor group. */
+  readonly onCollapseWorkspace: () => void;
+  /** Exits workspace mode (keeping the editors) so Inspect can surface. */
+  readonly onExitWorkspaceForInspect: () => void;
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /** Implement a plan from the Artifacts tab (same action as the thread card). */
   readonly onImplementPlan?: () => void;
@@ -492,7 +529,15 @@ function InspectorPanel({
   flow,
   org,
   selectionStore,
-  fileSelectionStore,
+  editorsStore,
+  workspaceMode,
+  onOpenFile,
+  onEnterWorkspace,
+  onActivateEditor,
+  onPinEditor,
+  onCloseEditor,
+  onCollapseWorkspace,
+  onExitWorkspaceForInspect,
   onApplied,
   onImplementPlan,
   enableGitHub,
@@ -504,18 +549,25 @@ function InspectorPanel({
   isEndUser,
 }: InspectorPanelProps) {
   const selectedItem = useSelectedThreadItem();
-  const selectedFile = useWorkspaceFileSelection(fileSelectionStore);
+  const { editors, activeFile } = useWorkspaceEditors(editorsStore);
 
-  const handleOpenFile = useCallback(
-    (entryId: string, path: string) => {
-      fileSelectionStore.select({ entryId, path });
-    },
-    [fileSelectionStore],
+  // Selecting a thread item reveals the Inspect facet, which lives in the
+  // inspector region the surface occupies — so leave workspace mode (keeping the
+  // editor group) when one is picked. Symmetric to the tab FSM's two selection
+  // domains; files reopen from the tree/transcript (invariant 3).
+  useEffect(() => {
+    if (selectedItem && workspaceMode) onExitWorkspaceForInspect();
+  }, [selectedItem, workspaceMode, onExitWorkspaceForInspect]);
+
+  // Correlate the active file with its session change for diff-as-default,
+  // shared with the inspector's Viewer tab via the same hook (DD-06 parity
+  // across both renderings of a changed file).
+  const openFileChange = useOpenFileChange(
+    activeFile,
+    flow.allExecutions,
+    flow.workspace.entries,
+    flow.sandboxWorkspaceRoot,
   );
-
-  const handleCloseFile = useCallback(() => {
-    fileSelectionStore.deselect();
-  }, [fileSelectionStore]);
 
   const handleRemoveAgent = useCallback(() => {
     flow.setAgentRef(null);
@@ -581,11 +633,34 @@ function InspectorPanel({
         onBrowseLocalFolder,
         workspaceFileLister,
         workspaceFileReader,
-        onOpenFile: handleOpenFile,
+        onOpenFile,
+        onOpenWorkspace: onEnterWorkspace,
       },
     }),
-    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister, workspaceFileReader, handleOpenFile],
+    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister, workspaceFileReader, onOpenFile, onEnterWorkspace],
   );
+
+  // Workspace mode replaces the inspector region with the full workspace
+  // surface (explorer + editor group). The surface is valid file-less (explorer
+  // + search with an empty editor), so it is guarded on the mode alone.
+  if (workspaceMode) {
+    return (
+      <WorkspaceSurface
+        entries={flow.workspace.entries}
+        lister={workspaceFileLister}
+        reader={workspaceFileReader}
+        editors={editors}
+        selectedFile={activeFile}
+        onOpenFile={onOpenFile}
+        onActivateEditor={onActivateEditor}
+        onPinEditor={onPinEditor}
+        onCloseEditor={onCloseEditor}
+        onCollapse={onCollapseWorkspace}
+        change={openFileChange ?? undefined}
+        className="h-full"
+      />
+    );
+  }
 
   return (
     <aside className="flex h-full flex-col overflow-hidden">
@@ -594,9 +669,6 @@ function InspectorPanel({
         allExecutions={flow.allExecutions}
         org={org}
         selectedItem={selectedItem}
-        selectedFile={selectedFile}
-        sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
-        onCloseFile={handleCloseFile}
         onApplied={onApplied}
         onImplementPlan={onImplementPlan}
         sessionConfig={sessionConfig}

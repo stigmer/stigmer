@@ -2,11 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, act } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
-// Wiring-contract test for Slice 3 (transcript click-to-open): the
-// onFilePathClick SessionViewer hands to MessageThread resolves a tool-call
-// path and writes the shared file-selection store, which the inspector reads.
-// MessageThread + SessionInspector render as prop-capturing probes; the store
-// and InspectorPanel are real (the subject under test is the wire between them).
+// Wiring-contract test for transcript click-to-open (Slice 3) + the workspace
+// surface flip (Slice A): the onFilePathClick SessionViewer hands to
+// MessageThread resolves a tool-call path, writes the shared file-selection
+// store, AND flips into workspace mode — so the resolved file surfaces in the
+// WorkspaceSurface (not the inspector's Viewer tab). MessageThread,
+// SessionInspector, and WorkspaceSurface render as prop-capturing probes; the
+// store + InspectorPanel wire between them is the subject under test.
 // ---------------------------------------------------------------------------
 
 type CapturedProps = Record<string, unknown>;
@@ -24,6 +26,14 @@ vi.mock("../inspector/SessionInspector", () => ({
   SessionInspector: (props: CapturedProps) => {
     inspectorProps.push(props);
     return <div data-testid="inspector-probe" />;
+  },
+}));
+
+const surfaceProps: CapturedProps[] = [];
+vi.mock("../../workspace/WorkspaceSurface", () => ({
+  WorkspaceSurface: (props: CapturedProps) => {
+    surfaceProps.push(props);
+    return <div data-testid="surface-probe" />;
   },
 }));
 
@@ -125,9 +135,15 @@ function latestSelectedFile(): unknown {
   return inspectorProps.at(-1)?.selectedFile ?? null;
 }
 
+/** The latest selectedFile the (mocked) WorkspaceSurface received, if rendered. */
+function latestSurfaceSelectedFile(): unknown {
+  return surfaceProps.at(-1)?.selectedFile ?? null;
+}
+
 beforeEach(() => {
   threadProps.length = 0;
   inspectorProps.length = 0;
+  surfaceProps.length = 0;
 });
 
 afterEach(() => {
@@ -141,16 +157,11 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
     expect(typeof capturedOnFilePathClick()).toBe("function");
   });
 
-  it("threads the sandbox workspace root to the inspector (diff correlation)", () => {
+  it("opens a resolvable tool-call path in the workspace surface (flips mode)", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
-    expect(inspectorProps.at(-1)?.sandboxWorkspaceRoot).toBe(
-      "/home/daytona/workspace",
-    );
-  });
-
-  it("opens a resolvable tool-call path in the inspector's Viewer selection", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    // Before any click: chat mode — inspector shown, surface not rendered.
     expect(latestSelectedFile()).toBeNull();
+    expect(surfaceProps.length).toBe(0);
 
     let handled: boolean | undefined;
     act(() => {
@@ -158,8 +169,12 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
     });
 
     expect(handled).toBe(true);
-    // The transcript path resolves to the SAME selection a tree click yields.
-    expect(latestSelectedFile()).toEqual({ entryId: "e1", path: "src/main.go" });
+    // The flip routes the resolved selection into the surface — the SAME
+    // selection a tree click yields.
+    expect(latestSurfaceSelectedFile()).toEqual({
+      entryId: "e1",
+      path: "src/main.go",
+    });
   });
 
   it("declines a platform path (returns false) and opens nothing", () => {
@@ -171,6 +186,8 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
     });
 
     expect(handled).toBe(false);
+    // Stays in chat mode: no surface, inspector selection untouched.
+    expect(surfaceProps.length).toBe(0);
     expect(latestSelectedFile()).toBeNull();
   });
 });

@@ -1,17 +1,13 @@
 "use client";
 
-import { useCallback, useState, type KeyboardEvent } from "react";
+import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { UseWorkspaceEntriesReturn, WorkspaceEntry } from "../../workspace/useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "../../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../../workspace/WorkspaceFileReader.js";
 import { WorkspaceEntryFiles } from "../../workspace/WorkspaceEntryFiles.js";
-import { WorkspaceFileSearch } from "../../workspace/WorkspaceFileSearch.js";
 import type { UseGitHubConnectionReturn } from "../../github/useGitHubConnection.js";
 import type { SelectedWorkspaceFile } from "../../internal/store/workspace-file-selection-store.js";
-
-/** Which face of the Workspace tab is showing: the file tree or search. */
-type WorkspaceViewMode = "files" | "search";
 
 /**
  * Interactive workspace actions required by the Workspace tab.
@@ -27,16 +23,22 @@ export interface WorkspaceTabActions {
   readonly workspaceFileLister?: WorkspaceFileLister;
   /**
    * Content reader for the viewer. Not consumed here — carried on the same
-   * actions channel as the lister so the inspector can hand it to
-   * {@link FileViewer} in the Viewer tab.
+   * actions channel as the lister so the inspector can hand it to the workspace
+   * surface's editor.
    */
   readonly workspaceFileReader?: WorkspaceFileReader;
   /**
-   * Opens a file in the viewer. When present, file-tree rows become
-   * open-in-viewer triggers; when absent, the tree keeps its drag-only
+   * Opens a file in the workspace surface. When present, file-tree rows become
+   * open-in-surface triggers; when absent, the tree keeps its drag-only
    * behavior (backward compatible).
    */
   readonly onOpenFile?: (entryId: string, path: string) => void;
+  /**
+   * Enters the workspace surface without opening a specific file (browse +
+   * search). When present with a lister and entries, an "Open workspace" action
+   * is shown. Search lives in the surface's rail, not this tab (DD-10 update).
+   */
+  readonly onOpenWorkspace?: () => void;
 }
 
 /** Props for {@link WorkspaceTab}. */
@@ -67,37 +69,28 @@ export function WorkspaceTab({ actions, selectedFile }: WorkspaceTabProps) {
     onBrowseLocalFolder,
     workspaceFileLister,
     onOpenFile,
+    onOpenWorkspace,
   } = actions;
-
-  const [viewMode, setViewMode] = useState<WorkspaceViewMode>("files");
 
   const canBrowse = enableLocal && onBrowseLocalFolder;
   const hasEntries = workspace.entries.length > 0;
 
-  // Search is offered only when there is something to search (a lister and at
-  // least one entry) and a viewer sink to open a hit into (DD-10). Without a
-  // viewer sink the tree is drag-only, so search would have nowhere to route.
-  const canSearch = !!workspaceFileLister && hasEntries && !!onOpenFile;
-  const effectiveMode: WorkspaceViewMode = canSearch ? viewMode : "files";
-
-  if (effectiveMode === "search" && workspaceFileLister && onOpenFile) {
-    return (
-      <div className="flex h-full flex-col gap-2">
-        <WorkspaceViewToggle value="search" onChange={setViewMode} />
-        <WorkspaceFileSearch
-          entries={workspace.entries}
-          lister={workspaceFileLister}
-          onOpenFile={onOpenFile}
-          selectedFile={selectedFile ?? null}
-          className="min-h-0 flex-1"
-        />
-      </div>
-    );
-  }
+  // "Open workspace" enters the surface (explorer + rail search) without a
+  // specific file — shown only when there is something to browse.
+  const canOpenWorkspace = !!workspaceFileLister && hasEntries && !!onOpenWorkspace;
 
   return (
     <div className="flex h-full flex-col gap-3">
-      {canSearch && <WorkspaceViewToggle value="files" onChange={setViewMode} />}
+      {canOpenWorkspace && (
+        <button
+          type="button"
+          onClick={onOpenWorkspace}
+          className="flex w-full items-center gap-2 rounded-md border border-border bg-muted-faint px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ColumnsIcon />
+          <span className="flex-1 text-left">Open workspace</span>
+        </button>
+      )}
 
       {hasEntries && (
         <WorkspaceEntryList
@@ -141,74 +134,6 @@ export function WorkspaceTab({ actions, selectedFile }: WorkspaceTabProps) {
           </button>
         )}
       </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Files | Search mode toggle
-// ---------------------------------------------------------------------------
-
-/**
- * Segmented control switching the Workspace tab between the file tree and
- * workspace-wide search. A mutually-exclusive choice, so it follows the
- * platform's `role="radiogroup"` pattern (see `FileViewer`'s `ViewerModeToggle`
- * / `library/ScopeToggle`) rather than a tablist nested in the inspector's tabs.
- */
-function WorkspaceViewToggle({
-  value,
-  onChange,
-}: {
-  readonly value: WorkspaceViewMode;
-  readonly onChange: (next: WorkspaceViewMode) => void;
-}) {
-  const options: readonly { readonly value: WorkspaceViewMode; readonly label: string }[] = [
-    { value: "files", label: "Files" },
-    { value: "search", label: "Search" },
-  ];
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLButtonElement>) => {
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-        e.preventDefault();
-        onChange("search");
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-        e.preventDefault();
-        onChange("files");
-      }
-    },
-    [onChange],
-  );
-
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Workspace view"
-      className="inline-flex rounded-md bg-muted p-0.5"
-    >
-      {options.map((option) => {
-        const isSelected = value === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={isSelected}
-            tabIndex={isSelected ? 0 : -1}
-            onClick={() => onChange(option.value)}
-            onKeyDown={handleKeyDown}
-            className={cn(
-              "inline-flex cursor-pointer items-center rounded-sm px-2.5 py-0.5 text-xs font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              isSelected
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -364,6 +289,15 @@ function GitHubIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="shrink-0 text-muted-foreground">
       <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+  );
+}
+
+function ColumnsIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground">
+      <rect x="1.5" y="2.5" width="13" height="11" rx="1" />
+      <path d="M6.5 2.5V13.5" />
     </svg>
   );
 }

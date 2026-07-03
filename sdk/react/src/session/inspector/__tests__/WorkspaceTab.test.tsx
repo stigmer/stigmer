@@ -37,9 +37,10 @@ function makeActions(overrides?: Partial<WorkspaceTabActions>): WorkspaceTabActi
     enableGitHub: true,
     enableLocal: false,
     workspaceFileLister: vi.fn(async () => [
-      { path: "src/button.tsx", isDirectory: false },
+      { path: "button.tsx", isDirectory: false },
     ]) as WorkspaceFileLister,
     onOpenFile: vi.fn(),
+    onOpenWorkspace: vi.fn(),
     ...overrides,
   };
 }
@@ -49,45 +50,45 @@ afterEach(() => {
   __clearWorkspaceListingCache();
 });
 
-describe("WorkspaceTab — Files/Search toggle", () => {
-  it("defaults to Files mode and shows the toggle when a lister and entries exist", () => {
+describe("WorkspaceTab", () => {
+  it("shows 'Open workspace' when a lister, entries, and handler exist", () => {
     render(<WorkspaceTab actions={makeActions()} />);
-    const toggle = screen.getByRole("radiogroup", { name: /workspace view/i });
-    expect(toggle).toBeTruthy();
-    const files = screen.getByRole("radio", { name: "Files" });
-    expect(files.getAttribute("aria-checked")).toBe("true");
-    // Files mode: no search combobox.
-    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.getByRole("button", { name: "Open workspace" })).toBeTruthy();
+    // The removed Files/Search toggle no longer renders (search lives in the rail).
+    expect(screen.queryByRole("radiogroup", { name: /workspace view/i })).toBeNull();
   });
 
-  it("hides the toggle when there is no lister", () => {
+  it("enters the workspace surface when 'Open workspace' is clicked", () => {
+    const onOpenWorkspace = vi.fn();
+    render(<WorkspaceTab actions={makeActions({ onOpenWorkspace })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open workspace" }));
+    expect(onOpenWorkspace).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides 'Open workspace' when there is no lister", () => {
     render(
       <WorkspaceTab actions={makeActions({ workspaceFileLister: undefined })} />,
     );
-    expect(screen.queryByRole("radiogroup", { name: /workspace view/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open workspace" })).toBeNull();
   });
 
-  it("hides the toggle when there are no entries", () => {
+  it("hides 'Open workspace' and shows the empty state when there are no entries", () => {
     render(
-      <WorkspaceTab
-        actions={makeActions({ workspace: makeWorkspace([]) })}
-      />,
+      <WorkspaceTab actions={makeActions({ workspace: makeWorkspace([]) })} />,
     );
-    expect(screen.queryByRole("radiogroup", { name: /workspace view/i })).toBeNull();
-    // Empty state still renders.
+    expect(screen.queryByRole("button", { name: "Open workspace" })).toBeNull();
     expect(screen.getByText(/no workspace attached/i)).toBeTruthy();
   });
 
-  it("switches to Search mode (search input appears) and back to Files", () => {
-    render(<WorkspaceTab actions={makeActions()} />);
+  it("opens a file (into the surface) when a tree row is clicked", async () => {
+    const onOpenFile = vi.fn();
+    render(<WorkspaceTab actions={makeActions({ onOpenFile })} />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "Search" }));
-    const input = screen.getByRole("combobox");
-    expect(input).toBeTruthy();
-    // Autofocused on entering search.
-    expect(document.activeElement).toBe(input);
-
-    fireEvent.click(screen.getByRole("radio", { name: "Files" }));
-    expect(screen.queryByRole("combobox")).toBeNull();
+    // Expand the entry's tree (click its header name), then click the file.
+    fireEvent.click(screen.getByText("acme/api"));
+    fireEvent.click(await screen.findByText("button.tsx"));
+    expect(onOpenFile).toHaveBeenCalled();
+    const [, path] = onOpenFile.mock.calls[0];
+    expect(path).toBe("button.tsx");
   });
 });

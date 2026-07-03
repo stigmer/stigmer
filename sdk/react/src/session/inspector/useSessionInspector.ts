@@ -5,11 +5,9 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import type { TabItem } from "../../tabs/Tabs.js";
 import { isTerminalPhase } from "../../execution/execution-phases.js";
 import type { SelectedThreadItem } from "../../internal/store/selection-store.js";
-import type { SelectedWorkspaceFile } from "../../internal/store/workspace-file-selection-store.js";
 
 export type SessionInspectorTabId =
   | "workspace"
-  | "viewer"
   | "configure"
   | "changes"
   | "artifacts"
@@ -24,13 +22,6 @@ export interface UseSessionInspectorOptions {
   readonly artifactCount: number;
   readonly hasUsage: boolean;
   readonly selectedItem: SelectedThreadItem | null;
-  /**
-   * The workspace file currently open in the viewer, or `null`. When set, a
-   * contextual "Viewer" tab surfaces (right after Workspace) and is
-   * auto-selected — mirroring how `selectedItem` surfaces the "Inspect" tab.
-   * Optional so existing call sites that predate the viewer stay unchanged.
-   */
-  readonly selectedFile?: SelectedWorkspaceFile | null;
 }
 
 export interface UseSessionInspectorReturn {
@@ -44,19 +35,17 @@ export interface UseSessionInspectorReturn {
  *
  * Priority:
  * 1. Thread item selected -> "inspect"
- * 2. Workspace file open -> "viewer"
- * 3. Otherwise -> "workspace"
+ * 2. Otherwise -> "workspace"
  *
  * Live execution progress (the agent's plan and todos) now renders inline in
  * the message thread as a {@link TodoCard}, not in a sidebar tab — so a running
- * execution no longer steers the inspector to a dedicated facet.
+ * execution no longer steers the inspector to a dedicated facet. File viewing
+ * lives in the workspace surface (a layout flip), not an inspector tab.
  */
 function deriveAutoTab(
   selectedItem: SelectedThreadItem | null,
-  selectedFile: SelectedWorkspaceFile | null,
 ): SessionInspectorTabId {
   if (selectedItem) return "inspect";
-  if (selectedFile) return "viewer";
   return "workspace";
 }
 
@@ -79,15 +68,8 @@ export function buildVisibleTabs(opts: {
   artifactCount: number;
   hasUsage: boolean;
   selectedItem: SelectedThreadItem | null;
-  selectedFile?: SelectedWorkspaceFile | null;
 }): TabItem[] {
   const tabs: TabItem[] = [{ id: "workspace", label: "Workspace" }];
-
-  // The Viewer sits next to its source (the Workspace file tree), surfacing
-  // only while a file is open — the file-content peer of the "Inspect" tab.
-  if (opts.selectedFile) {
-    tabs.push({ id: "viewer", label: "Viewer" });
-  }
 
   tabs.push({ id: "configure", label: "Config" });
 
@@ -129,20 +111,18 @@ export function useSessionInspector(
   opts: UseSessionInspectorOptions,
 ): UseSessionInspectorReturn {
   const { phase, hasWriteBacks, writeBackCount, hasArtifacts, artifactCount, hasUsage, selectedItem } = opts;
-  const selectedFile = opts.selectedFile ?? null;
 
-  const tabs = buildVisibleTabs({ hasWriteBacks, writeBackCount, hasArtifacts, artifactCount, hasUsage, selectedItem, selectedFile });
+  const tabs = buildVisibleTabs({ hasWriteBacks, writeBackCount, hasArtifacts, artifactCount, hasUsage, selectedItem });
 
   // A write-back (the session's only tab-worthy change source) surfaces and
   // auto-selects the Changes tab on first arrival.
   const hasChanges = hasWriteBacks;
 
   const [activeTab, setActiveTab] = useState<SessionInspectorTabId>(
-    () => deriveAutoTab(selectedItem, selectedFile),
+    () => deriveAutoTab(selectedItem),
   );
   const [prevPhase, setPrevPhase] = useState(phase);
   const [prevSelected, setPrevSelected] = useState(selectedItem);
-  const [prevSelectedFile, setPrevSelectedFile] = useState(selectedFile);
   const [prevHasChanges, setPrevHasChanges] = useState(hasChanges);
   const userPickedTabRef = useRef(false);
 
@@ -153,22 +133,7 @@ export function useSessionInspector(
       setActiveTab("inspect");
     }
     if (!selectedItem && activeTab === "inspect") {
-      setActiveTab(deriveAutoTab(null, selectedFile));
-      userPickedTabRef.current = false;
-    }
-  }
-
-  // A file opened/closed → auto-switch to/from the viewer (unless user picked).
-  // Mirrors the selectedItem → inspect block above; the two selection domains
-  // are independent, so opening a file steers to the viewer just as selecting a
-  // thread item steers to inspect.
-  if (selectedFile !== prevSelectedFile) {
-    setPrevSelectedFile(selectedFile);
-    if (selectedFile && !userPickedTabRef.current) {
-      setActiveTab("viewer");
-    }
-    if (!selectedFile && activeTab === "viewer") {
-      setActiveTab(deriveAutoTab(selectedItem, null));
+      setActiveTab(deriveAutoTab(null));
       userPickedTabRef.current = false;
     }
   }
@@ -180,7 +145,7 @@ export function useSessionInspector(
     setPrevPhase(phase);
     if (wasTerminal !== isNowTerminal) {
       userPickedTabRef.current = false;
-      setActiveTab(deriveAutoTab(selectedItem, selectedFile));
+      setActiveTab(deriveAutoTab(selectedItem));
     }
   }
 
@@ -198,7 +163,7 @@ export function useSessionInspector(
   // Ensure active tab is valid (the selected tab may have been removed)
   const effectiveTab = tabs.some((t) => t.id === activeTab)
     ? activeTab
-    : deriveAutoTab(selectedItem, selectedFile);
+    : deriveAutoTab(selectedItem);
 
   const onTabChange = useCallback((tabId: string) => {
     userPickedTabRef.current = true;

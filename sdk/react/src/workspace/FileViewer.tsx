@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useState, type KeyboardEvent } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { cn } from "@stigmer/theme";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -41,8 +47,28 @@ export interface FileViewerProps {
   readonly change?: FileChange;
   /** Called when the user closes the viewer (close button or Escape). */
   readonly onClose?: () => void;
+  /**
+   * Whether to render the built-in header (file name, refresh, close). Defaults
+   * to `true` for standalone use. Set `false` when an outer chrome owns the file
+   * identity and controls — e.g. the workspace surface, whose editor toolbar
+   * (and, from Slice B, its tabs) show the name and collapse control, and where
+   * a duplicate header would also collide with the floating `headerActions`
+   * overlay. `onClose` still drives Escape-to-close even when the header (and
+   * its close button) is hidden.
+   */
+  readonly showHeader?: boolean;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
+}
+
+/**
+ * Imperative handle for {@link FileViewer}. Lets an outer chrome (e.g. the
+ * workspace surface's toolbar, which hides the built-in header) trigger a
+ * re-fetch of the live file content without lifting the viewer's fetch state.
+ */
+export interface FileViewerHandle {
+  /** Re-fetch the current file's live content. */
+  readonly refresh: () => void;
 }
 
 /**
@@ -73,14 +99,11 @@ export interface FileViewerProps {
  * />
  * ```
  */
-export function FileViewer({
-  selectedFile,
-  entries,
-  reader,
-  change,
-  onClose,
-  className,
-}: FileViewerProps) {
+export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
+  function FileViewer(
+    { selectedFile, entries, reader, change, onClose, showHeader = true, className },
+    ref,
+  ) {
   const entry = entries.find((e) => e.id === selectedFile.entryId) ?? null;
   const path = selectedFile.path;
 
@@ -88,6 +111,8 @@ export function FileViewer({
   // hook stays idle, so hook order is stable across the not-found branch.
   const { content, isLoading, error, isUnsupported, refetch } =
     useWorkspaceFileContent({ entry, path, reader });
+
+  useImperativeHandle(ref, () => ({ refresh: refetch }), [refetch]);
 
   // View mode is meaningful only for a changed file. A deleted file has no live
   // bytes to browse, and browsing needs a reader, so the live "File" view is
@@ -129,12 +154,14 @@ export function FileViewer({
         className={cn("flex h-full flex-col", className)}
         onKeyDown={handleKeyDown}
       >
-        <ViewerHeader
-          basename={basename}
-          dir={dir}
-          onRefresh={undefined}
-          onClose={onClose}
-        />
+        {showHeader && (
+          <ViewerHeader
+            basename={basename}
+            dir={dir}
+            onRefresh={undefined}
+            onClose={onClose}
+          />
+        )}
         <div className="flex flex-1 items-center justify-center p-8 text-center text-xs text-muted-foreground">
           This file is no longer in the workspace.
         </div>
@@ -149,12 +176,14 @@ export function FileViewer({
       className={cn("flex h-full flex-col", className)}
       onKeyDown={handleKeyDown}
     >
-      <ViewerHeader
-        basename={basename}
-        dir={dir}
-        onRefresh={effectiveView === "file" && !isUnsupported ? refetch : undefined}
-        onClose={onClose}
-      />
+      {showHeader && (
+        <ViewerHeader
+          basename={basename}
+          dir={dir}
+          onRefresh={effectiveView === "file" && !isUnsupported ? refetch : undefined}
+          onClose={onClose}
+        />
+      )}
       {showViewToggle && (
         <ViewerModeToggle value={viewMode} onChange={setViewMode} />
       )}
@@ -183,7 +212,8 @@ export function FileViewer({
       </div>
     </div>
   );
-}
+  },
+);
 
 // ---------------------------------------------------------------------------
 // View toggle — Diff vs live File

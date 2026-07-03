@@ -10,13 +10,12 @@ import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer } from "../composer/index.js";
 import type { HarnessOption } from "../models/harness.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
-import {
-  useWorkspaceFileSelectionStoreRef,
-  useWorkspaceFileSelection,
-} from "../internal/store/index.js";
+import { useWorkspaceEditors } from "../internal/store/index.js";
+import { WorkspaceSurface } from "../workspace/WorkspaceSurface.js";
 import { SessionInspector } from "./inspector/SessionInspector.js";
 import type { SetupTabProps } from "./inspector/SetupTab.js";
 import { useNewSessionFlow } from "./useNewSessionFlow.js";
+import { useWorkspaceMode } from "./useWorkspaceMode.js";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
 
@@ -192,22 +191,12 @@ export function NewSessionViewer({
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const isEndUser = audience === "endUser";
 
-  // Owns "which workspace file is open" for the viewer. The launcher has a
-  // single column (no transcript to isolate from), so subscribing in the body
-  // is harmless — unlike `SessionViewer`, which subscribes one level down.
-  const fileSelectionStore = useWorkspaceFileSelectionStoreRef();
-  const selectedFile = useWorkspaceFileSelection(fileSelectionStore);
-
-  const handleOpenFile = useCallback(
-    (entryId: string, path: string) => {
-      fileSelectionStore.select({ entryId, path });
-    },
-    [fileSelectionStore],
-  );
-
-  const handleCloseFile = useCallback(() => {
-    fileSelectionStore.deselect();
-  }, [fileSelectionStore]);
+  // The workspace-surface controller (shared with SessionViewer, DD-016). The
+  // launcher has a single column (no transcript to isolate from), so subscribing
+  // in the body is harmless — unlike `SessionViewer`, which subscribes one level
+  // down.
+  const ws = useWorkspaceMode();
+  const { editors, activeFile } = useWorkspaceEditors(ws.editorsStore);
 
   const hasContext =
     flow.workspace.hasEntries ||
@@ -280,10 +269,11 @@ export function NewSessionViewer({
         onBrowseLocalFolder,
         workspaceFileLister,
         workspaceFileReader,
-        onOpenFile: handleOpenFile,
+        onOpenFile: ws.openFileInWorkspace,
+        onOpenWorkspace: ws.enterWorkspace,
       },
     }),
-    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister, workspaceFileReader, handleOpenFile],
+    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister, workspaceFileReader, ws.openFileInWorkspace, ws.enterWorkspace],
   );
 
   const composerNode = (
@@ -350,30 +340,53 @@ export function NewSessionViewer({
 
   return (
     <div className={cn("flex h-full w-full flex-col", className)}>
+      {/* Same layout flip as SessionViewer (DD-016): opening a file makes the
+          composer the narrow fixed pane and hands the flexible region to the
+          workspace surface; otherwise the composer is flexible and the inspector
+          is the fixed panel. The composer is always the first child, so the flip
+          re-flows without remounting it. */}
       <ResizableSplit
-        defaultSize={320}
-        minSize={240}
-        maxSize={480}
-        storageKey="stgm-new-session-inspector-width"
-        className={cn(
-          "min-h-0 flex-1",
-          "[&>*:nth-child(2)]:max-lg:hidden [&>*:nth-child(3)]:max-lg:hidden",
-        )}
+        resizablePane={ws.workspaceMode ? "primary" : "secondary"}
+        defaultSize={ws.workspaceMode ? 420 : 320}
+        minSize={ws.workspaceMode ? 320 : 240}
+        maxSize={ws.workspaceMode ? 640 : 480}
+        storageKey={
+          ws.workspaceMode
+            ? "stgm-new-session-chat-width"
+            : "stgm-new-session-inspector-width"
+        }
+        responsiveCollapse={ws.workspaceMode ? "primary" : "secondary"}
+        ariaLabel={ws.workspaceMode ? "Resize composer panel" : "Resize inspector panel"}
+        className="min-h-0 flex-1"
         primary={composerNode}
         secondary={
-          <aside className="flex h-full flex-col overflow-hidden">
-            <SessionInspector
-              displayExecution={null}
-              allExecutions={[]}
-              org={org}
-              selectedItem={null}
-              selectedFile={selectedFile}
-              onCloseFile={handleCloseFile}
-              sessionConfig={sessionConfig}
-              workspaceConfig={workspaceConfig}
-              className="min-h-0 flex-1"
+          ws.workspaceMode ? (
+            <WorkspaceSurface
+              entries={flow.workspace.entries}
+              lister={workspaceFileLister}
+              reader={workspaceFileReader}
+              editors={editors}
+              selectedFile={activeFile}
+              onOpenFile={ws.openFileInWorkspace}
+              onActivateEditor={ws.activateEditor}
+              onPinEditor={ws.pinEditor}
+              onCloseEditor={ws.closeEditor}
+              onCollapse={ws.collapseWorkspace}
+              className="h-full"
             />
-          </aside>
+          ) : (
+            <aside className="flex h-full flex-col overflow-hidden">
+              <SessionInspector
+                displayExecution={null}
+                allExecutions={[]}
+                org={org}
+                selectedItem={null}
+                sessionConfig={sessionConfig}
+                workspaceConfig={workspaceConfig}
+                className="min-h-0 flex-1"
+              />
+            </aside>
+          )
         }
       />
     </div>

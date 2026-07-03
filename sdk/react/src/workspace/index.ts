@@ -35,7 +35,11 @@ export type { WorkspaceEntryFilesProps } from "./WorkspaceEntryFiles.js";
 export { WorkspaceFileSearch } from "./WorkspaceFileSearch.js";
 export type { WorkspaceFileSearchProps } from "./WorkspaceFileSearch.js";
 export { FileViewer } from "./FileViewer.js";
-export type { FileViewerProps } from "./FileViewer.js";
+export type { FileViewerProps, FileViewerHandle } from "./FileViewer.js";
+export { WorkspaceSurface } from "./WorkspaceSurface.js";
+export type { WorkspaceSurfaceProps } from "./WorkspaceSurface.js";
+// The open-editor tab shape is part of the public WorkspaceSurface API.
+export type { OpenEditor } from "../internal/store/index.js";
 // The viewer's selection shape is part of the public FileViewer API; re-export
 // the type (not the store) so consumers can construct/inspect a selection.
 export type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";

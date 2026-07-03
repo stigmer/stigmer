@@ -102,6 +102,11 @@ export type { SessionViewerProps } from "./SessionViewer.js";
 export { NewSessionViewer } from "./NewSessionViewer.js";
 export type { NewSessionViewerProps } from "./NewSessionViewer.js";
 
+// Workspace-surface layout controller — drives the WorkspaceSurface open-editor
+// group + layout flip (for platform builders embedding the surface directly).
+export { useWorkspaceMode } from "./useWorkspaceMode.js";
+export type { WorkspaceModeController } from "./useWorkspaceMode.js";
+
 // Selection types (for platform builders using SessionInspector directly)
 export type { SelectedThreadItem } from "../internal/store/selection-store.js";
 

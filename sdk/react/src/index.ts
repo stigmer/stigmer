@@ -75,6 +75,7 @@ export {
   WorkspaceFileSearch,
   WorkspaceSummary,
   FileViewer,
+  WorkspaceSurface,
 } from "./workspace/index.js";
 export type {
   WorkspaceEntry,
@@ -94,11 +95,14 @@ export type {
   WorkspaceEntryFilesProps,
   WorkspaceFileSearchProps,
   FileViewerProps,
+  FileViewerHandle,
   SelectedWorkspaceFile,
   UseWorkspaceSourcesOptions,
   UseWorkspaceSourcesReturn,
   WorkspaceEditorProps,
   WorkspaceSummaryProps,
+  WorkspaceSurfaceProps,
+  OpenEditor,
 } from "./workspace/index.js";
 
 // Session — data hooks, behavior hooks, utilities (Session aggregate + conversation lifecycle)
@@ -128,6 +132,7 @@ export {
   resolvedSubject,
   SessionViewer,
   NewSessionViewer,
+  useWorkspaceMode,
   SessionInspector,
   useSessionInspector,
   buildVisibleTabs,
@@ -168,6 +173,7 @@ export type {
   SearchResultGroup,
   SessionViewerProps,
   NewSessionViewerProps,
+  WorkspaceModeController,
   ExecutionTargetOption,
   RuntimeEnvProvider,
   SessionAudience,

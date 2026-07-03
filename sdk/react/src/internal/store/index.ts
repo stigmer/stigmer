@@ -7,6 +7,10 @@ import {
   WorkspaceFileSelectionStore,
   type SelectedWorkspaceFile,
 } from "./workspace-file-selection-store.js";
+import {
+  WorkspaceEditorsStore,
+  type WorkspaceEditorsSnapshot,
+} from "./workspace-editors-store.js";
 
 export { ConversationStore, type StreamState } from "./conversation-store.js";
 export { structuralShare } from "./structural-share.js";
@@ -22,6 +26,12 @@ export type { SelectedThreadItem } from "./selection-store.js";
 
 export { WorkspaceFileSelectionStore } from "./workspace-file-selection-store.js";
 export type { SelectedWorkspaceFile } from "./workspace-file-selection-store.js";
+
+export { WorkspaceEditorsStore, editorKey } from "./workspace-editors-store.js";
+export type {
+  OpenEditor,
+  WorkspaceEditorsSnapshot,
+} from "./workspace-editors-store.js";
 
 // ---------------------------------------------------------------------------
 // Context
@@ -127,4 +137,28 @@ export function useWorkspaceFileSelection(
   store: WorkspaceFileSelectionStore,
 ): SelectedWorkspaceFile | null {
   return useSyncExternalStore(store.subscribe, store.getSelection);
+}
+
+// ---------------------------------------------------------------------------
+// Workspace editors — the surface's open-editor group (Slice B)
+// ---------------------------------------------------------------------------
+
+/**
+ * Create or reuse a `WorkspaceEditorsStore` instance, preserved across
+ * re-renders via ref. Owned by `SessionViewer` alongside the selection store;
+ * the surface subscribes to it for its tab group.
+ */
+export function useWorkspaceEditorsStoreRef(): WorkspaceEditorsStore {
+  const ref = useRef<WorkspaceEditorsStore | null>(null);
+  if (!ref.current) {
+    ref.current = new WorkspaceEditorsStore();
+  }
+  return ref.current;
+}
+
+/** Subscribe to the open-editor group snapshot. */
+export function useWorkspaceEditors(
+  store: WorkspaceEditorsStore,
+): WorkspaceEditorsSnapshot {
+  return useSyncExternalStore(store.subscribe, store.getSnapshot);
 }
