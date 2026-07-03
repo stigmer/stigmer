@@ -144,6 +144,46 @@ function regexLiteral(re: RegExp): string {
 }
 
 /**
+ * The JS lines that define `isSecret(p)` inside a hook-embedded script — a
+ * byte-identical mirror of {@link isSecretLikePath} generated from the SAME
+ * {@link SECRET_BASENAME_PATTERNS}/{@link SECRET_PATH_PATTERNS} arrays.
+ *
+ * ONE definition, so every hook-side classifier (the capture-mode staging script
+ * and the deny-gate classify-only script) agrees with the runner-side classifier
+ * by construction — the "no bash-regex, no divergence" invariant this module owns.
+ * Authored as single-quoted-bash strings, so the JS must contain no single quotes.
+ */
+function secretClassifierFragment(): string[] {
+  const base = SECRET_BASENAME_PATTERNS.map(regexLiteral).join(",");
+  const pathPatterns = SECRET_PATH_PATTERNS.map(regexLiteral).join(",");
+  return [
+    `const baseName=(p)=>{const n=p.replace(/\\\\/g,"/");const i=n.lastIndexOf("/");return i>=0?n.slice(i+1):n;};`,
+    `const BASE=[${base}];const PATHP=[${pathPatterns}];`,
+    `const isSecret=(p)=>{if(!p)return true;const nm=p.replace(/\\\\/g,"/");const b=baseName(nm).toLowerCase();for(const r of BASE){if(r.test(b))return true;}const lp=nm.toLowerCase();for(const r of PATHP){if(r.test(lp))return true;}return false;};`,
+  ];
+}
+
+/**
+ * Build a standalone Node.js script that CLASSIFIES a single path as secret-like
+ * without staging anything — the deny-gate (no-capture-substrate) counterpart of
+ * {@link buildObservationStagingScript}.
+ *
+ * Invoked as `printf %s "$SALIENT" | node -e '<this>'` — the path rides stdin (no
+ * argv escaping). Prints `secret` for a secret-like path, `ok` otherwise. Empty
+ * input classifies as `secret` (fail-closed, matching {@link isSecretLikePath}).
+ * The Cursor hook uses this to hard-block a secret write on the deny-gate so its
+ * content never reaches an approval (DD-26 follow-up #2); it shares the classifier
+ * fragment above, so its verdict equals the runner's {@link isSecretLikePath}.
+ */
+export function buildSecretClassifyScript(): string {
+  return [
+    `let salient="";try{salient=require("fs").readFileSync(0,"utf8");}catch(e){salient="";}`,
+    ...secretClassifierFragment(),
+    `process.stdout.write(isSecret(salient)?"secret":"ok");`,
+  ].join("");
+}
+
+/**
  * Build the standalone Node.js script the hook runs to observe a single
  * gitignored write — the disk-backed mirror of `CasCaptureFilesystemBackend`'s
  * `recordBefore` plus the DD-E secret gate.
@@ -165,8 +205,6 @@ function regexLiteral(re: RegExp): string {
  * single-quoted-bash string, so the JS must contain no single quotes.
  */
 export function buildObservationStagingScript(): string {
-  const base = SECRET_BASENAME_PATTERNS.map(regexLiteral).join(",");
-  const pathPatterns = SECRET_PATH_PATTERNS.map(regexLiteral).join(",");
   const metaSuffix = JSON.stringify(META_SUFFIX);
   const blobSuffix = JSON.stringify(BLOB_SUFFIX);
   return [
@@ -182,9 +220,7 @@ export function buildObservationStagingScript(): string {
     `let rel=path.relative(wsRoot,abs).split(path.sep).join("/");`,
     `if(!rel||rel===".."||rel.startsWith("../")){process.stdout.write("error");process.exit(0);}`,
     // --- secret classifier: byte-identical mirror of isSecretLikePath ---
-    `const baseName=(p)=>{const n=p.replace(/\\\\/g,"/");const i=n.lastIndexOf("/");return i>=0?n.slice(i+1):n;};`,
-    `const BASE=[${base}];const PATHP=[${pathPatterns}];`,
-    `const isSecret=(p)=>{if(!p)return true;const nm=p.replace(/\\\\/g,"/");const b=baseName(nm).toLowerCase();for(const r of BASE){if(r.test(b))return true;}const lp=nm.toLowerCase();for(const r of PATHP){if(r.test(lp))return true;}return false;};`,
+    ...secretClassifierFragment(),
     `const key=crypto.createHash("sha256").update(rel,"utf8").digest("hex");`,
     `const metaPath=path.join(obsDir,key+${metaSuffix});const blobPath=path.join(obsDir,key+${blobSuffix});`,
     `try{fs.mkdirSync(obsDir,{recursive:true});}catch(e){}`,

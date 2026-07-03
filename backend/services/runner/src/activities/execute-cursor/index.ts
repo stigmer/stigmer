@@ -45,7 +45,7 @@ import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_p
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
-import { collectSubAgentToolCallIds } from "../../shared/tool-row.js";
+import { collectSubAgentToolCallIds, withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { startStallWatchdog, StallTimeoutError, formatStallFailure, type StallWatchdog } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
@@ -180,8 +180,18 @@ async function executeCursorInner(
   // ALL status persistence in this activity flows through `persist`, so the
   // single size-bounding guard (offload + aggregate elision) is unforgeable and
   // a future call site cannot accidentally skip it.
-  const persist = (s: AgentExecutionStatus = status) =>
-    persistStatus(client, executionId, s, { offload: statusOffload });
+  const persist = (s: AgentExecutionStatus = status) => {
+    // Never-persist-secret backstop (DD-26 #2): before EVERY persist, withhold
+    // content from any built-in write row targeting a secret-like path (top-level
+    // + sub-agent). This is the single airtight choke point for the Cursor harness
+    // — the deny-gate analog of capture mode's stamping scrub, and the only
+    // guarantee under auto_approve_all (where the hook installs no gate). Safe on
+    // every call: Cursor sets tool args atomically from the SDK tool_call event
+    // (buildToolCallProto), so there is no mid-stream partial-args hazard, and the
+    // pass only ever touches secret-like write rows (idempotent, else a no-op).
+    withholdSecretContentFromMessages(s.messages, s.subAgentExecutions);
+    return persistStatus(client, executionId, s, { offload: statusOffload });
+  };
 
   let sessionId: string | undefined;
   let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;

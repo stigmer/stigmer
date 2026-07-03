@@ -48,7 +48,7 @@ import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
-import { collectSubAgentToolCallIds } from "../../shared/tool-row.js";
+import { collectSubAgentToolCallIds, withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "./stamp-flowed-rows.js";
 
 /** The harness id stamped on the deep-agent's file-review ledger events. */
@@ -307,6 +307,20 @@ export function createDeepAgentActivities(config: Config) {
           pendingWritebackPromises: result.pendingWritebackPromises,
           executionId,
         });
+
+        // Never-persist-secret backstop (DD-26 #2): withhold content from any
+        // built-in write row targeting a secret-like path, across the top-level
+        // and sub-agent transcripts, before ANY persist below. On the deny-gate a
+        // secret write is hard-blocked (a COMPLETED row) or — under
+        // auto_approve_all, where no gate is installed — flowed; either way the
+        // streamed row still carries `args` from handleToolStarted, and the
+        // capture-mode stamping pass (which performs the same scrub) does not run
+        // here. Idempotent / a no-op in capture mode. This single post-stream
+        // sweep is the one choke point that precedes every downstream persist.
+        withholdSecretContentFromMessages(
+          initialStatus.messages,
+          initialStatus.subAgentExecutions,
+        );
 
         // Turn boundary (capture mode): capture the candidate change set from the
         // git diff and author CANDIDATE_CAPTURED, then stamp the flowed file-edit

@@ -18,10 +18,11 @@
  */
 
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { extractFilePath } from "./file-tools.js";
 import { isSecretLikePath } from "./filereview/secret-paths.js";
+import { toolApprovalCategory } from "./tool-kind.js";
 import { utcTimestamp } from "./status.js";
 
 /**
@@ -52,11 +53,63 @@ export function stampFileEditRow(tc: ToolCall, changeSetId: string): void {
   if (tc.fileChangeSetId) return;
   tc.fileChangeSetId = changeSetId;
 
-  const path = extractFilePath((tc.args ?? {}) as Record<string, unknown>) ?? "";
-  if (isSecretLikePath(path)) {
-    tc.args = path ? { path } : undefined;
+  if (withholdSecretFileContent(tc)) {
+    // A FLOWED row's `result` is the tool's own output — for an edit that can
+    // echo the changed lines — so drop it too. withholdSecretFileContent keeps
+    // `result` intact because the deny-gate path (below) uses it for the safe
+    // "blocked for security" message; here the row actually ran, so clear it.
     tc.result = "";
-    tc.argsPreview = "";
+  }
+}
+
+/**
+ * Withhold a file-mutating row's CONTENT while keeping its path visible: reduce
+ * `args` to `{ path }` (or `undefined` when the path cannot be determined) and
+ * clear `args_preview`. `result` and `status` are left untouched — a caller that
+ * needs the diff dropped clears it explicitly (see {@link stampFileEditRow}).
+ * Returns whether the row was secret-like (and therefore withheld).
+ *
+ * The single primitive behind the never-persist-secret-contents contract (design
+ * doc 12, D4): a file-mutating tool's `args` holds the full write body, which for
+ * a secret-like path must never reach the transcript / Temporal history. A
+ * filename is not itself the secret, so the path is kept. Fail-closed: an
+ * undeterminable path is treated as secret-like ({@link isSecretLikePath} of "").
+ */
+export function withholdSecretFileContent(tc: ToolCall): boolean {
+  const path = extractFilePath((tc.args ?? {}) as Record<string, unknown>) ?? "";
+  if (!isSecretLikePath(path)) return false;
+  tc.args = path ? { path } : undefined;
+  tc.argsPreview = "";
+  return true;
+}
+
+/**
+ * Universal backstop (DD-26 follow-up #2): withhold secret content from every
+ * built-in file-WRITE row in a transcript (top-level + each sub-agent's), across
+ * BOTH harnesses, right before the status is persisted.
+ *
+ * This is the ONLY guarantee that survives `spec.auto_approve_all`, where the
+ * approval gate / deny-gate is never installed, so no per-harness hard-block runs
+ * — yet a secret write still flows and its content lands on the streamed row. It
+ * is a no-op in capture mode (the flowed rows are already content-less after
+ * {@link stampFileEditRow}, which shares {@link withholdSecretFileContent}), and
+ * is the deny-gate analog of the capture-mode stamping pass, which does not run
+ * when there is no change set. Scoped to `write` (FILE_WRITE/FILE_EDIT) because a
+ * delete carries no content.
+ */
+export function withholdSecretContentFromMessages(
+  messages: readonly AgentMessage[],
+  subAgents?: readonly SubAgentExecution[],
+): void {
+  for (const msg of messages) {
+    for (const tc of msg.toolCalls) {
+      if (toolApprovalCategory(tc.name) === "write") {
+        withholdSecretFileContent(tc);
+      }
+    }
+  }
+  for (const sa of subAgents ?? []) {
+    withholdSecretContentFromMessages(sa.messages);
   }
 }
 

@@ -10,7 +10,14 @@ import { create } from "@bufbuild/protobuf";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { collectSubAgentToolCallIds, hideToolCallRow, isToolCallRowHidden, stampFileEditRow } from "../tool-row.js";
+import {
+  collectSubAgentToolCallIds,
+  hideToolCallRow,
+  isToolCallRowHidden,
+  stampFileEditRow,
+  withholdSecretContentFromMessages,
+  withholdSecretFileContent,
+} from "../tool-row.js";
 
 describe("stampFileEditRow", () => {
   it("stamps additively: content, status, and identity all survive", () => {
@@ -87,6 +94,134 @@ describe("stampFileEditRow", () => {
     expect(tc.fileChangeSetId).toBe("exec-1:0");
     expect(tc.args).toBeUndefined();
     expect(tc.result).toBe("");
+  });
+});
+
+describe("withholdSecretFileContent", () => {
+  it("reduces a secret-like row's args to { path } and clears args_preview, keeping result", () => {
+    const tc = create(ToolCallSchema, {
+      id: "tc-1",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      result: "Tool 'write' was blocked for security: '.env' matches a secret-like path. Nothing was written.",
+      argsPreview: '{"path":".env"}',
+      args: { path: ".env", content: "API_KEY=super-secret" },
+    });
+
+    expect(withholdSecretFileContent(tc)).toBe(true);
+    expect(tc.args).toEqual({ path: ".env" });
+    expect(tc.argsPreview).toBe("");
+    // result is left intact — the deny-gate uses it for the safe "blocked" message.
+    expect(tc.result).toContain("blocked for security");
+  });
+
+  it("leaves a non-secret row untouched and returns false", () => {
+    const tc = create(ToolCallSchema, {
+      id: "tc-2",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      argsPreview: '{"path":"src/app.ts"}',
+      args: { path: "src/app.ts", content: "console.log('hi')" },
+    });
+
+    expect(withholdSecretFileContent(tc)).toBe(false);
+    expect(tc.args).toEqual({ path: "src/app.ts", content: "console.log('hi')" });
+    expect(tc.argsPreview).toBe('{"path":"src/app.ts"}');
+  });
+
+  it("fail-closes when the path cannot be determined (args → undefined)", () => {
+    const tc = create(ToolCallSchema, {
+      id: "tc-3",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { unrecognized_shape: "payload" },
+    });
+
+    expect(withholdSecretFileContent(tc)).toBe(true);
+    expect(tc.args).toBeUndefined();
+  });
+});
+
+describe("withholdSecretContentFromMessages", () => {
+  function writeRow(id: string, path: string, content = "SECRET_BODY"): ReturnType<typeof create<typeof ToolCallSchema>> {
+    return create(ToolCallSchema, {
+      id,
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      argsPreview: JSON.stringify({ path }),
+      args: { path, content },
+    });
+  }
+
+  it("withholds content from a secret write row but leaves a non-secret one intact", () => {
+    const msg = create(AgentMessageSchema, {
+      type: 1,
+      toolCalls: [writeRow("tc-secret", ".env"), writeRow("tc-ok", "src/app.ts")],
+    });
+
+    withholdSecretContentFromMessages([msg]);
+
+    expect(msg.toolCalls[0].args).toEqual({ path: ".env" });
+    expect(msg.toolCalls[0].argsPreview).toBe("");
+    expect(msg.toolCalls[1].args).toEqual({ path: "src/app.ts", content: "SECRET_BODY" });
+  });
+
+  it("covers edit-family rows (category write) too", () => {
+    const editRow = create(ToolCallSchema, {
+      id: "tc-edit",
+      name: "StrReplace",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { path: ".ssh/id_rsa", old_string: "a", new_string: "b" },
+    });
+    const msg = create(AgentMessageSchema, { type: 1, toolCalls: [editRow] });
+
+    withholdSecretContentFromMessages([msg]);
+
+    expect(editRow.args).toEqual({ path: ".ssh/id_rsa" });
+  });
+
+  it("does NOT touch a delete row (deletes carry no content)", () => {
+    const deleteRow = create(ToolCallSchema, {
+      id: "tc-del",
+      name: "delete",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      args: { path: ".env" },
+    });
+    const msg = create(AgentMessageSchema, { type: 1, toolCalls: [deleteRow] });
+
+    withholdSecretContentFromMessages([msg]);
+
+    // A delete's args are path-only already; the write-scoped pass leaves it alone.
+    expect(deleteRow.args).toEqual({ path: ".env" });
+  });
+
+  it("walks sub-agent transcripts", () => {
+    const topMsg = create(AgentMessageSchema, { type: 1, toolCalls: [writeRow("tc-top", "notes.md")] });
+    const sa = create(SubAgentExecutionSchema, {
+      id: "sa-1",
+      messages: [create(AgentMessageSchema, { type: 1, toolCalls: [writeRow("tc-sa", "credentials.json")] })],
+    });
+
+    withholdSecretContentFromMessages([topMsg], [sa]);
+
+    expect(topMsg.toolCalls[0].args).toEqual({ path: "notes.md", content: "SECRET_BODY" }); // non-secret untouched
+    expect(sa.messages[0].toolCalls[0].args).toEqual({ path: "credentials.json" }); // sub-agent secret scrubbed
+  });
+
+  it("is idempotent and agrees with stampFileEditRow's content-less shape", () => {
+    const row = writeRow("tc-secret", ".env");
+    const msg = create(AgentMessageSchema, { type: 1, toolCalls: [row] });
+
+    withholdSecretContentFromMessages([msg]);
+    const afterFirst = { args: row.args, argsPreview: row.argsPreview };
+    withholdSecretContentFromMessages([msg]);
+    expect(row.args).toEqual(afterFirst.args);
+    expect(row.argsPreview).toBe(afterFirst.argsPreview);
+
+    // stampFileEditRow on the already-scrubbed row yields the same content-less shape.
+    stampFileEditRow(row, "exec-1:0");
+    expect(row.args).toEqual({ path: ".env" });
+    expect(row.argsPreview).toBe("");
   });
 });
 

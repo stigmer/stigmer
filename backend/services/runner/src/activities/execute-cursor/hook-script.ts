@@ -92,7 +92,7 @@ import {
   EDIT_NEW_FIELDS,
   WRITE_CONTENT_FIELDS,
 } from "../../shared/file-tools.js";
-import { buildObservationStagingScript, CAS_OBSERVATIONS_DIRNAME } from "./cas-observations.js";
+import { buildObservationStagingScript, buildSecretClassifyScript, CAS_OBSERVATIONS_DIRNAME } from "./cas-observations.js";
 
 // Shown to the model when the gate denies a tool call. It must NOT teach the
 // model to ask for permission in prose or to "stop and wait" — that framing
@@ -275,6 +275,7 @@ export function generateHookScript(activePointerPath: string, workspaceRoot = ""
   const categoryCaseArms = buildCategoryCaseArms();
   const nodeIdentityScript = buildNodeIdentityScript();
   const observationStagingScript = buildObservationStagingScript();
+  const secretClassifyScript = buildSecretClassifyScript();
   const nodeBin = process.execPath;
   return `#!/bin/bash
 # Stigmer HITL approval hook for Cursor (preToolUse + beforeMCPExecution).
@@ -566,6 +567,23 @@ if [ -n "$CATEGORY" ]; then
   if [ "$CAPTURE_MODE" = "true" ] && [ "$GIT_WORKSPACE" = "true" ] && { [ "$CATEGORY" = "write" ] || [ "$CATEGORY" = "delete" ]; }; then
     if ! __stigmer_is_gitignored "$SALIENT"; then
       echo '{"permission":"allow"}'
+      exit 0
+    fi
+  fi
+  # Deny-gate secret hard-block (DD-26 #2): a secret-like WRITE that reaches the
+  # deny-gate (no capture substrate for it — capture off, or captureIgnored off in
+  # a git-no-storage workspace) must not surface its content for approval. Classify
+  # byte-identically to isSecretLikePath (no staging) and, on a match, hard-block
+  # with the security message: the agent continues, nothing is written, and NO
+  # content is recorded to the ledger. Placed before the grant/lease checks so a
+  # write-category lease can never bypass it; only writes are content-bearing
+  # (deletes stay gated). Fail-open on a classify error — the write falls to the
+  # normal deny-gate and the runner-side backstop still withholds any secret
+  # content before persist.
+  if [ "$CATEGORY" = "write" ] && [ -n "$SALIENT" ]; then
+    SECRET_RESULT=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${secretClassifyScript}' 2>/dev/null || echo ok)
+    if [ "$SECRET_RESULT" = "secret" ]; then
+      echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
       exit 0
     fi
   fi

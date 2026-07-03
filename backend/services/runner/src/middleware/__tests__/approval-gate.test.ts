@@ -398,7 +398,10 @@ describe("ApprovalGateMiddleware", () => {
       expect(mockedInterrupt).not.toHaveBeenCalled();
     });
 
-    it("KEEPS GATING a gitignored write (it cannot be captured or reverted)", async () => {
+    it("KEEPS GATING a non-secret gitignored write (it cannot be captured or reverted)", async () => {
+      // A NON-secret gitignored path: no CAS routing (captureIgnored unset) and not
+      // secret-like, so it stays on the interrupt gate. (A secret-like gitignored
+      // write is hard-blocked instead — see the DD-26 #2 deny-gate cases below.)
       const mw = createApprovalGateMiddleware(makeConfig({
         fileCaptureMode: true,
         isCapturablePath: async () => false, // gitignored
@@ -406,7 +409,7 @@ describe("ApprovalGateMiddleware", () => {
       mockedInterrupt.mockReturnValue({ action: "approve" });
 
       await mw.wrapToolCall!(
-        makeRequest({ name: "write", args: { path: ".env" } }),
+        makeRequest({ name: "write", args: { path: "dist/bundle.js" } }),
         passthrough,
       );
 
@@ -650,12 +653,12 @@ describe("ApprovalGateMiddleware", () => {
       expect(mockedInterrupt).toHaveBeenCalledTimes(1);
     });
 
-    it("GATES a secret-like write when capture mode is off — Cursor parity: gated, NOT hard-blocked", async () => {
-      // The secret hard-block lives only inside the fileCaptureMode+captureIgnored
-      // arm; with no substrate that arm is off, so a secret-like write is GATED
-      // (shown for approval) rather than hard-blocked — exactly what Cursor's
-      // no-storage hook does. It exposes no more than Cursor (secret parity, see
-      // the parity investigation in the project docs).
+    it("HARD-BLOCKS a secret-like write when capture mode is off (DD-26 #2): never gated, never applied", async () => {
+      // DD-26 follow-up #2 supersedes the earlier "gated, not hard-blocked" parity:
+      // a secret-like write must NEVER surface its content for approval, in ANY
+      // mode. On the deny-gate it is hard-blocked exactly like the capture-mode
+      // secret block — never interrupted, never applied. The content never reaches
+      // a pending approval or the persisted transcript.
       const handler = vi.fn(passthrough);
       const recordBlockedSecret = vi.fn();
       const mw = createApprovalGateMiddleware(makeConfig({
@@ -665,14 +668,76 @@ describe("ApprovalGateMiddleware", () => {
       }));
       mockedInterrupt.mockReturnValue({ action: "approve" });
 
-      await mw.wrapToolCall!(
-        makeRequest({ name: "write", args: { path: ".env" } }),
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: ".env", content: "API_KEY=xyz" } }),
         handler,
       );
 
-      expect(mockedInterrupt).toHaveBeenCalledTimes(1); // gated, not hard-blocked
-      expect(recordBlockedSecret).not.toHaveBeenCalled(); // no capture arm to record it
-      expect(handler).toHaveBeenCalledTimes(1); // flows only after the user approves
+      expect(mockedInterrupt).not.toHaveBeenCalled(); // hard-block, not a pause
+      expect(handler).not.toHaveBeenCalled(); // never applied
+      expect(recordBlockedSecret).toHaveBeenCalledWith(".env");
+      expect((result as ToolMessage).content).toContain("blocked for security");
+    });
+
+    it("hard-blocks a secret-like edit too (id_rsa via path fragment)", async () => {
+      const handler = vi.fn(passthrough);
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: false,
+        captureIgnored: false,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "edit", args: { path: ".ssh/id_rsa", old_string: "a", new_string: "b" } }),
+        handler,
+      );
+
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+      expect(handler).not.toHaveBeenCalled();
+      expect((result as ToolMessage).content).toContain("blocked for security");
+    });
+
+    it("hard-blocks a secret write in a git workspace with no storage (captureMode on, captureIgnored off)", async () => {
+      // captureMode true + captureIgnored false = a git workspace with no artifact
+      // storage. A gitignored secret write skips the captureIgnored arm and would
+      // otherwise have reached the deny-gate (a leak); it is now hard-blocked too,
+      // and the recorded path lets the turn boundary author a content-less entry.
+      const handler = vi.fn(passthrough);
+      const recordBlockedSecret = vi.fn();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: true,
+        isCapturablePath: async () => false, // gitignored
+        captureIgnored: false, // no artifact storage
+        recordBlockedSecret,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: "secrets.yaml", content: "token: t" } }),
+        handler,
+      );
+
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+      expect(handler).not.toHaveBeenCalled();
+      expect(recordBlockedSecret).toHaveBeenCalledWith("secrets.yaml");
+      expect((result as ToolMessage).content).toContain("blocked for security");
+    });
+
+    it("still GATES a NON-secret write when capture mode is off (deny-gate unchanged)", async () => {
+      const handler = vi.fn(passthrough);
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileCaptureMode: false,
+        captureIgnored: false,
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(
+        makeRequest({ name: "write", args: { path: "notes.md", content: "hi" } }),
+        handler,
+      );
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1); // a non-secret write still gates
+      expect(handler).toHaveBeenCalledTimes(1); // flows after approve
     });
 
     it("still auto-approves read-only built-ins when capture mode is off", async () => {
