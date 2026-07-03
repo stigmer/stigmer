@@ -338,6 +338,25 @@ function isResourceAvailable(kind: ApiResourceKind, mode: DeploymentMode): boole
 ```
 
 
+### OpenEditor
+
+One open editor tab.
+
+`preview` marks the single reusable "preview" tab (shown in italics): a
+single click opens or replaces it in place, so casual browsing never
+accumulates tabs. Pinning it (double-click, or opening the file explicitly)
+clears the flag and the tab becomes persistent. At most one editor is a
+preview at any time.
+
+<TypeTable
+  type={{
+    entryId: { type: "string", description: "Stable-within-page id of the owning workspace entry.", required: true },
+    path: { type: "string", description: "Repo-relative (git) or root-relative (local) file path.", required: true },
+    preview: { type: "boolean", description: "Whether this is the reusable preview tab (italic, single per group).", required: true },
+  }}
+/>
+
+
 ### PENDING_SUBJECT
 
 Sentinel value the backend writes as a placeholder subject when a session

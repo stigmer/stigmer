@@ -265,48 +265,6 @@ const sources = useWorkspaceSources();
 
 ## Components
 
-### FileViewer
-
-Read-only viewer for a single workspace file.
-
-A thin shell (no new rendering): it resolves the open file, drives
-[`useWorkspaceFileContent`](#useworkspacefilecontent), and — for displayable text — delegates to
-the shared [`ArtifactContentRenderer`](/docs/sdk/react/execution#artifactcontentrenderer) (markdown / YAML / JSON /
-line-numbered text). Its state body deliberately mirrors
-`FileContentStateView` in `ArtifactPreviewModal` (same skeleton, error, and
-delegation), extended with the three states an execution artifact never
-has — binary, too-large, and unsupported-substrate. The two are **not**
-merged into one shared component: their surrounding chrome (an artifact's
-copy/download/apply bar vs. this viewer's header) differs enough that a
-shared shell would need context-flag props. Keep them as sibling shells that
-share the one renderer.
-
-Framework-agnostic and themed via `--stgm-*` tokens (DD-004/DD-005): a
-platform builder can mount it directly given a `reader` and a selection.
-
-**Props** — `FileViewerProps`
-
-<TypeTable
-  type={{
-    change: { type: "FileChange", description: "The session FileChange that touched this file, when it was changed this session. When present the viewer defaults to the authoritative `baseline→candidate` diff (DD-06) and — for a non-DELETE change with a `reader` — offers a labeled toggle to the live \"File\" view. `undefined` (the default) keeps the viewer a pure read-only browser (backward compatible). Callers correlate the open file to its change with `findChangeForSelection`; a platform builder can pass any `FileChange`." },
-    className: { type: "string", description: "Additional CSS classes for the root element." },
-    entries: { type: "readonly WorkspaceEntry[]", description: "Live workspace entries. The viewer resolves `selectedFile.entryId` against this list, so a removed entry deselects into a gentle empty state rather than reading a stale value.", required: true },
-    onClose: { type: "() => void", description: "Called when the user closes the viewer (close button or Escape)." },
-    reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader. `undefined` means the host injects no reader — the viewer shows an honest \"not available here\" state.", required: true },
-    selectedFile: { type: "SelectedWorkspaceFile", description: "The file to display, keyed by owning entry id + path.", required: true, typeDescriptionLink: "/docs/sdk/react/core#selectedworkspacefile" },
-  }}
-/>
-
-```tsx
-<FileViewer
-  selectedFile={{ entryId: entry.id, path: "src/index.ts" }}
-  entries={workspace.entries}
-  reader={workspaceFileReader}
-  onClose={() => setSelected(null)}
-/>
-```
-
-
 ### WorkspaceEditor
 
 Styled component for managing workspace entries with a flat-list
@@ -438,7 +396,100 @@ const { session } = useSession(sessionId);
 ```
 
 
+### WorkspaceSurface
+
+A VS Code / Cursor-inspired read-only workspace surface: a slim activity rail
+(Explorer / Search), a resizable sidebar, and a large editor area.
+
+This is the workspace-dominant counterpart to the inspector's cramped Viewer
+tab. The session viewer flips its layout to give this surface the majority of
+the screen while chat becomes a narrow column (see `SessionViewer`). It is a
+self-contained organism: given `entries`, a `lister`, a `reader`, and the
+open-file selection, it renders identically inside the Console or embedded in
+a third-party host (DD-004). Explicitly read-only — no editing, no commit UI.
+
+All visual properties flow through `--stgm-*` tokens (DD-005).
+
+**Props** — `WorkspaceSurfaceProps`
+
+<TypeTable
+  type={{
+    change: { type: "FileChange", description: "The session FileChange that touched the open file, when it was changed this session. When present the editor defaults to the authoritative `baseline→candidate` diff (DD-06), matching the inspector's Viewer tab." },
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    editors: { type: "readonly OpenEditor[]", description: "Open editor tabs in order (VS Code open-editors model).", required: true },
+    entries: { type: "readonly WorkspaceEntry[]", description: "The workspace entries whose files are browsable (multi-root).", required: true },
+    lister: { type: "WorkspaceFileLister | undefined", description: "Platform-injected file lister. `undefined` disables explorer + search.", required: true },
+    onActivateEditor: { type: "(entryId: string, path: string) => void", description: "Focuses an already-open editor (tab single click).", required: true },
+    onCloseEditor: { type: "(entryId: string, path: string) => void", description: "Closes an editor (tab close control or middle click).", required: true },
+    onCollapse: { type: "() => void", description: "Collapses the surface back to the chat-dominant layout.", required: true },
+    onOpenFile: { type: "(entryId: string, path: string) => void", description: "Opens a file as a preview (single click) from the explorer or search. The same seam the tree/search uses; the owner routes it to the editors store.", required: true },
+    onPinEditor: { type: "(entryId: string, path: string) => void", description: "Pins an editor (tab double-click) so it stops being the preview tab.", required: true },
+    reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader for the editor.", required: true },
+    selectedFile: { type: "SelectedWorkspaceFile | null", description: "The active editor's file, or `null`. Highlighted in the tree and shown.", required: true },
+  }}
+/>
+
+
 ## Types
+
+### FileViewer
+
+Read-only viewer for a single workspace file.
+
+A thin shell (no new rendering): it resolves the open file, drives
+[`useWorkspaceFileContent`](#useworkspacefilecontent), and — for displayable text — delegates to
+the shared [`ArtifactContentRenderer`](/docs/sdk/react/execution#artifactcontentrenderer) (markdown / YAML / JSON /
+line-numbered text). Its state body deliberately mirrors
+`FileContentStateView` in `ArtifactPreviewModal` (same skeleton, error, and
+delegation), extended with the three states an execution artifact never
+has — binary, too-large, and unsupported-substrate. The two are **not**
+merged into one shared component: their surrounding chrome (an artifact's
+copy/download/apply bar vs. this viewer's header) differs enough that a
+shared shell would need context-flag props. Keep them as sibling shells that
+share the one renderer.
+
+Framework-agnostic and themed via `--stgm-*` tokens (DD-004/DD-005): a
+platform builder can mount it directly given a `reader` and a selection.
+
+```tsx
+<FileViewer
+  selectedFile={{ entryId: entry.id, path: "src/index.ts" }}
+  entries={workspace.entries}
+  reader={workspaceFileReader}
+  onClose={() => setSelected(null)}
+/>
+```
+
+
+### FileViewerHandle
+
+Imperative handle for [`FileViewer`](#fileviewer). Lets an outer chrome (e.g. the
+workspace surface's toolbar, which hides the built-in header) trigger a
+re-fetch of the live file content without lifting the viewer's fetch state.
+
+<TypeTable
+  type={{
+    refresh: { type: "() => void", description: "Re-fetch the current file's live content.", required: true },
+  }}
+/>
+
+
+### FileViewerProps
+
+Props for [`FileViewer`](#fileviewer).
+
+<TypeTable
+  type={{
+    change: { type: "FileChange", description: "The session FileChange that touched this file, when it was changed this session. When present the viewer defaults to the authoritative `baseline→candidate` diff (DD-06) and — for a non-DELETE change with a `reader` — offers a labeled toggle to the live \"File\" view. `undefined` (the default) keeps the viewer a pure read-only browser (backward compatible). Callers correlate the open file to its change with `findChangeForSelection`; a platform builder can pass any `FileChange`." },
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    entries: { type: "readonly WorkspaceEntry[]", description: "Live workspace entries. The viewer resolves `selectedFile.entryId` against this list, so a removed entry deselects into a gentle empty state rather than reading a stale value.", required: true },
+    onClose: { type: "() => void", description: "Called when the user closes the viewer (close button or Escape)." },
+    reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader. `undefined` means the host injects no reader — the viewer shows an honest \"not available here\" state.", required: true },
+    selectedFile: { type: "SelectedWorkspaceFile", description: "The file to display, keyed by owning entry id + path.", required: true, typeDescriptionLink: "/docs/sdk/react/core#selectedworkspacefile" },
+    showHeader: { type: "boolean", description: "Whether to render the built-in header (file name, refresh, close). Defaults to `true` for standalone use. Set `false` when an outer chrome owns the file identity and controls — e.g. the workspace surface, whose editor toolbar (and, from Slice B, its tabs) show the name and collapse control, and where a duplicate header would also collide with the floating `headerActions` overlay. `onClose` still drives Escape-to-close even when the header (and its close button) is hidden." },
+  }}
+/>
+
 
 ### MAX_WORKSPACE_FILE_READ_BYTES
 
