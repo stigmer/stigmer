@@ -4,6 +4,14 @@ use serde::Serialize;
 
 const MAX_ENTRIES: usize = 10_000;
 
+/// Soft cap for a single file read. Must stay in sync with
+/// `MAX_WORKSPACE_FILE_READ_BYTES` on the TS side so web and desktop truncate at
+/// the same boundary.
+const MAX_READ_BYTES: usize = 1_048_576; // 1 MiB
+
+/// Only the head is scanned for a NUL byte (git's text/binary heuristic).
+const BINARY_SNIFF_BYTES: usize = 8000;
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileEntry {
@@ -94,6 +102,115 @@ pub async fn list_workspace_files(path: String) -> Result<ListResult, String> {
     tokio::task::spawn_blocking(move || list_files(&root))
         .await
         .map_err(|e| format!("Failed to list workspace files: {e}"))?
+}
+
+/// Decoded content of a single workspace file. Serializes to the TS
+/// `WorkspaceFileContent` shape (hence `camelCase`).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadResult {
+    /// Decoded UTF-8 text, or `None` when binary or undecodable.
+    text: Option<String>,
+    is_binary: bool,
+    /// Full file size in bytes — independent of truncation.
+    size: u64,
+    /// `"utf-8"` when decoded; `"unknown"` for binary or undecodable bytes
+    /// (disambiguated by `is_binary`).
+    encoding: String,
+    truncated: bool,
+}
+
+/// Reads a single file under `root`, capped at [`MAX_READ_BYTES`].
+///
+/// Rejects absolute and `..`-escaping relative paths, and re-checks the
+/// canonicalized target against the canonicalized root so a symlink cannot
+/// escape the workspace. Returns `Err` for missing files or directories — the
+/// caller maps that to an error state, never to the "unsupported" `null`.
+fn read_file(root: &Path, relative: &str) -> Result<ReadResult, String> {
+    use std::io::Read;
+
+    let rel = Path::new(relative);
+    if rel.is_absolute() {
+        return Err(format!("Path must be relative: {relative}"));
+    }
+    if rel
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        return Err(format!("Path escapes the workspace root: {relative}"));
+    }
+
+    let root_canon = root
+        .canonicalize()
+        .map_err(|e| format!("Invalid workspace root {}: {e}", root.display()))?;
+    let target = root_canon
+        .join(rel)
+        .canonicalize()
+        .map_err(|e| format!("File not found: {relative} ({e})"))?;
+
+    // Defense in depth: a symlink inside the root could still resolve outside it.
+    if !target.starts_with(&root_canon) {
+        return Err(format!("Path escapes the workspace root: {relative}"));
+    }
+
+    let meta = std::fs::metadata(&target).map_err(|e| format!("Cannot stat {relative}: {e}"))?;
+    if meta.is_dir() {
+        return Err(format!("Cannot read \"{relative}\": path is a directory"));
+    }
+    let size = meta.len();
+
+    // Read at most MAX+1 bytes so truncation is detectable without loading a
+    // multi-gigabyte file into memory.
+    let file = std::fs::File::open(&target).map_err(|e| format!("Cannot open {relative}: {e}"))?;
+    let mut bytes = Vec::new();
+    file.take((MAX_READ_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("Cannot read {relative}: {e}"))?;
+
+    let is_binary = bytes.iter().take(BINARY_SNIFF_BYTES).any(|&b| b == 0);
+    if is_binary {
+        return Ok(ReadResult {
+            text: None,
+            is_binary: true,
+            size,
+            encoding: "unknown".into(),
+            truncated: false,
+        });
+    }
+
+    let truncated = bytes.len() > MAX_READ_BYTES;
+    if truncated {
+        bytes.truncate(MAX_READ_BYTES);
+    }
+
+    let text: Option<String> = match std::str::from_utf8(&bytes) {
+        Ok(s) => Some(s.to_string()),
+        // A truncated read may cut mid-UTF-8-sequence; keep the valid prefix
+        // rather than discarding an otherwise-valid file.
+        Err(err) if truncated => std::str::from_utf8(&bytes[..err.valid_up_to()])
+            .ok()
+            .map(str::to_string),
+        Err(_) => None,
+    };
+
+    Ok(ReadResult {
+        encoding: if text.is_some() { "utf-8" } else { "unknown" }.into(),
+        text,
+        is_binary: false,
+        size,
+        truncated,
+    })
+}
+
+#[tauri::command]
+pub async fn read_workspace_file(
+    root: String,
+    relative_path: String,
+) -> Result<ReadResult, String> {
+    let root_buf = std::path::PathBuf::from(&root);
+    tokio::task::spawn_blocking(move || read_file(&root_buf, &relative_path))
+        .await
+        .map_err(|e| format!("Failed to read workspace file: {e}"))?
 }
 
 #[cfg(test)]
@@ -221,5 +338,104 @@ mod tests {
         let result = list_files(dir.path()).unwrap();
         assert!(!result.truncated);
         assert!(result.files.is_empty());
+    }
+
+    #[test]
+    fn reads_a_text_file() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("hello.txt"), "Hello World!").unwrap();
+
+        let result = read_file(dir.path(), "hello.txt").unwrap();
+
+        assert_eq!(result.text.as_deref(), Some("Hello World!"));
+        assert!(!result.is_binary);
+        assert!(!result.truncated);
+        assert_eq!(result.size, 12);
+        assert_eq!(result.encoding, "utf-8");
+    }
+
+    #[test]
+    fn reads_a_nested_relative_path() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("a/b")).unwrap();
+        fs::write(dir.path().join("a/b/deep.txt"), "deep").unwrap();
+
+        let result = read_file(dir.path(), "a/b/deep.txt").unwrap();
+        assert_eq!(result.text.as_deref(), Some("deep"));
+    }
+
+    #[test]
+    fn detects_binary_via_nul_byte() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("blob.bin"), [0x48, 0x00, 0x49]).unwrap();
+
+        let result = read_file(dir.path(), "blob.bin").unwrap();
+        assert!(result.is_binary);
+        assert!(result.text.is_none());
+        assert_eq!(result.size, 3);
+    }
+
+    #[test]
+    fn truncates_at_the_cap_and_reports_full_size() {
+        let dir = tempfile::tempdir().unwrap();
+        let big = "a".repeat(MAX_READ_BYTES + 500);
+        fs::write(dir.path().join("big.txt"), &big).unwrap();
+
+        let result = read_file(dir.path(), "big.txt").unwrap();
+
+        assert!(result.truncated);
+        assert_eq!(result.size, (MAX_READ_BYTES + 500) as u64);
+        assert_eq!(result.text.unwrap().len(), MAX_READ_BYTES);
+    }
+
+    #[test]
+    fn keeps_valid_utf8_prefix_when_truncation_splits_a_char() {
+        let dir = tempfile::tempdir().unwrap();
+        // Fill just under the cap with ASCII, then a multibyte char that will
+        // straddle the MAX_READ_BYTES boundary.
+        let mut content = "a".repeat(MAX_READ_BYTES - 1);
+        content.push('世'); // 3 bytes → cut mid-sequence
+        fs::write(dir.path().join("edge.txt"), &content).unwrap();
+
+        let result = read_file(dir.path(), "edge.txt").unwrap();
+
+        assert!(result.truncated);
+        assert_eq!(result.encoding, "utf-8");
+        // The valid prefix is kept; the split trailing char is dropped.
+        assert_eq!(result.text.unwrap().len(), MAX_READ_BYTES - 1);
+    }
+
+    #[test]
+    fn rejects_parent_dir_traversal() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = read_file(dir.path(), "../secret.txt");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("escapes the workspace root"));
+    }
+
+    #[test]
+    fn rejects_absolute_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = read_file(dir.path(), "/etc/passwd");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("must be relative"));
+    }
+
+    #[test]
+    fn missing_file_returns_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = read_file(dir.path(), "nope.txt");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("File not found"));
+    }
+
+    #[test]
+    fn directory_path_returns_error() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir(dir.path().join("sub")).unwrap();
+
+        let result = read_file(dir.path(), "sub");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("is a directory"));
     }
 }

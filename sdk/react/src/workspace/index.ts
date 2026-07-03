@@ -7,6 +7,11 @@ export type {
   WorkspaceFileEntry,
   WorkspaceFileLister,
 } from "./WorkspaceFileLister.js";
+export { MAX_WORKSPACE_FILE_READ_BYTES } from "./WorkspaceFileReader.js";
+export type {
+  WorkspaceFileContent,
+  WorkspaceFileReader,
+} from "./WorkspaceFileReader.js";
 export { useWorkspaceFiles } from "./useWorkspaceFiles.js";
 export type {
   UseWorkspaceFilesOptions,

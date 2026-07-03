@@ -49,6 +49,7 @@ pub fn run() {
             runner::update_runner_token,
             runner::runner_status,
             workspace::list_workspace_files,
+            workspace::read_workspace_file,
         ])
         .on_menu_event(|app, event| menu::handle_menu_event(app, &event))
         .setup(|app| {
