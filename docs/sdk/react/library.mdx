@@ -1019,7 +1019,7 @@ private < org < platform < public); [`VisibilitySelector`](#visibilityselector) 
     confirmPrompt: { type: "string", description: "Light inline confirmation question shown inside the selector when the user escalates TO this level (e.g. private → org). Omitted for the least-exposed level (de-escalation never confirms — revoking access is always safe).  Levels that expand access far beyond the owning org carry a confirmDialog instead; see the severity ladder on VisibilityLevelOption." },
     description: { type: "string", description: "One-line explanation shown under the selector for the current level.", required: true },
     label: { type: "string", description: "", required: true },
-    tone: { type: "\"org\" | \"private\" | \"public\" | \"platform\"", description: "Color treatment for the selected segment and the confirmation prompt.", required: true },
+    tone: { type: "\"org\" | \"platform\" | \"private\" | \"public\"", description: "Color treatment for the selected segment and the confirmation prompt.", required: true },
     value: { type: "ApiResourceVisibility", description: "", required: true },
   }}
 />

@@ -123,9 +123,11 @@ const { content, isLoading, error, isUnsupported } = useWorkspaceFileContent({
 Behavior hook that fetches and caches a file listing for a single
 workspace entry, converting it into a `TreeNode` hierarchy.
 
-- Calls the platform-injected `lister` when the entry changes.
-- Caches results per `entry.id` so tab switches and re-expands
-  are instant without re-fetching.
+- Calls the platform-injected `lister` (via the shared
+  `import("./workspaceListingCache.js").loadEntryFiles` cache) when the
+  entry changes.
+- Reads the shared listing cache so tab switches, re-expands, and the search
+  surface are instant without re-fetching (one cache, keyed by `entry.id`).
 - Returns an empty tree and skips the call when `lister` is
   `undefined` (graceful degradation — DD-011 opt-in).
 - Memoizes the return value for referential stability (DD-010).
@@ -150,13 +152,62 @@ function useWorkspaceFiles(options: UseWorkspaceFilesOptions): UseWorkspaceFiles
     isLoading: { type: "boolean", description: "`true` while the lister is being called." },
     refresh: { type: "() => void", description: "Re-fetch the file listing for the current entry (cache-bust)." },
     tree: { type: "readonly TreeNode[]", description: "Hierarchical tree built from the file listing, ready for `FileTreeNode`." },
+    truncated: { type: "boolean", description: "`true` when the listing was truncated by the backend (repository too large). The advisory entry is excluded from `tree`; callers render an incomplete-results banner from this flag instead (DD-11)." },
   }}
 />
 
 ```tsx
-const { tree, isLoading, error, refresh } = useWorkspaceFiles({
+const { tree, isLoading, error, truncated, refresh } = useWorkspaceFiles({
   entry: selectedEntry,
   lister: workspaceFileLister,
+});
+```
+
+
+### useWorkspaceFileSearch
+
+Behavior hook powering workspace-wide filename/path search.
+
+Loads each entry's listing through the shared
+`import("./workspaceListingCache.js").loadEntryFiles` cache (warm from
+Files browsing → usually free), then ranks matches per entry with the pure
+`matchWorkspaceFiles`. Fetching is keyed by the set of entry ids, so a
+query change re-ranks the already-loaded listings without re-fetching. Errors
+are isolated per entry (one failing repo never blanks the rest), and a stale
+generation's late resolutions are ignored.
+
+Meant to be consumed by a component mounted only while Search is active
+(`WorkspaceFileSearch`), so the Files view incurs no search fetching.
+
+**Signature**
+
+```tsx
+function useWorkspaceFileSearch(options: UseWorkspaceFileSearchOptions): UseWorkspaceFileSearchReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseWorkspaceFileSearchOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseWorkspaceFileSearchReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "First per-entry error, for a top-level fallback message. `null` when none." },
+    groups: { type: "readonly WorkspaceFileSearchGroup[]", description: "Entries with something to show (matches, an error, or a truncation notice)." },
+    isLoading: { type: "boolean", description: "`true` while any entry's listing is still loading." },
+    isUnsupported: { type: "boolean", description: "`true` when no substrate can be searched (no lister, or every entry unsupported)." },
+    totalMatches: { type: "number", description: "Total matches across all groups (for a \"showing N of M\" affordance)." },
+  }}
+/>
+
+```tsx
+const { groups, totalMatches, isLoading } = useWorkspaceFileSearch({
+  entries: workspace.entries,
+  lister: workspaceFileLister,
+  query,
 });
 ```
 
@@ -237,6 +288,7 @@ platform builder can mount it directly given a `reader` and a selection.
 
 <TypeTable
   type={{
+    change: { type: "FileChange", description: "The session FileChange that touched this file, when it was changed this session. When present the viewer defaults to the authoritative `baseline→candidate` diff (DD-06) and — for a non-DELETE change with a `reader` — offers a labeled toggle to the live \"File\" view. `undefined` (the default) keeps the viewer a pure read-only browser (backward compatible). Callers correlate the open file to its change with `findChangeForSelection`; a platform builder can pass any `FileChange`." },
     className: { type: "string", description: "Additional CSS classes for the root element." },
     entries: { type: "readonly WorkspaceEntry[]", description: "Live workspace entries. The viewer resolves `selectedFile.entryId` against this list, so a removed entry deselects into a gentle empty state rather than reading a stale value.", required: true },
     onClose: { type: "() => void", description: "Called when the user closes the viewer (close button or Escape)." },
@@ -326,6 +378,34 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
 />
 
 
+### WorkspaceFileSearch
+
+Workspace-wide filename/path search surface.
+
+Searches the already-loaded listings across every workspace entry (via
+[`useWorkspaceFileSearch`](#useworkspacefilesearch)) and opens a hit in the viewer through
+`onOpenFile` — the same seam a file-tree click uses. Filename-first by design;
+content search is a separate substrate-specific capability (DD-09).
+
+Keyboard/a11y follows the platform's combobox+listbox pattern (see
+`mcp-server/McpServerPicker`): the input is a `role="combobox"` driving
+`aria-activedescendant`, results are a `role="listbox"` of `role="option"`
+rows, and ArrowUp/Down move a virtual focus with Enter to open — focus stays
+in the input. All visual properties flow through `--stgm-*` tokens (DD-005).
+
+**Props** — `WorkspaceFileSearchProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    entries: { type: "readonly WorkspaceEntry[]", description: "All workspace entries to search across.", required: true },
+    lister: { type: "WorkspaceFileLister | undefined", description: "Platform-injected file lister. `undefined` → search is unavailable.", required: true },
+    onOpenFile: { type: "(entryId: string, path: string) => void", description: "Opens a result in the viewer.", required: true },
+    selectedFile: { type: "SelectedWorkspaceFile | null", description: "The file currently open in the viewer, highlighted in the results." },
+  }}
+/>
+
+
 ### WorkspaceSummary
 
 Compact, read-only display of workspace entries showing each
@@ -377,6 +457,19 @@ Options for [`useWorkspaceFileContent`](#useworkspacefilecontent).
     entry: { type: "WorkspaceEntry | null", description: "The workspace entry that owns the file, or `null` when nothing is open.", required: true },
     path: { type: "string | null", description: "Repo-relative (git) or root-relative (local) path, or `null` when nothing is open.", required: true },
     reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader. `undefined` when the host app injects no reader at all (e.g. web with no GitHub token) — surfaced as UseWorkspaceFileContentReturn.isUnsupported, not an error.", required: true },
+  }}
+/>
+
+
+### UseWorkspaceFileSearchOptions
+
+Options for [`useWorkspaceFileSearch`](#useworkspacefilesearch).
+
+<TypeTable
+  type={{
+    entries: { type: "readonly WorkspaceEntry[]", description: "All workspace entries to search across.", required: true },
+    lister: { type: "WorkspaceFileLister | undefined", description: "Platform-injected file lister. `undefined` → nothing is searchable.", required: true },
+    query: { type: "string", description: "Current search query. Empty/whitespace yields no matches (search shows a hint).", required: true },
   }}
 />
 
@@ -465,6 +558,7 @@ uses `isDirectory` to annotate folder nodes.
 <TypeTable
   type={{
     isDirectory: { type: "boolean", description: "Whether this entry is a directory.", required: true },
+    notice: { type: "true", description: "Marks this entry as an advisory notice rather than an openable file — for example a \"listing truncated\" message when a repository exceeds the backend's entry limit. When `true`, `path` carries the human-readable message. Consumers must not treat a notice as a real file: it is stripped from the openable listing (never a tree leaf, never a search hit) and is surfaced instead as a single `truncated` banner (see `workspaceListingCache`).  Optional and additive: listers that never truncate simply omit it." },
     path: { type: "string", description: "Relative path from the workspace root (e.g. \"src/index.ts\").", required: true },
   }}
 />
@@ -487,6 +581,23 @@ Returns `null` when listing is not supported for this entry type
 (e.g., a local-path entry on web, or a git entry without a token).
 
 
+### WorkspaceFileMatch
+
+A workspace file that matched a search query.
+
+`matchStart`/`matchEnd` are code-unit offsets into `path` (a half-open
+`[start, end)` range) for the single contiguous substring hit, so a consumer
+can highlight exactly the matched span with `path.slice(...)`.
+
+<TypeTable
+  type={{
+    matchEnd: { type: "number", description: "Exclusive end offset of the matched substring within `path`.", required: true },
+    matchStart: { type: "number", description: "Inclusive start offset of the matched substring within `path`.", required: true },
+    path: { type: "string", description: "Repo-relative (git) or root-relative (local) path of the matched file.", required: true },
+  }}
+/>
+
+
 ### WorkspaceFileReader
 
 Platform-injected callback that reads the content of a single workspace file.
@@ -506,4 +617,18 @@ Two distinct failure axes — do not conflate them:
 `path` is repo-relative for git entries and root-relative for local entries —
 exactly the strings the matching `WorkspaceFileLister` emits, so a file-tree
 node path can be handed straight to the reader with no transformation.
+
+
+### WorkspaceFileSearchGroup
+
+Matches (and per-entry status) for one workspace entry.
+
+<TypeTable
+  type={{
+    entry: { type: "WorkspaceEntry", description: "The workspace entry these matches belong to.", required: true, typeDescriptionLink: "#workspaceentry" },
+    error: { type: "Error | null", description: "Listing error for this entry, if any (isolated — other entries still resolve).", required: true },
+    matches: { type: "readonly WorkspaceFileMatch[]", description: "Ranked matches within this entry, best-first.", required: true },
+    truncated: { type: "boolean", description: "`true` when this entry's listing was truncated (repository too large).", required: true },
+  }}
+/>
 
