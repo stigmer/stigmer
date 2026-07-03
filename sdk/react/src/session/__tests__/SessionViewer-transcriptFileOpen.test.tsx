@@ -141,6 +141,13 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
     expect(typeof capturedOnFilePathClick()).toBe("function");
   });
 
+  it("threads the sandbox workspace root to the inspector (diff correlation)", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(inspectorProps.at(-1)?.sandboxWorkspaceRoot).toBe(
+      "/home/daytona/workspace",
+    );
+  });
+
   it("opens a resolvable tool-call path in the inspector's Viewer selection", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
     expect(latestSelectedFile()).toBeNull();

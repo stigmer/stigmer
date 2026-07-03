@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, type KeyboardEvent } from "react";
+import { useCallback, useState, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ArtifactContentRenderer } from "../execution/ArtifactContentRenderer.js";
+import { FileChangeDiff } from "../execution/FileChangesView.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { useWorkspaceFileContent } from "./useWorkspaceFileContent.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
@@ -26,6 +29,16 @@ export interface FileViewerProps {
    * reader — the viewer shows an honest "not available here" state.
    */
   readonly reader: WorkspaceFileReader | undefined;
+  /**
+   * The session {@link FileChange} that touched this file, when it was changed
+   * this session. When present the viewer defaults to the authoritative
+   * `baseline→candidate` diff (DD-06) and — for a non-DELETE change with a
+   * `reader` — offers a labeled toggle to the live "File" view. `undefined`
+   * (the default) keeps the viewer a pure read-only browser (backward
+   * compatible). Callers correlate the open file to its change with
+   * `findChangeForSelection`; a platform builder can pass any `FileChange`.
+   */
+  readonly change?: FileChange;
   /** Called when the user closes the viewer (close button or Escape). */
   readonly onClose?: () => void;
   /** Additional CSS classes for the root element. */
@@ -64,6 +77,7 @@ export function FileViewer({
   selectedFile,
   entries,
   reader,
+  change,
   onClose,
   className,
 }: FileViewerProps) {
@@ -74,6 +88,23 @@ export function FileViewer({
   // hook stays idle, so hook order is stable across the not-found branch.
   const { content, isLoading, error, isUnsupported, refetch } =
     useWorkspaceFileContent({ entry, path, reader });
+
+  // View mode is meaningful only for a changed file. A deleted file has no live
+  // bytes to browse, and browsing needs a reader, so the live "File" view is
+  // gated on both; otherwise a changed file shows the diff alone (no lone
+  // control). The default is the authoritative diff (DD-06). The mount site
+  // remounts the viewer per file (`key`), so this initializes correctly for
+  // each opened file without deriving during render.
+  const canBrowseLive = reader !== undefined && change?.changeType !== FileChangeType.DELETE;
+  const showViewToggle = change !== undefined && canBrowseLive;
+  const [viewMode, setViewMode] = useState<"diff" | "file">(
+    change !== undefined ? "diff" : "file",
+  );
+  const effectiveView: "diff" | "file" = change
+    ? canBrowseLive
+      ? viewMode
+      : "diff"
+    : "file";
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
@@ -121,18 +152,105 @@ export function FileViewer({
       <ViewerHeader
         basename={basename}
         dir={dir}
-        onRefresh={isUnsupported ? undefined : refetch}
+        onRefresh={effectiveView === "file" && !isUnsupported ? refetch : undefined}
         onClose={onClose}
       />
+      {showViewToggle && (
+        <ViewerModeToggle value={viewMode} onChange={setViewMode} />
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <FileViewerBody
-          basename={basename}
-          content={content}
-          isLoading={isLoading}
-          isUnsupported={isUnsupported}
-          error={error}
-          onRetry={refetch}
-        />
+        {effectiveView === "diff" && change ? (
+          <div className="p-3">
+            <FileChangeDiff change={change} showFileName={false} showStats />
+          </div>
+        ) : (
+          <>
+            {change && (
+              <p className="border-b border-border-muted px-4 py-1.5 text-[0.65rem] text-muted-foreground">
+                Live — may differ from the reviewed change.
+              </p>
+            )}
+            <FileViewerBody
+              basename={basename}
+              content={content}
+              isLoading={isLoading}
+              isUnsupported={isUnsupported}
+              error={error}
+              onRetry={refetch}
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// View toggle — Diff vs live File
+// ---------------------------------------------------------------------------
+
+/**
+ * Segmented control for a changed file's two views: the authoritative reviewed
+ * **Diff** and the live **File**. A mutually-exclusive choice, so it follows
+ * the platform's radiogroup segmented-control pattern (see `library/ScopeToggle`)
+ * rather than a tablist — it must not nest a second tablist inside the
+ * inspector's own tabs.
+ */
+function ViewerModeToggle({
+  value,
+  onChange,
+}: {
+  readonly value: "diff" | "file";
+  readonly onChange: (next: "diff" | "file") => void;
+}) {
+  const options: readonly { readonly value: "diff" | "file"; readonly label: string }[] = [
+    { value: "diff", label: "Diff" },
+    { value: "file", label: "File" },
+  ];
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLButtonElement>) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        onChange("file");
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        onChange("diff");
+      }
+    },
+    [onChange],
+  );
+
+  return (
+    <div className="border-b border-border px-3 py-1.5">
+      <div
+        role="radiogroup"
+        aria-label="File view"
+        className="inline-flex rounded-md bg-muted p-0.5"
+      >
+        {options.map((option) => {
+          const isSelected = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              tabIndex={isSelected ? 0 : -1}
+              onClick={() => onChange(option.value)}
+              onKeyDown={handleKeyDown}
+              className={cn(
+                "inline-flex cursor-pointer items-center rounded-sm px-2 py-0.5 text-xs font-medium transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isSelected
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {option.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

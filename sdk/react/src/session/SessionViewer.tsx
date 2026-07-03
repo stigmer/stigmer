@@ -595,6 +595,7 @@ function InspectorPanel({
         org={org}
         selectedItem={selectedItem}
         selectedFile={selectedFile}
+        sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
         onCloseFile={handleCloseFile}
         onApplied={onApplied}
         onImplementPlan={onImplementPlan}
