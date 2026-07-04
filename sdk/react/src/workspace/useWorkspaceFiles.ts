@@ -40,7 +40,7 @@ const EMPTY_TREE: readonly TreeNode[] = [];
  * workspace entry, converting it into a {@link TreeNode} hierarchy.
  *
  * - Calls the platform-injected `lister` (via the shared
- *   {@link import("./workspaceListingCache.js").loadEntryFiles} cache) when the
+ *   {@link loadEntryFiles} cache) when the
  *   entry changes.
  * - Reads the shared listing cache so tab switches, re-expands, and the search
  *   surface are instant without re-fetching (one cache, keyed by `entry.id`).

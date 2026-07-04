@@ -48,7 +48,7 @@ function encodePath(path: string): string {
  * Creates a {@link WorkspaceFileReader} backed by the GitHub Contents API,
  * with a Blob-API fallback for files above the Contents 1 MB cap.
  *
- * Uses the same client-side OAuth token as {@link import("./useGitHubTreeLister.js").useGitHubTreeLister}
+ * Uses the same client-side OAuth token as {@link useGitHubTreeLister}
  * (`Authorization: Bearer`), inheriting its private-repo scope. Returns
  * `undefined` when no token is present, mirroring the tree lister so callers
  * can treat "no reader" and "no lister" identically.

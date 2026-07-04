@@ -56,7 +56,7 @@ const EMPTY_GROUPS: readonly WorkspaceFileSearchGroup[] = [];
  * Behavior hook powering workspace-wide filename/path search.
  *
  * Loads each entry's listing through the shared
- * {@link import("./workspaceListingCache.js").loadEntryFiles} cache (warm from
+ * {@link loadEntryFiles} cache (warm from
  * Files browsing → usually free), then ranks matches per entry with the pure
  * {@link matchWorkspaceFiles}. Fetching is keyed by the set of entry ids, so a
  * query change re-ranks the already-loaded listings without re-fetching. Errors

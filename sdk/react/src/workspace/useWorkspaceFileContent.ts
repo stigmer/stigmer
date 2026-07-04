@@ -63,14 +63,14 @@ const EMPTY_CONTENT: FileContentData = { content: null };
 /**
  * Behavior hook that reads a single workspace file's content on demand.
  *
- * The byte-reading peer of {@link import("./useWorkspaceFiles.js").useWorkspaceFiles}
+ * The byte-reading peer of {@link useWorkspaceFiles}
  * (which lists the tree), built on the same {@link useFetch} engine as the
- * content-fetch family ({@link import("../execution/useArtifactContent.js").useArtifactContent},
+ * content-fetch family ({@link useArtifactContent},
  * `useToolOutputContent`, `useFileChangeContent`) so it inherits their
  * stale-while-revalidate, cancellation, and `refetch` semantics for free.
  *
  * Deliberately passes **no** `cacheKey`: file bodies (up to
- * {@link import("./WorkspaceFileReader.js").MAX_WORKSPACE_FILE_READ_BYTES})
+ * {@link MAX_WORKSPACE_FILE_READ_BYTES})
  * do not belong in the cross-mount metadata cache, which is sized for small,
  * hot resources. Re-opening a file re-reads it — the correct trade for a
  * read-only viewer.

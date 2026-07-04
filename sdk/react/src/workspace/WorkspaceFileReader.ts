@@ -35,7 +35,7 @@ export interface WorkspaceFileContent {
 /**
  * Platform-injected callback that reads the content of a single workspace file.
  *
- * The byte-reading sibling of {@link import("./WorkspaceFileLister.js").WorkspaceFileLister}:
+ * The byte-reading sibling of {@link WorkspaceFileLister}:
  * the SDK calls it when a user opens a file; the platform decides *how* the
  * bytes are fetched (GitHub on web, Tauri on desktop).
  *

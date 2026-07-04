@@ -12,7 +12,7 @@ description: Hooks and components for file entries, folder browsing, and code ed
 Behavior hook powering workspace-wide content (text) search.
 
 The text-grep sibling of
-`import("./useWorkspaceFileSearch.js").useWorkspaceFileSearch`: it keeps
+[`useWorkspaceFileSearch`](#useworkspacefilesearch): it keeps
 that hook's per-entry aggregation, error isolation, and generation guard, and
 adds the platform's canonical debounce idiom from `useResourceSearch`
 (`query`/`debouncedQuery` + `setTimeout`). The key difference is that the
@@ -117,14 +117,14 @@ workspace.addLocalPath("/Users/dev/projects/frontend");
 
 Behavior hook that reads a single workspace file's content on demand.
 
-The byte-reading peer of `import("./useWorkspaceFiles.js").useWorkspaceFiles`
+The byte-reading peer of [`useWorkspaceFiles`](#useworkspacefiles)
 (which lists the tree), built on the same `useFetch` engine as the
-content-fetch family (`import("../execution/useArtifactContent.js").useArtifactContent`,
+content-fetch family ([`useArtifactContent`](/docs/sdk/react/execution#useartifactcontent),
 `useToolOutputContent`, `useFileChangeContent`) so it inherits their
 stale-while-revalidate, cancellation, and `refetch` semantics for free.
 
 Deliberately passes **no** `cacheKey`: file bodies (up to
-`import("./WorkspaceFileReader.js").MAX_WORKSPACE_FILE_READ_BYTES`)
+[`MAX_WORKSPACE_FILE_READ_BYTES`](#max_workspace_file_read_bytes))
 do not belong in the cross-mount metadata cache, which is sized for small,
 hot resources. Re-opening a file re-reads it — the correct trade for a
 read-only viewer.
@@ -176,7 +176,7 @@ Behavior hook that fetches and caches a file listing for a single
 workspace entry, converting it into a `TreeNode` hierarchy.
 
 - Calls the platform-injected `lister` (via the shared
-  `import("./workspaceListingCache.js").loadEntryFiles` cache) when the
+  `loadEntryFiles` cache) when the
   entry changes.
 - Reads the shared listing cache so tab switches, re-expands, and the search
   surface are instant without re-fetching (one cache, keyed by `entry.id`).
@@ -221,7 +221,7 @@ const { tree, isLoading, error, truncated, refresh } = useWorkspaceFiles({
 Behavior hook powering workspace-wide filename/path search.
 
 Loads each entry's listing through the shared
-`import("./workspaceListingCache.js").loadEntryFiles` cache (warm from
+`loadEntryFiles` cache (warm from
 Files browsing → usually free), then ranks matches per entry with the pure
 `matchWorkspaceFiles`. Fetching is keyed by the set of entry ids, so a
 query change re-ranks the already-loaded listings without re-fetching. Errors
@@ -729,7 +729,7 @@ match even for long lines (the backend windows it around the first hit).
 Platform-injected callback that searches file *contents* within one workspace
 entry for a case-insensitive substring.
 
-The text-grep sibling of `import("./WorkspaceFileLister.js").WorkspaceFileLister`:
+The text-grep sibling of [`WorkspaceFileLister`](#workspacefilelister):
 the SDK calls it (per entry, debounced) while the user types in the Search
 pane's Text mode; the platform decides *how* the grep runs.
 
@@ -769,7 +769,7 @@ stopped the search early.
 
 A result object (rather than a bare `WorkspaceContentMatch[]`) so the
 per-root `truncated` signal survives to the UI — mirroring how
-`import("./WorkspaceFileReader.js").WorkspaceFileReader` returns a
+[`WorkspaceFileReader`](#workspacefilereader) returns a
 `WorkspaceFileContent` object with its own `truncated` flag rather than raw
 text. `truncated` means "there are more matches than shown for this entry".
 
@@ -886,7 +886,7 @@ can highlight exactly the matched span with `path.slice(...)`.
 
 Platform-injected callback that reads the content of a single workspace file.
 
-The byte-reading sibling of `import("./WorkspaceFileLister.js").WorkspaceFileLister`:
+The byte-reading sibling of [`WorkspaceFileLister`](#workspacefilelister):
 the SDK calls it when a user opens a file; the platform decides *how* the
 bytes are fetched (GitHub on web, Tauri on desktop).
 

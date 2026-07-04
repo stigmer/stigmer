@@ -104,7 +104,7 @@ function DesktopGitHubConnect({ org }: { org: string }) {
 Creates a [`WorkspaceFileReader`](/docs/sdk/react/workspace#workspacefilereader) backed by the GitHub Contents API,
 with a Blob-API fallback for files above the Contents 1 MB cap.
 
-Uses the same client-side OAuth token as `import("./useGitHubTreeLister.js").useGitHubTreeLister`
+Uses the same client-side OAuth token as [`useGitHubTreeLister`](#usegithubtreelister)
 (`Authorization: Bearer`), inheriting its private-repo scope. Returns
 `undefined` when no token is present, mirroring the tree lister so callers
 can treat "no reader" and "no lister" identically.

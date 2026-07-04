@@ -73,7 +73,7 @@ const EMPTY_GROUPS: readonly WorkspaceContentSearchGroup[] = [];
  * Behavior hook powering workspace-wide content (text) search.
  *
  * The text-grep sibling of
- * {@link import("./useWorkspaceFileSearch.js").useWorkspaceFileSearch}: it keeps
+ * {@link useWorkspaceFileSearch}: it keeps
  * that hook's per-entry aggregation, error isolation, and generation guard, and
  * adds the platform's canonical debounce idiom from `useResourceSearch`
  * (`query`/`debouncedQuery` + `setTimeout`). The key difference is that the

@@ -31,7 +31,7 @@ export interface WorkspaceContentMatch {
  *
  * A result object (rather than a bare `WorkspaceContentMatch[]`) so the
  * per-root `truncated` signal survives to the UI — mirroring how
- * {@link import("./WorkspaceFileReader.js").WorkspaceFileReader} returns a
+ * {@link WorkspaceFileReader} returns a
  * `WorkspaceFileContent` object with its own `truncated` flag rather than raw
  * text. `truncated` means "there are more matches than shown for this entry".
  */
@@ -46,7 +46,7 @@ export interface WorkspaceContentSearchResult {
  * Platform-injected callback that searches file *contents* within one workspace
  * entry for a case-insensitive substring.
  *
- * The text-grep sibling of {@link import("./WorkspaceFileLister.js").WorkspaceFileLister}:
+ * The text-grep sibling of {@link WorkspaceFileLister}:
  * the SDK calls it (per entry, debounced) while the user types in the Search
  * pane's Text mode; the platform decides *how* the grep runs.
  *
