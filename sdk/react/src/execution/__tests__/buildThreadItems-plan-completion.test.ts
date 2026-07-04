@@ -291,7 +291,108 @@ describe("buildThreadItems plan-completion variant", () => {
   });
 });
 
-describe("buildThreadItems plan-document stamping", () => {
+describe("buildThreadItems plan-message collapse (artifact published)", () => {
+  function messageItems(items: readonly ThreadItem[]) {
+    return items.filter(
+      (i): i is Extract<ThreadItem, { kind: "message" }> =>
+        i.kind === "message",
+    );
+  }
+
+  it("removes the plan message from the thread — the card is the turn's sole plan representation", () => {
+    const exec = makeExecution({
+      id: "exec-plan",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "Let me look around first."),
+        makeMessage(MessageType.MESSAGE_AI, "# The Plan\n\n1. Do the thing"),
+      ],
+      withPlanArtifact: true,
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+
+    // The opening narration stays; the plan message (m1) is collapsed.
+    const keys = messageItems(items).map((i) => i.key);
+    expect(keys).toContain("exec-plan-m0");
+    expect(keys).not.toContain("exec-plan-m1");
+    expect(planItems(items)).toHaveLength(1);
+  });
+
+  it("lifts the plan's leading H1 onto the card as its title", () => {
+    const exec = makeExecution({
+      id: "exec-plan",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "# Refactor auth\n\nSteps…"),
+      ],
+      withPlanArtifact: true,
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    expect(planItems(items)[0].planTitle).toBe("Refactor auth");
+  });
+
+  it("extracts the title through a plan-scoped enclosing fence (bare fence included)", () => {
+    // Same unwrap the document renderers apply, so card and plan tab agree.
+    const exec = makeExecution({
+      id: "exec-plan",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "```\n# Fenced Plan\n\nBody\n```"),
+      ],
+      withPlanArtifact: true,
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    expect(planItems(items)[0].planTitle).toBe("Fenced Plan");
+  });
+
+  it("leaves the title undefined when the plan has no leading H1", () => {
+    const exec = makeExecution({
+      id: "exec-plan",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Just prose, no title")],
+      withPlanArtifact: true,
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    expect(planItems(items)[0].planTitle).toBeUndefined();
+  });
+
+  it("never stamps isPlanDocument when the message collapsed into the card", () => {
+    const exec = makeExecution({
+      id: "exec-plan",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "# The Plan")],
+      withPlanArtifact: true,
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    expect(
+      messageItems(items).filter((i) => i.isPlanDocument === true),
+    ).toHaveLength(0);
+  });
+
+  it("keeps the plan message inline while streaming (no artifact yet)", () => {
+    const exec = makeExecution({
+      id: "exec-live",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "# Draft so far")],
+    });
+
+    const items = buildThreadItems([], exec, null, false, undefined);
+    expect(messageItems(items).map((i) => i.key)).toContain("exec-live-m0");
+  });
+});
+
+describe("buildThreadItems plan-document stamping (no-artifact fallback)", () => {
   function planDocumentItems(items: readonly ThreadItem[]) {
     return items.filter(
       (i): i is Extract<ThreadItem, { kind: "message" }> =>

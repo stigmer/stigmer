@@ -47,7 +47,7 @@ export interface VirtualizedThreadProps {
   readonly fileReviewCtx: FileReviewContextValue;
   readonly unresolvedApprovalCount: number;
   readonly onBuildFromPlan?: () => void;
-  readonly onOpenPlan?: () => void;
+  readonly onOpenPlan?: (executionId: string) => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
   readonly planBuildPending?: boolean;

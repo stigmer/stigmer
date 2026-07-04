@@ -7,10 +7,7 @@ import type { SelectedThreadItem } from "../internal/store/selection-store.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import { useSessionArtifacts } from "./useSessionArtifacts.js";
-import type { SessionPlan } from "../library/detect-plan-artifact.js";
-import type { PlanDraftController } from "./usePlanDraft.js";
 import { SetupTab, type SetupTabProps } from "./facets/SetupTab.js";
-import { PlanTab } from "./facets/PlanTab.js";
 import { ChangesTab } from "./facets/ChangesTab.js";
 import { ArtifactsTab } from "./facets/ArtifactsTab.js";
 import { UsageTab } from "./facets/UsageTab.js";
@@ -28,14 +25,14 @@ export interface UseSessionRailViewsOptions {
   readonly selectedItem: SelectedThreadItem | null;
   /** Called after a resource is applied from the Artifacts facet. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
-  /** Implement a plan — the Plan facet's primary and the Artifacts preview action. */
+  /** Implement a plan — the Artifacts facet's preview action for `plan.md`. */
   readonly onImplementPlan?: () => void;
-  /** Disables the Plan facet's Build action (execution in flight / submitting). */
-  readonly implementPlanDisabled?: boolean;
-  /** The session's latest plan — surfaces the Plan facet. */
-  readonly sessionPlan?: SessionPlan;
-  /** Viewer-owned plan draft controller (required to render the Plan facet). */
-  readonly planDraft?: PlanDraftController;
+  /**
+   * Open a plan in the panel's plan document tab. Routed to the Artifacts
+   * facet so clicking `plan.md` there opens the editor-area document instead
+   * of the preview modal.
+   */
+  readonly onOpenPlan?: (executionId: string) => void;
   /**
    * Whether to offer the execution-derived facets (Changes / Artifacts /
    * Usage). The launcher passes `false` — before a session exists there are no
@@ -62,9 +59,7 @@ export function useSessionRailViews({
   selectedItem,
   onApplied,
   onImplementPlan,
-  implementPlanDisabled,
-  sessionPlan,
-  planDraft,
+  onOpenPlan,
   includeExecutionFacets = true,
 }: UseSessionRailViewsOptions): readonly SurfaceRailView[] {
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(allExecutions);
@@ -83,25 +78,6 @@ export function useSessionRailViews({
     }
 
     if (includeExecutionFacets) {
-      // The plan leads the execution facets: review-and-build is the session's
-      // next decision when a plan exists. Draft state is viewer-owned
-      // (planDraft) because this content unmounts on every view switch.
-      if (sessionPlan && planDraft) {
-        views.push({
-          id: "plan",
-          label: "Plan",
-          icon: <PlanIcon />,
-          content: (
-            <PlanTab
-              plan={sessionPlan}
-              draft={planDraft}
-              onBuildFromPlan={onImplementPlan}
-              buildDisabled={implementPlanDisabled}
-            />
-          ),
-        });
-      }
-
       if (hasWriteBacks) {
         views.push({
           id: "changes",
@@ -124,6 +100,7 @@ export function useSessionRailViews({
               org={org}
               onApplied={onApplied}
               onImplementPlan={onImplementPlan}
+              onOpenPlan={onOpenPlan}
             />
           ),
         });
@@ -158,9 +135,7 @@ export function useSessionRailViews({
     org,
     onApplied,
     onImplementPlan,
-    implementPlanDisabled,
-    sessionPlan,
-    planDraft,
+    onOpenPlan,
     selectedItem,
   ]);
 }
@@ -175,16 +150,6 @@ function GearIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-
-/** Plan document glyph — the session's reviewable plan. */
-function PlanIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 5h16M4 10h11M4 15h13" />
-      <path d="M17.5 17.5l2.5 2.5-2.5 2.5" />
     </svg>
   );
 }

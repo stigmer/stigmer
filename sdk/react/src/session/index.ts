@@ -116,6 +116,15 @@ export type {
 export { usePlanDraft, planDraftKey } from "./usePlanDraft.js";
 export type { PlanDraftController } from "./usePlanDraft.js";
 
+// Plan document — the editor-area plan surface (mounted as a virtual document
+// in the workspace surface) and the identity of its tab.
+export { PlanEditor } from "./PlanEditor.js";
+export type { PlanEditorProps } from "./PlanEditor.js";
+export {
+  PLAN_DOCUMENT_ENTRY_ID,
+  PLAN_DOCUMENT_PATH,
+} from "./plan-document.js";
+
 // Selection types (for platform builders composing their own Inspect facet)
 export type { SelectedThreadItem } from "../internal/store/selection-store.js";
 

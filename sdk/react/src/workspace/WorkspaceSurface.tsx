@@ -47,6 +47,32 @@ export interface SurfaceRailView {
   readonly content: ReactNode;
 }
 
+/**
+ * A host-injected virtual document: an editor tab whose content is not a
+ * workspace file — the session's `plan.md` today; execution artifacts are the
+ * anticipated next family.
+ *
+ * The editor-area counterpart of {@link SurfaceRailView}'s rail injection
+ * (DD-004): virtual documents share the tab group with file tabs (identical
+ * open / pin / close / activate semantics through the same editors store),
+ * and only the *body* rendering diverges — the surface renders `content`
+ * instead of breadcrumbs + `FileViewer`. The surface stays domain-pure: it
+ * matches tabs to virtual documents by identity and knows nothing about what
+ * the document is.
+ *
+ * `entryId` must come from `virtualEntryId(kind)` so it can never alias a
+ * real workspace entry; `path` doubles as the tab label's source (its
+ * basename), matching file-tab behavior.
+ */
+export interface SurfaceVirtualDocument {
+  /** Virtual entry id (from `virtualEntryId`) — the tab's owning "entry". */
+  readonly entryId: string;
+  /** Tab identity within the entry; its basename is the tab label. */
+  readonly path: string;
+  /** Editor-area content rendered while this document's tab is active. */
+  readonly content: ReactNode;
+}
+
 /** Props for {@link WorkspaceSurface}. */
 export interface WorkspaceSurfaceProps {
   /** The workspace entries whose files are browsable (multi-root). */
@@ -77,6 +103,13 @@ export interface WorkspaceSurfaceProps {
    * files (the VS Code model).
    */
   readonly extraViews?: readonly SurfaceRailView[];
+  /**
+   * Host-injected virtual documents (see {@link SurfaceVirtualDocument}).
+   * A tab whose identity matches one of these renders its `content` in the
+   * editor area instead of the file viewer. The host opens/activates the tab
+   * through the same editors-store seams as files.
+   */
+  readonly virtualDocuments?: readonly SurfaceVirtualDocument[];
   /**
    * Detach a workspace entry. When provided, explorer root headers carry a
    * remove control (VS Code's "Remove Folder from Workspace").
@@ -147,6 +180,7 @@ export function WorkspaceSurface({
   view,
   onViewChange,
   extraViews,
+  virtualDocuments,
   onRemoveEntry,
   onAddLocalFolder,
   editors,
@@ -225,6 +259,7 @@ export function WorkspaceSurface({
             reader={reader}
             editors={editors}
             selectedFile={selectedFile}
+            virtualDocuments={virtualDocuments}
             change={change}
             reveal={reveal}
             onActivateEditor={onActivateEditor}
@@ -520,6 +555,7 @@ function EditorArea({
   reader,
   editors,
   selectedFile,
+  virtualDocuments,
   change,
   reveal,
   onActivateEditor,
@@ -531,6 +567,7 @@ function EditorArea({
   readonly reader: WorkspaceFileReader | undefined;
   readonly editors: readonly OpenEditor[];
   readonly selectedFile: SelectedWorkspaceFile | null;
+  readonly virtualDocuments?: readonly SurfaceVirtualDocument[];
   readonly change?: FileChange;
   readonly reveal?: RevealTarget;
   readonly onActivateEditor: (entryId: string, path: string) => void;
@@ -542,6 +579,14 @@ function EditorArea({
   const activeKey = selectedFile
     ? editorKey(selectedFile.entryId, selectedFile.path)
     : null;
+  // The active tab is a virtual document when its identity matches an injected
+  // one — the body renders the document's content instead of the file viewer.
+  const activeVirtualDocument =
+    activeKey !== null
+      ? virtualDocuments?.find(
+          (d) => editorKey(d.entryId, d.path) === activeKey,
+        )
+      : undefined;
   const activeEntryName = selectedFile
     ? entries.find((e) => e.id === selectedFile.entryId)?.name
     : undefined;
@@ -572,7 +617,14 @@ function EditorArea({
           />
         )}
       </div>
-      {selectedFile ? (
+      {activeVirtualDocument ? (
+        // A virtual document owns its body wholesale: no breadcrumbs (there is
+        // no filesystem location) and no FileViewer (there is no reader-backed
+        // file). Keyed like files so switching documents resets cleanly.
+        <div key={activeKey ?? undefined} className="min-h-0 flex-1 overflow-y-auto">
+          {activeVirtualDocument.content}
+        </div>
+      ) : selectedFile ? (
         <>
           <Breadcrumbs
             entryName={activeEntryName}

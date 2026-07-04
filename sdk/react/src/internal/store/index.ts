@@ -27,7 +27,12 @@ export type { SelectedThreadItem } from "./selection-store.js";
 export { WorkspaceFileSelectionStore } from "./workspace-file-selection-store.js";
 export type { SelectedWorkspaceFile } from "./workspace-file-selection-store.js";
 
-export { WorkspaceEditorsStore, editorKey } from "./workspace-editors-store.js";
+export {
+  WorkspaceEditorsStore,
+  editorKey,
+  virtualEntryId,
+  isVirtualEntryId,
+} from "./workspace-editors-store.js";
 export type {
   OpenEditor,
   OpenFileOptions,

@@ -47,18 +47,32 @@ function renderCard(ui: ReactNode) {
 
 afterEach(cleanup);
 
-describe("PlanArtifactCard — action surface", () => {
-  it("is an accessible region labelled as the plan's actions, with name + size", () => {
+describe("PlanArtifactCard — compact document card", () => {
+  it("is an accessible region with the plan's title, filename, and size", () => {
     renderCard(
-      <PlanArtifactCard executionId="aex_1" artifact={planArtifact} org="acme" />,
+      <PlanArtifactCard
+        executionId="aex_1"
+        artifact={planArtifact}
+        title="Refactor the auth flow"
+        org="acme"
+      />,
     );
 
-    const region = screen.getByRole("region", { name: "Plan actions" });
-    expect(region.textContent).toContain("Plan");
+    const region = screen.getByRole("region", { name: "Plan" });
+    expect(region.textContent).toContain("Refactor the auth flow");
+    expect(region.textContent).toContain("plan.md");
     expect(region.textContent).toContain("KB");
   });
 
-  it("does NOT render the plan content (the message above is the document)", () => {
+  it("falls back to 'Plan' when the plan has no title", () => {
+    renderCard(
+      <PlanArtifactCard executionId="aex_1" artifact={planArtifact} org="acme" />,
+    );
+    const region = screen.getByRole("region", { name: "Plan" });
+    expect(region.textContent).toContain("Plan");
+  });
+
+  it("does NOT render the plan content (the document lives in the plan tab)", () => {
     const { stigmer, getArtifactContent } = createStigmerMock();
     render(
       withStigmer(
@@ -66,8 +80,8 @@ describe("PlanArtifactCard — action surface", () => {
         stigmer,
       ),
     );
-    // The card is a pure action surface — it must not fetch the plan body until
-    // the user explicitly opens the full preview.
+    // The card is the plan's compact stand-in — it must not fetch the plan
+    // body; that belongs to the plan tab (or the explicit preview modal).
     expect(getArtifactContent).not.toHaveBeenCalled();
   });
 
@@ -160,7 +174,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
       />,
     );
 
-    const region = screen.getByRole("region", { name: "Plan actions" });
+    const region = screen.getByRole("region", { name: "Plan" });
     fireEvent.keyDown(region, { key: "Enter", metaKey: true });
     expect(onImplement).toHaveBeenCalledTimes(1);
   });
@@ -176,7 +190,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
       />,
     );
 
-    const region = screen.getByRole("region", { name: "Plan actions" });
+    const region = screen.getByRole("region", { name: "Plan" });
     fireEvent.keyDown(region, { key: "Enter", ctrlKey: true });
     expect(onImplement).toHaveBeenCalledTimes(1);
   });
@@ -192,7 +206,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
       />,
     );
 
-    const region = screen.getByRole("region", { name: "Plan actions" });
+    const region = screen.getByRole("region", { name: "Plan" });
     fireEvent.keyDown(region, { key: "Enter" });
     expect(onImplement).not.toHaveBeenCalled();
   });
@@ -209,7 +223,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
       />,
     );
 
-    const region = screen.getByRole("region", { name: "Plan actions" });
+    const region = screen.getByRole("region", { name: "Plan" });
     fireEvent.keyDown(region, { key: "Enter", metaKey: true });
     expect(onImplement).not.toHaveBeenCalled();
   });

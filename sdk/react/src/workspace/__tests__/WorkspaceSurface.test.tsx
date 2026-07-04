@@ -34,6 +34,7 @@ vi.mock("../WorkspaceContentSearch", () => ({
 }));
 
 import { WorkspaceSurface } from "../WorkspaceSurface";
+import { virtualEntryId } from "../../internal/store/index.js";
 import type { WorkspaceEntry } from "../useWorkspaceEntries";
 import type { WorkspaceFileLister } from "../WorkspaceFileLister";
 import type { WorkspaceFileReader } from "../WorkspaceFileReader";
@@ -240,6 +241,77 @@ describe("WorkspaceSurface extraViews", () => {
     fireEvent.click(search);
     fireEvent.keyDown(search, { key: "ArrowDown" });
     expect(screen.getByTestId("config-probe")).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Host-injected virtual documents — editor tabs that are not workspace files
+// (the session's plan.md today). Same open/pin/close semantics as file tabs;
+// only the body rendering diverges.
+// ---------------------------------------------------------------------------
+
+const PLAN_ENTRY_ID = virtualEntryId("plan");
+
+const planDocument = {
+  entryId: PLAN_ENTRY_ID,
+  path: "plan.md",
+  content: <div data-testid="plan-doc-probe" />,
+};
+
+describe("WorkspaceSurface virtualDocuments", () => {
+  it("renders the virtual document's content — no FileViewer, no breadcrumbs", () => {
+    renderSurface({
+      virtualDocuments: [planDocument],
+      editors: [{ entryId: PLAN_ENTRY_ID, path: "plan.md", preview: false }],
+      selectedFile: { entryId: PLAN_ENTRY_ID, path: "plan.md" },
+    });
+    expect(screen.getByTestId("plan-doc-probe")).toBeTruthy();
+    expect(viewerProps.length).toBe(0);
+    expect(screen.queryByRole("navigation", { name: "File location" })).toBeNull();
+  });
+
+  it("shows the virtual document as an ordinary tab (basename label)", () => {
+    renderSurface({
+      virtualDocuments: [planDocument],
+      editors: [
+        { entryId: "e1", path: "src/main.go", preview: false },
+        { entryId: PLAN_ENTRY_ID, path: "plan.md", preview: false },
+      ],
+      selectedFile: { entryId: PLAN_ENTRY_ID, path: "plan.md" },
+    });
+    const tab = screen.getByRole("tab", { name: /plan\.md/ });
+    expect(tab.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("keeps file tabs on the FileViewer path while a virtual document is injected", () => {
+    renderSurface({
+      virtualDocuments: [planDocument],
+      editors: [
+        { entryId: "e1", path: "src/main.go", preview: false },
+        { entryId: PLAN_ENTRY_ID, path: "plan.md", preview: false },
+      ],
+      selectedFile: { entryId: "e1", path: "src/main.go" },
+    });
+    expect(screen.queryByTestId("plan-doc-probe")).toBeNull();
+    expect(viewerProps.at(-1)?.selectedFile).toEqual({
+      entryId: "e1",
+      path: "src/main.go",
+    });
+  });
+
+  it("a virtual entry id can never alias a real file of the same path", () => {
+    // The NUL-namespaced id is the collision guard: a workspace file named
+    // plan.md under a real entry must not hijack the virtual document body.
+    renderSurface({
+      virtualDocuments: [planDocument],
+      editors: [{ entryId: "e1", path: "plan.md", preview: false }],
+      selectedFile: { entryId: "e1", path: "plan.md" },
+    });
+    expect(screen.queryByTestId("plan-doc-probe")).toBeNull();
+    expect(viewerProps.at(-1)?.selectedFile).toEqual({
+      entryId: "e1",
+      path: "plan.md",
+    });
   });
 });
 

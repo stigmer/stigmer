@@ -13,12 +13,15 @@ import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
 import type { WorkspaceContentSearcher } from "../workspace/WorkspaceContentSearcher.js";
 import { resolveWorkspaceFileSelection } from "../workspace/resolveWorkspaceFileSelection.js";
-import { WorkspaceSurface } from "../workspace/WorkspaceSurface.js";
+import {
+  WorkspaceSurface,
+  type SurfaceVirtualDocument,
+} from "../workspace/WorkspaceSurface.js";
 import type { InteractionModeOption, SessionComposerHandle } from "../composer/index.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import { SelectionStore } from "../internal/store/selection-store.js";
-import { useWorkspaceEditors } from "../internal/store/index.js";
+import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.js";
 import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
 import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
 import { MessageThread } from "../execution/MessageThread.js";
@@ -30,11 +33,14 @@ import { useStigmer } from "../hooks.js";
 import {
   PLAN_ARTIFACT_NAME,
   findLatestSessionPlan,
+  findPlanArtifact,
   type SessionPlan,
 } from "../library/detect-plan-artifact.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
 import { useOpenFileChange } from "./useOpenFileChange.js";
 import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanDraft.js";
+import { PlanEditor } from "./PlanEditor.js";
+import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
@@ -301,6 +307,23 @@ export function SessionViewer({
   const [isBuildingFromPlan, setIsBuildingFromPlan] = useState(false);
   const [planAttachFailed, setPlanAttachFailed] = useState(false);
 
+  // WHICH plan the panel's plan document tab shows. `null` means the session's
+  // current (latest) plan — the editable, buildable one; an execution id
+  // selects that turn's historical plan, rendered read-only. One tab, host-
+  // controlled content (Decision 3 in DD-16).
+  const [openPlanExecutionId, setOpenPlanExecutionId] = useState<string | null>(null);
+
+  // A new plan identity (first plan, or a refinement) supersedes any
+  // historical plan the user had opened: the tab snaps back to "latest" so
+  // the auto-open (useSessionPanel's planKey trigger) always surfaces the new
+  // plan. Adjust-state-during-render — own state only, the established idiom.
+  const currentPlanKey = sessionPlan ? planDraftKey(sessionPlan) : null;
+  const [prevPlanKey, setPrevPlanKey] = useState(currentPlanKey);
+  if (currentPlanKey !== prevPlanKey) {
+    setPrevPlanKey(currentPlanKey);
+    setOpenPlanExecutionId(null);
+  }
+
   // The unified-panel controller: owns the open-editor group store, the
   // open/collapsed state, and the rail-view FSM. Shared with the launcher
   // (DD-016). The editor store is owned here (never subscribed at this level)
@@ -310,7 +333,7 @@ export function SessionViewer({
   const panel = useSessionPanel({
     phase: hasPhase ? phase : null,
     hasChanges: hasWriteBacks,
-    planKey: sessionPlan ? planDraftKey(sessionPlan) : null,
+    planKey: currentPlanKey,
   });
 
   const handleBuildFromPlan = useCallback(() => {
@@ -369,13 +392,21 @@ export function SessionViewer({
     })();
   }, [setInteractionMode, sessionPlan, planDraft.readDraft, stigmer]);
 
-  // "Open plan" (thread plan card) → the panel's Plan facet: the side-by-side
-  // review surface. An explicit user action, so it may open the panel — unlike
-  // plan ARRIVAL, which only badges/switches an already-open panel.
-  const handleOpenPlan = useCallback(() => {
-    panel.setView("plan");
-    panel.openPanel();
-  }, [panel.setView, panel.openPanel]);
+  // "Open plan" (a thread plan card, or the Artifacts facet's plan.md) → the
+  // panel's plan document tab. Opening the LATEST plan clears the historical
+  // selection (the tab shows the editable current plan); any other execution
+  // id opens that turn's plan read-only in the same tab.
+  const handleOpenPlan = useCallback(
+    (executionId: string) => {
+      setOpenPlanExecutionId(
+        sessionPlan && executionId === sessionPlan.executionId
+          ? null
+          : executionId,
+      );
+      panel.openPlanDocument();
+    },
+    [sessionPlan, panel.openPlanDocument],
+  );
 
   // Open a transcript tool-call file path in the panel's read-only editor.
   // Resolves the (possibly absolute / subdir-prefixed) path to a
@@ -480,6 +511,8 @@ export function SessionViewer({
                 implementPlanDisabled={!conv.canSendFollowUp || isBuildingFromPlan}
                 sessionPlan={sessionPlan}
                 planDraft={planDraft}
+                openPlanExecutionId={openPlanExecutionId}
+                onOpenPlan={handleOpenPlan}
                 enableLocal={enableLocal}
                 onBrowseLocalFolder={onBrowseLocalFolder}
                 workspaceFileLister={workspaceFileLister}
@@ -512,8 +545,8 @@ interface ConversationColumnProps {
   readonly enableLocal: boolean;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly onBuildFromPlan: () => void;
-  /** Opens the panel's Plan facet (the thread plan card's "Open plan"). */
-  readonly onOpenPlan: () => void;
+  /** Opens a plan in the panel's plan document tab (thread card "Open plan"). */
+  readonly onOpenPlan: (executionId: string) => void;
   /** True while the approved plan is being uploaded ahead of the build turn. */
   readonly isBuildingFromPlan: boolean;
   /** True when the last build fell back to a message-only implement. */
@@ -691,13 +724,20 @@ interface SessionPanelRegionProps {
   /** Host access management control, surfaced in the Config facet. */
   readonly accessSlot?: ReactNode;
   readonly onApplied?: (result: ApplyResourceResult) => void;
-  /** Implement a plan (Plan facet primary + Artifacts preview action). */
+  /** Implement a plan (plan tab primary + Artifacts preview action). */
   readonly onImplementPlan?: () => void;
   readonly implementPlanDisabled?: boolean;
-  /** The session's latest plan — surfaces the Plan facet. */
+  /** The session's latest plan — the plan tab's editable content. */
   readonly sessionPlan?: SessionPlan;
   /** Viewer-owned plan draft (survives panel collapse and view switches). */
   readonly planDraft: PlanDraftController;
+  /**
+   * Which plan the plan document tab shows: `null` for the latest (editable),
+   * or an execution id whose historical plan renders read-only.
+   */
+  readonly openPlanExecutionId: string | null;
+  /** Opens a plan in the plan tab (routed to the Artifacts facet's plan.md). */
+  readonly onOpenPlan: (executionId: string) => void;
   readonly enableLocal: boolean;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
@@ -716,6 +756,8 @@ function SessionPanelRegion({
   implementPlanDisabled,
   sessionPlan,
   planDraft,
+  openPlanExecutionId,
+  onOpenPlan,
   enableLocal,
   onBrowseLocalFolder,
   workspaceFileLister,
@@ -742,13 +784,68 @@ function SessionPanelRegion({
   }, [selectedItem, panel.notifySelection]);
 
   // Correlate the active file with its session change for diff-as-default
-  // (DD-06 parity with the transcript's rendering of the same change).
+  // (DD-06 parity with the transcript's rendering of the same change). A
+  // virtual document (the plan tab) is not a workspace file — pass `null` so
+  // the hook's no-file guard skips the net-change fold entirely, rather than
+  // relying on the correlation harmlessly missing the sentinel id.
   const openFileChange = useOpenFileChange(
-    activeFile,
+    activeFile && !isVirtualEntryId(activeFile.entryId) ? activeFile : null,
     flow.allExecutions,
     flow.workspace.entries,
     flow.sandboxWorkspaceRoot,
   );
+
+  // Resolve WHICH plan the plan document tab shows: the latest (editable,
+  // buildable, draft-backed) unless a historical execution id was opened —
+  // that plan renders read-only. A stale id (execution gone, or its plan
+  // artifact missing) degrades to the latest rather than an empty tab.
+  const openPlan = useMemo<SessionPlan | undefined>(() => {
+    if (
+      openPlanExecutionId === null ||
+      openPlanExecutionId === sessionPlan?.executionId
+    ) {
+      return sessionPlan;
+    }
+    const execution = flow.allExecutions.find(
+      (e) => e.metadata?.id === openPlanExecutionId,
+    );
+    const artifact = findPlanArtifact(execution);
+    return artifact
+      ? { executionId: openPlanExecutionId, artifact }
+      : sessionPlan;
+  }, [openPlanExecutionId, sessionPlan, flow.allExecutions]);
+
+  // The plan document tab (SurfaceVirtualDocument): the panel's editor-area
+  // rendering of `openPlan`. Keyed by plan identity so switching between the
+  // latest and a historical plan resets the editor's view state cleanly.
+  const openPlanIsLatest = openPlan?.executionId === sessionPlan?.executionId;
+  const virtualDocuments = useMemo<
+    readonly SurfaceVirtualDocument[] | undefined
+  >(() => {
+    if (!openPlan) return undefined;
+    return [
+      {
+        entryId: PLAN_DOCUMENT_ENTRY_ID,
+        path: PLAN_DOCUMENT_PATH,
+        content: (
+          <PlanEditor
+            key={planDraftKey(openPlan)}
+            plan={openPlan}
+            draft={openPlanIsLatest ? planDraft : undefined}
+            onBuildFromPlan={openPlanIsLatest ? onImplementPlan : undefined}
+            buildDisabled={implementPlanDisabled}
+            readOnly={!openPlanIsLatest}
+          />
+        ),
+      },
+    ];
+  }, [
+    openPlan,
+    openPlanIsLatest,
+    planDraft,
+    onImplementPlan,
+    implementPlanDisabled,
+  ]);
 
   const handleRemoveAgent = useCallback(() => {
     flow.setAgentRef(null);
@@ -815,9 +912,7 @@ function SessionPanelRegion({
     selectedItem,
     onApplied,
     onImplementPlan,
-    implementPlanDisabled,
-    sessionPlan,
-    planDraft,
+    onOpenPlan,
   });
 
   // Explorer-footer folder attach (desktop only — needs the native picker).
@@ -837,6 +932,7 @@ function SessionPanelRegion({
       view={panel.view}
       onViewChange={panel.setView}
       extraViews={railViews}
+      virtualDocuments={virtualDocuments}
       onRemoveEntry={flow.workspace.remove}
       onAddLocalFolder={canAddLocalFolder ? handleAddLocalFolder : undefined}
       editors={editors}

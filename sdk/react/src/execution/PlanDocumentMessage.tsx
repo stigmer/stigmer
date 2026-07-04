@@ -18,28 +18,24 @@ export interface PlanDocumentMessageProps {
 }
 
 /**
- * Renders a completed Plan-mode turn's plan as a first-class document instead
- * of a chat bubble: a bordered card with a title header (the plan's leading
- * `# H1`, lifted out of the prose) and document-grade typography
+ * Renders a Plan-mode turn's plan as a first-class document instead of a chat
+ * bubble: a bordered card with a title header (the plan's leading `# H1`,
+ * lifted out of the prose) and document-grade typography
  * ({@link PLAN_DOCUMENT_MARKDOWN_COMPONENTS}).
  *
- * The thread promotes exactly one message per completed Plan execution to this
- * treatment — the same message the runner publishes as the `plan.md` artifact
- * (the last AI message with content; see `extractFinalPlanText` in the runner
- * and the selection in `buildThreadItems`). While the plan is still streaming
- * it renders as a normal chat message; it becomes the document at completion,
- * in place, without remounting (same thread-item key, changed props).
+ * This is the thread's NO-ARTIFACT fallback: a completed Plan turn that never
+ * published `plan.md` (older executions, a failed upload) keeps its plan
+ * inline via this component — the message is the only copy of the plan, so it
+ * must stay readable in place. A turn that DID publish the artifact collapses
+ * its plan message into the compact `PlanArtifactCard` instead, and the
+ * document renders in the session panel's plan tab (`PlanEditor`) with the
+ * same typography.
  *
  * Fence handling is plan-scoped: a plan wrapped in a whole-body fence is
  * unwrapped even when the fence carries no language tag (`allowBareFence`) —
  * a Plan turn's output is a markdown document by contract, so an enclosing
  * bare fence is wrapping, not code. Render-time only; the transcript and the
  * published artifact stay byte-faithful.
- *
- * The `PlanArtifactCard` action bar attaches directly beneath this card in the
- * thread (its `-mt-2` tightens the gap), so the two read as one plan block:
- * document on top, actions below. This component deliberately renders no
- * actions of its own.
  *
  * Purely presentational — no data fetching, no state.
  * All visual properties flow through `--stgm-*` tokens.

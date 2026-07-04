@@ -78,6 +78,8 @@ export {
   FileViewer,
   WorkspaceSurface,
   ExplorerTree,
+  virtualEntryId,
+  isVirtualEntryId,
 } from "./workspace/index.js";
 export type {
   WorkspaceEntry,
@@ -111,6 +113,7 @@ export type {
   WorkspaceSummaryProps,
   WorkspaceSurfaceProps,
   SurfaceRailView,
+  SurfaceVirtualDocument,
   ExplorerTreeProps,
   OpenEditor,
   OpenFileOptions,
@@ -147,6 +150,9 @@ export {
   useSessionPanel,
   usePlanDraft,
   planDraftKey,
+  PlanEditor,
+  PLAN_DOCUMENT_ENTRY_ID,
+  PLAN_DOCUMENT_PATH,
   SetupTab,
 } from "./session/index.js";
 export type {
@@ -187,6 +193,7 @@ export type {
   SessionPanelController,
   UseSessionPanelOptions,
   PlanDraftController,
+  PlanEditorProps,
   ExecutionTargetOption,
   RuntimeEnvProvider,
   SessionAudience,

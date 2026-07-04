@@ -90,6 +90,34 @@ export function editorKey(entryId: string, path: string): string {
 }
 
 /**
+ * NUL-prefixed namespace for virtual-document entry ids — the same
+ * collision-proofing trick as {@link editorKey}: no real workspace entry id
+ * can contain NUL, so a virtual document can never alias a workspace file.
+ */
+const VIRTUAL_ENTRY_PREFIX = "\u0000virtual:";
+
+/**
+ * Entry id for a virtual document — an editor tab whose content is not a
+ * workspace file (e.g. the session's `plan.md`, an execution artifact).
+ * Virtual documents share the editor group with file tabs (same open / pin /
+ * close / activate semantics); only their *content rendering* differs, via the
+ * surface's `virtualDocuments` seam. `kind` names the document family
+ * (`"plan"` today) so future virtual documents get distinct identities.
+ */
+export function virtualEntryId(kind: string): string {
+  return `${VIRTUAL_ENTRY_PREFIX}${kind}`;
+}
+
+/**
+ * True when an entry id names a virtual document rather than a workspace
+ * entry. Used by file-only consumers (diff correlation, tree highlight,
+ * reveal) to skip work that can only apply to real files.
+ */
+export function isVirtualEntryId(entryId: string): boolean {
+  return entryId.startsWith(VIRTUAL_ENTRY_PREFIX);
+}
+
+/**
  * Framework-agnostic store for the surface's open-editor group.
  *
  * Implements the `useSyncExternalStore` contract like the sibling selection and

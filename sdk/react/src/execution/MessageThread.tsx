@@ -40,6 +40,10 @@ import type { ResolvedPathAction } from "./file-path-resolver.js";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext.js";
 import { ApprovalContext, type ApprovalContextValue } from "./ApprovalContext.js";
 import { FileReviewContext, type FileReviewContextValue } from "./FileReviewContext.js";
+import {
+  extractLeadingH1,
+  unwrapEnclosingMarkdownFence,
+} from "../internal/markdown-components.js";
 import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev/index.js";
 import { useAutoScroll } from "../internal/useAutoScroll.js";
 import { JumpToLatestButton } from "../internal/JumpToLatestButton.js";
@@ -213,13 +217,13 @@ export interface MessageThreadProps {
    */
   readonly onBuildFromPlan?: () => void;
   /**
-   * Opens the session's Plan facet — the side-by-side review/refine surface.
-   * Wired only to the LATEST plan's card (the facet always shows the current
-   * plan); superseded plan cards keep their own "Open full" preview modal.
-   * When omitted, the latest card keeps the modal too (hosts without a
-   * panel).
+   * Opens a plan in the session panel's plan document tab — the side-by-side
+   * review/refine surface. Wired to EVERY plan card: the latest opens
+   * editable/buildable, a superseded plan opens read-only (the host decides
+   * from the execution id). When omitted, cards fall back to the "Open full"
+   * preview modal (hosts without a panel).
    */
-  readonly onOpenPlan?: () => void;
+  readonly onOpenPlan?: (executionId: string) => void;
   /**
    * Organization slug. Required for the plan completion card's
    * "Review plan" action, which opens the shared artifact preview
@@ -297,6 +301,12 @@ export type ThreadItem =
       readonly executionId: string;
       readonly planArtifact?: ExecutionArtifact;
       /**
+       * The plan's title (its leading `# H1`), lifted from the plan message at
+       * build time — no fetch. Present only when the turn published an
+       * artifact (the collapsed-card path); the card falls back to "Plan".
+       */
+      readonly planTitle?: string;
+      /**
        * True for the most recent completed Plan execution in the thread — the
        * only plan whose card carries the primary "Build from plan" action.
        * Superseded plans keep their review actions (open/download) but never a
@@ -356,6 +366,16 @@ function findPlanMessageIndex(messages: readonly AgentMessage[]): number {
     }
   }
   return -1;
+}
+
+/**
+ * The plan's title for its compact card: the leading `# H1` of the plan
+ * message, after the same plan-scoped bare-fence unwrap the document renderers
+ * apply — so the card and the plan tab always agree on the title. `undefined`
+ * when the plan has no H1 (the card falls back to "Plan").
+ */
+function extractPlanTitle(content: string): string | undefined {
+  return extractLeadingH1(unwrapEnclosingMarkdownFence(content, true)).title ?? undefined;
 }
 
 /**
@@ -532,15 +552,26 @@ export function buildThreadItems(
     const messages = exec.status?.messages ?? [];
     const subAgents = exec.status?.subAgentExecutions ?? [];
 
-    // A completed Plan turn promotes its plan message to a first-class
-    // document (matching the published plan.md — see findPlanMessageIndex).
-    // While the plan is still streaming this stays -1 and the message renders
-    // as an ordinary chat bubble; at completion the same thread item (same
-    // key) re-renders as the document without remounting.
+    // A completed Plan turn collapses its plan message into the compact plan
+    // card (the plan-completion item): the document lives in the panel's plan
+    // tab, not the thread. While the plan is still streaming, planMessageIndex
+    // stays -1 and the message renders as an ordinary chat bubble; completion
+    // removes the message item and the paired auto-open (useSessionPanel's
+    // planKey trigger) surfaces the document side-by-side — the content moves,
+    // it doesn't disappear. Collapse is gated on the ARTIFACT existing: a plan
+    // that never published (older executions, failed upload) exists only in
+    // the message, so that path keeps the inline document promotion
+    // (isPlanDocument) — collapsing it would orphan the plan behind a card
+    // with nothing to open.
     const isCompletedPlanExec = isCompletedPlanExecution(exec);
     const planMessageIndex = isCompletedPlanExec
       ? findPlanMessageIndex(messages)
       : -1;
+    const planArtifact = isCompletedPlanExec
+      ? findPlanArtifact(exec)
+      : undefined;
+    const collapsePlanMessage =
+      planMessageIndex >= 0 && planArtifact !== undefined;
 
     // This execution's settled change sets render as read-only records inside
     // its own segment, anchored to the last stamped edit row of each set. The
@@ -612,12 +643,17 @@ export function buildThreadItems(
         msg.type === MessageType.MESSAGE_AI && !msg.content.trim();
 
       if (!isEmptyAi) {
-        items.push({
-          kind: "message",
-          message: msg,
-          key: `${execId}-m${mi}`,
-          isPlanDocument: mi === planMessageIndex,
-        });
+        // The collapsed plan message is not rendered — the plan-completion
+        // card at the segment's end is the turn's sole plan representation.
+        // Its tool calls (below) and the todo anchor still process normally.
+        if (!(collapsePlanMessage && mi === planMessageIndex)) {
+          items.push({
+            kind: "message",
+            message: msg,
+            key: `${execId}-m${mi}`,
+            isPlanDocument: !collapsePlanMessage && mi === planMessageIndex,
+          });
+        }
         // Anchor (1): the plan sits right under the agent's opening narration.
         if (
           msg.type === MessageType.MESSAGE_AI ||
@@ -697,14 +733,13 @@ export function buildThreadItems(
       }
     }
 
-    // A completed Plan turn closes its segment with the plan's action card,
-    // directly under the plan document (the card's -mt-2 attaches the two).
-    // Every plan stays reviewable forever; only the latest carries the build
-    // authority (isLatestPlan). A superseded plan that never published an
-    // artifact is skipped — with no artifact and no build CTA it would render
-    // an empty shell.
+    // A completed Plan turn closes its segment with the plan card — the
+    // compact stand-in for the collapsed plan message, carrying the title the
+    // message would have shown. Every plan stays reviewable forever; only the
+    // latest carries the build authority (isLatestPlan). A superseded plan
+    // that never published an artifact is skipped — with no artifact and no
+    // build CTA it would render an empty shell.
     if (isCompletedPlanExec) {
-      const planArtifact = findPlanArtifact(exec);
       const isLatestPlan = execId === latestPlanExecutionId;
       if (planArtifact || isLatestPlan) {
         items.push({
@@ -712,6 +747,9 @@ export function buildThreadItems(
           key: `${execId}-plan-completion`,
           executionId: exec.metadata?.id ?? "",
           planArtifact,
+          planTitle: collapsePlanMessage
+            ? extractPlanTitle(messages[planMessageIndex].content)
+            : undefined,
           isLatestPlan,
         });
       }
@@ -1053,7 +1091,7 @@ interface NonVirtualizedThreadProps {
   readonly fileReviewCtx: FileReviewContextValue;
   readonly unresolvedApprovalCount: number;
   readonly onBuildFromPlan?: () => void;
-  readonly onOpenPlan?: () => void;
+  readonly onOpenPlan?: (executionId: string) => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
   /** True while the approved plan is being uploaded ahead of the build turn. */
@@ -1174,7 +1212,7 @@ export interface ThreadItemRendererProps {
   readonly submittingApprovalIds?: ReadonlySet<string>;
   readonly approvalErrors?: ReadonlyMap<string, Error>;
   readonly onBuildFromPlan?: () => void;
-  readonly onOpenPlan?: () => void;
+  readonly onOpenPlan?: (executionId: string) => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
   /** True while the approved plan is being uploaded ahead of the build turn. */
@@ -1293,12 +1331,16 @@ export function ThreadItemRenderer({
         <PlanArtifactCard
           executionId={item.executionId}
           artifact={item.planArtifact}
+          title={item.planTitle}
           org={org}
           onImplement={item.isLatestPlan ? onBuildFromPlan : undefined}
-          // The Plan facet always shows the session's CURRENT plan, so only
-          // the latest card routes there; a superseded card keeps the modal
-          // preview of its own (historical) artifact.
-          onOpenPlan={item.isLatestPlan ? onOpenPlan : undefined}
+          // Every card routes to the plan document tab — the host renders a
+          // superseded plan read-only there (it receives the execution id).
+          onOpenPlan={
+            onOpenPlan
+              ? () => onOpenPlan(item.executionId)
+              : undefined
+          }
           disabled={planActionsDisabled}
           buildPending={planBuildPending}
         />

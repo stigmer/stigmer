@@ -1,9 +1,6 @@
 export { ChangesTab } from "./ChangesTab.js";
 export type { ChangesTabProps } from "./ChangesTab.js";
 
-export { PlanTab } from "./PlanTab.js";
-export type { PlanTabProps } from "./PlanTab.js";
-
 export { ArtifactsTab } from "./ArtifactsTab.js";
 export type { ArtifactsTabProps } from "./ArtifactsTab.js";
 

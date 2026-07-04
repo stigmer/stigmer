@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useSessionPanel, type UseSessionPanelOptions } from "../useSessionPanel";
+import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "../plan-document";
 import type { SelectedThreadItem } from "../../internal/store/selection-store";
 
 // ---------------------------------------------------------------------------
@@ -148,41 +149,97 @@ describe("useSessionPanel — arrivals and phase", () => {
   });
 });
 
-describe("useSessionPanel — plan arrivals", () => {
-  it("auto-surfaces Plan when a plan arrives while the panel is open", () => {
-    const { result, rerender } = renderPanel();
-    act(() => result.current.openPanel());
-    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
-    expect(result.current.view).toBe("plan");
+describe("useSessionPanel — plan document tab", () => {
+  const planTab = {
+    entryId: PLAN_DOCUMENT_ENTRY_ID,
+    path: PLAN_DOCUMENT_PATH,
+    preview: false,
+  };
+
+  function planEditors(result: { current: ReturnType<typeof useSessionPanel> }) {
+    return result.current.editorsStore.getSnapshot().editors;
+  }
+
+  it("openPlanDocument opens the panel with a pinned plan tab", () => {
+    const { result } = renderPanel();
+    act(() => result.current.openPlanDocument());
+    expect(result.current.isOpen).toBe(true);
+    expect(planEditors(result)).toEqual([planTab]);
   });
 
-  it("never auto-opens (or re-routes) a collapsed panel on a plan — badge only", () => {
+  it("keeps the plan tab pinned across preview browsing (never evicted)", () => {
+    const { result } = renderPanel();
+    act(() => result.current.openPlanDocument());
+    // Preview browsing reuses the single preview slot; the pinned plan tab
+    // must survive it untouched.
+    act(() => result.current.openFile("e1", "a.ts"));
+    act(() => result.current.openFile("e1", "b.ts"));
+    expect(planEditors(result)).toEqual([
+      planTab,
+      { entryId: "e1", path: "b.ts", preview: true },
+    ]);
+  });
+
+  it("auto-opens the plan tab when a plan arrives — even from a collapsed panel", () => {
+    // The one deliberate exception to the "never open a collapsed panel"
+    // arrival convention: a completing plan is the turn's deliverable, and
+    // with the thread showing only a compact card there is no other review
+    // surface.
     const { result, rerender } = renderPanel();
-    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
     expect(result.current.isOpen).toBe(false);
-    expect(result.current.view).toBe("files");
+    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
+    expect(result.current.isOpen).toBe(true);
+    expect(planEditors(result)).toEqual([planTab]);
   });
 
-  it("respects a sticky pick when a plan arrives", () => {
+  it("activates (focuses) the plan tab on arrival, over the open file", () => {
+    const { result, rerender } = renderPanel();
+    act(() => result.current.openFile("e1", "a.ts"));
+    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
+    const { activeFile } = result.current.editorsStore.getSnapshot();
+    expect(activeFile).toEqual({
+      entryId: PLAN_DOCUMENT_ENTRY_ID,
+      path: PLAN_DOCUMENT_PATH,
+    });
+  });
+
+  it("re-opens the plan tab when a refined plan supersedes the current one (new identity)", () => {
+    const { result, rerender } = renderPanel();
+    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
+    act(() =>
+      result.current.closeEditor(PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH),
+    );
+    expect(planEditors(result)).toEqual([]);
+    rerender({ phase: null, hasChanges: false, planKey: "e2:hash-b" });
+    expect(planEditors(result)).toEqual([planTab]);
+  });
+
+  it("does not re-open the plan tab for an unchanged identity", () => {
+    const { result, rerender } = renderPanel();
+    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
+    act(() =>
+      result.current.closeEditor(PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH),
+    );
+    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
+    expect(planEditors(result)).toEqual([]);
+  });
+
+  it("does not open anything for a plan that existed at mount", () => {
+    // Loading a session with an old plan must not hijack the layout.
+    const { result, rerender } = renderPanel({ planKey: "e1:hash-a" });
+    expect(result.current.isOpen).toBe(false);
+    expect(planEditors(result)).toEqual([]);
+    // …and the mount identity doesn't count as "new" on later rerenders.
+    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
+    expect(planEditors(result)).toEqual([]);
+  });
+
+  it("leaves the rail view alone (the tab lives in the editor area)", () => {
     const { result, rerender } = renderPanel();
     act(() => result.current.openPanel());
     act(() => result.current.setView("usage"));
     rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
     expect(result.current.view).toBe("usage");
-  });
-
-  it("re-surfaces Plan when a refined plan supersedes the current one (new identity)", () => {
-    const { result, rerender } = renderPanel({ planKey: "e1:hash-a" });
-    act(() => result.current.openPanel());
-    expect(result.current.view).toBe("files");
-    rerender({ phase: null, hasChanges: false, planKey: "e2:hash-b" });
-    expect(result.current.view).toBe("plan");
-  });
-
-  it("does not hijack the view for a plan that existed at mount", () => {
-    const { result } = renderPanel({ planKey: "e1:hash-a" });
-    act(() => result.current.openPanel());
-    expect(result.current.view).toBe("files");
   });
 });
 

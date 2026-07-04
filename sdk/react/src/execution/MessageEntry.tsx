@@ -32,9 +32,12 @@ export interface MessageEntryProps {
   /**
    * Renders a `MESSAGE_AI` entry as a first-class plan document
    * ({@link PlanDocumentMessage}) instead of a chat bubble. Set by the thread
-   * builder on the one message per completed Plan-mode execution that IS the
-   * plan (the last AI message with content — the same message the runner
-   * publishes as `plan.md`). Ignored for non-AI messages.
+   * builder only on the NO-ARTIFACT fallback path: a completed Plan turn that
+   * never published `plan.md` (older executions, failed upload) keeps its
+   * plan inline — the message is the only copy of the plan. A turn that
+   * published the artifact collapses the message into the compact plan card
+   * instead (the document lives in the panel's plan tab). Ignored for non-AI
+   * messages.
    */
   readonly isPlanDocument?: boolean;
   /**

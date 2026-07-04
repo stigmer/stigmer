@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { isTerminalPhase } from "../execution/execution-phases.js";
 import type { SelectedThreadItem } from "../internal/store/selection-store.js";
@@ -9,6 +9,7 @@ import {
   type OpenFileOptions,
   type WorkspaceEditorsStore,
 } from "../internal/store/index.js";
+import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
 
 /** Options for {@link useSessionPanel}. */
 export interface UseSessionPanelOptions {
@@ -27,9 +28,15 @@ export interface UseSessionPanelOptions {
   /**
    * Identity of the session's current plan (see `planDraftKey`), or `null`
    * when none exists. A NEW identity — the first plan, or a refined plan
-   * superseding it — auto-surfaces the Plan view under the same contract as
-   * `hasChanges`: only while the panel is open, never over an explicit pick,
-   * and a collapsed panel signals through badges alone.
+   * superseding it — auto-opens the plan document tab (see
+   * {@link SessionPanelController.openPlanDocument}), expanding a collapsed
+   * panel. This deliberately breaks the Changes/Inspect "never open a
+   * collapsed panel" convention: a completing plan is not ambient state, it
+   * is the deliverable of the turn the user just requested, and with the
+   * thread showing only a compact card there is no other review surface.
+   * Keyed on plan IDENTITY, not presence, so a refined plan re-surfaces too;
+   * the identity present at mount is swallowed (loading a session with an
+   * old plan never hijacks the layout).
    */
   readonly planKey?: string | null;
   /**
@@ -38,7 +45,7 @@ export interface UseSessionPanelOptions {
    * to `"files"` (the Explorer), which suits the session viewer. The launcher
    * passes `"configure"`: pre-session there is no workspace, so the Config
    * facet — carrying the run defaults (harness/model) — is the useful landing
-   * view. Auto-switches (Changes/Plan/Inspect) and explicit rail picks still
+   * view. Auto-switches (Changes/Inspect) and explicit rail picks still
    * take over from here exactly as before.
    *
    * @default "files"
@@ -96,6 +103,14 @@ export interface SessionPanelController {
    * unlike the retired workspace-mode flip, the panel is more than files.
    */
   readonly closeEditor: (entryId: string, path: string) => void;
+  /**
+   * Open (or focus) the plan document tab and expand the panel. The tab is
+   * **pinned**, never the recyclable preview slot — file browsing must not
+   * evict the plan — and it activates, replacing the focused tab: the plan is
+   * the deliverable being reviewed. Fired by the thread card's "Open plan",
+   * the Artifacts facet's `plan.md`, and the new-plan auto-open.
+   */
+  readonly openPlanDocument: () => void;
   /**
    * Report the current thread-item selection. Called from an effect inside the
    * panel subtree (the level that subscribes to the selection store), keeping
@@ -156,18 +171,27 @@ export function useSessionPanel({
     }
   }
 
-  // A new plan arrived (first plan, or a refinement superseding it) → surface
-  // the Plan view, under the identical open-panel/no-explicit-pick contract.
-  // Keyed on plan IDENTITY, not presence, so a refined plan re-surfaces too.
-  // The initial value swallows a plan that already existed at mount — loading
-  // a session with an old plan must not hijack the view.
-  const [prevPlanKey, setPrevPlanKey] = useState(planKey);
-  if (planKey !== prevPlanKey) {
-    setPrevPlanKey(planKey);
-    if (planKey !== null && isOpen && !userPickedViewRef.current) {
-      setViewState("plan");
+  const openPlanDocument = useCallback(() => {
+    editorsStore.openPinned(PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH);
+    setIsOpen(true);
+  }, [editorsStore]);
+
+  // A new plan arrived (first plan, or a refinement superseding it) → open the
+  // plan document tab, expanding a collapsed panel (see the planKey option doc
+  // for why this one trigger may open the panel). An effect, NOT the
+  // render-adjust idiom the phase/changes triggers use: those set this
+  // component's own state, which the idiom permits — this one mutates the
+  // external editors store (notifying subscribers), which is illegal during
+  // render. The ref (not effect-less prev-state) swallows the identity present
+  // at mount: loading a session with an old plan never hijacks the layout.
+  const prevPlanKeyRef = useRef(planKey);
+  useEffect(() => {
+    if (planKey === prevPlanKeyRef.current) return;
+    prevPlanKeyRef.current = planKey;
+    if (planKey !== null) {
+      openPlanDocument();
     }
-  }
+  }, [planKey, openPlanDocument]);
 
   const openPanel = useCallback(() => {
     setIsOpen(true);
@@ -236,6 +260,7 @@ export function useSessionPanel({
       activateEditor,
       pinEditor,
       closeEditor,
+      openPlanDocument,
       notifySelection,
     }),
     [
@@ -249,6 +274,7 @@ export function useSessionPanel({
       activateEditor,
       pinEditor,
       closeEditor,
+      openPlanDocument,
       notifySelection,
     ],
   );

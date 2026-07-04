@@ -55,9 +55,9 @@ export function findPlanArtifact(
 }
 
 /**
- * Finds the session's LATEST plan across all executions — the plan the Panel's
- * Plan facet reviews and "Build from plan" implements. Executions are scanned
- * newest-first (the array is chronological), mirroring the thread's
+ * Finds the session's LATEST plan across all executions — the plan the panel's
+ * plan document tab edits and "Build from plan" implements. Executions are
+ * scanned newest-first (the array is chronological), mirroring the thread's
  * latest-plan-owns-the-build-action rule so every surface agrees on which
  * plan is current.
  *

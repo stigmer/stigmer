@@ -49,7 +49,14 @@ export type { WorkspaceContentSearchProps } from "./WorkspaceContentSearch.js";
 export { FileViewer } from "./FileViewer.js";
 export type { FileViewerProps, FileViewerHandle } from "./FileViewer.js";
 export { WorkspaceSurface } from "./WorkspaceSurface.js";
-export type { WorkspaceSurfaceProps, SurfaceRailView } from "./WorkspaceSurface.js";
+export type {
+  WorkspaceSurfaceProps,
+  SurfaceRailView,
+  SurfaceVirtualDocument,
+} from "./WorkspaceSurface.js";
+// Virtual-document identity helpers: hosts mint collision-proof entry ids for
+// SurfaceVirtualDocument tabs and detect them in file-only code paths.
+export { virtualEntryId, isVirtualEntryId } from "../internal/store/index.js";
 export { ExplorerTree } from "./ExplorerTree.js";
 export type { ExplorerTreeProps } from "./ExplorerTree.js";
 // The open-editor tab shape + open-file options are part of the public

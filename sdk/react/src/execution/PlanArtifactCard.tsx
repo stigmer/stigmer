@@ -15,6 +15,12 @@ export interface PlanArtifactCardProps {
   /** The published `plan.md` artifact (from `findPlanArtifact`). */
   readonly artifact: ExecutionArtifact;
   /**
+   * The plan's title (its leading `# H1`). The card is the plan's compact
+   * stand-in in the thread, so the title is what makes it recognizable.
+   * Falls back to "Plan" when omitted.
+   */
+  readonly title?: string;
+  /**
    * Organization slug. Required for the "Open full" modal (the shared
    * {@link ArtifactPreviewModal} uses it for its detection/apply pipeline and
    * to fetch the content). When omitted, "Open full" is hidden — the prominent
@@ -24,10 +30,11 @@ export interface PlanArtifactCardProps {
   /** Called when the user clicks "Build from plan". Hidden when omitted. */
   readonly onImplement?: () => void;
   /**
-   * Opens the session's Plan facet — the side-by-side review/refine surface.
-   * When provided it REPLACES the modal-based "Open full" secondary with
-   * "Open plan" (one review affordance, not two). When omitted (hosts
-   * without a session panel, or a superseded plan's card) the modal remains.
+   * Opens the plan in the session panel's plan document tab — the
+   * side-by-side review/refine surface. When provided it REPLACES the
+   * modal-based "Open full" secondary with "Open plan" (one review
+   * affordance, not two). When omitted (hosts without a session panel) the
+   * modal remains.
    */
   readonly onOpenPlan?: () => void;
   /** Disables the primary CTA (e.g., while an execution is active). */
@@ -39,26 +46,19 @@ export interface PlanArtifactCardProps {
 }
 
 /**
- * Action surface for a plan that a completed Plan-mode execution published as a
- * `plan.md` artifact.
+ * The compact plan card — a completed Plan turn's sole representation in the
+ * thread. The plan document itself lives in the session panel's plan tab
+ * (`PlanEditor`), Cursor-style: chat carries a recognizable, actionable card;
+ * the panel carries the document.
  *
- * It is rendered immediately below the plan message in the thread (which already
- * shows the plan as rich markdown — the message renderer unwraps a model's
- * enclosing markdown fence), so this card deliberately holds **no** plan
- * content: the message is the document and this is its action bar. Rendering
- * the plan a second time here would duplicate the same text the message and the
- * "Open full" modal already show.
+ * Anatomy: a document-style identity block (plan icon, the plan's title, a
+ * `plan.md · size` meta line) with the actions trailing — **Open plan** and
+ * **Download** as subdued secondaries and one prominent, themeable primary,
+ * **Build from plan** — so the next step is unmistakable.
  *
- * The hierarchy is the point: one prominent, themeable primary action —
- * **Build from plan** — with **Open full** and **Download** as subdued
- * secondaries, so the next step is unmistakable. A small negative top margin
- * pulls the bar against the plan message so the two read as a single
- * first-class plan block.
- *
- * Kept as its own thread item (not merged into the message) on purpose: merging
- * would change the streamed message item's identity at completion and remount
- * the just-streamed plan. Adjacent-and-attached gets the unified look with no
- * remount.
+ * Only the LATEST plan's card carries `onImplement`; a superseded plan's card
+ * is review-only (its `onOpenPlan` opens the document read-only), so a stale
+ * plan can never be implemented by accident.
  *
  * All visual properties flow through `--stgm-*` tokens; the component is
  * self-contained and embeddable.
@@ -66,6 +66,7 @@ export interface PlanArtifactCardProps {
 export const PlanArtifactCard = memo(function PlanArtifactCard({
   executionId,
   artifact,
+  title,
   org,
   onImplement,
   onOpenPlan,
@@ -80,21 +81,27 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
   return (
     <div
       role="region"
-      aria-label="Plan actions"
+      aria-label="Plan"
       onKeyDown={handleKeyDown}
       className={cn(
-        // `-mt-2` tightens the thread's `gap-4` so the bar attaches to the
-        // plan message above it, reading as one first-class plan block.
-        "mx-4 -mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md",
-        "border border-border-muted bg-muted-faint px-3 py-2",
+        "mx-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg",
+        "border border-border-muted bg-card px-3 py-2.5",
         className,
       )}
     >
       <PlanIcon />
-      <span className="text-xs font-medium text-foreground">Plan</span>
-      <span className="text-xs tabular-nums text-muted-foreground-faint">
-        {formatArtifactSize(artifact.sizeBytes)}
-      </span>
+      <div className="min-w-0 flex-1 basis-48">
+        <div className="truncate text-sm font-medium text-foreground">
+          {title ?? "Plan"}
+        </div>
+        <div className="text-[0.65rem] text-muted-foreground-faint">
+          {artifact.name}
+          <span aria-hidden="true"> · </span>
+          <span className="tabular-nums">
+            {formatArtifactSize(artifact.sizeBytes)}
+          </span>
+        </div>
+      </div>
 
       <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
         {onOpenPlan ? (

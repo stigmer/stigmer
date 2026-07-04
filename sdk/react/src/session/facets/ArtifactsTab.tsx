@@ -21,6 +21,14 @@ export interface ArtifactsTabProps {
    * action as the message-thread plan card.
    */
   readonly onImplementPlan?: () => void;
+  /**
+   * Open a plan in the session panel's plan document tab. When provided, a
+   * `plan.md` artifact routes there instead of the preview modal — the plan
+   * is a first-class document, not a popup. Non-plan artifacts keep the
+   * modal. When omitted (hosts without the plan tab) the modal remains for
+   * every artifact.
+   */
+  readonly onOpenPlan?: (executionId: string) => void;
 }
 
 /**
@@ -30,13 +38,27 @@ export interface ArtifactsTabProps {
  * `ArtifactPreviewModal` — the same content as `ArtifactsWidget`
  * without the section heading.
  */
-export function ArtifactsTab({ executions, org, onApplied, onImplementPlan }: ArtifactsTabProps) {
+export function ArtifactsTab({
+  executions,
+  org,
+  onApplied,
+  onImplementPlan,
+  onOpenPlan,
+}: ArtifactsTabProps) {
   const { artifacts, hasArtifacts } = useSessionArtifacts(executions);
   const [previewEntry, setPreviewEntry] = useState<SessionArtifactEntry | null>(null);
 
-  const handlePreview = useCallback((entry: SessionArtifactEntry) => {
-    setPreviewEntry(entry);
-  }, []);
+  const handlePreview = useCallback(
+    (entry: SessionArtifactEntry) => {
+      // The plan opens as a document (the panel's plan tab), never a popup.
+      if (onOpenPlan && isPlanArtifact(entry.artifact)) {
+        onOpenPlan(entry.executionId);
+        return;
+      }
+      setPreviewEntry(entry);
+    },
+    [onOpenPlan],
+  );
 
   const handleClosePreview = useCallback(() => {
     setPreviewEntry(null);

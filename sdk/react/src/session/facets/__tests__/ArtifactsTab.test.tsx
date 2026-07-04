@@ -38,13 +38,17 @@ function createStigmerMock(): Stigmer {
   } as unknown as Stigmer;
 }
 
-function renderTab(onImplementPlan?: () => void) {
+function renderTab(
+  onImplementPlan?: () => void,
+  onOpenPlan?: (executionId: string) => void,
+) {
   return render(
     <StigmerContext.Provider value={createStigmerMock()}>
       <ArtifactsTab
         executions={[execution]}
         org="acme"
         onImplementPlan={onImplementPlan}
+        onOpenPlan={onOpenPlan}
       />
     </StigmerContext.Provider>,
   );
@@ -85,5 +89,35 @@ describe("ArtifactsTab — plan 'Build from plan' wiring", () => {
     fireEvent.click(within(dialog).getByText("Build from plan"));
 
     expect(onImplementPlan).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ArtifactsTab — plan routes to the plan document tab", () => {
+  it("routes a plan.md preview to onOpenPlan (no modal) when provided", () => {
+    const onOpenPlan = vi.fn();
+    renderTab(vi.fn(), onOpenPlan);
+
+    openPreviewFor("plan.md");
+
+    expect(onOpenPlan).toHaveBeenCalledWith("aex_1");
+    expect(document.querySelector("dialog")).toBeNull();
+  });
+
+  it("keeps the modal for non-plan artifacts even when onOpenPlan is provided", () => {
+    const onOpenPlan = vi.fn();
+    renderTab(vi.fn(), onOpenPlan);
+
+    openPreviewFor("notes.md");
+
+    expect(onOpenPlan).not.toHaveBeenCalled();
+    expect(document.querySelector("dialog")).toBeTruthy();
+  });
+
+  it("keeps the modal for plan.md when onOpenPlan is omitted (hosts without the plan tab)", () => {
+    renderTab(vi.fn());
+
+    openPreviewFor("plan.md");
+
+    expect(document.querySelector("dialog")).toBeTruthy();
   });
 });

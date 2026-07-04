@@ -51,9 +51,10 @@ interface DraftState {
  * artifact mutation). The approved plan (draft if edited, else the artifact
  * text) is delivered to the implement execution as an attachment.
  *
- * Ownership lives at the viewer level, NOT inside the Plan facet: the panel
- * renders only the active rail view, so facet-local state would be destroyed
- * by every view switch or panel collapse — silently losing the user's edits.
+ * Ownership lives at the viewer level, NOT inside the plan document tab's
+ * editor: the panel subtree unmounts wholesale on collapse (and the editor
+ * remounts per plan identity), so editor-local state would be destroyed by
+ * every collapse or tab switch — silently losing the user's edits.
  *
  * Supersession is derived, not synchronized: the draft is stored with the
  * plan identity it was made against ({@link planDraftKey}), and reads resolve
