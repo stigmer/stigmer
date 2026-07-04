@@ -531,7 +531,7 @@ export {
   type ExecutionActiveTaskIndicatorProps,
 } from "./ExecutionActiveTaskIndicator.js";
 export { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
-export { getAnimationDuration, prefersReducedMotion } from "./motion-preference.js";
+export { getAnimationDuration, prefersReducedMotion } from "../internal/motion-preference.js";
 
 // T05: Shared formatting utilities
 export {

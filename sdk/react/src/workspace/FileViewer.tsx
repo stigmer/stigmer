@@ -3,6 +3,7 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useState,
   type KeyboardEvent,
@@ -12,6 +13,7 @@ import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecuti
 import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ArtifactContentRenderer } from "../execution/ArtifactContentRenderer.js";
 import { FileChangeDiff } from "../execution/FileChangesView.js";
+import type { RevealTarget } from "../internal/useRevealLine.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { useWorkspaceFileContent } from "./useWorkspaceFileContent.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
@@ -45,6 +47,15 @@ export interface FileViewerProps {
    * `findChangeForSelection`; a platform builder can pass any `FileChange`.
    */
   readonly change?: FileChange;
+  /**
+   * Optional jump-to-line request (e.g. a content-search hit). When present the
+   * viewer opens in the live **File** view — a line number refers to current
+   * source, not the diff (DR-1) — with the `Diff | File` toggle still available,
+   * and the matched line is scrolled into view and highlighted. A new `nonce`
+   * re-forces File view and re-scrolls even on an already-open file. No-op when
+   * the file is not live-browsable (a DELETE, or no `reader`).
+   */
+  readonly reveal?: RevealTarget;
   /** Called when the user closes the viewer (close button or Escape). */
   readonly onClose?: () => void;
   /**
@@ -101,7 +112,7 @@ export interface FileViewerHandle {
  */
 export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
   function FileViewer(
-    { selectedFile, entries, reader, change, onClose, showHeader = true, className },
+    { selectedFile, entries, reader, change, reveal, onClose, showHeader = true, className },
     ref,
   ) {
   const entry = entries.find((e) => e.id === selectedFile.entryId) ?? null;
@@ -122,9 +133,19 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
   // each opened file without deriving during render.
   const canBrowseLive = reader !== undefined && change?.changeType !== FileChangeType.DELETE;
   const showViewToggle = change !== undefined && canBrowseLive;
+  // A reveal (jump-to-line) opens in File view even for a changed file — the
+  // line number refers to current source, not the diff (DR-1). Absent a reveal,
+  // a changed file still defaults to the authoritative diff (DD-06).
   const [viewMode, setViewMode] = useState<"diff" | "file">(
-    change !== undefined ? "diff" : "file",
+    reveal ? "file" : change !== undefined ? "diff" : "file",
   );
+  // A new reveal on an already-mounted viewer (a second search hit in the same
+  // file, so no remount) must return to File view to honor the line.
+  useEffect(() => {
+    if (reveal) setViewMode("file");
+    // Keyed on the reveal nonce: only a fresh jump-to-line request re-forces
+    // File view, so a manual switch to Diff afterward sticks.
+  }, [reveal?.nonce]);
   const effectiveView: "diff" | "file" = change
     ? canBrowseLive
       ? viewMode
@@ -206,6 +227,7 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
               isUnsupported={isUnsupported}
               error={error}
               onRetry={refetch}
+              reveal={reveal}
             />
           </>
         )}
@@ -297,6 +319,7 @@ function FileViewerBody({
   isUnsupported,
   error,
   onRetry,
+  reveal,
 }: {
   readonly basename: string;
   readonly content: ReturnType<typeof useWorkspaceFileContent>["content"];
@@ -304,6 +327,7 @@ function FileViewerBody({
   readonly isUnsupported: boolean;
   readonly error: Error | null;
   readonly onRetry: () => void;
+  readonly reveal?: RevealTarget;
 }) {
   // Unsupported comes first: a missing reader means there is nothing to load.
   if (isUnsupported) {
@@ -376,6 +400,7 @@ function FileViewerBody({
       content={content.text}
       fileName={basename}
       isTruncated={content.truncated}
+      reveal={reveal}
     />
   );
 }

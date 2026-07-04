@@ -113,6 +113,8 @@ export type {
   SurfaceRailView,
   ExplorerTreeProps,
   OpenEditor,
+  OpenFileOptions,
+  RevealTarget,
 } from "./workspace/index.js";
 
 // Session — data hooks, behavior hooks, utilities (Session aggregate + conversation lifecycle)

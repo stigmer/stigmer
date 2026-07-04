@@ -7,8 +7,10 @@ import { ResizableSplit } from "../internal/ResizableSplit.js";
 import {
   editorKey,
   type OpenEditor,
+  type OpenFileOptions,
   type SelectedWorkspaceFile,
 } from "../internal/store/index.js";
+import type { RevealTarget } from "../internal/useRevealLine.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "./WorkspaceFileReader.js";
@@ -93,8 +95,13 @@ export interface WorkspaceSurfaceProps {
   /**
    * Opens a file as a preview (single click) from the explorer or search. The
    * same seam the tree/search uses; the owner routes it to the editors store.
+   * `options.line` (content-search hits) requests a jump-to-line reveal.
    */
-  readonly onOpenFile: (entryId: string, path: string) => void;
+  readonly onOpenFile: (
+    entryId: string,
+    path: string,
+    options?: OpenFileOptions,
+  ) => void;
   /** Focuses an already-open editor (tab single click). */
   readonly onActivateEditor: (entryId: string, path: string) => void;
   /** Pins an editor (tab double-click) so it stops being the preview tab. */
@@ -109,6 +116,12 @@ export interface WorkspaceSurfaceProps {
    * `baseline→candidate` diff (DD-06), matching the inspector's Viewer tab.
    */
   readonly change?: FileChange;
+  /**
+   * Jump-to-line reveal for the **active** editor (already scoped by the owner
+   * to `reveal.key === activeKey`), or `undefined`. Forwarded to the editor's
+   * viewer, which opens in File view and scrolls to / highlights the line.
+   */
+  readonly reveal?: RevealTarget;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
@@ -144,6 +157,7 @@ export function WorkspaceSurface({
   onCloseEditor,
   onCollapse,
   change,
+  reveal,
   className,
 }: WorkspaceSurfaceProps) {
   // Optionally controlled (standard React pattern): a host that owns view
@@ -212,6 +226,7 @@ export function WorkspaceSurface({
             editors={editors}
             selectedFile={selectedFile}
             change={change}
+            reveal={reveal}
             onActivateEditor={onActivateEditor}
             onPinEditor={onPinEditor}
             onCloseEditor={onCloseEditor}
@@ -382,7 +397,11 @@ function SearchSidebar({
   readonly lister: WorkspaceFileLister | undefined;
   readonly searcher: WorkspaceContentSearcher | undefined;
   readonly selectedFile: SelectedWorkspaceFile | null;
-  readonly onOpenFile: (entryId: string, path: string) => void;
+  readonly onOpenFile: (
+    entryId: string,
+    path: string,
+    options?: OpenFileOptions,
+  ) => void;
 }) {
   // Filename search is the default: cached, instant, and always available.
   // Content (text) search is opt-in and only offered when a searcher exists.
@@ -502,6 +521,7 @@ function EditorArea({
   editors,
   selectedFile,
   change,
+  reveal,
   onActivateEditor,
   onPinEditor,
   onCloseEditor,
@@ -512,6 +532,7 @@ function EditorArea({
   readonly editors: readonly OpenEditor[];
   readonly selectedFile: SelectedWorkspaceFile | null;
   readonly change?: FileChange;
+  readonly reveal?: RevealTarget;
   readonly onActivateEditor: (entryId: string, path: string) => void;
   readonly onPinEditor: (entryId: string, path: string) => void;
   readonly onCloseEditor: (entryId: string, path: string) => void;
@@ -568,6 +589,7 @@ function EditorArea({
             entries={entries}
             reader={reader}
             change={change}
+            reveal={reveal}
             onClose={onCollapse}
             showHeader={false}
             className="min-h-0 flex-1"

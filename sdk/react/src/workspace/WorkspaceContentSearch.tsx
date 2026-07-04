@@ -16,6 +16,7 @@ import type {
   WorkspaceContentMatch,
   WorkspaceContentSearcher,
 } from "./WorkspaceContentSearcher.js";
+import type { OpenFileOptions } from "../internal/store/index.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import {
   useWorkspaceContentSearch,
@@ -38,8 +39,16 @@ export interface WorkspaceContentSearchProps {
   readonly entries: readonly WorkspaceEntry[];
   /** Platform-injected content searcher. `undefined` → content search is unavailable. */
   readonly searcher: WorkspaceContentSearcher | undefined;
-  /** Opens a result's file in the viewer. */
-  readonly onOpenFile: (entryId: string, path: string) => void;
+  /**
+   * Opens a result's file in the viewer, jumping to the matched line. The
+   * `options.line` carries the hit's 1-based line so the viewer scrolls to and
+   * highlights it (DR-1/DR-2).
+   */
+  readonly onOpenFile: (
+    entryId: string,
+    path: string,
+    options?: OpenFileOptions,
+  ) => void;
   /** The file currently open in the viewer, highlighted in the results. */
   readonly selectedFile?: SelectedWorkspaceFile | null;
   /** Additional CSS classes for the root element. */
@@ -139,7 +148,10 @@ export function WorkspaceContentSearch({
       } else if (e.key === "Enter") {
         e.preventDefault();
         const target = flatResults[focusIndex];
-        if (target) onOpenFile(target.entryId, target.match.path);
+        if (target)
+          onOpenFile(target.entryId, target.match.path, {
+            line: target.match.line,
+          });
       }
     },
     [flatResults, focusIndex, onOpenFile],
@@ -249,7 +261,11 @@ function renderRows({
   readonly selectedFile: SelectedWorkspaceFile | null;
   readonly focusIndex: number;
   readonly optionId: (index: number) => string;
-  readonly onOpenFile: (entryId: string, path: string) => void;
+  readonly onOpenFile: (
+    entryId: string,
+    path: string,
+    options?: OpenFileOptions,
+  ) => void;
 }) {
   const rows: ReactNode[] = [];
   let matchIndex = 0;
@@ -279,7 +295,7 @@ function renderRows({
           query={query}
           isFocused={index === focusIndex}
           isOpen={isOpen}
-          onOpen={() => onOpenFile(group.entry.id, match.path)}
+          onOpen={() => onOpenFile(group.entry.id, match.path, { line: match.line })}
         />,
       );
     }

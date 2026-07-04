@@ -52,8 +52,12 @@ export { WorkspaceSurface } from "./WorkspaceSurface.js";
 export type { WorkspaceSurfaceProps, SurfaceRailView } from "./WorkspaceSurface.js";
 export { ExplorerTree } from "./ExplorerTree.js";
 export type { ExplorerTreeProps } from "./ExplorerTree.js";
-// The open-editor tab shape is part of the public WorkspaceSurface API.
-export type { OpenEditor } from "../internal/store/index.js";
+// The open-editor tab shape + open-file options are part of the public
+// WorkspaceSurface API.
+export type { OpenEditor, OpenFileOptions } from "../internal/store/index.js";
+// The jump-to-line reveal target rides on FileViewer / WorkspaceSurface /
+// ArtifactContentRenderer props; export the shape (the hook stays @internal).
+export type { RevealTarget } from "../internal/useRevealLine.js";
 // The viewer's selection shape is part of the public FileViewer API; re-export
 // the type (not the store) so consumers can construct/inspect a selection.
 export type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";

@@ -327,3 +327,95 @@ describe("FileViewer — diff mode", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Reveal (jump-to-line) — a line target opens File view and scrolls to it
+// ---------------------------------------------------------------------------
+
+describe("FileViewer — reveal (jump-to-line)", () => {
+  let scrollIntoView: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView =
+      scrollIntoView as unknown as typeof Element.prototype.scrollIntoView;
+  });
+
+  it("opens a changed file in the live File view when a reveal is present (DR-1)", async () => {
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "src/a.ts" }}
+        entries={ENTRIES}
+        reader={readerFor(text("live content"))}
+        change={wholeFileChange("src/a.ts")}
+        reveal={{ line: 1, nonce: 1 }}
+      />,
+    );
+
+    // File view wins over the diff-default, but the Diff toggle stays available.
+    expect(screen.getByRole("radio", { name: "File" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("radio", { name: "Diff" })).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("live content")).toBeTruthy());
+  });
+
+  it("highlights the revealed line and scrolls to it", async () => {
+    const { container } = render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "src/a.ts" }}
+        entries={ENTRIES}
+        reader={readerFor(text("one\ntwo\nthree"))}
+        reveal={{ line: 2, nonce: 1 }}
+      />,
+    );
+    await waitFor(() => expect(container.querySelector('[data-line="2"]')).not.toBeNull());
+    expect(container.querySelector('[data-line="2"]')?.className).toContain(
+      "bg-primary-subtle",
+    );
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("re-forces the File view when a new reveal nonce arrives after a manual toggle", async () => {
+    const { rerender } = render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "src/a.ts" }}
+        entries={ENTRIES}
+        reader={readerFor(text("live content"))}
+        change={wholeFileChange("src/a.ts")}
+        reveal={{ line: 1, nonce: 1 }}
+      />,
+    );
+    // User flips to Diff.
+    fireEvent.click(screen.getByRole("radio", { name: "Diff" }));
+    await waitFor(() =>
+      expect(screen.getByRole("radio", { name: "Diff" }).getAttribute("aria-checked")).toBe("true"),
+    );
+
+    // A second search hit in the same (already-mounted) file bumps the nonce.
+    rerender(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "src/a.ts" }}
+        entries={ENTRIES}
+        reader={readerFor(text("live content"))}
+        change={wholeFileChange("src/a.ts")}
+        reveal={{ line: 1, nonce: 2 }}
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("radio", { name: "File" }).getAttribute("aria-checked")).toBe("true"),
+    );
+  });
+
+  it("is a no-op for a DELETE change (no live bytes to anchor)", async () => {
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "src/gone.ts" }}
+        entries={ENTRIES}
+        reader={readerFor(text("unused"))}
+        change={deleteChange("src/gone.ts")}
+        reveal={{ line: 1, nonce: 1 }}
+      />,
+    );
+    // Falls back to the diff (deleted side); no view toggle, no crash.
+    await waitFor(() => expect(screen.getByText("alpha")).toBeTruthy());
+    expect(screen.queryByRole("radiogroup", { name: "File view" })).toBeNull();
+  });
+});

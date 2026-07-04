@@ -138,6 +138,12 @@ describe("WorkspaceSurface", () => {
     expect(props?.change).toBe(change);
   });
 
+  it("forwards a jump-to-line reveal to the FileViewer", () => {
+    const reveal = { line: 12, nonce: 3 };
+    renderSurface({ reveal });
+    expect(viewerProps.at(-1)?.reveal).toBe(reveal);
+  });
+
   it("shows the open file as a tab", () => {
     renderSurface();
     const tab = screen.getByRole("tab", { name: /main\.go/ });

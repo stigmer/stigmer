@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Node, Viewport } from "@xyflow/react";
 import { useReactFlow } from "@xyflow/react";
 import type { CanvasTaskNodeData } from "./workflow-graph-conversions.js";
-import { getAnimationDuration } from "./motion-preference.js";
+import { getAnimationDuration } from "../internal/motion-preference.js";
 
 /**
  * Follow-execution state machine states.

@@ -5,7 +5,32 @@
 // editor derives the same SelectedWorkspaceFile shape, so downstream diff
 // correlation and tree highlight consume one selection regardless of source.
 
+import type { RevealTarget } from "../useRevealLine.js";
 import type { SelectedWorkspaceFile } from "./workspace-file-selection-store.js";
+
+/**
+ * Options for opening a file in the surface (via `openPreview` / the surface's
+ * `onOpenFile` seam). `line` requests a jump-to-line reveal: the file opens in
+ * a line-faithful view scrolled to and highlighting that 1-based line. Absent,
+ * the file opens normally (top of file / diff-default). Deliberately an options
+ * object so future open-intents (e.g. a column) extend it without churning the
+ * callback signature.
+ */
+export interface OpenFileOptions {
+  /** 1-based line to reveal after opening. */
+  readonly line?: number;
+}
+
+/**
+ * A pending reveal request scoped to a specific editor. Extends the viewer-side
+ * {@link RevealTarget} with the `key` of the editor it targets, so a consumer
+ * applies the reveal only while that editor is the active one. Transient
+ * navigation, never editor identity (the line does not key the tab).
+ */
+export interface EditorReveal extends RevealTarget {
+  /** {@link editorKey} of the editor this reveal targets. */
+  readonly key: string;
+}
 
 /**
  * One open editor tab.
@@ -37,6 +62,14 @@ export interface WorkspaceEditorsSnapshot {
    * highlight consume — the editors store's projection into the selection shape.
    */
   readonly activeFile: SelectedWorkspaceFile | null;
+  /**
+   * A pending jump-to-line reveal, or `null`. Set only by an open-with-line
+   * (`openPreview` with a `line`); cleared by any other active-editor change so
+   * returning to a tab never re-scrolls to a stale line. Consumers honor it only
+   * while `reveal.key` matches {@link activeKey}. Transient — not part of any
+   * editor's identity.
+   */
+  readonly reveal: EditorReveal | null;
 }
 
 type Listener = () => void;
@@ -45,6 +78,7 @@ const EMPTY_SNAPSHOT: WorkspaceEditorsSnapshot = {
   editors: [],
   activeKey: null,
   activeFile: null,
+  reveal: null,
 };
 
 /**
@@ -74,17 +108,30 @@ export function editorKey(entryId: string, path: string): string {
 export class WorkspaceEditorsStore {
   private _snapshot: WorkspaceEditorsSnapshot = EMPTY_SNAPSHOT;
   private _listeners = new Set<Listener>();
+  /** Monotonic reveal token — bumped on every open-with-line (see `openPreview`). */
+  private _revealSeq = 0;
 
   // -- Mutations -----------------------------------------------------------
 
-  /** Single-click open: reuse the preview slot, or focus if already open. */
-  openPreview(entryId: string, path: string): void {
+  /**
+   * Single-click open: reuse the preview slot, or focus if already open.
+   *
+   * When `options.line` is set, this also records a jump-to-line reveal for the
+   * opened editor. The reveal nonce is bumped **every** time — even when the
+   * file is already open and active — so a second search hit in the same file
+   * re-scrolls the already-mounted viewer. An open without a `line` clears any
+   * pending reveal.
+   */
+  openPreview(entryId: string, path: string, options?: OpenFileOptions): void {
     const key = editorKey(entryId, path);
     const { editors } = this._snapshot;
+    const reveal = this._makeReveal(key, options);
 
     if (editors.some((e) => editorKey(e.entryId, e.path) === key)) {
-      // Already open — focus it, preserving its pinned/preview state.
-      this._setActive(key);
+      // Already open — focus it (preserving pinned/preview state) and apply the
+      // reveal (or clear it). Reuse the same editors array ref so a reveal-only
+      // update doesn't churn the tab list.
+      this._commit(editors, key, reveal);
       return;
     }
 
@@ -94,7 +141,7 @@ export class WorkspaceEditorsStore {
       previewIndex >= 0
         ? editors.map((e, i) => (i === previewIndex ? next : e))
         : [...editors, next];
-    this._commit(editorsNext, key);
+    this._commit(editorsNext, key, reveal);
   }
 
   /** Explicit open (double-click / open-to-keep): a persistent tab. */
@@ -187,15 +234,47 @@ export class WorkspaceEditorsStore {
     this._commit(this._snapshot.editors, key);
   }
 
-  private _commit(editors: readonly OpenEditor[], activeKey: string | null): void {
+  /** Build a reveal for `key` from open options, or `null` when no line given. */
+  private _makeReveal(
+    key: string,
+    options: OpenFileOptions | undefined,
+  ): EditorReveal | null {
+    const line = options?.line;
+    if (line == null) return null;
+    return { key, line, nonce: ++this._revealSeq };
+  }
+
+  /**
+   * Replace the snapshot. `reveal` defaults to `null`, so any mutation that does
+   * not explicitly carry one clears a pending reveal (invariant: returning to a
+   * tab must not re-scroll to a stale line). The `activeFile` object reference
+   * is preserved when the active editor is unchanged, so a reveal-only update
+   * doesn't churn downstream memoization (diff correlation, tree highlight).
+   */
+  private _commit(
+    editors: readonly OpenEditor[],
+    activeKey: string | null,
+    reveal: EditorReveal | null = null,
+  ): void {
     const active =
       activeKey != null
         ? editors.find((e) => editorKey(e.entryId, e.path) === activeKey) ?? null
         : null;
+    const resolvedActiveKey = active ? activeKey : null;
+
+    const prev = this._snapshot;
+    const activeFile =
+      active && prev.activeKey === resolvedActiveKey && prev.activeFile
+        ? prev.activeFile
+        : active
+          ? { entryId: active.entryId, path: active.path }
+          : null;
+
     this._snapshot = {
       editors,
-      activeKey: active ? activeKey : null,
-      activeFile: active ? { entryId: active.entryId, path: active.path } : null,
+      activeKey: resolvedActiveKey,
+      activeFile,
+      reveal,
     };
     this._notify();
   }

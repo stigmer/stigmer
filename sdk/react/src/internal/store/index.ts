@@ -30,6 +30,8 @@ export type { SelectedWorkspaceFile } from "./workspace-file-selection-store.js"
 export { WorkspaceEditorsStore, editorKey } from "./workspace-editors-store.js";
 export type {
   OpenEditor,
+  OpenFileOptions,
+  EditorReveal,
   WorkspaceEditorsSnapshot,
 } from "./workspace-editors-store.js";
 

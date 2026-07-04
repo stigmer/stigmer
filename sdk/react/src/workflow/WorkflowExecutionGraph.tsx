@@ -26,7 +26,7 @@ import { useFollowExecution, computeFollowSelection } from "./useFollowExecution
 import { useActiveTaskName } from "./useActiveTaskName.js";
 import { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
 import { ExecutionActiveTaskIndicator } from "./ExecutionActiveTaskIndicator.js";
-import { getAnimationDuration } from "./motion-preference.js";
+import { getAnimationDuration } from "../internal/motion-preference.js";
 
 /** Props for {@link WorkflowExecutionGraph}. */
 export interface WorkflowExecutionGraphProps {

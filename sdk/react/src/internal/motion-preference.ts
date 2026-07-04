@@ -1,10 +1,13 @@
 /**
  * Utility for respecting the user's motion preference (prefers-reduced-motion)
- * in programmatic viewport animations (fitView, setCenter, etc.) that are NOT
- * covered by the CSS-level reduced-motion rule in styles.css.
+ * in programmatic viewport animations (fitView, setCenter, scrollIntoView, etc.)
+ * that are NOT covered by the CSS-level reduced-motion rule in styles.css.
  *
- * React Flow's JS-driven animations (duration parameter on fitView/setCenter)
- * bypass CSS media queries — they must be explicitly checked.
+ * JS-driven animations (React Flow's duration parameter on fitView/setCenter,
+ * smooth `scrollIntoView`) bypass CSS media queries — they must be explicitly
+ * checked. Lives in `internal/` because it is cross-cutting: the workflow graph
+ * and the workspace file viewer both depend on it, and `internal/` may not
+ * depend on a feature domain.
  */
 
 let cachedPreference: boolean | null = null;

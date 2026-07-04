@@ -213,7 +213,14 @@ export function NewSessionViewer({
     hasChanges: false,
     defaultView: "configure",
   });
-  const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
+  const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
+    panel.editorsStore,
+  );
+
+  // Honor a jump-to-line reveal only while it targets the active editor
+  // (DD-016 parity with SessionViewer).
+  const activeReveal =
+    reveal && reveal.key === activeKey ? reveal : undefined;
 
   const handleRemoveAgent = useCallback(() => {
     flow.setAgentRef(null);
@@ -397,6 +404,7 @@ export function NewSessionViewer({
               onPinEditor={panel.pinEditor}
               onCloseEditor={panel.closeEditor}
               onCollapse={panel.closePanel}
+              reveal={activeReveal}
               className="h-full"
             />
           ) : null

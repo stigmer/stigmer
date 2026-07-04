@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { WorkspaceEditorsStore } from "../workspace-editors-store";
+import { WorkspaceEditorsStore, editorKey } from "../workspace-editors-store";
 
 function paths(store: WorkspaceEditorsStore): string[] {
   return store.getSnapshot().editors.map((e) => e.path);
@@ -147,5 +147,70 @@ describe("WorkspaceEditorsStore", () => {
     expect(count).toBe(1);
     store.closeAll();
     expect(count).toBe(1);
+  });
+
+  describe("reveal (jump-to-line)", () => {
+    it("starts with no reveal, and an open without a line sets none", () => {
+      expect(store.getSnapshot().reveal).toBeNull();
+      store.openPreview("e1", "a.ts");
+      expect(store.getSnapshot().reveal).toBeNull();
+    });
+
+    it("openPreview with a line sets a reveal targeting the active editor", () => {
+      store.openPreview("e1", "a.ts", { line: 42 });
+      const snap = store.getSnapshot();
+      expect(snap.reveal).toEqual({
+        key: editorKey("e1", "a.ts"),
+        line: 42,
+        nonce: expect.any(Number),
+      });
+      // The reveal always names the now-active editor.
+      expect(snap.reveal!.key).toBe(snap.activeKey);
+    });
+
+    it("bumps the nonce on every open-with-line, even for the same file+line", () => {
+      store.openPreview("e1", "a.ts", { line: 10 });
+      const first = store.getSnapshot().reveal!.nonce;
+      // A second search hit in the already-open, already-active file must still
+      // re-scroll — so the nonce advances.
+      store.openPreview("e1", "a.ts", { line: 10 });
+      expect(store.getSnapshot().reveal!.nonce).toBeGreaterThan(first);
+    });
+
+    it("clears the reveal when switching to another tab", () => {
+      store.openPinned("e1", "a.ts");
+      store.openPreview("e1", "b.ts", { line: 5 });
+      expect(store.getSnapshot().reveal).not.toBeNull();
+      store.activate("e1", "a.ts");
+      expect(store.getSnapshot().reveal).toBeNull();
+    });
+
+    it("clears the reveal on close and closeAll", () => {
+      store.openPreview("e1", "a.ts", { line: 5 });
+      store.close("e1", "a.ts");
+      expect(store.getSnapshot().reveal).toBeNull();
+
+      store.openPreview("e1", "b.ts", { line: 3 });
+      store.closeAll();
+      expect(store.getSnapshot().reveal).toBeNull();
+    });
+
+    it("preserves editors and activeFile refs on a reveal-only update", () => {
+      store.openPinned("e1", "a.ts");
+      const before = store.getSnapshot();
+      // Already open + active → only the reveal changes; the tab list and the
+      // active-file projection must keep their references (invariant #3).
+      store.openPreview("e1", "a.ts", { line: 9 });
+      const after = store.getSnapshot();
+      expect(after.editors).toBe(before.editors);
+      expect(after.activeFile).toBe(before.activeFile);
+      expect(after.reveal).toEqual({
+        key: editorKey("e1", "a.ts"),
+        line: 9,
+        nonce: expect.any(Number),
+      });
+      // Focusing-for-reveal must not turn a pinned tab back into a preview.
+      expect(after.editors[0].preview).toBe(false);
+    });
   });
 });

@@ -97,7 +97,8 @@ describe("WorkspaceContentSearch", () => {
     // tree/filename click uses — this is what makes a changed file honor the
     // FileViewer diff-default; see FileViewer diff-mode suite).
     fireEvent.click(within(options[0]).getByRole("button"));
-    expect(onOpenFile).toHaveBeenCalledWith(entry.id, "src/app.ts");
+    // The hit's line rides along so the viewer jumps to it (DR-1/DR-2).
+    expect(onOpenFile).toHaveBeenCalledWith(entry.id, "src/app.ts", { line: 3 });
   });
 
   it("shows an entry header when more than one entry has hits", async () => {
@@ -162,7 +163,7 @@ describe("WorkspaceContentSearch", () => {
     expect(document.getElementById(active!)?.getAttribute("aria-selected")).toBe("true");
 
     fireEvent.keyDown(input, { key: "Enter" });
-    expect(onOpenFile).toHaveBeenCalledWith(entry.id, "a.ts");
+    expect(onOpenFile).toHaveBeenCalledWith(entry.id, "a.ts", { line: 1 });
   });
 
   it("caps rendered rows and reports the total", async () => {

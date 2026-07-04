@@ -6,6 +6,7 @@ import { isTerminalPhase } from "../execution/execution-phases.js";
 import type { SelectedThreadItem } from "../internal/store/selection-store.js";
 import {
   useWorkspaceEditorsStoreRef,
+  type OpenFileOptions,
   type WorkspaceEditorsStore,
 } from "../internal/store/index.js";
 
@@ -76,8 +77,16 @@ export interface SessionPanelController {
   readonly closePanel: () => void;
   /** Explicit view pick from the rail — sticky against auto-switching. */
   readonly setView: (viewId: string) => void;
-  /** Open a file as a preview tab and expand the panel. */
-  readonly openFile: (entryId: string, path: string) => void;
+  /**
+   * Open a file as a preview tab and expand the panel. Pass `options.line` to
+   * jump to and highlight a specific 1-based line (e.g. a content-search hit) —
+   * the file opens in its line-faithful File view scrolled to that line.
+   */
+  readonly openFile: (
+    entryId: string,
+    path: string,
+    options?: OpenFileOptions,
+  ) => void;
   /** Focus an already-open editor tab. */
   readonly activateEditor: (entryId: string, path: string) => void;
   /** Pin an editor tab (clear its preview state). */
@@ -177,8 +186,8 @@ export function useSessionPanel({
   }, []);
 
   const openFile = useCallback(
-    (entryId: string, path: string) => {
-      editorsStore.openPreview(entryId, path);
+    (entryId: string, path: string, options?: OpenFileOptions) => {
+      editorsStore.openPreview(entryId, path, options);
       setIsOpen(true);
     },
     [editorsStore],

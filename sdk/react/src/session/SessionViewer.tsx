@@ -724,7 +724,15 @@ function SessionPanelRegion({
   isEndUser,
 }: SessionPanelRegionProps) {
   const selectedItem = useSelectedThreadItem();
-  const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
+  const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
+    panel.editorsStore,
+  );
+
+  // Honor a pending jump-to-line reveal only while it targets the active editor
+  // (an EditorReveal is structurally a RevealTarget). Switching tabs changes
+  // activeKey, so a stale reveal for another tab is naturally ignored.
+  const activeReveal =
+    reveal && reveal.key === activeKey ? reveal : undefined;
 
   // This region is the level that subscribes to thread selection; report it to
   // the controller so an open panel can auto-surface the Inspect view. (A
@@ -839,6 +847,7 @@ function SessionPanelRegion({
       onCloseEditor={panel.closeEditor}
       onCollapse={panel.closePanel}
       change={openFileChange ?? undefined}
+      reveal={activeReveal}
       className="h-full"
     />
   );
