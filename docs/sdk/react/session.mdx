@@ -244,6 +244,36 @@ function usePersistedModel(options?: UsePersistedModelOptions): UsePersistedMode
 />
 
 
+### usePlanDraft
+
+Owns the local draft of the session's current plan (Phase: refine before
+build). The draft is a client-side overlay — the published `plan.md`
+artifact is immutable and is never written back (edit-as-input, not
+artifact mutation). The approved plan (draft if edited, else the artifact
+text) is delivered to the implement execution as an attachment.
+
+Ownership lives at the viewer level, NOT inside the Plan facet: the panel
+renders only the active rail view, so facet-local state would be destroyed
+by every view switch or panel collapse — silently losing the user's edits.
+
+Supersession is derived, not synchronized: the draft is stored with the
+plan identity it was made against ([`planDraftKey`](#plandraftkey)), and reads resolve
+against the CURRENT plan's identity. When a newer plan arrives the old
+draft simply stops matching — no effect, no cleanup, no stale-flush race.
+
+**Signature**
+
+```tsx
+function usePlanDraft(plan: SessionPlan | undefined): PlanDraftController
+```
+
+<TypeTable
+  type={{
+    plan: { type: "SessionPlan | undefined", description: "", required: true },
+  }}
+/>
+
+
 ### useSession
 
 Data hook that fetches a single Session by ID.
@@ -1278,6 +1308,33 @@ function parseDraftType(value: string | null): DraftResourceType | null
 ```
 
 
+### PlanDraftController
+
+Controller returned by [`usePlanDraft`](#useplandraft).
+
+<TypeTable
+  type={{
+    draftText: { type: "string | null", description: "The user's in-place edit of the current plan, or `null` when the plan is unedited. Always scoped to the CURRENT plan — a draft made against a superseded plan reads as `null` here (it is dropped, never migrated).", required: true },
+    isEdited: { type: "boolean", description: "True when the current plan has an active draft.", required: true },
+    readDraft: { type: "() => string | null", description: "Snapshot reader for submit-time consumers: returns the current draft (or `null`) without the caller depending on draft state. Referentially stable for the lifetime of the component (DD-010) — \"Build from plan\" reads the draft through this at click time, so per-keystroke draft updates never re-bind the build callback or re-render the conversation column.", required: true },
+    setDraft: { type: "(text: string | null) => void", description: "Set (or update) the draft for the current plan. Pass `null` to revert to the published plan. No-ops when the session has no plan.", required: true },
+  }}
+/>
+
+
+### planDraftKey
+
+Identity of a plan for draft scoping: the execution that published it plus
+the artifact's content hash. A refined plan (new execution) or a republished
+plan (same key, new hash) produces a NEW identity, which orphans any draft
+of the previous plan — a draft of plan N must never silently ride along
+once plan N+1 exists.
+
+```tsx
+function planDraftKey(plan: SessionPlan): string
+```
+
+
 ### RuntimeEnvProvider
 
 Host-app callback that supplies environment variables for a single
@@ -1548,6 +1605,7 @@ Options for [`useSessionPanel`](#usesessionpanel).
   type={{
     hasChanges: { type: "boolean", description: "Whether the session has git write-backs. The first arrival auto-surfaces the Changes view — but only while the panel is open; a collapsed panel signals through badges instead of pulling the user out of the chat.", required: true },
     phase: { type: "ExecutionPhase | null", description: "The display execution's phase, or `null` before any execution exists. A transition between running and terminal resets the user's sticky view pick (mirroring the retired inspector-tab FSM).", required: true },
+    planKey: { type: "string | null", description: "Identity of the session's current plan (see `planDraftKey`), or `null` when none exists. A NEW identity — the first plan, or a refined plan superseding it — auto-surfaces the Plan view under the same contract as `hasChanges`: only while the panel is open, never over an explicit pick, and a collapsed panel signals through badges alone." },
   }}
 />
 

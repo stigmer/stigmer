@@ -666,6 +666,21 @@ if (result.detected) {
 ```
 
 
+### findLatestSessionPlan
+
+Finds the session's LATEST plan across all executions — the plan the Panel's
+Plan facet reviews and "Build from plan" implements. Executions are scanned
+newest-first (the array is chronological), mirroring the thread's
+latest-plan-owns-the-build-action rule so every surface agrees on which
+plan is current.
+
+Returns `undefined` when no execution in the session published a plan.
+
+```tsx
+function findLatestSessionPlan(executions: readonly AgentExecution[]): SessionPlan | undefined
+```
+
+
 ### findPlanArtifact
 
 Finds the plan artifact on a completed execution, or `undefined` when none
@@ -798,6 +813,12 @@ if (parsed.kind === "Agent") {
 ```
 
 
+### PLAN_ARTIFACT_NAME
+
+Canonical filename a Plan-mode execution publishes its plan under. Kept in
+sync with the runner's `publishPlanArtifact` (shared/plan-artifact.ts).
+
+
 ### PushSkillParams
 
 Parameters for pushing a skill package from an execution artifact.
@@ -912,6 +933,20 @@ import { serializeMcpServerYaml } from "@stigmer/react";
 const yaml = serializeMcpServerYaml(mcpServer);
 const file = new File([yaml], "my-server.yaml", { type: "text/yaml" });
 ```
+
+
+### SessionPlan
+
+The session's current plan: the published `plan.md` artifact of the most
+recent execution that produced one, plus the execution it belongs to
+(artifact content RPCs are execution-scoped).
+
+<TypeTable
+  type={{
+    artifact: { type: "ExecutionArtifact", description: "The published `plan.md` artifact.", required: true },
+    executionId: { type: "string", description: "ID of the execution that published the plan.", required: true },
+  }}
+/>
 
 
 ### SkillPackageDetection

@@ -149,6 +149,19 @@ option label names that class so the scope is never a surprise.
 />
 
 
+### blockReasonNote
+
+The honest, one-line reason a change cannot be kept as-is, or `null` when it
+is fully reviewable. Mirrors the web card's per-file block-reason copy so the
+terminal reviewer sees the same explanation.
+
+
+### changeDisplayPath
+
+The path to show for a change: the post-edit path, or the pre-edit path for a
+deletion. A rename shows `before → after` so both sides are visible.
+
+
 ### ContextGauge
 
 Terminal-native context window utilization gauge.
@@ -191,6 +204,57 @@ Renders nothing for unspecified phases.
 />
 
 
+### FileReviewPrompt
+
+The terminal file-review decision surface — the linear-log analogue of the
+web's composer-docked `FileReviewDock`/`FileReviewCard`.
+
+Renders `N files awaiting review` and, gated by `changeSetReviewability`:
+bulk Approve/Keep all + Reject all (a complete set is approvable as-is; a
+binary-only set is kept with an acknowledgement; a blocked set can only be
+rejected in bulk), plus a per-file mode (`f`) for keeping/discarding each file
+— the only way to resolve a blocked or mixed set, since the server refuses a
+whole-set approve unless every file is complete. Decisions carry the same
+digests (`aggregate_digest` / `file_digest`) and `acknowledge_unreviewable`
+semantics as the web; no decision-model change.
+
+Keyboard: `a` approve/keep all · `r` reject all · `f` per-file mode; in
+per-file mode ↑/↓ move, `k` keep, `d` discard, `esc` back. Input is gated by
+`isActive` so only one decision surface owns the keyboard at a time.
+
+**Props** — `FileReviewPromptProps`
+
+<TypeTable
+  type={{
+    changeSet: { type: "FileChangeSet", description: "The AWAITING_REVIEW change set this prompt decides.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-execution" },
+    decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed via `fileDecisionKey`." },
+    isActive: { type: "boolean", description: "Whether this prompt owns the keyboard. False renders a read-only view (no `useInput`) so exactly one decision surface is interactive at a time. Defaults to `true`." },
+    onSubmit: { type: "(changeSetId: string, action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Submit a decision for this set (or one file within it). Bound to the active execution by the caller; the terminal analogue of the web dock's `submitFileDecision`.", required: true },
+    submittingDecisionKeys: { type: "ReadonlySet<string>", description: "Keys (via `fileDecisionKey`) currently being submitted — drives busy state." },
+  }}
+/>
+
+
+### FileReviewRecord
+
+A read-only, append-only record of a SETTLED file-review change set — the
+terminal analogue of the web's in-thread `FileReviewRecordRow` (DD-27 D2).
+
+Its primary job is the no-stamped-row case: a set changed only via shell
+commands stamps no edit rows, so the per-row badges leave no trace and this
+record is the only evidence of what was reviewed and decided. Sets with
+stamped rows already carry their outcome on the (frozen) row badges; this
+record complements them with a one-line summary and file list.
+
+**Props** — `FileReviewRecordProps`
+
+<TypeTable
+  type={{
+    fileChangeSet: { type: "FileChangeSet", description: "A settled (decided / reconciled / failed) change set to record.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-execution" },
+  }}
+/>
+
+
 ### FollowUpInput
 
 Terminal text input for sending follow-up messages in a session.
@@ -209,6 +273,14 @@ to submit, Ctrl+C to exit the application.
     placeholder: { type: "string", description: "Placeholder text. Default: \"Reply...\"" },
   }}
 />
+
+
+### kindLetter
+
+Single-letter badge for a file change's kind, matching the web review card:
+`A` added, `M` modified, `D` deleted, `R` renamed. A binary change reads as
+`M` — "binary" is a review-completeness property (from `FileContent.is_binary`
+via `fileReviewability`), not a distinct edit kind.
 
 
 ### MessageEntry
@@ -236,13 +308,17 @@ Renders a single message in the terminal conversation thread.
 Renders a continuous conversation thread from one or more
 `AgentExecution` snapshots in the terminal.
 
-Composes `MessageEntry`, `ToolCallGroup`,
-`ExecutionProgress`, and `ApprovalPrompt` into a
-scrolling terminal log.
+Composes `MessageEntry`, `ToolCallGroup`, `SubAgentBlock`,
+`ExecutionProgress`, `ApprovalPrompt`, and (for settled change
+sets) `FileReviewRecord` into a scrolling terminal log.
 
-Historical items are rendered via Ink's `<Static>` component so
-they are written once and don't re-render, keeping terminal
-output efficient for long conversations.
+Completed executions are rendered via Ink's `<Static>` component so they are
+written once and don't re-render, keeping terminal output efficient for long
+conversations. The active execution renders live so its file-review row
+badges transition (Pending review → Kept/Discarded) in place, then freeze
+into `<Static>` when the execution reaches a terminal phase. The thread is
+wrapped in a `FileReviewContext` provider so every `ToolCallItem`
+can badge its stamped edit rows.
 
 **Props** — `MessageThreadProps`
 
@@ -253,6 +329,7 @@ output efficient for long conversations.
     expandToolCalls: { type: "boolean", description: "Whether tool call groups should be rendered in expanded mode. Toggled via Ctrl+O." },
     onApprovalSubmit: { type: "(toolCallId: string, action: ApprovalAction) => void", description: "Callback for approval actions. Shows approval UI when provided." },
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown before the stream delivers it." },
+    showFileReviewRecords: { type: "boolean", description: "Whether to render a read-only settled record for each decided/reconciled/ failed change set (the terminal analogue of the web's in-thread record, DD-27 D2). Off by default so bare consumers stay minimal; `SessionView` opts in. Pending (AWAITING_REVIEW) sets are never records here — their decision surface is the docked `FileReviewPrompt`." },
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval." },
   }}
 />
@@ -333,6 +410,19 @@ render(
   </InkStigmerProvider>,
 );
 ```
+
+
+### settledCounts
+
+Folds a settled change set's decisions into kept / discarded / not-reviewed
+counts, using the same `deriveEffectiveVerdicts` fold the web uses so a
+"Keep all" set correctly reads every file as kept.
+
+
+### settledSummary
+
+A one-line summary of a settled change set's outcome, e.g. `2 kept · 1
+discarded`, or `3 files changed` when nothing was individually decided.
 
 
 ### SubAgentBlock
