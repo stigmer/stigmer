@@ -140,6 +140,15 @@ vi.mock("../useSessionPageFlow", () => ({
   useSessionPageFlow: (options: unknown) => mockUseSessionPageFlow(options),
 }));
 
+vi.mock("../../hooks", () => ({
+  useStigmer: () => ({
+    agentExecution: {
+      uploadAttachment: vi.fn(),
+      getArtifactContent: vi.fn(),
+    },
+  }),
+}));
+
 import { NewSessionViewer } from "../NewSessionViewer";
 import { SessionViewer } from "../SessionViewer";
 

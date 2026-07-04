@@ -7,8 +7,10 @@
  */
 
 import { relative } from "node:path";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ProvisionResult, GitMetadata } from "../../shared/workspace/types.js";
 import { SourceType } from "../../shared/workspace/types.js";
+import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 
 const RESPONSE_RULES = `
 
@@ -84,6 +86,14 @@ export interface PromptBuilderInput {
   workspaceFileRefs: string[];
   workspaceRoot: string;
   injectedFiles: InjectedFile[];
+  /**
+   * The execution's interaction mode. PLAN appends the shared plan-mode
+   * directive so the model knows the turn's deliverable is a plan document.
+   * Tool-level write enforcement is separate (see setup.ts permissions) —
+   * without this directive the model is silently read-only but never told
+   * to produce a plan.
+   */
+  interactionMode?: InteractionMode;
 }
 
 export interface InjectedFile {
@@ -127,6 +137,12 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
 
   prompt += RESPONSE_RULES;
   prompt += SUB_AGENT_RULES;
+
+  // Last section on purpose: the plan-mode contract redefines the turn's
+  // deliverable, so it must be the freshest instruction the model reads.
+  if (input.interactionMode === InteractionMode.PLAN) {
+    prompt += "\n\n## Plan mode\n\n" + PLAN_MODE_DIRECTIVE;
+  }
 
   return prompt;
 }

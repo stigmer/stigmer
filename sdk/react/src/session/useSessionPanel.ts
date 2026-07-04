@@ -23,6 +23,14 @@ export interface UseSessionPanelOptions {
    * signals through badges instead of pulling the user out of the chat.
    */
   readonly hasChanges: boolean;
+  /**
+   * Identity of the session's current plan (see `planDraftKey`), or `null`
+   * when none exists. A NEW identity — the first plan, or a refined plan
+   * superseding it — auto-surfaces the Plan view under the same contract as
+   * `hasChanges`: only while the panel is open, never over an explicit pick,
+   * and a collapsed panel signals through badges alone.
+   */
+  readonly planKey?: string | null;
 }
 
 /**
@@ -84,6 +92,7 @@ export interface SessionPanelController {
 export function useSessionPanel({
   phase,
   hasChanges,
+  planKey = null,
 }: UseSessionPanelOptions): SessionPanelController {
   const editorsStore = useWorkspaceEditorsStoreRef();
   const [isOpen, setIsOpen] = useState(false);
@@ -122,6 +131,19 @@ export function useSessionPanel({
     setPrevHasChanges(hasChanges);
     if (hasChanges && isOpen && !userPickedViewRef.current) {
       setViewState("changes");
+    }
+  }
+
+  // A new plan arrived (first plan, or a refinement superseding it) → surface
+  // the Plan view, under the identical open-panel/no-explicit-pick contract.
+  // Keyed on plan IDENTITY, not presence, so a refined plan re-surfaces too.
+  // The initial value swallows a plan that already existed at mount — loading
+  // a session with an old plan must not hijack the view.
+  const [prevPlanKey, setPrevPlanKey] = useState(planKey);
+  if (planKey !== prevPlanKey) {
+    setPrevPlanKey(planKey);
+    if (planKey !== null && isOpen && !userPickedViewRef.current) {
+      setViewState("plan");
     }
   }
 

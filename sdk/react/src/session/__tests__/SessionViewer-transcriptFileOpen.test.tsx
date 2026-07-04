@@ -113,6 +113,15 @@ vi.mock("../useSessionPageFlow", () => ({
   useSessionPageFlow: () => stubSessionPageFlow,
 }));
 
+vi.mock("../../hooks", () => ({
+  useStigmer: () => ({
+    agentExecution: {
+      uploadAttachment: vi.fn(),
+      getArtifactContent: vi.fn(),
+    },
+  }),
+}));
+
 import { SessionViewer } from "../SessionViewer";
 
 /** The onFilePathClick handler threaded down to the (mocked) MessageThread. */

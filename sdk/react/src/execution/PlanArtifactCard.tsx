@@ -23,8 +23,17 @@ export interface PlanArtifactCardProps {
   readonly org?: string;
   /** Called when the user clicks "Build from plan". Hidden when omitted. */
   readonly onImplement?: () => void;
+  /**
+   * Opens the session's Plan facet — the side-by-side review/refine surface.
+   * When provided it REPLACES the modal-based "Open full" secondary with
+   * "Open plan" (one review affordance, not two). When omitted (hosts
+   * without a session panel, or a superseded plan's card) the modal remains.
+   */
+  readonly onOpenPlan?: () => void;
   /** Disables the primary CTA (e.g., while an execution is active). */
   readonly disabled?: boolean;
+  /** When true, the primary button reads "Starting build…" (upload in flight). */
+  readonly buildPending?: boolean;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
@@ -59,7 +68,9 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
   artifact,
   org,
   onImplement,
+  onOpenPlan,
   disabled,
+  buildPending,
   className,
 }: PlanArtifactCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -86,18 +97,32 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
       </span>
 
       <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        {org && (
+        {onOpenPlan ? (
           <button
             type="button"
-            onClick={() => setPreviewOpen(true)}
+            onClick={onOpenPlan}
             className={cn(
               "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
               FOCUS_RING,
             )}
           >
             <ExpandIcon />
-            Open full
+            Open plan
           </button>
+        ) : (
+          org && (
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className={cn(
+                "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
+                FOCUS_RING,
+              )}
+            >
+              <ExpandIcon />
+              Open full
+            </button>
+          )
         )}
         <button
           type="button"
@@ -125,7 +150,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
             )}
           >
             <ImplementIcon />
-            Build from plan
+            {buildPending ? "Starting build…" : "Build from plan"}
           </button>
         )}
       </div>

@@ -47,8 +47,10 @@ export interface VirtualizedThreadProps {
   readonly fileReviewCtx: FileReviewContextValue;
   readonly unresolvedApprovalCount: number;
   readonly onBuildFromPlan?: () => void;
+  readonly onOpenPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
+  readonly planBuildPending?: boolean;
   readonly contentColumn?: ThreadContentColumn;
   readonly onRetrySend?: () => void;
   readonly onRetryExecution?: (message: string) => void;
@@ -114,8 +116,10 @@ export function VirtualizedThread({
   fileReviewCtx,
   unresolvedApprovalCount,
   onBuildFromPlan,
+  onOpenPlan,
   org,
   planActionsDisabled,
+  planBuildPending,
   contentColumn,
   onRetrySend,
   onRetryExecution,
@@ -150,13 +154,15 @@ export function VirtualizedThread({
       submittingApprovalIds,
       approvalErrors,
       onBuildFromPlan,
+      onOpenPlan,
       org,
       planActionsDisabled,
+      planBuildPending,
       onRetrySend,
       onRetryExecution,
       onEditMessage,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onBuildFromPlan, org, planActionsDisabled, onRetrySend, onRetryExecution, onEditMessage],
+    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onBuildFromPlan, onOpenPlan, org, planActionsDisabled, planBuildPending, onRetrySend, onRetryExecution, onEditMessage],
   );
 
   return (

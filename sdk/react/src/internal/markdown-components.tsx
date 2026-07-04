@@ -44,6 +44,14 @@ const ENCLOSING_MARKDOWN_FENCE_RE =
   /^(`{3,})[ \t]*(?:markdown|md)[ \t]*\r?\n([\s\S]*?)\r?\n\1[ \t]*$/i;
 
 /**
+ * Matches content whose ENTIRE body is a single fenced code block with an
+ * EMPTY info string (no language tag). Only meaningful for surfaces that know
+ * the body is markdown by contract (a Plan-mode plan) — see
+ * {@link unwrapEnclosingMarkdownFence}'s `allowBareFence`.
+ */
+const ENCLOSING_BARE_FENCE_RE = /^(`{3,})[ \t]*\r?\n([\s\S]*?)\r?\n\1[ \t]*$/;
+
+/**
  * Unwraps a message the model wrapped entirely in a ```markdown / ```md fence.
  *
  * Some models emit their whole markdown reply inside one fenced block (a
@@ -53,6 +61,14 @@ const ENCLOSING_MARKDOWN_FENCE_RE =
  * no-op for everything else (already-rich markdown, prose, or a reply that is
  * legitimately a single code block).
  *
+ * `allowBareFence` extends the unwrap to a whole-body fence with NO language
+ * tag. For an ordinary chat message a bare fence is ambiguous (it may be a
+ * legitimate single code block), so the default stays strict. A Plan-mode plan
+ * is different by contract: the turn's output IS a markdown document, so a
+ * reply that is one giant untagged fence is a wrapped plan, not code. Only
+ * plan-document surfaces pass `true`. A fence tagged with any other language
+ * (```python …) is never unwrapped in either mode.
+ *
  * Render-time only: callers pass it the text right before handing it to the
  * markdown renderer, so the transcript and the raw artifact stay faithful to
  * what the agent produced — a single source of truth for the unwrap, with no
@@ -60,9 +76,47 @@ const ENCLOSING_MARKDOWN_FENCE_RE =
  * arrived yet, so this no-ops and the live text renders as typed; it unwraps
  * once the block closes.
  */
-export function unwrapEnclosingMarkdownFence(content: string): string {
-  const match = ENCLOSING_MARKDOWN_FENCE_RE.exec(content.trim());
-  return match ? match[2] : content;
+export function unwrapEnclosingMarkdownFence(
+  content: string,
+  allowBareFence = false,
+): string {
+  const trimmed = content.trim();
+  const tagged = ENCLOSING_MARKDOWN_FENCE_RE.exec(trimmed);
+  if (tagged) return tagged[2];
+  if (allowBareFence) {
+    const bare = ENCLOSING_BARE_FENCE_RE.exec(trimmed);
+    if (bare) return bare[2];
+  }
+  return content;
+}
+
+/**
+ * Matches a document that OPENS with an `# H1` heading (optionally preceded by
+ * blank lines only). Group 1 is the heading text; the match spans through the
+ * heading's trailing newline(s) so `body` starts at the first content line.
+ */
+const LEADING_H1_RE = /^#[ \t]+(.+?)[ \t]*(?:\r?\n+|$)/;
+
+/**
+ * Splits a markdown document into its leading `# H1` title and the remaining
+ * body, for surfaces that render the title in their own chrome (the plan
+ * document header) instead of inside the prose flow.
+ *
+ * Only a heading at the very start of the document counts as the title — an
+ * `# H1` further down is document content and stays in the body. When there is
+ * no leading H1, `title` is `null` and `body` is the input unchanged.
+ *
+ * Render-time only, like {@link unwrapEnclosingMarkdownFence}: the stored
+ * message/artifact keeps its heading; only the presentation moves it.
+ */
+export function extractLeadingH1(markdown: string): {
+  readonly title: string | null;
+  readonly body: string;
+} {
+  const trimmed = markdown.trim();
+  const match = LEADING_H1_RE.exec(trimmed);
+  if (!match) return { title: null, body: markdown };
+  return { title: match[1], body: trimmed.slice(match[0].length) };
 }
 
 /**
@@ -260,6 +314,57 @@ export const MARKDOWN_COMPONENTS: Components = {
       <em className="italic" {...props}>
         {children}
       </em>
+    );
+  },
+};
+
+/**
+ * Document-grade typography for a Plan-mode plan: one step up the heading
+ * scale from the chat-tuned {@link MARKDOWN_COMPONENTS}, wider section
+ * spacing, and a hairline under `##` section headings for scannability. The
+ * plan is a reviewable document, not a chat bubble — its headings must carry
+ * the structure at a glance.
+ *
+ * Everything except the headings is inherited from `MARKDOWN_COMPONENTS`, so
+ * body text, code, tables, and links render identically across chat and plan
+ * surfaces. Used by `PlanDocumentMessage` (thread) — the same treatment any
+ * plan-document surface should share.
+ */
+export const PLAN_DOCUMENT_MARKDOWN_COMPONENTS: Components = {
+  ...MARKDOWN_COMPONENTS,
+
+  h1({ children, ...props }: MdProps<"h1">) {
+    return (
+      <h1 className="text-lg font-semibold text-foreground mt-6 mb-3 first:mt-0" {...props}>
+        {children}
+      </h1>
+    );
+  },
+
+  h2({ children, ...props }: MdProps<"h2">) {
+    return (
+      <h2
+        className="text-base font-semibold text-foreground mt-6 mb-2.5 pb-1 border-b border-border-muted first:mt-0"
+        {...props}
+      >
+        {children}
+      </h2>
+    );
+  },
+
+  h3({ children, ...props }: MdProps<"h3">) {
+    return (
+      <h3 className="text-sm font-semibold text-foreground mt-5 mb-2 first:mt-0" {...props}>
+        {children}
+      </h3>
+    );
+  },
+
+  h4({ children, ...props }: MdProps<"h4">) {
+    return (
+      <h4 className="text-sm font-medium text-foreground mt-4 mb-1.5 first:mt-0" {...props}>
+        {children}
+      </h4>
     );
   },
 };

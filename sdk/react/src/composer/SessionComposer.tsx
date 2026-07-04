@@ -83,10 +83,17 @@ export interface SessionComposerHandle {
    * @param options.interactionMode - Force the interaction mode for this one
    *   submission, overriding the picker. Avoids the same-tick race when the
    *   caller also calls `onInteractionModeChange` just before submitting.
+   * @param options.attachments - Pre-uploaded attachments (storage keys from
+   *   `agentExecution.uploadAttachment`) to include with this one submission,
+   *   in addition to any files attached in the composer. Used by "Build from
+   *   plan" to deliver the approved `plan.md` to the implement execution.
    */
   submit(
     message: string,
-    options?: { interactionMode?: InteractionModeOption },
+    options?: {
+      interactionMode?: InteractionModeOption;
+      attachments?: AttachmentInput[];
+    },
   ): void;
 }
 
@@ -724,7 +731,13 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // ---------------------------------------------------------------------------
 
   const handleSubmit = useCallback(
-    async (message: string, modeOverride?: InteractionModeOption) => {
+    async (
+      message: string,
+      overrides?: {
+        interactionMode?: InteractionModeOption;
+        attachments?: AttachmentInput[];
+      },
+    ) => {
       // Persist save-for-future manual secrets before building runtimeEnv
       if (sessionVariables?.hasSaveForFutureEntries) {
         const saveVars = sessionVariables.toSaveForFutureEnv();
@@ -763,15 +776,20 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         Object.assign(env, sessionVariables.toRuntimeEnv());
       }
 
-      const attachmentInputs = enableAttachments
+      // Composer-attached files plus caller-supplied extras (e.g. the approved
+      // plan.md from "Build from plan") travel as one attachment list.
+      const composerAttachments = enableAttachments
         ? attachments.toAttachmentInputs()
-        : undefined;
+        : [];
+      const attachmentInputs = [
+        ...composerAttachments,
+        ...(overrides?.attachments ?? []),
+      ];
 
       const hasEnv = Object.keys(env).length > 0;
-      const hasAttachments =
-        attachmentInputs !== undefined && attachmentInputs.length > 0;
+      const hasAttachments = attachmentInputs.length > 0;
       const effectiveMode =
-        modeOverride ??
+        overrides?.interactionMode ??
         (showInteractionModePicker && interactionMode
           ? interactionMode
           : undefined);
@@ -813,7 +831,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     submit: (message, options) => {
       const trimmed = message.trim();
       if (!trimmed || isDisabled) return;
-      void handleSubmit(trimmed, options?.interactionMode);
+      void handleSubmit(trimmed, options);
     },
   }), [composer.setMessage, composer.textareaRef, handleSubmit, isDisabled]);
 
@@ -1343,6 +1361,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         className={cn(
           "rounded-xl border border-border bg-card shadow-sm",
           "focus-within:ring-2 focus-within:ring-ring",
+          // Plan mode tints the frame so the active mode is visible at a
+          // glance, without opening the picker. Themeable via --stgm-primary-muted.
+          interactionMode === "plan" && "border-primary-muted",
           isDisabled && !stopMode && "opacity-50",
           isDragOver && "ring-2 ring-primary/50",
         )}

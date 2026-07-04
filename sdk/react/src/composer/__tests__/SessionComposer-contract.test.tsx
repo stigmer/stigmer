@@ -163,4 +163,27 @@ describe("SessionComposer — imperative submit (Implement plan)", () => {
 
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it("carries caller-supplied attachments into the submit context (approved plan.md)", async () => {
+    const ref = createRef<SessionComposerHandle>();
+    const { onSubmit } = renderComposer({ ref });
+
+    const planAttachment = {
+      filename: "plan.md",
+      storageKey: "attachments/01ABC/plan.md",
+      mountPath: ".stigmer/inputs/plan.md",
+      contentType: "text/markdown",
+    };
+    ref.current!.submit("Implement the approved plan.", {
+      interactionMode: "agent",
+      attachments: [planAttachment],
+    });
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledOnce();
+    });
+    const [, , context] = onSubmit.mock.calls[0];
+    expect(context?.attachments).toEqual([planAttachment]);
+    expect(context?.interactionMode).toBe("agent");
+  });
 });

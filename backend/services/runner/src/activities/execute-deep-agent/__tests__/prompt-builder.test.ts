@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
+import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
 import { SourceType } from "../../../shared/workspace/types.js";
 import type { ProvisionResult } from "../../../shared/workspace/types.js";
 
@@ -204,5 +206,42 @@ describe("buildEnhancedSystemPrompt", () => {
     });
 
     expect(prompt).not.toContain("## Workspace");
+  });
+
+  describe("plan mode", () => {
+    const base = {
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "/workspace",
+      injectedFiles: [],
+    };
+
+    it("appends the shared plan-mode directive as the final section", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        interactionMode: InteractionMode.PLAN,
+      });
+
+      expect(prompt).toContain("## Plan mode");
+      expect(prompt.endsWith(PLAN_MODE_DIRECTIVE)).toBe(true);
+    });
+
+    it("omits the directive for Agent mode", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        interactionMode: InteractionMode.AGENT,
+      });
+
+      expect(prompt).not.toContain("## Plan mode");
+    });
+
+    it("omits the directive when the mode is unset", () => {
+      const prompt = buildEnhancedSystemPrompt(base);
+
+      expect(prompt).not.toContain("## Plan mode");
+    });
   });
 });

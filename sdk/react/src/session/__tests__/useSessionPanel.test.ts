@@ -147,3 +147,41 @@ describe("useSessionPanel — arrivals and phase", () => {
     expect(result.current.view).toBe("inspect");
   });
 });
+
+describe("useSessionPanel — plan arrivals", () => {
+  it("auto-surfaces Plan when a plan arrives while the panel is open", () => {
+    const { result, rerender } = renderPanel();
+    act(() => result.current.openPanel());
+    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
+    expect(result.current.view).toBe("plan");
+  });
+
+  it("never auto-opens (or re-routes) a collapsed panel on a plan — badge only", () => {
+    const { result, rerender } = renderPanel();
+    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
+    expect(result.current.isOpen).toBe(false);
+    expect(result.current.view).toBe("files");
+  });
+
+  it("respects a sticky pick when a plan arrives", () => {
+    const { result, rerender } = renderPanel();
+    act(() => result.current.openPanel());
+    act(() => result.current.setView("usage"));
+    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
+    expect(result.current.view).toBe("usage");
+  });
+
+  it("re-surfaces Plan when a refined plan supersedes the current one (new identity)", () => {
+    const { result, rerender } = renderPanel({ planKey: "e1:hash-a" });
+    act(() => result.current.openPanel());
+    expect(result.current.view).toBe("files");
+    rerender({ phase: null, hasChanges: false, planKey: "e2:hash-b" });
+    expect(result.current.view).toBe("plan");
+  });
+
+  it("does not hijack the view for a plan that existed at mount", () => {
+    const { result } = renderPanel({ planKey: "e1:hash-a" });
+    act(() => result.current.openPanel());
+    expect(result.current.view).toBe("files");
+  });
+});

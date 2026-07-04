@@ -9,14 +9,16 @@ import {
   AgentExecutionSpecSchema,
   ExecutionConfigSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
+  ExecutionArtifactKind,
   ExecutionPhase,
   InteractionMode,
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { buildThreadItems } from "../MessageThread";
+import { buildThreadItems, type ThreadItem } from "../MessageThread";
 
 function makeMessage(type: MessageType, content: string) {
   const msg = create(AgentMessageSchema);
@@ -25,12 +27,21 @@ function makeMessage(type: MessageType, content: string) {
   return msg;
 }
 
+function makePlanArtifact(executionId: string) {
+  const artifact = create(ExecutionArtifactSchema);
+  artifact.name = "plan.md";
+  artifact.kind = ExecutionArtifactKind.FILE;
+  artifact.storageKey = `artifacts/${executionId}/plan.md`;
+  return artifact;
+}
+
 function makeExecution(opts: {
   id: string;
   specMessage?: string;
   phase?: ExecutionPhase;
   interactionMode?: InteractionMode;
   messages?: ReturnType<typeof makeMessage>[];
+  withPlanArtifact?: boolean;
 }): AgentExecution {
   const exec = create(AgentExecutionSchema);
 
@@ -52,9 +63,19 @@ function makeExecution(opts: {
   if (opts.messages) {
     status.messages = opts.messages;
   }
+  if (opts.withPlanArtifact) {
+    status.artifacts = [makePlanArtifact(opts.id)];
+  }
   exec.status = status;
 
   return exec;
+}
+
+function planItems(items: readonly ThreadItem[]) {
+  return items.filter(
+    (i): i is Extract<ThreadItem, { kind: "plan-completion" }> =>
+      i.kind === "plan-completion",
+  );
 }
 
 describe("buildThreadItems plan-completion variant", () => {
@@ -67,10 +88,11 @@ describe("buildThreadItems plan-completion variant", () => {
     });
 
     const items = buildThreadItems([exec], null, null, false, undefined);
-    const planItem = items.find((i) => i.kind === "plan-completion");
+    const cards = planItems(items);
 
-    expect(planItem).toBeDefined();
-    expect(planItem!.key).toBe("plan-completion");
+    expect(cards).toHaveLength(1);
+    expect(cards[0].key).toBe("exec-plan-plan-completion");
+    expect(cards[0].isLatestPlan).toBe(true);
   });
 
   it("does NOT emit plan-completion for COMPLETED Agent-mode execution", () => {
@@ -82,9 +104,8 @@ describe("buildThreadItems plan-completion variant", () => {
     });
 
     const items = buildThreadItems([exec], null, null, false, undefined);
-    const planItem = items.find((i) => i.kind === "plan-completion");
 
-    expect(planItem).toBeUndefined();
+    expect(planItems(items)).toHaveLength(0);
   });
 
   it("does NOT emit plan-completion for COMPLETED execution with no interactionMode", () => {
@@ -95,9 +116,8 @@ describe("buildThreadItems plan-completion variant", () => {
     });
 
     const items = buildThreadItems([exec], null, null, false, undefined);
-    const planItem = items.find((i) => i.kind === "plan-completion");
 
-    expect(planItem).toBeUndefined();
+    expect(planItems(items)).toHaveLength(0);
   });
 
   it("does NOT emit plan-completion for FAILED Plan-mode execution", () => {
@@ -109,9 +129,8 @@ describe("buildThreadItems plan-completion variant", () => {
     });
 
     const items = buildThreadItems([exec], null, null, false, undefined);
-    const planItem = items.find((i) => i.kind === "plan-completion");
 
-    expect(planItem).toBeUndefined();
+    expect(planItems(items)).toHaveLength(0);
   });
 
   it("does NOT emit plan-completion for TERMINATED Plan-mode execution", () => {
@@ -122,9 +141,8 @@ describe("buildThreadItems plan-completion variant", () => {
     });
 
     const items = buildThreadItems([exec], null, null, false, undefined);
-    const planItem = items.find((i) => i.kind === "plan-completion");
 
-    expect(planItem).toBeUndefined();
+    expect(planItems(items)).toHaveLength(0);
   });
 
   it("does NOT emit plan-completion when a Plan execution is actively streaming", () => {
@@ -136,12 +154,11 @@ describe("buildThreadItems plan-completion variant", () => {
     });
 
     const items = buildThreadItems([], exec, null, false, undefined);
-    const planItem = items.find((i) => i.kind === "plan-completion");
 
-    expect(planItem).toBeUndefined();
+    expect(planItems(items)).toHaveLength(0);
   });
 
-  it("emits plan-completion only for the last execution in a multi-execution thread", () => {
+  it("emits one card, attached to the plan segment, for [agent, plan]", () => {
     const agentExec = makeExecution({
       id: "exec-1",
       phase: ExecutionPhase.EXECUTION_COMPLETED,
@@ -163,17 +180,21 @@ describe("buildThreadItems plan-completion variant", () => {
       false,
       undefined,
     );
-    const planItems = items.filter((i) => i.kind === "plan-completion");
+    const cards = planItems(items);
 
-    expect(planItems).toHaveLength(1);
+    expect(cards).toHaveLength(1);
+    expect(cards[0].isLatestPlan).toBe(true);
   });
 
-  it("does NOT emit plan-completion when last execution is Agent after a Plan", () => {
+  it("keeps the plan card (with build authority) after a later Agent turn", () => {
+    // The plan is still the thread's latest plan — an intervening Agent turn
+    // must not strip the review card or its Build action.
     const planExec = makeExecution({
       id: "exec-plan",
       phase: ExecutionPhase.EXECUTION_COMPLETED,
       interactionMode: InteractionMode.PLAN,
       messages: [makeMessage(MessageType.MESSAGE_AI, "Here is the plan")],
+      withPlanArtifact: true,
     });
 
     const agentExec = makeExecution({
@@ -190,8 +211,155 @@ describe("buildThreadItems plan-completion variant", () => {
       false,
       undefined,
     );
-    const planItem = items.find((i) => i.kind === "plan-completion");
+    const cards = planItems(items);
 
-    expect(planItem).toBeUndefined();
+    expect(cards).toHaveLength(1);
+    expect(cards[0].key).toBe("exec-plan-plan-completion");
+    expect(cards[0].isLatestPlan).toBe(true);
+    // The card closes the plan's own segment — it precedes the agent turn.
+    const cardIndex = items.indexOf(cards[0]);
+    const agentSpecIndex = items.findIndex((i) => i.key === "exec-impl-spec");
+    expect(cardIndex).toBeLessThan(agentSpecIndex);
+  });
+
+  it("emits a card per plan; only the newest carries isLatestPlan", () => {
+    const planA = makeExecution({
+      id: "exec-plan-a",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan A")],
+      withPlanArtifact: true,
+    });
+    const planB = makeExecution({
+      id: "exec-plan-b",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan B")],
+      withPlanArtifact: true,
+    });
+
+    const items = buildThreadItems([planA, planB], null, null, false, undefined);
+    const cards = planItems(items);
+
+    expect(cards).toHaveLength(2);
+    expect(cards[0].key).toBe("exec-plan-a-plan-completion");
+    expect(cards[0].isLatestPlan).toBe(false);
+    expect(cards[1].key).toBe("exec-plan-b-plan-completion");
+    expect(cards[1].isLatestPlan).toBe(true);
+  });
+
+  it("skips a superseded plan that never published an artifact", () => {
+    // No artifact and no build authority → the card would be an empty shell.
+    const planA = makeExecution({
+      id: "exec-plan-a",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan A")],
+      withPlanArtifact: false,
+    });
+    const planB = makeExecution({
+      id: "exec-plan-b",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan B")],
+      withPlanArtifact: false,
+    });
+
+    const items = buildThreadItems([planA, planB], null, null, false, undefined);
+    const cards = planItems(items);
+
+    // Only the latest (artifact-less) plan renders — as the fallback CTA.
+    expect(cards).toHaveLength(1);
+    expect(cards[0].key).toBe("exec-plan-b-plan-completion");
+    expect(cards[0].isLatestPlan).toBe(true);
+    expect(cards[0].planArtifact).toBeUndefined();
+  });
+
+  it("carries the plan artifact on the item when published", () => {
+    const exec = makeExecution({
+      id: "exec-plan",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Here is the plan")],
+      withPlanArtifact: true,
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const card = planItems(items)[0];
+
+    expect(card.planArtifact?.name).toBe("plan.md");
+  });
+});
+
+describe("buildThreadItems plan-document stamping", () => {
+  function planDocumentItems(items: readonly ThreadItem[]) {
+    return items.filter(
+      (i): i is Extract<ThreadItem, { kind: "message" }> =>
+        i.kind === "message" && i.isPlanDocument === true,
+    );
+  }
+
+  it("stamps the last AI message with content of a completed Plan execution", () => {
+    const exec = makeExecution({
+      id: "exec-plan",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "Let me look around first."),
+        makeMessage(MessageType.MESSAGE_AI, "# The Plan\n\n1. Do the thing"),
+      ],
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const docs = planDocumentItems(items);
+
+    expect(docs).toHaveLength(1);
+    expect(docs[0].key).toBe("exec-plan-m1");
+  });
+
+  it("does not stamp any message on an Agent-mode execution", () => {
+    const exec = makeExecution({
+      id: "exec-agent",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.AGENT,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "# Not a plan")],
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+
+    expect(planDocumentItems(items)).toHaveLength(0);
+  });
+
+  it("does not stamp while the Plan execution is still streaming", () => {
+    const exec = makeExecution({
+      id: "exec-live",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Draft so far...")],
+    });
+
+    const items = buildThreadItems([], exec, null, false, undefined);
+
+    expect(planDocumentItems(items)).toHaveLength(0);
+  });
+
+  it("skips trailing empty AI messages when selecting the plan message", () => {
+    // Mirrors the runner's extractFinalPlanText: the plan is the last AI
+    // message WITH content, not merely the last AI message.
+    const exec = makeExecution({
+      id: "exec-plan",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "# The Plan"),
+        makeMessage(MessageType.MESSAGE_AI, "   "),
+      ],
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const docs = planDocumentItems(items);
+
+    expect(docs).toHaveLength(1);
+    expect(docs[0].key).toBe("exec-plan-m0");
   });
 });

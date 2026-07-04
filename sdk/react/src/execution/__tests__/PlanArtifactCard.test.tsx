@@ -93,6 +93,25 @@ describe("PlanArtifactCard — action surface", () => {
     expect(screen.queryByText("Build from plan")).toBeNull();
   });
 
+  it("shows the pending label while the approved plan uploads (buildPending)", () => {
+    renderCard(
+      <PlanArtifactCard
+        executionId="aex_1"
+        artifact={planArtifact}
+        org="acme"
+        onImplement={vi.fn()}
+        disabled
+        buildPending
+      />,
+    );
+
+    // The primary reads as in-progress and stays disabled — no double-submits
+    // while the upload precedes the implement turn.
+    expect(screen.queryByText("Build from plan")).toBeNull();
+    const button = screen.getByText("Starting build…").closest("button")!;
+    expect(button.disabled).toBe(true);
+  });
+
   it("disables 'Build from plan' when disabled", () => {
     const onImplement = vi.fn();
     renderCard(
@@ -228,5 +247,26 @@ describe("PlanArtifactCard — Open full (org-gated preview)", () => {
     expect(screen.queryByText("Open full")).toBeNull();
     expect(screen.queryByText("Build from plan")).not.toBeNull();
     expect(screen.queryByText("Download")).not.toBeNull();
+  });
+});
+
+describe("PlanArtifactCard — Open plan (panel-first review)", () => {
+  it("replaces the modal secondary with 'Open plan' when onOpenPlan is provided", () => {
+    const onOpenPlan = vi.fn();
+    renderCard(
+      <PlanArtifactCard
+        executionId="aex_1"
+        artifact={planArtifact}
+        org="acme"
+        onOpenPlan={onOpenPlan}
+      />,
+    );
+
+    // One review affordance, not two: the facet supersedes the modal.
+    expect(screen.queryByText("Open full")).toBeNull();
+
+    fireEvent.click(screen.getByText("Open plan"));
+    expect(onOpenPlan).toHaveBeenCalledTimes(1);
+    expect(document.querySelector("dialog")).toBeNull();
   });
 });

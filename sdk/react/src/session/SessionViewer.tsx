@@ -1,8 +1,13 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
+import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer/sdk";
+import {
+  GetArtifactContentRequestSchema,
+  UploadAttachmentRequestSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
@@ -20,8 +25,15 @@ import { FileReviewDock } from "../execution/FileReviewDock.js";
 import { ThreadSkeleton } from "../execution/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
+import { useStigmer } from "../hooks.js";
+import {
+  PLAN_ARTIFACT_NAME,
+  findLatestSessionPlan,
+  type SessionPlan,
+} from "../library/detect-plan-artifact.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
 import { useOpenFileChange } from "./useOpenFileChange.js";
+import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanDraft.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
@@ -33,12 +45,54 @@ import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
 
 /**
- * Message submitted when the user implements a plan. References the published
- * `plan.md` explicitly so the agent acts on the durable artifact rather than
- * relying on re-reading its own prior chat message.
+ * Where the approved plan mounts in the implement execution's workspace —
+ * the harnesses' standard attachment inputs directory. Referenced by
+ * {@link IMPLEMENT_PLAN_MESSAGE} so the agent reads the exact document the
+ * user approved (including in-place edits), not a paraphrase from memory.
+ */
+const APPROVED_PLAN_MOUNT_PATH = `.stigmer/inputs/${PLAN_ARTIFACT_NAME}`;
+
+/**
+ * Message submitted when the user implements a plan whose approved text was
+ * attached to the execution. The "if missing" clause covers the one known
+ * degradation: the Cursor harness drops storage-key attachments in some
+ * configurations (a logged warning, not an error) — the plan then still
+ * flows via conversation history.
  */
 const IMPLEMENT_PLAN_MESSAGE =
-  "Implement the plan above (saved as plan.md). Follow it step by step and make the changes it describes.";
+  "Implement the approved plan. The full plan document is attached at " +
+  `\`${APPROVED_PLAN_MOUNT_PATH}\` — read it first and follow it step by ` +
+  "step. If that file is missing, follow the plan from the conversation above.";
+
+/**
+ * Fallback implement message when no plan attachment could be delivered
+ * (no published artifact, or the upload failed — the build is never blocked
+ * on attachment plumbing). The plan flows via conversation history alone.
+ */
+const IMPLEMENT_PLAN_FALLBACK_MESSAGE =
+  "Implement the plan above. Follow it step by step and make the changes it describes.";
+
+/**
+ * Reads the published plan's full text for the build handoff. Refuses a
+ * truncated read (content RPC caps at 512 KB): attaching a partial plan would
+ * silently implement half a document — the caller falls back to
+ * conversation-history implement instead.
+ */
+async function fetchPlanText(
+  stigmer: ReturnType<typeof useStigmer>,
+  plan: SessionPlan,
+): Promise<string> {
+  const result = await stigmer.agentExecution.getArtifactContent(
+    create(GetArtifactContentRequestSchema, {
+      executionId: plan.executionId,
+      storageKey: plan.artifact.storageKey,
+    }),
+  );
+  if (result.truncated) {
+    throw new Error("plan content truncated — not attaching a partial plan");
+  }
+  return new TextDecoder().decode(result.content);
+}
 
 /**
  * Width and anchoring of the conversation reading column, shared by the
@@ -224,6 +278,19 @@ export function SessionViewer({
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(flow.allExecutions);
   const { artifactCount } = useSessionArtifacts(flow.allExecutions);
 
+  // The session's current plan (latest published plan.md across executions)
+  // and its viewer-owned draft. Ownership at this level is deliberate: the
+  // panel unmounts facet content on every view switch, so a facet-local
+  // draft would silently lose the user's edits (see usePlanDraft).
+  const stigmer = useStigmer();
+  const sessionPlan = useMemo(
+    () => findLatestSessionPlan(flow.allExecutions),
+    [flow.allExecutions],
+  );
+  const planDraft = usePlanDraft(sessionPlan);
+  const [isBuildingFromPlan, setIsBuildingFromPlan] = useState(false);
+  const [planAttachFailed, setPlanAttachFailed] = useState(false);
+
   // The unified-panel controller: owns the open-editor group store, the
   // open/collapsed state, and the rail-view FSM. Shared with the launcher
   // (DD-016). The editor store is owned here (never subscribed at this level)
@@ -233,18 +300,72 @@ export function SessionViewer({
   const panel = useSessionPanel({
     phase: hasPhase ? phase : null,
     hasChanges: hasWriteBacks,
+    planKey: sessionPlan ? planDraftKey(sessionPlan) : null,
   });
 
   const handleBuildFromPlan = useCallback(() => {
     // Switch the picker to Agent (so subsequent turns stay in Agent) and submit
-    // the implement message immediately through the composer's full pipeline.
+    // the implement message through the composer's full pipeline.
     // `interactionMode: "agent"` is passed explicitly to win the same-tick race
     // where the composer prop has not yet re-rendered from "plan".
     setInteractionMode("agent");
-    composerRef.current?.submit(IMPLEMENT_PLAN_MESSAGE, {
-      interactionMode: "agent",
-    });
-  }, [setInteractionMode]);
+    setPlanAttachFailed(false);
+
+    const submitImplementTurn = (attachments?: AttachmentInput[]) => {
+      composerRef.current?.submit(
+        attachments ? IMPLEMENT_PLAN_MESSAGE : IMPLEMENT_PLAN_FALLBACK_MESSAGE,
+        { interactionMode: "agent", attachments },
+      );
+    };
+
+    // No published artifact (the bare-CTA fallback card) — nothing to attach.
+    if (!sessionPlan) {
+      submitImplementTurn();
+      return;
+    }
+
+    // Deterministic handoff: upload the APPROVED plan (draft if edited, else
+    // the artifact text — one uniform path) and attach it to the implement
+    // execution. The published artifact itself stays immutable; the approved
+    // copy is a new input on the build turn (edit-as-input provenance).
+    setIsBuildingFromPlan(true);
+    void (async () => {
+      try {
+        const approvedText =
+          planDraft.readDraft() ?? (await fetchPlanText(stigmer, sessionPlan));
+        const response = await stigmer.agentExecution.uploadAttachment(
+          create(UploadAttachmentRequestSchema, {
+            filename: PLAN_ARTIFACT_NAME,
+            content: new TextEncoder().encode(approvedText),
+            contentType: "text/markdown",
+          }),
+        );
+        submitImplementTurn([
+          {
+            filename: PLAN_ARTIFACT_NAME,
+            storageKey: response.storageKey,
+            mountPath: APPROVED_PLAN_MOUNT_PATH,
+            contentType: "text/markdown",
+          },
+        ]);
+      } catch {
+        // Attachment plumbing must never block the build: implement from
+        // conversation history alone, and say so (non-blocking notice).
+        setPlanAttachFailed(true);
+        submitImplementTurn();
+      } finally {
+        setIsBuildingFromPlan(false);
+      }
+    })();
+  }, [setInteractionMode, sessionPlan, planDraft.readDraft, stigmer]);
+
+  // "Open plan" (thread plan card) → the panel's Plan facet: the side-by-side
+  // review surface. An explicit user action, so it may open the panel — unlike
+  // plan ARRIVAL, which only badges/switches an already-open panel.
+  const handleOpenPlan = useCallback(() => {
+    panel.setView("plan");
+    panel.openPanel();
+  }, [panel.setView, panel.openPanel]);
 
   // Open a transcript tool-call file path in the panel's read-only editor.
   // Resolves the (possibly absolute / subdir-prefixed) path to a
@@ -329,6 +450,10 @@ export function SessionViewer({
               enableLocal={enableLocal}
               onBrowseLocalFolder={onBrowseLocalFolder}
               onBuildFromPlan={handleBuildFromPlan}
+              onOpenPlan={handleOpenPlan}
+              isBuildingFromPlan={isBuildingFromPlan}
+              planAttachFailed={planAttachFailed}
+              onDismissPlanAttachFailed={() => setPlanAttachFailed(false)}
               onFilePathClick={handleTranscriptFilePathClick}
               isEndUser={isEndUser}
             />
@@ -342,6 +467,9 @@ export function SessionViewer({
                 accessSlot={accessSlot}
                 onApplied={onApplied}
                 onImplementPlan={handleBuildFromPlan}
+                implementPlanDisabled={!conv.canSendFollowUp || isBuildingFromPlan}
+                sessionPlan={sessionPlan}
+                planDraft={planDraft}
                 enableLocal={enableLocal}
                 onBrowseLocalFolder={onBrowseLocalFolder}
                 workspaceFileLister={workspaceFileLister}
@@ -373,6 +501,13 @@ interface ConversationColumnProps {
   readonly enableLocal: boolean;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly onBuildFromPlan: () => void;
+  /** Opens the panel's Plan facet (the thread plan card's "Open plan"). */
+  readonly onOpenPlan: () => void;
+  /** True while the approved plan is being uploaded ahead of the build turn. */
+  readonly isBuildingFromPlan: boolean;
+  /** True when the last build fell back to a message-only implement. */
+  readonly planAttachFailed: boolean;
+  readonly onDismissPlanAttachFailed: () => void;
   /**
    * Opens a transcript tool-call file path in the Viewer. Returns `true` when it
    * resolved and opened the file (suppressing the link's default), `false` to
@@ -395,6 +530,10 @@ const ConversationColumn = memo(function ConversationColumn({
   enableLocal,
   onBrowseLocalFolder,
   onBuildFromPlan,
+  onOpenPlan,
+  isBuildingFromPlan,
+  planAttachFailed,
+  onDismissPlanAttachFailed,
   onFilePathClick,
   isEndUser,
 }: ConversationColumnProps) {
@@ -453,12 +592,17 @@ const ConversationColumn = memo(function ConversationColumn({
         onFilePathClick={onFilePathClick}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
         onBuildFromPlan={onBuildFromPlan}
+        onOpenPlan={onOpenPlan}
         org={org}
-        planActionsDisabled={!conv.canSendFollowUp}
+        planActionsDisabled={!conv.canSendFollowUp || isBuildingFromPlan}
+        planBuildPending={isBuildingFromPlan}
         contentColumn="center"
         className="flex-1"
       />
       <div className={CONVERSATION_COLUMN_CLASS}>
+        {planAttachFailed && (
+          <PlanAttachFailedNotice onDismiss={onDismissPlanAttachFailed} />
+        )}
         {conv.isReconnecting && <ReconnectingIndicator />}
         {conv.connectTimedOut && (
           <ConnectTimedOutBanner onRetry={conv.reconnectStream} />
@@ -536,8 +680,13 @@ interface SessionPanelRegionProps {
   /** Host access management control, surfaced in the Config facet. */
   readonly accessSlot?: ReactNode;
   readonly onApplied?: (result: ApplyResourceResult) => void;
-  /** Implement a plan from the Artifacts facet (same action as the thread card). */
+  /** Implement a plan (Plan facet primary + Artifacts preview action). */
   readonly onImplementPlan?: () => void;
+  readonly implementPlanDisabled?: boolean;
+  /** The session's latest plan — surfaces the Plan facet. */
+  readonly sessionPlan?: SessionPlan;
+  /** Viewer-owned plan draft (survives panel collapse and view switches). */
+  readonly planDraft: PlanDraftController;
   readonly enableLocal: boolean;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
@@ -552,6 +701,9 @@ function SessionPanelRegion({
   accessSlot,
   onApplied,
   onImplementPlan,
+  implementPlanDisabled,
+  sessionPlan,
+  planDraft,
   enableLocal,
   onBrowseLocalFolder,
   workspaceFileLister,
@@ -642,6 +794,9 @@ function SessionPanelRegion({
     selectedItem,
     onApplied,
     onImplementPlan,
+    implementPlanDisabled,
+    sessionPlan,
+    planDraft,
   });
 
   // Explorer-footer folder attach (desktop only — needs the native picker).
@@ -735,6 +890,33 @@ function AutoApproveIndicator({ onTurnOff }: { onTurnOff: () => void }) {
         className="shrink-0 rounded font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         Turn off
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Non-blocking notice for a build that fell back to message-only implement
+ * (the approved plan.md could not be uploaded/attached). The build itself
+ * proceeded — the agent follows the plan from conversation history — so this
+ * is a status, not an alert, and it is dismissible.
+ */
+function PlanAttachFailedNotice({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      role="status"
+      className="flex items-center gap-2 border-t border-border-muted px-4 py-1.5 text-xs text-muted-foreground"
+    >
+      <span className="min-w-0 flex-1 truncate">
+        Couldn&rsquo;t attach plan.md — the agent will follow the plan from the
+        conversation instead.
+      </span>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="shrink-0 rounded font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        Dismiss
       </button>
     </div>
   );

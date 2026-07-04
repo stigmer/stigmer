@@ -3,12 +3,17 @@
 import { memo, useMemo, useState } from "react";
 import { Streamdown } from "streamdown";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  MessageType,
+  type InteractionMode,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import {
   MARKDOWN_COMPONENTS,
   unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components.js";
+import { InteractionModeBadge } from "./InteractionModeBadge.js";
+import { PlanDocumentMessage } from "./PlanDocumentMessage.js";
 import { useRenderTracer } from "../internal/dev/index.js";
 
 /** Props for {@link MessageEntry}. */
@@ -24,6 +29,22 @@ export interface MessageEntryProps {
    * this message for editing. Ignored for non-human messages.
    */
   readonly onEdit?: () => void;
+  /**
+   * Renders a `MESSAGE_AI` entry as a first-class plan document
+   * ({@link PlanDocumentMessage}) instead of a chat bubble. Set by the thread
+   * builder on the one message per completed Plan-mode execution that IS the
+   * plan (the last AI message with content — the same message the runner
+   * publishes as `plan.md`). Ignored for non-AI messages.
+   */
+  readonly isPlanDocument?: boolean;
+  /**
+   * The turn's interaction mode, stamped by the thread builder on the
+   * synthetic prompt bubble (`MESSAGE_HUMAN`). Renders the
+   * {@link InteractionModeBadge} for non-default modes (a "Plan" pill), so
+   * the transcript reads unambiguously after mode switches. Ignored for
+   * non-human messages.
+   */
+  readonly interactionMode?: InteractionMode;
 }
 
 /**
@@ -54,6 +75,8 @@ export const MessageEntry = memo(function MessageEntry({
   message,
   className,
   onEdit,
+  isPlanDocument,
+  interactionMode,
 }: MessageEntryProps) {
   useRenderTracer("MessageEntry", {
     messageType: message.type,
@@ -68,9 +91,17 @@ export const MessageEntry = memo(function MessageEntry({
           content={message.content}
           className={className}
           onEdit={onEdit}
+          interactionMode={interactionMode}
         />
       );
     case MessageType.MESSAGE_AI:
+      // A completed Plan turn's plan is a document, not a bubble. The flag is
+      // only ever set on a settled message, so the streaming path is untouched.
+      if (isPlanDocument) {
+        return (
+          <PlanDocumentMessage content={message.content} className={className} />
+        );
+      }
       return (
         <AiMessage
           content={message.content}
@@ -97,10 +128,12 @@ function HumanMessage({
   content,
   className,
   onEdit,
+  interactionMode,
 }: {
   content: string;
   className?: string;
   onEdit?: () => void;
+  interactionMode?: InteractionMode;
 }) {
   return (
     <div
@@ -111,6 +144,11 @@ function HumanMessage({
         className,
       )}
     >
+      {/* The badge renders only for non-default modes (a "Plan" pill), so
+          ordinary Agent turns carry no extra chrome. */}
+      {interactionMode !== undefined && (
+        <InteractionModeBadge mode={interactionMode} className="mb-1.5" />
+      )}
       <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
       {onEdit && (
         <button

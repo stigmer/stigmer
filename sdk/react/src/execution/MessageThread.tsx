@@ -213,6 +213,14 @@ export interface MessageThreadProps {
    */
   readonly onBuildFromPlan?: () => void;
   /**
+   * Opens the session's Plan facet — the side-by-side review/refine surface.
+   * Wired only to the LATEST plan's card (the facet always shows the current
+   * plan); superseded plan cards keep their own "Open full" preview modal.
+   * When omitted, the latest card keeps the modal too (hosts without a
+   * panel).
+   */
+  readonly onOpenPlan?: () => void;
+  /**
    * Organization slug. Required for the plan completion card's
    * "Review plan" action, which opens the shared artifact preview
    * modal (the modal needs `org` for its detection/apply pipeline).
@@ -225,6 +233,8 @@ export interface MessageThreadProps {
    * disabled submit.
    */
   readonly planActionsDisabled?: boolean;
+  /** True while the approved plan is being uploaded ahead of the build turn. */
+  readonly planBuildPending?: boolean;
   /**
    * Constrain thread content to a max-width reading column
    * (`max-w-3xl`, 768 px) inside the full-width scroll container —
@@ -266,7 +276,7 @@ export function threadContentColumnClass(
  * part of the public API.
  */
 export type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean }
+  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
@@ -286,6 +296,13 @@ export type ThreadItem =
       readonly key: string;
       readonly executionId: string;
       readonly planArtifact?: ExecutionArtifact;
+      /**
+       * True for the most recent completed Plan execution in the thread — the
+       * only plan whose card carries the primary "Build from plan" action.
+       * Superseded plans keep their review actions (open/download) but never a
+       * build CTA, so a stale plan can't be implemented by accident.
+       */
+      readonly isLatestPlan: boolean;
     };
 
 /**
@@ -310,6 +327,35 @@ function hasStartedResponding(execution: AgentExecution): boolean {
     if (m.type === MessageType.MESSAGE_THINKING && m.content.trim().length > 0) return true;
     return false;
   });
+}
+
+/**
+ * True for an execution that ran in Plan mode and completed — the only kind of
+ * execution that has a reviewable plan (streaming/failed/terminated Plan turns
+ * have nothing final to review or build from).
+ */
+function isCompletedPlanExecution(execution: AgentExecution): boolean {
+  return (
+    execution.status?.phase === ExecutionPhase.EXECUTION_COMPLETED &&
+    execution.spec?.executionConfig?.interactionMode === InteractionMode.PLAN
+  );
+}
+
+/**
+ * Index of the message that IS the plan in a completed Plan execution: the
+ * last AI message with content — the SAME selection rule the runner's
+ * `extractFinalPlanText` uses to publish `plan.md`, so the message promoted to
+ * a document in the thread is byte-identical to the published artifact.
+ * Returns -1 when no such message exists.
+ */
+function findPlanMessageIndex(messages: readonly AgentMessage[]): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.type === MessageType.MESSAGE_AI && msg.content.trim().length > 0) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 /**
@@ -444,6 +490,17 @@ export function buildThreadItems(
     ? allExecutions.length - 1
     : -1;
 
+  // The most recent completed Plan execution owns the primary "Build from
+  // plan" action; every earlier plan renders as a review-only record. Resolved
+  // up front so each segment can stamp its own card with the right authority.
+  let latestPlanExecutionId: string | null = null;
+  for (let i = allExecutions.length - 1; i >= 0; i--) {
+    if (isCompletedPlanExecution(allExecutions[i])) {
+      latestPlanExecutionId = allExecutions[i].metadata?.id ?? `_e${i}`;
+      break;
+    }
+  }
+
   // Build a queue of summarization events to interleave by timestamp.
   // Events are consumed as messages pass their timestamp.
   const pendingEvents = summarizationEvents?.length
@@ -474,6 +531,16 @@ export function buildThreadItems(
     const isActiveStreamExec = ei === activeStreamIndex;
     const messages = exec.status?.messages ?? [];
     const subAgents = exec.status?.subAgentExecutions ?? [];
+
+    // A completed Plan turn promotes its plan message to a first-class
+    // document (matching the published plan.md — see findPlanMessageIndex).
+    // While the plan is still streaming this stays -1 and the message renders
+    // as an ordinary chat bubble; at completion the same thread item (same
+    // key) re-renders as the document without remounting.
+    const isCompletedPlanExec = isCompletedPlanExecution(exec);
+    const planMessageIndex = isCompletedPlanExec
+      ? findPlanMessageIndex(messages)
+      : -1;
 
     // This execution's settled change sets render as read-only records inside
     // its own segment, anchored to the last stamped edit row of each set. The
@@ -526,6 +593,9 @@ export function buildThreadItems(
         // The active execution's prompt is the one a user can edit-and-resubmit
         // (stop + rephrase). Only mark it when the consumer enabled editing.
         isEditable: isActiveStreamExec && editableActiveTurn,
+        // The turn's mode marks the prompt bubble (a "Plan" pill on Plan
+        // turns) so the transcript reads unambiguously after mode switches.
+        interactionMode: exec.spec?.executionConfig?.interactionMode,
       });
     }
 
@@ -546,6 +616,7 @@ export function buildThreadItems(
           kind: "message",
           message: msg,
           key: `${execId}-m${mi}`,
+          isPlanDocument: mi === planMessageIndex,
         });
         // Anchor (1): the plan sits right under the agent's opening narration.
         if (
@@ -623,6 +694,26 @@ export function buildThreadItems(
             if (tc.id) inlineToolCallIds.add(tc.id);
           }
         }
+      }
+    }
+
+    // A completed Plan turn closes its segment with the plan's action card,
+    // directly under the plan document (the card's -mt-2 attaches the two).
+    // Every plan stays reviewable forever; only the latest carries the build
+    // authority (isLatestPlan). A superseded plan that never published an
+    // artifact is skipped — with no artifact and no build CTA it would render
+    // an empty shell.
+    if (isCompletedPlanExec) {
+      const planArtifact = findPlanArtifact(exec);
+      const isLatestPlan = execId === latestPlanExecutionId;
+      if (planArtifact || isLatestPlan) {
+        items.push({
+          kind: "plan-completion",
+          key: `${execId}-plan-completion`,
+          executionId: exec.metadata?.id ?? "",
+          planArtifact,
+          isLatestPlan,
+        });
       }
     }
 
@@ -709,17 +800,9 @@ export function buildThreadItems(
     }
   }
 
-  if (
-    lastPhase === ExecutionPhase.EXECUTION_COMPLETED &&
-    lastExec?.spec?.executionConfig?.interactionMode === InteractionMode.PLAN
-  ) {
-    items.push({
-      kind: "plan-completion",
-      key: "plan-completion",
-      executionId: lastExec?.metadata?.id ?? "",
-      planArtifact: findPlanArtifact(lastExec),
-    });
-  }
+  // Plan cards are emitted inside each execution's segment (see the
+  // isCompletedPlanExec block in the loop above) — attached to their plan
+  // document, persistent across later turns, never appended at the tail.
 
   if (includeApprovals) {
     // Backstop only: an approval whose tool call renders inline shows its gate
@@ -811,8 +894,10 @@ export function MessageThread({
   summarizationEvents,
   virtualized = false,
   onBuildFromPlan,
+  onOpenPlan,
   org,
   planActionsDisabled,
+  planBuildPending,
   contentColumn,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
@@ -906,8 +991,10 @@ export function MessageThread({
             fileReviewCtx={fileReviewCtx}
             unresolvedApprovalCount={unresolvedApprovalCount}
             onBuildFromPlan={onBuildFromPlan}
+            onOpenPlan={onOpenPlan}
             org={org}
             planActionsDisabled={planActionsDisabled}
+            planBuildPending={planBuildPending}
             contentColumn={contentColumn}
             onRetrySend={onRetrySend}
             onRetryExecution={onRetryExecution}
@@ -933,8 +1020,10 @@ export function MessageThread({
       fileReviewCtx={fileReviewCtx}
       unresolvedApprovalCount={unresolvedApprovalCount}
       onBuildFromPlan={onBuildFromPlan}
+      onOpenPlan={onOpenPlan}
       org={org}
       planActionsDisabled={planActionsDisabled}
+      planBuildPending={planBuildPending}
       onRetrySend={onRetrySend}
       onRetryExecution={onRetryExecution}
       onEditMessage={onEditMessage}
@@ -964,8 +1053,11 @@ interface NonVirtualizedThreadProps {
   readonly fileReviewCtx: FileReviewContextValue;
   readonly unresolvedApprovalCount: number;
   readonly onBuildFromPlan?: () => void;
+  readonly onOpenPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
+  /** True while the approved plan is being uploaded ahead of the build turn. */
+  readonly planBuildPending?: boolean;
   readonly onRetrySend?: () => void;
   readonly onRetryExecution?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
@@ -985,8 +1077,10 @@ function NonVirtualizedThread({
   fileReviewCtx,
   unresolvedApprovalCount,
   onBuildFromPlan,
+  onOpenPlan,
   org,
   planActionsDisabled,
+  planBuildPending,
   onRetrySend,
   onRetryExecution,
   onEditMessage,
@@ -1026,8 +1120,10 @@ function NonVirtualizedThread({
                   submittingApprovalIds={submittingApprovalIds}
                   approvalErrors={approvalErrors}
                   onBuildFromPlan={onBuildFromPlan}
+                  onOpenPlan={onOpenPlan}
                   org={org}
                   planActionsDisabled={planActionsDisabled}
+                  planBuildPending={planBuildPending}
                   onRetrySend={onRetrySend}
                   onRetryExecution={onRetryExecution}
                   onEditMessage={onEditMessage}
@@ -1078,8 +1174,11 @@ export interface ThreadItemRendererProps {
   readonly submittingApprovalIds?: ReadonlySet<string>;
   readonly approvalErrors?: ReadonlyMap<string, Error>;
   readonly onBuildFromPlan?: () => void;
+  readonly onOpenPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
+  /** True while the approved plan is being uploaded ahead of the build turn. */
+  readonly planBuildPending?: boolean;
   readonly onRetrySend?: () => void;
   readonly onRetryExecution?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
@@ -1103,8 +1202,10 @@ export function ThreadItemRenderer({
   submittingApprovalIds,
   approvalErrors,
   onBuildFromPlan,
+  onOpenPlan,
   org,
   planActionsDisabled,
+  planBuildPending,
   onRetrySend,
   onRetryExecution,
   onEditMessage,
@@ -1120,6 +1221,8 @@ export function ThreadItemRenderer({
         <MessageEntry
           message={item.message}
           className={item.isPending ? "opacity-70" : undefined}
+          isPlanDocument={item.isPlanDocument}
+          interactionMode={item.interactionMode}
           onEdit={
             item.isEditable && onEditMessage
               ? () => onEditMessage(item.message.content)
@@ -1184,17 +1287,24 @@ export function ThreadItemRenderer({
       // When the plan was published as an artifact, show the richer reviewable
       // card (preview / copy / download / implement). Otherwise fall back to the
       // bare Implement CTA (older executions, or a plan that failed to publish).
+      // Only the latest plan receives the build action — a superseded plan's
+      // card is review-only, so a stale plan can never be implemented from it.
       return item.planArtifact && item.executionId ? (
         <PlanArtifactCard
           executionId={item.executionId}
           artifact={item.planArtifact}
           org={org}
-          onImplement={onBuildFromPlan}
+          onImplement={item.isLatestPlan ? onBuildFromPlan : undefined}
+          // The Plan facet always shows the session's CURRENT plan, so only
+          // the latest card routes there; a superseded card keeps the modal
+          // preview of its own (historical) artifact.
+          onOpenPlan={item.isLatestPlan ? onOpenPlan : undefined}
           disabled={planActionsDisabled}
+          buildPending={planBuildPending}
         />
       ) : (
         <PlanCompletionCard
-          onImplement={onBuildFromPlan}
+          onImplement={item.isLatestPlan ? onBuildFromPlan : undefined}
           disabled={planActionsDisabled}
         />
       );

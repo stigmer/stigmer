@@ -63,7 +63,7 @@ import { resolveBlueprint } from "./blueprint-resolver.js";
 import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
 import { resolveSkills, removeStigmerSymlink } from "./skill-resolver.js";
 import { resolveAttachments } from "./attachment-resolver.js";
-import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.js";
+import { buildEnhancedPrompt, buildReinvocationPrompt, formatInteractionModePrefix } from "./prompt-builder.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
@@ -2046,9 +2046,14 @@ export function buildPrompt(input: BuildPromptInput): string {
   }
 
   // A successfully resumed agent carries its own conversation context via the
-  // SDK's native store — send the raw user message with no preamble.
+  // SDK's native store — send the raw user message with no preamble. The one
+  // exception is the interaction-mode prefix: the mode is per-EXECUTION (a
+  // follow-up can switch Agent→Plan mid-session), and for Cursor the prompt
+  // is the only plan-mode enforcement, so a Plan follow-up must carry the
+  // directive too — not just the session's first turn.
   if (resolution.reason === "resumed_successfully") {
-    return userMessage;
+    const modePrefix = formatInteractionModePrefix(interactionMode);
+    return modePrefix ? `${modePrefix}\n\n${userMessage}` : userMessage;
   }
 
   // First execution, or a fresh agent created after a resume failure: there is

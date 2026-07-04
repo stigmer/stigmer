@@ -19,6 +19,7 @@ import { resolve } from "node:path";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 
 /**
  * Marker path segments that identify runner-internal directories. A workspace
@@ -348,30 +349,22 @@ export function formatReferencedFiles(refs: string[]): string {
 /**
  * Returns a system-level directive when the execution is in Plan mode.
  * Returns `undefined` for Agent mode (default) since no prefix is needed.
+ *
+ * The directive body is the harness-agnostic {@link PLAN_MODE_DIRECTIVE}
+ * (shared with the native harness) wrapped in this harness's XML-tag section
+ * framing. For Cursor this prompt IS the plan-mode enforcement — the Cursor
+ * SDK exposes no mode parameter — see the shared module's doc comment.
  */
 export function formatInteractionModePrefix(
   mode: InteractionMode | undefined,
 ): string | undefined {
-  if (
-    mode == null ||
-    mode === InteractionMode.UNSPECIFIED ||
-    mode === InteractionMode.AGENT
-  ) {
+  if (mode !== InteractionMode.PLAN) {
     return undefined;
   }
 
-  if (mode === InteractionMode.PLAN) {
-    return [
-      "<interaction_mode>",
-      "IMPORTANT: You are in Plan mode. Analyze the codebase and produce a detailed plan.",
-      "Do NOT create, edit, or delete any files. Do NOT run commands that modify the filesystem.",
-      "Only read, search, and analyze. Your output should be analysis, recommendations, and",
-      "implementation plans — not code changes.",
-      "</interaction_mode>",
-    ].join("\n");
-  }
-
-  return undefined;
+  return ["<interaction_mode>", PLAN_MODE_DIRECTIVE, "</interaction_mode>"].join(
+    "\n",
+  );
 }
 
 export function formatResponseRules(): string {

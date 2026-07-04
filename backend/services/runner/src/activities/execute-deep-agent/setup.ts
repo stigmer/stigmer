@@ -366,6 +366,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       workspaceFileRefs: execution.spec!.workspaceFileRefs || [],
       workspaceRoot: workspaceBackend.rootDir,
       injectedFiles,
+      interactionMode: execution.spec!.executionConfig?.interactionMode,
     });
 
     // Step 9: Construct the LLM model. Resolution to the provider API id

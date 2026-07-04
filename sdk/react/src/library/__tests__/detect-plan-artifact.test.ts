@@ -6,9 +6,11 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   isPlanArtifact,
   findPlanArtifact,
+  findLatestSessionPlan,
   PLAN_ARTIFACT_NAME,
 } from "../detect-plan-artifact";
 
@@ -22,6 +24,13 @@ function artifact(opts: { name: string; kind?: ExecutionArtifactKind; storageKey
 
 function executionWith(...artifacts: ReturnType<typeof artifact>[]) {
   return create(AgentExecutionSchema, {
+    status: create(AgentExecutionStatusSchema, { artifacts }),
+  });
+}
+
+function executionWithId(id: string, ...artifacts: ReturnType<typeof artifact>[]) {
+  return create(AgentExecutionSchema, {
+    metadata: create(ApiResourceMetadataSchema, { id }),
     status: create(AgentExecutionStatusSchema, { artifacts }),
   });
 }
@@ -71,5 +80,44 @@ describe("findPlanArtifact", () => {
 
   it("returns undefined when no plan artifact exists", () => {
     expect(findPlanArtifact(executionWith(artifact({ name: "report.md" })))).toBeUndefined();
+  });
+});
+
+describe("findLatestSessionPlan", () => {
+  it("returns undefined when no execution published a plan", () => {
+    const execs = [
+      executionWithId("e1", artifact({ name: "report.md" })),
+      executionWithId("e2"),
+    ];
+    expect(findLatestSessionPlan(execs)).toBeUndefined();
+    expect(findLatestSessionPlan([])).toBeUndefined();
+  });
+
+  it("returns the newest plan across executions, with its execution id", () => {
+    const execs = [
+      executionWithId("e1", artifact({ name: PLAN_ARTIFACT_NAME, storageKey: "artifacts/e1/plan.md" })),
+      executionWithId("e2", artifact({ name: "notes.txt" })),
+      executionWithId("e3", artifact({ name: PLAN_ARTIFACT_NAME, storageKey: "artifacts/e3/plan.md" })),
+    ];
+
+    const plan = findLatestSessionPlan(execs);
+    expect(plan?.executionId).toBe("e3");
+    expect(plan?.artifact.storageKey).toBe("artifacts/e3/plan.md");
+  });
+
+  it("skips a newer plan-less execution and returns the older plan", () => {
+    const execs = [
+      executionWithId("e1", artifact({ name: PLAN_ARTIFACT_NAME })),
+      executionWithId("e2", artifact({ name: "data.json" })),
+    ];
+    expect(findLatestSessionPlan(execs)?.executionId).toBe("e1");
+  });
+
+  it("skips an execution whose plan artifact lacks a usable execution id", () => {
+    const execs = [
+      executionWithId("e1", artifact({ name: PLAN_ARTIFACT_NAME })),
+      executionWith(artifact({ name: PLAN_ARTIFACT_NAME })),
+    ];
+    expect(findLatestSessionPlan(execs)?.executionId).toBe("e1");
   });
 });

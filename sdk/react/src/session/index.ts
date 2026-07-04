@@ -111,6 +111,11 @@ export type {
   UseSessionPanelOptions,
 } from "./useSessionPanel.js";
 
+// Plan draft — viewer-owned in-place edit of the session's current plan
+// (edit-as-input; the published plan.md artifact is never mutated).
+export { usePlanDraft, planDraftKey } from "./usePlanDraft.js";
+export type { PlanDraftController } from "./usePlanDraft.js";
+
 // Selection types (for platform builders composing their own Inspect facet)
 export type { SelectedThreadItem } from "../internal/store/selection-store.js";
 
