@@ -1475,7 +1475,7 @@ All visual properties flow through `--stgm-*` tokens.
     onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode execution's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode execution completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered. Backward compatible — existing consumers see no change." },
     onEditMessage: { type: "(text: string) => void", description: "When provided, the in-flight human turn (the active execution's prompt) shows a hover \"Edit\" affordance. Clicking it invokes this callback with the message text — the session chat stops the running execution and pre-fills the composer for an edit-and-resubmit.  Provide this only while the active execution is stoppable; the SDK marks exactly the active-stream human turn editable. When omitted, no edit control is shown (backward compatible)." },
     onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => boolean | void", description: "Optional override for file path click behavior. Platform builders use this to integrate their own file viewer or navigation instead of the default open-URL / copy-to-clipboard." },
-    onOpenPlan: { type: "() => void", description: "Opens the session's Plan facet — the side-by-side review/refine surface. Wired only to the LATEST plan's card (the facet always shows the current plan); superseded plan cards keep their own \"Open full\" preview modal. When omitted, the latest card keeps the modal too (hosts without a panel)." },
+    onOpenPlan: { type: "(executionId: string) => void", description: "Opens a plan in the session panel's plan document tab — the side-by-side review/refine surface. Wired to EVERY plan card: the latest opens editable/buildable, a superseded plan opens read-only (the host decides from the execution id). When omitted, cards fall back to the \"Open full\" preview modal (hosts without a panel)." },
     onRetryExecution: { type: "(message: string) => void", description: "Retry handler for a terminal-failed execution that exposed a server error reason. Receives the originating message; the consumer typically resends it as a new execution. When omitted, no Retry control is shown beside the surfaced failure reason." },
     onRetrySend: { type: "() => void", description: "Retry handler for a failed pending message. Wired to the inline \"Retry\" control when pendingMessageFailed is `true`." },
     org: { type: "string", description: "Organization slug. Required for the plan completion card's \"Review plan\" action, which opens the shared artifact preview modal (the modal needs `org` for its detection/apply pipeline)." },
@@ -2658,7 +2658,7 @@ Props for [`MessageEntry`](#messageentry).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     interactionMode: { type: "InteractionMode", description: "The turn's interaction mode, stamped by the thread builder on the synthetic prompt bubble (`MESSAGE_HUMAN`). Renders the InteractionModeBadge for non-default modes (a \"Plan\" pill), so the transcript reads unambiguously after mode switches. Ignored for non-human messages." },
-    isPlanDocument: { type: "boolean", description: "Renders a `MESSAGE_AI` entry as a first-class plan document (PlanDocumentMessage) instead of a chat bubble. Set by the thread builder on the one message per completed Plan-mode execution that IS the plan (the last AI message with content — the same message the runner publishes as `plan.md`). Ignored for non-AI messages." },
+    isPlanDocument: { type: "boolean", description: "Renders a `MESSAGE_AI` entry as a first-class plan document (PlanDocumentMessage) instead of a chat bubble. Set by the thread builder only on the NO-ARTIFACT fallback path: a completed Plan turn that never published `plan.md` (older executions, failed upload) keeps its plan inline — the message is the only copy of the plan. A turn that published the artifact collapses the message into the compact plan card instead (the document lives in the panel's plan tab). Ignored for non-AI messages." },
     message: { type: "AgentMessage", description: "The agent message to render.", required: true },
     onEdit: { type: "() => void", description: "When provided on a `MESSAGE_HUMAN` entry, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for non-human messages." },
   }}
@@ -2692,26 +2692,19 @@ platform mount (`.stigmer/`) namespace.
 
 ### PlanArtifactCard
 
-Action surface for a plan that a completed Plan-mode execution published as a
-`plan.md` artifact.
+The compact plan card — a completed Plan turn's sole representation in the
+thread. The plan document itself lives in the session panel's plan tab
+(`PlanEditor`), Cursor-style: chat carries a recognizable, actionable card;
+the panel carries the document.
 
-It is rendered immediately below the plan message in the thread (which already
-shows the plan as rich markdown — the message renderer unwraps a model's
-enclosing markdown fence), so this card deliberately holds **no** plan
-content: the message is the document and this is its action bar. Rendering
-the plan a second time here would duplicate the same text the message and the
-"Open full" modal already show.
+Anatomy: a document-style identity block (plan icon, the plan's title, a
+`plan.md · size` meta line) with the actions trailing — **Open plan** and
+**Download** as subdued secondaries and one prominent, themeable primary,
+**Build from plan** — so the next step is unmistakable.
 
-The hierarchy is the point: one prominent, themeable primary action —
-**Build from plan** — with **Open full** and **Download** as subdued
-secondaries, so the next step is unmistakable. A small negative top margin
-pulls the bar against the plan message so the two read as a single
-first-class plan block.
-
-Kept as its own thread item (not merged into the message) on purpose: merging
-would change the streamed message item's identity at completion and remount
-the just-streamed plan. Adjacent-and-attached gets the unified look with no
-remount.
+Only the LATEST plan's card carries `onImplement`; a superseded plan's card
+is review-only (its `onOpenPlan` opens the document read-only), so a stale
+plan can never be implemented by accident.
 
 All visual properties flow through `--stgm-*` tokens; the component is
 self-contained and embeddable.
@@ -2729,8 +2722,9 @@ Props for [`PlanArtifactCard`](#planartifactcard).
     disabled: { type: "boolean", description: "Disables the primary CTA (e.g., while an execution is active)." },
     executionId: { type: "string", description: "Execution that produced the plan — used to fetch the plan content.", required: true },
     onImplement: { type: "() => void", description: "Called when the user clicks \"Build from plan\". Hidden when omitted." },
-    onOpenPlan: { type: "() => void", description: "Opens the session's Plan facet — the side-by-side review/refine surface. When provided it REPLACES the modal-based \"Open full\" secondary with \"Open plan\" (one review affordance, not two). When omitted (hosts without a session panel, or a superseded plan's card) the modal remains." },
+    onOpenPlan: { type: "() => void", description: "Opens the plan in the session panel's plan document tab — the side-by-side review/refine surface. When provided it REPLACES the modal-based \"Open full\" secondary with \"Open plan\" (one review affordance, not two). When omitted (hosts without a session panel) the modal remains." },
     org: { type: "string", description: "Organization slug. Required for the \"Open full\" modal (the shared ArtifactPreviewModal uses it for its detection/apply pipeline and to fetch the content). When omitted, \"Open full\" is hidden — the prominent \"Build from plan\" action and \"Download\" remain." },
+    title: { type: "string", description: "The plan's title (its leading `# H1`). The card is the plan's compact stand-in in the thread, so the title is what makes it recognizable. Falls back to \"Plan\" when omitted." },
   }}
 />
 
@@ -2767,28 +2761,24 @@ Props for [`PlanCompletionCard`](#plancompletioncard).
 
 ### PlanDocumentMessage
 
-Renders a completed Plan-mode turn's plan as a first-class document instead
-of a chat bubble: a bordered card with a title header (the plan's leading
-`# H1`, lifted out of the prose) and document-grade typography
+Renders a Plan-mode turn's plan as a first-class document instead of a chat
+bubble: a bordered card with a title header (the plan's leading `# H1`,
+lifted out of the prose) and document-grade typography
 (`PLAN_DOCUMENT_MARKDOWN_COMPONENTS`).
 
-The thread promotes exactly one message per completed Plan execution to this
-treatment — the same message the runner publishes as the `plan.md` artifact
-(the last AI message with content; see `extractFinalPlanText` in the runner
-and the selection in `buildThreadItems`). While the plan is still streaming
-it renders as a normal chat message; it becomes the document at completion,
-in place, without remounting (same thread-item key, changed props).
+This is the thread's NO-ARTIFACT fallback: a completed Plan turn that never
+published `plan.md` (older executions, a failed upload) keeps its plan
+inline via this component — the message is the only copy of the plan, so it
+must stay readable in place. A turn that DID publish the artifact collapses
+its plan message into the compact `PlanArtifactCard` instead, and the
+document renders in the session panel's plan tab (`PlanEditor`) with the
+same typography.
 
 Fence handling is plan-scoped: a plan wrapped in a whole-body fence is
 unwrapped even when the fence carries no language tag (`allowBareFence`) —
 a Plan turn's output is a markdown document by contract, so an enclosing
 bare fence is wrapping, not code. Render-time only; the transcript and the
 published artifact stay byte-faithful.
-
-The `PlanArtifactCard` action bar attaches directly beneath this card in the
-thread (its `-mt-2` tightens the gap), so the two read as one plan block:
-document on top, actions below. This component deliberately renders no
-actions of its own.
 
 Purely presentational — no data fetching, no state.
 All visual properties flow through `--stgm-*` tokens.

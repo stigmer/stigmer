@@ -338,6 +338,17 @@ function isResourceAvailable(kind: ApiResourceKind, mode: DeploymentMode): boole
 ```
 
 
+### isVirtualEntryId
+
+True when an entry id names a virtual document rather than a workspace
+entry. Used by file-only consumers (diff correlation, tree highlight,
+reveal) to skip work that can only apply to real files.
+
+```tsx
+function isVirtualEntryId(entryId: string): boolean
+```
+
+
 ### OpenEditor
 
 One open editor tab.
@@ -501,4 +512,18 @@ both the provider and consumer hooks import from this file.
 
 The context value is `null` when no provider is mounted. Consumer hooks
 throw in this case to surface wiring mistakes during development.
+
+
+### virtualEntryId
+
+Entry id for a virtual document — an editor tab whose content is not a
+workspace file (e.g. the session's `plan.md`, an execution artifact).
+Virtual documents share the editor group with file tabs (same open / pin /
+close / activate semantics); only their *content rendering* differs, via the
+surface's `virtualDocuments` seam. `kind` names the document family
+(`"plan"` today) so future virtual documents get distinct identities.
+
+```tsx
+function virtualEntryId(kind: string): string
+```
 

@@ -516,6 +516,7 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
     searcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher. When provided, the Search pane gains a `Name | Text` toggle offering full-text search; `undefined` (web/git today) keeps the Search pane filename-only (DD-09). Mirrors the lister's null contract — the honest \"unavailable here\" state.", typeDescriptionLink: "#workspacecontentsearcher" },
     selectedFile: { type: "SelectedWorkspaceFile | null", description: "The active editor's file, or `null`. Highlighted in the tree and shown.", required: true },
     view: { type: "string", description: "The active rail view id (`\"files\"`, `\"search\"`, or an SurfaceRailView.id). Provide together with `onViewChange` to control the rail from the host; omit for internal (uncontrolled) view state. An id that matches no view (e.g. a contextual extra view that disappeared) falls back to `\"files\"`." },
+    virtualDocuments: { type: "readonly SurfaceVirtualDocument[]", description: "Host-injected virtual documents (see SurfaceVirtualDocument). A tab whose identity matches one of these renders its `content` in the editor area instead of the file viewer. The host opens/activates the tab through the same editors-store seams as files." },
   }}
 />
 
@@ -608,6 +609,33 @@ hosts extend its rail.
     icon: { type: "ReactNode", description: "Monochrome rail icon (tinted via `currentColor`, DD-005).", required: true },
     id: { type: "string", description: "Unique view id. Must not collide with the built-in `\"files\"`/`\"search\"`.", required: true },
     label: { type: "string", description: "Accessible label; also rendered as the sidebar heading.", required: true },
+  }}
+/>
+
+
+### SurfaceVirtualDocument
+
+A host-injected virtual document: an editor tab whose content is not a
+workspace file — the session's `plan.md` today; execution artifacts are the
+anticipated next family.
+
+The editor-area counterpart of [`SurfaceRailView`](#surfacerailview)'s rail injection
+(DD-004): virtual documents share the tab group with file tabs (identical
+open / pin / close / activate semantics through the same editors store),
+and only the *body* rendering diverges — the surface renders `content`
+instead of breadcrumbs + `FileViewer`. The surface stays domain-pure: it
+matches tabs to virtual documents by identity and knows nothing about what
+the document is.
+
+`entryId` must come from `virtualEntryId(kind)` so it can never alias a
+real workspace entry; `path` doubles as the tab label's source (its
+basename), matching file-tab behavior.
+
+<TypeTable
+  type={{
+    content: { type: "ReactNode", description: "Editor-area content rendered while this document's tab is active.", required: true },
+    entryId: { type: "string", description: "Virtual entry id (from `virtualEntryId`) — the tab's owning \"entry\".", required: true },
+    path: { type: "string", description: "Tab identity within the entry; its basename is the tab label.", required: true },
   }}
 />
 

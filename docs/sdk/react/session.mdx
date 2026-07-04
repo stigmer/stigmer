@@ -1052,6 +1052,50 @@ apps inject platform-specific values via props (DD-004/DD-016).
 ```
 
 
+### PlanEditor
+
+The plan document for the workspace surface's editor area — the wide-pane
+successor of the retired Plan sidebar facet, mounted as a virtual document
+(`SurfaceVirtualDocument`) under the [`PLAN_DOCUMENT_ENTRY_ID`](#plan_document_entry_id) tab.
+
+Three views over one text:
+- **Rendered** — the plan as a document (same typography as the thread's
+  plan rendering, title lifted from the leading H1).
+- **Source** — the raw markdown.
+- **Edit** — a plain-textarea editor over a LOCAL draft
+  ([`PlanDraftController`](#plandraftcontroller)); the published artifact is never mutated.
+  Building from an edited plan delivers the draft to the implement
+  execution (edit-as-input).
+
+All views show the *effective* plan — the draft when one exists, the
+published artifact otherwise — so what the user reviews is exactly what
+Build will implement. An "Edited" indicator plus Revert makes the overlay
+visible and reversible.
+
+Editing is disabled for truncated content (the content RPC caps at 512 KB):
+editing a truncated plan would silently drop its tail on handoff. The
+document still renders read-only with the truncation notice.
+
+Holds no must-survive local state: the panel region unmounts wholesale on
+collapse, so anything that must outlive it (the draft, the fetched content
+cache) is owned above. The view pick resetting to Rendered on reopen is
+deliberate.
+
+All visual properties flow through `--stgm-*` tokens.
+
+**Props** — `PlanEditorProps`
+
+<TypeTable
+  type={{
+    buildDisabled: { type: "boolean", description: "Disables the Build action (execution in flight, or build submitting)." },
+    draft: { type: "PlanDraftController", description: "Draft controller owned by the viewer (survives panel collapse/unmounts). Consulted only when editable — a read-only (superseded) plan renders its own artifact text, never the current plan's draft.", typeDescriptionLink: "#plandraftcontroller" },
+    onBuildFromPlan: { type: "() => void", description: "Builds from the plan — the same action as the thread card's primary." },
+    plan: { type: "SessionPlan", description: "The plan to display (latest, or a superseded plan opened from its card).", required: true, typeDescriptionLink: "/docs/sdk/react/library#sessionplan" },
+    readOnly: { type: "boolean", description: "Renders the plan as a historical, read-only document: no Edit view, no Build action, and a \"superseded\" notice. Used when the user opens a plan that a newer plan has since replaced." },
+  }}
+/>
+
+
 ### SessionViewer
 
 Full-featured agent session viewer — the graph-less analog of
@@ -1310,6 +1354,18 @@ function parseDraftType(value: string | null): DraftResourceType | null
 ```
 
 
+### PLAN_DOCUMENT_ENTRY_ID
+
+Virtual entry id of the plan document tab. One tab per session — the host
+swaps WHICH plan the tab shows (latest editable, or a superseded plan
+read-only); the tab itself never multiplies.
+
+
+### PLAN_DOCUMENT_PATH
+
+The plan tab's path — doubles as its tab label, matching the artifact name.
+
+
 ### PlanDraftController
 
 Controller returned by [`usePlanDraft`](#useplandraft).
@@ -1489,6 +1545,7 @@ streaming conversation column (DD-009/DD-010, invariant 2).
     notifySelection: { type: "(item: SelectedThreadItem | null) => void", description: "Report the current thread-item selection. Called from an effect inside the panel subtree (the level that subscribes to the selection store), keeping the owner subscription-free. While the panel is open, a new selection auto-switches to the Inspect view (unless the user picked one explicitly); a collapsed panel deliberately ignores selections — Inspect has no auto-open (it must never pull the user out of the chat).", required: true },
     openFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Open a file as a preview tab and expand the panel. Pass `options.line` to jump to and highlight a specific 1-based line (e.g. a content-search hit) — the file opens in its line-faithful File view scrolled to that line.", required: true },
     openPanel: { type: "() => void", description: "Expand the panel, restoring the previous view (or Inspect if a thread item is selected).", required: true },
+    openPlanDocument: { type: "() => void", description: "Open (or focus) the plan document tab and expand the panel. The tab is **pinned**, never the recyclable preview slot — file browsing must not evict the plan — and it activates, replacing the focused tab: the plan is the deliverable being reviewed. Fired by the thread card's \"Open plan\", the Artifacts facet's `plan.md`, and the new-plan auto-open.", required: true },
     pinEditor: { type: "(entryId: string, path: string) => void", description: "Pin an editor tab (clear its preview state).", required: true },
     setView: { type: "(viewId: string) => void", description: "Explicit view pick from the rail — sticky against auto-switching.", required: true },
     view: { type: "string", description: "The active rail view id (`\"files\"`, `\"search\"`, or an injected facet).", required: true },
@@ -1605,10 +1662,10 @@ Options for [`useSessionPanel`](#usesessionpanel).
 
 <TypeTable
   type={{
-    defaultView: { type: "string", description: "The panel's home view — the view it opens on and the one every automatic reset returns to (running⇄terminal transition, selection cleared). Defaults to `\"files\"` (the Explorer), which suits the session viewer. The launcher passes `\"configure\"`: pre-session there is no workspace, so the Config facet — carrying the run defaults (harness/model) — is the useful landing view. Auto-switches (Changes/Plan/Inspect) and explicit rail picks still take over from here exactly as before." },
+    defaultView: { type: "string", description: "The panel's home view — the view it opens on and the one every automatic reset returns to (running⇄terminal transition, selection cleared). Defaults to `\"files\"` (the Explorer), which suits the session viewer. The launcher passes `\"configure\"`: pre-session there is no workspace, so the Config facet — carrying the run defaults (harness/model) — is the useful landing view. Auto-switches (Changes/Inspect) and explicit rail picks still take over from here exactly as before." },
     hasChanges: { type: "boolean", description: "Whether the session has git write-backs. The first arrival auto-surfaces the Changes view — but only while the panel is open; a collapsed panel signals through badges instead of pulling the user out of the chat.", required: true },
     phase: { type: "ExecutionPhase | null", description: "The display execution's phase, or `null` before any execution exists. A transition between running and terminal resets the user's sticky view pick (mirroring the retired inspector-tab FSM).", required: true },
-    planKey: { type: "string | null", description: "Identity of the session's current plan (see `planDraftKey`), or `null` when none exists. A NEW identity — the first plan, or a refined plan superseding it — auto-surfaces the Plan view under the same contract as `hasChanges`: only while the panel is open, never over an explicit pick, and a collapsed panel signals through badges alone." },
+    planKey: { type: "string | null", description: "Identity of the session's current plan (see `planDraftKey`), or `null` when none exists. A NEW identity — the first plan, or a refined plan superseding it — auto-opens the plan document tab (see SessionPanelController.openPlanDocument), expanding a collapsed panel. This deliberately breaks the Changes/Inspect \"never open a collapsed panel\" convention: a completing plan is not ambient state, it is the deliverable of the turn the user just requested, and with the thread showing only a compact card there is no other review surface. Keyed on plan IDENTITY, not presence, so a refined plan re-surfaces too; the identity present at mount is swallowed (loading a session with an old plan never hijacks the layout)." },
   }}
 />
 
