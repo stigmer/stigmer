@@ -596,39 +596,6 @@ const { fileChanges, hasFileChanges } = useSessionFileChanges(allExecutions);
 ```
 
 
-### useSessionInspector
-
-Behavior hook for SessionInspector tab state management.
-
-Uses the "adjust state during render" pattern from the workflow
-`ExecutionInspector`: shadow `prevPhase`/`prevSelected` state,
-`userPickedTabRef` for sticky manual picks, and `deriveAutoTab`
-for system suggestions. Keeps the user's tab pick sticky until
-a meaningful state change resets it.
-
-**Signature**
-
-```tsx
-function useSessionInspector(opts: UseSessionInspectorOptions): UseSessionInspectorReturn
-```
-
-<TypeTable
-  type={{
-    opts: { type: "UseSessionInspectorOptions", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UseSessionInspectorReturn`
-
-<TypeTable
-  type={{
-    activeTab: { type: "SessionInspectorTabId", description: "", typeDescriptionLink: "#sessioninspectortabid" },
-    onTabChange: { type: "(tabId: string) => void", description: "" },
-    tabs: { type: "readonly TabItem[]", description: "" },
-  }}
-/>
-
-
 ### useSessionList
 
 Data hook that fetches a paginated list of `Session` entries.
@@ -766,6 +733,23 @@ return (
   </>
 );
 ```
+
+
+### useSessionPanel
+
+Create a [`SessionPanelController`](#sessionpanelcontroller) for a viewer instance.
+
+**Signature**
+
+```tsx
+function useSessionPanel(options: UseSessionPanelOptions): SessionPanelController
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseSessionPanelOptions", description: "", required: true },
+  }}
+/>
 
 
 ### useSessionSearch
@@ -970,17 +954,6 @@ function RenameSession({ session }: { session: Session }) {
 ```
 
 
-### useWorkspaceMode
-
-Create a [`WorkspaceModeController`](#workspacemodecontroller) for a viewer instance.
-
-**Signature**
-
-```tsx
-function useWorkspaceMode(): WorkspaceModeController
-```
-
-
 ## Components
 
 ### NewSessionViewer
@@ -991,9 +964,10 @@ of `SessionViewer`.
 Owns `useNewSessionFlow` internally and composes:
 - **Centered composer** (primary pane): `SessionComposer` with all
   context pickers (agent, workspace, MCP servers, skills)
-- **SessionInspector** (secondary pane): progressively revealed when
-  context is attached (workspace/agent/MCP/skills/vars non-empty),
-  showing only the Setup tab with interactive workspace actions.
+- **Session panel** (secondary pane): the unified `WorkspaceSurface` with a
+  Config rail view — collapsed by default behind a top-right chip that
+  appears once context is attached (workspace/agent/MCP/skills/vars
+  non-empty). Same layout model as `SessionViewer` (DD-016).
 
 Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
 apps inject platform-specific values via props (DD-004/DD-016).
@@ -1055,10 +1029,13 @@ Full-featured agent session viewer — the graph-less analog of
 Owns `useSessionPageFlow` internally and composes:
 - **Conversation column** (primary): `MessageThread` + error
   banners + `SessionComposer`
-- **SessionInspector** (secondary): tabbed panel with Workspace,
-  Config, Changes, Artifacts, Usage, and Inspect facets
+- **Session panel** (secondary): the unified `WorkspaceSurface` — explorer,
+  search, read-only editor, and the session facets (Config, Changes,
+  Artifacts, Usage, Inspect) as injected rail views. Collapsed by default
+  to a top-right chip; opening a file (tree, search, or a transcript path)
+  expands it.
 
-Connected via `ResizableSplit` with persisted width.
+Connected via `ResizableSplit` with persisted chat width.
 
 Thread selection is provided via `ThreadSelectionContext` (Phase 2
 opt-in) for render-isolated per-item selection.
@@ -1138,24 +1115,6 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
 
 
 ## Types
-
-### buildVisibleTabs
-
-Build the contextual tab list with badges.
-
-Tab order follows the user's mental model — context before output:
-Workspace → Config → Usage. Changes and Artifacts appear after Config
-when data exists; Inspect appears last when a thread item is selected.
-
-The Changes tab surfaces only when git write-backs (PRs) exist, badged
-with their count. Local-workspace file edits never surface a tab: they
-render in the transcript (stamped edit rows + the per-turn decision bar),
-which is their single review surface.
-
-```tsx
-function buildVisibleTabs(opts: { artifactCount: number; hasArtifacts: boolean; hasUsage: boolean; hasWriteBacks: boolean; selectedItem: SelectedThreadItem | null; writeBackCount: number }): TabItem[]
-```
-
 
 ### CreateSessionInput
 
@@ -1439,46 +1398,40 @@ A time-based group of sessions produced by [`groupSessionsByTime`](#groupsession
 />
 
 
-### SessionInspector
+### SessionPanelController
 
-Tabbed right-side inspector panel for agent sessions.
+State + actions for the unified session panel, shared by every viewer that
+hosts it (session + launcher) so they behave identically (DD-016).
 
-Displays an always-visible run-status header (phase badge) above
-contextual tabs: Workspace, Config, Changes, Artifacts, Usage, and
-Inspect (when a thread item is selected). The agent's plan/todos render
-inline in the message thread (see [`TodoCard`](/docs/sdk/react/execution#todocard)), not as a tab here.
+The panel is the one right-side surface: a workspace surface whose activity
+rail hosts the session facets (see `useSessionRailViews`). It replaces the
+former two-view model (narrow inspector ⇄ workspace-mode flip): the panel is
+**collapsed by default** to a top-right chip, and `isOpen` + `view` describe
+it fully.
 
-Mirrors the `ExecutionInspector` architecture from the workflow
-view — same `Tabs` primitive, same tab-FSM behavior hook, same
-contextual visibility pattern.
-
-`React.memo`'d to prevent re-renders from parent layout changes
-that don't affect inspector data.
-
-All visual properties flow through `--stgm-*` tokens. Zero
-Console/Next/Tauri dependencies (DD-004).
-
-
-### SessionInspectorProps
-
-Props for [`SessionInspector`](#sessioninspector).
+Owns the `WorkspaceEditorsStore` (the open-editor group) and the view
+FSM ported from the retired inspector tabs: explicit picks are sticky until
+a meaningful state change (selection cleared, running⇄terminal transition)
+resets them. Both are decoupled from any store subscription at the owner
+level: callbacks mutate imperatively so a file open/switch re-renders only
+the subscribing panel subtree, never the streaming conversation column
+(DD-009/DD-010, invariant 2).
 
 <TypeTable
   type={{
-    allExecutions: { type: "readonly AgentExecution[]", description: "All executions in the session (completed + active stream). Drives aggregation hooks for Changes, Artifacts, and Usage.", required: true },
-    className: { type: "string", description: "Additional CSS classes." },
-    displayExecution: { type: "AgentExecution | null", description: "The most relevant execution — the active streaming execution, or the last completed one. Drives the run-status header (phase badge).", required: true },
-    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied from the Artifacts tab." },
-    onImplementPlan: { type: "() => void", description: "Implement a plan from the Artifacts tab. When provided, plan artifacts (`plan.md`) surface an Implement action in their preview." },
-    org: { type: "string", description: "Organization slug for artifact Apply CTA.", required: true },
-    selectedItem: { type: "SelectedThreadItem | null", description: "Currently selected thread item, or null.", required: true },
-    sessionConfig: { type: "SetupTabProps", description: "Session-level configuration for the Configure tab. Includes core config fields and optional interactive mutation callbacks. When mutation callbacks are absent, sections render read-only (DD-011 backward compatibility).", typeDescriptionLink: "#setuptabprops" },
-    workspaceConfig: { type: "WorkspaceTabProps", description: "Workspace tab configuration. When provided, the Workspace tab renders interactive workspace actions (add/remove entries, file tree browsing). When absent, the tab shows an empty state." },
+    activateEditor: { type: "(entryId: string, path: string) => void", description: "Focus an already-open editor tab.", required: true },
+    closeEditor: { type: "(entryId: string, path: string) => void", description: "Close an editor tab. The panel stays open even when the group empties — unlike the retired workspace-mode flip, the panel is more than files.", required: true },
+    closePanel: { type: "() => void", description: "Collapse the panel to the chip, preserving editors and view.", required: true },
+    editorsStore: { type: "WorkspaceEditorsStore", description: "The open-editor group store; subscribe with `useWorkspaceEditors`.", required: true },
+    isOpen: { type: "boolean", description: "Whether the panel is expanded (chat narrow) or collapsed to the chip.", required: true },
+    notifySelection: { type: "(item: SelectedThreadItem | null) => void", description: "Report the current thread-item selection. Called from an effect inside the panel subtree (the level that subscribes to the selection store), keeping the owner subscription-free. While the panel is open, a new selection auto-switches to the Inspect view (unless the user picked one explicitly); a collapsed panel deliberately ignores selections — Inspect has no auto-open (it must never pull the user out of the chat).", required: true },
+    openFile: { type: "(entryId: string, path: string) => void", description: "Open a file as a preview tab and expand the panel.", required: true },
+    openPanel: { type: "() => void", description: "Expand the panel, restoring the previous view (or Inspect if a thread item is selected).", required: true },
+    pinEditor: { type: "(entryId: string, path: string) => void", description: "Pin an editor tab (clear its preview state).", required: true },
+    setView: { type: "(viewId: string) => void", description: "Explicit view pick from the rail — sticky against auto-switching.", required: true },
+    view: { type: "string", description: "The active rail view id (`\"files\"`, `\"search\"`, or an injected facet).", required: true },
   }}
 />
-
-
-### SessionInspectorTabId
 
 
 ### SessionWriteBackEntry
@@ -1559,21 +1512,6 @@ Options for [`usePersistedModel`](#usepersistedmodel).
 Return value of [`usePersistedModel`](#usepersistedmodel).
 
 
-### UseSessionInspectorOptions
-
-<TypeTable
-  type={{
-    artifactCount: { type: "number", description: "", required: true },
-    hasArtifacts: { type: "boolean", description: "", required: true },
-    hasUsage: { type: "boolean", description: "", required: true },
-    hasWriteBacks: { type: "boolean", description: "", required: true },
-    phase: { type: "ExecutionPhase | null", description: "", required: true },
-    selectedItem: { type: "SelectedThreadItem | null", description: "", required: true },
-    writeBackCount: { type: "number", description: "", required: true },
-  }}
-/>
-
-
 ### UseSessionListOptions
 
 Options for [`useSessionList`](#usesessionlist).
@@ -1599,6 +1537,18 @@ Options for [`useSessionPageFlow`](#usesessionpageflow).
 />
 
 
+### UseSessionPanelOptions
+
+Options for [`useSessionPanel`](#usesessionpanel).
+
+<TypeTable
+  type={{
+    hasChanges: { type: "boolean", description: "Whether the session has git write-backs. The first arrival auto-surfaces the Changes view — but only while the panel is open; a collapsed panel signals through badges instead of pulling the user out of the chat.", required: true },
+    phase: { type: "ExecutionPhase | null", description: "The display execution's phase, or `null` before any execution exists. A transition between running and terminal resets the user's sticky view pick (mirroring the retired inspector-tab FSM).", required: true },
+  }}
+/>
+
+
 ### UseSessionSearchOptions
 
 Options for [`useSessionSearch`](#usesessionsearch).
@@ -1606,33 +1556,6 @@ Options for [`useSessionSearch`](#usesessionsearch).
 <TypeTable
   type={{
     pageSize: { type: "number", description: "Maximum sessions per page." },
-  }}
-/>
-
-
-### WorkspaceModeController
-
-State + actions for the workspace-surface layout flip, shared by every viewer
-that hosts the surface (session + launcher) so they behave identically
-(DD-016).
-
-Owns the `WorkspaceEditorsStore` (the open-editor group) and a plain
-`workspaceMode` flag. Both are decoupled from any store subscription at the
-owner level: callbacks mutate imperatively so a file open/switch re-renders
-only the subscribing panel, never the streaming conversation column
-(DD-009/DD-010, invariant 2).
-
-<TypeTable
-  type={{
-    activateEditor: { type: "(entryId: string, path: string) => void", description: "Focus an already-open editor tab.", required: true },
-    closeEditor: { type: "(entryId: string, path: string) => void", description: "Close an editor tab; collapses to chat when it was the last one.", required: true },
-    collapseWorkspace: { type: "() => void", description: "Collapse to the chat-dominant layout, preserving the editor group.", required: true },
-    editorsStore: { type: "WorkspaceEditorsStore", description: "The open-editor group store; subscribe with `useWorkspaceEditors`.", required: true },
-    enterWorkspace: { type: "() => void", description: "Enter workspace mode without opening a file (browse / search).", required: true },
-    exitWorkspaceForInspect: { type: "() => void", description: "Exit workspace mode (keeping editors) so the Inspect facet can surface.", required: true },
-    openFileInWorkspace: { type: "(entryId: string, path: string) => void", description: "Open a file as a preview tab and enter workspace mode.", required: true },
-    pinEditor: { type: "(entryId: string, path: string) => void", description: "Pin an editor tab (clear its preview state).", required: true },
-    workspaceMode: { type: "boolean", description: "Whether the layout is flipped into the workspace-dominant surface.", required: true },
   }}
 />
 

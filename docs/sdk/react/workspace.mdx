@@ -265,6 +265,29 @@ const sources = useWorkspaceSources();
 
 ## Components
 
+### ExplorerTree
+
+The workspace surface's multi-root file explorer — the bare, VS Code-style
+tree: file-type icons, indent guides, single-click preview / double-click
+pin, optional per-root remove controls. Search lives in the surface's rail,
+not per root; listings come from the shared `useWorkspaceFiles` cache.
+
+All visual properties flow through `--stgm-*` tokens (DD-005).
+
+**Props** — `ExplorerTreeProps`
+
+<TypeTable
+  type={{
+    entries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries, each rendered as a collapsible root (multi-root).", required: true },
+    lister: { type: "WorkspaceFileLister", description: "Platform-injected file lister.", required: true, typeDescriptionLink: "#workspacefilelister" },
+    onActivateFile: { type: "(entryId: string, path: string) => void", description: "Double click: pin the file (persistent tab).", required: true },
+    onOpenFile: { type: "(entryId: string, path: string) => void", description: "Single click: open as a preview tab.", required: true },
+    onRemoveEntry: { type: "(entryId: string) => void", description: "Detach a workspace entry. When provided, each root header carries a remove control (VS Code's \"Remove Folder from Workspace\"); when absent the explorer is browse-only." },
+    selectedFile: { type: "SelectedWorkspaceFile | null", description: "The active file, highlighted in the tree.", required: true },
+  }}
+/>
+
+
 ### WorkspaceEditor
 
 Styled component for managing workspace entries with a flat-list
@@ -310,30 +333,6 @@ function SessionSetup({ org }: { org: string }) {
   );
 }
 ```
-
-
-### WorkspaceEntryFiles
-
-Inline expandable file tree for a single workspace entry.
-
-When `isExpanded` is `true`, calls the platform-injected lister and
-renders a scrollable tree using the shared `FileTreeNode` primitive.
-Renders loading skeletons, error states, empty states, and a
-search toolbar for filtering the file tree by name.
-
-All visual properties flow through `--stgm-*` tokens (DD-005).
-
-**Props** — `WorkspaceEntryFilesProps`
-
-<TypeTable
-  type={{
-    entry: { type: "WorkspaceEntry", description: "The workspace entry whose files to browse.", required: true, typeDescriptionLink: "#workspaceentry" },
-    isExpanded: { type: "boolean", description: "Whether the file tree panel is currently expanded.", required: true },
-    lister: { type: "WorkspaceFileLister", description: "Platform-injected file lister.", required: true, typeDescriptionLink: "#workspacefilelister" },
-    onOpenFile: { type: "(entryId: string, path: string) => void", description: "Opens a file in the viewer. When provided, the tree is **controlled**: clicking a file calls `onOpenFile(entry.id, path)` and the highlight comes from WorkspaceEntryFilesProps.selectedPath. When omitted, the tree falls back to local selection state (drag-and-drop-only usage)." },
-    selectedPath: { type: "string", description: "The highlighted path in controlled mode — the shared selection scoped to this entry (empty/undefined when the open file belongs to another entry). Ignored unless WorkspaceEntryFilesProps.onOpenFile is set." },
-  }}
-/>
 
 
 ### WorkspaceFileSearch
@@ -418,14 +417,20 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
     className: { type: "string", description: "Additional CSS classes for the root element." },
     editors: { type: "readonly OpenEditor[]", description: "Open editor tabs in order (VS Code open-editors model).", required: true },
     entries: { type: "readonly WorkspaceEntry[]", description: "The workspace entries whose files are browsable (multi-root).", required: true },
+    extraViews: { type: "readonly SurfaceRailView[]", description: "Host-injected rail views, rendered after the built-in Explorer/Search. Their `content` renders in the sidebar pane; the editor area stays for files (the VS Code model)." },
     lister: { type: "WorkspaceFileLister | undefined", description: "Platform-injected file lister. `undefined` disables explorer + search.", required: true },
     onActivateEditor: { type: "(entryId: string, path: string) => void", description: "Focuses an already-open editor (tab single click).", required: true },
+    onAddLocalFolder: { type: "() => void", description: "Attach a local folder (host opens its native picker and adds the entry). When provided, the explorer renders an \"Add Folder\" footer action — desktop hosts wire this; web hosts omit it (no native picker)." },
     onCloseEditor: { type: "(entryId: string, path: string) => void", description: "Closes an editor (tab close control or middle click).", required: true },
     onCollapse: { type: "() => void", description: "Collapses the surface back to the chat-dominant layout.", required: true },
     onOpenFile: { type: "(entryId: string, path: string) => void", description: "Opens a file as a preview (single click) from the explorer or search. The same seam the tree/search uses; the owner routes it to the editors store.", required: true },
     onPinEditor: { type: "(entryId: string, path: string) => void", description: "Pins an editor (tab double-click) so it stops being the preview tab.", required: true },
+    onRemoveEntry: { type: "(entryId: string) => void", description: "Detach a workspace entry. When provided, explorer root headers carry a remove control (VS Code's \"Remove Folder from Workspace\")." },
+    onViewChange: { type: "(viewId: string) => void", description: "Called when the user picks a rail view." },
     reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader for the editor.", required: true },
     selectedFile: { type: "SelectedWorkspaceFile | null", description: "The active editor's file, or `null`. Highlighted in the tree and shown.", required: true },
+    statusSlot: { type: "ReactNode", description: "Host status area rendered at the right of the editor top strip (e.g. the session's execution phase badge). Kept as a slot so the surface stays session-agnostic." },
+    view: { type: "string", description: "The active rail view id (`\"files\"`, `\"search\"`, or an SurfaceRailView.id). Provide together with `onViewChange` to control the rail from the host; omit for internal (uncontrolled) view state. An id that matches no view (e.g. a contextual extra view that disappeared) falls back to `\"files\"`." },
   }}
 />
 
@@ -497,6 +502,28 @@ Shared soft cap for a single file read, enforced identically on web and
 desktop so both substrates truncate at the same boundary. Files larger than
 this return their first [`MAX_WORKSPACE_FILE_READ_BYTES`](#max_workspace_file_read_bytes) bytes in `text`
 with `truncated: true`; `size` still reports the full file size.
+
+
+### SurfaceRailView
+
+A host-injected rail view: an icon in the activity rail whose content
+renders in the sidebar pane when active.
+
+This is how session facets (Config, Changes, Artifacts, …) join the built-in
+Explorer/Search views without the surface knowing any session domain — the
+same composition philosophy as the injected lister/reader capabilities
+(DD-004). The surface stays an embeddable, domain-pure workspace organism;
+hosts extend its rail.
+
+<TypeTable
+  type={{
+    badge: { type: "number", description: "Optional count badge rendered over the rail icon (hidden when 0)." },
+    content: { type: "ReactNode", description: "Sidebar content rendered while this view is active.", required: true },
+    icon: { type: "ReactNode", description: "Monochrome rail icon (tinted via `currentColor`, DD-005).", required: true },
+    id: { type: "string", description: "Unique view id. Must not collide with the built-in `\"files\"`/`\"search\"`.", required: true },
+    label: { type: "string", description: "Accessible label; also rendered as the sidebar heading.", required: true },
+  }}
+/>
 
 
 ### UseWorkspaceFileContentOptions
