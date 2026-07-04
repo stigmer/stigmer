@@ -36,10 +36,12 @@ import {
   findPlanArtifact,
   type SessionPlan,
 } from "../library/detect-plan-artifact.js";
+import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
 import { useOpenFileChange } from "./useOpenFileChange.js";
 import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanDraft.js";
 import { PlanEditor } from "./PlanEditor.js";
+import { PlanStreamingDocument } from "./PlanStreamingDocument.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
@@ -69,6 +71,20 @@ const APPROVED_PLAN_MOUNT_PATH = `.stigmer/inputs/${PLAN_ARTIFACT_NAME}`;
  * this label as-is.
  */
 const BUILD_FROM_PLAN_MESSAGE = "Build from plan";
+
+/**
+ * A plan the active execution is writing right now, resolved at the viewer
+ * level (from `findStreamingPlan`) so the panel's plan tab can render it
+ * live. The streaming sibling of {@link SessionPlan}: `executionId` keys the
+ * document (a new turn's stream resets the tab's view state) and forms the
+ * `<executionId>:streaming` identity for the plan-tab auto-open trigger.
+ */
+interface SessionStreamingPlan {
+  /** ID of the execution writing the plan. */
+  readonly executionId: string;
+  /** The live plan text (fence-stripped display projection). */
+  readonly displayText: string;
+}
 
 /**
  * Reads the published plan's full text for the build handoff. Refuses a
@@ -295,6 +311,20 @@ export function SessionViewer({
     [flow.allExecutions],
   );
   const planDraft = usePlanDraft(sessionPlan);
+
+  // The plan the ACTIVE turn is writing right now (the H1 convention — see
+  // findStreamingPlan), resolved at this level for the same reason
+  // sessionPlan is: the panel's plan tab renders it. Recomputed per stream
+  // commit by design — this component already re-renders on every commit
+  // (it reads `flow`), and the scan touches only the last AI message.
+  const streamingPlan = useMemo<SessionStreamingPlan | undefined>(() => {
+    const activeExec = conv.activeStreamExecution;
+    const live = findStreamingPlan(activeExec);
+    const executionId = activeExec?.metadata?.id;
+    return live && executionId
+      ? { executionId, displayText: live.displayText }
+      : undefined;
+  }, [conv.activeStreamExecution]);
   const [isBuildingFromPlan, setIsBuildingFromPlan] = useState(false);
   const [planAttachFailed, setPlanAttachFailed] = useState(false);
 
@@ -304,14 +334,25 @@ export function SessionViewer({
   // controlled content (Decision 3 in DD-16).
   const [openPlanExecutionId, setOpenPlanExecutionId] = useState<string | null>(null);
 
-  // A new plan identity (first plan, or a refinement) supersedes any
-  // historical plan the user had opened: the tab snaps back to "latest" so
-  // the auto-open (useSessionPanel's planKey trigger) always surfaces the new
-  // plan. Adjust-state-during-render — own state only, the established idiom.
+  // The plan tab's identity across both plan lifecycles: while a plan
+  // streams, the in-flight turn owns the tab (`<executionId>:streaming`);
+  // once published, the artifact identity (planDraftKey) takes over. Each
+  // transition is a NEW identity, so useSessionPanel's planKey trigger
+  // auto-opens the tab the moment a plan starts streaming AND (idempotently)
+  // when it settles into the published plan.
   const currentPlanKey = sessionPlan ? planDraftKey(sessionPlan) : null;
-  const [prevPlanKey, setPrevPlanKey] = useState(currentPlanKey);
-  if (currentPlanKey !== prevPlanKey) {
-    setPrevPlanKey(currentPlanKey);
+  const panelPlanKey = streamingPlan
+    ? `${streamingPlan.executionId}:streaming`
+    : currentPlanKey;
+
+  // A new plan identity (a plan starting to stream, the first published
+  // plan, or a refinement) supersedes any historical plan the user had
+  // opened: the tab snaps back to "latest" so the auto-open always surfaces
+  // the incoming plan. Adjust-state-during-render — own state only, the
+  // established idiom.
+  const [prevPlanKey, setPrevPlanKey] = useState(panelPlanKey);
+  if (panelPlanKey !== prevPlanKey) {
+    setPrevPlanKey(panelPlanKey);
     setOpenPlanExecutionId(null);
   }
 
@@ -324,7 +365,7 @@ export function SessionViewer({
   const panel = useSessionPanel({
     phase: hasPhase ? phase : null,
     hasChanges: hasWriteBacks,
-    planKey: currentPlanKey,
+    planKey: panelPlanKey,
   });
 
   const handleBuildFromPlan = useCallback(() => {
@@ -505,6 +546,7 @@ export function SessionViewer({
                 onImplementPlan={handleBuildFromPlan}
                 implementPlanDisabled={!conv.canSendFollowUp || isBuildingFromPlan}
                 sessionPlan={sessionPlan}
+                streamingPlan={streamingPlan}
                 planDraft={planDraft}
                 openPlanExecutionId={openPlanExecutionId}
                 onOpenPlan={handleOpenPlan}
@@ -724,6 +766,14 @@ interface SessionPanelRegionProps {
   readonly implementPlanDisabled?: boolean;
   /** The session's latest plan — the plan tab's editable content. */
   readonly sessionPlan?: SessionPlan;
+  /**
+   * The plan the active turn is writing right now. While present it OWNS the
+   * plan tab: the tab renders the live document (`PlanStreamingDocument`)
+   * instead of a published plan — the in-flight plan is the newest
+   * deliverable, and the snap-back in `SessionViewer` has already cleared any
+   * historical selection when this identity appeared.
+   */
+  readonly streamingPlan?: SessionStreamingPlan;
   /** Viewer-owned plan draft (survives panel collapse and view switches). */
   readonly planDraft: PlanDraftController;
   /**
@@ -750,6 +800,7 @@ function SessionPanelRegion({
   onImplementPlan,
   implementPlanDisabled,
   sessionPlan,
+  streamingPlan,
   planDraft,
   openPlanExecutionId,
   onOpenPlan,
@@ -811,18 +862,25 @@ function SessionPanelRegion({
   }, [openPlanExecutionId, sessionPlan, flow.allExecutions]);
 
   // The plan document tab (SurfaceVirtualDocument): the panel's editor-area
-  // rendering of `openPlan`. Keyed by plan identity so switching between the
-  // latest and a historical plan resets the editor's view state cleanly.
+  // rendering of the session's plan. Three states, in precedence order:
+  // a STREAMING plan owns the tab (live document, no actions); otherwise the
+  // resolved `openPlan` renders in the editor (keyed by plan identity so
+  // switching plans resets view state cleanly); otherwise an honest empty
+  // notice (DD-006) — reachable only when a streaming plan auto-opened the
+  // tab and its turn then ended without publishing, with no earlier plan to
+  // fall back to.
   const openPlanIsLatest = openPlan?.executionId === sessionPlan?.executionId;
-  const virtualDocuments = useMemo<
-    readonly SurfaceVirtualDocument[] | undefined
-  >(() => {
-    if (!openPlan) return undefined;
+  const virtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(() => {
     return [
       {
         entryId: PLAN_DOCUMENT_ENTRY_ID,
         path: PLAN_DOCUMENT_PATH,
-        content: (
+        content: streamingPlan ? (
+          <PlanStreamingDocument
+            key={`streaming-${streamingPlan.executionId}`}
+            displayText={streamingPlan.displayText}
+          />
+        ) : openPlan ? (
           <PlanEditor
             key={planDraftKey(openPlan)}
             plan={openPlan}
@@ -831,10 +889,13 @@ function SessionPanelRegion({
             buildDisabled={implementPlanDisabled}
             readOnly={!openPlanIsLatest}
           />
+        ) : (
+          <PlanUnavailableNotice />
         ),
       },
     ];
   }, [
+    streamingPlan,
     openPlan,
     openPlanIsLatest,
     planDraft,
@@ -1005,6 +1066,29 @@ function AutoApproveIndicator({ onTurnOff }: { onTurnOff: () => void }) {
       >
         Turn off
       </button>
+    </div>
+  );
+}
+
+/**
+ * The plan document tab's empty state — reachable only when a streaming plan
+ * auto-opened the tab and its turn then ended without publishing (stopped or
+ * failed) while the session has no earlier published plan to fall back to.
+ * The partial plan reverts to the conversation (the thread un-collapses it),
+ * so the notice points there. Never a blank pane (DD-006).
+ */
+function PlanUnavailableNotice() {
+  return (
+    <div
+      role="status"
+      className="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 px-4 py-8 text-center"
+    >
+      <p className="text-xs font-medium text-foreground">
+        This turn ended before a plan was completed.
+      </p>
+      <p className="text-xs text-muted-foreground">
+        Any partial plan text remains in the conversation.
+      </p>
     </div>
   );
 }

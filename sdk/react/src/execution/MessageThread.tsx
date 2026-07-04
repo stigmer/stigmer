@@ -31,8 +31,10 @@ import { FileReviewCard } from "./FileReviewCard.js";
 import { SummarizationCard } from "./SummarizationCard.js";
 import { PlanCompletionCard } from "./PlanCompletionCard.js";
 import { PlanArtifactCard } from "./PlanArtifactCard.js";
+import { PlanStreamingCard } from "./PlanStreamingCard.js";
 import { TodoCard } from "./TodoCard.js";
 import { findPlanArtifact } from "../library/detect-plan-artifact.js";
+import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import type { SummarizationEventView } from "./useContextWindow.js";
 import { isInternalTool, isCollapsedToolCall } from "./tool-categories.js";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext.js";
@@ -222,6 +224,13 @@ export interface MessageThreadProps {
    * editable/buildable, a superseded plan opens read-only (the host decides
    * from the execution id). When omitted, cards fall back to the "Open full"
    * preview modal (hosts without a panel).
+   *
+   * Providing this also opts the thread into LIVE plan collapse: while a
+   * Plan-mode turn streams its plan (detected via `findStreamingPlan`), the
+   * plan message is suppressed behind a compact {@link PlanStreamingCard}
+   * whose "Open plan" routes here — the host is expected to render the
+   * streaming document in its plan surface. Hosts without one (this prop
+   * omitted) keep the plan streaming inline, where it stays readable.
    */
   readonly onOpenPlan?: (executionId: string) => void;
   /**
@@ -313,6 +322,23 @@ export type ThreadItem =
        * build CTA, so a stale plan can't be implemented by accident.
        */
       readonly isLatestPlan: boolean;
+    }
+  | {
+      /**
+       * A plan the active Plan-mode execution is writing RIGHT NOW: the
+       * streaming plan message is suppressed and this compact card stands in
+       * while the document renders live in the panel's plan tab. On
+       * completion the item becomes `plan-completion` — a different kind
+       * under the SAME key, so the card holds one thread position and the
+       * swap reads as the card settling.
+       */
+      readonly kind: "plan-writing";
+      readonly key: string;
+      readonly executionId: string;
+      /** Live title (the plan's leading `# H1`), growing as it streams. */
+      readonly planTitle?: string;
+      /** Length of the plan text streamed so far (drives the live size). */
+      readonly planSize: number;
     };
 
 /**
@@ -480,6 +506,7 @@ export function buildThreadItems(
   pendingMessageFailed = false,
   editableActiveTurn = false,
   includeFileReviewRecords = false,
+  collapseStreamingPlan = false,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   // Tool-call ids that render as an inline-approval-capable ToolCallItem (a
@@ -554,15 +581,17 @@ export function buildThreadItems(
 
     // A completed Plan turn collapses its plan message into the compact plan
     // card (the plan-completion item): the document lives in the panel's plan
-    // tab, not the thread. While the plan is still streaming, planMessageIndex
-    // stays -1 and the message renders as an ordinary chat bubble; completion
-    // removes the message item and the paired auto-open (useSessionPanel's
-    // planKey trigger) surfaces the document side-by-side — the content moves,
-    // it doesn't disappear. Collapse is gated on the ARTIFACT existing: a plan
-    // that never published (older executions, failed upload) exists only in
-    // the message, so that path keeps the inline document promotion
-    // (isPlanDocument) — collapsing it would orphan the plan behind a card
-    // with nothing to open.
+    // tab, not the thread. While the plan is still streaming, the same
+    // treatment applies live when the host has a plan surface (streamingPlan
+    // below): the in-flight plan message is suppressed behind a plan-writing
+    // card while the panel's plan tab renders it as it streams — the content
+    // moves, it doesn't disappear. Completion swaps the live card for the
+    // settled one (same key), and the paired auto-open (useSessionPanel's
+    // planKey trigger) keeps the document side-by-side. Collapse of a
+    // COMPLETED plan is gated on the ARTIFACT existing: a plan that never
+    // published (older executions, failed upload) exists only in the message,
+    // so that path keeps the inline document promotion (isPlanDocument) —
+    // collapsing it would orphan the plan behind a card with nothing to open.
     const isCompletedPlanExec = isCompletedPlanExecution(exec);
     const planMessageIndex = isCompletedPlanExec
       ? findPlanMessageIndex(messages)
@@ -572,6 +601,21 @@ export function buildThreadItems(
       : undefined;
     const collapsePlanMessage =
       planMessageIndex >= 0 && planArtifact !== undefined;
+
+    // The plan the active Plan-mode turn is writing RIGHT NOW (detected by
+    // the H1 convention — see findStreamingPlan). Its message is suppressed
+    // in favor of a live plan-writing card, mirroring the completed-turn
+    // collapse above, while the panel's plan tab renders the document live.
+    // Two gates: collapseStreamingPlan (the host wired onOpenPlan — without a
+    // document surface the plan must keep streaming inline, DD-011) and
+    // isActiveStreamExec (a stale non-terminal execution left in the
+    // completed list by the transient skew documented above must never
+    // sprout a live card). Mutually exclusive with collapsePlanMessage by
+    // construction: one requires a terminal phase, the other forbids it.
+    const streamingPlan =
+      collapseStreamingPlan && isActiveStreamExec
+        ? findStreamingPlan(exec)
+        : undefined;
 
     // This execution's settled change sets render as read-only records inside
     // its own segment, anchored to the last stamped edit row of each set. The
@@ -650,7 +694,13 @@ export function buildThreadItems(
         // The collapsed plan message is not rendered — the plan-completion
         // card at the segment's end is the turn's sole plan representation.
         // Its tool calls (below) and the todo anchor still process normally.
-        if (!(collapsePlanMessage && mi === planMessageIndex)) {
+        // A STREAMING plan message is suppressed the same way: its stand-in
+        // is the plan-writing card at the segment's end, and the document
+        // renders live in the panel's plan tab.
+        const suppressAsPlan =
+          (collapsePlanMessage && mi === planMessageIndex) ||
+          mi === streamingPlan?.messageIndex;
+        if (!suppressAsPlan) {
           items.push({
             kind: "message",
             message: msg,
@@ -757,6 +807,20 @@ export function buildThreadItems(
           isLatestPlan,
         });
       }
+    } else if (streamingPlan) {
+      // The live stand-in for the suppressed streaming plan message. It
+      // deliberately SHARES the completion item's key: on completion this
+      // item becomes the plan-completion item above (a kind change under a
+      // stable key), so the card holds one thread position and the handoff
+      // reads as the card settling rather than a new element appearing.
+      items.push({
+        kind: "plan-writing",
+        key: `${execId}-plan-completion`,
+        executionId: exec.metadata?.id ?? "",
+        planTitle:
+          extractLeadingH1(streamingPlan.displayText).title ?? undefined,
+        planSize: streamingPlan.displayText.length,
+      });
     }
 
     // Anchor (3): a plan that produced no rendered narration or work item still
@@ -946,9 +1010,13 @@ export function MessageThread({
 
   const includeApprovals = onApprovalSubmit != null;
   const editableActiveTurn = onEditMessage != null;
+  // A streaming plan is collapsed behind its live card only when the host can
+  // open the plan document surface — a panel-less host (no onOpenPlan) keeps
+  // the plan streaming inline, where it remains readable (DD-011).
+  const collapseStreamingPlan = onOpenPlan != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan],
   );
 
   useKeyStability(items);
@@ -1353,6 +1421,19 @@ export function ThreadItemRenderer({
         <PlanCompletionCard
           onImplement={item.isLatestPlan ? onBuildFromPlan : undefined}
           disabled={planActionsDisabled}
+        />
+      );
+    case "plan-writing":
+      // The live stand-in for a plan the active turn is writing. Emitted only
+      // when onOpenPlan is wired (see buildThreadItems' collapseStreamingPlan
+      // gate), so the action is always available in practice.
+      return (
+        <PlanStreamingCard
+          title={item.planTitle}
+          sizeBytes={item.planSize}
+          onOpenPlan={
+            onOpenPlan ? () => onOpenPlan(item.executionId) : undefined
+          }
         />
       );
   }

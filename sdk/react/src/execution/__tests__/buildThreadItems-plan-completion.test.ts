@@ -471,6 +471,173 @@ describe("buildThreadItems plan-document stamping (no-artifact fallback)", () =>
   });
 });
 
+describe("buildThreadItems plan-writing (live streaming collapse)", () => {
+  function messageItems(items: readonly ThreadItem[]) {
+    return items.filter(
+      (i): i is Extract<ThreadItem, { kind: "message" }> =>
+        i.kind === "message",
+    );
+  }
+
+  function planWritingItems(items: readonly ThreadItem[]) {
+    return items.filter(
+      (i): i is Extract<ThreadItem, { kind: "plan-writing" }> =>
+        i.kind === "plan-writing",
+    );
+  }
+
+  /** buildThreadItems with the collapseStreamingPlan opt-in enabled. */
+  function buildWithLiveCollapse(
+    executions: AgentExecution[],
+    activeStreamExecution: AgentExecution | null,
+  ) {
+    return buildThreadItems(
+      executions,
+      activeStreamExecution,
+      null,
+      false,
+      undefined,
+      undefined,
+      false,
+      false,
+      false,
+      true,
+    );
+  }
+
+  const streamingPlanExec = () =>
+    makeExecution({
+      id: "exec-live",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      interactionMode: InteractionMode.PLAN,
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "Let me look around first."),
+        makeMessage(MessageType.MESSAGE_AI, "# Live Plan\n\nDraft body"),
+      ],
+    });
+
+  it("suppresses the streaming plan message and emits a plan-writing card", () => {
+    const items = buildWithLiveCollapse([], streamingPlanExec());
+
+    const keys = messageItems(items).map((i) => i.key);
+    expect(keys).toContain("exec-live-m0"); // narration stays
+    expect(keys).not.toContain("exec-live-m1"); // the live plan is collapsed
+
+    const cards = planWritingItems(items);
+    expect(cards).toHaveLength(1);
+    expect(cards[0].executionId).toBe("exec-live");
+    expect(cards[0].planTitle).toBe("Live Plan");
+    expect(cards[0].planSize).toBe("# Live Plan\n\nDraft body".length);
+  });
+
+  it("shares the completion item's key, so the card holds one thread position across the handoff", () => {
+    const liveItems = buildWithLiveCollapse([], streamingPlanExec());
+
+    const completedExec = makeExecution({
+      id: "exec-live",
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "# Live Plan\n\nDraft body")],
+      withPlanArtifact: true,
+    });
+    const settledItems = buildWithLiveCollapse([completedExec], null);
+
+    const liveCard = planWritingItems(liveItems)[0];
+    const settledCard = planItems(settledItems)[0];
+    expect(liveCard.key).toBe(settledCard.key);
+  });
+
+  it("keeps the plan streaming inline when the host has no plan surface (collapseStreamingPlan=false)", () => {
+    const items = buildThreadItems([], streamingPlanExec(), null, false, undefined);
+
+    expect(planWritingItems(items)).toHaveLength(0);
+    expect(messageItems(items).map((i) => i.key)).toContain("exec-live-m1");
+  });
+
+  it("never collapses a non-terminal Plan execution that is NOT the active stream", () => {
+    // The transient completed-list/active-stream skew must not sprout a live
+    // card for a stale copy of the execution.
+    const items = buildWithLiveCollapse([streamingPlanExec()], null);
+
+    expect(planWritingItems(items)).toHaveLength(0);
+    expect(messageItems(items).map((i) => i.key)).toContain("exec-live-m1");
+  });
+
+  it("does not collapse streaming narration (no leading H1)", () => {
+    const exec = makeExecution({
+      id: "exec-live",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Exploring the repo…")],
+    });
+
+    const items = buildWithLiveCollapse([], exec);
+
+    expect(planWritingItems(items)).toHaveLength(0);
+    expect(messageItems(items).map((i) => i.key)).toContain("exec-live-m0");
+  });
+
+  it("does not collapse an Agent-mode streaming turn, even with a plan-shaped message", () => {
+    const exec = makeExecution({
+      id: "exec-agent",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      interactionMode: InteractionMode.AGENT,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "# Looks like a plan")],
+    });
+
+    const items = buildWithLiveCollapse([], exec);
+
+    expect(planWritingItems(items)).toHaveLength(0);
+  });
+
+  it("reverts to inline text when the turn stops without completing", () => {
+    // Cancelled mid-plan: no live card (turn is terminal), no completion card
+    // (not COMPLETED) — the partial plan renders inline, an honest record.
+    const exec = makeExecution({
+      id: "exec-live",
+      phase: ExecutionPhase.EXECUTION_CANCELLED,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "# Live Plan\n\nPartial")],
+    });
+
+    const items = buildWithLiveCollapse([exec], null);
+
+    expect(planWritingItems(items)).toHaveLength(0);
+    expect(planItems(items)).toHaveLength(0);
+    expect(messageItems(items).map((i) => i.key)).toContain("exec-live-m0");
+  });
+
+  it("extracts the live title through an unterminated plan fence", () => {
+    const exec = makeExecution({
+      id: "exec-live",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      interactionMode: InteractionMode.PLAN,
+      messages: [
+        makeMessage(MessageType.MESSAGE_AI, "```markdown\n# Fenced Live Plan\n\nBody"),
+      ],
+    });
+
+    const items = buildWithLiveCollapse([], exec);
+    expect(planWritingItems(items)[0]?.planTitle).toBe("Fenced Live Plan");
+  });
+
+  it("leaves the title undefined while only the H1's first characters have streamed", () => {
+    const exec = makeExecution({
+      id: "exec-live",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      interactionMode: InteractionMode.PLAN,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "# Re")],
+    });
+
+    const items = buildWithLiveCollapse([], exec);
+    const cards = planWritingItems(items);
+    expect(cards).toHaveLength(1);
+    // extractLeadingH1 matches at end-of-input, so even a partial title
+    // resolves; "Re" is the growing title, not undefined.
+    expect(cards[0].planTitle).toBe("Re");
+  });
+});
+
 describe("buildThreadItems build-from-plan prompt", () => {
   function promptItem(items: readonly ThreadItem[], execId: string) {
     return items.find(

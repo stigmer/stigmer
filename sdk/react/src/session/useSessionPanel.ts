@@ -26,17 +26,22 @@ export interface UseSessionPanelOptions {
    */
   readonly hasChanges: boolean;
   /**
-   * Identity of the session's current plan (see `planDraftKey`), or `null`
-   * when none exists. A NEW identity — the first plan, or a refined plan
-   * superseding it — auto-opens the plan document tab (see
+   * Identity of the session's current plan, or `null` when none exists. Two
+   * identity families, supplied by the viewer: `<executionId>:streaming`
+   * while the active turn is WRITING a plan (see `findStreamingPlan`), then
+   * the published identity (`planDraftKey`) once the artifact exists. A NEW
+   * identity — a plan starting to stream, the first published plan, or a
+   * refined plan superseding it — auto-opens the plan document tab (see
    * {@link SessionPanelController.openPlanDocument}), expanding a collapsed
    * panel. This deliberately breaks the Changes/Inspect "never open a
-   * collapsed panel" convention: a completing plan is not ambient state, it
-   * is the deliverable of the turn the user just requested, and with the
-   * thread showing only a compact card there is no other review surface.
+   * collapsed panel" convention: a plan is not ambient state, it is the
+   * deliverable of the turn the user just requested, and with the thread
+   * showing only a compact card there is no other review surface — live or
+   * settled. The streaming→published transition is itself a new identity,
+   * harmlessly re-firing the (idempotent) open as the tab's content settles.
    * Keyed on plan IDENTITY, not presence, so a refined plan re-surfaces too;
    * the identity present at mount is swallowed (loading a session with an
-   * old plan never hijacks the layout).
+   * old plan — or mid-stream — never hijacks the layout).
    */
   readonly planKey?: string | null;
   /**
@@ -107,8 +112,10 @@ export interface SessionPanelController {
    * Open (or focus) the plan document tab and expand the panel. The tab is
    * **pinned**, never the recyclable preview slot — file browsing must not
    * evict the plan — and it activates, replacing the focused tab: the plan is
-   * the deliverable being reviewed. Fired by the thread card's "Open plan",
-   * the Artifacts facet's `plan.md`, and the new-plan auto-open.
+   * the deliverable being reviewed. Fired by the thread cards' "Open plan"
+   * (the live `PlanStreamingCard` and the settled `PlanArtifactCard`), the
+   * Artifacts facet's `plan.md`, and the new-plan auto-open — which triggers
+   * both when a plan STARTS STREAMING and when it publishes (see `planKey`).
    */
   readonly openPlanDocument: () => void;
   /**

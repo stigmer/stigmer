@@ -784,6 +784,50 @@ describe("MessageThread", () => {
     });
   });
 
+  describe("live plan collapse (streaming Plan turn)", () => {
+    function streamingPlanExecution() {
+      return makeExecution({
+        id: "exec-live",
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        interactionMode: InteractionMode.PLAN,
+        aiContent: "# Rollout Plan\n\n1. First step",
+      });
+    }
+
+    it("collapses the streaming plan behind a live card when onOpenPlan is wired", () => {
+      const onOpenPlan = vi.fn();
+      render(
+        <MessageThread
+          executions={[]}
+          activeStreamExecution={streamingPlanExecution()}
+          onOpenPlan={onOpenPlan}
+        />,
+      );
+
+      const card = screen.getByRole("region", { name: "Plan being written" });
+      expect(card.textContent).toContain("Rollout Plan");
+      // The plan body lives in the panel's plan tab, not the thread.
+      expect(screen.queryByText(/First step/)).toBeNull();
+
+      fireEvent.click(screen.getByText("Open plan"));
+      expect(onOpenPlan).toHaveBeenCalledWith("exec-live");
+    });
+
+    it("keeps the plan streaming inline for hosts without a plan surface (DD-011)", () => {
+      render(
+        <MessageThread
+          executions={[]}
+          activeStreamExecution={streamingPlanExecution()}
+        />,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "Plan being written" }),
+      ).toBeNull();
+      expect(screen.getByText(/First step/)).toBeTruthy();
+    });
+  });
+
   it("renders plan-completion card when last execution is completed Plan mode", () => {
     const exec = makeExecution({
       id: "exec-plan",

@@ -120,6 +120,8 @@ export type { PlanDraftController } from "./usePlanDraft.js";
 // in the workspace surface) and the identity of its tab.
 export { PlanEditor } from "./PlanEditor.js";
 export type { PlanEditorProps } from "./PlanEditor.js";
+export { PlanStreamingDocument } from "./PlanStreamingDocument.js";
+export type { PlanStreamingDocumentProps } from "./PlanStreamingDocument.js";
 export {
   PLAN_DOCUMENT_ENTRY_ID,
   PLAN_DOCUMENT_PATH,

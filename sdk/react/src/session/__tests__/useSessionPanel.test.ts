@@ -214,6 +214,18 @@ describe("useSessionPanel — plan document tab", () => {
     expect(planEditors(result)).toEqual([planTab]);
   });
 
+  it("opens on the streaming identity, then idempotently re-fires when the plan publishes", () => {
+    // The viewer feeds `<executionId>:streaming` while the plan is being
+    // written, then the artifact identity once published — two identities,
+    // one pinned tab: the transition must not duplicate it or disturb it.
+    const { result, rerender } = renderPanel();
+    rerender({ phase: null, hasChanges: false, planKey: "e1:streaming" });
+    expect(result.current.isOpen).toBe(true);
+    expect(planEditors(result)).toEqual([planTab]);
+    rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
+    expect(planEditors(result)).toEqual([planTab]);
+  });
+
   it("does not re-open the plan tab for an unchanged identity", () => {
     const { result, rerender } = renderPanel();
     rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });

@@ -41,6 +41,9 @@ export type { PlanCompletionCardProps } from "./PlanCompletionCard.js";
 export { PlanArtifactCard } from "./PlanArtifactCard.js";
 export type { PlanArtifactCardProps } from "./PlanArtifactCard.js";
 
+export { PlanStreamingCard } from "./PlanStreamingCard.js";
+export type { PlanStreamingCardProps } from "./PlanStreamingCard.js";
+
 export { PlanDocumentMessage } from "./PlanDocumentMessage.js";
 export type { PlanDocumentMessageProps } from "./PlanDocumentMessage.js";
 
