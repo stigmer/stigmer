@@ -995,9 +995,9 @@ Owns `useNewSessionFlow` internally and composes:
 - **Centered composer** (primary pane): `SessionComposer` with all
   context pickers (agent, workspace, MCP servers, skills)
 - **Session panel** (secondary pane): the unified `WorkspaceSurface` with a
-  Config rail view — collapsed by default behind a top-right chip that
-  appears once context is attached (workspace/agent/MCP/skills/vars
-  non-empty). Same layout model as `SessionViewer` (DD-016).
+  Config rail view — collapsed by default behind a persistent top-right chip
+  and homing on the Config facet when opened. Same layout model as
+  `SessionViewer` (DD-016).
 
 Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
 apps inject platform-specific values via props (DD-004/DD-016).
@@ -1472,10 +1472,10 @@ it fully.
 Owns the `WorkspaceEditorsStore` (the open-editor group) and the view
 FSM ported from the retired inspector tabs: explicit picks are sticky until
 a meaningful state change (selection cleared, running⇄terminal transition)
-resets them. Both are decoupled from any store subscription at the owner
-level: callbacks mutate imperatively so a file open/switch re-renders only
-the subscribing panel subtree, never the streaming conversation column
-(DD-009/DD-010, invariant 2).
+resets them back to the `defaultView`. Both are decoupled from any store
+subscription at the owner level: callbacks mutate imperatively so a file
+open/switch re-renders only the subscribing panel subtree, never the
+streaming conversation column (DD-009/DD-010, invariant 2).
 
 <TypeTable
   type={{
@@ -1603,6 +1603,7 @@ Options for [`useSessionPanel`](#usesessionpanel).
 
 <TypeTable
   type={{
+    defaultView: { type: "string", description: "The panel's home view — the view it opens on and the one every automatic reset returns to (running⇄terminal transition, selection cleared). Defaults to `\"files\"` (the Explorer), which suits the session viewer. The launcher passes `\"configure\"`: pre-session there is no workspace, so the Config facet — carrying the run defaults (harness/model) — is the useful landing view. Auto-switches (Changes/Plan/Inspect) and explicit rail picks still take over from here exactly as before." },
     hasChanges: { type: "boolean", description: "Whether the session has git write-backs. The first arrival auto-surfaces the Changes view — but only while the panel is open; a collapsed panel signals through badges instead of pulling the user out of the chat.", required: true },
     phase: { type: "ExecutionPhase | null", description: "The display execution's phase, or `null` before any execution exists. A transition between running and terminal resets the user's sticky view pick (mirroring the retired inspector-tab FSM).", required: true },
     planKey: { type: "string | null", description: "Identity of the session's current plan (see `planDraftKey`), or `null` when none exists. A NEW identity — the first plan, or a refined plan superseding it — auto-surfaces the Plan view under the same contract as `hasChanges`: only while the panel is open, never over an explicit pick, and a collapsed panel signals through badges alone." },
