@@ -7,6 +7,58 @@ description: Hooks and components for file entries, folder browsing, and code ed
 
 ## Hooks
 
+### useWorkspaceContentSearch
+
+Behavior hook powering workspace-wide content (text) search.
+
+The text-grep sibling of
+`import("./useWorkspaceFileSearch.js").useWorkspaceFileSearch`: it keeps
+that hook's per-entry aggregation, error isolation, and generation guard, and
+adds the platform's canonical debounce idiom from `useResourceSearch`
+(`query`/`debouncedQuery` + `setTimeout`). The key difference is that the
+debounced query is part of the *fetch* — each keystroke hits disk via the
+injected [`WorkspaceContentSearcher`](#workspacecontentsearcher), uncached — so a `minLength` guard
+and a debounce protect the filesystem.
+
+Prior results stay visible while a new debounced query loads (`isRefetching`
+true, results unchanged); only the very first search with nothing to show
+flips `isLoading`. This avoids a per-keystroke blank flash the cached filename
+search never had.
+
+**Signature**
+
+```tsx
+function useWorkspaceContentSearch(options: UseWorkspaceContentSearchOptions): UseWorkspaceContentSearchReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseWorkspaceContentSearchOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseWorkspaceContentSearchReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "First per-entry error, for a top-level fallback message. `null` when none." },
+    groups: { type: "readonly WorkspaceContentSearchGroup[]", description: "Entries with something to show (matches, an error, or a truncation notice)." },
+    isLoading: { type: "boolean", description: "`true` during the first search of a query with no prior results to show." },
+    isRefetching: { type: "boolean", description: "`true` while a new query loads *over* previously-shown results (no blank flash)." },
+    isUnsupported: { type: "boolean", description: "`true` when no substrate can be searched (no searcher, or every entry unsupported)." },
+    totalMatches: { type: "number", description: "Total matches across all groups (for a \"showing N of M\" affordance)." },
+  }}
+/>
+
+```tsx
+const { groups, totalMatches, isRefetching } = useWorkspaceContentSearch({
+  entries: workspace.entries,
+  searcher: workspaceContentSearcher,
+  query,
+});
+```
+
+
 ### useWorkspaceEntries
 
 Behavior hook that manages a workspace entry array with add, remove,
@@ -288,6 +340,38 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
 />
 
 
+### WorkspaceContentSearch
+
+Workspace-wide content (text) search surface.
+
+Greps file contents across every workspace entry (via
+[`useWorkspaceContentSearch`](#useworkspacecontentsearch)) and opens a hit's file in the viewer
+through `onOpenFile` — the same seam a file-tree click and filename search
+use. Results are a VS Code-style `file → line` layout: each matched file is a
+header, each hit a line row with a line-number gutter and a highlighted
+preview. Filename search lives in the sibling [`WorkspaceFileSearch`](#workspacefilesearch); a
+`Name | Text` toggle in the surface switches between them (DD-09).
+
+Keyboard/a11y mirrors the filename sibling (and `McpServerPicker`): the input
+is a `role="combobox"` driving `aria-activedescendant`; results are a
+`role="listbox"` of `role="option"` line rows; ArrowUp/Down move a virtual
+focus over the flat line-hit index (across files and entries) with Enter to
+open — focus stays in the input. All visual properties flow through `--stgm-*`
+tokens (DD-005).
+
+**Props** — `WorkspaceContentSearchProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    entries: { type: "readonly WorkspaceEntry[]", description: "All workspace entries to search across.", required: true },
+    onOpenFile: { type: "(entryId: string, path: string) => void", description: "Opens a result's file in the viewer.", required: true },
+    searcher: { type: "WorkspaceContentSearcher | undefined", description: "Platform-injected content searcher. `undefined` → content search is unavailable.", required: true },
+    selectedFile: { type: "SelectedWorkspaceFile | null", description: "The file currently open in the viewer, highlighted in the results." },
+  }}
+/>
+
+
 ### WorkspaceEditor
 
 Styled component for managing workspace entries with a flat-list
@@ -428,6 +512,7 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
     onRemoveEntry: { type: "(entryId: string) => void", description: "Detach a workspace entry. When provided, explorer root headers carry a remove control (VS Code's \"Remove Folder from Workspace\")." },
     onViewChange: { type: "(viewId: string) => void", description: "Called when the user picks a rail view." },
     reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader for the editor.", required: true },
+    searcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher. When provided, the Search pane gains a `Name | Text` toggle offering full-text search; `undefined` (web/git today) keeps the Search pane filename-only (DD-09). Mirrors the lister's null contract — the honest \"unavailable here\" state.", typeDescriptionLink: "#workspacecontentsearcher" },
     selectedFile: { type: "SelectedWorkspaceFile | null", description: "The active editor's file, or `null`. Highlighted in the tree and shown.", required: true },
     view: { type: "string", description: "The active rail view id (`\"files\"`, `\"search\"`, or an SurfaceRailView.id). Provide together with `onViewChange` to control the rail from the host; omit for internal (uncontrolled) view state. An id that matches no view (e.g. a contextual extra view that disappeared) falls back to `\"files\"`." },
   }}
@@ -525,6 +610,21 @@ hosts extend its rail.
 />
 
 
+### UseWorkspaceContentSearchOptions
+
+Options for [`useWorkspaceContentSearch`](#useworkspacecontentsearch).
+
+<TypeTable
+  type={{
+    debounceMs: { type: "number", description: "Debounce delay for query changes in milliseconds." },
+    entries: { type: "readonly WorkspaceEntry[]", description: "All workspace entries to search across.", required: true },
+    minLength: { type: "number", description: "Minimum trimmed query length before a search runs." },
+    query: { type: "string", description: "Current search query. Trimmed; below minLength yields no search.", required: true },
+    searcher: { type: "WorkspaceContentSearcher | undefined", description: "Platform-injected content searcher. `undefined` → content search is unavailable.", required: true },
+  }}
+/>
+
+
 ### UseWorkspaceFileContentOptions
 
 Options for [`useWorkspaceFileContent`](#useworkspacefilecontent).
@@ -570,6 +670,83 @@ Options for [`useWorkspaceSources`](#useworkspacesources).
 <TypeTable
   type={{
     hasLocalPicker: { type: "boolean", description: "Whether the host environment can open a native folder picker.  Desktop apps set this to `true` (they supply `onBrowseLocalFolder` via Tauri's dialog plugin). Web apps omit it or pass `false`.  When the effective execution target is `\"local\"` and no local picker is available, the hook keeps GitHub enabled as a fallback so the user always has at least one way to add a workspace." },
+  }}
+/>
+
+
+### WorkspaceContentMatch
+
+A single content-search hit: a line in a workspace file whose text contains
+the query.
+
+Deliberately line-level and column-free. The consumer recomputes the
+highlight range from `preview` + query (a case-insensitive substring), so a
+byte/column offset would be an unused field until jump-to-line ships — at
+which point `line` is the anchor. `preview` is guaranteed to contain the
+match even for long lines (the backend windows it around the first hit).
+
+<TypeTable
+  type={{
+    line: { type: "number", description: "1-based line number of the match within the file.", required: true },
+    path: { type: "string", description: "Repo-relative (git) or root-relative (local) path of the matched file.", required: true },
+    preview: { type: "string", description: "The matched line's text, windowed so the match stays visible.", required: true },
+  }}
+/>
+
+
+### WorkspaceContentSearcher
+
+Platform-injected callback that searches file *contents* within one workspace
+entry for a case-insensitive substring.
+
+The text-grep sibling of `import("./WorkspaceFileLister.js").WorkspaceFileLister`:
+the SDK calls it (per entry, debounced) while the user types in the Search
+pane's Text mode; the platform decides *how* the grep runs.
+
+Two distinct outcomes — do not conflate them:
+- Returns `null` **only** when content search is unsupported for this entry
+  (a git entry on desktop, any entry on web until a backend search exists).
+  This is the honest "unavailable here" state, mirroring the lister's null
+  contract — the whole workspace being `null` disables Text search.
+- **Throws** on a genuine failure (unreadable root, backend error). Consumers
+  isolate this per entry so one failing root never blanks the rest.
+
+Implementations:
+- **Desktop:** Tauri `search_workspace_content` (ripgrep `ignore` walker +
+  `grep-searcher`, respecting `.gitignore`, skipping binary/oversized files).
+- **Web:** `undefined`/`null` — GitHub code search is default-branch-only and
+  would disagree with the branch the viewer reads (DD-09).
+
+
+### WorkspaceContentSearchGroup
+
+Content-search hits (and per-entry status) for one workspace entry.
+
+<TypeTable
+  type={{
+    entry: { type: "WorkspaceEntry", description: "The workspace entry these matches belong to.", required: true, typeDescriptionLink: "#workspaceentry" },
+    error: { type: "Error | null", description: "Search error for this entry, if any (isolated — other entries still resolve).", required: true },
+    matches: { type: "readonly WorkspaceContentMatch[]", description: "Line-level matches within this entry, backend-ordered (path, then line).", required: true },
+    truncated: { type: "boolean", description: "`true` when this entry's search was capped (more matches exist than shown).", required: true },
+  }}
+/>
+
+
+### WorkspaceContentSearchResult
+
+The result of searching one workspace entry: its hits plus whether a cap
+stopped the search early.
+
+A result object (rather than a bare `WorkspaceContentMatch[]`) so the
+per-root `truncated` signal survives to the UI — mirroring how
+`import("./WorkspaceFileReader.js").WorkspaceFileReader` returns a
+`WorkspaceFileContent` object with its own `truncated` flag rather than raw
+text. `truncated` means "there are more matches than shown for this entry".
+
+<TypeTable
+  type={{
+    matches: { type: "readonly WorkspaceContentMatch[]", description: "Ranked hits (backend order: path, then line).", required: true },
+    truncated: { type: "boolean", description: "`true` when a per-file or workspace cap stopped the search early.", required: true },
   }}
 />
 
