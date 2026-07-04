@@ -123,6 +123,15 @@ export class MockLlmProxy {
   // FIFO of pending turns; a request claims the head synchronously on arrival.
   private readonly queue: QueuedResponse[] = [];
   private consumedCount = 0;
+  // In-flight held responses, keyed by an abort callback. releaseHolds() invokes
+  // each to unblock a delayed response early (independent of a socket close).
+  private readonly activeHolds = new Set<() => void>();
+  // When true, subsequent held turns skip their delay and respond immediately.
+  // Set by releaseHolds() so a runner turn that only reaches the proxy AFTER the
+  // test has quiesced the mock (e.g. a resume re-invocation that was blocked on
+  // the session workspace lock) finishes at once instead of holding the full
+  // window. Cleared by reset() at the afterEach boundary.
+  private draining = false;
 
   // Binds to an ephemeral loopback port; resolves once listening.
   async start(): Promise<void> {
@@ -173,11 +182,60 @@ export class MockLlmProxy {
     return this;
   }
 
-  // Drop any unconsumed turns and zero the consumed counter. Call in afterEach so
-  // a prior test's leftovers can't leak into the next one.
+  // Unblock every in-flight held response immediately and put the mock into
+  // drain mode so any subsequent held turn responds at once. This is the lever a
+  // lifecycle test pulls to quiesce the runner before the test ends: a paused or
+  // cancelled agent turn is NOT preempted mid-LLM-call by the runner (it only
+  // checks for cancellation between coarse graph events, of which a single held
+  // turn produces none until it resolves), so without this the held turn — and
+  // any resume re-invocation queued behind the session workspace lock — would
+  // keep an activity alive for the full hold window and leak into the next test.
+  releaseHolds(): void {
+    this.draining = true;
+    for (const abort of [...this.activeHolds]) {
+      abort();
+    }
+    this.activeHolds.clear();
+  }
+
+  // Drop any unconsumed turns, zero the consumed counter, and re-arm holds. Call
+  // in afterEach so a prior test's leftovers can't leak into the next one.
   reset(): void {
     this.queue.length = 0;
     this.consumedCount = 0;
+    this.releaseHolds();
+    this.draining = false;
+  }
+
+  // Holds the response for `ms`, resolving early (returning true) if the client
+  // disconnects or releaseHolds() fires. In drain mode the hold is skipped
+  // entirely so the response is sent immediately.
+  private async hold(req: IncomingMessage, ms: number): Promise<boolean> {
+    if (this.draining) {
+      return false;
+    }
+    const controller = new AbortController();
+    let aborted = false;
+    const onClose = (): void => {
+      aborted = true;
+      controller.abort();
+    };
+    const release = (): void => {
+      // releaseHolds unblocks the wait but lets the response be written (unlike a
+      // client disconnect, where the socket is gone).
+      controller.abort();
+    };
+    req.once("close", onClose);
+    this.activeHolds.add(release);
+    try {
+      await delay(ms, undefined, { signal: controller.signal });
+    } catch {
+      // delay rejects with an AbortError on disconnect or release — expected.
+    } finally {
+      req.removeListener("close", onClose);
+      this.activeHolds.delete(release);
+    }
+    return aborted;
   }
 
   // Turns still waiting to be served. `0` after a run means every queued turn was
@@ -220,10 +278,10 @@ export class MockLlmProxy {
     this.consumedCount += 1;
 
     if (next.delayMs !== undefined && next.delayMs > 0) {
-      const aborted = await holdUnlessAborted(req, next.delayMs);
+      const aborted = await this.hold(req, next.delayMs);
       if (aborted) {
-        // Client cancelled/terminated mid-hold: the socket is gone, so there is
-        // nothing to write. The turn stays counted as consumed.
+        // Client disconnected, or releaseHolds() was called to quiesce the mock:
+        // the response is abandoned. The turn stays counted as consumed.
         return;
       }
     }
@@ -273,26 +331,6 @@ async function readBody(req: IncomingMessage): Promise<string> {
     chunks.push(chunk as Buffer);
   }
   return Buffer.concat(chunks).toString("utf8");
-}
-
-// Waits `ms`, or resolves early if the client disconnects first. Returns true
-// when the wait was cut short by a disconnect (the response can no longer be sent).
-async function holdUnlessAborted(req: IncomingMessage, ms: number): Promise<boolean> {
-  const controller = new AbortController();
-  let aborted = false;
-  const onClose = (): void => {
-    aborted = true;
-    controller.abort();
-  };
-  req.once("close", onClose);
-  try {
-    await delay(ms, undefined, { signal: controller.signal });
-  } catch {
-    // delay rejects with an AbortError when the socket closes — expected.
-  } finally {
-    req.removeListener("close", onClose);
-  }
-  return aborted;
 }
 
 function writeJson(res: ServerResponse, status: number, body: unknown): void {
