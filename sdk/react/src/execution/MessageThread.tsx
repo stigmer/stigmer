@@ -226,17 +226,34 @@ export interface MessageThreadProps {
    */
   readonly planActionsDisabled?: boolean;
   /**
-   * Center thread content within a max-width reading column.
+   * Constrain thread content to a max-width reading column
+   * (`max-w-3xl`, 768 px) inside the full-width scroll container —
+   * the scrollbar stays at the viewport edge.
    *
-   * When `true`, items are constrained to `max-w-3xl` (768 px) and
-   * horizontally centered. The scroll container stays full-width so
-   * the scrollbar remains at the viewport edge.
+   * - `"center"` — column horizontally centered (classic chat reading view).
+   * - `"start"` — column anchored to the left edge, so the thread's left
+   *   edge stays put when a sibling panel opens/closes beside it.
    *
-   * Opt-in per DD-011 — existing consumers see no layout change.
-   *
-   * @default false
+   * When omitted, content spans the full width. Opt-in per DD-011 —
+   * existing consumers see no layout change.
    */
-  readonly centerContent?: boolean;
+  readonly contentColumn?: ThreadContentColumn;
+}
+
+/** Reading-column alignment for {@link MessageThread} content. */
+export type ThreadContentColumn = "center" | "start";
+
+/**
+ * Class set for the optional reading column — one definition shared by both
+ * render paths (non-virtualized and virtualized) so their geometry can never
+ * drift.
+ *
+ * @internal
+ */
+export function threadContentColumnClass(
+  column: ThreadContentColumn | undefined,
+): string | false {
+  return column != null && cn("w-full max-w-3xl px-4", column === "center" && "mx-auto");
 }
 
 /**
@@ -796,7 +813,7 @@ export function MessageThread({
   onBuildFromPlan,
   org,
   planActionsDisabled,
-  centerContent = false,
+  contentColumn,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
@@ -891,7 +908,7 @@ export function MessageThread({
             onBuildFromPlan={onBuildFromPlan}
             org={org}
             planActionsDisabled={planActionsDisabled}
-            centerContent={centerContent}
+            contentColumn={contentColumn}
             onRetrySend={onRetrySend}
             onRetryExecution={onRetryExecution}
             onEditMessage={onEditMessage}
@@ -905,7 +922,7 @@ export function MessageThread({
     <NonVirtualizedThread
       items={items}
       className={className}
-      centerContent={centerContent}
+      contentColumn={contentColumn}
       formatToolCallSummary={formatToolCallSummary}
       onApprovalSubmit={onApprovalSubmit}
       submittingApprovalIds={submittingApprovalIds}
@@ -932,7 +949,7 @@ export function MessageThread({
 interface NonVirtualizedThreadProps {
   readonly items: readonly ThreadItem[];
   readonly className?: string;
-  readonly centerContent?: boolean;
+  readonly contentColumn?: ThreadContentColumn;
   readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
   readonly onApprovalSubmit?: (
     toolCallId: string,
@@ -957,7 +974,7 @@ interface NonVirtualizedThreadProps {
 function NonVirtualizedThread({
   items,
   className,
-  centerContent,
+  contentColumn,
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
@@ -999,7 +1016,7 @@ function NonVirtualizedThread({
         <ApprovalContext.Provider value={approvalCtx}>
         <FileReviewContext.Provider value={fileReviewCtx}>
         <DevProfiler id="MessageThread">
-          <div ref={contentRef} className={cn("flex flex-col gap-4", centerContent && "mx-auto w-full max-w-3xl px-4")}>
+          <div ref={contentRef} className={cn("flex flex-col gap-4", threadContentColumnClass(contentColumn))}>
             {items.map((item) => (
               <ThreadItemWrapper key={item.key} animate>
                 <ThreadItemRenderer

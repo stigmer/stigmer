@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
-// Wiring-contract tests for the `audience` preset on the session organisms.
+// Wiring-contract tests for the `audience` preset and the host slots on the
+// session organisms.
 //
 // The composer and the Config facet (SetupTab) are replaced with
 // prop-capturing probes so the tests assert exactly what `audience="endUser"`
@@ -275,6 +276,23 @@ describe("SessionViewer — audience wiring", () => {
     expect(mockUseSessionPageFlow).toHaveBeenCalledWith(
       expect.objectContaining({ getRuntimeEnv }),
     );
+  });
+
+  it("threads accessSlot into the Config facet, not the header", () => {
+    render(
+      <SessionViewer
+        sessionId="ses_1"
+        org="acme"
+        accessSlot={<button type="button">Manage access</button>}
+      />,
+    );
+
+    // Collapsed panel: the slot must not surface anywhere (the header carries
+    // only headerActions and the chip).
+    expect(screen.queryByRole("button", { name: "Manage access" })).toBeNull();
+
+    const facet = openedConfigFacet() as { accessSlot?: unknown };
+    expect(facet.accessSlot).toBeDefined();
   });
 
   it("renders the flow's submitError through the send-error banner", () => {

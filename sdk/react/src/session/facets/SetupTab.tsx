@@ -32,11 +32,20 @@ export interface SetupTabProps {
    * buttons. When absent, sections are read-only (DD-011).
    */
   readonly mutations?: SetupTabMutationCallbacks;
+  /**
+   * Host-injected access management control (e.g. the Console's
+   * `ManageAccessButton`) rendered as the facet's final section. A slot keeps
+   * the SDK auth-agnostic (DD-004); the injected control owns its own
+   * visibility (permission gating), so this section renders no chrome of its
+   * own — an empty heading over a denied control would read as breakage.
+   */
+  readonly accessSlot?: React.ReactNode;
 }
 
 /**
  * Persistent session configuration panel (Configure tab) — shows agent,
- * MCP servers, skills, run config, and session variables.
+ * MCP servers, skills, run config, session variables, and the host's
+ * access management control (via `accessSlot`).
  *
  * Workspace management has moved to the dedicated Workspace tab.
  *
@@ -56,6 +65,7 @@ export function SetupTab({
   executionTarget,
   modelId,
   mutations,
+  accessSlot,
 }: SetupTabProps) {
   const hasSessionVars = sessionVariables != null && !sessionVariables.isEmpty;
 
@@ -86,6 +96,8 @@ export function SetupTab({
       {hasSessionVars && (
         <SessionVarsSection entries={sessionVariables.entries} />
       )}
+
+      {accessSlot && <section>{accessSlot}</section>}
     </div>
   );
 }

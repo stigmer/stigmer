@@ -36,7 +36,7 @@ function SessionPageInner({ id }: { id: string }) {
         onBrowseLocalFolder={browseLocalFolder}
         workspaceFileLister={workspaceFileLister}
         workspaceFileReader={workspaceFileReader}
-        headerActions={
+        accessSlot={
           <ManageAccessButton
             resource={{
               kind: ApiResourceKind.session,

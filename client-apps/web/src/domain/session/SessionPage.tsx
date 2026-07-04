@@ -38,7 +38,7 @@ export function SessionPageInner({ id }: { id: string }) {
         enableLocal={enableLocal}
         workspaceFileLister={workspaceFileLister}
         workspaceFileReader={workspaceFileReader}
-        headerActions={
+        accessSlot={
           <ManageAccessButton
             resource={{
               kind: ApiResourceKind.session,

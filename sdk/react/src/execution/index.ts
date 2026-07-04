@@ -160,7 +160,7 @@ export { MessageEntry } from "./MessageEntry.js";
 export type { MessageEntryProps } from "./MessageEntry.js";
 
 export { MessageThread } from "./MessageThread.js";
-export type { MessageThreadProps } from "./MessageThread.js";
+export type { MessageThreadProps, ThreadContentColumn } from "./MessageThread.js";
 
 export { ThreadSkeleton } from "./ThreadSkeleton.js";
 export type { ThreadSkeletonProps } from "./ThreadSkeleton.js";

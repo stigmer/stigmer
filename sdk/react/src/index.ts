@@ -338,6 +338,7 @@ export type {
   SubAgentSectionProps,
   MessageEntryProps,
   MessageThreadProps,
+  ThreadContentColumn,
   ThreadSkeletonProps,
   FollowUpInputProps,
   ApprovalCardProps,

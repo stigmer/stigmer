@@ -14,7 +14,9 @@ import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   ThreadItemRenderer,
+  threadContentColumnClass,
   type ThreadItem,
+  type ThreadContentColumn,
 } from "../execution/MessageThread.js";
 import { FilePathContext, type FilePathContextValue } from "../execution/FilePathContext.js";
 import { SandboxContext, type SandboxContextValue } from "../execution/SandboxContext.js";
@@ -47,7 +49,7 @@ export interface VirtualizedThreadProps {
   readonly onBuildFromPlan?: () => void;
   readonly org?: string;
   readonly planActionsDisabled?: boolean;
-  readonly centerContent?: boolean;
+  readonly contentColumn?: ThreadContentColumn;
   readonly onRetrySend?: () => void;
   readonly onRetryExecution?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
@@ -114,7 +116,7 @@ export function VirtualizedThread({
   onBuildFromPlan,
   org,
   planActionsDisabled,
-  centerContent,
+  contentColumn,
   onRetrySend,
   onRetryExecution,
   onEditMessage,
@@ -177,7 +179,7 @@ export function VirtualizedThread({
           className="h-full"
           components={{ Scroller: ScrollerWithA11y }}
           itemContent={(index, item) => (
-            <div className={cn("pb-4 pt-0 first:pt-6", centerContent && "mx-auto w-full max-w-3xl px-4")}>
+            <div className={cn("pb-4 pt-0 first:pt-6", threadContentColumnClass(contentColumn))}>
               <ThreadItemWrapper animate={index >= items.length - 2}>
                 <ThreadItemRenderer
                   item={item}

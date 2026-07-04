@@ -28,7 +28,6 @@ import { SessionPanelChip } from "./SessionPanelChip.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import { useSessionArtifacts } from "./useSessionArtifacts.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
-import { ExecutionPhaseBadge } from "../execution/ExecutionPhaseBadge.js";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
@@ -40,6 +39,20 @@ import type { SessionAudience } from "./audience.js";
  */
 const IMPLEMENT_PLAN_MESSAGE =
   "Implement the plan above (saved as plan.md). Follow it step by step and make the changes it describes.";
+
+/**
+ * Width and anchoring of the conversation reading column, shared by the
+ * thread and the composer/banners block so they can never drift apart.
+ *
+ * Centered (the classic chat reading view, matching Cursor's agent panel):
+ * with the session panel collapsed the column sits in the middle of the
+ * row; opening the panel narrows the chat pane below the column max, so
+ * the column simply fills it. The thread applies the same geometry via
+ * `contentColumn="center"`, which adds the item gutter; the composer/banner
+ * block's children carry their own edge padding, so only width and
+ * anchoring live here.
+ */
+const CONVERSATION_COLUMN_CLASS = "mx-auto w-full max-w-3xl";
 
 /** Props for {@link SessionViewer}. */
 export interface SessionViewerProps {
@@ -111,11 +124,18 @@ export interface SessionViewerProps {
    */
   readonly audience?: SessionAudience;
   /**
-   * Slot for host-injected header actions (e.g., Share button with
-   * PermissionGate). Rendered in the top-right corner of the viewer.
-   * Keeps the SDK organism unopinionated about Console auth (DD-004).
+   * Slot for host-injected header actions. Rendered in the top-right corner
+   * of the viewer, beside the panel chip. Keeps the SDK organism
+   * unopinionated about Console auth (DD-004).
    */
   readonly headerActions?: ReactNode;
+  /**
+   * Host-injected access management control (e.g. the Console's
+   * `ManageAccessButton` with its own permission gating). Rendered inside
+   * the panel's Config facet rather than the header — access is session
+   * configuration, not a moment-to-moment action (DD-004 slot injection).
+   */
+  readonly accessSlot?: ReactNode;
   /** Called after a resource is applied from the Artifacts tab. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /** Additional CSS classes for the root container. */
@@ -176,6 +196,7 @@ export function SessionViewer({
   getRuntimeEnv,
   audience = "integrator",
   headerActions,
+  accessSlot,
   onApplied,
   className,
 }: SessionViewerProps) {
@@ -265,14 +286,14 @@ export function SessionViewer({
   return (
     <div className={cn("relative flex h-full w-full flex-col", className)}>
       {/* Top-right controls: host actions + the panel chip. The chip is the
-          panel's always-mounted toggle and, while collapsed, the session's
-          status surface (phase badge + pending-item count). */}
+          panel's always-mounted toggle; while collapsed it carries only the
+          pending-item count. Execution status is never surfaced as header
+          chrome — the thread itself communicates run state. */}
       <div className="absolute top-2 right-6 z-10 flex items-center gap-2">
         {headerActions}
         <SessionPanelChip
           isOpen={panel.isOpen}
           onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
-          phase={hasPhase ? phase : undefined}
           badgeCount={writeBackCount + artifactCount}
         />
       </div>
@@ -318,6 +339,7 @@ export function SessionViewer({
                 flow={flow}
                 org={org}
                 panel={panel}
+                accessSlot={accessSlot}
                 onApplied={onApplied}
                 onImplementPlan={handleBuildFromPlan}
                 enableLocal={enableLocal}
@@ -433,10 +455,10 @@ const ConversationColumn = memo(function ConversationColumn({
         onBuildFromPlan={onBuildFromPlan}
         org={org}
         planActionsDisabled={!conv.canSendFollowUp}
-        centerContent
+        contentColumn="center"
         className="flex-1"
       />
-      <div className="mx-auto w-full max-w-3xl">
+      <div className={CONVERSATION_COLUMN_CLASS}>
         {conv.isReconnecting && <ReconnectingIndicator />}
         {conv.connectTimedOut && (
           <ConnectTimedOutBanner onRetry={conv.reconnectStream} />
@@ -511,6 +533,8 @@ interface SessionPanelRegionProps {
    * re-renders only this region, never the conversation column.
    */
   readonly panel: SessionPanelController;
+  /** Host access management control, surfaced in the Config facet. */
+  readonly accessSlot?: ReactNode;
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /** Implement a plan from the Artifacts facet (same action as the thread card). */
   readonly onImplementPlan?: () => void;
@@ -525,6 +549,7 @@ function SessionPanelRegion({
   flow,
   org,
   panel,
+  accessSlot,
   onApplied,
   onImplementPlan,
   enableLocal,
@@ -598,11 +623,13 @@ function SessionPanelRegion({
             onRemoveMcp: handleRemoveMcp,
             onRemoveSkill: handleRemoveSkill,
           },
+      accessSlot,
     }),
     [
       flow.agentRef, flow.isDefaultAgent, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.executionTarget, flow.model,
       isEndUser, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+      accessSlot,
     ],
   );
 
@@ -616,10 +643,6 @@ function SessionPanelRegion({
     onApplied,
     onImplementPlan,
   });
-
-  const phase =
-    flow.displayExecution?.status?.phase ??
-    ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 
   // Explorer-footer folder attach (desktop only — needs the native picker).
   // Same wiring the retired Workspace tab used.
@@ -637,11 +660,6 @@ function SessionPanelRegion({
       view={panel.view}
       onViewChange={panel.setView}
       extraViews={railViews}
-      statusSlot={
-        phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED ? (
-          <ExecutionPhaseBadge phase={phase} />
-        ) : undefined
-      }
       onRemoveEntry={flow.workspace.remove}
       onAddLocalFolder={canAddLocalFolder ? handleAddLocalFolder : undefined}
       editors={editors}

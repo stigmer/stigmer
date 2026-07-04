@@ -67,12 +67,6 @@ export interface WorkspaceSurfaceProps {
    */
   readonly extraViews?: readonly SurfaceRailView[];
   /**
-   * Host status area rendered at the right of the editor top strip (e.g. the
-   * session's execution phase badge). Kept as a slot so the surface stays
-   * session-agnostic.
-   */
-  readonly statusSlot?: ReactNode;
-  /**
    * Detach a workspace entry. When provided, explorer root headers carry a
    * remove control (VS Code's "Remove Folder from Workspace").
    */
@@ -130,7 +124,6 @@ export function WorkspaceSurface({
   view,
   onViewChange,
   extraViews,
-  statusSlot,
   onRemoveEntry,
   onAddLocalFolder,
   editors,
@@ -208,7 +201,6 @@ export function WorkspaceSurface({
             editors={editors}
             selectedFile={selectedFile}
             change={change}
-            statusSlot={statusSlot}
             onActivateEditor={onActivateEditor}
             onPinEditor={onPinEditor}
             onCloseEditor={onCloseEditor}
@@ -418,7 +410,6 @@ function EditorArea({
   editors,
   selectedFile,
   change,
-  statusSlot,
   onActivateEditor,
   onPinEditor,
   onCloseEditor,
@@ -429,7 +420,6 @@ function EditorArea({
   readonly editors: readonly OpenEditor[];
   readonly selectedFile: SelectedWorkspaceFile | null;
   readonly change?: FileChange;
-  readonly statusSlot?: ReactNode;
   readonly onActivateEditor: (entryId: string, path: string) => void;
   readonly onPinEditor: (entryId: string, path: string) => void;
   readonly onCloseEditor: (entryId: string, path: string) => void;
@@ -445,8 +435,8 @@ function EditorArea({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Collapse control + tab strip + host status. The far right is kept
-          clear (pr-24): the session viewer floats its top-right controls (host
+      {/* Collapse control + tab strip. The far right is kept clear (pr-24):
+          the session viewer floats its top-right controls (host
           `headerActions` and the panel chip) over this region. */}
       <div className="flex shrink-0 items-stretch border-b border-border pr-24">
         <button
@@ -467,11 +457,6 @@ function EditorArea({
             onClose={onCloseEditor}
             className="min-w-0 flex-1 border-b-0"
           />
-        )}
-        {statusSlot && (
-          <div className="ml-auto flex shrink-0 items-center px-2">
-            {statusSlot}
-          </div>
         )}
       </div>
       {selectedFile ? (

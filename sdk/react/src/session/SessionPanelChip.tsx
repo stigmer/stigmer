@@ -2,8 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionPhaseBadge } from "../execution/ExecutionPhaseBadge.js";
 
 /** Props for {@link SessionPanelChip}. */
 export interface SessionPanelChipProps {
@@ -11,12 +9,6 @@ export interface SessionPanelChipProps {
   readonly isOpen: boolean;
   /** Toggles the panel open/collapsed. */
   readonly onToggle: () => void;
-  /**
-   * The display execution's phase. Shown inside the chip while the panel is
-   * collapsed (the panel's own top strip carries it while open); omitted in
-   * execution-less hosts like the launcher.
-   */
-  readonly phase?: ExecutionPhase;
   /**
    * Aggregate count of facet items (write-backs + artifacts) awaiting the
    * user. Rendered as a dot-count while collapsed — the panel's only "something
@@ -27,21 +19,20 @@ export interface SessionPanelChipProps {
 
 /**
  * The always-mounted top-right toggle for the unified session panel — the
- * Cursor "Show panel" chip. Collapsed, it is the session's status surface
- * (phase badge + pending-item count); open, it is the hide affordance. Being a
- * small leaf, it is also the one place that may safely carry per-arrival
- * re-renders while the panel subtree is unmounted.
+ * Cursor "Show panel" chip. Collapsed, it carries the pending-item count;
+ * open, it is the hide affordance. Being a small leaf, it is also the one
+ * place that may safely carry per-arrival re-renders while the panel subtree
+ * is unmounted. Execution status deliberately does not surface here (or
+ * anywhere else in the viewer chrome) — the thread itself communicates run
+ * state.
  *
  * All visual properties flow through `--stgm-*` tokens (DD-005).
  */
 export function SessionPanelChip({
   isOpen,
   onToggle,
-  phase,
   badgeCount,
 }: SessionPanelChipProps) {
-  const showPhase =
-    !isOpen && phase != null && phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
   const showCount = !isOpen && badgeCount != null && badgeCount > 0;
 
   // Focus restoration: collapsing unmounts the panel subtree, so keyboard
@@ -72,7 +63,6 @@ export function SessionPanelChip({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
-      {showPhase && <ExecutionPhaseBadge phase={phase} />}
       {showCount && (
         <span
           aria-label={`${badgeCount} new items`}
