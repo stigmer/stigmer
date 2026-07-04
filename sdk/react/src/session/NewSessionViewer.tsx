@@ -6,6 +6,7 @@ import type { ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
+import type { WorkspaceContentSearcher } from "../workspace/WorkspaceContentSearcher.js";
 import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer } from "../composer/index.js";
 import type { HarnessOption } from "../models/harness.js";
@@ -58,6 +59,13 @@ export interface NewSessionViewerProps {
    * tab — the same capability `SessionViewer` accepts (DD-016 parity).
    */
   readonly workspaceFileReader?: WorkspaceFileReader;
+
+  /**
+   * Platform-injected content (text) searcher — the same capability
+   * `SessionViewer` accepts (DD-016 parity). Desktop injects a native
+   * ripgrep-backed searcher; web leaves it undefined (DD-09).
+   */
+  readonly workspaceContentSearcher?: WorkspaceContentSearcher;
 
   /**
    * Supplies host-app environment variables for the session's first
@@ -170,6 +178,7 @@ export function NewSessionViewer({
   onBrowseLocalFolder,
   workspaceFileLister,
   workspaceFileReader,
+  workspaceContentSearcher,
   getRuntimeEnv,
   audience = "integrator",
   defaultHarness,
@@ -377,6 +386,7 @@ export function NewSessionViewer({
               entries={flow.workspace.entries}
               lister={workspaceFileLister}
               reader={workspaceFileReader}
+              searcher={workspaceContentSearcher}
               view={panel.view}
               onViewChange={panel.setView}
               extraViews={railViews}

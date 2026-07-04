@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { forwardRef } from "react";
 
 // ---------------------------------------------------------------------------
@@ -29,10 +29,15 @@ vi.mock("../WorkspaceFileSearch", () => ({
   WorkspaceFileSearch: () => <div data-testid="search-probe" />,
 }));
 
+vi.mock("../WorkspaceContentSearch", () => ({
+  WorkspaceContentSearch: () => <div data-testid="content-search-probe" />,
+}));
+
 import { WorkspaceSurface } from "../WorkspaceSurface";
 import type { WorkspaceEntry } from "../useWorkspaceEntries";
 import type { WorkspaceFileLister } from "../WorkspaceFileLister";
 import type { WorkspaceFileReader } from "../WorkspaceFileReader";
+import type { WorkspaceContentSearcher } from "../WorkspaceContentSearcher";
 
 const gitEntry: WorkspaceEntry = {
   id: "e1",
@@ -44,6 +49,10 @@ const gitEntry: WorkspaceEntry = {
 
 const lister: WorkspaceFileLister = vi.fn(async () => []) as unknown as WorkspaceFileLister;
 const reader: WorkspaceFileReader = vi.fn(async () => null) as unknown as WorkspaceFileReader;
+const searcher: WorkspaceContentSearcher = vi.fn(async () => ({
+  matches: [],
+  truncated: false,
+})) as unknown as WorkspaceContentSearcher;
 
 function renderSurface(overrides: Partial<React.ComponentProps<typeof WorkspaceSurface>> = {}) {
   const onOpenFile = vi.fn();
@@ -94,6 +103,30 @@ describe("WorkspaceSurface", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Search" }));
     expect(screen.getByTestId("search-probe")).toBeTruthy();
     expect(screen.queryByTestId("explorer-probe")).toBeNull();
+  });
+
+  it("shows only filename search (no Name|Text toggle) when no content searcher is injected", () => {
+    renderSurface();
+    fireEvent.click(screen.getByRole("radio", { name: "Search" }));
+    expect(screen.queryByRole("radiogroup", { name: "Search mode" })).toBeNull();
+    expect(screen.getByTestId("search-probe")).toBeTruthy();
+    expect(screen.queryByTestId("content-search-probe")).toBeNull();
+  });
+
+  it("offers a Name|Text toggle when a content searcher is injected, routing Text to content search", () => {
+    renderSurface({ searcher });
+    fireEvent.click(screen.getByRole("radio", { name: "Search" }));
+
+    const toggle = screen.getByRole("radiogroup", { name: "Search mode" });
+    expect(toggle).toBeTruthy();
+    // Filename search is the default mode.
+    expect(screen.getByTestId("search-probe")).toBeTruthy();
+    expect(screen.queryByTestId("content-search-probe")).toBeNull();
+
+    // Switching to Text routes to the content-search surface.
+    fireEvent.click(within(toggle).getByRole("radio", { name: "Text" }));
+    expect(screen.getByTestId("content-search-probe")).toBeTruthy();
+    expect(screen.queryByTestId("search-probe")).toBeNull();
   });
 
   it("hands the open file (and its change) to a chrome-less FileViewer", () => {

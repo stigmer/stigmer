@@ -32,6 +32,20 @@ export type {
 export type { WorkspaceFileMatch } from "./matchWorkspaceFiles.js";
 export { WorkspaceFileSearch } from "./WorkspaceFileSearch.js";
 export type { WorkspaceFileSearchProps } from "./WorkspaceFileSearch.js";
+export type {
+  WorkspaceContentMatch,
+  WorkspaceContentSearchResult,
+  WorkspaceContentSearcher,
+} from "./WorkspaceContentSearcher.js";
+export { useWorkspaceContentSearch } from "./useWorkspaceContentSearch.js";
+export type {
+  UseWorkspaceContentSearchOptions,
+  UseWorkspaceContentSearchReturn,
+  WorkspaceContentSearchGroup,
+} from "./useWorkspaceContentSearch.js";
+export { WorkspaceContentSearch } from "./WorkspaceContentSearch.js";
+export type { WorkspaceContentSearchProps } from "./WorkspaceContentSearch.js";
+// The highlight helper (findHighlightRanges) stays @internal, like matchWorkspaceFiles.
 export { FileViewer } from "./FileViewer.js";
 export type { FileViewerProps, FileViewerHandle } from "./FileViewer.js";
 export { WorkspaceSurface } from "./WorkspaceSurface.js";

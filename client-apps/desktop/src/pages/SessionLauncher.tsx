@@ -14,6 +14,7 @@ import type { ResourceRef } from "@stigmer/sdk";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 import { useNativeWorkspaceFiles } from "../hooks/useNativeWorkspaceFiles";
 import { useNativeWorkspaceFileReader } from "../hooks/useNativeWorkspaceFileReader";
+import { useNativeWorkspaceContentSearcher } from "../hooks/useNativeWorkspaceContentSearcher";
 
 const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
   agent:
@@ -50,6 +51,7 @@ export function SessionLauncher() {
   const { enableGitHub, enableLocal } = useWorkspaceSources({ hasLocalPicker: true });
   const workspaceFileLister = useNativeWorkspaceFiles();
   const workspaceFileReader = useNativeWorkspaceFileReader();
+  const workspaceContentSearcher = useNativeWorkspaceContentSearcher();
 
   // -------------------------------------------------------------------------
   // Draft param capture
@@ -155,6 +157,7 @@ export function SessionLauncher() {
       onBrowseLocalFolder={browseLocalFolder}
       workspaceFileLister={workspaceFileLister}
       workspaceFileReader={workspaceFileReader}
+      workspaceContentSearcher={workspaceContentSearcher}
       initialAgentRef={initialAgentRef}
       initialInstanceId={capturedInstanceId}
       initialAttachments={editPrep.files}

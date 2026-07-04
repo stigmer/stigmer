@@ -12,7 +12,9 @@ import {
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "./WorkspaceFileReader.js";
+import type { WorkspaceContentSearcher } from "./WorkspaceContentSearcher.js";
 import { WorkspaceFileSearch } from "./WorkspaceFileSearch.js";
+import { WorkspaceContentSearch } from "./WorkspaceContentSearch.js";
 import { FileViewer, type FileViewerHandle } from "./FileViewer.js";
 import { EditorTabs } from "./EditorTabs.js";
 import { ExplorerTree } from "./ExplorerTree.js";
@@ -51,6 +53,13 @@ export interface WorkspaceSurfaceProps {
   readonly lister: WorkspaceFileLister | undefined;
   /** Platform-injected content reader for the editor. */
   readonly reader: WorkspaceFileReader | undefined;
+  /**
+   * Platform-injected content (text) searcher. When provided, the Search pane
+   * gains a `Name | Text` toggle offering full-text search; `undefined` (web/git
+   * today) keeps the Search pane filename-only (DD-09). Mirrors the lister's
+   * null contract — the honest "unavailable here" state.
+   */
+  readonly searcher?: WorkspaceContentSearcher;
   /**
    * The active rail view id (`"files"`, `"search"`, or an {@link SurfaceRailView.id}).
    * Provide together with `onViewChange` to control the rail from the host;
@@ -121,6 +130,7 @@ export function WorkspaceSurface({
   entries,
   lister,
   reader,
+  searcher,
   view,
   onViewChange,
   extraViews,
@@ -179,6 +189,7 @@ export function WorkspaceSurface({
             <SearchSidebar
               entries={entries}
               lister={lister}
+              searcher={searcher}
               selectedFile={selectedFile}
               onOpenFile={onOpenFile}
             />
@@ -358,27 +369,108 @@ function ExplorerSidebar({
 // Search sidebar — reuses the workspace-wide search surface
 // ---------------------------------------------------------------------------
 
+type SearchMode = "name" | "text";
+
 function SearchSidebar({
   entries,
   lister,
+  searcher,
   selectedFile,
   onOpenFile,
 }: {
   readonly entries: readonly WorkspaceEntry[];
   readonly lister: WorkspaceFileLister | undefined;
+  readonly searcher: WorkspaceContentSearcher | undefined;
   readonly selectedFile: SelectedWorkspaceFile | null;
   readonly onOpenFile: (entryId: string, path: string) => void;
 }) {
+  // Filename search is the default: cached, instant, and always available.
+  // Content (text) search is opt-in and only offered when a searcher exists.
+  const [mode, setMode] = useState<SearchMode>("name");
+
   return (
     <div className="flex h-full min-h-0 flex-col border-r border-border">
       <SidebarHeader title="Search" />
-      <WorkspaceFileSearch
-        entries={entries}
-        lister={lister}
-        onOpenFile={onOpenFile}
-        selectedFile={selectedFile}
-        className="min-h-0 flex-1"
-      />
+      {searcher && <SearchModeToggle value={mode} onChange={setMode} />}
+      {searcher && mode === "text" ? (
+        <WorkspaceContentSearch
+          entries={entries}
+          searcher={searcher}
+          onOpenFile={onOpenFile}
+          selectedFile={selectedFile}
+          className="min-h-0 flex-1"
+        />
+      ) : (
+        <WorkspaceFileSearch
+          entries={entries}
+          lister={lister}
+          onOpenFile={onOpenFile}
+          selectedFile={selectedFile}
+          className="min-h-0 flex-1"
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * `Name | Text` search-mode selector, mirroring `FileViewer`'s `Diff | File`
+ * radiogroup (roving `tabindex`, arrow-key roving, `role="radio"`). Shown only
+ * when a content searcher is injected.
+ */
+function SearchModeToggle({
+  value,
+  onChange,
+}: {
+  readonly value: SearchMode;
+  readonly onChange: (next: SearchMode) => void;
+}) {
+  const options: readonly { readonly value: SearchMode; readonly label: string }[] = [
+    { value: "name", label: "Name" },
+    { value: "text", label: "Text" },
+  ];
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLButtonElement>) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        onChange(value === "name" ? "text" : "name");
+      }
+    },
+    [value, onChange],
+  );
+
+  return (
+    <div className="shrink-0 border-b border-border px-2 py-1.5">
+      <div
+        role="radiogroup"
+        aria-label="Search mode"
+        className="inline-flex rounded-md bg-muted p-0.5"
+      >
+        {options.map((option) => {
+          const isSelected = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              tabIndex={isSelected ? 0 : -1}
+              onClick={() => onChange(option.value)}
+              onKeyDown={handleKeyDown}
+              className={cn(
+                "rounded px-2.5 py-0.5 text-[0.7rem] font-medium transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isSelected
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

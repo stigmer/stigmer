@@ -11,6 +11,7 @@ import {
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
+import type { WorkspaceContentSearcher } from "../workspace/WorkspaceContentSearcher.js";
 import { resolveWorkspaceFileSelection } from "../workspace/resolveWorkspaceFileSelection.js";
 import { WorkspaceSurface } from "../workspace/WorkspaceSurface.js";
 import type { InteractionModeOption, SessionComposerHandle } from "../composer/index.js";
@@ -157,6 +158,14 @@ export interface SessionViewerProps {
    */
   readonly workspaceFileReader?: WorkspaceFileReader;
   /**
+   * Platform-injected content (text) searcher. When provided, the session
+   * panel's Search pane gains a `Name | Text` toggle for full-text search
+   * across the workspace. Desktop injects a native ripgrep-backed searcher;
+   * web leaves it undefined (git content search needs a branch-accurate
+   * backend — DD-09), keeping Search filename-only there (DD-004, DD-011 opt-in).
+   */
+  readonly workspaceContentSearcher?: WorkspaceContentSearcher;
+  /**
    * Supplies host-app environment variables for every follow-up
    * execution (e.g. short-lived credentials for MCP tools, minted as
    * the signed-in user). Evaluated fresh at each send; host values win
@@ -247,6 +256,7 @@ export function SessionViewer({
   onBrowseLocalFolder,
   workspaceFileLister,
   workspaceFileReader,
+  workspaceContentSearcher,
   getRuntimeEnv,
   audience = "integrator",
   headerActions,
@@ -474,6 +484,7 @@ export function SessionViewer({
                 onBrowseLocalFolder={onBrowseLocalFolder}
                 workspaceFileLister={workspaceFileLister}
                 workspaceFileReader={workspaceFileReader}
+                workspaceContentSearcher={workspaceContentSearcher}
                 isEndUser={isEndUser}
               />
             ) : null
@@ -691,6 +702,7 @@ interface SessionPanelRegionProps {
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
   readonly workspaceFileReader?: WorkspaceFileReader;
+  readonly workspaceContentSearcher?: WorkspaceContentSearcher;
   readonly isEndUser: boolean;
 }
 
@@ -708,6 +720,7 @@ function SessionPanelRegion({
   onBrowseLocalFolder,
   workspaceFileLister,
   workspaceFileReader,
+  workspaceContentSearcher,
   isEndUser,
 }: SessionPanelRegionProps) {
   const selectedItem = useSelectedThreadItem();
@@ -812,6 +825,7 @@ function SessionPanelRegion({
       entries={flow.workspace.entries}
       lister={workspaceFileLister}
       reader={workspaceFileReader}
+      searcher={workspaceContentSearcher}
       view={panel.view}
       onViewChange={panel.setView}
       extraViews={railViews}
