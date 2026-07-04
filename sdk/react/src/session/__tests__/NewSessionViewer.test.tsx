@@ -53,14 +53,41 @@ const stubEmptyFlow = {
   submit: vi.fn(),
 };
 
+// A launcher flow WITH attached context (a git workspace entry). Used to prove
+// the composer stays centered regardless of context — the invariant that
+// replaced the old `hasContext` position flip (DD-16 layout stability).
+const stubPopulatedFlow = {
+  ...stubEmptyFlow,
+  workspace: {
+    ...emptyWorkspace,
+    hasEntries: true,
+    entries: [
+      {
+        id: "e1",
+        name: "acme/app",
+        type: "git" as const,
+        gitUrl: "https://github.com/acme/app.git",
+        gitBranch: "main",
+      },
+    ],
+  },
+};
+
+// Swappable flow so individual tests can substitute the context-attached
+// variant. The mock factory reads `mockFlow` at call time (the `mock` prefix
+// is why Vitest permits referencing it inside the hoisted factory); tests
+// reassign it before render and `beforeEach` resets it to the empty flow.
+let mockFlow: typeof stubEmptyFlow | typeof stubPopulatedFlow = stubEmptyFlow;
+
 vi.mock("../useNewSessionFlow", () => ({
-  useNewSessionFlow: () => stubEmptyFlow,
+  useNewSessionFlow: () => mockFlow,
 }));
 
 import { NewSessionViewer } from "../NewSessionViewer";
 
 beforeEach(() => {
   cleanup();
+  mockFlow = stubEmptyFlow;
 });
 
 afterEach(() => {
@@ -95,5 +122,27 @@ describe("NewSessionViewer — persistent panel chip", () => {
     // an open panel always has its toggle (the vanishing-toggle defect the old
     // context gate could produce is impossible by construction).
     expect(screen.getByRole("button", { name: "Hide panel" })).toBeTruthy();
+  });
+});
+
+describe("NewSessionViewer — composer stays centered", () => {
+  // The composer's wrapper is the probe's parent (wrapper > h1 + composer +
+  // footer). `my-auto` is unconditional safe-centering; the old `my-6`
+  // top-anchor that appeared once context was attached is gone (DD-16).
+  const composerWrapper = () => screen.getByTestId("composer-probe").parentElement;
+
+  it("centers the composer with zero attached context", () => {
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    expect(composerWrapper()?.className).toContain("my-auto");
+    expect(composerWrapper()?.className).not.toContain("my-6");
+  });
+
+  it("keeps the composer centered when context is attached (no position flip)", () => {
+    mockFlow = stubPopulatedFlow;
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    // Regression guard: attaching a workspace previously top-anchored the
+    // composer. Centering must now hold irrespective of attached context.
+    expect(composerWrapper()?.className).toContain("my-auto");
+    expect(composerWrapper()?.className).not.toContain("my-6");
   });
 });

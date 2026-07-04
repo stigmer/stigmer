@@ -215,13 +215,6 @@ export function NewSessionViewer({
   });
   const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
 
-  const hasContext =
-    flow.workspace.hasEntries ||
-    flow.agentRef !== null ||
-    flow.mcpServerUsages.length > 0 ||
-    flow.skillRefs.length > 0 ||
-    (flow.sessionVariables != null && !flow.sessionVariables.isEmpty);
-
   const handleRemoveAgent = useCallback(() => {
     flow.setAgentRef(null);
     flow.setResolution(null);
@@ -294,11 +287,16 @@ export function NewSessionViewer({
   }, [onBrowseLocalFolder, flow.workspace.addLocalPath]);
 
   const composerNode = (
-    <div className="flex h-full flex-col items-center overflow-y-auto px-4">
-      <div className={cn(
-        "w-full max-w-2xl space-y-6",
-        hasContext ? "my-6" : "my-auto",
-      )}>
+    // `my-auto` centers the composer vertically whether or not context is
+    // attached — safe-centering, not a special case: auto margins absorb free
+    // space when the composer is shorter than the pane and collapse to zero
+    // when it outgrows it, degrading to a normal top-aligned scroll. The
+    // scroll container's `py-6` keeps breathing room in that overflow case.
+    // Do NOT reintroduce a context-driven position flip: the composer must not
+    // move as context is attached (DD-16's layout-stability rationale — chrome
+    // that shifts with attached context reads as instability).
+    <div className="flex h-full flex-col items-center overflow-y-auto px-4 py-6">
+      <div className="my-auto w-full max-w-2xl space-y-6">
         <h1 className="text-center text-lg font-medium text-foreground">
           {heading}
         </h1>
@@ -367,8 +365,8 @@ export function NewSessionViewer({
           default (composer fills the row); opening makes the composer the
           fixed narrow pane and hands the flexible region to the surface.
           Collapse goes through the split's `collapsedPane` (CSS, not
-          conditional structure), so the composer never remounts — even when
-          `hasContext` flips. */}
+          conditional structure), so the composer never remounts across an
+          open/close toggle. */}
       <ResizableSplit
         resizablePane="primary"
         collapsedPane={panel.isOpen ? "none" : "secondary"}
