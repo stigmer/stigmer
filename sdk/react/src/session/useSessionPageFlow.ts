@@ -405,6 +405,7 @@ export function useSessionPageFlow(
         runtimeEnv,
         attachments: context?.attachments,
         interactionMode: context?.interactionMode,
+        buildFromPlan: context?.buildFromPlan,
         // Sourced from the session-scoped preference set at the approval gate,
         // not from the composer (the pre-arm toggle was removed).
         autoApproveAll: autoApproveAll || undefined,

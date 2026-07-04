@@ -313,6 +313,20 @@ describe("WorkspaceSurface virtualDocuments", () => {
       path: "plan.md",
     });
   });
+
+  it("scrolls the document body vertically only — wide content reflows, never a sideways scrollbar", () => {
+    renderSurface({
+      virtualDocuments: [planDocument],
+      editors: [{ entryId: PLAN_ENTRY_ID, path: "plan.md", preview: false }],
+      selectedFile: { entryId: PLAN_ENTRY_ID, path: "plan.md" },
+    });
+    const body = screen.getByTestId("plan-doc-probe").parentElement!;
+    expect(body.className).toContain("overflow-y-auto");
+    // overflow-y alone computes overflow-x to auto; the explicit hidden +
+    // min-w-0 pair is what forces documents to reflow at narrow widths.
+    expect(body.className).toContain("overflow-x-hidden");
+    expect(body.className).toContain("min-w-0");
+  });
 });
 
 // ---------------------------------------------------------------------------

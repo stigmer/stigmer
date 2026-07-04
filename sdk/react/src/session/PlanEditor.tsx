@@ -127,10 +127,13 @@ export function PlanEditor({
 
   return (
     <PlanEditorFrame onKeyDown={handleKeyDown}>
-      {/* Toolbar: view tabs lead; state + the one primary action trail. */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Toolbar: view tabs lead; state + the one primary action trail.
+          Narrow panes are first-class: rows wrap (flex-wrap) and every item
+          can shrink (min-w-0 + truncating labels), so the toolbar reflows
+          instead of forcing the document pane to scroll sideways. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <div
-          className="inline-flex rounded-md bg-muted p-0.5"
+          className="inline-flex shrink-0 rounded-md bg-muted p-0.5"
           role="tablist"
           aria-label="Plan view"
         >
@@ -162,7 +165,7 @@ export function PlanEditor({
           {formatArtifactSize(plan.artifact.sizeBytes)}
         </span>
 
-        <div className="ml-auto flex flex-wrap items-center gap-3">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center gap-3">
           {activeDraft?.isEdited && (
             <span className="inline-flex items-center gap-2">
               <span className="rounded-md bg-accent px-1.5 py-0.5 text-[0.65rem] font-medium text-muted-foreground">
@@ -191,7 +194,7 @@ export function PlanEditor({
                 disabled={buildDisabled}
                 onClick={onBuildFromPlan}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5",
+                  "inline-flex min-w-0 items-center gap-1.5 rounded-md px-3 py-1.5",
                   "text-xs font-medium transition-colors",
                   "bg-primary text-primary-foreground hover:bg-primary-hover",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -199,7 +202,9 @@ export function PlanEditor({
                 )}
               >
                 <ImplementIcon />
-                {buildDisabled ? "Starting build…" : "Build from plan"}
+                <span className="truncate">
+                  {buildDisabled ? "Starting build…" : "Build from plan"}
+                </span>
               </button>
             )
           )}
@@ -274,7 +279,9 @@ function RenderedPlan({ text }: { readonly text: string }) {
     <div className="overflow-hidden rounded-lg border border-border-muted bg-card">
       {title && (
         <header className="border-b border-border-muted bg-muted-faint px-4 py-2.5">
-          <span className="text-sm font-semibold text-foreground">{title}</span>
+          <span className="block truncate text-sm font-semibold text-foreground">
+            {title}
+          </span>
         </header>
       )}
       <div className="stgm-prose px-4 py-4">

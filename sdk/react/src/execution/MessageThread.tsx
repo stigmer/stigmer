@@ -280,7 +280,7 @@ export function threadContentColumnClass(
  * part of the public API.
  */
 export type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode }
+  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly isBuildFromPlan?: boolean }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
@@ -627,6 +627,10 @@ export function buildThreadItems(
         // The turn's mode marks the prompt bubble (a "Plan" pill on Plan
         // turns) so the transcript reads unambiguously after mode switches.
         interactionMode: exec.spec?.executionConfig?.interactionMode,
+        // A Build-from-plan turn's prompt renders as a compact chip, not the
+        // message text — the text is a short label; the real instruction is
+        // runner-injected from the same flag.
+        isBuildFromPlan: exec.spec?.executionConfig?.buildFromPlan || undefined,
       });
     }
 
@@ -1261,6 +1265,7 @@ export function ThreadItemRenderer({
           className={item.isPending ? "opacity-70" : undefined}
           isPlanDocument={item.isPlanDocument}
           interactionMode={item.interactionMode}
+          isBuildFromPlan={item.isBuildFromPlan}
           onEdit={
             item.isEditable && onEditMessage
               ? () => onEditMessage(item.message.content)

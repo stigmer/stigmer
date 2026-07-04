@@ -131,7 +131,7 @@ export function extractLeadingH1(markdown: string): {
 export const MARKDOWN_COMPONENTS: Components = {
   p({ children, ...props }: MdProps<"p">) {
     return (
-      <p className="text-sm text-foreground mb-3 last:mb-0 leading-relaxed" {...props}>
+      <p className="text-sm text-foreground mb-3 last:mb-0 leading-relaxed break-words" {...props}>
         {children}
       </p>
     );
@@ -141,7 +141,7 @@ export const MARKDOWN_COMPONENTS: Components = {
     return (
       <a
         href={href}
-        className="text-primary underline underline-offset-2 hover:text-primary-muted"
+        className="text-primary underline underline-offset-2 hover:text-primary-muted break-words"
         target="_blank"
         rel="noopener noreferrer"
         {...props}
@@ -153,7 +153,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   h1({ children, ...props }: MdProps<"h1">) {
     return (
-      <h1 className="text-lg font-semibold text-foreground mt-5 mb-2 first:mt-0" {...props}>
+      <h1 className="text-lg font-semibold text-foreground mt-5 mb-2 first:mt-0 break-words" {...props}>
         {children}
       </h1>
     );
@@ -161,7 +161,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   h2({ children, ...props }: MdProps<"h2">) {
     return (
-      <h2 className="text-base font-semibold text-foreground mt-5 mb-2 first:mt-0" {...props}>
+      <h2 className="text-base font-semibold text-foreground mt-5 mb-2 first:mt-0 break-words" {...props}>
         {children}
       </h2>
     );
@@ -169,7 +169,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   h3({ children, ...props }: MdProps<"h3">) {
     return (
-      <h3 className="text-sm font-semibold text-foreground mt-4 mb-1.5 first:mt-0" {...props}>
+      <h3 className="text-sm font-semibold text-foreground mt-4 mb-1.5 first:mt-0 break-words" {...props}>
         {children}
       </h3>
     );
@@ -177,7 +177,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   h4({ children, ...props }: MdProps<"h4">) {
     return (
-      <h4 className="text-sm font-medium text-foreground mt-3 mb-1 first:mt-0" {...props}>
+      <h4 className="text-sm font-medium text-foreground mt-3 mb-1 first:mt-0 break-words" {...props}>
         {children}
       </h4>
     );
@@ -201,7 +201,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
   li({ children, ...props }: MdProps<"li">) {
     return (
-      <li className="leading-relaxed" {...props}>
+      <li className="leading-relaxed break-words" {...props}>
         {children}
       </li>
     );
@@ -249,7 +249,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
     return (
       <code
-        className="font-mono text-xs bg-muted px-1 py-0.5 rounded text-foreground"
+        className="font-mono text-xs bg-muted px-1 py-0.5 rounded text-foreground break-words"
         {...props}
       >
         {children}
@@ -335,7 +335,7 @@ export const PLAN_DOCUMENT_MARKDOWN_COMPONENTS: Components = {
 
   h1({ children, ...props }: MdProps<"h1">) {
     return (
-      <h1 className="text-lg font-semibold text-foreground mt-6 mb-3 first:mt-0" {...props}>
+      <h1 className="text-lg font-semibold text-foreground mt-6 mb-3 first:mt-0 break-words" {...props}>
         {children}
       </h1>
     );
@@ -344,7 +344,7 @@ export const PLAN_DOCUMENT_MARKDOWN_COMPONENTS: Components = {
   h2({ children, ...props }: MdProps<"h2">) {
     return (
       <h2
-        className="text-base font-semibold text-foreground mt-6 mb-2.5 pb-1 border-b border-border-muted first:mt-0"
+        className="text-base font-semibold text-foreground mt-6 mb-2.5 pb-1 border-b border-border-muted first:mt-0 break-words"
         {...props}
       >
         {children}
@@ -354,7 +354,7 @@ export const PLAN_DOCUMENT_MARKDOWN_COMPONENTS: Components = {
 
   h3({ children, ...props }: MdProps<"h3">) {
     return (
-      <h3 className="text-sm font-semibold text-foreground mt-5 mb-2 first:mt-0" {...props}>
+      <h3 className="text-sm font-semibold text-foreground mt-5 mb-2 first:mt-0 break-words" {...props}>
         {children}
       </h3>
     );
@@ -362,7 +362,7 @@ export const PLAN_DOCUMENT_MARKDOWN_COMPONENTS: Components = {
 
   h4({ children, ...props }: MdProps<"h4">) {
     return (
-      <h4 className="text-sm font-medium text-foreground mt-4 mb-1.5 first:mt-0" {...props}>
+      <h4 className="text-sm font-medium text-foreground mt-4 mb-1.5 first:mt-0 break-words" {...props}>
         {children}
       </h4>
     );

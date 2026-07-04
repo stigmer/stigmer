@@ -61,9 +61,10 @@ import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
 import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
-import { resolveSkills, removeStigmerSymlink } from "./skill-resolver.js";
+import { resolveSkills } from "./skill-resolver.js";
+import { removeStigmerSymlink } from "./stigmer-link.js";
 import { resolveAttachments } from "./attachment-resolver.js";
-import { buildEnhancedPrompt, buildReinvocationPrompt, formatInteractionModePrefix } from "./prompt-builder.js";
+import { buildEnhancedPrompt, buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
@@ -515,13 +516,15 @@ async function executeCursorInner(
     });
     heartbeat();
 
-    // Phase 5b: Resolve attachments
-    const attachmentResults = await resolveAttachments(
-      spec.attachments,
+    // Phase 5b: Resolve attachments (fail-hard — explicit user inputs; see
+    // attachment-resolver.ts). Downloads by storage key through the same
+    // artifactStorage resolved for status offload above.
+    const attachmentResults = await resolveAttachments(spec.attachments, {
       sessionId,
       primaryWorkspaceDir,
-      config.mode,
-    );
+      mode: config.mode,
+      storage: artifactStorage,
+    });
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
 
     // Phase 5b3: Exact-apply approved whole-file writes (HITL "what you approve
@@ -745,6 +748,7 @@ async function executeCursorInner(
     // Phase 10: Build the prompt
     const interactionMode = spec.executionConfig?.interactionMode
       ?? InteractionMode.UNSPECIFIED;
+    const buildFromPlan = spec.executionConfig?.buildFromPlan ?? false;
 
     const prompt = buildPrompt({
       resolution,
@@ -759,6 +763,7 @@ async function executeCursorInner(
       pendingApprovals: adjudicatedApprovals,
       appliedToolCallIds,
       interactionMode,
+      buildFromPlan,
     });
 
     // Phase 10a: Inject structured output instruction for Cursor harness
@@ -2000,6 +2005,11 @@ export interface BuildPromptInput {
    */
   appliedToolCallIds?: ReadonlySet<string>;
   interactionMode?: InteractionMode;
+  /**
+   * The execution is a Build-from-plan turn (spec.execution_config
+   * .build_from_plan): both prompt paths carry the implement-plan directive.
+   */
+  buildFromPlan?: boolean;
 }
 
 /**
@@ -2030,6 +2040,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceFileRefs,
     attachmentPaths,
     interactionMode,
+    buildFromPlan,
   } = input;
 
   const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
@@ -2046,14 +2057,20 @@ export function buildPrompt(input: BuildPromptInput): string {
   }
 
   // A successfully resumed agent carries its own conversation context via the
-  // SDK's native store — send the raw user message with no preamble. The one
-  // exception is the interaction-mode prefix: the mode is per-EXECUTION (a
-  // follow-up can switch Agent→Plan mid-session), and for Cursor the prompt
-  // is the only plan-mode enforcement, so a Plan follow-up must carry the
-  // directive too — not just the session's first turn.
+  // SDK's native store — send the raw user message with no preamble. The
+  // exceptions are the per-EXECUTION directives, which never inherit from the
+  // session's first turn: the interaction-mode prefix (a follow-up can switch
+  // Agent→Plan mid-session, and for Cursor the prompt is the only plan-mode
+  // enforcement) and the implement-plan directive (the build turn is usually
+  // a follow-up on a resumed agent).
   if (resolution.reason === "resumed_successfully") {
-    const modePrefix = formatInteractionModePrefix(interactionMode);
-    return modePrefix ? `${modePrefix}\n\n${userMessage}` : userMessage;
+    const prefixes = [
+      formatInteractionModePrefix(interactionMode),
+      formatImplementPlanSection(buildFromPlan, attachmentPaths),
+    ].filter((p): p is string => p !== undefined);
+    return prefixes.length > 0
+      ? [...prefixes, userMessage].join("\n\n")
+      : userMessage;
   }
 
   // First execution, or a fresh agent created after a resume failure: there is
@@ -2067,6 +2084,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceFileRefs,
     attachmentPaths,
     interactionMode,
+    buildFromPlan,
   });
 }
 

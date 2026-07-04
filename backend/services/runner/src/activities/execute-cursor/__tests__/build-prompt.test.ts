@@ -14,7 +14,7 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 
 import { buildPrompt } from "../index.js";
 import type { BuildPromptInput } from "../index.js";
-import { buildReinvocationPrompt, formatInteractionModePrefix, formatToolApprovalProtocol, buildToolApprovalRuleFile } from "../prompt-builder.js";
+import { buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPlanSection, formatToolApprovalProtocol, buildToolApprovalRuleFile } from "../prompt-builder.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
 import type { AgentResolution, AgentResolutionReason } from "../session-lifecycle.js";
 
@@ -299,6 +299,74 @@ describe("formatInteractionModePrefix", () => {
       input({
         resolution: resolution("local", "resumed_successfully"),
         interactionMode: InteractionMode.AGENT,
+      }),
+    );
+
+    expect(prompt).toBe(USER_MESSAGE);
+  });
+});
+
+describe("formatImplementPlanSection", () => {
+  const PLAN_PATH = ".stigmer/inputs/plan.md";
+
+  it("wraps the attached-plan directive when the plan is among the attachments", () => {
+    const section = formatImplementPlanSection(true, [PLAN_PATH, ".stigmer/inputs/data.csv"]);
+
+    expect(section).toBeDefined();
+    expect(section!.startsWith("<implement_plan>")).toBe(true);
+    expect(section!.endsWith("</implement_plan>")).toBe(true);
+    expect(section).toContain(`\`${PLAN_PATH}\``);
+    expect(section).toContain("APPROVED");
+  });
+
+  it("falls back to the conversation-plan directive when no plan attachment resolved", () => {
+    const section = formatImplementPlanSection(true, [".stigmer/inputs/data.csv"]);
+
+    expect(section).toBeDefined();
+    expect(section).not.toContain("plan.md");
+    expect(section).toContain("conversation above");
+  });
+
+  it("returns undefined for an ordinary (non-build) execution", () => {
+    expect(formatImplementPlanSection(false, [PLAN_PATH])).toBeUndefined();
+    expect(formatImplementPlanSection(undefined, [PLAN_PATH])).toBeUndefined();
+  });
+
+  it("injects the directive into a build-from-plan first prompt", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        buildFromPlan: true,
+        attachmentPaths: [PLAN_PATH],
+      }),
+    );
+
+    expect(prompt).toContain("<implement_plan>");
+    expect(prompt).toContain(`\`${PLAN_PATH}\``);
+    expect(prompt).toContain(USER_MESSAGE);
+  });
+
+  it("prefixes the directive on a resumed build turn (build_from_plan is per-execution)", () => {
+    // The common shape: the plan turn ran earlier in the session, so the
+    // build turn resumes the agent — the directive must still arrive.
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        buildFromPlan: true,
+        attachmentPaths: [PLAN_PATH],
+      }),
+    );
+
+    expect(prompt.startsWith("<implement_plan>")).toBe(true);
+    expect(prompt.endsWith(USER_MESSAGE)).toBe(true);
+  });
+
+  it("keeps a resumed non-build follow-up as the raw user message", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        buildFromPlan: false,
+        attachmentPaths: [PLAN_PATH],
       }),
     );
 

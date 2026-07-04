@@ -48,6 +48,15 @@ export interface MessageEntryProps {
    * non-human messages.
    */
   readonly interactionMode?: InteractionMode;
+  /**
+   * Renders a `MESSAGE_HUMAN` entry as a compact "Build from plan" chip
+   * instead of a prompt bubble. Stamped by the thread builder from
+   * `execution_config.build_from_plan`: the turn's message is a short label
+   * (the implement instruction is runner-injected), so a full-width bubble
+   * would dignify machine plumbing as user prose. Ignored for non-human
+   * messages.
+   */
+  readonly isBuildFromPlan?: boolean;
 }
 
 /**
@@ -80,6 +89,7 @@ export const MessageEntry = memo(function MessageEntry({
   onEdit,
   isPlanDocument,
   interactionMode,
+  isBuildFromPlan,
 }: MessageEntryProps) {
   useRenderTracer("MessageEntry", {
     messageType: message.type,
@@ -89,6 +99,11 @@ export const MessageEntry = memo(function MessageEntry({
 
   switch (message.type) {
     case MessageType.MESSAGE_HUMAN:
+      if (isBuildFromPlan) {
+        return (
+          <BuildFromPlanChip content={message.content} className={className} />
+        );
+      }
       return (
         <HumanMessage
           content={message.content}
@@ -171,6 +186,60 @@ function HumanMessage({
         </button>
       )}
     </div>
+  );
+}
+
+/**
+ * The Build-from-plan turn's user entry: a compact pill in the user-turn
+ * position (right-aligned, like the prompt bubble it replaces) carrying the
+ * plan glyph and the turn's short label. Deliberately not editable — the
+ * label is not user prose to rephrase; refining the plan happens in the plan
+ * document, and the build is re-triggered from its card.
+ */
+function BuildFromPlanChip({
+  content,
+  className,
+}: {
+  content: string;
+  className?: string;
+}) {
+  return (
+    <div
+      role="article"
+      aria-label="Build from plan"
+      className={cn("flex justify-end", className)}
+    >
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-full border border-border",
+          "bg-muted-subtle px-3 py-1.5 text-xs font-medium text-foreground",
+        )}
+      >
+        <BuildFromPlanIcon />
+        {content}
+      </span>
+    </div>
+  );
+}
+
+/** The plan-card glyph (document lines + implement arrow) at chip scale. */
+function BuildFromPlanIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0 text-muted-foreground"
+      aria-hidden="true"
+    >
+      <path d="M3 4h10M3 8h7M3 12h8" />
+      <path d="M12.5 10.5l1.5 1.5-1.5 1.5" />
+    </svg>
   );
 }
 

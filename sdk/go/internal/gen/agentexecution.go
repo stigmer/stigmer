@@ -189,6 +189,7 @@ type ExecutionConfigInput struct {
 	MaxCostUsd             float64
 	InteractionMode        agentexecutionv1.InteractionMode
 	StructuredOutputSchema map[string]any
+	BuildFromPlan          bool
 }
 
 // ContextManagementConfigInput is the SDK input type for ContextManagementConfig.
@@ -257,6 +258,7 @@ func (i *ExecutionConfigInput) toProto() *agentexecutionv1.ExecutionConfig {
 	if i.StructuredOutputSchema != nil {
 		p.StructuredOutputSchema, _ = structpb.NewStruct(i.StructuredOutputSchema)
 	}
+	p.BuildFromPlan = i.BuildFromPlan
 	return p
 }
 
@@ -329,6 +331,7 @@ func executionConfigInputFromProto(p *agentexecutionv1.ExecutionConfig) *Executi
 	if sv := p.GetStructuredOutputSchema(); sv != nil {
 		input.StructuredOutputSchema = sv.AsMap()
 	}
+	input.BuildFromPlan = p.GetBuildFromPlan()
 	return input
 }
 

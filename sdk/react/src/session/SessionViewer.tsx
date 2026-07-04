@@ -53,31 +53,22 @@ import type { SessionAudience } from "./audience.js";
 
 /**
  * Where the approved plan mounts in the implement execution's workspace —
- * the harnesses' standard attachment inputs directory. Referenced by
- * {@link IMPLEMENT_PLAN_MESSAGE} so the agent reads the exact document the
- * user approved (including in-place edits), not a paraphrase from memory.
+ * the harnesses' standard attachment inputs directory, where the runner's
+ * implement-plan directive points the agent (shared/implement-plan-prompt.ts).
+ * Attaching at this exact path is what makes the build implement the document
+ * the user approved (including in-place edits), not a paraphrase from memory.
  */
 const APPROVED_PLAN_MOUNT_PATH = `.stigmer/inputs/${PLAN_ARTIFACT_NAME}`;
 
 /**
- * Message submitted when the user implements a plan whose approved text was
- * attached to the execution. The "if missing" clause covers the one known
- * degradation: the Cursor harness drops storage-key attachments in some
- * configurations (a logged warning, not an error) — the plan then still
- * flows via conversation history.
+ * The build turn's user message — a short human-readable label, NOT the
+ * implement instruction. The agent-facing instruction is runner-injected
+ * (keyed off `executionConfig.buildFromPlan`), so this text exists for
+ * humans: the thread renders the turn as a compact chip from the same flag,
+ * and surfaces without the chip treatment (the CLI, older clients) show
+ * this label as-is.
  */
-const IMPLEMENT_PLAN_MESSAGE =
-  "Implement the approved plan. The full plan document is attached at " +
-  `\`${APPROVED_PLAN_MOUNT_PATH}\` — read it first and follow it step by ` +
-  "step. If that file is missing, follow the plan from the conversation above.";
-
-/**
- * Fallback implement message when no plan attachment could be delivered
- * (no published artifact, or the upload failed — the build is never blocked
- * on attachment plumbing). The plan flows via conversation history alone.
- */
-const IMPLEMENT_PLAN_FALLBACK_MESSAGE =
-  "Implement the plan above. Follow it step by step and make the changes it describes.";
+const BUILD_FROM_PLAN_MESSAGE = "Build from plan";
 
 /**
  * Reads the published plan's full text for the build handoff. Refuses a
@@ -344,11 +335,15 @@ export function SessionViewer({
     setInteractionMode("agent");
     setPlanAttachFailed(false);
 
+    // `buildFromPlan` (not message text) is what tells the runner to inject
+    // the implement directive and the thread to render the compact chip —
+    // with or without the attachment (the runner picks the directive variant).
     const submitImplementTurn = (attachments?: AttachmentInput[]) => {
-      composerRef.current?.submit(
-        attachments ? IMPLEMENT_PLAN_MESSAGE : IMPLEMENT_PLAN_FALLBACK_MESSAGE,
-        { interactionMode: "agent", attachments },
-      );
+      composerRef.current?.submit(BUILD_FROM_PLAN_MESSAGE, {
+        interactionMode: "agent",
+        buildFromPlan: true,
+        attachments,
+      });
     };
 
     // No published artifact (the bare-CTA fallback card) — nothing to attach.

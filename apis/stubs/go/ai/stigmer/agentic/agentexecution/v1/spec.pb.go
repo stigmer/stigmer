@@ -433,8 +433,25 @@ type ExecutionConfig struct {
 	// The validated structured data is returned in the activity result
 	// and passed back to the parent workflow as `structured`.
 	StructuredOutputSchema *structpb.Struct `protobuf:"bytes,7,opt,name=structured_output_schema,json=structuredOutputSchema,proto3" json:"structured_output_schema,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// Marks this execution as a "Build from plan" turn: the user approved a plan
+	// produced by a prior Plan-mode execution and asked the agent to implement it.
+	//
+	// When set, the runner injects the implement-plan directive into the agent's
+	// prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+	// document travels as an attachment (the normal case — mounted at
+	// `.stigmer/inputs/plan.md`), the directive points the agent at that file;
+	// when no plan attachment is present (e.g. the client's upload failed), the
+	// directive tells the agent to follow the plan from the conversation instead.
+	//
+	// Clients set this flag INSTEAD of embedding implement instructions in
+	// `message`, so `message` stays a short human-readable label (e.g.
+	// "Build from plan") that UIs can render as a compact chip.
+	//
+	// Like interaction_mode, this is per-execution and never carries over
+	// between executions in the same session.
+	BuildFromPlan bool `protobuf:"varint,8,opt,name=build_from_plan,json=buildFromPlan,proto3" json:"build_from_plan,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ExecutionConfig) Reset() {
@@ -514,6 +531,13 @@ func (x *ExecutionConfig) GetStructuredOutputSchema() *structpb.Struct {
 		return x.StructuredOutputSchema
 	}
 	return nil
+}
+
+func (x *ExecutionConfig) GetBuildFromPlan() bool {
+	if x != nil {
+		return x.BuildFromPlan
+	}
+	return false
 }
 
 // ContextManagementConfig controls automatic context summarization behavior.
@@ -809,7 +833,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x13activity_task_queue\x18\v \x01(\tR\x11activityTaskQueue\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\xda\x03\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x82\x04\n" +
 	"\x0fExecutionConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
@@ -819,7 +843,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\fmax_cost_usd\x18\x05 \x01(\x01R\n" +
 	"maxCostUsd\x12j\n" +
 	"\x10interaction_mode\x18\x06 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\x12Q\n" +
-	"\x18structured_output_schema\x18\a \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\"\xcc\x01\n" +
+	"\x18structured_output_schema\x18\a \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12&\n" +
+	"\x0fbuild_from_plan\x18\b \x01(\bR\rbuildFromPlan\"\xcc\x01\n" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +

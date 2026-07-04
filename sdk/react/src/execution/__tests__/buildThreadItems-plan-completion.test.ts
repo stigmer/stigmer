@@ -40,6 +40,7 @@ function makeExecution(opts: {
   specMessage?: string;
   phase?: ExecutionPhase;
   interactionMode?: InteractionMode;
+  buildFromPlan?: boolean;
   messages?: ReturnType<typeof makeMessage>[];
   withPlanArtifact?: boolean;
 }): AgentExecution {
@@ -51,9 +52,14 @@ function makeExecution(opts: {
 
   const spec = create(AgentExecutionSpecSchema);
   spec.message = opts.specMessage ?? "test message";
-  if (opts.interactionMode !== undefined) {
+  if (opts.interactionMode !== undefined || opts.buildFromPlan !== undefined) {
     const config = create(ExecutionConfigSchema);
-    config.interactionMode = opts.interactionMode;
+    if (opts.interactionMode !== undefined) {
+      config.interactionMode = opts.interactionMode;
+    }
+    if (opts.buildFromPlan !== undefined) {
+      config.buildFromPlan = opts.buildFromPlan;
+    }
     spec.executionConfig = config;
   }
   exec.spec = spec;
@@ -462,5 +468,45 @@ describe("buildThreadItems plan-document stamping (no-artifact fallback)", () =>
 
     expect(docs).toHaveLength(1);
     expect(docs[0].key).toBe("exec-plan-m0");
+  });
+});
+
+describe("buildThreadItems build-from-plan prompt", () => {
+  function promptItem(items: readonly ThreadItem[], execId: string) {
+    return items.find(
+      (i): i is Extract<ThreadItem, { kind: "message" }> =>
+        i.kind === "message" && i.key === `${execId}-spec`,
+    );
+  }
+
+  it("stamps isBuildFromPlan on the prompt of a build turn", () => {
+    const exec = makeExecution({
+      id: "exec-build",
+      specMessage: "Build from plan",
+      interactionMode: InteractionMode.AGENT,
+      buildFromPlan: true,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Implementing…")],
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const prompt = promptItem(items, "exec-build");
+
+    expect(prompt).toBeDefined();
+    expect(prompt!.isBuildFromPlan).toBe(true);
+    expect(prompt!.message.content).toBe("Build from plan");
+  });
+
+  it("leaves the flag unset on an ordinary prompt (renders as a normal bubble)", () => {
+    const exec = makeExecution({
+      id: "exec-normal",
+      interactionMode: InteractionMode.AGENT,
+      messages: [makeMessage(MessageType.MESSAGE_AI, "Done")],
+    });
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const prompt = promptItem(items, "exec-normal");
+
+    expect(prompt).toBeDefined();
+    expect(prompt!.isBuildFromPlan).toBeUndefined();
   });
 });

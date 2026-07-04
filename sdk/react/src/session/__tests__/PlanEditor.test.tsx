@@ -87,6 +87,26 @@ describe("PlanEditor", () => {
     expect(onBuildFromPlan).toHaveBeenCalledTimes(1);
   });
 
+  it("degrades gracefully at narrow widths: truncating title and shrinkable toolbar", async () => {
+    // The document must reflow to whatever width the panel gives it — the
+    // toolbar wraps and its labels truncate rather than forcing a sideways
+    // scrollbar on the editor pane (the overflow-x-hidden body above clips,
+    // so anything that cannot shrink would be cut off, not scrollable).
+    renderEditor({ onBuildFromPlan: vi.fn() });
+
+    await waitFor(() =>
+      expect(screen.getByText("Rollout Plan")).toBeTruthy(),
+    );
+    expect(screen.getByText("Rollout Plan").className).toContain("truncate");
+
+    const buildLabel = screen.getByText("Build from plan");
+    expect(buildLabel.className).toContain("truncate");
+    const toolbar = screen.getByRole("tablist", { name: "Plan view" })
+      .parentElement!;
+    expect(toolbar.className).toContain("flex-wrap");
+    expect(toolbar.className).toContain("min-w-0");
+  });
+
   it("shows a pending label and disables the primary while the build starts", async () => {
     renderEditor({ onBuildFromPlan: vi.fn(), buildDisabled: true });
 

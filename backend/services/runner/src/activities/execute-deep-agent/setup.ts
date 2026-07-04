@@ -367,6 +367,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       workspaceRoot: workspaceBackend.rootDir,
       injectedFiles,
       interactionMode: execution.spec!.executionConfig?.interactionMode,
+      buildFromPlan: execution.spec!.executionConfig?.buildFromPlan,
     });
 
     // Step 9: Construct the LLM model. Resolution to the provider API id

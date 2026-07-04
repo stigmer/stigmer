@@ -97,6 +97,12 @@ export interface SendFollowUpOptions {
    */
   readonly interactionMode?: "agent" | "plan";
   /**
+   * Marks this execution as a "Build from plan" turn.
+   *
+   * @see {@link CreateAgentExecutionInput.buildFromPlan}
+   */
+  readonly buildFromPlan?: boolean;
+  /**
    * Auto-approve every tool call for this execution (bypass the HITL gate).
    *
    * @see {@link CreateAgentExecutionInput.autoApproveAll}
@@ -581,6 +587,7 @@ export function useSessionConversation(
           runtimeEnv: options?.runtimeEnv,
           attachments: options?.attachments,
           interactionMode: options?.interactionMode,
+          buildFromPlan: options?.buildFromPlan,
           autoApproveAll: options?.autoApproveAll,
           workspaceFileRefs: options?.workspaceFileRefs,
         });

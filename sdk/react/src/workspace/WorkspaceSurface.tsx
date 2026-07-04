@@ -229,7 +229,10 @@ export function WorkspaceSurface({
         maxSize={560}
         storageKey="stgm-workspace-sidebar-width"
         ariaLabel="Resize sidebar"
-        className="min-h-0 flex-1"
+        // min-w-0: the split is a flex-row child of the surface; without it,
+        // the fixed-width sidebar sub-pane gives the whole surface a hard
+        // minimum width and content overflow escapes to the session panel.
+        className="min-h-0 min-w-0 flex-1"
         primary={
           activeExtraView ? (
             <ExtraViewSidebar view={activeExtraView} />
@@ -621,7 +624,13 @@ function EditorArea({
         // A virtual document owns its body wholesale: no breadcrumbs (there is
         // no filesystem location) and no FileViewer (there is no reader-backed
         // file). Keyed like files so switching documents resets cleanly.
-        <div key={activeKey ?? undefined} className="min-h-0 flex-1 overflow-y-auto">
+        // Vertical-only scrolling: a lone overflow-y-auto would compute
+        // overflow-x to auto too, giving the pane a horizontal scrollbar the
+        // moment any child refuses to shrink — documents must reflow instead.
+        <div
+          key={activeKey ?? undefined}
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+        >
           {activeVirtualDocument.content}
         </div>
       ) : selectedFile ? (

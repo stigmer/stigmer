@@ -58,8 +58,9 @@ import {
  *
  * function handleBuildFromPlan() {
  *   // Switch to Agent mode and run immediately — no manual Send.
- *   composerRef.current?.submit("Implement the plan above", {
+ *   composerRef.current?.submit("Build from plan", {
  *     interactionMode: "agent",
+ *     buildFromPlan: true,
  *   });
  * }
  *
@@ -87,12 +88,17 @@ export interface SessionComposerHandle {
    *   `agentExecution.uploadAttachment`) to include with this one submission,
    *   in addition to any files attached in the composer. Used by "Build from
    *   plan" to deliver the approved `plan.md` to the implement execution.
+   * @param options.buildFromPlan - Marks this submission as the implement
+   *   turn of a Plan → Build handoff (`execution_config.build_from_plan`).
+   *   The runner injects the implement-plan directive and the thread renders
+   *   the turn as a compact chip; the message stays a short label.
    */
   submit(
     message: string,
     options?: {
       interactionMode?: InteractionModeOption;
       attachments?: AttachmentInput[];
+      buildFromPlan?: boolean;
     },
   ): void;
 }
@@ -149,6 +155,18 @@ export interface SessionComposerSubmitContext {
    * Pass to execution creation as `workspaceFileRefs`.
    */
   readonly workspaceFileRefs?: string[];
+  /**
+   * The submission is a "Build from plan" turn.
+   *
+   * Only ever set through {@link SessionComposerHandle.submit} (the thread
+   * card / plan editor CTA) — there is no composer UI for it. Pass to
+   * execution creation as `execution_config.build_from_plan`; the runner
+   * injects the implement-plan directive and the thread renders the turn
+   * as a compact chip.
+   *
+   * `undefined` for ordinary submissions.
+   */
+  readonly buildFromPlan?: boolean;
 }
 
 /** Props for {@link SessionComposer}. */
@@ -736,6 +754,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       overrides?: {
         interactionMode?: InteractionModeOption;
         attachments?: AttachmentInput[];
+        buildFromPlan?: boolean;
       },
     ) => {
       // Persist save-for-future manual secrets before building runtimeEnv
@@ -794,14 +813,16 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           ? interactionMode
           : undefined);
       const hasFileRefs = enableFileReferences && fileRefs.hasRefs;
+      const buildFromPlan = overrides?.buildFromPlan;
 
       const context: SessionComposerSubmitContext | undefined =
-        hasEnv || hasAttachments || effectiveMode || hasFileRefs
+        hasEnv || hasAttachments || effectiveMode || hasFileRefs || buildFromPlan
           ? {
               runtimeEnv: hasEnv ? env : undefined,
               attachments: hasAttachments ? attachmentInputs : undefined,
               interactionMode: effectiveMode,
               workspaceFileRefs: hasFileRefs ? [...fileRefs.refs] : undefined,
+              buildFromPlan,
             }
           : undefined;
 
