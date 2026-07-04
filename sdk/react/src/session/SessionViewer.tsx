@@ -12,10 +12,7 @@ import type { InteractionModeOption, SessionComposerHandle } from "../composer/i
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import { SelectionStore } from "../internal/store/selection-store.js";
-import {
-  useWorkspaceEditors,
-  type WorkspaceEditorsStore,
-} from "../internal/store/index.js";
+import { useWorkspaceEditors } from "../internal/store/index.js";
 import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
 import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
 import { MessageThread } from "../execution/MessageThread.js";
@@ -24,9 +21,15 @@ import { ThreadSkeleton } from "../execution/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
-import { SessionInspector } from "./inspector/SessionInspector.js";
 import { useOpenFileChange } from "./useOpenFileChange.js";
-import { useWorkspaceMode } from "./useWorkspaceMode.js";
+import { useSessionRailViews } from "./useSessionRailViews.js";
+import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
+import { SessionPanelChip } from "./SessionPanelChip.js";
+import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
+import { useSessionArtifacts } from "./useSessionArtifacts.js";
+import type { SetupTabProps } from "./facets/SetupTab.js";
+import { ExecutionPhaseBadge } from "../execution/ExecutionPhaseBadge.js";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
 
@@ -126,10 +129,13 @@ export interface SessionViewerProps {
  * Owns `useSessionPageFlow` internally and composes:
  * - **Conversation column** (primary): `MessageThread` + error
  *   banners + `SessionComposer`
- * - **SessionInspector** (secondary): tabbed panel with Workspace,
- *   Config, Changes, Artifacts, Usage, and Inspect facets
+ * - **Session panel** (secondary): the unified `WorkspaceSurface` — explorer,
+ *   search, read-only editor, and the session facets (Config, Changes,
+ *   Artifacts, Usage, Inspect) as injected rail views. Collapsed by default
+ *   to a top-right chip; opening a file (tree, search, or a transcript path)
+ *   expands it.
  *
- * Connected via `ResizableSplit` with persisted width.
+ * Connected via `ResizableSplit` with persisted chat width.
  *
  * Thread selection is provided via `ThreadSelectionContext` (Phase 2
  * opt-in) for render-isolated per-item selection.
@@ -187,13 +193,26 @@ export function SessionViewer({
   }
   const selectionStore = selectionStoreRef.current;
 
-  // The workspace-surface layout controller: owns the open-editor group store
-  // and the `workspaceMode` flip. Shared with the launcher (DD-016). The store
-  // is owned here (never subscribed at this level) so opening/switching files
-  // re-renders only the inspector subtree — the InspectorPanel subscribes, not
-  // the conversation column — preserving streaming render isolation
-  // (DD-009/DD-010, invariant 2).
-  const ws = useWorkspaceMode();
+  const phase =
+    flow.displayExecution?.status?.phase ??
+    ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  const hasPhase = phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+
+  // Facet arrival counts: rail badges inside the panel, the chip's dot-count
+  // while collapsed. Arrivals never auto-open the panel (badge-only signal).
+  const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(flow.allExecutions);
+  const { artifactCount } = useSessionArtifacts(flow.allExecutions);
+
+  // The unified-panel controller: owns the open-editor group store, the
+  // open/collapsed state, and the rail-view FSM. Shared with the launcher
+  // (DD-016). The editor store is owned here (never subscribed at this level)
+  // so opening/switching files re-renders only the panel subtree — the
+  // SessionPanelRegion subscribes, not the conversation column — preserving
+  // streaming render isolation (DD-009/DD-010, invariant 2).
+  const panel = useSessionPanel({
+    phase: hasPhase ? phase : null,
+    hasChanges: hasWriteBacks,
+  });
 
   const handleBuildFromPlan = useCallback(() => {
     // Switch the picker to Agent (so subsequent turns stay in Agent) and submit
@@ -206,12 +225,13 @@ export function SessionViewer({
     });
   }, [setInteractionMode]);
 
-  // Open a transcript tool-call file path in the read-only Viewer. Resolves the
-  // (possibly absolute / subdir-prefixed) path to a repo/root-relative selection
-  // the Viewer can fetch; on a definite hit it writes the shared file-selection
-  // store and returns `true` (handled), otherwise returns `false` so the path
-  // keeps its default copy / GitHub-link behavior. Writing the store re-renders
-  // only the inspector subtree (which subscribes), never this streaming column.
+  // Open a transcript tool-call file path in the panel's read-only editor.
+  // Resolves the (possibly absolute / subdir-prefixed) path to a
+  // repo/root-relative selection the editor can fetch; on a definite hit it
+  // opens the file (expanding the panel) and returns `true` (handled),
+  // otherwise returns `false` so the path keeps its default copy / GitHub-link
+  // behavior. Writing the editor store re-renders only the panel subtree
+  // (which subscribes), never this streaming column.
   const handleTranscriptFilePathClick = useCallback(
     (path: string): boolean => {
       const selection = resolveWorkspaceFileSelection(
@@ -220,10 +240,10 @@ export function SessionViewer({
         flow.sandboxWorkspaceRoot,
       );
       if (!selection) return false;
-      ws.openFileInWorkspace(selection.entryId, selection.path);
+      panel.openFile(selection.entryId, selection.path);
       return true;
     },
-    [flow.workspace.entries, flow.sandboxWorkspaceRoot, ws],
+    [flow.workspace.entries, flow.sandboxWorkspaceRoot, panel.openFile],
   );
 
   if (conv.isLoading) {
@@ -244,31 +264,35 @@ export function SessionViewer({
 
   return (
     <div className={cn("relative flex h-full w-full flex-col", className)}>
-      {headerActions && (
-        <div className="absolute top-2 right-6 z-10">
-          {headerActions}
-        </div>
-      )}
+      {/* Top-right controls: host actions + the panel chip. The chip is the
+          panel's always-mounted toggle and, while collapsed, the session's
+          status surface (phase badge + pending-item count). */}
+      <div className="absolute top-2 right-6 z-10 flex items-center gap-2">
+        {headerActions}
+        <SessionPanelChip
+          isOpen={panel.isOpen}
+          onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
+          phase={hasPhase ? phase : undefined}
+          badgeCount={writeBackCount + artifactCount}
+        />
+      </div>
 
       <ThreadSelectionContext.Provider value={selectionStore}>
-        {/* The layout inverts by mode: chat mode keeps the inspector as a fixed
-            right panel; workspace mode makes chat the fixed narrow pane on the
-            left and hands the flexible region to the workspace surface. The
-            conversation is always the first child, so flipping re-flows without
-            remounting it (invariant 1). Storage key + resizable side swap
-            together, so each mode keeps its own persisted width. */}
+        {/* One layout, collapsed by default: chat fills the row until the panel
+            opens, then becomes the fixed narrow pane on the left while the
+            panel takes the flexible region. Collapsing goes through the
+            split's `collapsedPane` (CSS, not conditional structure), so the
+            conversation is always the same first child and an open/close never
+            remounts it (invariant 1). */}
         <ResizableSplit
-          resizablePane={ws.workspaceMode ? "primary" : "secondary"}
-          defaultSize={ws.workspaceMode ? 420 : 384}
-          minSize={ws.workspaceMode ? 320 : 280}
-          maxSize={ws.workspaceMode ? 640 : 600}
-          storageKey={
-            ws.workspaceMode
-              ? "stgm-session-chat-width"
-              : "stgm-session-inspector-width"
-          }
-          responsiveCollapse={ws.workspaceMode ? "primary" : "secondary"}
-          ariaLabel={ws.workspaceMode ? "Resize chat panel" : "Resize inspector panel"}
+          resizablePane="primary"
+          collapsedPane={panel.isOpen ? "none" : "secondary"}
+          defaultSize={420}
+          minSize={320}
+          maxSize={640}
+          storageKey="stgm-session-chat-width"
+          responsiveCollapse={panel.isOpen ? "primary" : "none"}
+          ariaLabel="Resize chat panel"
           className="min-h-0 flex-1"
           primary={
             <ConversationColumn
@@ -289,29 +313,20 @@ export function SessionViewer({
             />
           }
           secondary={
-            <InspectorPanel
-              flow={flow}
-              org={org}
-              selectionStore={selectionStore}
-              editorsStore={ws.editorsStore}
-              workspaceMode={ws.workspaceMode}
-              onOpenFile={ws.openFileInWorkspace}
-              onEnterWorkspace={ws.enterWorkspace}
-              onActivateEditor={ws.activateEditor}
-              onPinEditor={ws.pinEditor}
-              onCloseEditor={ws.closeEditor}
-              onCollapseWorkspace={ws.collapseWorkspace}
-              onExitWorkspaceForInspect={ws.exitWorkspaceForInspect}
-              onApplied={onApplied}
-              onImplementPlan={handleBuildFromPlan}
-              enableGitHub={enableGitHub}
-              enableLocal={enableLocal}
-              gitHubConnection={gitHubConnection}
-              onBrowseLocalFolder={onBrowseLocalFolder}
-              workspaceFileLister={workspaceFileLister}
-              workspaceFileReader={workspaceFileReader}
-              isEndUser={isEndUser}
-            />
+            panel.isOpen ? (
+              <SessionPanelRegion
+                flow={flow}
+                org={org}
+                panel={panel}
+                onApplied={onApplied}
+                onImplementPlan={handleBuildFromPlan}
+                enableLocal={enableLocal}
+                onBrowseLocalFolder={onBrowseLocalFolder}
+                workspaceFileLister={workspaceFileLister}
+                workspaceFileReader={workspaceFileReader}
+                isEndUser={isEndUser}
+              />
+            ) : null
           }
         />
       </ThreadSelectionContext.Provider>
@@ -484,84 +499,52 @@ const ConversationColumn = memo(function ConversationColumn({
 });
 
 // ---------------------------------------------------------------------------
-// Inspector panel (right/secondary) — reads selection from store
+// Session panel region (right/secondary) — the unified panel's subtree
 // ---------------------------------------------------------------------------
 
-interface InspectorPanelProps {
+interface SessionPanelRegionProps {
   readonly flow: ReturnType<typeof useSessionPageFlow>;
   readonly org: string;
-  readonly selectionStore: SelectionStore;
   /**
-   * The open-editor group store, owned by `SessionViewer`. Subscribed here (not
-   * at `SessionViewer`) so opening/switching files re-renders only this panel,
-   * never the conversation column.
+   * The panel controller owned by `SessionViewer`. Its editor store is
+   * subscribed here (not at `SessionViewer`) so opening/switching files
+   * re-renders only this region, never the conversation column.
    */
-  readonly editorsStore: WorkspaceEditorsStore;
-  /** Whether the layout is flipped into workspace mode (renders the surface). */
-  readonly workspaceMode: boolean;
-  /** Opens a file (preview) and enters workspace mode (owned by `SessionViewer`). */
-  readonly onOpenFile: (entryId: string, path: string) => void;
-  /** Enters workspace mode without opening a file (browse / search). */
-  readonly onEnterWorkspace: () => void;
-  /** Focuses an already-open editor tab. */
-  readonly onActivateEditor: (entryId: string, path: string) => void;
-  /** Pins an editor tab (clears its preview state). */
-  readonly onPinEditor: (entryId: string, path: string) => void;
-  /** Closes an editor tab (collapsing to chat when it was the last one). */
-  readonly onCloseEditor: (entryId: string, path: string) => void;
-  /** Collapses the surface back to chat, preserving the open-editor group. */
-  readonly onCollapseWorkspace: () => void;
-  /** Exits workspace mode (keeping the editors) so Inspect can surface. */
-  readonly onExitWorkspaceForInspect: () => void;
+  readonly panel: SessionPanelController;
   readonly onApplied?: (result: ApplyResourceResult) => void;
-  /** Implement a plan from the Artifacts tab (same action as the thread card). */
+  /** Implement a plan from the Artifacts facet (same action as the thread card). */
   readonly onImplementPlan?: () => void;
-  readonly enableGitHub: boolean;
   readonly enableLocal: boolean;
-  readonly gitHubConnection?: UseGitHubConnectionReturn;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
   readonly workspaceFileReader?: WorkspaceFileReader;
   readonly isEndUser: boolean;
 }
 
-function InspectorPanel({
+function SessionPanelRegion({
   flow,
   org,
-  selectionStore,
-  editorsStore,
-  workspaceMode,
-  onOpenFile,
-  onEnterWorkspace,
-  onActivateEditor,
-  onPinEditor,
-  onCloseEditor,
-  onCollapseWorkspace,
-  onExitWorkspaceForInspect,
+  panel,
   onApplied,
   onImplementPlan,
-  enableGitHub,
   enableLocal,
-  gitHubConnection,
   onBrowseLocalFolder,
   workspaceFileLister,
   workspaceFileReader,
   isEndUser,
-}: InspectorPanelProps) {
+}: SessionPanelRegionProps) {
   const selectedItem = useSelectedThreadItem();
-  const { editors, activeFile } = useWorkspaceEditors(editorsStore);
+  const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
 
-  // Selecting a thread item reveals the Inspect facet, which lives in the
-  // inspector region the surface occupies — so leave workspace mode (keeping the
-  // editor group) when one is picked. Symmetric to the tab FSM's two selection
-  // domains; files reopen from the tree/transcript (invariant 3).
+  // This region is the level that subscribes to thread selection; report it to
+  // the controller so an open panel can auto-surface the Inspect view. (A
+  // collapsed panel never sees — and deliberately never reacts to — selection.)
   useEffect(() => {
-    if (selectedItem && workspaceMode) onExitWorkspaceForInspect();
-  }, [selectedItem, workspaceMode, onExitWorkspaceForInspect]);
+    panel.notifySelection(selectedItem);
+  }, [selectedItem, panel.notifySelection]);
 
-  // Correlate the active file with its session change for diff-as-default,
-  // shared with the inspector's Viewer tab via the same hook (DD-06 parity
-  // across both renderings of a changed file).
+  // Correlate the active file with its session change for diff-as-default
+  // (DD-06 parity with the transcript's rendering of the same change).
   const openFileChange = useOpenFileChange(
     activeFile,
     flow.allExecutions,
@@ -596,7 +579,7 @@ function InspectorPanel({
     [flow.skillRefs, flow.setSkillRefs],
   );
 
-  const sessionConfig = useMemo(
+  const sessionConfig = useMemo<SetupTabProps>(
     () => ({
       agentRef: flow.agentRef,
       isDefaultAgent: flow.isDefaultAgent,
@@ -606,8 +589,8 @@ function InspectorPanel({
       harness: flow.harness,
       executionTarget: flow.executionTarget,
       modelId: flow.model[0],
-      // End users see the configuration but cannot strip it — the Setup
-      // tab renders read-only without mutation callbacks (DD-011).
+      // End users see the configuration but cannot strip it — the Config
+      // facet renders read-only without mutation callbacks (DD-011).
       mutations: isEndUser
         ? undefined
         : {
@@ -623,59 +606,54 @@ function InspectorPanel({
     ],
   );
 
-  const workspaceConfig = useMemo(
-    () => ({
-      actions: {
-        workspace: flow.workspace,
-        enableGitHub,
-        enableLocal,
-        gitHubConnection,
-        onBrowseLocalFolder,
-        workspaceFileLister,
-        workspaceFileReader,
-        onOpenFile,
-        onOpenWorkspace: onEnterWorkspace,
-      },
-    }),
-    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister, workspaceFileReader, onOpenFile, onEnterWorkspace],
-  );
+  // The session facets (Config / Changes / Artifacts / Usage / Inspect) as
+  // injected rail views — the full inspector feature set inside one panel.
+  const railViews = useSessionRailViews({
+    allExecutions: flow.allExecutions,
+    org,
+    sessionConfig,
+    selectedItem,
+    onApplied,
+    onImplementPlan,
+  });
 
-  // Workspace mode replaces the inspector region with the full workspace
-  // surface (explorer + editor group). The surface is valid file-less (explorer
-  // + search with an empty editor), so it is guarded on the mode alone.
-  if (workspaceMode) {
-    return (
-      <WorkspaceSurface
-        entries={flow.workspace.entries}
-        lister={workspaceFileLister}
-        reader={workspaceFileReader}
-        editors={editors}
-        selectedFile={activeFile}
-        onOpenFile={onOpenFile}
-        onActivateEditor={onActivateEditor}
-        onPinEditor={onPinEditor}
-        onCloseEditor={onCloseEditor}
-        onCollapse={onCollapseWorkspace}
-        change={openFileChange ?? undefined}
-        className="h-full"
-      />
-    );
-  }
+  const phase =
+    flow.displayExecution?.status?.phase ??
+    ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+
+  // Explorer-footer folder attach (desktop only — needs the native picker).
+  // Same wiring the retired Workspace tab used.
+  const canAddLocalFolder = enableLocal && !!onBrowseLocalFolder;
+  const handleAddLocalFolder = useCallback(async () => {
+    const path = await onBrowseLocalFolder?.();
+    if (path) flow.workspace.addLocalPath(path);
+  }, [onBrowseLocalFolder, flow.workspace.addLocalPath]);
 
   return (
-    <aside className="flex h-full flex-col overflow-hidden">
-      <SessionInspector
-        displayExecution={flow.displayExecution}
-        allExecutions={flow.allExecutions}
-        org={org}
-        selectedItem={selectedItem}
-        onApplied={onApplied}
-        onImplementPlan={onImplementPlan}
-        sessionConfig={sessionConfig}
-        workspaceConfig={workspaceConfig}
-        className="min-h-0 flex-1"
-      />
-    </aside>
+    <WorkspaceSurface
+      entries={flow.workspace.entries}
+      lister={workspaceFileLister}
+      reader={workspaceFileReader}
+      view={panel.view}
+      onViewChange={panel.setView}
+      extraViews={railViews}
+      statusSlot={
+        phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED ? (
+          <ExecutionPhaseBadge phase={phase} />
+        ) : undefined
+      }
+      onRemoveEntry={flow.workspace.remove}
+      onAddLocalFolder={canAddLocalFolder ? handleAddLocalFolder : undefined}
+      editors={editors}
+      selectedFile={activeFile}
+      onOpenFile={panel.openFile}
+      onActivateEditor={panel.activateEditor}
+      onPinEditor={panel.pinEditor}
+      onCloseEditor={panel.closeEditor}
+      onCollapse={panel.closePanel}
+      change={openFileChange ?? undefined}
+      className="h-full"
+    />
   );
 }
 

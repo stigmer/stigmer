@@ -20,17 +20,19 @@ export interface ExplorerTreeProps {
   readonly onOpenFile: (entryId: string, path: string) => void;
   /** Double click: pin the file (persistent tab). */
   readonly onActivateFile: (entryId: string, path: string) => void;
+  /**
+   * Detach a workspace entry. When provided, each root header carries a remove
+   * control (VS Code's "Remove Folder from Workspace"); when absent the
+   * explorer is browse-only.
+   */
+  readonly onRemoveEntry?: (entryId: string) => void;
 }
 
 /**
- * The workspace surface's multi-root file explorer.
- *
- * Distinct from {@link import("./WorkspaceEntryFiles.js").WorkspaceEntryFiles}
- * (the inspector's bordered, per-entry filter card): this is the bare,
- * VS Code-style explorer — file-type icons, indent guides, single-click preview
- * / double-click pin — with search living in the rail, not per root. Both share
- * the one `useWorkspaceFiles` cache, so they are two presentations of one
- * listing, never divergent data.
+ * The workspace surface's multi-root file explorer — the bare, VS Code-style
+ * tree: file-type icons, indent guides, single-click preview / double-click
+ * pin, optional per-root remove controls. Search lives in the surface's rail,
+ * not per root; listings come from the shared `useWorkspaceFiles` cache.
  *
  * All visual properties flow through `--stgm-*` tokens (DD-005).
  */
@@ -40,6 +42,7 @@ export function ExplorerTree({
   selectedFile,
   onOpenFile,
   onActivateFile,
+  onRemoveEntry,
 }: ExplorerTreeProps) {
   return (
     <div className="flex flex-col">
@@ -54,6 +57,7 @@ export function ExplorerTree({
           }
           onOpenFile={onOpenFile}
           onActivateFile={onActivateFile}
+          onRemove={onRemoveEntry}
         />
       ))}
     </div>
@@ -68,6 +72,7 @@ function ExplorerRoot({
   selectedPath,
   onOpenFile,
   onActivateFile,
+  onRemove,
 }: {
   readonly entry: WorkspaceEntry;
   readonly lister: WorkspaceFileLister;
@@ -75,6 +80,7 @@ function ExplorerRoot({
   readonly selectedPath: string | undefined;
   readonly onOpenFile: (entryId: string, path: string) => void;
   readonly onActivateFile: (entryId: string, path: string) => void;
+  readonly onRemove?: (entryId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const { tree, isLoading, error, truncated, refresh } = useWorkspaceFiles({
@@ -84,21 +90,38 @@ function ExplorerRoot({
 
   return (
     <div className="flex flex-col">
-      <button
-        type="button"
-        onClick={() => setExpanded((prev) => !prev)}
-        aria-expanded={expanded}
-        className={cn(
-          "flex items-center gap-1.5 px-1.5 py-1 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-foreground transition-colors hover:bg-accent-hover",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+      <div className="group/root flex items-stretch">
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          aria-expanded={expanded}
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-foreground transition-colors hover:bg-accent-hover",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          )}
+          title={entry.type === "local" ? entry.localPath : entry.gitUrl}
+        >
+          <span className="text-[10px] text-muted-foreground-subtle">
+            {expanded ? "▼" : "▶"}
+          </span>
+          <span className="truncate">{entry.name}</span>
+        </button>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={() => onRemove(entry.id)}
+            aria-label={`Remove ${entry.name} from workspace`}
+            title={`Remove ${entry.name} from workspace`}
+            className={cn(
+              "shrink-0 px-1.5 text-muted-foreground opacity-0 transition-opacity",
+              "group-hover/root:opacity-100 focus-visible:opacity-100",
+              "hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            )}
+          >
+            <RemoveIcon />
+          </button>
         )}
-        title={entry.type === "local" ? entry.localPath : entry.gitUrl}
-      >
-        <span className="text-[10px] text-muted-foreground-subtle">
-          {expanded ? "▼" : "▶"}
-        </span>
-        <span className="truncate">{entry.name}</span>
-      </button>
+      </div>
 
       {expanded && (
         <ExplorerRootBody
@@ -208,5 +231,17 @@ function ExplorerRootBody({
         </p>
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inline SVG icons (SDK independence — no lucide dependency)
+// ---------------------------------------------------------------------------
+
+function RemoveIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 4L10 10M10 4L4 10" />
+    </svg>
   );
 }

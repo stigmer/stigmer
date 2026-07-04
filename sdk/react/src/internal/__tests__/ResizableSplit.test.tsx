@@ -72,6 +72,67 @@ describe("ResizableSplit", () => {
     });
   });
 
+  describe("collapsedPane", () => {
+    /** The pane wrapper div for a rendered probe. */
+    function paneOf(testId: string): HTMLElement {
+      return screen.getByTestId(testId).parentElement as HTMLElement;
+    }
+
+    it("hides the collapsed pane and the separator; the sibling flexes", () => {
+      renderSplit({ collapsedPane: "secondary" });
+      expect(paneOf("secondary").className).toContain("hidden");
+      expect(paneOf("primary").className).toContain("flex-1");
+      const separator = screen.getByRole("separator", { hidden: true });
+      expect(separator.className).toContain("hidden");
+      expect(separator.getAttribute("tabindex")).toBe("-1");
+    });
+
+    it("overrides the resizable pane's fixed width while collapsed", () => {
+      renderSplit({ resizablePane: "primary", collapsedPane: "secondary" });
+      // Primary is normally pixel-sized; with its sibling collapsed it flexes.
+      expect(paneOf("primary").style.width).toBe("");
+      expect(paneOf("primary").className).toContain("flex-1");
+    });
+
+    it("keeps both children mounted (same DOM nodes) across a collapse toggle", () => {
+      const { rerender } = render(
+        <ResizableSplit
+          resizablePane="primary"
+          collapsedPane="secondary"
+          primary={<div data-testid="primary">Primary</div>}
+          secondary={<div data-testid="secondary">Secondary</div>}
+        />,
+      );
+      const primaryBefore = screen.getByTestId("primary");
+      const secondaryBefore = screen.getByTestId("secondary");
+      rerender(
+        <ResizableSplit
+          resizablePane="primary"
+          collapsedPane="none"
+          primary={<div data-testid="primary">Primary</div>}
+          secondary={<div data-testid="secondary">Secondary</div>}
+        />,
+      );
+      // Identical node references — expanding never remounted either pane.
+      expect(screen.getByTestId("primary")).toBe(primaryBefore);
+      expect(screen.getByTestId("secondary")).toBe(secondaryBefore);
+      expect(paneOf("primary").style.width).toBe("384px");
+    });
+
+    it("restores the persisted width when expanding after a collapse", () => {
+      localStorage.setItem("collapse-key", "451");
+      renderSplit({
+        resizablePane: "primary",
+        collapsedPane: "secondary",
+        storageKey: "collapse-key",
+        minSize: 300,
+        maxSize: 600,
+      });
+      const separator = screen.getByRole("separator", { hidden: true });
+      expect(separator.getAttribute("aria-valuenow")).toBe("451");
+    });
+  });
+
   describe("keyboard interaction", () => {
     it("increases panel width on ArrowLeft", () => {
       renderSplit({ defaultSize: 400 });

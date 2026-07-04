@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, cleanup, act } from "@testing-library/react";
+import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
-// Wiring-contract test for transcript click-to-open (Slice 3) + the workspace
-// surface flip (Slice A): the onFilePathClick SessionViewer hands to
-// MessageThread resolves a tool-call path, writes the shared file-selection
-// store, AND flips into workspace mode — so the resolved file surfaces in the
-// WorkspaceSurface (not the inspector's Viewer tab). MessageThread,
-// SessionInspector, and WorkspaceSurface render as prop-capturing probes; the
-// store + InspectorPanel wire between them is the subject under test.
+// Wiring-contract test for transcript click-to-open: the onFilePathClick
+// SessionViewer hands to MessageThread resolves a tool-call path, writes the
+// open-editor store, AND expands the session panel — so the resolved file
+// surfaces in the WorkspaceSurface. MessageThread and WorkspaceSurface render
+// as prop-capturing probes; the store + SessionPanelRegion wire between them
+// is the subject under test.
 // ---------------------------------------------------------------------------
 
 type CapturedProps = Record<string, unknown>;
@@ -18,14 +17,6 @@ vi.mock("../../execution/MessageThread", () => ({
   MessageThread: (props: CapturedProps) => {
     threadProps.push(props);
     return <div data-testid="thread-probe" />;
-  },
-}));
-
-const inspectorProps: CapturedProps[] = [];
-vi.mock("../inspector/SessionInspector", () => ({
-  SessionInspector: (props: CapturedProps) => {
-    inspectorProps.push(props);
-    return <div data-testid="inspector-probe" />;
   },
 }));
 
@@ -130,11 +121,6 @@ function capturedOnFilePathClick(): (path: string) => boolean {
   return props?.onFilePathClick as (path: string) => boolean;
 }
 
-/** The latest selectedFile the (mocked) SessionInspector received. */
-function latestSelectedFile(): unknown {
-  return inspectorProps.at(-1)?.selectedFile ?? null;
-}
-
 /** The latest selectedFile the (mocked) WorkspaceSurface received, if rendered. */
 function latestSurfaceSelectedFile(): unknown {
   return surfaceProps.at(-1)?.selectedFile ?? null;
@@ -142,7 +128,6 @@ function latestSurfaceSelectedFile(): unknown {
 
 beforeEach(() => {
   threadProps.length = 0;
-  inspectorProps.length = 0;
   surfaceProps.length = 0;
 });
 
@@ -157,10 +142,9 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
     expect(typeof capturedOnFilePathClick()).toBe("function");
   });
 
-  it("opens a resolvable tool-call path in the workspace surface (flips mode)", () => {
+  it("opens a resolvable tool-call path in the session panel", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
-    // Before any click: chat mode — inspector shown, surface not rendered.
-    expect(latestSelectedFile()).toBeNull();
+    // Before any click: panel collapsed — the surface is not rendered.
     expect(surfaceProps.length).toBe(0);
 
     let handled: boolean | undefined;
@@ -169,8 +153,8 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
     });
 
     expect(handled).toBe(true);
-    // The flip routes the resolved selection into the surface — the SAME
-    // selection a tree click yields.
+    // Opening expands the panel and routes the resolved selection into the
+    // surface — the SAME selection a tree click yields.
     expect(latestSurfaceSelectedFile()).toEqual({
       entryId: "e1",
       path: "src/main.go",
@@ -186,8 +170,27 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
     });
 
     expect(handled).toBe(false);
-    // Stays in chat mode: no surface, inspector selection untouched.
+    // The panel stays collapsed: no surface rendered.
     expect(surfaceProps.length).toBe(0);
-    expect(latestSelectedFile()).toBeNull();
+  });
+
+  it("collapses back to full-width chat via the chip without losing the editor group", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    act(() => {
+      capturedOnFilePathClick()("/home/daytona/workspace/src/main.go");
+    });
+    expect(latestSurfaceSelectedFile()).toEqual({ entryId: "e1", path: "src/main.go" });
+
+    // Chip is the hide affordance while open …
+    fireEvent.click(screen.getByRole("button", { name: "Hide panel" }));
+    const countBefore = surfaceProps.length;
+
+    // … and the show affordance while collapsed; the editor group survives.
+    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+    expect(surfaceProps.length).toBeGreaterThan(countBefore);
+    expect(latestSurfaceSelectedFile()).toEqual({
+      entryId: "e1",
+      path: "src/main.go",
+    });
   });
 });

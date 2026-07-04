@@ -9,15 +9,15 @@ export interface ChangesTabProps {
 }
 
 /**
- * Changes facet for the SessionInspector — the session's git write-backs
+ * Changes facet for the session panel — the session's git write-backs
  * (branch/commit/PR), one `WriteBackCard` per entry.
  *
  * Local file changes deliberately do NOT render here: they live in the
  * transcript, where each stamped edit row shows its diff in place and the
  * per-turn decision bar carries the review controls and file list
  * (`FileReviewCard`). Duplicating them in a side panel gave the same change a
- * third rendering with no added authority. The tab therefore only surfaces
- * once a write-back exists (see `buildVisibleTabs`).
+ * third rendering with no added authority. The facet therefore only surfaces
+ * once a write-back exists (see `useSessionRailViews`).
  */
 export function ChangesTab({ executions }: ChangesTabProps) {
   const { writeBacks, hasWriteBacks } = useSessionWriteBacks(executions);

@@ -124,3 +124,100 @@ describe("WorkspaceSurface", () => {
     expect(screen.getByText("Select a file to view its contents.")).toBeTruthy();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Host-injected rail views (extraViews) — the unified-panel extension seam
+// ---------------------------------------------------------------------------
+
+const configView = {
+  id: "configure",
+  label: "Config",
+  icon: <span data-testid="config-icon" />,
+  content: <div data-testid="config-probe" />,
+};
+
+const changesView = {
+  id: "changes",
+  label: "Changes",
+  icon: <span />,
+  badge: 3,
+  content: <div data-testid="changes-probe" />,
+};
+
+describe("WorkspaceSurface extraViews", () => {
+  it("renders injected views in the rail after the built-ins", () => {
+    renderSurface({ extraViews: [configView, changesView] });
+    const radios = screen.getAllByRole("radio");
+    expect(radios.map((r) => r.getAttribute("title"))).toEqual([
+      "Explorer",
+      "Search",
+      "Config",
+      "Changes",
+    ]);
+  });
+
+  it("shows a count badge on a rail view and folds it into the accessible name", () => {
+    renderSurface({ extraViews: [changesView] });
+    const changes = screen.getByRole("radio", { name: "Changes (3)" });
+    expect(changes.textContent).toContain("3");
+  });
+
+  it("renders an extra view's content in the sidebar (with heading) when selected, keeping the editor area", () => {
+    renderSurface({ extraViews: [configView] });
+    fireEvent.click(screen.getByRole("radio", { name: "Config" }));
+    expect(screen.getByTestId("config-probe")).toBeTruthy();
+    expect(screen.queryByTestId("explorer-probe")).toBeNull();
+    // Sidebar heading + the editor area (file tab) both present.
+    expect(screen.getByText("Config")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /main\.go/ })).toBeTruthy();
+  });
+
+  it("supports controlled view selection via view/onViewChange", () => {
+    const onViewChange = vi.fn();
+    renderSurface({
+      extraViews: [configView],
+      view: "configure",
+      onViewChange,
+    });
+    expect(screen.getByTestId("config-probe")).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "Search" }));
+    expect(onViewChange).toHaveBeenCalledWith("search");
+    // Controlled: the view does not change until the owner re-renders.
+    expect(screen.getByTestId("config-probe")).toBeTruthy();
+  });
+
+  it("falls back to the explorer when the active view id no longer exists", () => {
+    // e.g. a contextual view (Inspect) that disappeared while active.
+    renderSurface({ extraViews: [], view: "inspect" });
+    expect(screen.getByTestId("explorer-probe")).toBeTruthy();
+    expect(
+      screen.getByRole("radio", { name: "Explorer" }).getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+
+  it("moves across built-in and injected views with arrow keys", () => {
+    renderSurface({ extraViews: [configView] });
+    const search = screen.getByRole("radio", { name: "Search" });
+    fireEvent.click(search);
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    expect(screen.getByTestId("config-probe")).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Workspace entry management in the Explorer sidebar
+// ---------------------------------------------------------------------------
+
+describe("WorkspaceSurface entry management", () => {
+  it("renders an Add Folder footer action when onAddLocalFolder is provided", () => {
+    const onAddLocalFolder = vi.fn();
+    renderSurface({ onAddLocalFolder });
+    fireEvent.click(screen.getByRole("button", { name: "Add Folder" }));
+    expect(onAddLocalFolder).toHaveBeenCalledTimes(1);
+  });
+
+  it("omits the Add Folder action without the callback (web has no native picker)", () => {
+    renderSurface();
+    expect(screen.queryByRole("button", { name: "Add Folder" })).toBeNull();
+  });
+});

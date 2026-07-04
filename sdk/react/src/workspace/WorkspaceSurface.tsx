@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
@@ -17,8 +17,31 @@ import { FileViewer, type FileViewerHandle } from "./FileViewer.js";
 import { EditorTabs } from "./EditorTabs.js";
 import { ExplorerTree } from "./ExplorerTree.js";
 
-/** Which rail view is active: the file explorer or workspace-wide search. */
-type RailView = "files" | "search";
+/** The built-in rail views every surface has. */
+const BUILT_IN_VIEWS = ["files", "search"] as const;
+
+/**
+ * A host-injected rail view: an icon in the activity rail whose content
+ * renders in the sidebar pane when active.
+ *
+ * This is how session facets (Config, Changes, Artifacts, …) join the built-in
+ * Explorer/Search views without the surface knowing any session domain — the
+ * same composition philosophy as the injected lister/reader capabilities
+ * (DD-004). The surface stays an embeddable, domain-pure workspace organism;
+ * hosts extend its rail.
+ */
+export interface SurfaceRailView {
+  /** Unique view id. Must not collide with the built-in `"files"`/`"search"`. */
+  readonly id: string;
+  /** Accessible label; also rendered as the sidebar heading. */
+  readonly label: string;
+  /** Monochrome rail icon (tinted via `currentColor`, DD-005). */
+  readonly icon: ReactNode;
+  /** Optional count badge rendered over the rail icon (hidden when 0). */
+  readonly badge?: number;
+  /** Sidebar content rendered while this view is active. */
+  readonly content: ReactNode;
+}
 
 /** Props for {@link WorkspaceSurface}. */
 export interface WorkspaceSurfaceProps {
@@ -28,6 +51,38 @@ export interface WorkspaceSurfaceProps {
   readonly lister: WorkspaceFileLister | undefined;
   /** Platform-injected content reader for the editor. */
   readonly reader: WorkspaceFileReader | undefined;
+  /**
+   * The active rail view id (`"files"`, `"search"`, or an {@link SurfaceRailView.id}).
+   * Provide together with `onViewChange` to control the rail from the host;
+   * omit for internal (uncontrolled) view state. An id that matches no view
+   * (e.g. a contextual extra view that disappeared) falls back to `"files"`.
+   */
+  readonly view?: string;
+  /** Called when the user picks a rail view. */
+  readonly onViewChange?: (viewId: string) => void;
+  /**
+   * Host-injected rail views, rendered after the built-in Explorer/Search.
+   * Their `content` renders in the sidebar pane; the editor area stays for
+   * files (the VS Code model).
+   */
+  readonly extraViews?: readonly SurfaceRailView[];
+  /**
+   * Host status area rendered at the right of the editor top strip (e.g. the
+   * session's execution phase badge). Kept as a slot so the surface stays
+   * session-agnostic.
+   */
+  readonly statusSlot?: ReactNode;
+  /**
+   * Detach a workspace entry. When provided, explorer root headers carry a
+   * remove control (VS Code's "Remove Folder from Workspace").
+   */
+  readonly onRemoveEntry?: (entryId: string) => void;
+  /**
+   * Attach a local folder (host opens its native picker and adds the entry).
+   * When provided, the explorer renders an "Add Folder" footer action —
+   * desktop hosts wire this; web hosts omit it (no native picker).
+   */
+  readonly onAddLocalFolder?: () => void;
   /** Open editor tabs in order (VS Code open-editors model). */
   readonly editors: readonly OpenEditor[];
   /** The active editor's file, or `null`. Highlighted in the tree and shown. */
@@ -72,6 +127,12 @@ export function WorkspaceSurface({
   entries,
   lister,
   reader,
+  view,
+  onViewChange,
+  extraViews,
+  statusSlot,
+  onRemoveEntry,
+  onAddLocalFolder,
   editors,
   selectedFile,
   onOpenFile,
@@ -82,34 +143,61 @@ export function WorkspaceSurface({
   change,
   className,
 }: WorkspaceSurfaceProps) {
-  const [railView, setRailView] = useState<RailView>("files");
+  // Optionally controlled (standard React pattern): a host that owns view
+  // routing (e.g. the session panel's auto-view logic) passes `view` +
+  // `onViewChange`; standalone embedders get internal state for free.
+  const [uncontrolledView, setUncontrolledView] = useState<string>("files");
+  const requestedView = view ?? uncontrolledView;
+  const handleViewChange = useCallback(
+    (next: string) => {
+      setUncontrolledView(next);
+      onViewChange?.(next);
+    },
+    [onViewChange],
+  );
+
+  // A stale id (e.g. a contextual extra view that disappeared) degrades to the
+  // explorer rather than an empty sidebar.
+  const isKnownView =
+    (BUILT_IN_VIEWS as readonly string[]).includes(requestedView) ||
+    (extraViews?.some((v) => v.id === requestedView) ?? false);
+  const activeView = isKnownView ? requestedView : "files";
+  const activeExtraView = extraViews?.find((v) => v.id === activeView);
 
   return (
     <div className={cn("flex h-full min-h-0", className)}>
-      <ActivityRail view={railView} onViewChange={setRailView} />
+      <ActivityRail
+        view={activeView}
+        onViewChange={handleViewChange}
+        extraViews={extraViews}
+      />
       <ResizableSplit
         resizablePane="primary"
-        defaultSize={256}
-        minSize={180}
-        maxSize={480}
+        defaultSize={288}
+        minSize={200}
+        maxSize={560}
         storageKey="stgm-workspace-sidebar-width"
-        ariaLabel="Resize file explorer"
+        ariaLabel="Resize sidebar"
         className="min-h-0 flex-1"
         primary={
-          railView === "files" ? (
+          activeExtraView ? (
+            <ExtraViewSidebar view={activeExtraView} />
+          ) : activeView === "search" ? (
+            <SearchSidebar
+              entries={entries}
+              lister={lister}
+              selectedFile={selectedFile}
+              onOpenFile={onOpenFile}
+            />
+          ) : (
             <ExplorerSidebar
               entries={entries}
               lister={lister}
               selectedFile={selectedFile}
               onOpenFile={onOpenFile}
               onActivateFile={onPinEditor}
-            />
-          ) : (
-            <SearchSidebar
-              entries={entries}
-              lister={lister}
-              selectedFile={selectedFile}
-              onOpenFile={onOpenFile}
+              onRemoveEntry={onRemoveEntry}
+              onAddLocalFolder={onAddLocalFolder}
             />
           )
         }
@@ -120,6 +208,7 @@ export function WorkspaceSurface({
             editors={editors}
             selectedFile={selectedFile}
             change={change}
+            statusSlot={statusSlot}
             onActivateEditor={onActivateEditor}
             onPinEditor={onPinEditor}
             onCloseEditor={onCloseEditor}
@@ -132,37 +221,47 @@ export function WorkspaceSurface({
 }
 
 // ---------------------------------------------------------------------------
-// Activity rail — Explorer / Search switch (VS Code activity-bar model)
+// Activity rail — built-in views + host-injected extras (VS Code activity bar)
 // ---------------------------------------------------------------------------
+
+interface RailItem {
+  readonly id: string;
+  readonly label: string;
+  readonly icon: ReactNode;
+  readonly badge?: number;
+}
 
 function ActivityRail({
   view,
   onViewChange,
+  extraViews,
 }: {
-  readonly view: RailView;
-  readonly onViewChange: (next: RailView) => void;
+  readonly view: string;
+  readonly onViewChange: (next: string) => void;
+  readonly extraViews: readonly SurfaceRailView[] | undefined;
 }) {
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLButtonElement>) => {
-      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-        e.preventDefault();
-        onViewChange("search");
-      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-        e.preventDefault();
-        onViewChange("files");
-      }
-    },
-    [onViewChange],
-  );
-
-  const items: readonly {
-    readonly value: RailView;
-    readonly label: string;
-    readonly icon: React.ReactNode;
-  }[] = [
-    { value: "files", label: "Explorer", icon: <FilesIcon /> },
-    { value: "search", label: "Search", icon: <SearchIcon /> },
+  const items: readonly RailItem[] = [
+    { id: "files", label: "Explorer", icon: <FilesIcon /> },
+    { id: "search", label: "Search", icon: <SearchIcon /> },
+    ...(extraViews ?? []),
   ];
+
+  // Roving selection: arrows move relative to the *focused* item's position,
+  // so the rail scales to any number of injected views.
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+      let nextIndex: number | null = null;
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        nextIndex = Math.min(index + 1, items.length - 1);
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        nextIndex = Math.max(index - 1, 0);
+      }
+      if (nextIndex === null || nextIndex === index) return;
+      e.preventDefault();
+      onViewChange(items[nextIndex].id);
+    },
+    [items, onViewChange],
+  );
 
   return (
     <div
@@ -171,19 +270,20 @@ function ActivityRail({
       aria-orientation="vertical"
       className="flex w-11 shrink-0 flex-col items-center gap-1 border-r border-border bg-muted-faint py-2"
     >
-      {items.map((item) => {
-        const isSelected = view === item.value;
+      {items.map((item, index) => {
+        const isSelected = view === item.id;
+        const showBadge = item.badge != null && item.badge > 0;
         return (
           <button
-            key={item.value}
+            key={item.id}
             type="button"
             role="radio"
             aria-checked={isSelected}
-            aria-label={item.label}
+            aria-label={showBadge ? `${item.label} (${item.badge})` : item.label}
             title={item.label}
             tabIndex={isSelected ? 0 : -1}
-            onClick={() => onViewChange(item.value)}
-            onKeyDown={handleKeyDown}
+            onClick={() => onViewChange(item.id)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
             className={cn(
               "relative flex h-9 w-9 items-center justify-center rounded-md transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -193,6 +293,14 @@ function ActivityRail({
             )}
           >
             {item.icon}
+            {showBadge && (
+              <span
+                aria-hidden="true"
+                className="absolute -right-0.5 -top-0.5 inline-flex min-w-[0.875rem] items-center justify-center rounded-full bg-primary px-1 py-px text-[9px] font-medium leading-none text-primary-foreground"
+              >
+                {item.badge}
+              </span>
+            )}
           </button>
         );
       })}
@@ -210,12 +318,16 @@ function ExplorerSidebar({
   selectedFile,
   onOpenFile,
   onActivateFile,
+  onRemoveEntry,
+  onAddLocalFolder,
 }: {
   readonly entries: readonly WorkspaceEntry[];
   readonly lister: WorkspaceFileLister | undefined;
   readonly selectedFile: SelectedWorkspaceFile | null;
   readonly onOpenFile: (entryId: string, path: string) => void;
   readonly onActivateFile: (entryId: string, path: string) => void;
+  readonly onRemoveEntry?: (entryId: string) => void;
+  readonly onAddLocalFolder?: () => void;
 }) {
   return (
     <div className="flex h-full min-h-0 flex-col border-r border-border">
@@ -230,9 +342,22 @@ function ExplorerSidebar({
             selectedFile={selectedFile}
             onOpenFile={onOpenFile}
             onActivateFile={onActivateFile}
+            onRemoveEntry={onRemoveEntry}
           />
         )}
       </div>
+      {onAddLocalFolder && (
+        <div className="shrink-0 border-t border-border-muted p-1.5">
+          <button
+            type="button"
+            onClick={onAddLocalFolder}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-foreground transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <FolderPlusIcon />
+            <span className="flex-1 text-left">Add Folder</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -267,6 +392,23 @@ function SearchSidebar({
 }
 
 // ---------------------------------------------------------------------------
+// Extra-view sidebar — host-injected facet content (Config, Changes, …)
+// ---------------------------------------------------------------------------
+
+function ExtraViewSidebar({ view }: { readonly view: SurfaceRailView }) {
+  return (
+    <div className="flex h-full min-h-0 flex-col border-r border-border">
+      <SidebarHeader title={view.label} />
+      {/* Same scroll + padding envelope the inspector gave these components,
+          so facet content drops in unchanged. */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        {view.content}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Editor area — collapse control + tab strip + read-only FileViewer
 // ---------------------------------------------------------------------------
 
@@ -276,6 +418,7 @@ function EditorArea({
   editors,
   selectedFile,
   change,
+  statusSlot,
   onActivateEditor,
   onPinEditor,
   onCloseEditor,
@@ -286,6 +429,7 @@ function EditorArea({
   readonly editors: readonly OpenEditor[];
   readonly selectedFile: SelectedWorkspaceFile | null;
   readonly change?: FileChange;
+  readonly statusSlot?: ReactNode;
   readonly onActivateEditor: (entryId: string, path: string) => void;
   readonly onPinEditor: (entryId: string, path: string) => void;
   readonly onCloseEditor: (entryId: string, path: string) => void;
@@ -301,9 +445,9 @@ function EditorArea({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Collapse control + tab strip. The right side is kept clear (pr-24): the
-          session viewer floats host `headerActions` (e.g. Share) over the
-          top-right of this region. */}
+      {/* Collapse control + tab strip + host status. The far right is kept
+          clear (pr-24): the session viewer floats its top-right controls (host
+          `headerActions` and the panel chip) over this region. */}
       <div className="flex shrink-0 items-stretch border-b border-border pr-24">
         <button
           type="button"
@@ -323,6 +467,11 @@ function EditorArea({
             onClose={onCloseEditor}
             className="min-w-0 flex-1 border-b-0"
           />
+        )}
+        {statusSlot && (
+          <div className="ml-auto flex shrink-0 items-center px-2">
+            {statusSlot}
+          </div>
         )}
       </div>
       {selectedFile ? (
@@ -441,6 +590,15 @@ function SearchIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.3-4.3" />
+    </svg>
+  );
+}
+
+function FolderPlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground" aria-hidden="true">
+      <path d="M1.5 3.5V11a1 1 0 001 1h9a1 1 0 001-1V5.5a1 1 0 00-1-1H7L5.5 3H2.5a1 1 0 00-1 .5z" />
+      <path d="M7 7v3M5.5 8.5h3" />
     </svg>
   );
 }

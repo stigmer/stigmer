@@ -12,10 +12,11 @@ import type { HarnessOption } from "../models/harness.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import { useWorkspaceEditors } from "../internal/store/index.js";
 import { WorkspaceSurface } from "../workspace/WorkspaceSurface.js";
-import { SessionInspector } from "./inspector/SessionInspector.js";
-import type { SetupTabProps } from "./inspector/SetupTab.js";
+import type { SetupTabProps } from "./facets/SetupTab.js";
 import { useNewSessionFlow } from "./useNewSessionFlow.js";
-import { useWorkspaceMode } from "./useWorkspaceMode.js";
+import { useSessionPanel } from "./useSessionPanel.js";
+import { useSessionRailViews } from "./useSessionRailViews.js";
+import { SessionPanelChip } from "./SessionPanelChip.js";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
 
@@ -130,9 +131,10 @@ export interface NewSessionViewerProps {
  * Owns `useNewSessionFlow` internally and composes:
  * - **Centered composer** (primary pane): `SessionComposer` with all
  *   context pickers (agent, workspace, MCP servers, skills)
- * - **SessionInspector** (secondary pane): progressively revealed when
- *   context is attached (workspace/agent/MCP/skills/vars non-empty),
- *   showing only the Setup tab with interactive workspace actions.
+ * - **Session panel** (secondary pane): the unified `WorkspaceSurface` with a
+ *   Config rail view — collapsed by default behind a top-right chip that
+ *   appears once context is attached (workspace/agent/MCP/skills/vars
+ *   non-empty). Same layout model as `SessionViewer` (DD-016).
  *
  * Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
  * apps inject platform-specific values via props (DD-004/DD-016).
@@ -191,12 +193,13 @@ export function NewSessionViewer({
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const isEndUser = audience === "endUser";
 
-  // The workspace-surface controller (shared with SessionViewer, DD-016). The
-  // launcher has a single column (no transcript to isolate from), so subscribing
-  // in the body is harmless — unlike `SessionViewer`, which subscribes one level
+  // The unified-panel controller (shared with SessionViewer, DD-016). The
+  // launcher has no execution yet, so the FSM inputs are static. It has no
+  // streaming column to isolate either, so subscribing to the editor group in
+  // the body is harmless — unlike `SessionViewer`, which subscribes one level
   // down.
-  const ws = useWorkspaceMode();
-  const { editors, activeFile } = useWorkspaceEditors(ws.editorsStore);
+  const panel = useSessionPanel({ phase: null, hasChanges: false });
+  const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
 
   const hasContext =
     flow.workspace.hasEntries ||
@@ -259,22 +262,22 @@ export function NewSessionViewer({
     ],
   );
 
-  const workspaceConfig = useMemo(
-    () => ({
-      actions: {
-        workspace: flow.workspace,
-        enableGitHub,
-        enableLocal,
-        gitHubConnection,
-        onBrowseLocalFolder,
-        workspaceFileLister,
-        workspaceFileReader,
-        onOpenFile: ws.openFileInWorkspace,
-        onOpenWorkspace: ws.enterWorkspace,
-      },
-    }),
-    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister, workspaceFileReader, ws.openFileInWorkspace, ws.enterWorkspace],
-  );
+  // Launcher facets: Config only — no executions exist yet, so the
+  // execution-derived facets (Changes/Artifacts/Usage) don't apply.
+  const railViews = useSessionRailViews({
+    allExecutions: [],
+    org,
+    sessionConfig,
+    selectedItem: null,
+    includeExecutionFacets: false,
+  });
+
+  // Explorer-footer folder attach (desktop only — needs the native picker).
+  const canAddLocalFolder = enableLocal && !!onBrowseLocalFolder;
+  const handleAddLocalFolder = useCallback(async () => {
+    const path = await onBrowseLocalFolder?.();
+    if (path) flow.workspace.addLocalPath(path);
+  }, [onBrowseLocalFolder, flow.workspace.addLocalPath]);
 
   const composerNode = (
     <div className="flex h-full flex-col items-center overflow-y-auto px-4">
@@ -330,63 +333,58 @@ export function NewSessionViewer({
     </div>
   );
 
-  if (!hasContext) {
-    return (
-      <div className={cn("flex h-full w-full flex-col", className)}>
-        {composerNode}
-      </div>
-    );
-  }
-
   return (
-    <div className={cn("flex h-full w-full flex-col", className)}>
-      {/* Same layout flip as SessionViewer (DD-016): opening a file makes the
-          composer the narrow fixed pane and hands the flexible region to the
-          workspace surface; otherwise the composer is flexible and the inspector
-          is the fixed panel. The composer is always the first child, so the flip
-          re-flows without remounting it. */}
+    <div className={cn("relative flex h-full w-full flex-col", className)}>
+      {/* The panel chip appears once there is context worth inspecting —
+          the launcher's successor to the old progressively-revealed inspector.
+          The composer's own pickers already confirm attached context inline. */}
+      {hasContext && (
+        <div className="absolute top-2 right-6 z-10">
+          <SessionPanelChip
+            isOpen={panel.isOpen}
+            onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
+          />
+        </div>
+      )}
+
+      {/* Same unified-panel layout as SessionViewer (DD-016): collapsed by
+          default (composer fills the row); opening makes the composer the
+          fixed narrow pane and hands the flexible region to the surface.
+          Collapse goes through the split's `collapsedPane` (CSS, not
+          conditional structure), so the composer never remounts — even when
+          `hasContext` flips. */}
       <ResizableSplit
-        resizablePane={ws.workspaceMode ? "primary" : "secondary"}
-        defaultSize={ws.workspaceMode ? 420 : 320}
-        minSize={ws.workspaceMode ? 320 : 240}
-        maxSize={ws.workspaceMode ? 640 : 480}
-        storageKey={
-          ws.workspaceMode
-            ? "stgm-new-session-chat-width"
-            : "stgm-new-session-inspector-width"
-        }
-        responsiveCollapse={ws.workspaceMode ? "primary" : "secondary"}
-        ariaLabel={ws.workspaceMode ? "Resize composer panel" : "Resize inspector panel"}
+        resizablePane="primary"
+        collapsedPane={panel.isOpen ? "none" : "secondary"}
+        defaultSize={420}
+        minSize={320}
+        maxSize={640}
+        storageKey="stgm-new-session-chat-width"
+        responsiveCollapse={panel.isOpen ? "primary" : "none"}
+        ariaLabel="Resize composer panel"
         className="min-h-0 flex-1"
         primary={composerNode}
         secondary={
-          ws.workspaceMode ? (
+          panel.isOpen ? (
             <WorkspaceSurface
               entries={flow.workspace.entries}
               lister={workspaceFileLister}
               reader={workspaceFileReader}
+              view={panel.view}
+              onViewChange={panel.setView}
+              extraViews={railViews}
+              onRemoveEntry={flow.workspace.remove}
+              onAddLocalFolder={canAddLocalFolder ? handleAddLocalFolder : undefined}
               editors={editors}
               selectedFile={activeFile}
-              onOpenFile={ws.openFileInWorkspace}
-              onActivateEditor={ws.activateEditor}
-              onPinEditor={ws.pinEditor}
-              onCloseEditor={ws.closeEditor}
-              onCollapse={ws.collapseWorkspace}
+              onOpenFile={panel.openFile}
+              onActivateEditor={panel.activateEditor}
+              onPinEditor={panel.pinEditor}
+              onCloseEditor={panel.closeEditor}
+              onCollapse={panel.closePanel}
               className="h-full"
             />
-          ) : (
-            <aside className="flex h-full flex-col overflow-hidden">
-              <SessionInspector
-                displayExecution={null}
-                allExecutions={[]}
-                org={org}
-                selectedItem={null}
-                sessionConfig={sessionConfig}
-                workspaceConfig={workspaceConfig}
-                className="min-h-0 flex-1"
-              />
-            </aside>
-          )
+          ) : null
         }
       />
     </div>

@@ -55,6 +55,16 @@ export interface ResizableSplitProps {
   /** Which pane collapses below the `lg` breakpoint. @default "none" */
   readonly responsiveCollapse?: ResizableCollapse;
   /**
+   * Which pane (if any) is collapsed at every width, hiding the drag handle and
+   * letting the sibling fill the row. Unlike conditional rendering at the call
+   * site, collapsing through this prop keeps both children mounted at stable
+   * tree positions — the session panel uses it so opening/closing the panel
+   * never remounts the conversation. The persisted width survives a collapse
+   * and applies again on expand.
+   * @default "none"
+   */
+  readonly collapsedPane?: ResizableCollapse;
+  /**
    * Accessible label for the drag separator. @default "Resize panel"
    */
   readonly ariaLabel?: string;
@@ -148,11 +158,13 @@ export function ResizableSplit({
   maxSize = 800,
   storageKey,
   responsiveCollapse = "none",
+  collapsedPane = "none",
   ariaLabel = "Resize panel",
   onResize,
   className,
 }: ResizableSplitProps) {
   const isPrimaryResizable = resizablePane === "primary";
+  const isCollapsed = collapsedPane !== "none";
 
   const [panelWidth, setPanelWidth] = useState(() =>
     readInitialWidth(storageKey, defaultSize, minSize, maxSize),
@@ -161,7 +173,7 @@ export function ResizableSplit({
   // Re-initialize the width when the storage key or resizable side changes —
   // the session layout swaps both together on a mode flip and expects the width
   // to come from the new key, not carry over. Adjust-state-during-render
-  // (matching `useSessionInspector`) so it lands before paint without a remount.
+  // (matching `useSessionPanel`) so it lands before paint without a remount.
   const [prevStorageKey, setPrevStorageKey] = useState(storageKey);
   const [prevResizablePane, setPrevResizablePane] = useState(resizablePane);
   if (storageKey !== prevStorageKey || resizablePane !== prevResizablePane) {
@@ -264,20 +276,39 @@ export function ResizableSplit({
   const fixedPaneClass = "shrink-0 overflow-hidden";
   const flexPaneClass = "min-w-0 flex-1";
 
+  // A collapsed pane hides entirely and its sibling flexes to fill the row,
+  // overriding the fixed/flex split. Width state is untouched, so expanding
+  // restores the previous size.
+  const primaryPaneClass =
+    collapsedPane === "primary"
+      ? "hidden"
+      : collapsedPane === "secondary" || !isPrimaryResizable
+        ? flexPaneClass
+        : fixedPaneClass;
+  const secondaryPaneClass =
+    collapsedPane === "secondary"
+      ? "hidden"
+      : collapsedPane === "primary" || isPrimaryResizable
+        ? flexPaneClass
+        : fixedPaneClass;
+
   return (
     <div ref={containerRef} className={cn("flex min-h-0 flex-1", className)}>
-      {/* Primary region (first child, order-stable across flips) */}
+      {/* Primary region (first child, order-stable across flips/collapses) */}
       <div
         className={cn(
-          isPrimaryResizable ? fixedPaneClass : flexPaneClass,
+          primaryPaneClass,
           responsiveCollapse === "primary" && "max-lg:hidden",
         )}
-        style={isPrimaryResizable ? { width: panelWidth } : undefined}
+        style={
+          isPrimaryResizable && !isCollapsed ? { width: panelWidth } : undefined
+        }
       >
         {primary}
       </div>
 
-      {/* Drag handle */}
+      {/* Drag handle — CSS-hidden (not unmounted) while collapsed so all three
+          children keep stable tree positions across a collapse toggle. */}
       <div
         role="separator"
         aria-orientation="vertical"
@@ -285,7 +316,8 @@ export function ResizableSplit({
         aria-valuemin={minSize}
         aria-valuemax={maxSize}
         aria-label={ariaLabel}
-        tabIndex={0}
+        aria-hidden={isCollapsed || undefined}
+        tabIndex={isCollapsed ? -1 : 0}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -298,19 +330,22 @@ export function ResizableSplit({
           "active:bg-[var(--stgm-primary,#6366f1)]",
           "transition-colors duration-100",
           responsiveCollapse !== "none" && "max-lg:hidden",
+          isCollapsed && "hidden",
         )}
       >
         {/* Wider invisible hit target (12px) for easier grabbing */}
         <div className="absolute inset-y-0 -left-1.5 -right-1.5" />
       </div>
 
-      {/* Secondary region (second child, order-stable across flips) */}
+      {/* Secondary region (second child, order-stable across flips/collapses) */}
       <div
         className={cn(
-          isPrimaryResizable ? flexPaneClass : fixedPaneClass,
+          secondaryPaneClass,
           responsiveCollapse === "secondary" && "max-lg:hidden",
         )}
-        style={isPrimaryResizable ? undefined : { width: panelWidth }}
+        style={
+          !isPrimaryResizable && !isCollapsed ? { width: panelWidth } : undefined
+        }
       >
         {secondary}
       </div>

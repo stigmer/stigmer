@@ -9,7 +9,7 @@ export interface UsageTabProps {
 }
 
 /**
- * Usage facet for the SessionInspector.
+ * Usage facet for the session panel (a `useSessionRailViews` rail view).
  *
  * Uses `useSessionUsage` to determine if data exists, then delegates
  * rendering to the existing `UsageWidget`. Shows an empty state when

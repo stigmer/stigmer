@@ -116,4 +116,37 @@ describe("ExplorerTree", () => {
     const second = screen.getByText("second").closest("button")!;
     expect(second.getAttribute("aria-expanded")).toBe("false");
   });
+
+  it("offers a remove control per root when onRemoveEntry is provided", async () => {
+    const onRemoveEntry = vi.fn();
+    render(
+      <ExplorerTree
+        entries={[entry("x6")]}
+        lister={lister(["a.ts"])}
+        selectedFile={null}
+        onOpenFile={vi.fn()}
+        onActivateFile={vi.fn()}
+        onRemoveEntry={onRemoveEntry}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove acme/repo from workspace" }),
+    );
+    expect(onRemoveEntry).toHaveBeenCalledWith("x6");
+  });
+
+  it("is browse-only (no remove controls) without onRemoveEntry", () => {
+    render(
+      <ExplorerTree
+        entries={[entry("x7")]}
+        lister={lister(["a.ts"])}
+        selectedFile={null}
+        onOpenFile={vi.fn()}
+        onActivateFile={vi.fn()}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: /Remove .* from workspace/ }),
+    ).toBeNull();
+  });
 });

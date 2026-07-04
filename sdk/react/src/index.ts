@@ -71,11 +71,11 @@ export {
   useWorkspaceSources,
   MAX_WORKSPACE_FILE_READ_BYTES,
   WorkspaceEditor,
-  WorkspaceEntryFiles,
   WorkspaceFileSearch,
   WorkspaceSummary,
   FileViewer,
   WorkspaceSurface,
+  ExplorerTree,
 } from "./workspace/index.js";
 export type {
   WorkspaceEntry,
@@ -92,7 +92,6 @@ export type {
   UseWorkspaceFileSearchReturn,
   WorkspaceFileSearchGroup,
   WorkspaceFileMatch,
-  WorkspaceEntryFilesProps,
   WorkspaceFileSearchProps,
   FileViewerProps,
   FileViewerHandle,
@@ -102,6 +101,8 @@ export type {
   WorkspaceEditorProps,
   WorkspaceSummaryProps,
   WorkspaceSurfaceProps,
+  SurfaceRailView,
+  ExplorerTreeProps,
   OpenEditor,
 } from "./workspace/index.js";
 
@@ -132,10 +133,7 @@ export {
   resolvedSubject,
   SessionViewer,
   NewSessionViewer,
-  useWorkspaceMode,
-  SessionInspector,
-  useSessionInspector,
-  buildVisibleTabs,
+  useSessionPanel,
   SetupTab,
 } from "./session/index.js";
 export type {
@@ -173,14 +171,11 @@ export type {
   SearchResultGroup,
   SessionViewerProps,
   NewSessionViewerProps,
-  WorkspaceModeController,
+  SessionPanelController,
+  UseSessionPanelOptions,
   ExecutionTargetOption,
   RuntimeEnvProvider,
   SessionAudience,
-  SessionInspectorProps,
-  SessionInspectorTabId,
-  UseSessionInspectorOptions,
-  UseSessionInspectorReturn,
   SetupTabProps,
   SetupTabMutationCallbacks,
   SelectedThreadItem,

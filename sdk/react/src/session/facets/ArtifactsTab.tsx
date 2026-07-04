@@ -24,7 +24,7 @@ export interface ArtifactsTabProps {
 }
 
 /**
- * Artifacts facet for the SessionInspector.
+ * Artifacts facet for the session panel (a `useSessionRailViews` rail view).
  *
  * Wraps `useSessionArtifacts` → `ArtifactCard` list with
  * `ArtifactPreviewModal` — the same content as `ArtifactsWidget`

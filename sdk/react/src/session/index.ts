@@ -102,29 +102,25 @@ export type { SessionViewerProps } from "./SessionViewer.js";
 export { NewSessionViewer } from "./NewSessionViewer.js";
 export type { NewSessionViewerProps } from "./NewSessionViewer.js";
 
-// Workspace-surface layout controller — drives the WorkspaceSurface open-editor
-// group + layout flip (for platform builders embedding the surface directly).
-export { useWorkspaceMode } from "./useWorkspaceMode.js";
-export type { WorkspaceModeController } from "./useWorkspaceMode.js";
+// Unified session-panel controller — drives the WorkspaceSurface open-editor
+// group, the collapsed/open state, and the rail-view FSM (for platform
+// builders embedding the surface directly).
+export { useSessionPanel } from "./useSessionPanel.js";
+export type {
+  SessionPanelController,
+  UseSessionPanelOptions,
+} from "./useSessionPanel.js";
 
-// Selection types (for platform builders using SessionInspector directly)
+// Selection types (for platform builders composing their own Inspect facet)
 export type { SelectedThreadItem } from "../internal/store/selection-store.js";
 
-// SessionInspector — tabbed right-side inspector panel
-export {
-  SessionInspector,
-  useSessionInspector,
-  buildVisibleTabs,
-  SetupTab,
-} from "./inspector/index.js";
+// Session facet components — the panel's rail views (Config et al.), also
+// independently importable (DD-003).
+export { SetupTab } from "./facets/index.js";
 export type {
-  SessionInspectorProps,
-  SessionInspectorTabId,
-  UseSessionInspectorOptions,
-  UseSessionInspectorReturn,
   SetupTabProps,
   SetupTabMutationCallbacks,
-} from "./inspector/index.js";
+} from "./facets/index.js";
 
 // Session utilities (re-exported from @stigmer/sdk)
 export { PENDING_SUBJECT, resolvedSubject } from "@stigmer/sdk";
