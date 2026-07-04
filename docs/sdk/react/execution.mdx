@@ -1466,8 +1466,8 @@ All visual properties flow through `--stgm-*` tokens.
   type={{
     activeStreamExecution: { type: "AgentExecution | null", description: "The currently streaming execution. Appended after `executions` to form a continuous thread. Pass `null` or `undefined` when no execution is actively streaming." },
     approvalErrors: { type: "ReadonlyMap<string, Error>", description: "Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card beside the gate that failed (an inline tool row or the bottom backstop card). Supply useSubmitApproval's `errorsByToolCallId`. Only meaningful when `onApprovalSubmit` is provided." },
-    centerContent: { type: "boolean", description: "Center thread content within a max-width reading column.  When `true`, items are constrained to `max-w-3xl` (768 px) and horizontally centered. The scroll container stays full-width so the scrollbar remains at the viewport edge.  Opt-in per DD-011 — existing consumers see no layout change." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    contentColumn: { type: "ThreadContentColumn", description: "Constrain thread content to a max-width reading column (`max-w-3xl`, 768 px) inside the full-width scroll container — the scrollbar stays at the viewport edge.  - `\"center\"` — column horizontally centered (classic chat reading view). - `\"start\"` — column anchored to the left edge, so the thread's left   edge stays put when a sibling panel opens/closes beside it.  When omitted, content spans the full width. Opt-in per DD-011 — existing consumers see no layout change.", typeDescriptionLink: "#threadcontentcolumn" },
     executions: { type: "readonly AgentExecution[]", description: "Completed executions in chronological order.", required: true },
     formatToolCallSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom formatter for tool call summary labels. Passed through to each ToolCallGroup." },
     onApprovalSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Callback for approval actions. When provided and the active execution has pending approvals, ApprovalCards are rendered as thread items. When omitted, no approval UI is shown (backward compatible)." },
@@ -3016,6 +3016,11 @@ there is nothing useful to summarize.
 ```tsx
 function summarizeResultView(view: ToolResultView): string | null
 ```
+
+
+### ThreadContentColumn
+
+Reading-column alignment for [`MessageThread`](#messagethread) content.
 
 
 ### toDisplayFileChange

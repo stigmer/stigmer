@@ -1047,13 +1047,14 @@ apps inject platform-specific values via props (DD-004/DD-016).
 
 <TypeTable
   type={{
+    accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton` with its own permission gating). Rendered inside the panel's Config facet rather than the header — access is session configuration, not a moment-to-moment action (DD-004 slot injection)." },
     audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the MCP server, skill, and session-variable configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace features in the composer." },
     enableLocal: { type: "boolean", description: "Whether to enable local workspace features in the composer. Web passes `deploymentMode === \"local\"`, desktop passes `true`." },
     getRuntimeEnv: { type: "RuntimeEnvProvider", description: "Supplies host-app environment variables for every follow-up execution (e.g. short-lived credentials for MCP tools, minted as the signed-in user). Evaluated fresh at each send; host values win over composer-collected env on key collisions. If the provider throws, the send is blocked and an error banner is shown — see RuntimeEnvProvider.", typeDescriptionLink: "#runtimeenvprovider" },
     gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state. Platform-specific — web passes `useGitHubConnection(org)`, desktop passes `useDesktopGitHubConnection(org)`.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
-    headerActions: { type: "ReactNode", description: "Slot for host-injected header actions (e.g., Share button with PermissionGate). Rendered in the top-right corner of the viewer. Keeps the SDK organism unopinionated about Console auth (DD-004)." },
+    headerActions: { type: "ReactNode", description: "Slot for host-injected header actions. Rendered in the top-right corner of the viewer, beside the panel chip. Keeps the SDK organism unopinionated about Console auth (DD-004)." },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied from the Artifacts tab." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided alongside `enableLocal`, the composer renders a \"Browse Folder\" button that opens the system folder dialog. Without this callback `enableLocal` alone is not sufficient for the UI to render the local option.  Desktop apps supply this via Tauri's dialog plugin. Web apps omit it (no native picker available)." },
     org: { type: "string", description: "Organization slug.", required: true },
@@ -1087,7 +1088,8 @@ apps inject platform-specific values via props (DD-004/DD-016).
 ### SetupTab
 
 Persistent session configuration panel (Configure tab) — shows agent,
-MCP servers, skills, run config, and session variables.
+MCP servers, skills, run config, session variables, and the host's
+access management control (via `accessSlot`).
 
 Workspace management has moved to the dedicated Workspace tab.
 
@@ -1101,6 +1103,7 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
 
 <TypeTable
   type={{
+    accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton`) rendered as the facet's final section. A slot keeps the SDK auth-agnostic (DD-004); the injected control owns its own visibility (permission gating), so this section renders no chrome of its own — an empty heading over a denied control would read as breakage." },
     agentRef: { type: "ResourceRef | null", description: "", required: true },
     executionTarget: { type: "ExecutionTargetOption | undefined", description: "", required: true },
     harness: { type: "HarnessOption", description: "", required: true, typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },

@@ -429,7 +429,6 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
     onViewChange: { type: "(viewId: string) => void", description: "Called when the user picks a rail view." },
     reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader for the editor.", required: true },
     selectedFile: { type: "SelectedWorkspaceFile | null", description: "The active editor's file, or `null`. Highlighted in the tree and shown.", required: true },
-    statusSlot: { type: "ReactNode", description: "Host status area rendered at the right of the editor top strip (e.g. the session's execution phase badge). Kept as a slot so the surface stays session-agnostic." },
     view: { type: "string", description: "The active rail view id (`\"files\"`, `\"search\"`, or an SurfaceRailView.id). Provide together with `onViewChange` to control the rail from the host; omit for internal (uncontrolled) view state. An id that matches no view (e.g. a contextual extra view that disappeared) falls back to `\"files\"`." },
   }}
 />
