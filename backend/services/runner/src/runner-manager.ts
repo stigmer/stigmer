@@ -24,7 +24,7 @@ import {
 } from "@temporalio/worker";
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
-import { DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS } from "./config.js";
+import { DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
 import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
@@ -90,6 +90,9 @@ export interface RunnerManagerOptions {
 
   /** No-progress bound for the Cursor harness stream (ms). @default 180000 */
   readonly cursorStreamStallTimeoutMs?: number;
+
+  /** Max wait for the per-workspace turn lock (ms). @default 900000 */
+  readonly workspaceLockTimeoutMs?: number;
 
   /** Checkpointer type for LangGraph agent state. @default "memory" (or "http" if proxyEndpoint is set) */
   readonly checkpointerType?: "memory" | "http";
@@ -576,6 +579,8 @@ export function mapManagerOptionsToConfig(
     primaryModel: options.primaryModel ?? "gpt-4.1",
     cursorStreamStallTimeoutMs:
       options.cursorStreamStallTimeoutMs ?? DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
+    workspaceLockTimeoutMs:
+      options.workspaceLockTimeoutMs ?? DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
   };
 }
 

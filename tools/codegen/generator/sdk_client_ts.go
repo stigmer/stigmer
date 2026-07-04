@@ -257,6 +257,20 @@ func (s *tsImportSet) addType(from, name string) {
 	imp.typeValues = append(imp.typeValues, name)
 }
 
+// tsModuleSpecifier normalizes a module specifier for emission: relative
+// specifiers get an explicit ".js" extension so the generated ESM resolves
+// under plain Node (DD-018 — see scripts/verify-esm-node.mjs). Package
+// specifiers ("@stigmer/protos/...", "@connectrpc/connect") pass through
+// untouched; already-suffixed relative specifiers are left as-is.
+func tsModuleSpecifier(from string) string {
+	if strings.HasPrefix(from, "./") || strings.HasPrefix(from, "../") {
+		if !strings.HasSuffix(from, ".js") {
+			return from + ".js"
+		}
+	}
+	return from
+}
+
 func (s *tsImportSet) emit(buf *bytes.Buffer) {
 	var sources []string
 	for k := range s.imports {
@@ -276,7 +290,7 @@ func (s *tsImportSet) emit(buf *bytes.Buffer) {
 		if len(parts) == 0 {
 			continue
 		}
-		fmt.Fprintf(buf, "import { %s } from %q;\n", strings.Join(parts, ", "), from)
+		fmt.Fprintf(buf, "import { %s } from %q;\n", strings.Join(parts, ", "), tsModuleSpecifier(from))
 	}
 	buf.WriteString("\n")
 }
@@ -1390,7 +1404,7 @@ func generateTSClientFile(outputDir string, resources []resourceGenInfo) error {
 	buf.WriteString("import type { Transport } from \"@connectrpc/connect\";\n")
 
 	for _, r := range resources {
-		fmt.Fprintf(&buf, "import { %s } from \"./%s\";\n", r.clientName, r.resource)
+		fmt.Fprintf(&buf, "import { %s } from \"./%s.js\";\n", r.clientName, r.resource)
 	}
 	buf.WriteString("\n")
 
@@ -1417,7 +1431,7 @@ func generateTSClientFile(outputDir string, resources []resourceGenInfo) error {
 	exportedTypes := make(map[string]bool)
 	for _, r := range resources {
 		// Client class export (value)
-		fmt.Fprintf(&buf, "export { %s } from \"./%s\";\n", r.clientName, r.resource)
+		fmt.Fprintf(&buf, "export { %s } from \"./%s.js\";\n", r.clientName, r.resource)
 		// Input types export (type-only, required by isolatedModules)
 		if len(r.inputTypes) > 0 {
 			var typeExports []string
@@ -1429,12 +1443,12 @@ func generateTSClientFile(outputDir string, resources []resourceGenInfo) error {
 				typeExports = append(typeExports, "type "+t)
 			}
 			if len(typeExports) > 0 {
-				fmt.Fprintf(&buf, "export { %s } from \"./%s\";\n", strings.Join(typeExports, ", "), r.resource)
+				fmt.Fprintf(&buf, "export { %s } from \"./%s.js\";\n", strings.Join(typeExports, ", "), r.resource)
 			}
 		}
 	}
-	buf.WriteString("export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from \"./types\";\n")
-	buf.WriteString("export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable } from \"./errors\";\n")
+	buf.WriteString("export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from \"./types.js\";\n")
+	buf.WriteString("export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable } from \"./errors.js\";\n")
 
 	return os.WriteFile(filepath.Join(outputDir, "client.ts"), buf.Bytes(), 0644)
 }

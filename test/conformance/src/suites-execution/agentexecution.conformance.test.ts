@@ -70,6 +70,12 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
+  // Unblock any still-held turn first so a lifecycle test's runner activity (a
+  // paused/cancelled turn the runner can't preempt mid-call) finishes and frees
+  // its session lock, instead of lingering into the next test and claiming its
+  // queued turns. reset() also drains, but releasing before fixture teardown
+  // gives the freed activity time to wind down.
+  mock.releaseHolds();
   await fixtures.cleanup();
   mock.reset();
 });
@@ -320,21 +326,24 @@ describe("AgentExecution conformance — lifecycle (running execution)", () => {
     await clients.agentExecutionCommand.pause({ id, reason: "conformance" });
     await awaitPhase(clients, id, ExecutionPhase.EXECUTION_PAUSED);
 
-    // Resume re-invokes the activity, which issues a fresh LLM call; queue another
-    // held turn so the resumed run is observably IN_PROGRESS again.
-    mock.enqueue(anthropicText("Working..."), { delayMs: HOLD_MS });
+    // On pause the workflow cancels the activity and re-invokes it on resume, but
+    // the runner does NOT preempt an in-flight LLM call — it only checks for
+    // cancellation between coarse graph events, and a single held turn produces
+    // none until it resolves. So the paused turn keeps running and holds the
+    // session workspace lock; a resume re-invocation would deadlock behind it for
+    // the whole hold window. Release the held turn first so the paused activity
+    // unblocks and frees the lock, letting the resumed activity actually run.
+    mock.releaseHolds();
+
+    // Resume re-invokes the activity, which issues a fresh LLM call; queue a turn
+    // for it and observe the return to IN_PROGRESS (set server-side by resume).
+    mock.enqueue(anthropicText("Working..."));
     await clients.agentExecutionCommand.resume({ id });
     await awaitPhase(clients, id, ExecutionPhase.EXECUTION_IN_PROGRESS);
 
-    // Wait until the resumed turn is actually in-flight at the mock (two turns
-    // claimed: the original + the resumed one) before cancelling. Otherwise cancel
-    // can race ahead of the resumed LLM call, which then runs the held turn to
-    // completion and the execution settles COMPLETED instead of CANCELLED.
-    await expect.poll(() => mock.consumed(), { timeout: HOLD_MS, interval: 100 }).toBeGreaterThanOrEqual(2);
-
-    // Settle the run before the next test.
-    await clients.agentExecutionCommand.cancel({ id });
-    await awaitPhase(clients, id, ExecutionPhase.EXECUTION_CANCELLED);
+    // The resumed turn runs to completion on its own; settle to a terminal phase
+    // before the next test so no activity leaks across the boundary.
+    await awaitTerminal(clients, id);
   });
 });
 

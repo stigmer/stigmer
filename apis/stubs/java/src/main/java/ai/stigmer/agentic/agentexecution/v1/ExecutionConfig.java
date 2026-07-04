@@ -352,6 +352,36 @@ private static final long serialVersionUID = 0L;
     return structuredOutputSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
   }
 
+  public static final int BUILD_FROM_PLAN_FIELD_NUMBER = 8;
+  private boolean buildFromPlan_ = false;
+  /**
+   * <pre>
+   * Marks this execution as a "Build from plan" turn: the user approved a plan
+   * produced by a prior Plan-mode execution and asked the agent to implement it.
+   *
+   * When set, the runner injects the implement-plan directive into the agent's
+   * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+   * document travels as an attachment (the normal case — mounted at
+   * `.stigmer/inputs/plan.md`), the directive points the agent at that file;
+   * when no plan attachment is present (e.g. the client's upload failed), the
+   * directive tells the agent to follow the plan from the conversation instead.
+   *
+   * Clients set this flag INSTEAD of embedding implement instructions in
+   * `message`, so `message` stays a short human-readable label (e.g.
+   * "Build from plan") that UIs can render as a compact chip.
+   *
+   * Like interaction_mode, this is per-execution and never carries over
+   * between executions in the same session.
+   * </pre>
+   *
+   * <code>bool build_from_plan = 8 [json_name = "buildFromPlan"];</code>
+   * @return The buildFromPlan.
+   */
+  @java.lang.Override
+  public boolean getBuildFromPlan() {
+    return buildFromPlan_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -386,6 +416,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(7, getStructuredOutputSchema());
+    }
+    if (buildFromPlan_ != false) {
+      output.writeBool(8, buildFromPlan_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -423,6 +456,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(7, getStructuredOutputSchema());
     }
+    if (buildFromPlan_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(8, buildFromPlan_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -458,6 +495,8 @@ private static final long serialVersionUID = 0L;
       if (!getStructuredOutputSchema()
           .equals(other.getStructuredOutputSchema())) return false;
     }
+    if (getBuildFromPlan()
+        != other.getBuildFromPlan()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -488,6 +527,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + STRUCTURED_OUTPUT_SCHEMA_FIELD_NUMBER;
       hash = (53 * hash) + getStructuredOutputSchema().hashCode();
     }
+    hash = (37 * hash) + BUILD_FROM_PLAN_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getBuildFromPlan());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -645,6 +687,7 @@ private static final long serialVersionUID = 0L;
         structuredOutputSchemaBuilder_.dispose();
         structuredOutputSchemaBuilder_ = null;
       }
+      buildFromPlan_ = false;
       return this;
     }
 
@@ -706,6 +749,9 @@ private static final long serialVersionUID = 0L;
             : structuredOutputSchemaBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.buildFromPlan_ = buildFromPlan_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -743,6 +789,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasStructuredOutputSchema()) {
         mergeStructuredOutputSchema(other.getStructuredOutputSchema());
+      }
+      if (other.getBuildFromPlan() != false) {
+        setBuildFromPlan(other.getBuildFromPlan());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -809,6 +858,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 64: {
+              buildFromPlan_ = input.readBool();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 64
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1733,6 +1787,95 @@ private static final long serialVersionUID = 0L;
         structuredOutputSchema_ = null;
       }
       return structuredOutputSchemaBuilder_;
+    }
+
+    private boolean buildFromPlan_ ;
+    /**
+     * <pre>
+     * Marks this execution as a "Build from plan" turn: the user approved a plan
+     * produced by a prior Plan-mode execution and asked the agent to implement it.
+     *
+     * When set, the runner injects the implement-plan directive into the agent's
+     * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+     * document travels as an attachment (the normal case — mounted at
+     * `.stigmer/inputs/plan.md`), the directive points the agent at that file;
+     * when no plan attachment is present (e.g. the client's upload failed), the
+     * directive tells the agent to follow the plan from the conversation instead.
+     *
+     * Clients set this flag INSTEAD of embedding implement instructions in
+     * `message`, so `message` stays a short human-readable label (e.g.
+     * "Build from plan") that UIs can render as a compact chip.
+     *
+     * Like interaction_mode, this is per-execution and never carries over
+     * between executions in the same session.
+     * </pre>
+     *
+     * <code>bool build_from_plan = 8 [json_name = "buildFromPlan"];</code>
+     * @return The buildFromPlan.
+     */
+    @java.lang.Override
+    public boolean getBuildFromPlan() {
+      return buildFromPlan_;
+    }
+    /**
+     * <pre>
+     * Marks this execution as a "Build from plan" turn: the user approved a plan
+     * produced by a prior Plan-mode execution and asked the agent to implement it.
+     *
+     * When set, the runner injects the implement-plan directive into the agent's
+     * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+     * document travels as an attachment (the normal case — mounted at
+     * `.stigmer/inputs/plan.md`), the directive points the agent at that file;
+     * when no plan attachment is present (e.g. the client's upload failed), the
+     * directive tells the agent to follow the plan from the conversation instead.
+     *
+     * Clients set this flag INSTEAD of embedding implement instructions in
+     * `message`, so `message` stays a short human-readable label (e.g.
+     * "Build from plan") that UIs can render as a compact chip.
+     *
+     * Like interaction_mode, this is per-execution and never carries over
+     * between executions in the same session.
+     * </pre>
+     *
+     * <code>bool build_from_plan = 8 [json_name = "buildFromPlan"];</code>
+     * @param value The buildFromPlan to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBuildFromPlan(boolean value) {
+
+      buildFromPlan_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Marks this execution as a "Build from plan" turn: the user approved a plan
+     * produced by a prior Plan-mode execution and asked the agent to implement it.
+     *
+     * When set, the runner injects the implement-plan directive into the agent's
+     * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+     * document travels as an attachment (the normal case — mounted at
+     * `.stigmer/inputs/plan.md`), the directive points the agent at that file;
+     * when no plan attachment is present (e.g. the client's upload failed), the
+     * directive tells the agent to follow the plan from the conversation instead.
+     *
+     * Clients set this flag INSTEAD of embedding implement instructions in
+     * `message`, so `message` stays a short human-readable label (e.g.
+     * "Build from plan") that UIs can render as a compact chip.
+     *
+     * Like interaction_mode, this is per-execution and never carries over
+     * between executions in the same session.
+     * </pre>
+     *
+     * <code>bool build_from_plan = 8 [json_name = "buildFromPlan"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearBuildFromPlan() {
+      bitField0_ = (bitField0_ & ~0x00000080);
+      buildFromPlan_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.ExecutionConfig)

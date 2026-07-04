@@ -45,9 +45,9 @@ import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_p
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
-import { collectSubAgentToolCallIds } from "../../shared/tool-row.js";
+import { collectSubAgentToolCallIds, withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { startStallWatchdog, StallTimeoutError, formatStallFailure, type StallWatchdog } from "../../shared/stall-watchdog.js";
-import { createArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
+import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
@@ -61,11 +61,18 @@ import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
 import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
-import { resolveSkills, removeStigmerSymlink } from "./skill-resolver.js";
+import { resolveSkills } from "./skill-resolver.js";
+import { removeStigmerSymlink } from "./stigmer-link.js";
 import { resolveAttachments } from "./attachment-resolver.js";
-import { buildEnhancedPrompt, buildReinvocationPrompt } from "./prompt-builder.js";
+import { buildEnhancedPrompt, buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
+import {
+  acquireWorkspaceLock,
+  WorkspaceLockCancelledError,
+  WorkspaceLockTimeoutError,
+  type ReleaseWorkspaceLock,
+} from "../../shared/workspace/workspace-lock.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, primaryToken, readDenialLedger, reconstructAdjudicatedApprovals, watchDenialLedger } from "./approval-state.js";
 import { deriveTurnCommandProvenance } from "./command-provenance.js";
@@ -167,27 +174,31 @@ async function executeCursorInner(
 
   // Artifact storage for offloading oversized tool outputs (screenshots, giant
   // dumps) out of the persisted status, and for publishing the plan artifact.
-  // Created once here so it is available to EVERY persist below. Best-effort:
-  // if it can't be built (e.g. proxy mode without a token), offload is disabled
-  // but persistStatus still enforces the aggregate size cap, so persistence can
-  // never silently blow past the gRPC limit.
-  let artifactStorage: ArtifactStorage | undefined;
-  try {
-    artifactStorage = createArtifactStorage(loadArtifactStorageConfig(config));
-  } catch (storageErr) {
-    console.warn(
-      `ExecuteCursor artifact storage unavailable — tool-output offload disabled ` +
-      `(aggregate size guard still active): execution=${executionId}, error=${storageErr}`,
-    );
-  }
+  // Resolved once here so it is available to EVERY persist below. Best-effort via
+  // the shared resolver (identical to the deep-agent harness): `undefined` — never
+  // a throw — when there is no working substrate (proxy misconfig OR an unwritable
+  // local path). An absent store disables offload (persistStatus still enforces
+  // the aggregate size cap) and flips capture mode off (deny-gate fallback).
+  const artifactStorage: ArtifactStorage | undefined =
+    await resolveUsableArtifactStorage(loadArtifactStorageConfig(config), { executionId });
   const statusOffload = artifactStorage
     ? { artifactStorage, executionId }
     : undefined;
   // ALL status persistence in this activity flows through `persist`, so the
   // single size-bounding guard (offload + aggregate elision) is unforgeable and
   // a future call site cannot accidentally skip it.
-  const persist = (s: AgentExecutionStatus = status) =>
-    persistStatus(client, executionId, s, { offload: statusOffload });
+  const persist = (s: AgentExecutionStatus = status) => {
+    // Never-persist-secret backstop (DD-26 #2): before EVERY persist, withhold
+    // content from any built-in write row targeting a secret-like path (top-level
+    // + sub-agent). This is the single airtight choke point for the Cursor harness
+    // — the deny-gate analog of capture mode's stamping scrub, and the only
+    // guarantee under auto_approve_all (where the hook installs no gate). Safe on
+    // every call: Cursor sets tool args atomically from the SDK tool_call event
+    // (buildToolCallProto), so there is no mid-stream partial-args hazard, and the
+    // pass only ever touches secret-like write rows (idempotent, else a no-op).
+    withholdSecretContentFromMessages(s.messages, s.subAgentExecutions);
+    return persistStatus(client, executionId, s, { offload: statusOffload });
+  };
 
   let sessionId: string | undefined;
   let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
@@ -234,6 +245,14 @@ async function executeCursorInner(
   // (issue #173). Runs in the finally, covering every success/error/approval
   // exit path. Undefined until the gate is installed.
   let hitlCleanup: (() => Promise<void>) | undefined;
+  // Exclusive turn lock on the primary workspace working tree. Held across the
+  // ENTIRE tree-mutating window (decision reconcile, HITL gate install, the
+  // agent's own writes, candidate capture) so a concurrent execution sharing
+  // this directory can never write between this turn's baseline and candidate
+  // snapshots — the misattribution that showed another session's file as this
+  // turn's change. Released in the finally AFTER hitlCleanup (which still
+  // mutates the tree). See shared/workspace/workspace-lock.ts.
+  let releaseWorkspaceLock: ReleaseWorkspaceLock | undefined;
   // Carries model/mode/agentId out to the outer catch so a thrown CursorSdkError
   // can be classified with the same context as the run.wait() error path.
   let errorContext = { model: "default", mode: "local", agentId: "" };
@@ -292,6 +311,46 @@ async function executeCursorInner(
     // DECIDED projection, not from turnSeq — so a "wasted" id on a pure-reconcile
     // resume (which never authors a baseline) is harmless.
     const changeSetId = `${executionId}:${turnSeq}`;
+    heartbeat();
+
+    // Serialize this turn against every other execution sharing this working
+    // tree — sessions declaring the same localPath (or the shared runner root)
+    // resolve to ONE directory, and an unserialized concurrent write lands
+    // inside this turn's baseline→candidate window, misattributing another
+    // session's file to this turn's review. Acquired before ANY tree mutation
+    // below (decision reconcile, gate install, agent writes, capture). While
+    // another turn holds the lock this surfaces a visible waiting state and
+    // heartbeats; a cancel aborts the wait immediately.
+    if (primaryWorkspaceDir) {
+      try {
+        releaseWorkspaceLock = await acquireWorkspaceLock(primaryWorkspaceDir, {
+          onWaiting: () => reportSetupProgress(
+            client, executionId, "Waiting for workspace — in use by another session",
+          ),
+          heartbeat,
+          signal: Context.current().cancellationSignal,
+          timeoutMs: config.workspaceLockTimeoutMs,
+        });
+      } catch (lockErr) {
+        if (lockErr instanceof WorkspaceLockCancelledError) {
+          throw new CancelledFailure("Activity cancelled while waiting for the workspace lock");
+        }
+        if (lockErr instanceof WorkspaceLockTimeoutError) {
+          status.phase = ExecutionPhase.EXECUTION_FAILED;
+          status.error = lockErr.message;
+          status.completedAt = utcTimestamp();
+          status.messages.push(create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_SYSTEM,
+            content: `Execution failed: ${lockErr.message}`,
+            timestamp: utcTimestamp(),
+          }));
+          await persist(status);
+          console.warn(`ExecuteCursor workspace lock timeout: execution=${executionId}`);
+          return slimStatus(status);
+        }
+        throw lockErr;
+      }
+    }
     heartbeat();
 
     // Set OTel baggage so downstream calls carry execution context.
@@ -511,13 +570,15 @@ async function executeCursorInner(
     });
     heartbeat();
 
-    // Phase 5b: Resolve attachments
-    const attachmentResults = await resolveAttachments(
-      spec.attachments,
+    // Phase 5b: Resolve attachments (fail-hard — explicit user inputs; see
+    // attachment-resolver.ts). Downloads by storage key through the same
+    // artifactStorage resolved for status offload above.
+    const attachmentResults = await resolveAttachments(spec.attachments, {
       sessionId,
       primaryWorkspaceDir,
-      config.mode,
-    );
+      mode: config.mode,
+      storage: artifactStorage,
+    });
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
 
     // Phase 5b3: Exact-apply approved whole-file writes (HITL "what you approve
@@ -741,6 +802,7 @@ async function executeCursorInner(
     // Phase 10: Build the prompt
     const interactionMode = spec.executionConfig?.interactionMode
       ?? InteractionMode.UNSPECIFIED;
+    const buildFromPlan = spec.executionConfig?.buildFromPlan ?? false;
 
     const prompt = buildPrompt({
       resolution,
@@ -755,6 +817,7 @@ async function executeCursorInner(
       pendingApprovals: adjudicatedApprovals,
       appliedToolCallIds,
       interactionMode,
+      buildFromPlan,
     });
 
     // Phase 10a: Inject structured output instruction for Cursor harness
@@ -1885,6 +1948,13 @@ async function executeCursorInner(
         );
       }
     }
+
+    // Release the workspace turn lock LAST — hitlCleanup above still mutates
+    // the tree (restores .cursor/hooks.json), and the next queued turn must
+    // not baseline until every mutation of this one has landed. Idempotent
+    // and non-throwing (see workspace-lock.ts), so it can never mask the
+    // turn's real outcome.
+    await releaseWorkspaceLock?.();
   }
 }
 
@@ -1996,6 +2066,11 @@ export interface BuildPromptInput {
    */
   appliedToolCallIds?: ReadonlySet<string>;
   interactionMode?: InteractionMode;
+  /**
+   * The execution is a Build-from-plan turn (spec.execution_config
+   * .build_from_plan): both prompt paths carry the implement-plan directive.
+   */
+  buildFromPlan?: boolean;
 }
 
 /**
@@ -2026,6 +2101,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceFileRefs,
     attachmentPaths,
     interactionMode,
+    buildFromPlan,
   } = input;
 
   const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
@@ -2042,9 +2118,20 @@ export function buildPrompt(input: BuildPromptInput): string {
   }
 
   // A successfully resumed agent carries its own conversation context via the
-  // SDK's native store — send the raw user message with no preamble.
+  // SDK's native store — send the raw user message with no preamble. The
+  // exceptions are the per-EXECUTION directives, which never inherit from the
+  // session's first turn: the interaction-mode prefix (a follow-up can switch
+  // Agent→Plan mid-session, and for Cursor the prompt is the only plan-mode
+  // enforcement) and the implement-plan directive (the build turn is usually
+  // a follow-up on a resumed agent).
   if (resolution.reason === "resumed_successfully") {
-    return userMessage;
+    const prefixes = [
+      formatInteractionModePrefix(interactionMode),
+      formatImplementPlanSection(buildFromPlan, attachmentPaths),
+    ].filter((p): p is string => p !== undefined);
+    return prefixes.length > 0
+      ? [...prefixes, userMessage].join("\n\n")
+      : userMessage;
   }
 
   // First execution, or a fresh agent created after a resume failure: there is
@@ -2058,6 +2145,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceFileRefs,
     attachmentPaths,
     interactionMode,
+    buildFromPlan,
   });
 }
 

@@ -784,6 +784,50 @@ describe("MessageThread", () => {
     });
   });
 
+  describe("live plan collapse (streaming Plan turn)", () => {
+    function streamingPlanExecution() {
+      return makeExecution({
+        id: "exec-live",
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        interactionMode: InteractionMode.PLAN,
+        aiContent: "# Rollout Plan\n\n1. First step",
+      });
+    }
+
+    it("collapses the streaming plan behind a live card when onOpenPlan is wired", () => {
+      const onOpenPlan = vi.fn();
+      render(
+        <MessageThread
+          executions={[]}
+          activeStreamExecution={streamingPlanExecution()}
+          onOpenPlan={onOpenPlan}
+        />,
+      );
+
+      const card = screen.getByRole("region", { name: "Plan being written" });
+      expect(card.textContent).toContain("Rollout Plan");
+      // The plan body lives in the panel's plan tab, not the thread.
+      expect(screen.queryByText(/First step/)).toBeNull();
+
+      fireEvent.click(screen.getByText("Open plan"));
+      expect(onOpenPlan).toHaveBeenCalledWith("exec-live");
+    });
+
+    it("keeps the plan streaming inline for hosts without a plan surface (DD-011)", () => {
+      render(
+        <MessageThread
+          executions={[]}
+          activeStreamExecution={streamingPlanExecution()}
+        />,
+      );
+
+      expect(
+        screen.queryByRole("region", { name: "Plan being written" }),
+      ).toBeNull();
+      expect(screen.getByText(/First step/)).toBeTruthy();
+    });
+  });
+
   it("renders plan-completion card when last execution is completed Plan mode", () => {
     const exec = makeExecution({
       id: "exec-plan",
@@ -805,5 +849,62 @@ describe("MessageThread", () => {
 
     fireEvent.click(buildBtn);
     expect(onBuildFromPlan).toHaveBeenCalledOnce();
+  });
+
+  describe("plan-turn identity", () => {
+    it("marks a Plan turn's prompt bubble with the Plan badge", () => {
+      const exec = makeExecution({
+        id: "exec-plan",
+        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        interactionMode: InteractionMode.PLAN,
+      });
+
+      render(<MessageThread executions={[exec]} />);
+
+      expect(screen.getByRole("status", { name: "Plan mode" })).toBeTruthy();
+    });
+
+    it("shows no mode badge on Agent turns", () => {
+      const exec = makeExecution({
+        id: "exec-agent",
+        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        interactionMode: InteractionMode.AGENT,
+      });
+
+      render(<MessageThread executions={[exec]} />);
+
+      expect(screen.queryByRole("status", { name: "Plan mode" })).toBeNull();
+    });
+
+    it("renders a completed Plan turn's plan as a document", () => {
+      const exec = makeExecution({
+        id: "exec-plan",
+        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        interactionMode: InteractionMode.PLAN,
+        aiContent: "# Rollout Plan\n\n1. First step",
+      });
+
+      render(<MessageThread executions={[exec]} />);
+
+      const doc = screen.getByRole("article", { name: "Plan document" });
+      expect(doc.textContent).toContain("Rollout Plan");
+      expect(doc.textContent).toContain("First step");
+    });
+
+    it("renders a streaming Plan turn's text as an ordinary chat message", () => {
+      const exec = makeExecution({
+        id: "exec-live",
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        interactionMode: InteractionMode.PLAN,
+        aiContent: "Draft so far",
+      });
+
+      render(<MessageThread executions={[]} activeStreamExecution={exec} />);
+
+      expect(
+        screen.queryByRole("article", { name: "Plan document" }),
+      ).toBeNull();
+      expect(screen.getByRole("article", { name: "AI response" })).toBeTruthy();
+    });
   });
 });

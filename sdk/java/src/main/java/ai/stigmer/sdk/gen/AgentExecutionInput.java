@@ -162,6 +162,7 @@ public final class AgentExecutionInput {
         private final double maxCostUsd;
         private final InteractionMode interactionMode;
         private final java.util.Map<String, Object> structuredOutputSchema;
+        private final boolean buildFromPlan;
 
         private ExecutionConfigInput(Builder builder) {
             this.modelName = builder.modelName;
@@ -171,6 +172,7 @@ public final class AgentExecutionInput {
             this.maxCostUsd = builder.maxCostUsd;
             this.interactionMode = builder.interactionMode;
             this.structuredOutputSchema = builder.structuredOutputSchema;
+            this.buildFromPlan = builder.buildFromPlan;
         }
 
         ExecutionConfig toProto() {
@@ -190,6 +192,7 @@ public final class AgentExecutionInput {
             if (this.structuredOutputSchema != null) {
                 builder.setStructuredOutputSchema(ProtoConvert.mapToStruct(this.structuredOutputSchema));
             }
+            builder.setBuildFromPlan(this.buildFromPlan);
             return builder.build();
         }
 
@@ -203,6 +206,7 @@ public final class AgentExecutionInput {
             private double maxCostUsd;
             private InteractionMode interactionMode;
             private java.util.Map<String, Object> structuredOutputSchema;
+            private boolean buildFromPlan;
 
             private Builder() {}
 
@@ -213,6 +217,7 @@ public final class AgentExecutionInput {
             public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
             public Builder interactionMode(InteractionMode interactionMode) { this.interactionMode = interactionMode; return this; }
             public Builder structuredOutputSchema(java.util.Map<String, Object> structuredOutputSchema) { this.structuredOutputSchema = structuredOutputSchema; return this; }
+            public Builder buildFromPlan(boolean buildFromPlan) { this.buildFromPlan = buildFromPlan; return this; }
 
             public ExecutionConfigInput build() { return new ExecutionConfigInput(this); }
         }

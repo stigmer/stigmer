@@ -22,12 +22,16 @@ interface GitHubTreeResponse {
 }
 
 /**
- * Sentinel entry appended to the listing when the GitHub API indicates
- * that the tree was truncated (repository exceeds the API's entry limit).
+ * Advisory entry appended to the listing when the GitHub API indicates that the
+ * tree was truncated (repository exceeds the API's entry limit). Flagged with
+ * `notice: true` so generic consumers treat it as a "results incomplete" banner
+ * rather than an openable file (see `workspaceListingCache`) — never a tree leaf,
+ * never a search hit.
  */
 const TRUNCATION_MARKER: WorkspaceFileEntry = {
   path: "... (tree truncated by GitHub — repository has too many files)",
   isDirectory: false,
+  notice: true,
 };
 
 /**

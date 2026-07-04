@@ -5,11 +5,11 @@
  * - Writes SKILL.md to .stigmer/skills/{name}/SKILL.md
  * - Downloads and extracts ZIP artifacts (references/, scripts/, etc.)
  * - Uses a platform-managed directory outside the workspace
- * - Creates a symlink from the workspace to the platform dir
+ * - Ensures the workspace `.stigmer` symlink (see stigmer-link.ts)
  * - Returns metadata for prompt injection
  */
 
-import { mkdir, writeFile, symlink, readlink, unlink, rm, lstat } from "node:fs/promises";
+import { mkdir, writeFile, rm } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -17,8 +17,8 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { SkillMetadata } from "./prompt-builder.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import { extractZipFileEntries } from "../../shared/zip-extract.js";
+import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "./stigmer-link.js";
 
-const STIGMER_LOCAL_STATE_DIR = ".stigmer";
 const SKILLS_SUBDIR = "skills";
 
 export interface SkillResolverOptions {
@@ -130,62 +130,6 @@ async function writeSkill(
     description: spec.description || `Skill: ${name}`,
     path: relativePath,
   };
-}
-
-/**
- * Ensure .stigmer symlink in the workspace points to the platform dir.
- *
- * The Cursor SDK reads files from the workspace CWD, so we need the
- * .stigmer directory to be accessible there. Unlike the Python runner
- * which intercepts file paths, Cursor reads directly from the filesystem.
- */
-async function ensureStigmerSymlink(
-  workspaceDir: string,
-  platformDir: string,
-): Promise<void> {
-  const linkPath = join(workspaceDir, STIGMER_LOCAL_STATE_DIR);
-
-  try {
-    const existing = await readlink(linkPath);
-    if (existing === platformDir) return;
-    await unlink(linkPath);
-  } catch (err: any) {
-    if (err.code === "ENOENT") {
-      // No existing symlink
-    } else if (err.code === "EINVAL") {
-      // Exists but is not a symlink — remove the directory
-      await rm(linkPath, { recursive: true, force: true });
-    } else {
-      throw err;
-    }
-  }
-
-  await symlink(platformDir, linkPath, "dir");
-}
-
-/**
- * Remove the workspace `.stigmer` symlink created by {@link resolveSkills}.
- *
- * Called in the activity's finally so attaching a real repo leaves no Stigmer
- * symlink behind once the turn ends (issue #173); a multi-turn session recreates
- * it on the next turn. Only ever removes a SYMLINK — a real `.stigmer` directory
- * (which would be the user's own, not ours) is left untouched. Best-effort.
- */
-export async function removeStigmerSymlink(workspaceDir: string): Promise<void> {
-  const linkPath = join(workspaceDir, STIGMER_LOCAL_STATE_DIR);
-  try {
-    const stat = await lstat(linkPath);
-    if (stat.isSymbolicLink()) {
-      await unlink(linkPath);
-    }
-  } catch (err: any) {
-    if (err?.code !== "ENOENT") {
-      console.warn(
-        `removeStigmerSymlink: failed to remove ${linkPath} (non-fatal): ` +
-        `${err instanceof Error ? err.message : err}`,
-      );
-    }
-  }
 }
 
 /**

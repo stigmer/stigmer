@@ -4,6 +4,7 @@ go_library(
     name = "filereview",
     srcs = [
         "author.go",
+        "autokeep.go",
         "cas_blob.go",
         "digest.go",
         "gate.go",
@@ -11,7 +12,10 @@ go_library(
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview",
     visibility = ["//visibility:public"],
-    deps = ["//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "@com_github_rs_zerolog//log",
+    ],
 )
 
 go_test(
@@ -19,6 +23,7 @@ go_test(
     srcs = [
         "append_runner_events_test.go",
         "author_test.go",
+        "autokeep_test.go",
         "cas_blob_test.go",
         "corpus_test.go",
         "digest_test.go",

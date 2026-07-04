@@ -102,7 +102,7 @@
       "slug": "github",
       "title": "GitHub",
       "description": "Hooks and components for OAuth connection, repository search, and picker.",
-      "hooks": 4,
+      "hooks": 5,
       "components": 1
     },
     {
@@ -200,8 +200,8 @@
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
-      "hooks": 17,
-      "components": 3
+      "hooks": 18,
+      "components": 5
     },
     {
       "slug": "settings",
@@ -249,8 +249,8 @@
       "slug": "workspace",
       "title": "Workspace",
       "description": "Hooks and components for file entries, folder browsing, and code editing.",
-      "hooks": 3,
-      "components": 3
+      "hooks": 6,
+      "components": 6
     }
   ]
 }

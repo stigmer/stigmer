@@ -51,7 +51,9 @@ import type { SetupResult } from "../setup.js";
 vi.mock("@temporalio/activity", () => ({
   Context: {
     current: () => ({
-      cancellationSignal: { aborted: false },
+      // A real AbortSignal: the workspace-lock wait registers abort listeners
+      // on it, which a bare `{ aborted: false }` stub cannot satisfy.
+      cancellationSignal: new AbortController().signal,
       heartbeat: vi.fn(),
     }),
   },
@@ -187,7 +189,9 @@ function fakeMemoryGateSetup(opts: {
     agent: {},
     session: { spec: { workspaceEntries: [] } },
     workspaceBackend: {
-      rootDir: "/tmp/ws",
+      // Unique per test file: the workspace turn lock keys on this path, and a
+      // path shared across files would serialize parallel test workers for real.
+      rootDir: "/tmp/stigmer-test-ws-seq-gate",
       exists: vi.fn(async () => false),
       readFile: vi.fn(async () => ""),
     },
@@ -252,6 +256,7 @@ const memoryConfig: Config = {
   checkpointerProxyEndpoint: null,
   primaryModel: "claude-sonnet",
   cursorStreamStallTimeoutMs: 180000,
+  workspaceLockTimeoutMs: 900000,
 };
 
 function toolCallIds(status: AgentExecutionStatus): string[] {

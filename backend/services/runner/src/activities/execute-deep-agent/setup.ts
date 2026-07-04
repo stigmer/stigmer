@@ -35,6 +35,7 @@ import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-sub
 import { deriveCaptureMode } from "../../shared/filereview/capture.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
+import { resolveSessionWorkspaceRoot } from "../../shared/workspace/session-root.js";
 import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
 import { reportSetupProgress } from "../../shared/status.js";
 import { resolveEnvironment, type EnvironmentResult } from "./environment.js";
@@ -49,7 +50,7 @@ import { getDefaultModel } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
 import {
   loadArtifactStorageConfig,
-  createArtifactStorage,
+  resolveUsableArtifactStorage,
   type ArtifactStorage,
 } from "../../shared/artifact-storage.js";
 import {
@@ -201,20 +202,14 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     await reportSetupProgress(client, executionId, "Resolving environment…");
     const envResult: EnvironmentResult = await resolveEnvironment(client, executionId);
 
-    // Step 6: Create artifact storage. Best-effort, mirroring the Cursor harness:
-    // `createArtifactStorage` throws only for proxy transport with a missing
-    // token/endpoint (a misconfiguration; local storage never throws). We degrade
-    // rather than crash — an absent store flips capture mode off (deny-gate
-    // fallback below) and disables offload, instead of failing the whole execution.
-    let artifactStorage: ArtifactStorage | undefined;
-    try {
-      artifactStorage = createArtifactStorage(loadArtifactStorageConfig(config));
-    } catch (storageErr) {
-      console.warn(
-        `[setup] artifact storage unavailable — capture degrades to the deny-gate ` +
-        `and tool-output offload is disabled: execution=${executionId}, error=${storageErr}`,
-      );
-    }
+    // Step 6: Resolve a usable artifact store (shared with the Cursor harness so
+    // both degrade identically). Returns `undefined` — never throws — when there
+    // is no working substrate: a proxy misconfig OR an unwritable local path
+    // (which `createArtifactStorage` cannot detect, since it just holds a path).
+    // An absent store flips capture mode off (deny-gate fallback below) and
+    // disables offload, instead of flowing writes then crashing at the boundary.
+    const artifactStorage: ArtifactStorage | undefined =
+      await resolveUsableArtifactStorage(loadArtifactStorageConfig(config), { executionId });
 
     // Step 7: Provision workspace
     await reportSetupProgress(client, executionId, "Initializing workspace…");
@@ -372,6 +367,8 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       workspaceFileRefs: execution.spec!.workspaceFileRefs || [],
       workspaceRoot: workspaceBackend.rootDir,
       injectedFiles,
+      interactionMode: execution.spec!.executionConfig?.interactionMode,
+      buildFromPlan: execution.spec!.executionConfig?.buildFromPlan,
     });
 
     // Step 9: Construct the LLM model. Resolution to the provider API id
@@ -631,6 +628,11 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 
 /**
  * Provision workspace from session workspace entries.
+ *
+ * A session with no entries gets its own empty per-session directory (see
+ * shared/workspace/session-root.ts) — never the shared root, which would
+ * leak other sessions' files into it. Mirrors the Cursor harness's
+ * provisionCursorWorkspace exactly.
  */
 async function provisionWorkspace(
   config: Config,
@@ -639,13 +641,19 @@ async function provisionWorkspace(
   sessionId: string,
 ): Promise<{ workspaceBackend: WorkspaceBackend; provisionResults: ProvisionResult[] }> {
   const platformDir = await ensurePlatformDir(sessionId);
-  const workspaceBackend = new LocalWorkspaceBackend(config.workspaceRootDir, platformDir);
 
   const workspaceEntries = session.spec!.workspaceEntries || [];
   if (workspaceEntries.length === 0) {
-    return { workspaceBackend, provisionResults: [] };
+    const sessionRoot = await resolveSessionWorkspaceRoot(
+      config.workspaceRootDir, workspaceEntries, sessionId,
+    );
+    return {
+      workspaceBackend: new LocalWorkspaceBackend(sessionRoot, platformDir),
+      provisionResults: [],
+    };
   }
 
+  const workspaceBackend = new LocalWorkspaceBackend(config.workspaceRootDir, platformDir);
   const provisioner = new WorkspaceProvisioner();
   const provisionResults = await provisioner.provisionAll(
     workspaceEntries.map(entry => ({

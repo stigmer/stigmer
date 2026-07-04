@@ -24,6 +24,11 @@ tauri-plugin-deep-link = "2"
 tauri-plugin-http = "2"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 ignore = "0.4"
+# Ripgrep's own search engine, reused for workspace content search so grep
+# behavior (encoding, CRLF, line counting, binary detection) matches ripgrep
+# rather than being hand-rolled. `ignore` (above) is already a ripgrep crate.
+grep-searcher = "0.1"
+grep-regex = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["io-util", "process", "sync"] }

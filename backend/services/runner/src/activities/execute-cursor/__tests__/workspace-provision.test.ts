@@ -249,9 +249,15 @@ describe("provisionCursorWorkspace", () => {
     expect(existsSync(join(workspaceRoot, ".git"))).toBe(false);
   }, GIT_TEST_TIMEOUT_MS);
 
-  it("falls back to the workspace root when there are no workspace entries", async () => {
+  it("gives a session with no workspace entries its own empty per-session directory", async () => {
+    // SessionSpec.workspace_entries: "When empty, the session uses an empty
+    // workspace directory." The shared root would leak other sessions' files
+    // into a "new" session (and falsely serialize unrelated sessions under
+    // the workspace turn lock), so no-entry sessions get sessions/{sessionId}.
     const workspaceRoot = join(tmpRoot, "empty-workspace");
     mkdirSync(workspaceRoot, { recursive: true });
+    // Leftovers from other sessions at the shared root must not be visible.
+    writeFileSync(join(workspaceRoot, "other-session-leftover.md"), "not yours");
 
     const dirs = await provisionCursorWorkspace(
       makeConfig(workspaceRoot),
@@ -260,7 +266,35 @@ describe("provisionCursorWorkspace", () => {
       "test-session-empty",
     );
 
-    expect(dirs).toEqual([workspaceRoot]);
+    expect(dirs).toEqual([join(workspaceRoot, "sessions", "test-session-empty")]);
+    expect(existsSync(dirs[0])).toBe(true);
+    expect(existsSync(join(dirs[0], "other-session-leftover.md"))).toBe(false);
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("resolves the same per-session directory on every turn of a no-entry session", async () => {
+    const workspaceRoot = join(tmpRoot, "empty-workspace-stable");
+    mkdirSync(workspaceRoot, { recursive: true });
+    const config = makeConfig(workspaceRoot);
+
+    const turn1 = await provisionCursorWorkspace(config, emptySession(), {}, "stable-session");
+    writeFileSync(join(turn1[0], "notes.md"), "turn 1 output");
+    const turn2 = await provisionCursorWorkspace(config, emptySession(), {}, "stable-session");
+
+    expect(turn2).toEqual(turn1);
+    expect(readFileSync(join(turn2[0], "notes.md"), "utf-8")).toBe("turn 1 output");
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("isolates distinct no-entry sessions from each other", async () => {
+    const workspaceRoot = join(tmpRoot, "empty-workspace-isolated");
+    mkdirSync(workspaceRoot, { recursive: true });
+    const config = makeConfig(workspaceRoot);
+
+    const [dirA] = await provisionCursorWorkspace(config, emptySession(), {}, "session-a");
+    const [dirB] = await provisionCursorWorkspace(config, emptySession(), {}, "session-b");
+
+    expect(dirA).not.toBe(dirB);
+    writeFileSync(join(dirA, "a.md"), "session a");
+    expect(existsSync(join(dirB, "a.md"))).toBe(false);
   }, GIT_TEST_TIMEOUT_MS);
 
   it("mounts a local-path workspace entry without cloning", async () => {

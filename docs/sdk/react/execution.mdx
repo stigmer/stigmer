@@ -970,6 +970,7 @@ Platform builders who want to render artifact content outside of
     contentType: { type: "string | null", description: "Optional MIME content type from the server. Used as a fallback when the file extension is ambiguous or missing." },
     fileName: { type: "string", description: "File name used to determine the rendering strategy (e.g., `\"README.md\"` → markdown, `\"config.yaml\"` → YAML).", required: true },
     isTruncated: { type: "boolean", description: "When `true`, shows a truncation warning below the content." },
+    reveal: { type: "RevealTarget", description: "Optional jump-to-line request. When set, the content is rendered **line-faithfully** so the line number maps to the file's real rows — Markdown defaults to its Source view (a line only exists in source) and JSON renders raw rather than pretty-printed (reformatting would shift line numbers) — and the target line is scrolled into view and highlighted. Absent (the default), rendering is unchanged. See RevealTarget.", typeDescriptionLink: "/docs/sdk/react/core#revealtarget" },
   }}
 />
 
@@ -1466,20 +1467,22 @@ All visual properties flow through `--stgm-*` tokens.
   type={{
     activeStreamExecution: { type: "AgentExecution | null", description: "The currently streaming execution. Appended after `executions` to form a continuous thread. Pass `null` or `undefined` when no execution is actively streaming." },
     approvalErrors: { type: "ReadonlyMap<string, Error>", description: "Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card beside the gate that failed (an inline tool row or the bottom backstop card). Supply useSubmitApproval's `errorsByToolCallId`. Only meaningful when `onApprovalSubmit` is provided." },
-    centerContent: { type: "boolean", description: "Center thread content within a max-width reading column.  When `true`, items are constrained to `max-w-3xl` (768 px) and horizontally centered. The scroll container stays full-width so the scrollbar remains at the viewport edge.  Opt-in per DD-011 — existing consumers see no layout change." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    contentColumn: { type: "ThreadContentColumn", description: "Constrain thread content to a max-width reading column (`max-w-3xl`, 768 px) inside the full-width scroll container — the scrollbar stays at the viewport edge.  - `\"center\"` — column horizontally centered (classic chat reading view). - `\"start\"` — column anchored to the left edge, so the thread's left   edge stays put when a sibling panel opens/closes beside it.  When omitted, content spans the full width. Opt-in per DD-011 — existing consumers see no layout change.", typeDescriptionLink: "#threadcontentcolumn" },
     executions: { type: "readonly AgentExecution[]", description: "Completed executions in chronological order.", required: true },
     formatToolCallSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom formatter for tool call summary labels. Passed through to each ToolCallGroup." },
     onApprovalSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Callback for approval actions. When provided and the active execution has pending approvals, ApprovalCards are rendered as thread items. When omitted, no approval UI is shown (backward compatible)." },
     onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode execution's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode execution completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered. Backward compatible — existing consumers see no change." },
     onEditMessage: { type: "(text: string) => void", description: "When provided, the in-flight human turn (the active execution's prompt) shows a hover \"Edit\" affordance. Clicking it invokes this callback with the message text — the session chat stops the running execution and pre-fills the composer for an edit-and-resubmit.  Provide this only while the active execution is stoppable; the SDK marks exactly the active-stream human turn editable. When omitted, no edit control is shown (backward compatible)." },
-    onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => void", description: "Optional override for file path click behavior. Platform builders use this to integrate their own file viewer or navigation instead of the default open-URL / copy-to-clipboard." },
+    onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => boolean | void", description: "Optional override for file path click behavior. Platform builders use this to integrate their own file viewer or navigation instead of the default open-URL / copy-to-clipboard." },
+    onOpenPlan: { type: "(executionId: string) => void", description: "Opens a plan in the session panel's plan document tab — the side-by-side review/refine surface. Wired to EVERY plan card: the latest opens editable/buildable, a superseded plan opens read-only (the host decides from the execution id). When omitted, cards fall back to the \"Open full\" preview modal (hosts without a panel).  Providing this also opts the thread into LIVE plan collapse: while a Plan-mode turn streams its plan (detected via `findStreamingPlan`), the plan message is suppressed behind a compact PlanStreamingCard whose \"Open plan\" routes here — the host is expected to render the streaming document in its plan surface. Hosts without one (this prop omitted) keep the plan streaming inline, where it stays readable." },
     onRetryExecution: { type: "(message: string) => void", description: "Retry handler for a terminal-failed execution that exposed a server error reason. Receives the originating message; the consumer typically resends it as a new execution. When omitted, no Retry control is shown beside the surfaced failure reason." },
     onRetrySend: { type: "() => void", description: "Retry handler for a failed pending message. Wired to the inline \"Retry\" control when pendingMessageFailed is `true`." },
     org: { type: "string", description: "Organization slug. Required for the plan completion card's \"Review plan\" action, which opens the shared artifact preview modal (the modal needs `org` for its detection/apply pipeline)." },
     pendingMessageFailed: { type: "boolean", description: "Marks the pending user message as failed-to-send. The optimistic bubble renders an inline \"Couldn't send — Retry\" affordance instead of the sending indicator, so a failed follow-up never silently vanishes. Pair with onRetrySend." },
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown at the end of the thread before the stream delivers the real message. Rendered as a human message with a sending indicator. Clear this prop once the stream delivers its first snapshot." },
     planActionsDisabled: { type: "boolean", description: "Disables the plan completion card's actions (Implement / Review). Defense in depth for the brief windows where a follow-up cannot be sent (e.g. an execution is streaming); the composer also no-ops a disabled submit." },
+    planBuildPending: { type: "boolean", description: "True while the approved plan is being uploaded ahead of the build turn." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
     showFileReviewRecords: { type: "boolean", description: "Render each *settled* captured change set as a read-only record card at its anchor in the thread (after the set's last stamped edit row) — the durable history of what changed and how it was decided. This is the only in-thread trace for a set with no stamped rows (e.g. changes made by shell commands), so the surface that owns the session history should enable it.  The thread never renders *decision* controls: a pending (AWAITING_REVIEW) set on a live execution is deliberately NOT emitted here — its decision surface is the composer-docked FileReviewDock, which cannot scroll out of view. The stamped rows' badges carry the pending state in-thread.  Opt-in with a backward-compatible default (DD-011); `SessionViewer` enables it." },
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval. Drives per-card loading state. Only meaningful when `onApprovalSubmit` is provided." },
@@ -2021,6 +2024,7 @@ Input for `UseCreateAgentExecutionReturn.create`.
     agentId: { type: "string", description: "Explicit agent ID. When omitted, uses the session's agent instance." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments injected into the agent sandbox.  Each entry must include a `storageKey` obtained from `agentExecution.uploadAttachment()`. The agent can read attached files from their mount paths (default `/inputs/{filename}`)." },
     autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this execution.  When `true`, the human-in-the-loop approval gate is bypassed and no tool waits for approval. When `false` (default), mutating/destructive tools require approval per the configured policies. Maps to `AgentExecutionSpec.auto_approve_all` in the proto." },
+    buildFromPlan: { type: "boolean", description: "Marks this execution as a \"Build from plan\" turn: the user approved a plan from a prior Plan-mode execution and asked the agent to implement it. The runner injects the implement-plan directive (pointing at the attached approved plan when present); the thread renders the turn as a compact chip instead of the raw message text.  Maps to `ExecutionConfig.build_from_plan` in the proto." },
     interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  Maps to `ExecutionConfig.interaction_mode` in the proto." },
     message: { type: "string", description: "User message that initiates the execution.", required: true },
     modelName: { type: "string", description: "Override the default model for this execution." },
@@ -2149,6 +2153,19 @@ Props for [`ExecutionPhaseBadge`](#executionphasebadge).
 />
 
 
+### extractPrimaryArg
+
+Extracts the most relevant argument value from a tool call
+based on its category (command for shell tools, path for file
+tools, slug for MCP tools, etc.).
+
+Returns `null` when the tool has no recognised arguments.
+
+```tsx
+function extractPrimaryArg(toolCall: ToolCall): string | null
+```
+
+
 ### FileBlockReason
 
 Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the
@@ -2203,7 +2220,7 @@ copy-to-clipboard for all paths.
 
 <TypeTable
   type={{
-    onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => void", description: "Optional override for the default click behavior. When provided, `FilePathLink` delegates to this callback instead of opening a URL or copying to clipboard. Platform builders use this to integrate their own file viewer or navigation." },
+    onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => boolean | void", description: "Optional override for the default click behavior. When provided, `FilePathLink` delegates to this callback instead of opening a URL or copying to clipboard. Platform builders use this to integrate their own file viewer or navigation.  Return `false` to **decline** a specific path — `FilePathLink` then falls back to its default action (open the GitHub link / copy the path), so a handler that can only open *some* paths (e.g. resolvable workspace files) leaves the rest behaving as before. Returning `true` or `void` means the click was fully handled and the default is suppressed — preserving the behavior of existing `void`-returning handlers." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec, used for path resolution.", required: true },
   }}
 />
@@ -2641,6 +2658,9 @@ Props for [`MessageEntry`](#messageentry).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    interactionMode: { type: "InteractionMode", description: "The turn's interaction mode, stamped by the thread builder on the synthetic prompt bubble (`MESSAGE_HUMAN`). Renders the InteractionModeBadge for non-default modes (a \"Plan\" pill), so the transcript reads unambiguously after mode switches. Ignored for non-human messages." },
+    isBuildFromPlan: { type: "boolean", description: "Renders a `MESSAGE_HUMAN` entry as a compact \"Build from plan\" chip instead of a prompt bubble. Stamped by the thread builder from `execution_config.build_from_plan`: the turn's message is a short label (the implement instruction is runner-injected), so a full-width bubble would dignify machine plumbing as user prose. Ignored for non-human messages." },
+    isPlanDocument: { type: "boolean", description: "Renders a `MESSAGE_AI` entry as a first-class plan document (PlanDocumentMessage) instead of a chat bubble. Set by the thread builder only on the NO-ARTIFACT fallback path: a completed Plan turn that never published `plan.md` (older executions, failed upload) keeps its plan inline — the message is the only copy of the plan. A turn that published the artifact collapses the message into the compact plan card instead (the document lives in the panel's plan tab). Ignored for non-AI messages." },
     message: { type: "AgentMessage", description: "The agent message to render.", required: true },
     onEdit: { type: "() => void", description: "When provided on a `MESSAGE_HUMAN` entry, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for non-human messages." },
   }}
@@ -2672,6 +2692,45 @@ Result of classifying a tool-call file path against the virtual
 platform mount (`.stigmer/`) namespace.
 
 
+### PlanArtifactCard
+
+The compact plan card — a completed Plan turn's sole representation in the
+thread. The plan document itself lives in the session panel's plan tab
+(`PlanEditor`), Cursor-style: chat carries a recognizable, actionable card;
+the panel carries the document.
+
+Anatomy: a document-style identity block (plan icon, the plan's title, a
+`plan.md · size` meta line) with the actions trailing — **Open plan** and
+**Download** as subdued secondaries and one prominent, themeable primary,
+**Build from plan** — so the next step is unmistakable.
+
+Only the LATEST plan's card carries `onImplement`; a superseded plan's card
+is review-only (its `onOpenPlan` opens the document read-only), so a stale
+plan can never be implemented by accident.
+
+All visual properties flow through `--stgm-*` tokens; the component is
+self-contained and embeddable.
+
+
+### PlanArtifactCardProps
+
+Props for [`PlanArtifactCard`](#planartifactcard).
+
+<TypeTable
+  type={{
+    artifact: { type: "ExecutionArtifact", description: "The published `plan.md` artifact (from `findPlanArtifact`).", required: true },
+    buildPending: { type: "boolean", description: "When true, the primary button reads \"Starting build…\" (upload in flight)." },
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    disabled: { type: "boolean", description: "Disables the primary CTA (e.g., while an execution is active)." },
+    executionId: { type: "string", description: "Execution that produced the plan — used to fetch the plan content.", required: true },
+    onImplement: { type: "() => void", description: "Called when the user clicks \"Build from plan\". Hidden when omitted." },
+    onOpenPlan: { type: "() => void", description: "Opens the plan in the session panel's plan document tab — the side-by-side review/refine surface. When provided it REPLACES the modal-based \"Open full\" secondary with \"Open plan\" (one review affordance, not two). When omitted (hosts without a session panel) the modal remains." },
+    org: { type: "string", description: "Organization slug. Required for the \"Open full\" modal (the shared ArtifactPreviewModal uses it for its detection/apply pipeline and to fetch the content). When omitted, \"Open full\" is hidden — the prominent \"Build from plan\" action and \"Download\" remain." },
+    title: { type: "string", description: "The plan's title (its leading `# H1`). The card is the plan's compact stand-in in the thread, so the title is what makes it recognizable. Falls back to \"Plan\" when omitted." },
+  }}
+/>
+
+
 ### PlanCompletionCard
 
 Fallback CTA shown in the [`MessageThread`](#messagethread) after a completed Plan-mode
@@ -2698,6 +2757,78 @@ Props for [`PlanCompletionCard`](#plancompletioncard).
     className: { type: "string", description: "Additional CSS classes for the root element." },
     disabled: { type: "boolean", description: "Disables the CTA button (e.g., while an execution is active)." },
     onImplement: { type: "() => void", description: "Called when the user clicks the \"Build from plan\" button." },
+  }}
+/>
+
+
+### PlanDocumentMessage
+
+Renders a Plan-mode turn's plan as a first-class document instead of a chat
+bubble: a bordered card with a title header (the plan's leading `# H1`,
+lifted out of the prose) and document-grade typography
+(`PLAN_DOCUMENT_MARKDOWN_COMPONENTS`).
+
+This is the thread's NO-ARTIFACT fallback: a completed Plan turn that never
+published `plan.md` (older executions, a failed upload) keeps its plan
+inline via this component — the message is the only copy of the plan, so it
+must stay readable in place. A turn that DID publish the artifact collapses
+its plan message into the compact `PlanArtifactCard` instead, and the
+document renders in the session panel's plan tab (`PlanEditor`) with the
+same typography.
+
+Fence handling is plan-scoped: a plan wrapped in a whole-body fence is
+unwrapped even when the fence carries no language tag (`allowBareFence`) —
+a Plan turn's output is a markdown document by contract, so an enclosing
+bare fence is wrapping, not code. Render-time only; the transcript and the
+published artifact stay byte-faithful.
+
+Purely presentational — no data fetching, no state.
+All visual properties flow through `--stgm-*` tokens.
+
+
+### PlanDocumentMessageProps
+
+Props for [`PlanDocumentMessage`](#plandocumentmessage).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    content: { type: "string", description: "The plan message's markdown content (the agent's final Plan-mode reply).", required: true },
+  }}
+/>
+
+
+### PlanStreamingCard
+
+The live counterpart of [`PlanArtifactCard`](#planartifactcard) — a streaming Plan turn's
+compact stand-in in the thread while the plan document renders live in the
+session panel's plan tab. Same anatomy as the completed card (icon, title,
+`plan.md · size` meta, trailing actions) so the completion handoff reads as
+the same card settling, not a new element appearing.
+
+Deliberately action-light: "Open plan" is the only affordance. Download and
+Build require the published artifact, which does not exist until the turn
+completes — at which point `buildThreadItems` swaps this item for the
+`plan-completion` item under the same list key.
+
+The pulsing icon is the progress affordance: a CSS animation inside `.stgm`,
+covered by the stylesheet's global `prefers-reduced-motion` rule (DD-015),
+and safe under virtualization (no `@starting-style`).
+
+All visual properties flow through `--stgm-*` tokens; the component is
+self-contained and embeddable.
+
+
+### PlanStreamingCardProps
+
+Props for [`PlanStreamingCard`](#planstreamingcard).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    onOpenPlan: { type: "() => void", description: "Opens the panel's plan document tab, where the plan is rendering live. Always provided in practice: the thread only collapses a streaming plan behind this card when the host wired `onOpenPlan` (see `MessageThread`'s `collapseStreamingPlan` gate) — without a document surface there is nothing for the card to open, and the plan streams inline instead." },
+    sizeBytes: { type: "number", description: "Live size of the plan text streamed so far. An approximation (UTF-16 length, not encoded bytes) — it exists to show growth while the agent writes, not to state the artifact's final size.", required: true },
+    title: { type: "string", description: "The plan's title (its leading `# H1`), streaming in live. Falls back to \"Writing plan…\" until the title has arrived." },
   }}
 />
 
@@ -3003,6 +3134,11 @@ there is nothing useful to summarize.
 ```tsx
 function summarizeResultView(view: ToolResultView): string | null
 ```
+
+
+### ThreadContentColumn
+
+Reading-column alignment for [`MessageThread`](#messagethread) content.
 
 
 ### toDisplayFileChange

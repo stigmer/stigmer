@@ -5,13 +5,19 @@ import { cn } from "@stigmer/theme";
 import type { ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
+import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
+import type { WorkspaceContentSearcher } from "../workspace/WorkspaceContentSearcher.js";
 import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer } from "../composer/index.js";
 import type { HarnessOption } from "../models/harness.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
-import { SessionInspector } from "./inspector/SessionInspector.js";
-import type { SetupTabProps } from "./inspector/SetupTab.js";
+import { useWorkspaceEditors } from "../internal/store/index.js";
+import { WorkspaceSurface } from "../workspace/WorkspaceSurface.js";
+import type { SetupTabProps } from "./facets/SetupTab.js";
 import { useNewSessionFlow } from "./useNewSessionFlow.js";
+import { useSessionPanel } from "./useSessionPanel.js";
+import { useSessionRailViews } from "./useSessionRailViews.js";
+import { SessionPanelChip } from "./SessionPanelChip.js";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience } from "./audience.js";
 
@@ -46,6 +52,20 @@ export interface NewSessionViewerProps {
    * expandable file tree. (DD-004 capability injection, DD-011 opt-in.)
    */
   readonly workspaceFileLister?: WorkspaceFileLister;
+
+  /**
+   * Platform-injected content reader for the read-only file viewer. When set,
+   * clicking a file in the Workspace tree opens it in a contextual "Viewer"
+   * tab — the same capability `SessionViewer` accepts (DD-016 parity).
+   */
+  readonly workspaceFileReader?: WorkspaceFileReader;
+
+  /**
+   * Platform-injected content (text) searcher — the same capability
+   * `SessionViewer` accepts (DD-016 parity). Desktop injects a native
+   * ripgrep-backed searcher; web leaves it undefined (DD-09).
+   */
+  readonly workspaceContentSearcher?: WorkspaceContentSearcher;
 
   /**
    * Supplies host-app environment variables for the session's first
@@ -119,9 +139,10 @@ export interface NewSessionViewerProps {
  * Owns `useNewSessionFlow` internally and composes:
  * - **Centered composer** (primary pane): `SessionComposer` with all
  *   context pickers (agent, workspace, MCP servers, skills)
- * - **SessionInspector** (secondary pane): progressively revealed when
- *   context is attached (workspace/agent/MCP/skills/vars non-empty),
- *   showing only the Setup tab with interactive workspace actions.
+ * - **Session panel** (secondary pane): the unified `WorkspaceSurface` with a
+ *   Config rail view — collapsed by default behind a persistent top-right chip
+ *   and homing on the Config facet when opened. Same layout model as
+ *   `SessionViewer` (DD-016).
  *
  * Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
  * apps inject platform-specific values via props (DD-004/DD-016).
@@ -156,6 +177,8 @@ export function NewSessionViewer({
   enableLocal = false,
   onBrowseLocalFolder,
   workspaceFileLister,
+  workspaceFileReader,
+  workspaceContentSearcher,
   getRuntimeEnv,
   audience = "integrator",
   defaultHarness,
@@ -179,12 +202,25 @@ export function NewSessionViewer({
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const isEndUser = audience === "endUser";
 
-  const hasContext =
-    flow.workspace.hasEntries ||
-    flow.agentRef !== null ||
-    flow.mcpServerUsages.length > 0 ||
-    flow.skillRefs.length > 0 ||
-    (flow.sessionVariables != null && !flow.sessionVariables.isEmpty);
+  // The unified-panel controller (shared with SessionViewer, DD-016). The
+  // launcher has no execution yet, so the FSM inputs are static. It has no
+  // streaming column to isolate either, so subscribing to the editor group in
+  // the body is harmless — unlike `SessionViewer`, which subscribes one level
+  // down. Homes on Config: pre-session the Explorer is empty, while Config
+  // carries the run defaults (harness/model) worth seeing before starting.
+  const panel = useSessionPanel({
+    phase: null,
+    hasChanges: false,
+    defaultView: "configure",
+  });
+  const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
+    panel.editorsStore,
+  );
+
+  // Honor a jump-to-line reveal only while it targets the active editor
+  // (DD-016 parity with SessionViewer).
+  const activeReveal =
+    reveal && reveal.key === activeKey ? reveal : undefined;
 
   const handleRemoveAgent = useCallback(() => {
     flow.setAgentRef(null);
@@ -240,26 +276,34 @@ export function NewSessionViewer({
     ],
   );
 
-  const workspaceConfig = useMemo(
-    () => ({
-      actions: {
-        workspace: flow.workspace,
-        enableGitHub,
-        enableLocal,
-        gitHubConnection,
-        onBrowseLocalFolder,
-        workspaceFileLister,
-      },
-    }),
-    [flow.workspace, enableGitHub, enableLocal, gitHubConnection, onBrowseLocalFolder, workspaceFileLister],
-  );
+  // Launcher facets: Config only — no executions exist yet, so the
+  // execution-derived facets (Changes/Artifacts/Usage) don't apply.
+  const railViews = useSessionRailViews({
+    allExecutions: [],
+    org,
+    sessionConfig,
+    selectedItem: null,
+    includeExecutionFacets: false,
+  });
+
+  // Explorer-footer folder attach (desktop only — needs the native picker).
+  const canAddLocalFolder = enableLocal && !!onBrowseLocalFolder;
+  const handleAddLocalFolder = useCallback(async () => {
+    const path = await onBrowseLocalFolder?.();
+    if (path) flow.workspace.addLocalPath(path);
+  }, [onBrowseLocalFolder, flow.workspace.addLocalPath]);
 
   const composerNode = (
-    <div className="flex h-full flex-col items-center overflow-y-auto px-4">
-      <div className={cn(
-        "w-full max-w-2xl space-y-6",
-        hasContext ? "my-6" : "my-auto",
-      )}>
+    // `my-auto` centers the composer vertically whether or not context is
+    // attached — safe-centering, not a special case: auto margins absorb free
+    // space when the composer is shorter than the pane and collapse to zero
+    // when it outgrows it, degrading to a normal top-aligned scroll. The
+    // scroll container's `py-6` keeps breathing room in that overflow case.
+    // Do NOT reintroduce a context-driven position flip: the composer must not
+    // move as context is attached (DD-16's layout-stability rationale — chrome
+    // that shifts with attached context reads as instability).
+    <div className="flex h-full flex-col items-center overflow-y-auto px-4 py-6">
+      <div className="my-auto w-full max-w-2xl space-y-6">
         <h1 className="text-center text-lg font-medium text-foreground">
           {heading}
         </h1>
@@ -308,38 +352,62 @@ export function NewSessionViewer({
     </div>
   );
 
-  if (!hasContext) {
-    return (
-      <div className={cn("flex h-full w-full flex-col", className)}>
-        {composerNode}
-      </div>
-    );
-  }
-
   return (
-    <div className={cn("flex h-full w-full flex-col", className)}>
+    <div className={cn("relative flex h-full w-full flex-col", className)}>
+      {/* Persistent chrome: the chip is always mounted, matching SessionViewer
+          (DD-016) rather than the launcher's earlier progressively-revealed
+          inspector. A toggle that appears/disappears with attached context
+          reads as instability and, worse, unmounts the open panel's only
+          collapse control when the last context item is removed. Always-on is
+          the predictable, discoverable shape; opening homes on the Config
+          facet, which carries useful defaults (harness/model) pre-session. */}
+      <div className="absolute top-2 right-6 z-10">
+        <SessionPanelChip
+          isOpen={panel.isOpen}
+          onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
+        />
+      </div>
+
+      {/* Same unified-panel layout as SessionViewer (DD-016): collapsed by
+          default (composer fills the row); opening makes the composer the
+          fixed narrow pane and hands the flexible region to the surface.
+          Collapse goes through the split's `collapsedPane` (CSS, not
+          conditional structure), so the composer never remounts across an
+          open/close toggle. */}
       <ResizableSplit
-        defaultSize={320}
-        minSize={240}
-        maxSize={480}
-        storageKey="stgm-new-session-inspector-width"
-        className={cn(
-          "min-h-0 flex-1",
-          "[&>*:nth-child(2)]:max-lg:hidden [&>*:nth-child(3)]:max-lg:hidden",
-        )}
+        resizablePane="primary"
+        collapsedPane={panel.isOpen ? "none" : "secondary"}
+        defaultSize={420}
+        minSize={320}
+        maxSize={640}
+        storageKey="stgm-new-session-chat-width"
+        responsiveCollapse={panel.isOpen ? "primary" : "none"}
+        ariaLabel="Resize composer panel"
+        className="min-h-0 flex-1"
         primary={composerNode}
         secondary={
-          <aside className="flex h-full flex-col overflow-hidden">
-            <SessionInspector
-              displayExecution={null}
-              allExecutions={[]}
-              org={org}
-              selectedItem={null}
-              sessionConfig={sessionConfig}
-              workspaceConfig={workspaceConfig}
-              className="min-h-0 flex-1"
+          panel.isOpen ? (
+            <WorkspaceSurface
+              entries={flow.workspace.entries}
+              lister={workspaceFileLister}
+              reader={workspaceFileReader}
+              searcher={workspaceContentSearcher}
+              view={panel.view}
+              onViewChange={panel.setView}
+              extraViews={railViews}
+              onRemoveEntry={flow.workspace.remove}
+              onAddLocalFolder={canAddLocalFolder ? handleAddLocalFolder : undefined}
+              editors={editors}
+              selectedFile={activeFile}
+              onOpenFile={panel.openFile}
+              onActivateEditor={panel.activateEditor}
+              onPinEditor={panel.pinEditor}
+              onCloseEditor={panel.closeEditor}
+              onCollapse={panel.closePanel}
+              reveal={activeReveal}
+              className="h-full"
             />
-          </aside>
+          ) : null
         }
       />
     </div>

@@ -7,6 +7,58 @@ description: Hooks and components for file entries, folder browsing, and code ed
 
 ## Hooks
 
+### useWorkspaceContentSearch
+
+Behavior hook powering workspace-wide content (text) search.
+
+The text-grep sibling of
+[`useWorkspaceFileSearch`](#useworkspacefilesearch): it keeps
+that hook's per-entry aggregation, error isolation, and generation guard, and
+adds the platform's canonical debounce idiom from `useResourceSearch`
+(`query`/`debouncedQuery` + `setTimeout`). The key difference is that the
+debounced query is part of the *fetch* — each keystroke hits disk via the
+injected [`WorkspaceContentSearcher`](#workspacecontentsearcher), uncached — so a `minLength` guard
+and a debounce protect the filesystem.
+
+Prior results stay visible while a new debounced query loads (`isRefetching`
+true, results unchanged); only the very first search with nothing to show
+flips `isLoading`. This avoids a per-keystroke blank flash the cached filename
+search never had.
+
+**Signature**
+
+```tsx
+function useWorkspaceContentSearch(options: UseWorkspaceContentSearchOptions): UseWorkspaceContentSearchReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseWorkspaceContentSearchOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseWorkspaceContentSearchReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "First per-entry error, for a top-level fallback message. `null` when none." },
+    groups: { type: "readonly WorkspaceContentSearchGroup[]", description: "Entries with something to show (matches, an error, or a truncation notice)." },
+    isLoading: { type: "boolean", description: "`true` during the first search of a query with no prior results to show." },
+    isRefetching: { type: "boolean", description: "`true` while a new query loads *over* previously-shown results (no blank flash)." },
+    isUnsupported: { type: "boolean", description: "`true` when no substrate can be searched (no searcher, or every entry unsupported)." },
+    totalMatches: { type: "number", description: "Total matches across all groups (for a \"showing N of M\" affordance)." },
+  }}
+/>
+
+```tsx
+const { groups, totalMatches, isRefetching } = useWorkspaceContentSearch({
+  entries: workspace.entries,
+  searcher: workspaceContentSearcher,
+  query,
+});
+```
+
+
 ### useWorkspaceEntries
 
 Behavior hook that manages a workspace entry array with add, remove,
@@ -61,14 +113,73 @@ workspace.addLocalPath("/Users/dev/projects/frontend");
 ```
 
 
+### useWorkspaceFileContent
+
+Behavior hook that reads a single workspace file's content on demand.
+
+The byte-reading peer of [`useWorkspaceFiles`](#useworkspacefiles)
+(which lists the tree), built on the same `useFetch` engine as the
+content-fetch family ([`useArtifactContent`](/docs/sdk/react/execution#useartifactcontent),
+`useToolOutputContent`, `useFileChangeContent`) so it inherits their
+stale-while-revalidate, cancellation, and `refetch` semantics for free.
+
+Deliberately passes **no** `cacheKey`: file bodies (up to
+[`MAX_WORKSPACE_FILE_READ_BYTES`](#max_workspace_file_read_bytes))
+do not belong in the cross-mount metadata cache, which is sized for small,
+hot resources. Re-opening a file re-reads it — the correct trade for a
+read-only viewer.
+
+Maps the reader's two failure axes onto distinct states:
+- reader resolves `null` (unsupported substrate) -> `UseWorkspaceFileContentReturn.isUnsupported`
+- reader **throws** (404, network, unreadable) -> `UseWorkspaceFileContentReturn.error`
+
+Pass `null` for `entry`/`path` (or an `undefined` reader) to stay idle —
+the established `useFetch` convention.
+
+**Signature**
+
+```tsx
+function useWorkspaceFileContent(options: UseWorkspaceFileContentOptions): UseWorkspaceFileContentReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseWorkspaceFileContentOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseWorkspaceFileContentReturn`
+
+<TypeTable
+  type={{
+    content: { type: "WorkspaceFileContent | null", description: "The decoded file content (+ metadata), or `null` while the request is in-flight, skipped, failed, or the substrate is unsupported. A present object with `text === null` is a real file that is binary, too large, or undecodable — distinct from `isUnsupported`." },
+    error: { type: "Error | null", description: "Error from the last failed read (a reader throw), or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` only on the first load, before any content has arrived." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale content is shown." },
+    isUnsupported: { type: "boolean", description: "`true` when no reader can serve this file — either no reader was injected or the reader reported the entry's substrate as unsupported (git-on-desktop, local-on-web, missing token). This is the honest \"not available here\" state, never an error." },
+    refetch: { type: "() => void", description: "Imperatively re-read the current file. Stale content stays visible." },
+  }}
+/>
+
+```tsx
+const { content, isLoading, error, isUnsupported } = useWorkspaceFileContent({
+  entry,
+  path: "src/index.ts",
+  reader: workspaceFileReader,
+});
+```
+
+
 ### useWorkspaceFiles
 
 Behavior hook that fetches and caches a file listing for a single
 workspace entry, converting it into a `TreeNode` hierarchy.
 
-- Calls the platform-injected `lister` when the entry changes.
-- Caches results per `entry.id` so tab switches and re-expands
-  are instant without re-fetching.
+- Calls the platform-injected `lister` (via the shared
+  `loadEntryFiles` cache) when the
+  entry changes.
+- Reads the shared listing cache so tab switches, re-expands, and the search
+  surface are instant without re-fetching (one cache, keyed by `entry.id`).
 - Returns an empty tree and skips the call when `lister` is
   `undefined` (graceful degradation — DD-011 opt-in).
 - Memoizes the return value for referential stability (DD-010).
@@ -93,13 +204,62 @@ function useWorkspaceFiles(options: UseWorkspaceFilesOptions): UseWorkspaceFiles
     isLoading: { type: "boolean", description: "`true` while the lister is being called." },
     refresh: { type: "() => void", description: "Re-fetch the file listing for the current entry (cache-bust)." },
     tree: { type: "readonly TreeNode[]", description: "Hierarchical tree built from the file listing, ready for `FileTreeNode`." },
+    truncated: { type: "boolean", description: "`true` when the listing was truncated by the backend (repository too large). The advisory entry is excluded from `tree`; callers render an incomplete-results banner from this flag instead (DD-11)." },
   }}
 />
 
 ```tsx
-const { tree, isLoading, error, refresh } = useWorkspaceFiles({
+const { tree, isLoading, error, truncated, refresh } = useWorkspaceFiles({
   entry: selectedEntry,
   lister: workspaceFileLister,
+});
+```
+
+
+### useWorkspaceFileSearch
+
+Behavior hook powering workspace-wide filename/path search.
+
+Loads each entry's listing through the shared
+`loadEntryFiles` cache (warm from
+Files browsing → usually free), then ranks matches per entry with the pure
+`matchWorkspaceFiles`. Fetching is keyed by the set of entry ids, so a
+query change re-ranks the already-loaded listings without re-fetching. Errors
+are isolated per entry (one failing repo never blanks the rest), and a stale
+generation's late resolutions are ignored.
+
+Meant to be consumed by a component mounted only while Search is active
+(`WorkspaceFileSearch`), so the Files view incurs no search fetching.
+
+**Signature**
+
+```tsx
+function useWorkspaceFileSearch(options: UseWorkspaceFileSearchOptions): UseWorkspaceFileSearchReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseWorkspaceFileSearchOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseWorkspaceFileSearchReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "First per-entry error, for a top-level fallback message. `null` when none." },
+    groups: { type: "readonly WorkspaceFileSearchGroup[]", description: "Entries with something to show (matches, an error, or a truncation notice)." },
+    isLoading: { type: "boolean", description: "`true` while any entry's listing is still loading." },
+    isUnsupported: { type: "boolean", description: "`true` when no substrate can be searched (no lister, or every entry unsupported)." },
+    totalMatches: { type: "number", description: "Total matches across all groups (for a \"showing N of M\" affordance)." },
+  }}
+/>
+
+```tsx
+const { groups, totalMatches, isLoading } = useWorkspaceFileSearch({
+  entries: workspace.entries,
+  lister: workspaceFileLister,
+  query,
 });
 ```
 
@@ -157,6 +317,61 @@ const sources = useWorkspaceSources();
 
 ## Components
 
+### ExplorerTree
+
+The workspace surface's multi-root file explorer — the bare, VS Code-style
+tree: file-type icons, indent guides, single-click preview / double-click
+pin, optional per-root remove controls. Search lives in the surface's rail,
+not per root; listings come from the shared `useWorkspaceFiles` cache.
+
+All visual properties flow through `--stgm-*` tokens (DD-005).
+
+**Props** — `ExplorerTreeProps`
+
+<TypeTable
+  type={{
+    entries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries, each rendered as a collapsible root (multi-root).", required: true },
+    lister: { type: "WorkspaceFileLister", description: "Platform-injected file lister.", required: true, typeDescriptionLink: "#workspacefilelister" },
+    onActivateFile: { type: "(entryId: string, path: string) => void", description: "Double click: pin the file (persistent tab).", required: true },
+    onOpenFile: { type: "(entryId: string, path: string) => void", description: "Single click: open as a preview tab.", required: true },
+    onRemoveEntry: { type: "(entryId: string) => void", description: "Detach a workspace entry. When provided, each root header carries a remove control (VS Code's \"Remove Folder from Workspace\"); when absent the explorer is browse-only." },
+    selectedFile: { type: "SelectedWorkspaceFile | null", description: "The active file, highlighted in the tree.", required: true },
+  }}
+/>
+
+
+### WorkspaceContentSearch
+
+Workspace-wide content (text) search surface.
+
+Greps file contents across every workspace entry (via
+[`useWorkspaceContentSearch`](#useworkspacecontentsearch)) and opens a hit's file in the viewer
+through `onOpenFile` — the same seam a file-tree click and filename search
+use. Results are a VS Code-style `file → line` layout: each matched file is a
+header, each hit a line row with a line-number gutter and a highlighted
+preview. Filename search lives in the sibling [`WorkspaceFileSearch`](#workspacefilesearch); a
+`Name | Text` toggle in the surface switches between them (DD-09).
+
+Keyboard/a11y mirrors the filename sibling (and `McpServerPicker`): the input
+is a `role="combobox"` driving `aria-activedescendant`; results are a
+`role="listbox"` of `role="option"` line rows; ArrowUp/Down move a virtual
+focus over the flat line-hit index (across files and entries) with Enter to
+open — focus stays in the input. All visual properties flow through `--stgm-*`
+tokens (DD-005).
+
+**Props** — `WorkspaceContentSearchProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    entries: { type: "readonly WorkspaceEntry[]", description: "All workspace entries to search across.", required: true },
+    onOpenFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Opens a result's file in the viewer, jumping to the matched line. The `options.line` carries the hit's 1-based line so the viewer scrolls to and highlights it (DR-1/DR-2).", required: true },
+    searcher: { type: "WorkspaceContentSearcher | undefined", description: "Platform-injected content searcher. `undefined` → content search is unavailable.", required: true },
+    selectedFile: { type: "SelectedWorkspaceFile | null", description: "The file currently open in the viewer, highlighted in the results." },
+  }}
+/>
+
+
 ### WorkspaceEditor
 
 Styled component for managing workspace entries with a flat-list
@@ -204,24 +419,30 @@ function SessionSetup({ org }: { org: string }) {
 ```
 
 
-### WorkspaceEntryFiles
+### WorkspaceFileSearch
 
-Inline expandable file tree for a single workspace entry.
+Workspace-wide filename/path search surface.
 
-When `isExpanded` is `true`, calls the platform-injected lister and
-renders a scrollable tree using the shared `FileTreeNode` primitive.
-Renders loading skeletons, error states, empty states, and a
-search toolbar for filtering the file tree by name.
+Searches the already-loaded listings across every workspace entry (via
+[`useWorkspaceFileSearch`](#useworkspacefilesearch)) and opens a hit in the viewer through
+`onOpenFile` — the same seam a file-tree click uses. Filename-first by design;
+content search is a separate substrate-specific capability (DD-09).
 
-All visual properties flow through `--stgm-*` tokens (DD-005).
+Keyboard/a11y follows the platform's combobox+listbox pattern (see
+`mcp-server/McpServerPicker`): the input is a `role="combobox"` driving
+`aria-activedescendant`, results are a `role="listbox"` of `role="option"`
+rows, and ArrowUp/Down move a virtual focus with Enter to open — focus stays
+in the input. All visual properties flow through `--stgm-*` tokens (DD-005).
 
-**Props** — `WorkspaceEntryFilesProps`
+**Props** — `WorkspaceFileSearchProps`
 
 <TypeTable
   type={{
-    entry: { type: "WorkspaceEntry", description: "The workspace entry whose files to browse.", required: true, typeDescriptionLink: "#workspaceentry" },
-    isExpanded: { type: "boolean", description: "Whether the file tree panel is currently expanded.", required: true },
-    lister: { type: "WorkspaceFileLister", description: "Platform-injected file lister.", required: true, typeDescriptionLink: "#workspacefilelister" },
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    entries: { type: "readonly WorkspaceEntry[]", description: "All workspace entries to search across.", required: true },
+    lister: { type: "WorkspaceFileLister | undefined", description: "Platform-injected file lister. `undefined` → search is unavailable.", required: true },
+    onOpenFile: { type: "(entryId: string, path: string) => void", description: "Opens a result in the viewer.", required: true },
+    selectedFile: { type: "SelectedWorkspaceFile | null", description: "The file currently open in the viewer, highlighted in the results." },
   }}
 />
 
@@ -258,7 +479,207 @@ const { session } = useSession(sessionId);
 ```
 
 
+### WorkspaceSurface
+
+A VS Code / Cursor-inspired read-only workspace surface: a slim activity rail
+(Explorer / Search), a resizable sidebar, and a large editor area.
+
+This is the workspace-dominant counterpart to the inspector's cramped Viewer
+tab. The session viewer flips its layout to give this surface the majority of
+the screen while chat becomes a narrow column (see `SessionViewer`). It is a
+self-contained organism: given `entries`, a `lister`, a `reader`, and the
+open-file selection, it renders identically inside the Console or embedded in
+a third-party host (DD-004). Explicitly read-only — no editing, no commit UI.
+
+All visual properties flow through `--stgm-*` tokens (DD-005).
+
+**Props** — `WorkspaceSurfaceProps`
+
+<TypeTable
+  type={{
+    change: { type: "FileChange", description: "The session FileChange that touched the open file, when it was changed this session. When present the editor defaults to the authoritative `baseline→candidate` diff (DD-06), matching the inspector's Viewer tab." },
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    editors: { type: "readonly OpenEditor[]", description: "Open editor tabs in order (VS Code open-editors model).", required: true },
+    entries: { type: "readonly WorkspaceEntry[]", description: "The workspace entries whose files are browsable (multi-root).", required: true },
+    extraViews: { type: "readonly SurfaceRailView[]", description: "Host-injected rail views, rendered after the built-in Explorer/Search. Their `content` renders in the sidebar pane; the editor area stays for files (the VS Code model)." },
+    lister: { type: "WorkspaceFileLister | undefined", description: "Platform-injected file lister. `undefined` disables explorer + search.", required: true },
+    onActivateEditor: { type: "(entryId: string, path: string) => void", description: "Focuses an already-open editor (tab single click).", required: true },
+    onAddLocalFolder: { type: "() => void", description: "Attach a local folder (host opens its native picker and adds the entry). When provided, the explorer renders an \"Add Folder\" footer action — desktop hosts wire this; web hosts omit it (no native picker)." },
+    onCloseEditor: { type: "(entryId: string, path: string) => void", description: "Closes an editor (tab close control or middle click).", required: true },
+    onCollapse: { type: "() => void", description: "Collapses the surface back to the chat-dominant layout.", required: true },
+    onOpenFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Opens a file as a preview (single click) from the explorer or search. The same seam the tree/search uses; the owner routes it to the editors store. `options.line` (content-search hits) requests a jump-to-line reveal.", required: true },
+    onPinEditor: { type: "(entryId: string, path: string) => void", description: "Pins an editor (tab double-click) so it stops being the preview tab.", required: true },
+    onRemoveEntry: { type: "(entryId: string) => void", description: "Detach a workspace entry. When provided, explorer root headers carry a remove control (VS Code's \"Remove Folder from Workspace\")." },
+    onViewChange: { type: "(viewId: string) => void", description: "Called when the user picks a rail view." },
+    reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader for the editor.", required: true },
+    reveal: { type: "RevealTarget", description: "Jump-to-line reveal for the **active** editor (already scoped by the owner to `reveal.key === activeKey`), or `undefined`. Forwarded to the editor's viewer, which opens in File view and scrolls to / highlights the line.", typeDescriptionLink: "/docs/sdk/react/core#revealtarget" },
+    searcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher. When provided, the Search pane gains a `Name | Text` toggle offering full-text search; `undefined` (web/git today) keeps the Search pane filename-only (DD-09). Mirrors the lister's null contract — the honest \"unavailable here\" state.", typeDescriptionLink: "#workspacecontentsearcher" },
+    selectedFile: { type: "SelectedWorkspaceFile | null", description: "The active editor's file, or `null`. Highlighted in the tree and shown.", required: true },
+    view: { type: "string", description: "The active rail view id (`\"files\"`, `\"search\"`, or an SurfaceRailView.id). Provide together with `onViewChange` to control the rail from the host; omit for internal (uncontrolled) view state. An id that matches no view (e.g. a contextual extra view that disappeared) falls back to `\"files\"`." },
+    virtualDocuments: { type: "readonly SurfaceVirtualDocument[]", description: "Host-injected virtual documents (see SurfaceVirtualDocument). A tab whose identity matches one of these renders its `content` in the editor area instead of the file viewer. The host opens/activates the tab through the same editors-store seams as files." },
+  }}
+/>
+
+
 ## Types
+
+### FileViewer
+
+Read-only viewer for a single workspace file.
+
+A thin shell (no new rendering): it resolves the open file, drives
+[`useWorkspaceFileContent`](#useworkspacefilecontent), and — for displayable text — delegates to
+the shared [`ArtifactContentRenderer`](/docs/sdk/react/execution#artifactcontentrenderer) (markdown / YAML / JSON /
+line-numbered text). Its state body deliberately mirrors
+`FileContentStateView` in `ArtifactPreviewModal` (same skeleton, error, and
+delegation), extended with the three states an execution artifact never
+has — binary, too-large, and unsupported-substrate. The two are **not**
+merged into one shared component: their surrounding chrome (an artifact's
+copy/download/apply bar vs. this viewer's header) differs enough that a
+shared shell would need context-flag props. Keep them as sibling shells that
+share the one renderer.
+
+Framework-agnostic and themed via `--stgm-*` tokens (DD-004/DD-005): a
+platform builder can mount it directly given a `reader` and a selection.
+
+```tsx
+<FileViewer
+  selectedFile={{ entryId: entry.id, path: "src/index.ts" }}
+  entries={workspace.entries}
+  reader={workspaceFileReader}
+  onClose={() => setSelected(null)}
+/>
+```
+
+
+### FileViewerHandle
+
+Imperative handle for [`FileViewer`](#fileviewer). Lets an outer chrome (e.g. the
+workspace surface's toolbar, which hides the built-in header) trigger a
+re-fetch of the live file content without lifting the viewer's fetch state.
+
+<TypeTable
+  type={{
+    refresh: { type: "() => void", description: "Re-fetch the current file's live content.", required: true },
+  }}
+/>
+
+
+### FileViewerProps
+
+Props for [`FileViewer`](#fileviewer).
+
+<TypeTable
+  type={{
+    change: { type: "FileChange", description: "The session FileChange that touched this file, when it was changed this session. When present the viewer defaults to the authoritative `baseline→candidate` diff (DD-06) and — for a non-DELETE change with a `reader` — offers a labeled toggle to the live \"File\" view. `undefined` (the default) keeps the viewer a pure read-only browser (backward compatible). Callers correlate the open file to its change with `findChangeForSelection`; a platform builder can pass any `FileChange`." },
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    entries: { type: "readonly WorkspaceEntry[]", description: "Live workspace entries. The viewer resolves `selectedFile.entryId` against this list, so a removed entry deselects into a gentle empty state rather than reading a stale value.", required: true },
+    onClose: { type: "() => void", description: "Called when the user closes the viewer (close button or Escape)." },
+    reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader. `undefined` means the host injects no reader — the viewer shows an honest \"not available here\" state.", required: true },
+    reveal: { type: "RevealTarget", description: "Optional jump-to-line request (e.g. a content-search hit). When present the viewer opens in the live **File** view — a line number refers to current source, not the diff (DR-1) — with the `Diff | File` toggle still available, and the matched line is scrolled into view and highlighted. A new `nonce` re-forces File view and re-scrolls even on an already-open file. No-op when the file is not live-browsable (a DELETE, or no `reader`).", typeDescriptionLink: "/docs/sdk/react/core#revealtarget" },
+    selectedFile: { type: "SelectedWorkspaceFile", description: "The file to display, keyed by owning entry id + path.", required: true, typeDescriptionLink: "/docs/sdk/react/core#selectedworkspacefile" },
+    showHeader: { type: "boolean", description: "Whether to render the built-in header (file name, refresh, close). Defaults to `true` for standalone use. Set `false` when an outer chrome owns the file identity and controls — e.g. the workspace surface, whose editor toolbar (and, from Slice B, its tabs) show the name and collapse control, and where a duplicate header would also collide with the floating `headerActions` overlay. `onClose` still drives Escape-to-close even when the header (and its close button) is hidden." },
+  }}
+/>
+
+
+### MAX_WORKSPACE_FILE_READ_BYTES
+
+Shared soft cap for a single file read, enforced identically on web and
+desktop so both substrates truncate at the same boundary. Files larger than
+this return their first [`MAX_WORKSPACE_FILE_READ_BYTES`](#max_workspace_file_read_bytes) bytes in `text`
+with `truncated: true`; `size` still reports the full file size.
+
+
+### SurfaceRailView
+
+A host-injected rail view: an icon in the activity rail whose content
+renders in the sidebar pane when active.
+
+This is how session facets (Config, Changes, Artifacts, …) join the built-in
+Explorer/Search views without the surface knowing any session domain — the
+same composition philosophy as the injected lister/reader capabilities
+(DD-004). The surface stays an embeddable, domain-pure workspace organism;
+hosts extend its rail.
+
+<TypeTable
+  type={{
+    badge: { type: "number", description: "Optional count badge rendered over the rail icon (hidden when 0)." },
+    content: { type: "ReactNode", description: "Sidebar content rendered while this view is active.", required: true },
+    icon: { type: "ReactNode", description: "Monochrome rail icon (tinted via `currentColor`, DD-005).", required: true },
+    id: { type: "string", description: "Unique view id. Must not collide with the built-in `\"files\"`/`\"search\"`.", required: true },
+    label: { type: "string", description: "Accessible label; also rendered as the sidebar heading.", required: true },
+  }}
+/>
+
+
+### SurfaceVirtualDocument
+
+A host-injected virtual document: an editor tab whose content is not a
+workspace file — the session's `plan.md` today; execution artifacts are the
+anticipated next family.
+
+The editor-area counterpart of [`SurfaceRailView`](#surfacerailview)'s rail injection
+(DD-004): virtual documents share the tab group with file tabs (identical
+open / pin / close / activate semantics through the same editors store),
+and only the *body* rendering diverges — the surface renders `content`
+instead of breadcrumbs + `FileViewer`. The surface stays domain-pure: it
+matches tabs to virtual documents by identity and knows nothing about what
+the document is.
+
+`entryId` must come from `virtualEntryId(kind)` so it can never alias a
+real workspace entry; `path` doubles as the tab label's source (its
+basename), matching file-tab behavior.
+
+<TypeTable
+  type={{
+    content: { type: "ReactNode", description: "Editor-area content rendered while this document's tab is active.", required: true },
+    entryId: { type: "string", description: "Virtual entry id (from `virtualEntryId`) — the tab's owning \"entry\".", required: true },
+    path: { type: "string", description: "Tab identity within the entry; its basename is the tab label.", required: true },
+  }}
+/>
+
+
+### UseWorkspaceContentSearchOptions
+
+Options for [`useWorkspaceContentSearch`](#useworkspacecontentsearch).
+
+<TypeTable
+  type={{
+    debounceMs: { type: "number", description: "Debounce delay for query changes in milliseconds." },
+    entries: { type: "readonly WorkspaceEntry[]", description: "All workspace entries to search across.", required: true },
+    minLength: { type: "number", description: "Minimum trimmed query length before a search runs." },
+    query: { type: "string", description: "Current search query. Trimmed; below minLength yields no search.", required: true },
+    searcher: { type: "WorkspaceContentSearcher | undefined", description: "Platform-injected content searcher. `undefined` → content search is unavailable.", required: true },
+  }}
+/>
+
+
+### UseWorkspaceFileContentOptions
+
+Options for [`useWorkspaceFileContent`](#useworkspacefilecontent).
+
+<TypeTable
+  type={{
+    entry: { type: "WorkspaceEntry | null", description: "The workspace entry that owns the file, or `null` when nothing is open.", required: true },
+    path: { type: "string | null", description: "Repo-relative (git) or root-relative (local) path, or `null` when nothing is open.", required: true },
+    reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader. `undefined` when the host app injects no reader at all (e.g. web with no GitHub token) — surfaced as UseWorkspaceFileContentReturn.isUnsupported, not an error.", required: true },
+  }}
+/>
+
+
+### UseWorkspaceFileSearchOptions
+
+Options for [`useWorkspaceFileSearch`](#useworkspacefilesearch).
+
+<TypeTable
+  type={{
+    entries: { type: "readonly WorkspaceEntry[]", description: "All workspace entries to search across.", required: true },
+    lister: { type: "WorkspaceFileLister | undefined", description: "Platform-injected file lister. `undefined` → nothing is searchable.", required: true },
+    query: { type: "string", description: "Current search query. Empty/whitespace yields no matches (search shows a hint).", required: true },
+  }}
+/>
+
 
 ### UseWorkspaceFilesOptions
 
@@ -279,6 +700,83 @@ Options for [`useWorkspaceSources`](#useworkspacesources).
 <TypeTable
   type={{
     hasLocalPicker: { type: "boolean", description: "Whether the host environment can open a native folder picker.  Desktop apps set this to `true` (they supply `onBrowseLocalFolder` via Tauri's dialog plugin). Web apps omit it or pass `false`.  When the effective execution target is `\"local\"` and no local picker is available, the hook keeps GitHub enabled as a fallback so the user always has at least one way to add a workspace." },
+  }}
+/>
+
+
+### WorkspaceContentMatch
+
+A single content-search hit: a line in a workspace file whose text contains
+the query.
+
+Deliberately line-level and column-free. The consumer recomputes the
+highlight range from `preview` + query (a case-insensitive substring), so a
+byte/column offset would be an unused field until jump-to-line ships — at
+which point `line` is the anchor. `preview` is guaranteed to contain the
+match even for long lines (the backend windows it around the first hit).
+
+<TypeTable
+  type={{
+    line: { type: "number", description: "1-based line number of the match within the file.", required: true },
+    path: { type: "string", description: "Repo-relative (git) or root-relative (local) path of the matched file.", required: true },
+    preview: { type: "string", description: "The matched line's text, windowed so the match stays visible.", required: true },
+  }}
+/>
+
+
+### WorkspaceContentSearcher
+
+Platform-injected callback that searches file *contents* within one workspace
+entry for a case-insensitive substring.
+
+The text-grep sibling of [`WorkspaceFileLister`](#workspacefilelister):
+the SDK calls it (per entry, debounced) while the user types in the Search
+pane's Text mode; the platform decides *how* the grep runs.
+
+Two distinct outcomes — do not conflate them:
+- Returns `null` **only** when content search is unsupported for this entry
+  (a git entry on desktop, any entry on web until a backend search exists).
+  This is the honest "unavailable here" state, mirroring the lister's null
+  contract — the whole workspace being `null` disables Text search.
+- **Throws** on a genuine failure (unreadable root, backend error). Consumers
+  isolate this per entry so one failing root never blanks the rest.
+
+Implementations:
+- **Desktop:** Tauri `search_workspace_content` (ripgrep `ignore` walker +
+  `grep-searcher`, respecting `.gitignore`, skipping binary/oversized files).
+- **Web:** `undefined`/`null` — GitHub code search is default-branch-only and
+  would disagree with the branch the viewer reads (DD-09).
+
+
+### WorkspaceContentSearchGroup
+
+Content-search hits (and per-entry status) for one workspace entry.
+
+<TypeTable
+  type={{
+    entry: { type: "WorkspaceEntry", description: "The workspace entry these matches belong to.", required: true, typeDescriptionLink: "#workspaceentry" },
+    error: { type: "Error | null", description: "Search error for this entry, if any (isolated — other entries still resolve).", required: true },
+    matches: { type: "readonly WorkspaceContentMatch[]", description: "Line-level matches within this entry, backend-ordered (path, then line).", required: true },
+    truncated: { type: "boolean", description: "`true` when this entry's search was capped (more matches exist than shown).", required: true },
+  }}
+/>
+
+
+### WorkspaceContentSearchResult
+
+The result of searching one workspace entry: its hits plus whether a cap
+stopped the search early.
+
+A result object (rather than a bare `WorkspaceContentMatch[]`) so the
+per-root `truncated` signal survives to the UI — mirroring how
+[`WorkspaceFileReader`](#workspacefilereader) returns a
+`WorkspaceFileContent` object with its own `truncated` flag rather than raw
+text. `truncated` means "there are more matches than shown for this entry".
+
+<TypeTable
+  type={{
+    matches: { type: "readonly WorkspaceContentMatch[]", description: "Ranked hits (backend order: path, then line).", required: true },
+    truncated: { type: "boolean", description: "`true` when a per-file or workspace cap stopped the search early.", required: true },
   }}
 />
 
@@ -314,6 +812,25 @@ workspace.entries.map((entry) => (
 ```
 
 
+### WorkspaceFileContent
+
+Decoded content (plus metadata) for a single workspace file.
+
+`text` is `null` whenever the bytes are not displayable as UTF-8 — either
+binary (`isBinary`) or an undecodable byte sequence (`encoding: "unknown"`).
+The renderer uses `isBinary`/`text === null` for its fallback state.
+
+<TypeTable
+  type={{
+    encoding: { type: "\"unknown\" | \"none\" | \"utf-8\" | \"base64\"", description: "How the backend delivered the bytes. `\"none\"` is GitHub's >1 MB signal.", required: true },
+    isBinary: { type: "boolean", description: "Whether the bytes were detected as binary (NUL-byte heuristic).", required: true },
+    size: { type: "number", description: "Full file size in bytes — independent of truncation.", required: true },
+    text: { type: "string | null", description: "Decoded UTF-8 text, or `null` when binary or undecodable.", required: true },
+    truncated: { type: "boolean", description: "`true` when `text` holds only the first MAX_WORKSPACE_FILE_READ_BYTES bytes." },
+  }}
+/>
+
+
 ### WorkspaceFileEntry
 
 A single file or directory entry returned by a [`WorkspaceFileLister`](#workspacefilelister).
@@ -325,6 +842,7 @@ uses `isDirectory` to annotate folder nodes.
 <TypeTable
   type={{
     isDirectory: { type: "boolean", description: "Whether this entry is a directory.", required: true },
+    notice: { type: "true", description: "Marks this entry as an advisory notice rather than an openable file — for example a \"listing truncated\" message when a repository exceeds the backend's entry limit. When `true`, `path` carries the human-readable message. Consumers must not treat a notice as a real file: it is stripped from the openable listing (never a tree leaf, never a search hit) and is surfaced instead as a single `truncated` banner (see `workspaceListingCache`).  Optional and additive: listers that never truncate simply omit it." },
     path: { type: "string", description: "Relative path from the workspace root (e.g. \"src/index.ts\").", required: true },
   }}
 />
@@ -345,4 +863,56 @@ Implementations:
 
 Returns `null` when listing is not supported for this entry type
 (e.g., a local-path entry on web, or a git entry without a token).
+
+
+### WorkspaceFileMatch
+
+A workspace file that matched a search query.
+
+`matchStart`/`matchEnd` are code-unit offsets into `path` (a half-open
+`[start, end)` range) for the single contiguous substring hit, so a consumer
+can highlight exactly the matched span with `path.slice(...)`.
+
+<TypeTable
+  type={{
+    matchEnd: { type: "number", description: "Exclusive end offset of the matched substring within `path`.", required: true },
+    matchStart: { type: "number", description: "Inclusive start offset of the matched substring within `path`.", required: true },
+    path: { type: "string", description: "Repo-relative (git) or root-relative (local) path of the matched file.", required: true },
+  }}
+/>
+
+
+### WorkspaceFileReader
+
+Platform-injected callback that reads the content of a single workspace file.
+
+The byte-reading sibling of [`WorkspaceFileLister`](#workspacefilelister):
+the SDK calls it when a user opens a file; the platform decides *how* the
+bytes are fetched (GitHub on web, Tauri on desktop).
+
+Two distinct failure axes — do not conflate them:
+- Returns `null` **only** when the substrate is unsupported for this entry
+  (git-on-desktop, local-on-web, missing token, non-GitHub URL). This is the
+  honest "unavailable here" state, mirroring the lister's null contract.
+- **Throws** on a genuine failure (404, network error, 5xx, unreadable file,
+  a directory path). Consumers catch this into a distinct error state — a
+  clicked file that 404s is "failed to load," not "unsupported here."
+
+`path` is repo-relative for git entries and root-relative for local entries —
+exactly the strings the matching `WorkspaceFileLister` emits, so a file-tree
+node path can be handed straight to the reader with no transformation.
+
+
+### WorkspaceFileSearchGroup
+
+Matches (and per-entry status) for one workspace entry.
+
+<TypeTable
+  type={{
+    entry: { type: "WorkspaceEntry", description: "The workspace entry these matches belong to.", required: true, typeDescriptionLink: "#workspaceentry" },
+    error: { type: "Error | null", description: "Listing error for this entry, if any (isolated — other entries still resolve).", required: true },
+    matches: { type: "readonly WorkspaceFileMatch[]", description: "Ranked matches within this entry, best-first.", required: true },
+    truncated: { type: "boolean", description: "`true` when this entry's listing was truncated (repository too large).", required: true },
+  }}
+/>
 

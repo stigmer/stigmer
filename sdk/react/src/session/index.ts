@@ -102,24 +102,41 @@ export type { SessionViewerProps } from "./SessionViewer.js";
 export { NewSessionViewer } from "./NewSessionViewer.js";
 export type { NewSessionViewerProps } from "./NewSessionViewer.js";
 
-// Selection types (for platform builders using SessionInspector directly)
+// Unified session-panel controller — drives the WorkspaceSurface open-editor
+// group, the collapsed/open state, and the rail-view FSM (for platform
+// builders embedding the surface directly).
+export { useSessionPanel } from "./useSessionPanel.js";
+export type {
+  SessionPanelController,
+  UseSessionPanelOptions,
+} from "./useSessionPanel.js";
+
+// Plan draft — viewer-owned in-place edit of the session's current plan
+// (edit-as-input; the published plan.md artifact is never mutated).
+export { usePlanDraft, planDraftKey } from "./usePlanDraft.js";
+export type { PlanDraftController } from "./usePlanDraft.js";
+
+// Plan document — the editor-area plan surface (mounted as a virtual document
+// in the workspace surface) and the identity of its tab.
+export { PlanEditor } from "./PlanEditor.js";
+export type { PlanEditorProps } from "./PlanEditor.js";
+export { PlanStreamingDocument } from "./PlanStreamingDocument.js";
+export type { PlanStreamingDocumentProps } from "./PlanStreamingDocument.js";
+export {
+  PLAN_DOCUMENT_ENTRY_ID,
+  PLAN_DOCUMENT_PATH,
+} from "./plan-document.js";
+
+// Selection types (for platform builders composing their own Inspect facet)
 export type { SelectedThreadItem } from "../internal/store/selection-store.js";
 
-// SessionInspector — tabbed right-side inspector panel
-export {
-  SessionInspector,
-  useSessionInspector,
-  buildVisibleTabs,
-  SetupTab,
-} from "./inspector/index.js";
+// Session facet components — the panel's rail views (Config et al.), also
+// independently importable (DD-003).
+export { SetupTab } from "./facets/index.js";
 export type {
-  SessionInspectorProps,
-  SessionInspectorTabId,
-  UseSessionInspectorOptions,
-  UseSessionInspectorReturn,
   SetupTabProps,
   SetupTabMutationCallbacks,
-} from "./inspector/index.js";
+} from "./facets/index.js";
 
 // Session utilities (re-exported from @stigmer/sdk)
 export { PENDING_SUBJECT, resolvedSubject } from "@stigmer/sdk";

@@ -8,7 +8,9 @@ import type { Config } from "../../../config.js";
 vi.mock("@temporalio/activity", () => ({
   Context: {
     current: () => ({
-      cancellationSignal: { aborted: false },
+      // A real AbortSignal: the workspace-lock wait registers abort listeners
+      // on it, which a bare `{ aborted: false }` stub cannot satisfy.
+      cancellationSignal: new AbortController().signal,
       heartbeat: vi.fn(),
     }),
   },
@@ -45,6 +47,7 @@ describe("ExecuteDeepAgent activity", () => {
     checkpointerProxyEndpoint: null,
     primaryModel: "gpt-4.1",
     cursorStreamStallTimeoutMs: 180000,
+    workspaceLockTimeoutMs: 900000,
   };
 
   let activities: ReturnType<typeof createDeepAgentActivities>;

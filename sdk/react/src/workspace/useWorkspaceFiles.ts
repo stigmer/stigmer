@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { buildFileTree, type TreeNode } from "../internal/file-tree/index.js";
+import type { TreeNode } from "../internal/file-tree/index.js";
 import { toError } from "../internal/toError.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
-import type { WorkspaceFileEntry, WorkspaceFileLister } from "./WorkspaceFileLister.js";
+import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";
+import { loadEntryFiles, peekEntryListing } from "./workspaceListingCache.js";
 
 /** Options for {@link useWorkspaceFiles}. */
 export interface UseWorkspaceFilesOptions {
@@ -22,39 +23,34 @@ export interface UseWorkspaceFilesReturn {
   readonly isLoading: boolean;
   /** Error from the lister, if any. */
   readonly error: Error | null;
+  /**
+   * `true` when the listing was truncated by the backend (repository too large).
+   * The advisory entry is excluded from `tree`; callers render an incomplete-results
+   * banner from this flag instead (DD-11).
+   */
+  readonly truncated: boolean;
   /** Re-fetch the file listing for the current entry (cache-bust). */
   readonly refresh: () => void;
-}
-
-interface CacheEntry {
-  files: WorkspaceFileEntry[];
-  tree: TreeNode[];
 }
 
 const EMPTY_TREE: readonly TreeNode[] = [];
 
 /**
- * Module-level cache shared across all component instances. This ensures
- * that switching between tabs (e.g., Workspace tab unmount/remount) doesn't
- * re-fetch file listings that were already loaded. Entries are keyed by
- * the workspace entry's stable ID.
- */
-const sharedCache = new Map<string, CacheEntry>();
-
-/**
  * Behavior hook that fetches and caches a file listing for a single
  * workspace entry, converting it into a {@link TreeNode} hierarchy.
  *
- * - Calls the platform-injected `lister` when the entry changes.
- * - Caches results per `entry.id` so tab switches and re-expands
- *   are instant without re-fetching.
+ * - Calls the platform-injected `lister` (via the shared
+ *   {@link loadEntryFiles} cache) when the
+ *   entry changes.
+ * - Reads the shared listing cache so tab switches, re-expands, and the search
+ *   surface are instant without re-fetching (one cache, keyed by `entry.id`).
  * - Returns an empty tree and skips the call when `lister` is
  *   `undefined` (graceful degradation — DD-011 opt-in).
  * - Memoizes the return value for referential stability (DD-010).
  *
  * @example
  * ```tsx
- * const { tree, isLoading, error, refresh } = useWorkspaceFiles({
+ * const { tree, isLoading, error, truncated, refresh } = useWorkspaceFiles({
  *   entry: selectedEntry,
  *   lister: workspaceFileLister,
  * });
@@ -67,6 +63,7 @@ export function useWorkspaceFiles({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [tree, setTree] = useState<readonly TreeNode[]>(EMPTY_TREE);
+  const [truncated, setTruncated] = useState(false);
 
   const fetchIdRef = useRef(0);
 
@@ -75,9 +72,10 @@ export function useWorkspaceFiles({
       if (!lister) return;
 
       if (!bustCache) {
-        const cached = sharedCache.get(target.id);
+        const cached = peekEntryListing(target.id);
         if (cached) {
           setTree(cached.tree);
+          setTruncated(cached.truncated);
           setError(null);
           setIsLoading(false);
           return;
@@ -89,24 +87,25 @@ export function useWorkspaceFiles({
       setError(null);
 
       try {
-        const files = await lister(target);
+        const listing = await loadEntryFiles(target, lister, { bustCache });
 
         if (fetchIdRef.current !== id) return;
 
-        if (files === null) {
+        if (listing === null) {
           setTree(EMPTY_TREE);
+          setTruncated(false);
           setIsLoading(false);
           return;
         }
 
-        const built = buildFileTree(files.filter((f) => !f.isDirectory));
-        sharedCache.set(target.id, { files, tree: built });
-        setTree(built);
+        setTree(listing.tree);
+        setTruncated(listing.truncated);
         setIsLoading(false);
       } catch (err) {
         if (fetchIdRef.current !== id) return;
         setError(toError(err));
         setTree(EMPTY_TREE);
+        setTruncated(false);
         setIsLoading(false);
       }
     },
@@ -116,6 +115,7 @@ export function useWorkspaceFiles({
   useEffect(() => {
     if (!entry || !lister) {
       setTree(EMPTY_TREE);
+      setTruncated(false);
       setIsLoading(false);
       setError(null);
       return;
@@ -130,7 +130,7 @@ export function useWorkspaceFiles({
   }, [entry, lister, fetchFiles]);
 
   return useMemo(
-    () => ({ tree, isLoading, error, refresh }),
-    [tree, isLoading, error, refresh],
+    () => ({ tree, isLoading, error, truncated, refresh }),
+    [tree, isLoading, error, truncated, refresh],
   );
 }

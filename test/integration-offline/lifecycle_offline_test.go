@@ -14,16 +14,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// keepAliveDelayMs is how long the mocked LLM holds the first response open in
+// keepAliveEntries. In offline mode the mock replies instantly, so without this
+// window the execution races to a terminal phase before the poller (250ms
+// interval) can observe IN_PROGRESS. Holding the first call open keeps the
+// execution deterministically in IN_PROGRESS long enough for lifecycle actions
+// (cancel/terminate) to observe and act on it; the runner checks for
+// cancellation once the held response streams in.
+const keepAliveDelayMs = 3000
+
 // keepAliveEntries returns mock LLM entries that call a tool (keeping the
 // execution alive long enough for lifecycle actions like cancel/terminate/pause).
-// Turn 1: LLM calls echo tool
+// Turn 1: LLM calls echo tool (held open for keepAliveDelayMs)
 // Turn 2: LLM produces text after getting tool result
 func keepAliveEntries() []harness.RecordedLLMEntry {
+	toolTurn := harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
+		"toolu_keepalive_01", "echo", map[string]any{"input": "keep-alive"},
+		300, 40,
+	))
+	toolTurn.Response.DelayMs = keepAliveDelayMs
+
 	return []harness.RecordedLLMEntry{
-		harness.BuildLLMEntry(0, harness.AnthropicToolUseResponse(
-			"toolu_keepalive_01", "echo", map[string]any{"input": "keep-alive"},
-			300, 40,
-		)),
+		toolTurn,
 		harness.BuildLLMEntry(1, harness.AnthropicTextResponse(
 			"Done.", 500, 20,
 		)),

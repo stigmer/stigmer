@@ -403,10 +403,11 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
 
     it("keeps gating a write to a GITIGNORED path (the snapshot cannot revert it)", () => {
-      // .env-style ignored paths are invisible to the git snapshot, so capture
-      // mode must still gate them for explicit approval.
-      const h = setup({ captureMode: true, gitignored: ["secret.txt"] });
-      expect(h.decide(hookWrite("secret.txt")).permission).toBe("deny");
+      // A NON-secret gitignored path is invisible to the git snapshot, so capture
+      // mode must still gate it for explicit approval. (A secret-like gitignored
+      // write is hard-blocked instead — see the deny-gate secret cases below.)
+      const h = setup({ captureMode: true, gitignored: ["ignored.txt"] });
+      expect(h.decide(hookWrite("ignored.txt")).permission).toBe("deny");
       expect(h.ledger().map((e) => e.toolName)).toContain("Write");
       // A non-ignored sibling still flows.
       expect(h.decide(hookWrite("normal.txt")).permission).toBe("allow");
@@ -415,6 +416,64 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     it("keeps gating a DELETE of a gitignored path", () => {
       const h = setup({ captureMode: true, gitignored: ["secret.txt"] });
       expect(h.decide(hookDelete("secret.txt")).permission).toBe("deny");
+    });
+  });
+
+  // Deny-gate secret hard-block (DD-26 #2): with no capture substrate for a write
+  // (capture off — the classic deny-gate — or captureIgnored off in a git-no-
+  // storage workspace) a secret-like WRITE must NOT surface its content for
+  // approval. The hook hard-blocks it with the security message and records NO
+  // ledger entry, so it never becomes an approvable WAITING row; a non-secret
+  // write still deny-gates, and a delete (content-less) stays gated.
+  describe("deny-gate secret hard-block (DD-26 #2)", () => {
+    it("hard-blocks a secret-like write and records NO ledger entry", () => {
+      const h = setup({}); // captureMode off — the classic deny-gate
+      const dec = h.decide(hookWrite(".env", "API_KEY=abc"));
+      expect(dec.permission).toBe("deny");
+      expect(dec.raw).toContain("blocked for security");
+      // SECRET_BLOCKED, not APPROVAL_REQUIRED: the model is told to move on.
+      expect(dec.raw.toLowerCase()).toContain("nothing was written");
+      expect(dec.raw).not.toContain("submitted to the user for approval");
+      expect(h.ledger()).toEqual([]); // never recorded → never approvable
+    });
+
+    it("hard-blocks a secret-like edit (path-fragment match)", () => {
+      const h = setup({});
+      const dec = h.decide(hookEdit(".ssh/id_rsa"));
+      expect(dec.permission).toBe("deny");
+      expect(dec.raw).toContain("blocked for security");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("still deny-gates a NON-secret write and records its content for approval", () => {
+      const h = setup({});
+      const dec = h.decide(hookWrite("notes.md", "hello"));
+      expect(dec.permission).toBe("deny");
+      expect(dec.raw).toContain("submitted to the user for approval"); // APPROVAL_REQUIRED
+      expect(h.ledger().map((e) => e.toolName)).toContain("Write");
+    });
+
+    it("a write-category lease does NOT bypass the secret block", () => {
+      const h = setup({ leasedCategories: ["write"] });
+      expect(h.decide(hookWrite("notes.md", "x")).permission).toBe("allow"); // non-secret rides the lease
+      const dec = h.decide(hookWrite(".env", "SECRET")); // secret is still hard-blocked
+      expect(dec.permission).toBe("deny");
+      expect(dec.raw).toContain("blocked for security");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("hard-blocks a secret write in a git workspace with captureIgnored off (no storage)", () => {
+      const h = setup({ captureMode: true, captureIgnored: false, gitignored: [".env"] });
+      const dec = h.decide(hookWrite(".env", "API_KEY=abc"));
+      expect(dec.permission).toBe("deny");
+      expect(dec.raw).toContain("blocked for security");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("does NOT hard-block a secret DELETE (no content; stays deny-gated)", () => {
+      const h = setup({});
+      expect(h.decide(hookDelete(".env")).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.toolName)).toContain("Delete");
     });
   });
 

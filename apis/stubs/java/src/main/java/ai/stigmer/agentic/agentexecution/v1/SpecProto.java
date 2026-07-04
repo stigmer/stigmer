@@ -84,7 +84,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ask_queue\030\013 \001(\tR\021activityTaskQueue\032u\n\017Ru" +
       "ntimeEnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005value" +
       "\030\002 \001(\01326.ai.stigmer.agentic.executioncon" +
-      "text.v1.ExecutionValueR\005value:\0028\001\"\332\003\n\017Ex" +
+      "text.v1.ExecutionValueR\005value:\0028\001\"\202\004\n\017Ex" +
       "ecutionConfig\022\035\n\nmodel_name\030\001 \001(\tR\tmodel" +
       "Name\022l\n\022context_management\030\002 \001(\0132=.ai.st" +
       "igmer.agentic.agentexecution.v1.ContextM" +
@@ -96,7 +96,8 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "gentic.agentexecution.v1.InteractionMode" +
       "B\010\272H\005\202\001\002\020\001R\017interactionMode\022Q\n\030structure" +
       "d_output_schema\030\007 \001(\0132\027.google.protobuf." +
-      "StructR\026structuredOutputSchema\"\314\001\n\027Conte" +
+      "StructR\026structuredOutputSchema\022&\n\017build_" +
+      "from_plan\030\010 \001(\010R\rbuildFromPlan\"\314\001\n\027Conte" +
       "xtManagementConfig\0223\n\025disable_summarizat" +
       "ion\030\001 \001(\010R\024disableSummarization\022A\n\030custo" +
       "m_trigger_threshold\030\002 \001(\005B\007\272H\004\032\002(\000R\026cust" +
@@ -139,7 +140,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionConfig_descriptor,
-        new java.lang.String[] { "ModelName", "ContextManagement", "MaxToolRounds", "MaxToolResultChars", "MaxCostUsd", "InteractionMode", "StructuredOutputSchema", });
+        new java.lang.String[] { "ModelName", "ContextManagement", "MaxToolRounds", "MaxToolResultChars", "MaxCostUsd", "InteractionMode", "StructuredOutputSchema", "BuildFromPlan", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ContextManagementConfig_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ContextManagementConfig_fieldAccessorTable = new

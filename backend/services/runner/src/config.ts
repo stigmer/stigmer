@@ -37,6 +37,12 @@ import { homedir, tmpdir } from "node:os";
  */
 export const DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS = 180_000;
 
+// Re-exported so the runner/manager options mappers default the lock-wait
+// bound from the same constant the lock module owns (no drift across the
+// three construction sites — mirrors DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS).
+export { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-lock.js";
+import { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-lock.js";
+
 export interface Config {
   readonly taskQueue: string;
   readonly temporalAddress: string;
@@ -83,6 +89,12 @@ export interface Config {
    * heartbeatTimeout (process liveness) and the 30s keep-alive heartbeat.
    */
   readonly cursorStreamStallTimeoutMs: number;
+  /**
+   * Max wait (milliseconds) for the per-workspace turn lock before failing
+   * the execution with a "workspace is in use by another session" error.
+   * See shared/workspace/workspace-lock.ts for the serialization model.
+   */
+  readonly workspaceLockTimeoutMs: number;
   /** Shared mutable token reference for dynamic token updates (manager mode). */
   readonly stigmerTokenRef?: { current: string | null };
 }
@@ -145,6 +157,10 @@ export function loadConfig(): Config {
     ? parseInt(process.env.CURSOR_STREAM_STALL_TIMEOUT_MS, 10)
     : DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS;
 
+  const workspaceLockTimeoutMs = process.env.WORKSPACE_LOCK_TIMEOUT_MS
+    ? parseInt(process.env.WORKSPACE_LOCK_TIMEOUT_MS, 10)
+    : DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS;
+
   return {
     taskQueue,
     temporalAddress,
@@ -162,6 +178,7 @@ export function loadConfig(): Config {
     checkpointerProxyEndpoint,
     primaryModel,
     cursorStreamStallTimeoutMs,
+    workspaceLockTimeoutMs,
   };
 }
 

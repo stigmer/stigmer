@@ -338,6 +338,52 @@ function isResourceAvailable(kind: ApiResourceKind, mode: DeploymentMode): boole
 ```
 
 
+### isVirtualEntryId
+
+True when an entry id names a virtual document rather than a workspace
+entry. Used by file-only consumers (diff correlation, tree highlight,
+reveal) to skip work that can only apply to real files.
+
+```tsx
+function isVirtualEntryId(entryId: string): boolean
+```
+
+
+### OpenEditor
+
+One open editor tab.
+
+`preview` marks the single reusable "preview" tab (shown in italics): a
+single click opens or replaces it in place, so casual browsing never
+accumulates tabs. Pinning it (double-click, or opening the file explicitly)
+clears the flag and the tab becomes persistent. At most one editor is a
+preview at any time.
+
+<TypeTable
+  type={{
+    entryId: { type: "string", description: "Stable-within-page id of the owning workspace entry.", required: true },
+    path: { type: "string", description: "Repo-relative (git) or root-relative (local) file path.", required: true },
+    preview: { type: "boolean", description: "Whether this is the reusable preview tab (italic, single per group).", required: true },
+  }}
+/>
+
+
+### OpenFileOptions
+
+Options for opening a file in the surface (via `openPreview` / the surface's
+`onOpenFile` seam). `line` requests a jump-to-line reveal: the file opens in
+a line-faithful view scrolled to and highlighting that 1-based line. Absent,
+the file opens normally (top of file / diff-default). Deliberately an options
+object so future open-intents (e.g. a column) extend it without churning the
+callback signature.
+
+<TypeTable
+  type={{
+    line: { type: "number", description: "1-based line to reveal after opening." },
+  }}
+/>
+
+
 ### PENDING_SUBJECT
 
 Sentinel value the backend writes as a placeholder subject when a session
@@ -371,6 +417,27 @@ Mirrors the Go CLI's `ResolvedSubject` in
 ```tsx
 function resolvedSubject(subject: string | undefined): string | null
 ```
+
+
+### RevealTarget
+
+A transient request to scroll a line-faithful code view to a specific line
+and emphasize it — the "reveal" seam behind jump-to-line navigation (e.g. a
+content-search hit opening its file at the matched line).
+
+`line` is 1-based, matching the gutter and the grep's line numbers. `nonce`
+is a monotonic token bumped by the producer on every navigation — including a
+repeat navigation to the same `line` — so an already-mounted view re-scrolls
+even when the target line is unchanged. The line is deliberately NOT part of
+an editor's identity (see `WorkspaceEditorsStore`): it is navigation, not
+state, so it must not key a remount.
+
+<TypeTable
+  type={{
+    line: { type: "number", description: "1-based line to scroll to and highlight.", required: true },
+    nonce: { type: "number", description: "Monotonic token; a change re-triggers the scroll (even for the same line).", required: true },
+  }}
+/>
 
 
 ### RunnerAdapter
@@ -418,6 +485,24 @@ only the identifying key — not the full data. The `InspectTab`
 derives display detail from the execution snapshot separately.
 
 
+### SelectedWorkspaceFile
+
+A file selected for viewing.
+
+Keyed by `entryId` (not the entry value): the workspace entry id is stable
+within a page load but regenerated on reload, and selection is transient UI
+state anyway (reset on reload). Consumers must resolve the live entry via
+`workspace.entries.find(e => e.id === sel.entryId)` so a removed entry
+deselects naturally instead of holding a stale value.
+
+<TypeTable
+  type={{
+    entryId: { type: "string", description: "Stable-within-page id of the owning workspace entry.", required: true },
+    path: { type: "string", description: "Repo-relative (git) or root-relative (local) file path.", required: true },
+  }}
+/>
+
+
 ### StigmerContext
 
 React context for the Stigmer SDK client instance.
@@ -427,4 +512,18 @@ both the provider and consumer hooks import from this file.
 
 The context value is `null` when no provider is mounted. Consumer hooks
 throw in this case to surface wiring mistakes during development.
+
+
+### virtualEntryId
+
+Entry id for a virtual document — an editor tab whose content is not a
+workspace file (e.g. the session's `plan.md`, an execution artifact).
+Virtual documents share the editor group with file tabs (same open / pin /
+close / activate semantics); only their *content rendering* differs, via the
+surface's `virtualDocuments` seam. `kind` names the document family
+(`"plan"` today) so future virtual documents get distinct identities.
+
+```tsx
+function virtualEntryId(kind: string): string
+```
 

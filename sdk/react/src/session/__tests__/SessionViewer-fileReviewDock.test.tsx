@@ -39,10 +39,6 @@ vi.mock("../../composer", async (importOriginal) => {
   };
 });
 
-vi.mock("../inspector/SessionInspector", () => ({
-  SessionInspector: () => <div data-testid="inspector-probe" />,
-}));
-
 const stubWorkspace = {
   entries: [],
   hasEntries: false,
@@ -132,6 +128,15 @@ const stubSessionPageFlow = {
 };
 vi.mock("../useSessionPageFlow", () => ({
   useSessionPageFlow: () => stubSessionPageFlow,
+}));
+
+vi.mock("../../hooks", () => ({
+  useStigmer: () => ({
+    agentExecution: {
+      uploadAttachment: vi.fn(),
+      getArtifactContent: vi.fn(),
+    },
+  }),
 }));
 
 import { SessionViewer } from "../SessionViewer";

@@ -12,6 +12,17 @@ export interface WorkspaceFileEntry {
   readonly path: string;
   /** Whether this entry is a directory. */
   readonly isDirectory: boolean;
+  /**
+   * Marks this entry as an advisory notice rather than an openable file — for
+   * example a "listing truncated" message when a repository exceeds the
+   * backend's entry limit. When `true`, `path` carries the human-readable
+   * message. Consumers must not treat a notice as a real file: it is stripped
+   * from the openable listing (never a tree leaf, never a search hit) and is
+   * surfaced instead as a single `truncated` banner (see `workspaceListingCache`).
+   *
+   * Optional and additive: listers that never truncate simply omit it.
+   */
+  readonly notice?: true;
 }
 
 /**

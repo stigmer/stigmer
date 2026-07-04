@@ -3,6 +3,18 @@ import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /**
+ * The session's current plan: the published `plan.md` artifact of the most
+ * recent execution that produced one, plus the execution it belongs to
+ * (artifact content RPCs are execution-scoped).
+ */
+export interface SessionPlan {
+  /** ID of the execution that published the plan. */
+  readonly executionId: string;
+  /** The published `plan.md` artifact. */
+  readonly artifact: ExecutionArtifact;
+}
+
+/**
  * Canonical filename a Plan-mode execution publishes its plan under. Kept in
  * sync with the runner's `publishPlanArtifact` (shared/plan-artifact.ts).
  */
@@ -38,6 +50,29 @@ export function findPlanArtifact(
   if (!artifacts || artifacts.length === 0) return undefined;
   for (let i = artifacts.length - 1; i >= 0; i--) {
     if (isPlanArtifact(artifacts[i])) return artifacts[i];
+  }
+  return undefined;
+}
+
+/**
+ * Finds the session's LATEST plan across all executions — the plan the panel's
+ * plan document tab edits and "Build from plan" implements. Executions are
+ * scanned newest-first (the array is chronological), mirroring the thread's
+ * latest-plan-owns-the-build-action rule so every surface agrees on which
+ * plan is current.
+ *
+ * Returns `undefined` when no execution in the session published a plan.
+ */
+export function findLatestSessionPlan(
+  executions: readonly AgentExecution[],
+): SessionPlan | undefined {
+  for (let i = executions.length - 1; i >= 0; i--) {
+    const execution = executions[i];
+    const artifact = findPlanArtifact(execution);
+    const executionId = execution.metadata?.id;
+    if (artifact && executionId) {
+      return { executionId, artifact };
+    }
   }
   return undefined;
 }

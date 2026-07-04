@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import {
@@ -8,6 +8,7 @@ import {
   REMARK_PLUGINS,
   unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components.js";
+import { useRevealLine, type RevealTarget } from "../internal/useRevealLine.js";
 import {
   getArtifactRenderMode,
   type ArtifactRenderMode,
@@ -29,6 +30,15 @@ export interface ArtifactContentRendererProps {
   readonly contentType?: string | null;
   /** When `true`, shows a truncation warning below the content. */
   readonly isTruncated?: boolean;
+  /**
+   * Optional jump-to-line request. When set, the content is rendered
+   * **line-faithfully** so the line number maps to the file's real rows —
+   * Markdown defaults to its Source view (a line only exists in source) and
+   * JSON renders raw rather than pretty-printed (reformatting would shift line
+   * numbers) — and the target line is scrolled into view and highlighted. Absent
+   * (the default), rendering is unchanged. See {@link RevealTarget}.
+   */
+  readonly reveal?: RevealTarget;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
@@ -76,6 +86,7 @@ export function ArtifactContentRenderer({
   fileName,
   contentType,
   isTruncated = false,
+  reveal,
   className,
 }: ArtifactContentRendererProps) {
   const mode = getArtifactRenderMode(fileName, contentType);
@@ -83,13 +94,19 @@ export function ArtifactContentRenderer({
   return (
     <div className={cn(className)}>
       {mode === "markdown" ? (
-        <MarkdownView content={content} />
+        <MarkdownView content={content} reveal={reveal} />
       ) : mode === "yaml" ? (
-        <YamlView content={content} />
+        <YamlView content={content} reveal={reveal} />
       ) : mode === "json" ? (
-        <JsonView content={content} />
+        // A reveal needs raw, line-faithful JSON: pretty-printing reformats the
+        // file and would shift the target line off its real row.
+        reveal ? (
+          <LineNumberedPre content={content} reveal={reveal} />
+        ) : (
+          <JsonView content={content} />
+        )
       ) : (
-        <PlainTextView content={content} />
+        <PlainTextView content={content} reveal={reveal} />
       )}
 
       {isTruncated && <TruncationWarning />}
@@ -103,8 +120,21 @@ export function ArtifactContentRenderer({
 
 type MarkdownTab = "rendered" | "source";
 
-function MarkdownView({ content }: { readonly content: string }) {
-  const [tab, setTab] = useState<MarkdownTab>("rendered");
+function MarkdownView({
+  content,
+  reveal,
+}: {
+  readonly content: string;
+  readonly reveal?: RevealTarget;
+}) {
+  // A reveal targets a source line (the rendered HTML has no line concept), so
+  // default to — and, on every new reveal, return to — the Source view.
+  const [tab, setTab] = useState<MarkdownTab>(reveal ? "source" : "rendered");
+  // Keyed on the reveal nonce: each fresh jump-to-line returns to Source (where
+  // the line exists); switching to Rendered afterward sticks until the next hit.
+  useEffect(() => {
+    if (reveal) setTab("source");
+  }, [reveal?.nonce]);
 
   // A `.md` whose entire body is one ```markdown fence (e.g. a model-wrapped
   // plan) would render flat. Unwrap for the Rendered view only — Source stays
@@ -145,7 +175,7 @@ function MarkdownView({ content }: { readonly content: string }) {
           </Markdown>
         </div>
       ) : (
-        <LineNumberedPre content={content} />
+        <LineNumberedPre content={content} reveal={reveal} />
       )}
     </div>
   );
@@ -197,15 +227,6 @@ function TabButton({
  *
  * Values and block scalar content render in the default `text-foreground`.
  */
-function highlightYaml(content: string): ReactNode {
-  return content.split("\n").map((line, i) => (
-    <span key={i}>
-      {i > 0 && "\n"}
-      {highlightYamlLine(line)}
-    </span>
-  ));
-}
-
 function highlightYamlLine(line: string): ReactNode {
   if (!line.trim()) return line;
 
@@ -253,10 +274,38 @@ function highlightYamlValue(value: string): ReactNode {
   return <>{value}</>;
 }
 
-function YamlView({ content }: { readonly content: string }) {
+function YamlView({
+  content,
+  reveal,
+}: {
+  readonly content: string;
+  readonly reveal?: RevealTarget;
+}) {
+  const { containerRef, isRevealed } = useRevealLine(reveal);
+  const lines = content.split("\n");
+
   return (
     <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-foreground">
-      <code>{highlightYaml(content)}</code>
+      <code ref={containerRef}>
+        {lines.map((line, i) => (
+          <span
+            key={i}
+            data-line={i + 1}
+            className={cn(
+              // Transparent left border by default so revealing a line only
+              // changes its color — never shifts the text (no layout jump).
+              "block border-l-2 border-transparent",
+              isRevealed(i + 1) && "border-primary bg-primary-subtle",
+            )}
+          >
+            {/* whitespace-pre inner + `\n` fallback preserves indentation and
+                the height of blank lines, mirroring LineNumberedPre. */}
+            <span className="whitespace-pre">
+              {line.trim() ? highlightYamlLine(line) : "\n"}
+            </span>
+          </span>
+        ))}
+      </code>
     </pre>
   );
 }
@@ -345,19 +394,47 @@ function JsonView({ content }: { readonly content: string }) {
 // Plain text view (monospace + line numbers)
 // ---------------------------------------------------------------------------
 
-function PlainTextView({ content }: { readonly content: string }) {
-  return <LineNumberedPre content={content} />;
+function PlainTextView({
+  content,
+  reveal,
+}: {
+  readonly content: string;
+  readonly reveal?: RevealTarget;
+}) {
+  return <LineNumberedPre content={content} reveal={reveal} />;
 }
 
-function LineNumberedPre({ content }: { readonly content: string }) {
+/**
+ * Line-numbered monospace view. The single line-faithful primitive behind plain
+ * text, Markdown Source, and reveal-mode JSON: every row is addressable
+ * (`data-line`), so a {@link RevealTarget} can scroll to and highlight a line
+ * (via {@link useRevealLine}). Absent a reveal it renders exactly as before.
+ */
+function LineNumberedPre({
+  content,
+  reveal,
+}: {
+  readonly content: string;
+  readonly reveal?: RevealTarget;
+}) {
+  const { containerRef, isRevealed } = useRevealLine(reveal);
   const lines = content.split("\n");
   const gutterWidth = String(lines.length).length;
 
   return (
     <pre className="overflow-x-auto font-mono text-xs leading-relaxed text-foreground">
-      <code>
+      <code ref={containerRef}>
         {lines.map((line, i) => (
-          <span key={i} className="flex">
+          <span
+            key={i}
+            data-line={i + 1}
+            className={cn(
+              // Transparent left border by default so a reveal only recolors the
+              // row — never shifts its text (no layout jump).
+              "flex border-l-2 border-transparent",
+              isRevealed(i + 1) && "border-primary bg-primary-subtle",
+            )}
+          >
             <span
               className="sticky left-0 select-none bg-background pr-4 text-right text-muted-foreground"
               style={{ minWidth: `${gutterWidth + 2}ch` }}

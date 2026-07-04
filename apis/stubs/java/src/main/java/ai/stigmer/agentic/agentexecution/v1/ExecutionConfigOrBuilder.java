@@ -235,4 +235,29 @@ public interface ExecutionConfigOrBuilder extends
    * <code>.google.protobuf.Struct structured_output_schema = 7 [json_name = "structuredOutputSchema"];</code>
    */
   com.google.protobuf.StructOrBuilder getStructuredOutputSchemaOrBuilder();
+
+  /**
+   * <pre>
+   * Marks this execution as a "Build from plan" turn: the user approved a plan
+   * produced by a prior Plan-mode execution and asked the agent to implement it.
+   *
+   * When set, the runner injects the implement-plan directive into the agent's
+   * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
+   * document travels as an attachment (the normal case — mounted at
+   * `.stigmer/inputs/plan.md`), the directive points the agent at that file;
+   * when no plan attachment is present (e.g. the client's upload failed), the
+   * directive tells the agent to follow the plan from the conversation instead.
+   *
+   * Clients set this flag INSTEAD of embedding implement instructions in
+   * `message`, so `message` stays a short human-readable label (e.g.
+   * "Build from plan") that UIs can render as a compact chip.
+   *
+   * Like interaction_mode, this is per-execution and never carries over
+   * between executions in the same session.
+   * </pre>
+   *
+   * <code>bool build_from_plan = 8 [json_name = "buildFromPlan"];</code>
+   * @return The buildFromPlan.
+   */
+  boolean getBuildFromPlan();
 }

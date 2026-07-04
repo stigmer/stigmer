@@ -19,7 +19,13 @@ import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/a
 import { ExecutionPhase, FileCaptureClass, FileChangeSetStatus, InteractionMode, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { activityStarted, activityFinished } from "../../idle-watchdog.js";
 import { normalizeActivityInput, type ExecuteActivityInput } from "../../shared/activity-input.js";
-import { persistStatus, slimStatus, utcTimestamp } from "../../shared/status.js";
+import { persistStatus, reportSetupProgress, slimStatus, utcTimestamp } from "../../shared/status.js";
+import {
+  acquireWorkspaceLock,
+  WorkspaceLockCancelledError,
+  WorkspaceLockTimeoutError,
+  type ReleaseWorkspaceLock,
+} from "../../shared/workspace/workspace-lock.js";
 import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { classifyTool } from "../../shared/tool-kind.js";
@@ -48,7 +54,7 @@ import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
-import { collectSubAgentToolCallIds } from "../../shared/tool-row.js";
+import { collectSubAgentToolCallIds, withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "./stamp-flowed-rows.js";
 
 /** The harness id stamped on the deep-agent's file-review ledger events. */
@@ -75,6 +81,11 @@ export function createDeepAgentActivities(config: Config) {
       const { executionId, threadId, turnSeq } = normalizeActivityInput(arg0, arg1);
       activityStarted();
       let setup: SetupResult | null = null;
+      // Exclusive turn lock on the workspace working tree — held across the
+      // entire tree-mutating window (decision reconcile, agent writes,
+      // candidate capture, write-back) and released in the finally. Mirrors
+      // the Cursor harness; see shared/workspace/workspace-lock.ts.
+      let releaseWorkspaceLock: ReleaseWorkspaceLock | undefined;
 
       try {
         console.log(`[ExecuteDeepAgent] Started for execution ${executionId}`);
@@ -162,6 +173,45 @@ export function createDeepAgentActivities(config: Config) {
         // Apply-then-review capture identity + substrate root for this turn.
         const gitRoot = setup.workspaceBackend.rootDir;
         const changeSetId = `${executionId}:${turnSeq}`;
+
+        // Serialize this turn against every other execution sharing this
+        // working tree — an unserialized concurrent write lands inside this
+        // turn's baseline→candidate window and gets misattributed to this
+        // turn's review. Acquired before ANY tree mutation below (decision
+        // reconcile, agent writes, candidate capture, write-back); waiting
+        // surfaces a visible state and heartbeats, and a cancel aborts the
+        // wait immediately. Mirrors the Cursor harness wiring exactly.
+        try {
+          releaseWorkspaceLock = await acquireWorkspaceLock(gitRoot, {
+            onWaiting: () => reportSetupProgress(
+              client, executionId, "Waiting for workspace — in use by another session",
+            ),
+            heartbeat: () => Context.current().heartbeat(),
+            signal: Context.current().cancellationSignal,
+            timeoutMs: config.workspaceLockTimeoutMs,
+          });
+        } catch (lockErr) {
+          if (lockErr instanceof WorkspaceLockCancelledError) {
+            throw new CancelledFailure("Activity cancelled while waiting for the workspace lock");
+          }
+          if (lockErr instanceof WorkspaceLockTimeoutError) {
+            const failedStatus = create(AgentExecutionStatusSchema, {
+              phase: ExecutionPhase.EXECUTION_FAILED,
+              error: lockErr.message,
+              completedAt: utcTimestamp(),
+              messages: [
+                create(AgentMessageSchema, {
+                  type: MessageType.MESSAGE_SYSTEM,
+                  content: `Execution failed: ${lockErr.message}`,
+                  timestamp: utcTimestamp(),
+                }),
+              ],
+            });
+            await persistStatus(client, executionId, failedStatus, { offload: statusOffload });
+            return slimStatus(failedStatus);
+          }
+          throw lockErr;
+        }
 
         // (1) Capture-mode resume — reconcile any DECIDED change set FIRST (this
         // drops the per-execution refs), before the next baseline re-pins them
@@ -307,6 +357,20 @@ export function createDeepAgentActivities(config: Config) {
           pendingWritebackPromises: result.pendingWritebackPromises,
           executionId,
         });
+
+        // Never-persist-secret backstop (DD-26 #2): withhold content from any
+        // built-in write row targeting a secret-like path, across the top-level
+        // and sub-agent transcripts, before ANY persist below. On the deny-gate a
+        // secret write is hard-blocked (a COMPLETED row) or — under
+        // auto_approve_all, where no gate is installed — flowed; either way the
+        // streamed row still carries `args` from handleToolStarted, and the
+        // capture-mode stamping pass (which performs the same scrub) does not run
+        // here. Idempotent / a no-op in capture mode. This single post-stream
+        // sweep is the one choke point that precedes every downstream persist.
+        withholdSecretContentFromMessages(
+          initialStatus.messages,
+          initialStatus.subAgentExecutions,
+        );
 
         // Turn boundary (capture mode): capture the candidate change set from the
         // git diff and author CANDIDATE_CAPTURED, then stamp the flowed file-edit
@@ -590,6 +654,10 @@ export function createDeepAgentActivities(config: Config) {
 
       } finally {
         await cleanup(setup);
+        // Release the workspace turn lock LAST — the next queued turn must
+        // not baseline until every mutation of this one has landed.
+        // Idempotent and non-throwing (see workspace-lock.ts).
+        await releaseWorkspaceLock?.();
         activityFinished();
       }
     },

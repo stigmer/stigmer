@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // RecordedLLMEntry represents a single request/response pair in a fixture file.
@@ -24,6 +25,12 @@ type RecordedLLMResponse struct {
 	StatusText string            `json:"statusText"`
 	Headers    map[string]string `json:"headers"`
 	Body       any               `json:"body"`
+	// DelayMs holds the response open for the given number of milliseconds
+	// before writing. Offline tests use this to keep an execution in
+	// IN_PROGRESS long enough for lifecycle actions (cancel/terminate) to
+	// observe and act on it — the mocked LLM otherwise responds instantly.
+	// The delay is aborted early if the client disconnects.
+	DelayMs int `json:"delayMs,omitempty"`
 }
 
 // RecordedLLMFixture represents a complete fixture file.
@@ -125,7 +132,6 @@ func (m *MockLLMProxyServer) handleRequest(w http.ResponseWriter, r *http.Reques
 	}
 
 	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	// Capture the request so tests can assert what was actually sent to the
 	// provider — most importantly the resolved `model` id.
@@ -134,6 +140,7 @@ func (m *MockLLMProxyServer) handleRequest(w http.ResponseWriter, r *http.Reques
 	}
 
 	if m.cursor >= len(m.entries) {
+		m.mu.Unlock()
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
 			"error": fmt.Sprintf("MockLLMProxyServer: no more recorded entries (consumed %d/%d)", m.cursor, len(m.entries)),
@@ -143,8 +150,20 @@ func (m *MockLLMProxyServer) handleRequest(w http.ResponseWriter, r *http.Reques
 
 	entry := m.entries[m.cursor]
 	m.cursor++
+	m.mu.Unlock()
 
 	resp := entry.Response
+
+	// Optionally hold the response open (lock released) to keep the execution
+	// in a running state for lifecycle tests. Abort early if the client
+	// disconnects so server shutdown does not block on an in-flight request.
+	if resp.DelayMs > 0 {
+		select {
+		case <-time.After(time.Duration(resp.DelayMs) * time.Millisecond):
+		case <-r.Context().Done():
+			return
+		}
+	}
 
 	isAnthropic := pathContains(path, "/v1/messages") || pathContains(path, "anthropic")
 	isOpenAI := pathContains(path, "/chat/completions") || pathContains(path, "openai")

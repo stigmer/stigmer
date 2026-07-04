@@ -50,7 +50,8 @@ import { utcTimestamp } from "../../shared/status.js";
 import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
 import { classifyTool, toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
-import { contentDigest } from "../../shared/file-tools.js";
+import { contentDigest, extractFilePath } from "../../shared/file-tools.js";
+import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
 import { buildElidedArgsPreview } from "../../shared/args-preview.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 
@@ -1631,6 +1632,13 @@ function applyGateInput(
   input: Record<string, unknown> | undefined,
 ): void {
   if (!input) return;
+  // Defense-in-depth (DD-26 #2): never overlay a secret-like write's content into
+  // the persisted approval preview. Normally unreachable — the hook hard-blocks a
+  // secret write and records no ledger input — but if a hook classify failure fell
+  // one through, its content must still never reach args/args_preview. The
+  // Invariant-A backstop is the final net; this closes the path at the source.
+  const gatePath = extractFilePath(input);
+  if (gatePath !== null && isSecretLikePath(gatePath)) return;
   tc.args = input as JsonObject;
   tc.argsPreview = buildElidedArgsPreview(input, SALIENT_ARG_FIELDS);
   // Stamp the content digest from the AUTHORITATIVE captured input, so the

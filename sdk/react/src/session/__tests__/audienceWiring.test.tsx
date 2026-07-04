@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
-// Wiring-contract tests for the `audience` preset on the session organisms.
+// Wiring-contract tests for the `audience` preset and the host slots on the
+// session organisms.
 //
-// The composer and inspector are replaced with prop-capturing probes so the
-// tests assert exactly what `audience="endUser"` maps to: a locked agent,
-// unwired MCP/skill/session-variable pickers, and a read-only Setup tab.
+// The composer and the Config facet (SetupTab) are replaced with
+// prop-capturing probes so the tests assert exactly what `audience="endUser"`
+// maps to: a locked agent, unwired MCP/skill/session-variable pickers, and a
+// read-only Config facet. The Config facet lives in the session panel's rail,
+// so the probe is reached by opening the panel (chip) and picking Config.
 // The molecules' own behavior is covered by their co-located tests.
 // ---------------------------------------------------------------------------
 
@@ -24,11 +27,11 @@ vi.mock("../../composer", async (importOriginal) => {
   };
 });
 
-const inspectorProps: CapturedProps[] = [];
-vi.mock("../inspector/SessionInspector", () => ({
-  SessionInspector: (props: CapturedProps) => {
-    inspectorProps.push(props);
-    return <div data-testid="inspector-probe" />;
+const setupTabProps: CapturedProps[] = [];
+vi.mock("../facets/SetupTab", () => ({
+  SetupTab: (props: CapturedProps) => {
+    setupTabProps.push(props);
+    return <div data-testid="setup-probe" />;
   },
 }));
 
@@ -137,6 +140,15 @@ vi.mock("../useSessionPageFlow", () => ({
   useSessionPageFlow: (options: unknown) => mockUseSessionPageFlow(options),
 }));
 
+vi.mock("../../hooks", () => ({
+  useStigmer: () => ({
+    agentExecution: {
+      uploadAttachment: vi.fn(),
+      getArtifactContent: vi.fn(),
+    },
+  }),
+}));
+
 import { NewSessionViewer } from "../NewSessionViewer";
 import { SessionViewer } from "../SessionViewer";
 
@@ -147,14 +159,21 @@ function lastComposerProps(): CapturedProps {
   return composerProps.at(-1)!;
 }
 
-function lastSessionConfig(): { mutations?: unknown } {
-  expect(inspectorProps.length).toBeGreaterThan(0);
-  return inspectorProps.at(-1)!.sessionConfig as { mutations?: unknown };
+/**
+ * Reach the Config facet through the unified panel: expand it via the
+ * top-right chip, pick Config in the rail, and return the props the (mocked)
+ * SetupTab received.
+ */
+function openedConfigFacet(): { mutations?: unknown } {
+  fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Config" }));
+  expect(setupTabProps.length).toBeGreaterThan(0);
+  return setupTabProps.at(-1)!;
 }
 
 beforeEach(() => {
   composerProps.length = 0;
-  inspectorProps.length = 0;
+  setupTabProps.length = 0;
   stubSessionPageFlow.submitError = null;
 });
 
@@ -178,7 +197,7 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.onMcpServerUsagesChange).toBeDefined();
     expect(props.onSkillRefsChange).toBeDefined();
     expect(props.sessionVariables).toBeDefined();
-    expect(lastSessionConfig().mutations).toBeDefined();
+    expect(openedConfigFacet().mutations).toBeDefined();
   });
 
   it("endUser with a pinned agent: locked agent, integrator pickers unwired", () => {
@@ -199,8 +218,8 @@ describe("NewSessionViewer — audience wiring", () => {
     // End-user controls survive the curation.
     expect(props.showHarnessSelector).toBe(true);
     expect(props.showInteractionModePicker).toBe(true);
-    // Setup tab is read-only: no remove affordances for pinned config.
-    expect(lastSessionConfig().mutations).toBeUndefined();
+    // Config facet is read-only: no remove affordances for pinned config.
+    expect(openedConfigFacet().mutations).toBeUndefined();
   });
 
   it("endUser without a pinned agent: pickers hidden but agent not locked", () => {
@@ -241,7 +260,7 @@ describe("SessionViewer — audience wiring", () => {
     expect(props.onMcpServerUsagesChange).toBeDefined();
     expect(props.onSkillRefsChange).toBeDefined();
     expect(props.sessionVariables).toBeDefined();
-    expect(lastSessionConfig().mutations).toBeDefined();
+    expect(openedConfigFacet().mutations).toBeDefined();
   });
 
   it("endUser: locked agent, integrator pickers unwired, read-only Setup tab", () => {
@@ -254,7 +273,7 @@ describe("SessionViewer — audience wiring", () => {
     expect(props.sessionVariables).toBeUndefined();
     // End-user controls survive the curation.
     expect(props.showInteractionModePicker).toBe(true);
-    expect(lastSessionConfig().mutations).toBeUndefined();
+    expect(openedConfigFacet().mutations).toBeUndefined();
   });
 
   it("forwards getRuntimeEnv to the flow", () => {
@@ -266,6 +285,23 @@ describe("SessionViewer — audience wiring", () => {
     expect(mockUseSessionPageFlow).toHaveBeenCalledWith(
       expect.objectContaining({ getRuntimeEnv }),
     );
+  });
+
+  it("threads accessSlot into the Config facet, not the header", () => {
+    render(
+      <SessionViewer
+        sessionId="ses_1"
+        org="acme"
+        accessSlot={<button type="button">Manage access</button>}
+      />,
+    );
+
+    // Collapsed panel: the slot must not surface anywhere (the header carries
+    // only headerActions and the chip).
+    expect(screen.queryByRole("button", { name: "Manage access" })).toBeNull();
+
+    const facet = openedConfigFacet() as { accessSlot?: unknown };
+    expect(facet.accessSlot).toBeDefined();
   });
 
   it("renders the flow's submitError through the send-error banner", () => {

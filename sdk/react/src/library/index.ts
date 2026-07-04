@@ -27,8 +27,13 @@ export type { SkillPackageDetection } from "./detect-skill-package.js";
 export {
   isPlanArtifact,
   findPlanArtifact,
+  findLatestSessionPlan,
   PLAN_ARTIFACT_NAME,
 } from "./detect-plan-artifact.js";
+export type { SessionPlan } from "./detect-plan-artifact.js";
+
+export { findStreamingPlan } from "./detect-streaming-plan.js";
+export type { StreamingPlan } from "./detect-streaming-plan.js";
 
 export { useDetectSkillPackage } from "./useDetectSkillPackage.js";
 export type { UseDetectSkillPackageReturn } from "./useDetectSkillPackage.js";

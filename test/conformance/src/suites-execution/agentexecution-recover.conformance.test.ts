@@ -64,6 +64,9 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
+  // Release any still-held turn so a lifecycle test's un-preemptable runner
+  // activity finishes and frees its session lock before the next test runs.
+  mock.releaseHolds();
   await fixtures.cleanup();
   mock.reset();
 });

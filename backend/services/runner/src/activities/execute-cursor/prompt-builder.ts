@@ -6,19 +6,25 @@
  * parameter). On reinvocation, only the approval decisions are sent.
  *
  * Sections (in order, conditionally included):
- * 1. Agent instructions (persona/character)
- * 2. Available skills metadata
- * 3. Sub-agent delegation guidance
- * 4. Workspace context (multi-root only; single-dir is redundant with SDK cwd)
- * 5. Input files / referenced files
- * 6. Response rules (only when agent has no custom instructions)
- * 7. User's actual message
+ * 1. Interaction-mode / implement-plan directives
+ * 2. Agent instructions (persona/character)
+ * 3. Available skills metadata
+ * 4. Sub-agent delegation guidance
+ * 5. Workspace context (multi-root only; single-dir is redundant with SDK cwd)
+ * 6. Input files / referenced files
+ * 7. Response rules (only when agent has no custom instructions)
+ * 8. User's actual message
  */
 
 import { resolve } from "node:path";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
+import {
+  buildImplementPlanDirective,
+  findApprovedPlanPath,
+} from "../../shared/implement-plan-prompt.js";
 
 /**
  * Marker path segments that identify runner-internal directories. A workspace
@@ -47,6 +53,13 @@ export interface EnhancedPromptOptions {
   workspaceFileRefs: string[];
   attachmentPaths: string[];
   interactionMode?: InteractionMode;
+  /**
+   * The execution is a Build-from-plan turn (spec.execution_config
+   * .build_from_plan): inject the implement-plan directive so the model reads
+   * the attached approved plan (or falls back to the conversation's plan).
+   * The user message itself is just a short label ("Build from plan").
+   */
+  buildFromPlan?: boolean;
 }
 
 /**
@@ -61,6 +74,14 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   const modePrefix = formatInteractionModePrefix(options.interactionMode);
   if (modePrefix) {
     sections.push(modePrefix);
+  }
+
+  const implementPlan = formatImplementPlanSection(
+    options.buildFromPlan,
+    options.attachmentPaths,
+  );
+  if (implementPlan) {
+    sections.push(implementPlan);
   }
 
   if (options.instructions) {
@@ -348,30 +369,47 @@ export function formatReferencedFiles(refs: string[]): string {
 /**
  * Returns a system-level directive when the execution is in Plan mode.
  * Returns `undefined` for Agent mode (default) since no prefix is needed.
+ *
+ * The directive body is the harness-agnostic {@link PLAN_MODE_DIRECTIVE}
+ * (shared with the native harness) wrapped in this harness's XML-tag section
+ * framing. For Cursor this prompt IS the plan-mode enforcement — the Cursor
+ * SDK exposes no mode parameter — see the shared module's doc comment.
  */
 export function formatInteractionModePrefix(
   mode: InteractionMode | undefined,
 ): string | undefined {
-  if (
-    mode == null ||
-    mode === InteractionMode.UNSPECIFIED ||
-    mode === InteractionMode.AGENT
-  ) {
+  if (mode !== InteractionMode.PLAN) {
     return undefined;
   }
 
-  if (mode === InteractionMode.PLAN) {
-    return [
-      "<interaction_mode>",
-      "IMPORTANT: You are in Plan mode. Analyze the codebase and produce a detailed plan.",
-      "Do NOT create, edit, or delete any files. Do NOT run commands that modify the filesystem.",
-      "Only read, search, and analyze. Your output should be analysis, recommendations, and",
-      "implementation plans — not code changes.",
-      "</interaction_mode>",
-    ].join("\n");
+  return ["<interaction_mode>", PLAN_MODE_DIRECTIVE, "</interaction_mode>"].join(
+    "\n",
+  );
+}
+
+/**
+ * Returns the implement-plan directive section for a Build-from-plan
+ * execution, or `undefined` otherwise. The directive body is the shared
+ * {@link buildImplementPlanDirective} (same words as the native harness)
+ * wrapped in this harness's XML-tag framing; the variant is picked by whether
+ * the approved plan document is among the resolved attachment paths.
+ *
+ * Like the interaction-mode prefix, this rides BOTH prompt paths — the fresh
+ * enhanced prompt and a resumed turn's prefix — because build_from_plan is
+ * per-execution and the build turn is usually a follow-up on a resumed agent.
+ */
+export function formatImplementPlanSection(
+  buildFromPlan: boolean | undefined,
+  attachmentPaths: string[],
+): string | undefined {
+  if (!buildFromPlan) {
+    return undefined;
   }
 
-  return undefined;
+  const directive = buildImplementPlanDirective(
+    findApprovedPlanPath(attachmentPaths),
+  );
+  return ["<implement_plan>", directive, "</implement_plan>"].join("\n");
 }
 
 export function formatResponseRules(): string {

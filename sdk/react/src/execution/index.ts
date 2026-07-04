@@ -41,6 +41,12 @@ export type { PlanCompletionCardProps } from "./PlanCompletionCard.js";
 export { PlanArtifactCard } from "./PlanArtifactCard.js";
 export type { PlanArtifactCardProps } from "./PlanArtifactCard.js";
 
+export { PlanStreamingCard } from "./PlanStreamingCard.js";
+export type { PlanStreamingCardProps } from "./PlanStreamingCard.js";
+
+export { PlanDocumentMessage } from "./PlanDocumentMessage.js";
+export type { PlanDocumentMessageProps } from "./PlanDocumentMessage.js";
+
 export { useExecutionArtifacts } from "./useExecutionArtifacts.js";
 export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts.js";
 
@@ -160,7 +166,7 @@ export { MessageEntry } from "./MessageEntry.js";
 export type { MessageEntryProps } from "./MessageEntry.js";
 
 export { MessageThread } from "./MessageThread.js";
-export type { MessageThreadProps } from "./MessageThread.js";
+export type { MessageThreadProps, ThreadContentColumn } from "./MessageThread.js";
 
 export { ThreadSkeleton } from "./ThreadSkeleton.js";
 export type { ThreadSkeletonProps } from "./ThreadSkeleton.js";

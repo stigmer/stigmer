@@ -3,6 +3,7 @@ import { render, cleanup } from "@testing-library/react";
 import type { ComponentType, ReactNode } from "react";
 import {
   MARKDOWN_COMPONENTS,
+  extractLeadingH1,
   unwrapEnclosingMarkdownFence,
 } from "../markdown-components";
 
@@ -62,6 +63,73 @@ describe("unwrapEnclosingMarkdownFence", () => {
     const wrapped = "```markdown\n# Plan\n- a\n```";
     const once = unwrapEnclosingMarkdownFence(wrapped);
     expect(unwrapEnclosingMarkdownFence(once)).toBe(once);
+  });
+
+  describe("allowBareFence (plan-document surfaces)", () => {
+    it.each([
+      ["a bare whole-body fence", "```\n# Plan\n- step\n```", "# Plan\n- step"],
+      [
+        "a bare fence with surrounding whitespace",
+        "\n```\n# Plan\n```\n",
+        "# Plan",
+      ],
+      [
+        "still unwraps the tagged form",
+        "```markdown\n# Plan\n```",
+        "# Plan",
+      ],
+    ])("unwraps %s", (_label, input, expected) => {
+      expect(unwrapEnclosingMarkdownFence(input, true)).toBe(expected);
+    });
+
+    it.each([
+      ["a language-tagged code block", "```python\nprint('hi')\n```"],
+      ["an unclosed bare fence (mid-stream)", "```\n# Plan in progr"],
+      ["trailing content after the fence", "```\n# Plan\n```\nthen more"],
+      ["leading content before the fence", "intro\n```\n# Plan\n```"],
+      ["plain markdown (no fence)", "# Plan\n\n- step"],
+    ])("leaves %s untouched even with allowBareFence", (_label, input) => {
+      expect(unwrapEnclosingMarkdownFence(input, true)).toBe(input);
+    });
+  });
+});
+
+describe("extractLeadingH1", () => {
+  it("splits a leading # heading into title and body", () => {
+    expect(extractLeadingH1("# The Plan\n\nFirst paragraph.")).toEqual({
+      title: "The Plan",
+      body: "First paragraph.",
+    });
+  });
+
+  it("handles a document that is only a heading", () => {
+    expect(extractLeadingH1("# Just a Title")).toEqual({
+      title: "Just a Title",
+      body: "",
+    });
+  });
+
+  it("ignores leading whitespace before the heading", () => {
+    expect(extractLeadingH1("\n\n# The Plan\nBody")).toEqual({
+      title: "The Plan",
+      body: "Body",
+    });
+  });
+
+  it("returns null title when the document does not open with an H1", () => {
+    const doc = "Intro paragraph.\n\n# Later Heading\nBody";
+    expect(extractLeadingH1(doc)).toEqual({ title: null, body: doc });
+  });
+
+  it("does not treat deeper headings as the title", () => {
+    const doc = "## Section\nBody";
+    expect(extractLeadingH1(doc)).toEqual({ title: null, body: doc });
+  });
+
+  it("trims trailing whitespace from the title", () => {
+    expect(extractLeadingH1("#  Spaced Title  \nBody").title).toBe(
+      "Spaced Title",
+    );
   });
 });
 

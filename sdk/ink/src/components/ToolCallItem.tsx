@@ -4,6 +4,11 @@ import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolKind, resolveToolKind, normalizeToolResult } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
+import {
+  extractPrimaryArg,
+  useFileReviewRowState,
+  type FileReviewRowState,
+} from "@stigmer/react";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -37,6 +42,15 @@ const KIND_LABEL: Partial<Record<ToolKind, string>> = {
   [ToolKind.SUBAGENT]: "Sub-agent",
 };
 
+// File-review row badges, mirroring the web console's per-row badge labels and
+// tones. Keyed by the shared `fileReviewRowState` classification.
+const REVIEW_BADGE: Record<FileReviewRowState, { label: string; color: string }> = {
+  pending: { label: "Pending review", color: "yellow" },
+  kept: { label: "Kept", color: "green" },
+  discarded: { label: "Discarded", color: "red" },
+  failed: { label: "Review failed", color: "red" },
+};
+
 /**
  * Renders a single tool call with a status indicator, label, and an optional
  * expanded result. Labels and results come from the shared `@stigmer/sdk` view
@@ -51,6 +65,16 @@ export function ToolCallItem({ toolCall, expanded = false }: ToolCallItemProps) 
   const view = normalizeToolResult(toolCall);
   const resultText = expanded ? describeResultView(view) : null;
 
+  // A flowed file edit stamped with its change set id badges the set's live
+  // review state right on the row (the observational record stays in place; the
+  // decision surface is the docked FileReviewPrompt). Null for unstamped rows
+  // and honest-degradation cases (missing/capturing set, superseded edit).
+  const reviewState = useFileReviewRowState(
+    toolCall.fileChangeSetId,
+    extractPrimaryArg(toolCall),
+  );
+  const reviewBadge = reviewState ? REVIEW_BADGE[reviewState] : null;
+
   return (
     <Box flexDirection="column">
       <Box gap={1}>
@@ -59,6 +83,7 @@ export function ToolCallItem({ toolCall, expanded = false }: ToolCallItemProps) 
         {toolCall.status === ToolCallStatus.TOOL_CALL_RUNNING && (
           <Text dimColor>running</Text>
         )}
+        {reviewBadge && <Text color={reviewBadge.color}>{reviewBadge.label}</Text>}
       </Box>
       {view.type === "error" ? (
         expanded && (

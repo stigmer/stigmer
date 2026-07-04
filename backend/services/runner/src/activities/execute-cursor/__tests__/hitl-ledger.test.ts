@@ -1025,6 +1025,34 @@ describe("reconcileDeniedToolCalls — authoritative hook input overlay", () => 
     expect(tc.approvalContentDigest).not.toBe("");
   });
 
+  it("does NOT overlay a secret-like write's content (DD-26 #2 defensive guard)", async () => {
+    // Normally unreachable — the hook hard-blocks a secret write and records no
+    // ledger entry — but if a hook classify failure fell one through with content,
+    // that content must still never reach args / args_preview / the digest.
+    const tc = toolCall({
+      id: "c1",
+      name: "write",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      argsPreview: JSON.stringify({ path: ".env" }),
+    });
+    const messages = [aiMessageWith([tc])];
+
+    await reconcileDeniedToolCalls(
+      messages,
+      [{
+        toolName: "Write",
+        token: grantToken("write", ".env"),
+        input: { file_path: ".env", content: "API_KEY=super-secret" },
+      }],
+      undefined,
+      rootBackend(),
+    );
+
+    expect(args(tc).content).toBeUndefined(); // content never overlaid
+    expect(tc.argsPreview).not.toContain("super-secret");
+    expect(tc.approvalContentDigest).toBe(""); // digest not stamped from secret content
+  });
+
   it("stamps the captured edit old/new strings and a digest", async () => {
     const tc = toolCall({
       id: "c1",

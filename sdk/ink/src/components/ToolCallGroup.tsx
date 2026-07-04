@@ -1,7 +1,13 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  FileReviewContext,
+  fileReviewRowState,
+  extractPrimaryArg,
+  type FileReviewRowState,
+} from "@stigmer/react";
 import { ToolCallItem } from "./ToolCallItem.js";
 
 /** Props for {@link ToolCallGroup}. */
@@ -43,6 +49,45 @@ const STATUS_STYLE: Record<AggregateStatus, { symbol: string; color?: string }> 
 };
 
 /**
+ * A compact file-review cue for the collapsed summary line, so a pending edit is
+ * visible without expanding the group. Folds the group's stamped edit rows via
+ * the same pure {@link fileReviewRowState} the per-row badges use, reading the
+ * change sets from {@link FileReviewContext}. Pending takes precedence (it is
+ * the actionable state); otherwise a settled group shows its kept/discarded
+ * tally. Returns `null` when no row in the group is stamped.
+ */
+function useReviewCue(
+  toolCalls: readonly ToolCall[],
+): { readonly label: string; readonly color: string } | null {
+  const { changeSetsById } = useContext(FileReviewContext);
+  const counts: Record<FileReviewRowState, number> = {
+    pending: 0,
+    kept: 0,
+    discarded: 0,
+    failed: 0,
+  };
+  for (const tc of toolCalls) {
+    if (!tc.fileChangeSetId) continue;
+    const state = fileReviewRowState(
+      changeSetsById.get(tc.fileChangeSetId),
+      extractPrimaryArg(tc),
+    );
+    if (state) counts[state]++;
+  }
+  if (counts.pending > 0) {
+    return { label: `${counts.pending} pending review`, color: "yellow" };
+  }
+  if (counts.failed > 0) {
+    return { label: `${counts.failed} review failed`, color: "red" };
+  }
+  const settled: string[] = [];
+  if (counts.kept > 0) settled.push(`${counts.kept} kept`);
+  if (counts.discarded > 0) settled.push(`${counts.discarded} discarded`);
+  if (settled.length > 0) return { label: settled.join(" · "), color: "gray" };
+  return null;
+}
+
+/**
  * Renders a collapsible group of tool calls with an aggregate status.
  *
  * When collapsed, shows a summary line with tool count and status.
@@ -58,6 +103,7 @@ export function ToolCallGroup({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const status = deriveAggregateStatus(toolCalls);
   const style = STATUS_STYLE[status];
+  const reviewCue = useReviewCue(toolCalls);
 
   useInput(
     (_input, key) => {
@@ -79,6 +125,9 @@ export function ToolCallGroup({
         <Text color={style.color}>{style.symbol}</Text>
         <Text dimColor>{expanded ? "▼" : "▶"}</Text>
         <Text>{summary}</Text>
+        {reviewCue && (
+          <Text color={reviewCue.color}>· {reviewCue.label}</Text>
+        )}
       </Box>
       {expanded && (
         <Box flexDirection="column" paddingLeft={2} marginTop={1}>

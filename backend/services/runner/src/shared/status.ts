@@ -193,6 +193,17 @@ export async function persistStatus(
 /**
  * Report a setup progress phase (e.g. "Resolving MCP servers") so the
  * frontend can display a spinner with context.
+ *
+ * Deliberately carries NO execution phase (UNSPECIFIED = "leave unchanged"):
+ * the server keeps `setup_progress` only while the merged phase is still
+ * PENDING (update_status.go / AgentExecutionUpdateStatusHandler clear it the
+ * moment the phase leaves PENDING), and the UI renders the label only in
+ * that window (SetupProgress.tsx: "Server-driven — preferred during
+ * PENDING"). Sending IN_PROGRESS here flipped the phase on the very first
+ * setup report, so every label self-destructed on arrival and the user saw
+ * a generic spinner instead. The genuine PENDING→IN_PROGRESS transition
+ * belongs to the streaming path, which persists it when the agent actually
+ * starts producing output.
  */
 export async function reportSetupProgress(
   client: StigmerClient,
@@ -200,7 +211,6 @@ export async function reportSetupProgress(
   phase: string,
 ): Promise<void> {
   const status = create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
     setupProgress: create(SetupProgressSchema, { currentPhase: phase }),
   });
   await persistStatus(client, executionId, status);

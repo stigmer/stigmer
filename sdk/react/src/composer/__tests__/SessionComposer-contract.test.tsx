@@ -125,7 +125,7 @@ describe("SessionComposer — public contract", () => {
   });
 });
 
-describe("SessionComposer — imperative submit (Implement plan)", () => {
+describe("SessionComposer — imperative submit (Build from plan)", () => {
   it("submits a message with the interactionMode override, even when the picker is 'plan'", async () => {
     const ref = createRef<SessionComposerHandle>();
     const { onSubmit } = renderComposer({
@@ -134,13 +134,13 @@ describe("SessionComposer — imperative submit (Implement plan)", () => {
       interactionMode: "plan",
     });
 
-    ref.current!.submit("Implement the plan above", { interactionMode: "agent" });
+    ref.current!.submit("Build from plan", { interactionMode: "agent" });
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledOnce();
     });
     const [message, , context] = onSubmit.mock.calls[0];
-    expect(message).toBe("Implement the plan above");
+    expect(message).toBe("Build from plan");
     // The override must win over the current picker value ("plan") so the
     // implement run executes in Agent mode regardless of render timing.
     expect(context?.interactionMode).toBe("agent");
@@ -150,7 +150,7 @@ describe("SessionComposer — imperative submit (Implement plan)", () => {
     const ref = createRef<SessionComposerHandle>();
     const { onSubmit } = renderComposer({ ref, disabled: true });
 
-    ref.current!.submit("Implement the plan above", { interactionMode: "agent" });
+    ref.current!.submit("Build from plan", { interactionMode: "agent" });
 
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -162,5 +162,59 @@ describe("SessionComposer — imperative submit (Implement plan)", () => {
     ref.current!.submit("   ");
 
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("carries caller-supplied attachments into the submit context (approved plan.md)", async () => {
+    const ref = createRef<SessionComposerHandle>();
+    const { onSubmit } = renderComposer({ ref });
+
+    const planAttachment = {
+      filename: "plan.md",
+      storageKey: "attachments/01ABC/plan.md",
+      mountPath: ".stigmer/inputs/plan.md",
+      contentType: "text/markdown",
+    };
+    ref.current!.submit("Build from plan", {
+      interactionMode: "agent",
+      attachments: [planAttachment],
+    });
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledOnce();
+    });
+    const [, , context] = onSubmit.mock.calls[0];
+    expect(context?.attachments).toEqual([planAttachment]);
+    expect(context?.interactionMode).toBe("agent");
+  });
+
+  it("carries the buildFromPlan flag into the submit context", async () => {
+    const ref = createRef<SessionComposerHandle>();
+    const { onSubmit } = renderComposer({ ref });
+
+    ref.current!.submit("Build from plan", {
+      interactionMode: "agent",
+      buildFromPlan: true,
+    });
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledOnce();
+    });
+    const [, , context] = onSubmit.mock.calls[0];
+    expect(context?.buildFromPlan).toBe(true);
+    expect(context?.interactionMode).toBe("agent");
+  });
+
+  it("leaves buildFromPlan unset for ordinary submissions", async () => {
+    const { onSubmit } = renderComposer();
+
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "Hello world" } });
+    fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledOnce();
+    });
+    const [, , context] = onSubmit.mock.calls[0];
+    expect(context?.buildFromPlan).toBeUndefined();
   });
 });

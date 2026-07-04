@@ -7,8 +7,14 @@
  */
 
 import { relative } from "node:path";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ProvisionResult, GitMetadata } from "../../shared/workspace/types.js";
 import { SourceType } from "../../shared/workspace/types.js";
+import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
+import {
+  buildImplementPlanDirective,
+  findApprovedPlanPath,
+} from "../../shared/implement-plan-prompt.js";
 
 const RESPONSE_RULES = `
 
@@ -84,6 +90,22 @@ export interface PromptBuilderInput {
   workspaceFileRefs: string[];
   workspaceRoot: string;
   injectedFiles: InjectedFile[];
+  /**
+   * The execution's interaction mode. PLAN appends the shared plan-mode
+   * directive so the model knows the turn's deliverable is a plan document.
+   * Tool-level write enforcement is separate (see setup.ts permissions) —
+   * without this directive the model is silently read-only but never told
+   * to produce a plan.
+   */
+  interactionMode?: InteractionMode;
+  /**
+   * The execution is a Build-from-plan turn (spec.execution_config
+   * .build_from_plan): appends the shared implement-plan directive, pointing
+   * the model at the injected approved plan document (or, when the plan
+   * attachment did not materialize, at the conversation's plan). The user
+   * message itself is just a short label ("Build from plan").
+   */
+  buildFromPlan?: boolean;
 }
 
 export interface InjectedFile {
@@ -127,6 +149,23 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
 
   prompt += RESPONSE_RULES;
   prompt += SUB_AGENT_RULES;
+
+  // Last sections on purpose: these per-execution directives redefine the
+  // turn's deliverable, so they must be the freshest instruction the model
+  // reads. (PLAN and build_from_plan are mutually exclusive in practice —
+  // the build turn is always an Agent-mode execution.)
+  if (input.interactionMode === InteractionMode.PLAN) {
+    prompt += "\n\n## Plan mode\n\n" + PLAN_MODE_DIRECTIVE;
+  }
+
+  if (input.buildFromPlan) {
+    const planPath = findApprovedPlanPath(
+      input.injectedFiles.map((f) => f.path),
+    );
+    prompt +=
+      "\n\n## Implement the approved plan\n\n" +
+      buildImplementPlanDirective(planPath);
+  }
 
   return prompt;
 }

@@ -25,4 +25,5 @@ export {
 } from "./GitHubRepoPicker.js";
 
 export { useGitHubTreeLister } from "./useGitHubTreeLister.js";
+export { useGitHubFileReader } from "./useGitHubFileReader.js";
 export { parseGitUrl, type ParsedGitRepo } from "./parseGitUrl.js";

@@ -138,6 +138,24 @@ const CATEGORY_APPROVAL_MESSAGE: Record<ToolApprovalCategory, string> = {
   shell: "Execute command: {{args.command}}",
 };
 
+/**
+ * The ToolMessage returned when a secret-like write is hard-blocked (DD-E /
+ * DD-26 #2): the write is NEVER applied and the graph continues (this replaces
+ * the tool call's side effect, so the model moves on rather than waiting). The
+ * path is named (a filename is not itself the secret); the CONTENT is not echoed.
+ * Shared by the capture-mode secret block and the deny-gate secret block so both
+ * speak with one voice.
+ */
+function secretBlockToolMessage(toolName: string, path: string, toolCallId: string): ToolMessage {
+  return new ToolMessage({
+    content:
+      `Tool '${toolName}' was blocked for security: '${path}' matches a ` +
+      `secret-like path Stigmer will not capture for review. Nothing was written.`,
+    tool_call_id: toolCallId,
+    name: toolName,
+  });
+}
+
 export function createApprovalGateMiddleware(
   config: ApprovalGateConfig,
 ): StigmerMiddleware {
@@ -183,13 +201,7 @@ export function createApprovalGateMiddleware(
               // and NEVER captured. Record it so the turn boundary authors a
               // DIFF_UNREVIEWABLE entry (blocking approval); nothing is written.
               config.recordBlockedSecret?.(path);
-              return new ToolMessage({
-                content:
-                  `Tool '${toolName}' was blocked for security: '${path}' matches a ` +
-                  `secret-like path Stigmer will not capture for review. Nothing was written.`,
-                tool_call_id: toolCall.id,
-                name: toolName,
-              });
+              return secretBlockToolMessage(toolName, path, toolCall.id);
             }
             if (category === "write") {
               // Non-secret gitignored write/edit: flows (apply-then-review). The
@@ -200,6 +212,26 @@ export function createApprovalGateMiddleware(
               return await handler(request);
             }
           }
+        }
+      }
+
+      // Deny-gate secret hard-block (DD-26 #2): a built-in file WRITE to a
+      // secret-like path that reaches here has no capture substrate for it — the
+      // classic no-storage deny-gate, or a git workspace with no artifact storage
+      // whose gitignored write skipped the captureIgnored arm above. It must NOT
+      // surface its content for approval, so hard-block it (never applied, graph
+      // continues) exactly like the capture-mode secret block — a secret write is
+      // never applied or persisted in ANY mode. Placed AFTER the capture block so
+      // capture-mode paths stay byte-identical (a capturable write already flowed;
+      // a captureIgnored gitignored secret is already blocked). Deletes carry no
+      // content and stay on the deny-gate. recordBlockedSecret is a no-op unless a
+      // turn boundary reads it (the git-no-storage case, where it authors a
+      // content-less DIFF_UNREVIEWABLE).
+      if (!serverSlug && category === "write") {
+        const path = extractFilePath(toolCall.args);
+        if (path !== null && isSecretLikePath(path)) {
+          config.recordBlockedSecret?.(path);
+          return secretBlockToolMessage(toolName, path, toolCall.id);
         }
       }
 

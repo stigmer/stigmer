@@ -26,6 +26,7 @@ import {
   resetCasObservations,
   casObservationsDir,
   buildObservationStagingScript,
+  buildSecretClassifyScript,
 } from "../cas-observations.js";
 import { isSecretLikePath } from "../../../shared/filereview/secret-paths.js";
 
@@ -182,6 +183,60 @@ describe("cas-observations sidecar", () => {
         const expected = isSecretLikePath(p) ? "secret" : "captured";
         expect(token, `classification for ${p}`).toBe(expected);
       }
+    });
+  });
+
+  // The deny-gate (no-capture-substrate) classify-only script. It shares the
+  // classifier fragment with the staging script, so its verdict must equal
+  // isSecretLikePath byte-for-byte — a secret must never fall through the hook's
+  // deny-gate secret hard-block (DD-26 #2).
+  describe("buildSecretClassifyScript (deny-gate classify-only)", () => {
+    function runClassify(salient: string): string {
+      return execFileSync(process.execPath, ["-e", buildSecretClassifyScript()], {
+        input: salient,
+      })
+        .toString()
+        .trim();
+    }
+
+    it("classifies secrets byte-for-byte identically to isSecretLikePath (no staging)", () => {
+      const paths = [
+        ".env",
+        ".env.local",
+        "config/.env.production",
+        "id_rsa",
+        "server.pem",
+        "certs/key.pfx",
+        "terraform.tfstate",
+        ".aws/credentials",
+        "home/.ssh/known_hosts",
+        ".npmrc",
+        "secrets.yaml",
+        "/abs/path/.env",
+        "id_rsa.pub",
+        "app.log",
+        "src/index.ts",
+        "docs/notes.md",
+        "build/out.js",
+        "environment.ts",
+      ];
+      for (const p of paths) {
+        const expected = isSecretLikePath(p) ? "secret" : "ok";
+        expect(runClassify(p), `classification for ${p}`).toBe(expected);
+      }
+    });
+
+    it("fail-closes on empty input (classifies as secret), matching isSecretLikePath('')", () => {
+      expect(runClassify("")).toBe("secret");
+      expect(isSecretLikePath("")).toBe(true);
+    });
+
+    it("does not stage anything (pure classifier)", async () => {
+      const ws = tmp("obs-classify-nostage-");
+      writeFileSync(join(ws, ".env"), "API_KEY=xyz", "utf-8");
+      expect(runClassify(".env")).toBe("secret");
+      // No sidecar dir is created or written by the classify-only script.
+      expect(await readCasObservations(ws)).toEqual({ captured: [], secretPaths: [] });
     });
   });
 });

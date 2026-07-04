@@ -1284,6 +1284,7 @@ Configuration that can be applied at execution time.
     maxCostUsd: { type: "number", description: "Maximum estimated cost in USD for this execution." },
     interactionMode: { type: "InteractionMode", description: "Interaction mode for this execution.", typeDescriptionLink: "#interactionmode" },
     structuredOutputSchema: { type: "object", description: "JSON Schema that the agent's output must conform to." },
+    buildFromPlan: { type: "boolean", description: "Marks this execution as a \"Build from plan\" turn: the user approved a plan produced by a prior Plan-mode execution and asked the agent to implement it." },
   }}
 />
 

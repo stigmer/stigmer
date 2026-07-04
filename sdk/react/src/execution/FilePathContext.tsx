@@ -18,11 +18,18 @@ export interface FilePathContextValue {
    * `FilePathLink` delegates to this callback instead of opening
    * a URL or copying to clipboard. Platform builders use this to
    * integrate their own file viewer or navigation.
+   *
+   * Return `false` to **decline** a specific path — `FilePathLink` then falls
+   * back to its default action (open the GitHub link / copy the path), so a
+   * handler that can only open *some* paths (e.g. resolvable workspace files)
+   * leaves the rest behaving as before. Returning `true` or `void` means the
+   * click was fully handled and the default is suppressed — preserving the
+   * behavior of existing `void`-returning handlers.
    */
   readonly onFilePathClick?: (
     path: string,
     resolved: ResolvedPathAction,
-  ) => void;
+  ) => boolean | void;
 }
 
 const DEFAULT_VALUE: FilePathContextValue = {

@@ -19,6 +19,18 @@ export { ToolCallGroup, type ToolCallGroupProps } from "./components/ToolCallGro
 export { SubAgentBlock, type SubAgentBlockProps } from "./components/SubAgentBlock.js";
 export { TodoList, type TodoListProps } from "./components/TodoList.js";
 export { ApprovalPrompt, type ApprovalPromptProps } from "./components/ApprovalPrompt.js";
+export { FileReviewPrompt, type FileReviewPromptProps } from "./components/FileReviewPrompt.js";
+export { FileReviewRecord, type FileReviewRecordProps } from "./components/FileReviewRecord.js";
+
+// File-review pure helpers (kind letters, paths, block reasons, settled counts)
+export {
+  kindLetter,
+  changeDisplayPath,
+  blockReasonNote,
+  settledCounts,
+  settledSummary,
+  type SettledCounts,
+} from "./file-review.js";
 export { ExecutionProgress, type ExecutionProgressProps } from "./components/ExecutionProgress.js";
 export { FollowUpInput, type FollowUpInputProps } from "./components/FollowUpInput.js";
 export { UsageWidget, type UsageWidgetProps } from "./components/UsageWidget.js";

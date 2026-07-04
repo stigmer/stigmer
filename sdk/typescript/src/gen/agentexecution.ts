@@ -196,6 +196,7 @@ export interface ExecutionConfigInput {
   maxCostUsd?: number;
   interactionMode?: InteractionMode;
   structuredOutputSchema?: JsonObject;
+  buildFromPlan?: boolean;
 }
 
 /** SDK input type for ContextManagementConfig. */
@@ -232,6 +233,7 @@ function buildExecutionConfigProto(input: ExecutionConfigInput) {
   if (input.maxCostUsd !== undefined) msg.maxCostUsd = input.maxCostUsd;
   if (input.interactionMode !== undefined) msg.interactionMode = input.interactionMode;
   if (input.structuredOutputSchema !== undefined) msg.structuredOutputSchema = input.structuredOutputSchema;
+  if (input.buildFromPlan !== undefined) msg.buildFromPlan = input.buildFromPlan;
   return msg;
 }
 

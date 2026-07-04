@@ -55,6 +55,16 @@ export interface CreateAgentExecutionInput {
    */
   readonly interactionMode?: "agent" | "plan";
   /**
+   * Marks this execution as a "Build from plan" turn: the user approved a
+   * plan from a prior Plan-mode execution and asked the agent to implement
+   * it. The runner injects the implement-plan directive (pointing at the
+   * attached approved plan when present); the thread renders the turn as a
+   * compact chip instead of the raw message text.
+   *
+   * Maps to `ExecutionConfig.build_from_plan` in the proto.
+   */
+  readonly buildFromPlan?: boolean;
+  /**
    * Auto-approve every tool call for this execution.
    *
    * When `true`, the human-in-the-loop approval gate is bypassed and no tool
@@ -158,7 +168,11 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
       setError(null);
 
       try {
-        const hasConfig = input.modelName || input.interactionMode || input.structuredOutputSchema;
+        const hasConfig =
+          input.modelName ||
+          input.interactionMode ||
+          input.structuredOutputSchema ||
+          input.buildFromPlan;
         const executionConfig = hasConfig
           ? {
               ...(input.modelName ? { modelName: input.modelName } : {}),
@@ -168,6 +182,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
               ...(input.structuredOutputSchema
                 ? { structuredOutputSchema: input.structuredOutputSchema }
                 : {}),
+              ...(input.buildFromPlan ? { buildFromPlan: true } : {}),
             }
           : undefined;
 
