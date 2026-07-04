@@ -132,9 +132,9 @@ export interface NewSessionViewerProps {
  * - **Centered composer** (primary pane): `SessionComposer` with all
  *   context pickers (agent, workspace, MCP servers, skills)
  * - **Session panel** (secondary pane): the unified `WorkspaceSurface` with a
- *   Config rail view — collapsed by default behind a top-right chip that
- *   appears once context is attached (workspace/agent/MCP/skills/vars
- *   non-empty). Same layout model as `SessionViewer` (DD-016).
+ *   Config rail view — collapsed by default behind a persistent top-right chip
+ *   and homing on the Config facet when opened. Same layout model as
+ *   `SessionViewer` (DD-016).
  *
  * Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
  * apps inject platform-specific values via props (DD-004/DD-016).
@@ -197,8 +197,13 @@ export function NewSessionViewer({
   // launcher has no execution yet, so the FSM inputs are static. It has no
   // streaming column to isolate either, so subscribing to the editor group in
   // the body is harmless — unlike `SessionViewer`, which subscribes one level
-  // down.
-  const panel = useSessionPanel({ phase: null, hasChanges: false });
+  // down. Homes on Config: pre-session the Explorer is empty, while Config
+  // carries the run defaults (harness/model) worth seeing before starting.
+  const panel = useSessionPanel({
+    phase: null,
+    hasChanges: false,
+    defaultView: "configure",
+  });
   const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
 
   const hasContext =
@@ -335,17 +340,19 @@ export function NewSessionViewer({
 
   return (
     <div className={cn("relative flex h-full w-full flex-col", className)}>
-      {/* The panel chip appears once there is context worth inspecting —
-          the launcher's successor to the old progressively-revealed inspector.
-          The composer's own pickers already confirm attached context inline. */}
-      {hasContext && (
-        <div className="absolute top-2 right-6 z-10">
-          <SessionPanelChip
-            isOpen={panel.isOpen}
-            onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
-          />
-        </div>
-      )}
+      {/* Persistent chrome: the chip is always mounted, matching SessionViewer
+          (DD-016) rather than the launcher's earlier progressively-revealed
+          inspector. A toggle that appears/disappears with attached context
+          reads as instability and, worse, unmounts the open panel's only
+          collapse control when the last context item is removed. Always-on is
+          the predictable, discoverable shape; opening homes on the Config
+          facet, which carries useful defaults (harness/model) pre-session. */}
+      <div className="absolute top-2 right-6 z-10">
+        <SessionPanelChip
+          isOpen={panel.isOpen}
+          onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
+        />
+      </div>
 
       {/* Same unified-panel layout as SessionViewer (DD-016): collapsed by
           default (composer fills the row); opening makes the composer the

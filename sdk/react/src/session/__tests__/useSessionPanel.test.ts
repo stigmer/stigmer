@@ -185,3 +185,45 @@ describe("useSessionPanel — plan arrivals", () => {
     expect(result.current.view).toBe("files");
   });
 });
+
+describe("useSessionPanel — defaultView (home view)", () => {
+  it("seeds the view to the provided defaultView (launcher homes on Config)", () => {
+    const { result } = renderPanel({ defaultView: "configure" });
+    expect(result.current.view).toBe("configure");
+  });
+
+  it("returns to defaultView (not files) on a running→terminal reset", () => {
+    const { result, rerender } = renderPanel({
+      defaultView: "configure",
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+    act(() => result.current.openPanel());
+    act(() => result.current.setView("usage"));
+    rerender({
+      phase: ExecutionPhase.EXECUTION_COMPLETED,
+      hasChanges: false,
+      defaultView: "configure",
+    });
+    expect(result.current.view).toBe("configure");
+  });
+
+  it("returns to defaultView (not files) when a selection clears", () => {
+    const { result } = renderPanel({ defaultView: "configure" });
+    act(() => result.current.openPanel());
+    act(() => result.current.notifySelection(item));
+    expect(result.current.view).toBe("inspect");
+    act(() => result.current.notifySelection(null));
+    expect(result.current.view).toBe("configure");
+  });
+
+  it("defaults the home view to Explorer (files) when omitted", () => {
+    const { result, rerender } = renderPanel({
+      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    });
+    expect(result.current.view).toBe("files");
+    act(() => result.current.openPanel());
+    act(() => result.current.setView("usage"));
+    rerender({ phase: ExecutionPhase.EXECUTION_COMPLETED, hasChanges: false });
+    expect(result.current.view).toBe("files");
+  });
+});

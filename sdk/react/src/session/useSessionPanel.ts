@@ -31,6 +31,18 @@ export interface UseSessionPanelOptions {
    * and a collapsed panel signals through badges alone.
    */
   readonly planKey?: string | null;
+  /**
+   * The panel's home view — the view it opens on and the one every automatic
+   * reset returns to (running⇄terminal transition, selection cleared). Defaults
+   * to `"files"` (the Explorer), which suits the session viewer. The launcher
+   * passes `"configure"`: pre-session there is no workspace, so the Config
+   * facet — carrying the run defaults (harness/model) — is the useful landing
+   * view. Auto-switches (Changes/Plan/Inspect) and explicit rail picks still
+   * take over from here exactly as before.
+   *
+   * @default "files"
+   */
+  readonly defaultView?: string;
 }
 
 /**
@@ -46,10 +58,10 @@ export interface UseSessionPanelOptions {
  * Owns the {@link WorkspaceEditorsStore} (the open-editor group) and the view
  * FSM ported from the retired inspector tabs: explicit picks are sticky until
  * a meaningful state change (selection cleared, running⇄terminal transition)
- * resets them. Both are decoupled from any store subscription at the owner
- * level: callbacks mutate imperatively so a file open/switch re-renders only
- * the subscribing panel subtree, never the streaming conversation column
- * (DD-009/DD-010, invariant 2).
+ * resets them back to the `defaultView`. Both are decoupled from any store
+ * subscription at the owner level: callbacks mutate imperatively so a file
+ * open/switch re-renders only the subscribing panel subtree, never the
+ * streaming conversation column (DD-009/DD-010, invariant 2).
  */
 export interface SessionPanelController {
   /** The open-editor group store; subscribe with `useWorkspaceEditors`. */
@@ -93,10 +105,11 @@ export function useSessionPanel({
   phase,
   hasChanges,
   planKey = null,
+  defaultView = "files",
 }: UseSessionPanelOptions): SessionPanelController {
   const editorsStore = useWorkspaceEditorsStoreRef();
   const [isOpen, setIsOpen] = useState(false);
-  const [view, setViewState] = useState("files");
+  const [view, setViewState] = useState(defaultView);
 
   // Sticky explicit pick (rail click) — auto-switching yields to it until a
   // meaningful state change resets it. Same semantics as the retired tab FSM.
@@ -120,7 +133,7 @@ export function useSessionPanel({
     setPrevPhase(phase);
     if (wasTerminal !== isNowTerminal) {
       userPickedViewRef.current = false;
-      setViewState(selectionRef.current ? "inspect" : "files");
+      setViewState(selectionRef.current ? "inspect" : defaultView);
     }
   }
 
@@ -193,12 +206,13 @@ export function useSessionPanel({
       if (item) {
         if (isOpen && !userPickedViewRef.current) setViewState("inspect");
       } else if (viewRef.current === "inspect") {
-        // Selection cleared: leave Inspect (its content is gone) and unstick.
+        // Selection cleared: leave Inspect (its content is gone) and unstick,
+        // returning to the panel's home view.
         userPickedViewRef.current = false;
-        setViewState("files");
+        setViewState(defaultView);
       }
     },
-    [isOpen],
+    [isOpen, defaultView],
   );
 
   return useMemo(
