@@ -67,6 +67,12 @@ import { resolveAttachments } from "./attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
+import {
+  acquireWorkspaceLock,
+  WorkspaceLockCancelledError,
+  WorkspaceLockTimeoutError,
+  type ReleaseWorkspaceLock,
+} from "../../shared/workspace/workspace-lock.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, primaryToken, readDenialLedger, reconstructAdjudicatedApprovals, watchDenialLedger } from "./approval-state.js";
 import { deriveTurnCommandProvenance } from "./command-provenance.js";
@@ -239,6 +245,14 @@ async function executeCursorInner(
   // (issue #173). Runs in the finally, covering every success/error/approval
   // exit path. Undefined until the gate is installed.
   let hitlCleanup: (() => Promise<void>) | undefined;
+  // Exclusive turn lock on the primary workspace working tree. Held across the
+  // ENTIRE tree-mutating window (decision reconcile, HITL gate install, the
+  // agent's own writes, candidate capture) so a concurrent execution sharing
+  // this directory can never write between this turn's baseline and candidate
+  // snapshots — the misattribution that showed another session's file as this
+  // turn's change. Released in the finally AFTER hitlCleanup (which still
+  // mutates the tree). See shared/workspace/workspace-lock.ts.
+  let releaseWorkspaceLock: ReleaseWorkspaceLock | undefined;
   // Carries model/mode/agentId out to the outer catch so a thrown CursorSdkError
   // can be classified with the same context as the run.wait() error path.
   let errorContext = { model: "default", mode: "local", agentId: "" };
@@ -297,6 +311,46 @@ async function executeCursorInner(
     // DECIDED projection, not from turnSeq — so a "wasted" id on a pure-reconcile
     // resume (which never authors a baseline) is harmless.
     const changeSetId = `${executionId}:${turnSeq}`;
+    heartbeat();
+
+    // Serialize this turn against every other execution sharing this working
+    // tree — sessions declaring the same localPath (or the shared runner root)
+    // resolve to ONE directory, and an unserialized concurrent write lands
+    // inside this turn's baseline→candidate window, misattributing another
+    // session's file to this turn's review. Acquired before ANY tree mutation
+    // below (decision reconcile, gate install, agent writes, capture). While
+    // another turn holds the lock this surfaces a visible waiting state and
+    // heartbeats; a cancel aborts the wait immediately.
+    if (primaryWorkspaceDir) {
+      try {
+        releaseWorkspaceLock = await acquireWorkspaceLock(primaryWorkspaceDir, {
+          onWaiting: () => reportSetupProgress(
+            client, executionId, "Waiting for workspace — in use by another session",
+          ),
+          heartbeat,
+          signal: Context.current().cancellationSignal,
+          timeoutMs: config.workspaceLockTimeoutMs,
+        });
+      } catch (lockErr) {
+        if (lockErr instanceof WorkspaceLockCancelledError) {
+          throw new CancelledFailure("Activity cancelled while waiting for the workspace lock");
+        }
+        if (lockErr instanceof WorkspaceLockTimeoutError) {
+          status.phase = ExecutionPhase.EXECUTION_FAILED;
+          status.error = lockErr.message;
+          status.completedAt = utcTimestamp();
+          status.messages.push(create(AgentMessageSchema, {
+            type: MessageType.MESSAGE_SYSTEM,
+            content: `Execution failed: ${lockErr.message}`,
+            timestamp: utcTimestamp(),
+          }));
+          await persist(status);
+          console.warn(`ExecuteCursor workspace lock timeout: execution=${executionId}`);
+          return slimStatus(status);
+        }
+        throw lockErr;
+      }
+    }
     heartbeat();
 
     // Set OTel baggage so downstream calls carry execution context.
@@ -1894,6 +1948,13 @@ async function executeCursorInner(
         );
       }
     }
+
+    // Release the workspace turn lock LAST — hitlCleanup above still mutates
+    // the tree (restores .cursor/hooks.json), and the next queued turn must
+    // not baseline until every mutation of this one has landed. Idempotent
+    // and non-throwing (see workspace-lock.ts), so it can never mask the
+    // turn's real outcome.
+    await releaseWorkspaceLock?.();
   }
 }
 

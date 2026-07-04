@@ -49,7 +49,9 @@ import type { SetupResult } from "../setup.js";
 vi.mock("@temporalio/activity", () => ({
   Context: {
     current: () => ({
-      cancellationSignal: { aborted: false },
+      // A real AbortSignal: the workspace-lock wait registers abort listeners
+      // on it, which a bare `{ aborted: false }` stub cannot satisfy.
+      cancellationSignal: new AbortController().signal,
       heartbeat: vi.fn(),
     }),
   },
@@ -258,7 +260,9 @@ function fakeDurableResumeSetup(): SetupResult {
     },
     agent: {},
     session: { spec: { workspaceEntries: [] } },
-    workspaceBackend: { rootDir: "/tmp/ws" },
+    // Unique per test file: the workspace turn lock keys on this path, and a
+    // path shared across files would serialize parallel test workers for real.
+    workspaceBackend: { rootDir: "/tmp/stigmer-test-ws-hitl-approve-all" },
     mcpConnection: null,
     mergedEnvVars: {},
     secretKeys: new Set<string>(),
@@ -292,6 +296,7 @@ const baseConfig: Config = {
   checkpointerProxyEndpoint: "http://localhost:7234",
   primaryModel: "claude-sonnet",
   cursorStreamStallTimeoutMs: 180000,
+  workspaceLockTimeoutMs: 900000,
 };
 
 describe("ExecuteDeepAgent — APPROVE_ALL durable resume preserves leading thinking + first tool call", () => {

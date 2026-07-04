@@ -33,6 +33,7 @@ describe("loadConfig", () => {
     expect(config.proxyEndpoint).toBeNull();
     expect(config.maxConcurrentActivities).toBe(5);
     expect(config.cursorStreamStallTimeoutMs).toBe(180000);
+    expect(config.workspaceLockTimeoutMs).toBe(900000);
   });
 
   it("respects CURSOR_STREAM_STALL_TIMEOUT_MS", () => {
@@ -40,6 +41,13 @@ describe("loadConfig", () => {
     process.env.CURSOR_STREAM_STALL_TIMEOUT_MS = "90000";
     const config = loadConfig();
     expect(config.cursorStreamStallTimeoutMs).toBe(90000);
+  });
+
+  it("respects WORKSPACE_LOCK_TIMEOUT_MS", () => {
+    process.env.CURSOR_API_KEY = "test-key";
+    process.env.WORKSPACE_LOCK_TIMEOUT_MS = "60000";
+    const config = loadConfig();
+    expect(config.workspaceLockTimeoutMs).toBe(60000);
   });
 
   it("respects STIGMER_TASK_QUEUE", () => {

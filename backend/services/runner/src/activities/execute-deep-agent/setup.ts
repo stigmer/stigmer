@@ -35,6 +35,7 @@ import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-sub
 import { deriveCaptureMode } from "../../shared/filereview/capture.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
+import { resolveSessionWorkspaceRoot } from "../../shared/workspace/session-root.js";
 import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
 import { reportSetupProgress } from "../../shared/status.js";
 import { resolveEnvironment, type EnvironmentResult } from "./environment.js";
@@ -627,6 +628,11 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 
 /**
  * Provision workspace from session workspace entries.
+ *
+ * A session with no entries gets its own empty per-session directory (see
+ * shared/workspace/session-root.ts) — never the shared root, which would
+ * leak other sessions' files into it. Mirrors the Cursor harness's
+ * provisionCursorWorkspace exactly.
  */
 async function provisionWorkspace(
   config: Config,
@@ -635,13 +641,19 @@ async function provisionWorkspace(
   sessionId: string,
 ): Promise<{ workspaceBackend: WorkspaceBackend; provisionResults: ProvisionResult[] }> {
   const platformDir = await ensurePlatformDir(sessionId);
-  const workspaceBackend = new LocalWorkspaceBackend(config.workspaceRootDir, platformDir);
 
   const workspaceEntries = session.spec!.workspaceEntries || [];
   if (workspaceEntries.length === 0) {
-    return { workspaceBackend, provisionResults: [] };
+    const sessionRoot = await resolveSessionWorkspaceRoot(
+      config.workspaceRootDir, workspaceEntries, sessionId,
+    );
+    return {
+      workspaceBackend: new LocalWorkspaceBackend(sessionRoot, platformDir),
+      provisionResults: [],
+    };
   }
 
+  const workspaceBackend = new LocalWorkspaceBackend(config.workspaceRootDir, platformDir);
   const provisioner = new WorkspaceProvisioner();
   const provisionResults = await provisioner.provisionAll(
     workspaceEntries.map(entry => ({

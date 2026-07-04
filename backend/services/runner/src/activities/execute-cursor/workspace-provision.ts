@@ -12,14 +12,16 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
+import { resolveSessionWorkspaceRoot } from "../../shared/workspace/session-root.js";
 
 /**
  * Provision the session's workspace entries for a LOCAL Cursor agent.
  *
  * Clones git-repo entries (using the user's GITHUB_TOKEN from the resolved
  * execution environment) and mounts local-path entries, then returns the
- * directories the agent should operate in. Falls back to the configured
- * workspace root when the session declares no workspace entries.
+ * directories the agent should operate in. A session with no workspace
+ * entries gets its own empty per-session directory (see session-root.ts) —
+ * never the shared root, which would leak other sessions' files into it.
  *
  * provisionGit is idempotent (it reuses an existing clone), so this is safe
  * to call on every execution, including multi-turn and HITL reinvocations.
@@ -32,7 +34,7 @@ export async function provisionCursorWorkspace(
 ): Promise<string[]> {
   const entries = session.spec?.workspaceEntries ?? [];
   if (entries.length === 0) {
-    return [config.workspaceRootDir];
+    return [await resolveSessionWorkspaceRoot(config.workspaceRootDir, entries, sessionId)];
   }
 
   const platformDir = await ensurePlatformDir(sessionId);

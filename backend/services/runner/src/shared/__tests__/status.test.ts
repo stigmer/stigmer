@@ -324,7 +324,7 @@ describe("persistStatus — transient retry", () => {
 });
 
 describe("reportSetupProgress", () => {
-  it("persists a status with the given phase name", async () => {
+  it("persists the label WITHOUT forcing a phase transition", async () => {
     const mockClient = {
       updateStatus: vi.fn().mockResolvedValue({
         signal: ExecutionControlSignal.UNSPECIFIED,
@@ -334,7 +334,12 @@ describe("reportSetupProgress", () => {
     expect(mockClient.updateStatus).toHaveBeenCalledOnce();
     const [id, status] = mockClient.updateStatus.mock.calls[0];
     expect(id).toBe("exec-3");
-    expect(status.phase).toBe(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    // UNSPECIFIED = "leave the phase unchanged". The server keeps
+    // setup_progress only while the merged phase is still PENDING, so a
+    // setup report must never flip the phase itself — sending IN_PROGRESS
+    // here made every setup label (and the workspace-lock waiting state)
+    // self-destruct on arrival.
+    expect(status.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
     expect(status.setupProgress?.currentPhase).toBe("Resolving MCP servers");
   });
 });
