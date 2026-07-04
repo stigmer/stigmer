@@ -970,6 +970,7 @@ Platform builders who want to render artifact content outside of
     contentType: { type: "string | null", description: "Optional MIME content type from the server. Used as a fallback when the file extension is ambiguous or missing." },
     fileName: { type: "string", description: "File name used to determine the rendering strategy (e.g., `\"README.md\"` → markdown, `\"config.yaml\"` → YAML).", required: true },
     isTruncated: { type: "boolean", description: "When `true`, shows a truncation warning below the content." },
+    reveal: { type: "RevealTarget", description: "Optional jump-to-line request. When set, the content is rendered **line-faithfully** so the line number maps to the file's real rows — Markdown defaults to its Source view (a line only exists in source) and JSON renders raw rather than pretty-printed (reformatting would shift line numbers) — and the target line is scrolled into view and highlighted. Absent (the default), rendering is unchanged. See RevealTarget.", typeDescriptionLink: "/docs/sdk/react/core#revealtarget" },
   }}
 />
 

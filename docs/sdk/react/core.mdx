@@ -357,6 +357,22 @@ preview at any time.
 />
 
 
+### OpenFileOptions
+
+Options for opening a file in the surface (via `openPreview` / the surface's
+`onOpenFile` seam). `line` requests a jump-to-line reveal: the file opens in
+a line-faithful view scrolled to and highlighting that 1-based line. Absent,
+the file opens normally (top of file / diff-default). Deliberately an options
+object so future open-intents (e.g. a column) extend it without churning the
+callback signature.
+
+<TypeTable
+  type={{
+    line: { type: "number", description: "1-based line to reveal after opening." },
+  }}
+/>
+
+
 ### PENDING_SUBJECT
 
 Sentinel value the backend writes as a placeholder subject when a session
@@ -390,6 +406,27 @@ Mirrors the Go CLI's `ResolvedSubject` in
 ```tsx
 function resolvedSubject(subject: string | undefined): string | null
 ```
+
+
+### RevealTarget
+
+A transient request to scroll a line-faithful code view to a specific line
+and emphasize it — the "reveal" seam behind jump-to-line navigation (e.g. a
+content-search hit opening its file at the matched line).
+
+`line` is 1-based, matching the gutter and the grep's line numbers. `nonce`
+is a monotonic token bumped by the producer on every navigation — including a
+repeat navigation to the same `line` — so an already-mounted view re-scrolls
+even when the target line is unchanged. The line is deliberately NOT part of
+an editor's identity (see `WorkspaceEditorsStore`): it is navigation, not
+state, so it must not key a remount.
+
+<TypeTable
+  type={{
+    line: { type: "number", description: "1-based line to scroll to and highlight.", required: true },
+    nonce: { type: "number", description: "Monotonic token; a change re-triggers the scroll (even for the same line).", required: true },
+  }}
+/>
 
 
 ### RunnerAdapter

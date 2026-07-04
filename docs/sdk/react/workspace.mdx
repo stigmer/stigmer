@@ -365,7 +365,7 @@ tokens (DD-005).
   type={{
     className: { type: "string", description: "Additional CSS classes for the root element." },
     entries: { type: "readonly WorkspaceEntry[]", description: "All workspace entries to search across.", required: true },
-    onOpenFile: { type: "(entryId: string, path: string) => void", description: "Opens a result's file in the viewer.", required: true },
+    onOpenFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Opens a result's file in the viewer, jumping to the matched line. The `options.line` carries the hit's 1-based line so the viewer scrolls to and highlights it (DR-1/DR-2).", required: true },
     searcher: { type: "WorkspaceContentSearcher | undefined", description: "Platform-injected content searcher. `undefined` → content search is unavailable.", required: true },
     selectedFile: { type: "SelectedWorkspaceFile | null", description: "The file currently open in the viewer, highlighted in the results." },
   }}
@@ -507,11 +507,12 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
     onAddLocalFolder: { type: "() => void", description: "Attach a local folder (host opens its native picker and adds the entry). When provided, the explorer renders an \"Add Folder\" footer action — desktop hosts wire this; web hosts omit it (no native picker)." },
     onCloseEditor: { type: "(entryId: string, path: string) => void", description: "Closes an editor (tab close control or middle click).", required: true },
     onCollapse: { type: "() => void", description: "Collapses the surface back to the chat-dominant layout.", required: true },
-    onOpenFile: { type: "(entryId: string, path: string) => void", description: "Opens a file as a preview (single click) from the explorer or search. The same seam the tree/search uses; the owner routes it to the editors store.", required: true },
+    onOpenFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Opens a file as a preview (single click) from the explorer or search. The same seam the tree/search uses; the owner routes it to the editors store. `options.line` (content-search hits) requests a jump-to-line reveal.", required: true },
     onPinEditor: { type: "(entryId: string, path: string) => void", description: "Pins an editor (tab double-click) so it stops being the preview tab.", required: true },
     onRemoveEntry: { type: "(entryId: string) => void", description: "Detach a workspace entry. When provided, explorer root headers carry a remove control (VS Code's \"Remove Folder from Workspace\")." },
     onViewChange: { type: "(viewId: string) => void", description: "Called when the user picks a rail view." },
     reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader for the editor.", required: true },
+    reveal: { type: "RevealTarget", description: "Jump-to-line reveal for the **active** editor (already scoped by the owner to `reveal.key === activeKey`), or `undefined`. Forwarded to the editor's viewer, which opens in File view and scrolls to / highlights the line.", typeDescriptionLink: "/docs/sdk/react/core#revealtarget" },
     searcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher. When provided, the Search pane gains a `Name | Text` toggle offering full-text search; `undefined` (web/git today) keeps the Search pane filename-only (DD-09). Mirrors the lister's null contract — the honest \"unavailable here\" state.", typeDescriptionLink: "#workspacecontentsearcher" },
     selectedFile: { type: "SelectedWorkspaceFile | null", description: "The active editor's file, or `null`. Highlighted in the tree and shown.", required: true },
     view: { type: "string", description: "The active rail view id (`\"files\"`, `\"search\"`, or an SurfaceRailView.id). Provide together with `onViewChange` to control the rail from the host; omit for internal (uncontrolled) view state. An id that matches no view (e.g. a contextual extra view that disappeared) falls back to `\"files\"`." },
@@ -574,6 +575,7 @@ Props for [`FileViewer`](#fileviewer).
     entries: { type: "readonly WorkspaceEntry[]", description: "Live workspace entries. The viewer resolves `selectedFile.entryId` against this list, so a removed entry deselects into a gentle empty state rather than reading a stale value.", required: true },
     onClose: { type: "() => void", description: "Called when the user closes the viewer (close button or Escape)." },
     reader: { type: "WorkspaceFileReader | undefined", description: "Platform-injected content reader. `undefined` means the host injects no reader — the viewer shows an honest \"not available here\" state.", required: true },
+    reveal: { type: "RevealTarget", description: "Optional jump-to-line request (e.g. a content-search hit). When present the viewer opens in the live **File** view — a line number refers to current source, not the diff (DR-1) — with the `Diff | File` toggle still available, and the matched line is scrolled into view and highlighted. A new `nonce` re-forces File view and re-scrolls even on an already-open file. No-op when the file is not live-browsable (a DELETE, or no `reader`).", typeDescriptionLink: "/docs/sdk/react/core#revealtarget" },
     selectedFile: { type: "SelectedWorkspaceFile", description: "The file to display, keyed by owning entry id + path.", required: true, typeDescriptionLink: "/docs/sdk/react/core#selectedworkspacefile" },
     showHeader: { type: "boolean", description: "Whether to render the built-in header (file name, refresh, close). Defaults to `true` for standalone use. Set `false` when an outer chrome owns the file identity and controls — e.g. the workspace surface, whose editor toolbar (and, from Slice B, its tabs) show the name and collapse control, and where a duplicate header would also collide with the floating `headerActions` overlay. `onClose` still drives Escape-to-close even when the header (and its close button) is hidden." },
   }}
