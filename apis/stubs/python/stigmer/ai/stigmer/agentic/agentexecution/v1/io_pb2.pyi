@@ -176,12 +176,14 @@ class UploadAttachmentResponse(_message.Message):
     def __init__(self, storage_key: _Optional[str] = ...) -> None: ...
 
 class GetArtifactDownloadUrlRequest(_message.Message):
-    __slots__ = ("execution_id", "storage_key")
+    __slots__ = ("execution_id", "storage_key", "as_attachment")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    AS_ATTACHMENT_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     storage_key: str
-    def __init__(self, execution_id: _Optional[str] = ..., storage_key: _Optional[str] = ...) -> None: ...
+    as_attachment: bool
+    def __init__(self, execution_id: _Optional[str] = ..., storage_key: _Optional[str] = ..., as_attachment: bool = ...) -> None: ...
 
 class GetArtifactDownloadUrlResponse(_message.Message):
     __slots__ = ("download_url", "expires_at")

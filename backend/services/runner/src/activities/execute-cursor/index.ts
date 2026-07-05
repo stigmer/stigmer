@@ -80,10 +80,15 @@ import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "./exact-
 import { isGitWorkTree } from "../../shared/filereview/git-substrate.js";
 import {
   captureBaselineToLedger,
+  captureProgressToStatus,
   captureTurnToLedger,
   applyCaptureDecisions,
   deriveCaptureMode,
 } from "./capture-flow.js";
+import {
+  newProgressCaptureState,
+  type ProgressCaptureState,
+} from "../../shared/filereview/progress.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
@@ -304,6 +309,9 @@ async function executeCursorInner(
     // Pre-turn baseline tree, pinned before the agent runs (capture mode only)
     // so the turn-end capture diffs against it and the tree restores exactly.
     let baselineTree: string | undefined;
+    // Per-turn state for mid-run live capture (DD-32): the last progress tree sha
+    // (short-circuit) + last capture time (floor), threaded across persists.
+    const progressState: ProgressCaptureState = newProgressCaptureState();
     // Deterministic id of the change set this turn may produce:
     // `${executionId}:${turnSeq}`. Minted from the workflow-threaded turn index
     // so it is stable across a Temporal retry (idempotent ledger authoring) and
@@ -1068,6 +1076,22 @@ async function executeCursorInner(
         // accumulator tracked sub-agents in memory but they only reached the
         // status (and the subscriber stream) after the loop ended.
         status.subAgentExecutions = accumulator.subAgentExecutions;
+        // Mid-run live capture (DD-32): attach the "N files changed so far"
+        // snapshot onto status.file_change_progress, throttled internally by the
+        // floor + tree-sha short-circuit. Git capture mode only (a pinned baseline
+        // exists); shell + sub-agent + tool edits are all captured for free by the
+        // workspace-wide diff. Never authoritative — the turn-boundary candidate
+        // remains the reviewed diff.
+        if (captureMode && gitWorkspace && baselineTree && primaryWorkspaceDir) {
+          await captureProgressToStatus({
+            status,
+            gitRoot: primaryWorkspaceDir,
+            executionId,
+            changeSetId,
+            baselineTree,
+            state: progressState,
+          });
+        }
         const signal = await persist(status);
         deltaEnricher.markPersisted();
         todoTracker.markPersisted();

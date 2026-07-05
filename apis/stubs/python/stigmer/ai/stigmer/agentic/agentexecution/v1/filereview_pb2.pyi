@@ -206,3 +206,33 @@ class FileReviewEventStream(_message.Message):
     execution_id: str
     events: _containers.RepeatedCompositeFieldContainer[FileReviewEvent]
     def __init__(self, execution_id: _Optional[str] = ..., events: _Optional[_Iterable[_Union[FileReviewEvent, _Mapping]]] = ...) -> None: ...
+
+class FileChangeProgress(_message.Message):
+    __slots__ = ("change_set_id", "files_changed", "lines_added", "lines_removed", "entries", "captured_at")
+    CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
+    FILES_CHANGED_FIELD_NUMBER: _ClassVar[int]
+    LINES_ADDED_FIELD_NUMBER: _ClassVar[int]
+    LINES_REMOVED_FIELD_NUMBER: _ClassVar[int]
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    CAPTURED_AT_FIELD_NUMBER: _ClassVar[int]
+    change_set_id: str
+    files_changed: int
+    lines_added: int
+    lines_removed: int
+    entries: _containers.RepeatedCompositeFieldContainer[FileChangeProgressEntry]
+    captured_at: str
+    def __init__(self, change_set_id: _Optional[str] = ..., files_changed: _Optional[int] = ..., lines_added: _Optional[int] = ..., lines_removed: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[FileChangeProgressEntry, _Mapping]]] = ..., captured_at: _Optional[str] = ...) -> None: ...
+
+class FileChangeProgressEntry(_message.Message):
+    __slots__ = ("path_before", "path_after", "kind", "lines_added", "lines_removed")
+    PATH_BEFORE_FIELD_NUMBER: _ClassVar[int]
+    PATH_AFTER_FIELD_NUMBER: _ClassVar[int]
+    KIND_FIELD_NUMBER: _ClassVar[int]
+    LINES_ADDED_FIELD_NUMBER: _ClassVar[int]
+    LINES_REMOVED_FIELD_NUMBER: _ClassVar[int]
+    path_before: str
+    path_after: str
+    kind: _enum_pb2.FileChangeKind
+    lines_added: int
+    lines_removed: int
+    def __init__(self, path_before: _Optional[str] = ..., path_after: _Optional[str] = ..., kind: _Optional[_Union[_enum_pb2.FileChangeKind, str]] = ..., lines_added: _Optional[int] = ..., lines_removed: _Optional[int] = ...) -> None: ...

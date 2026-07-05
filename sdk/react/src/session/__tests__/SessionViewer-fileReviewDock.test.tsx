@@ -3,6 +3,8 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   CapturedFileChangeSchema,
+  FileChangeProgressSchema,
+  FileChangeProgressEntrySchema,
   FileChangeSetSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -70,6 +72,31 @@ function pendingChangeSet(id: string) {
   });
 }
 
+function progressSnapshot() {
+  return create(FileChangeProgressSchema, {
+    changeSetId: "cs-1",
+    filesChanged: 2,
+    linesAdded: 4,
+    linesRemoved: 1,
+    entries: [
+      create(FileChangeProgressEntrySchema, {
+        pathAfter: "a.ts",
+        kind: FileChangeKind.ADD,
+        linesAdded: 4,
+        linesRemoved: 0,
+      }),
+      create(FileChangeProgressEntrySchema, {
+        pathBefore: "b.ts",
+        pathAfter: "b.ts",
+        kind: FileChangeKind.MODIFY,
+        linesAdded: 0,
+        linesRemoved: 1,
+      }),
+    ],
+    capturedAt: "2026-07-05T00:00:00Z",
+  });
+}
+
 const stubConv = {
   session: { spec: {} },
   isLoading: false,
@@ -92,6 +119,7 @@ const stubConv = {
   submitApproval: vi.fn(),
   submittingApprovalIds: new Set<string>(),
   fileChangeSets: [] as ReturnType<typeof pendingChangeSet>[],
+  fileChangeProgress: undefined as ReturnType<typeof progressSnapshot> | undefined,
   submitFileDecision: vi.fn(),
   submittingFileDecisionKeys: new Set<string>(),
   fileDecisionErrors: new Map<string, Error>(),
@@ -144,6 +172,7 @@ import { SessionViewer } from "../SessionViewer";
 beforeEach(() => {
   threadProps.length = 0;
   stubConv.fileChangeSets = [];
+  stubConv.fileChangeProgress = undefined;
   stubConv.submitFileDecision = vi.fn();
 });
 
@@ -187,6 +216,34 @@ describe("SessionViewer — file-review dock wiring", () => {
       FileDecisionAction.APPROVE,
       expect.objectContaining({ expectedDigest: "agg-cs-1" }),
     );
+  });
+
+  it("renders no progress bar when no turn is capturing", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    expect(
+      document.querySelector('[data-cursor-target="file-change-progress-bar"]'),
+    ).toBeNull();
+  });
+
+  it("shows the mid-run progress strip above the composer while a turn is capturing", () => {
+    // Progress is present (CAPTURING) and the dock is empty — the two are
+    // mutually exclusive per turn, so the strip stands in for the dock.
+    stubConv.fileChangeProgress = progressSnapshot();
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+
+    const bar = document.querySelector('[data-cursor-target="file-change-progress-bar"]');
+    expect(bar).toBeTruthy();
+    expect(screen.getByText(/2 files changing/)).toBeTruthy();
+    expect(
+      document.querySelector('[data-cursor-target="file-review-dock"]'),
+    ).toBeNull();
+
+    // Pinned in the fixed strip, ordered before the composer input.
+    const composer = screen.getByTestId("composer-probe");
+    expect(bar!.parentElement).toBe(composer.parentElement);
+    expect(
+      bar!.compareDocumentPosition(composer) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("gives the thread records-only file-review props (no decision callbacks)", () => {

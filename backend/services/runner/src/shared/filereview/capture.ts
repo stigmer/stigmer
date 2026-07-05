@@ -791,7 +791,7 @@ export function partitionGitChangesBySecret(changes: readonly GitCapturedChange[
 }
 
 /** Map the git capture kind to the file-review {@link FileChangeKind}. */
-function toFileChangeKind(changeType: FileChangeType): FileChangeKind {
+export function toFileChangeKind(changeType: FileChangeType): FileChangeKind {
   switch (changeType) {
     case FileChangeType.CREATE:
       return FileChangeKind.ADD;

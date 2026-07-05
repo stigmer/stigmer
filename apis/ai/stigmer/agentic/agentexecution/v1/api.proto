@@ -349,6 +349,24 @@ message AgentExecutionStatus {
   //
   // Field 24: appended after file_change_sets (23), the prior maximum.
   FileReviewEventStream file_review_event_stream = 24;
+
+  // Transient, non-authoritative snapshot of the workspace delta accumulating
+  // during the current turn — the live "N files changed so far" surface, shown
+  // before any review is possible.
+  //
+  // @internal
+  //
+  // NOT part of the file-review ledger. This is a runner-owned, latest-snapshot
+  // display field in the family of setup_progress (18) / streaming_usage (20):
+  // the runner overwrites it on each mid-run persist and the server clears it once
+  // its change set leaves CAPTURING, exactly as setup_progress is cleared when the
+  // phase leaves PENDING. It carries paths + kinds + line counts only (no bodies,
+  // no digests) and is never decidable — the turn-boundary CANDIDATE_CAPTURED in
+  // file_change_sets remains the single authoritative, reviewable diff. See
+  // FileChangeProgress.
+  //
+  // Field 25: appended after file_review_event_stream (24), the prior maximum.
+  FileChangeProgress file_change_progress = 25;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

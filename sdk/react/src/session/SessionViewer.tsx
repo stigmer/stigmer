@@ -25,6 +25,7 @@ import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.j
 import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
 import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
 import { MessageThread } from "../execution/MessageThread.js";
+import { FileChangeProgressBar } from "../execution/FileChangeProgressBar.js";
 import { FileReviewDock } from "../execution/FileReviewDock.js";
 import {
   FilePathContext,
@@ -722,6 +723,11 @@ const ConversationColumn = memo(function ConversationColumn({
             thread renders only observational rows (badges) and read-only
             settled records; this is the one decision surface. */}
         <FilePathContext.Provider value={dockFilePathCtx}>
+          {/* Mid-run live capture (DD-32): the "N files changed so far" strip for
+              a still-running turn. Mutually exclusive with the dock below —
+              progress shows while CAPTURING, the dock once AWAITING_REVIEW — so it
+              hands off cleanly when review opens. Non-interactive. */}
+          <FileChangeProgressBar progress={conv.fileChangeProgress} />
           <FileReviewDock
             changeSets={conv.fileChangeSets}
             onSubmit={conv.submitFileDecision}

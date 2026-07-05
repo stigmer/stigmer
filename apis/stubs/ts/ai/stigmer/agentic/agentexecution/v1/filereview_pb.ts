@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/filereview.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_filereview: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZmlsZXJldmlldy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIokFCg1GaWxlQ2hhbmdlU2V0EgoKAmlkGAEgASgJEg8KB3R1cm5faWQYAiABKAkSEgoKaGFybmVzc19pZBgDIAEoCRJTCgZzdGF0dXMYBCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNoYW5nZVNldFN0YXR1c0IIukgFggECEAESTAoRYmFzZWxpbmVfc25hcHNob3QYBSABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU25hcHNob3RSZWYSTQoSY2FuZGlkYXRlX3NuYXBzaG90GAYgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmEkwKEWFwcHJvdmVkX3NuYXBzaG90GAcgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmEkkKB2NoYW5nZXMYCCADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ2FwdHVyZWRGaWxlQ2hhbmdlEhgKEGFnZ3JlZ2F0ZV9kaWdlc3QYCSABKAkSWwoRZGlmZl9jb21wbGV0ZW5lc3MYCiABKA4yNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRGlmZkNvbXBsZXRlbmVzc0IIukgFggECEAESRQoJZGVjaXNpb25zGAsgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVEZWNpc2lvbiKoBQoSQ2FwdHVyZWRGaWxlQ2hhbmdlEgoKAmlkGAEgASgJEhMKC3BhdGhfYmVmb3JlGAIgASgJEhIKCnBhdGhfYWZ0ZXIYAyABKAkSTAoEa2luZBgEIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2hhbmdlS2luZEIIukgFggECEAESVwoNY2FwdHVyZV9jbGFzcxgFIAEoDjI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2FwdHVyZUNsYXNzQgi6SAWCAQIQARJBCgZiZWZvcmUYBiABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNvbnRlbnQSQAoFYWZ0ZXIYByABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNvbnRlbnQSFQoNYmVmb3JlX3NoYTI1NhgIIAEoCRIUCgxhZnRlcl9zaGEyNTYYCSABKAkSTQoMdW5pZmllZF9kaWZmGAogASgLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsT3V0cHV0UmVmEhUKDWRpZmZfY29tcGxldGUYCyABKAgSEwoLZmlsZV9kaWdlc3QYDCABKAkSXQoOYmxvY2tlZF9yZWFzb24YDSABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0Jsb2NrUmVhc29uQgi6SAWCAQIQARITCgtsaW5lc19hZGRlZBgOIAEoBRIVCg1saW5lc19yZW1vdmVkGA8gASgFItsBCgtTbmFwc2hvdFJlZhJKCgRraW5kGAEgASgOMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90S2luZEIIukgFggECEAESPQoDZ2l0GAIgASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkdpdFRyZWVSZWYSQQoDY2FzGAMgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNhc01hbmlmZXN0UmVmIisKCkdpdFRyZWVSZWYSEAoIdHJlZV9vaWQYASABKAkSCwoDcmVmGAIgASgJIj8KDkNhc01hbmlmZXN0UmVmEhcKD21hbmlmZXN0X2RpZ2VzdBgBIAEoCRIUCgxhcnRpZmFjdF91cmkYAiABKAkitwMKDEZpbGVEZWNpc2lvbhIKCgJpZBgBIAEoCRIVCg1jaGFuZ2Vfc2V0X2lkGAIgASgJElAKBXNjb3BlGAMgASgOMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVEZWNpc2lvblNjb3BlQgi6SAWCAQIQARIWCg5maWxlX2NoYW5nZV9pZBgEIAEoCRJSCgZhY3Rpb24YBSABKA4yOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZURlY2lzaW9uQWN0aW9uQgi6SAWCAQIQARIXCg9leHBlY3RlZF9kaWdlc3QYBiABKAkSEwoLcmV2aWV3ZXJfaWQYByABKAkSEgoKZGVjaWRlZF9hdBgIIAEoCRIOCgZyZWFzb24YCSABKAkSIAoYYWNrbm93bGVkZ2VfdW5yZXZpZXdhYmxlGAogASgIElIKBm9yaWdpbhgLIAEoDjI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlRGVjaXNpb25PcmlnaW5CCLpIBYIBAhABIqYBChpGaWxlUmV2aWV3QmFzZWxpbmVDYXB0dXJlZBIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJEg8KB3R1cm5faWQYAiABKAkSEgoKaGFybmVzc19pZBgDIAEoCRJMChFiYXNlbGluZV9zbmFwc2hvdBgEIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TbmFwc2hvdFJlZiJeChVUdXJuQ29tbWFuZFByb3ZlbmFuY2USHQoVY29uc2VudF90b29sX2NhbGxfaWRzGAEgAygJEiYKHmF1dGhvcml6ZWRfYnlfYXV0b19hcHByb3ZlX2FsbBgCIAEoCCKeAwobRmlsZVJldmlld0NhbmRpZGF0ZUNhcHR1cmVkEhUKDWNoYW5nZV9zZXRfaWQYASABKAkSTQoSY2FuZGlkYXRlX3NuYXBzaG90GAIgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmEkkKB2NoYW5nZXMYAyADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ2FwdHVyZWRGaWxlQ2hhbmdlEhgKEGFnZ3JlZ2F0ZV9kaWdlc3QYBCABKAkSWwoRZGlmZl9jb21wbGV0ZW5lc3MYBSABKA4yNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRGlmZkNvbXBsZXRlbmVzc0IIukgFggECEAESVwoSY29tbWFuZF9wcm92ZW5hbmNlGAYgASgLMjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlR1cm5Db21tYW5kUHJvdmVuYW5jZSJ7ChRGaWxlUmV2aWV3UmVjb25jaWxlZBIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJEkwKEWFwcHJvdmVkX3NuYXBzaG90GAIgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmIo8BChFGaWxlUmV2aWV3RmFpbHVyZRIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJElMKBGtpbmQYAiABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0ZhaWx1cmVLaW5kQgi6SAWCAQIQARIOCgZkZXRhaWwYAyABKAki6QQKD0ZpbGVSZXZpZXdFdmVudBIQCghldmVudF9pZBgBIAEoCRIVCg1jaGFuZ2Vfc2V0X2lkGAIgASgJElcKCmV2ZW50X3R5cGUYAyABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0V2ZW50VHlwZUIIukgFggECEAESEQoJdGltZXN0YW1wGAQgASgJEg0KBWFjdG9yGAUgASgJEl0KEWJhc2VsaW5lX2NhcHR1cmVkGAYgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdCYXNlbGluZUNhcHR1cmVkSAASXwoSY2FuZGlkYXRlX2NhcHR1cmVkGAcgASgLMkEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdDYW5kaWRhdGVDYXB0dXJlZEgAEkoKDGZpbGVfZGVjaWRlZBgIIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlRGVjaXNpb25IABJQCgpyZWNvbmNpbGVkGAkgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdSZWNvbmNpbGVkSAASSQoGZmFpbGVkGAogASgLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdGYWlsdXJlSABCCQoHcGF5bG9hZCJ0ChVGaWxlUmV2aWV3RXZlbnRTdHJlYW0SFAoMZXhlY3V0aW9uX2lkGAEgASgJEkUKBmV2ZW50cxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlUmV2aWV3RXZlbnRiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_buf_validate_validate]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZmlsZXJldmlldy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIokFCg1GaWxlQ2hhbmdlU2V0EgoKAmlkGAEgASgJEg8KB3R1cm5faWQYAiABKAkSEgoKaGFybmVzc19pZBgDIAEoCRJTCgZzdGF0dXMYBCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNoYW5nZVNldFN0YXR1c0IIukgFggECEAESTAoRYmFzZWxpbmVfc25hcHNob3QYBSABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU25hcHNob3RSZWYSTQoSY2FuZGlkYXRlX3NuYXBzaG90GAYgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmEkwKEWFwcHJvdmVkX3NuYXBzaG90GAcgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmEkkKB2NoYW5nZXMYCCADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ2FwdHVyZWRGaWxlQ2hhbmdlEhgKEGFnZ3JlZ2F0ZV9kaWdlc3QYCSABKAkSWwoRZGlmZl9jb21wbGV0ZW5lc3MYCiABKA4yNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRGlmZkNvbXBsZXRlbmVzc0IIukgFggECEAESRQoJZGVjaXNpb25zGAsgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVEZWNpc2lvbiKoBQoSQ2FwdHVyZWRGaWxlQ2hhbmdlEgoKAmlkGAEgASgJEhMKC3BhdGhfYmVmb3JlGAIgASgJEhIKCnBhdGhfYWZ0ZXIYAyABKAkSTAoEa2luZBgEIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2hhbmdlS2luZEIIukgFggECEAESVwoNY2FwdHVyZV9jbGFzcxgFIAEoDjI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlQ2FwdHVyZUNsYXNzQgi6SAWCAQIQARJBCgZiZWZvcmUYBiABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNvbnRlbnQSQAoFYWZ0ZXIYByABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNvbnRlbnQSFQoNYmVmb3JlX3NoYTI1NhgIIAEoCRIUCgxhZnRlcl9zaGEyNTYYCSABKAkSTQoMdW5pZmllZF9kaWZmGAogASgLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsT3V0cHV0UmVmEhUKDWRpZmZfY29tcGxldGUYCyABKAgSEwoLZmlsZV9kaWdlc3QYDCABKAkSXQoOYmxvY2tlZF9yZWFzb24YDSABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0Jsb2NrUmVhc29uQgi6SAWCAQIQARITCgtsaW5lc19hZGRlZBgOIAEoBRIVCg1saW5lc19yZW1vdmVkGA8gASgFItsBCgtTbmFwc2hvdFJlZhJKCgRraW5kGAEgASgOMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90S2luZEIIukgFggECEAESPQoDZ2l0GAIgASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkdpdFRyZWVSZWYSQQoDY2FzGAMgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNhc01hbmlmZXN0UmVmIisKCkdpdFRyZWVSZWYSEAoIdHJlZV9vaWQYASABKAkSCwoDcmVmGAIgASgJIj8KDkNhc01hbmlmZXN0UmVmEhcKD21hbmlmZXN0X2RpZ2VzdBgBIAEoCRIUCgxhcnRpZmFjdF91cmkYAiABKAkitwMKDEZpbGVEZWNpc2lvbhIKCgJpZBgBIAEoCRIVCg1jaGFuZ2Vfc2V0X2lkGAIgASgJElAKBXNjb3BlGAMgASgOMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVEZWNpc2lvblNjb3BlQgi6SAWCAQIQARIWCg5maWxlX2NoYW5nZV9pZBgEIAEoCRJSCgZhY3Rpb24YBSABKA4yOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZURlY2lzaW9uQWN0aW9uQgi6SAWCAQIQARIXCg9leHBlY3RlZF9kaWdlc3QYBiABKAkSEwoLcmV2aWV3ZXJfaWQYByABKAkSEgoKZGVjaWRlZF9hdBgIIAEoCRIOCgZyZWFzb24YCSABKAkSIAoYYWNrbm93bGVkZ2VfdW5yZXZpZXdhYmxlGAogASgIElIKBm9yaWdpbhgLIAEoDjI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlRGVjaXNpb25PcmlnaW5CCLpIBYIBAhABIqYBChpGaWxlUmV2aWV3QmFzZWxpbmVDYXB0dXJlZBIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJEg8KB3R1cm5faWQYAiABKAkSEgoKaGFybmVzc19pZBgDIAEoCRJMChFiYXNlbGluZV9zbmFwc2hvdBgEIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TbmFwc2hvdFJlZiJeChVUdXJuQ29tbWFuZFByb3ZlbmFuY2USHQoVY29uc2VudF90b29sX2NhbGxfaWRzGAEgAygJEiYKHmF1dGhvcml6ZWRfYnlfYXV0b19hcHByb3ZlX2FsbBgCIAEoCCKeAwobRmlsZVJldmlld0NhbmRpZGF0ZUNhcHR1cmVkEhUKDWNoYW5nZV9zZXRfaWQYASABKAkSTQoSY2FuZGlkYXRlX3NuYXBzaG90GAIgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmEkkKB2NoYW5nZXMYAyADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ2FwdHVyZWRGaWxlQ2hhbmdlEhgKEGFnZ3JlZ2F0ZV9kaWdlc3QYBCABKAkSWwoRZGlmZl9jb21wbGV0ZW5lc3MYBSABKA4yNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRGlmZkNvbXBsZXRlbmVzc0IIukgFggECEAESVwoSY29tbWFuZF9wcm92ZW5hbmNlGAYgASgLMjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlR1cm5Db21tYW5kUHJvdmVuYW5jZSJ7ChRGaWxlUmV2aWV3UmVjb25jaWxlZBIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJEkwKEWFwcHJvdmVkX3NuYXBzaG90GAIgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNuYXBzaG90UmVmIo8BChFGaWxlUmV2aWV3RmFpbHVyZRIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJElMKBGtpbmQYAiABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0ZhaWx1cmVLaW5kQgi6SAWCAQIQARIOCgZkZXRhaWwYAyABKAki6QQKD0ZpbGVSZXZpZXdFdmVudBIQCghldmVudF9pZBgBIAEoCRIVCg1jaGFuZ2Vfc2V0X2lkGAIgASgJElcKCmV2ZW50X3R5cGUYAyABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZVJldmlld0V2ZW50VHlwZUIIukgFggECEAESEQoJdGltZXN0YW1wGAQgASgJEg0KBWFjdG9yGAUgASgJEl0KEWJhc2VsaW5lX2NhcHR1cmVkGAYgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdCYXNlbGluZUNhcHR1cmVkSAASXwoSY2FuZGlkYXRlX2NhcHR1cmVkGAcgASgLMkEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdDYW5kaWRhdGVDYXB0dXJlZEgAEkoKDGZpbGVfZGVjaWRlZBgIIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlRGVjaXNpb25IABJQCgpyZWNvbmNpbGVkGAkgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdSZWNvbmNpbGVkSAASSQoGZmFpbGVkGAogASgLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVSZXZpZXdGYWlsdXJlSABCCQoHcGF5bG9hZCJ0ChVGaWxlUmV2aWV3RXZlbnRTdHJlYW0SFAoMZXhlY3V0aW9uX2lkGAEgASgJEkUKBmV2ZW50cxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5GaWxlUmV2aWV3RXZlbnQi0wEKEkZpbGVDaGFuZ2VQcm9ncmVzcxIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJEhUKDWZpbGVzX2NoYW5nZWQYAiABKAUSEwoLbGluZXNfYWRkZWQYAyABKAUSFQoNbGluZXNfcmVtb3ZlZBgEIAEoBRJOCgdlbnRyaWVzGAUgAygLMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkZpbGVDaGFuZ2VQcm9ncmVzc0VudHJ5EhMKC2NhcHR1cmVkX2F0GAYgASgJIrwBChdGaWxlQ2hhbmdlUHJvZ3Jlc3NFbnRyeRITCgtwYXRoX2JlZm9yZRgBIAEoCRISCgpwYXRoX2FmdGVyGAIgASgJEkwKBGtpbmQYAyABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRmlsZUNoYW5nZUtpbmRCCLpIBYIBAhABEhMKC2xpbmVzX2FkZGVkGAQgASgFEhUKDWxpbmVzX3JlbW92ZWQYBSABKAViBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_buf_validate_validate]);
 
 /**
  * The set of file deltas produced by one agent turn, reviewed and reconciled
@@ -915,4 +915,147 @@ export type FileReviewEventStream = Message<"ai.stigmer.agentic.agentexecution.v
  */
 export const FileReviewEventStreamSchema: GenMessage<FileReviewEventStream> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 12);
+
+/**
+ * A transient, non-authoritative snapshot of the workspace delta accumulating
+ * during the CURRENT turn — the live "N files changed so far" surface.
+ *
+ * @internal
+ *
+ * This is the file-review analogue of SetupProgress / streaming_usage: a
+ * runner-owned, latest-snapshot-wins DISPLAY field, NOT an event-sourced
+ * projection. It is deliberately NOT a FileChangeSet — a FileChangeSet is
+ * server-authored, ledger-derived, digest-bound, and DECIDABLE; progress is
+ * runner-sent, never in the ledger, carries NO file bytes or digests, and is
+ * NEVER decidable or authoritative. The turn-boundary CANDIDATE_CAPTURED remains
+ * the single reviewable diff (diff(baseline, candidate)); a mid-run snapshot is
+ * no more authoritative than a streamed tool-call arg.
+ *
+ * Lifecycle: the runner overwrites this on each mid-run persist while its change
+ * set is CAPTURING; the server clears it once that set leaves CAPTURING (mirroring
+ * the setup_progress defense-in-depth clear), so it never outlives the turn.
+ *
+ * Secret safety: it carries paths + kinds + line counts ONLY — no file bodies —
+ * so nothing new can leak. A secret-like path is surfaced with zeroed counts
+ * (path visible, content withheld), consistent with the DD-12 rule.
+ *
+ * @since File-Change HITL Redesign (mid-run live capture)
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.FileChangeProgress
+ */
+export type FileChangeProgress = Message<"ai.stigmer.agentic.agentexecution.v1.FileChangeProgress"> & {
+  /**
+   * Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
+   * The server keeps this snapshot only while a CAPTURING FileChangeSet with this
+   * id exists, so a stale prior-turn snapshot is cleared once the next turn pins a
+   * new baseline.
+   *
+   * @generated from field: string change_set_id = 1;
+   */
+  changeSetId: string;
+
+  /**
+   * Total number of files changed so far this turn. The honest total: it may
+   * exceed entries.length when the entry list is capped for a very large turn.
+   *
+   * @generated from field: int32 files_changed = 2;
+   */
+  filesChanged: number;
+
+  /**
+   * Total lines added / removed across all changed files this turn. Zero when
+   * uncountable (binary / secret-withheld). INFORMATIONAL display only — never an
+   * enforcement input (progress has no digests).
+   *
+   * @generated from field: int32 lines_added = 3;
+   */
+  linesAdded: number;
+
+  /**
+   * @generated from field: int32 lines_removed = 4;
+   */
+  linesRemoved: number;
+
+  /**
+   * The per-file entries (slim: no bodies, no digests, no diffs). May be a capped
+   * prefix of the full change list; files_changed carries the true total.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.FileChangeProgressEntry entries = 5;
+   */
+  entries: FileChangeProgressEntry[];
+
+  /**
+   * When this snapshot was taken (RFC3339). Presentation-only; never a digest input.
+   *
+   * @generated from field: string captured_at = 6;
+   */
+  capturedAt: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.FileChangeProgress.
+ * Use `create(FileChangeProgressSchema)` to create a new message.
+ */
+export const FileChangeProgressSchema: GenMessage<FileChangeProgress> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 13);
+
+/**
+ * One file within a FileChangeProgress snapshot — a slim, non-authoritative row.
+ *
+ * @internal
+ *
+ * Carries only what the live strip renders: paths, kind, and line counts. It is
+ * NOT a CapturedFileChange (which is the digest-bound, reviewable ledger delta);
+ * it has no content, no digests, no unified diff. Path/kind naming mirrors
+ * CapturedFileChange so renames read honestly.
+ *
+ * @since File-Change HITL Redesign (mid-run live capture)
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.FileChangeProgressEntry
+ */
+export type FileChangeProgressEntry = Message<"ai.stigmer.agentic.agentexecution.v1.FileChangeProgressEntry"> & {
+  /**
+   * Path before the change (workspace-root-relative). Empty for ADD.
+   *
+   * @generated from field: string path_before = 1;
+   */
+  pathBefore: string;
+
+  /**
+   * Path after the change (workspace-root-relative). Empty for DELETE.
+   *
+   * @generated from field: string path_after = 2;
+   */
+  pathAfter: string;
+
+  /**
+   * The per-file outcome. See FileChangeKind.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.FileChangeKind kind = 3;
+   */
+  kind: FileChangeKind;
+
+  /**
+   * Lines added by this change. Zero (alongside lines_removed == 0) when counting
+   * was not possible or meaningful (binary / secret) — consumers hide the stat
+   * rather than show "+0 -0" (the same contract as CapturedFileChange.lines_added).
+   *
+   * @generated from field: int32 lines_added = 4;
+   */
+  linesAdded: number;
+
+  /**
+   * Lines removed by this change. See lines_added for the contract.
+   *
+   * @generated from field: int32 lines_removed = 5;
+   */
+  linesRemoved: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.FileChangeProgressEntry.
+ * Use `create(FileChangeProgressEntrySchema)` to create a new message.
+ */
+export const FileChangeProgressEntrySchema: GenMessage<FileChangeProgressEntry> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_filereview, 14);
 

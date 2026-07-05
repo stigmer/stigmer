@@ -309,6 +309,81 @@ export async function captureChangeSet(
 }
 
 /**
+ * One file's slim, content-free progress delta: paths + kind + line counts, NO
+ * bytes. The mid-run analogue of {@link GitSubstrateChange} (which carries the
+ * before/after {@link CapturedContent}); this deliberately carries neither side,
+ * so it can never leak content. `linesAdded`/`linesRemoved` are 0 when
+ * uncountable (a binary file — numstat reports `-`).
+ */
+export interface GitProgressEntry {
+  /** Path before the change (repo-relative). Empty for a CREATE. */
+  readonly pathBefore: string;
+  /** Path after the change (repo-relative). Empty for a DELETE. */
+  readonly pathAfter: string;
+  readonly changeType: FileChangeType;
+  readonly linesAdded: number;
+  readonly linesRemoved: number;
+}
+
+/** Result of {@link captureProgressDelta}. */
+export interface ProgressDelta {
+  /** The post-diff working-tree sha, for the caller's short-circuit cache. */
+  readonly afterTree: string;
+  /** One count-only entry per changed file (no content). */
+  readonly entries: readonly GitProgressEntry[];
+}
+
+/**
+ * Capture a NON-AUTHORITATIVE, content-free snapshot of the working-tree delta
+ * against `baselineTree` — the substrate for the live "N files changed so far"
+ * surface (mid-run live capture). Unlike {@link captureChangeSet} this reads NO
+ * file bytes: it stages the working tree into a temp index, writes its tree, and
+ * asks git for `--numstat` + `--name-status` only. Cheap enough to run on a
+ * debounce during the turn.
+ *
+ * Short-circuit: returns `undefined` when the working tree is unchanged since
+ * `lastTreeSha` (the caller passes back the previous result's `afterTree`), so a
+ * quiet turn pays only one `write-tree`, never a diff.
+ *
+ * Uses a dedicated temp-index label ("progress") so it never collides with the
+ * `baseline`/`capture`/`approved` indexes. `--no-renames` matches
+ * {@link captureChangeSet} (a rename surfaces as delete + create). A torn read of
+ * a file being written mid-turn is acceptable — the snapshot is non-authoritative
+ * and self-corrects on the next capture.
+ */
+export async function captureProgressDelta(
+  gitRoot: string,
+  executionId: string,
+  baselineTree: string,
+  excludePaths: readonly string[] = [],
+  lastTreeSha?: string,
+): Promise<ProgressDelta | undefined> {
+  const gitDir = await resolveGitDir(gitRoot);
+  const afterTree = await writeWorkingTree(gitRoot, gitDir, "progress", executionId, excludePaths);
+  if (lastTreeSha !== undefined && afterTree === lastTreeSha) return undefined;
+
+  const [nameStatusRaw, numstatRaw] = await Promise.all([
+    git(gitRoot, ["diff", "--no-renames", "--name-status", "-z", baselineTree, afterTree]),
+    git(gitRoot, ["diff", "--no-renames", "--numstat", "-z", baselineTree, afterTree]),
+  ]);
+
+  const counts = parseNumstatZ(numstatRaw);
+  const entries: GitProgressEntry[] = [];
+  for (const { status, path } of parseNameStatusZ(nameStatusRaw)) {
+    const changeType = nameStatusToChangeType(status);
+    const count = counts.get(path);
+    entries.push({
+      pathBefore: changeType === FileChangeType.CREATE ? "" : path,
+      pathAfter: changeType === FileChangeType.DELETE ? "" : path,
+      changeType,
+      linesAdded: count?.added ?? 0,
+      linesRemoved: count?.removed ?? 0,
+    });
+  }
+  return { afterTree, entries };
+}
+
+/**
  * Restore the given files to their `baselineTree` (pre-turn) bytes. On resume
  * this reverts the REJECTED/undecided subset so a discarded change snaps back
  * exactly; it is the generic "ensure baseline bytes" primitive. Surgical
@@ -460,6 +535,39 @@ function parseNameStatusZ(raw: string): NameStatusEntry[] {
     entries.push({ status: status[0], path });
   }
   return entries;
+}
+
+/**
+ * Parse `git diff --numstat -z` into a path -> {added, removed} map. Each record
+ * is a NUL-terminated `<added>\t<removed>\t<path>` triple; a binary file reports
+ * `-` for both counts, which we surface as 0 (no count) per the display contract.
+ */
+function parseNumstatZ(raw: string): Map<string, { added: number; removed: number }> {
+  const counts = new Map<string, { added: number; removed: number }>();
+  for (const record of raw.split("\u0000")) {
+    if (!record) continue;
+    const tab = record.indexOf("\t");
+    const tab2 = record.indexOf("\t", tab + 1);
+    if (tab < 0 || tab2 < 0) continue;
+    const addedStr = record.slice(0, tab);
+    const removedStr = record.slice(tab + 1, tab2);
+    const path = record.slice(tab2 + 1);
+    if (!path) continue;
+    const added = addedStr === "-" ? 0 : Number.parseInt(addedStr, 10) || 0;
+    const removed = removedStr === "-" ? 0 : Number.parseInt(removedStr, 10) || 0;
+    counts.set(path, { added, removed });
+  }
+  return counts;
+}
+
+/**
+ * Map a `--name-status` status letter to a {@link FileChangeType} — the same
+ * A -> CREATE, D -> DELETE, else MODIFY rule {@link buildCapturedChange} uses.
+ */
+function nameStatusToChangeType(status: string): FileChangeType {
+  if (status === "A") return FileChangeType.CREATE;
+  if (status === "D") return FileChangeType.DELETE;
+  return FileChangeType.MODIFY;
 }
 
 /** Read a blob's exact BYTES from a tree, or `undefined` when absent. */

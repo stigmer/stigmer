@@ -33,7 +33,22 @@ export {
   type CaptureResumeResult,
 } from "./capture.js";
 
-export { isGitWorkTree } from "./git-substrate.js";
+export {
+  captureProgressDelta,
+  isGitWorkTree,
+  type GitProgressEntry,
+  type ProgressDelta,
+} from "./git-substrate.js";
+
+export {
+  buildFileChangeProgress,
+  captureFileChangeProgress,
+  newProgressCaptureState,
+  PROGRESS_CAPTURE_MIN_INTERVAL_MS,
+  PROGRESS_MAX_ENTRIES,
+  shouldCaptureProgress,
+  type ProgressCaptureState,
+} from "./progress.js";
 
 export {
   countLineChanges,

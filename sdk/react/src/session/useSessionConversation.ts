@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { ApprovalAction, ExecutionPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -222,6 +222,13 @@ export interface UseSessionConversationReturn {
 
   /** Captured change sets awaiting file review on the active execution, empty when none. */
   readonly fileChangeSets: readonly FileChangeSet[];
+  /**
+   * Mid-run live capture (DD-32): the transient, non-authoritative snapshot of the
+   * workspace delta accumulating during the active turn ("N files changed so far").
+   * Undefined when no turn is currently capturing. Never decidable — the reviewed
+   * diff is {@link fileChangeSets}.
+   */
+  readonly fileChangeProgress: FileChangeProgress | undefined;
   /** Submit a file-review decision for a change set. The executionId is managed internally. */
   readonly submitFileDecision: (
     changeSetId: string,
@@ -651,6 +658,16 @@ export function useSessionConversation(
     [activeStreamExecution],
   );
 
+  // Mid-run live capture (DD-32): the transient, non-authoritative "N files
+  // changed so far" snapshot for the active turn. The server clears it once the
+  // turn's change set leaves CAPTURING, so its mere presence means a turn is
+  // still accumulating changes. Reference-stable per DD-010 (it rides the
+  // structurally-shared live status).
+  const fileChangeProgress = useMemo<FileChangeProgress | undefined>(
+    () => activeStreamExecution?.status?.fileChangeProgress,
+    [activeStreamExecution],
+  );
+
   const submitFileDecision = useCallback(
     async (
       changeSetId: string,
@@ -695,6 +712,7 @@ export function useSessionConversation(
     clearApprovalError,
 
     fileChangeSets,
+    fileChangeProgress,
     submitFileDecision,
     submittingFileDecisionKeys: submittingDecisionKeys,
     fileDecisionErrors,

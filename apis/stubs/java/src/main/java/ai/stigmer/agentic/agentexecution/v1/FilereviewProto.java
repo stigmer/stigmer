@@ -91,6 +91,16 @@ public final class FilereviewProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentexecution_v1_FileReviewEventStream_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgress_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgress_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgressEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgressEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -222,13 +232,26 @@ public final class FilereviewProto extends com.google.protobuf.GeneratedFile {
       "ledB\t\n\007payload\"\211\001\n\025FileReviewEventStream" +
       "\022!\n\014execution_id\030\001 \001(\tR\013executionId\022M\n\006e" +
       "vents\030\002 \003(\01325.ai.stigmer.agentic.agentex" +
-      "ecution.v1.FileReviewEventR\006eventsB\306\001B\017F" +
-      "ilereviewProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Age" +
-      "ntic.Agentexecution.V1\312\002$Ai\\Stigmer\\Agen" +
-      "tic\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agent" +
-      "ic\\Agentexecution\\V1\\GPBMetadata\352\002(Ai::S" +
-      "tigmer::Agentic::Agentexecution::V1b\006pro" +
-      "to3"
+      "ecution.v1.FileReviewEventR\006events\"\235\002\n\022F" +
+      "ileChangeProgress\022\"\n\rchange_set_id\030\001 \001(\t" +
+      "R\013changeSetId\022#\n\rfiles_changed\030\002 \001(\005R\014fi" +
+      "lesChanged\022\037\n\013lines_added\030\003 \001(\005R\nlinesAd" +
+      "ded\022#\n\rlines_removed\030\004 \001(\005R\014linesRemoved" +
+      "\022W\n\007entries\030\005 \003(\0132=.ai.stigmer.agentic.a" +
+      "gentexecution.v1.FileChangeProgressEntry" +
+      "R\007entries\022\037\n\013captured_at\030\006 \001(\tR\ncaptured" +
+      "At\"\363\001\n\027FileChangeProgressEntry\022\037\n\013path_b" +
+      "efore\030\001 \001(\tR\npathBefore\022\035\n\npath_after\030\002 " +
+      "\001(\tR\tpathAfter\022R\n\004kind\030\003 \001(\01624.ai.stigme" +
+      "r.agentic.agentexecution.v1.FileChangeKi" +
+      "ndB\010\272H\005\202\001\002\020\001R\004kind\022\037\n\013lines_added\030\004 \001(\005R" +
+      "\nlinesAdded\022#\n\rlines_removed\030\005 \001(\005R\014line" +
+      "sRemovedB\306\001B\017FilereviewProtoP\001\242\002\004ASAA\252\002$" +
+      "Ai.Stigmer.Agentic.Agentexecution.V1\312\002$A" +
+      "i\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020Ai" +
+      "\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMe" +
+      "tadata\352\002(Ai::Stigmer::Agentic::Agentexec" +
+      "ution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -315,6 +338,18 @@ public final class FilereviewProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_FileReviewEventStream_descriptor,
         new java.lang.String[] { "ExecutionId", "Events", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgress_descriptor =
+      getDescriptor().getMessageType(13);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgress_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgress_descriptor,
+        new java.lang.String[] { "ChangeSetId", "FilesChanged", "LinesAdded", "LinesRemoved", "Entries", "CapturedAt", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgressEntry_descriptor =
+      getDescriptor().getMessageType(14);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgressEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgressEntry_descriptor,
+        new java.lang.String[] { "PathBefore", "PathAfter", "Kind", "LinesAdded", "LinesRemoved", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.MessageProto.getDescriptor();
