@@ -1747,10 +1747,10 @@ async function executeCursorInner(
         status.structuredOutput = structuredOutput as JsonObject;
       }
 
-      // Plan mode: publish the final plan message as a plan.md artifact. The
-      // Cursor harness has no auto-publish pipeline, so this is the only
-      // artifact path; build storage from the same config-driven factory the
-      // native harness uses.
+      // Plan mode: publish the final plan message as a plan artifact (named
+      // from the plan's title). The Cursor harness has no auto-publish
+      // pipeline, so this is the only artifact path; build storage from the
+      // same config-driven factory the native harness uses.
       if (interactionMode === InteractionMode.PLAN && finalText && artifactStorage) {
         try {
           await publishPlanArtifact({ status, executionId, planText: finalText, artifactStorage });

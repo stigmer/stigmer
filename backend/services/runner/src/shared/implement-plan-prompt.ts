@@ -24,12 +24,37 @@
  * harness).
  */
 
-import { PLAN_ARTIFACT_NAME } from "./plan-artifact.js";
+import { isPlanArtifactName } from "./plan-artifact.js";
+
+/**
+ * Progress-tracking instruction shared by both directive variants (Tier 3 of
+ * Plan mode — plan-driven build progress). The agent's own to-do tool is the
+ * single writer of `status.todos`, so instructing it to derive the list from
+ * the approved plan is the entire plan→progress linkage: the runner's todo
+ * extraction and the clients' todo renderers light up unchanged.
+ *
+ * Deliberately tool-agnostic ("your to-do list"): the Cursor harness exposes
+ * TodoWrite/updateTodos, the native harness write_todos, and each runtime
+ * already teaches the model its own tool.
+ *
+ * Wording constraint: this block rides BOTH variants, and the conversation-only
+ * variant is pinned by tests to never contain "plan.md" (it has no plan file
+ * to reference) — so say "the plan", never name the file.
+ */
+const TRACK_PROGRESS_INSTRUCTION = [
+  "Track your progress with your to-do list so the user can follow the " +
+    "build:",
+  "- Before you start, break the plan into a concrete, ordered to-do list — " +
+    "roughly one item per implementation step.",
+  "- As you work, keep it current: mark each item in progress when you " +
+    "begin it and completed when it is done.",
+].join("\n");
 
 /**
  * Find the approved plan document among the workspace paths the harness
- * injected for this execution's attachments. Detection keys on the canonical
- * plan filename — the same convention the UI uses to detect the plan artifact.
+ * injected for this execution's attachments. Detection keys on the plan
+ * filename convention ({@link isPlanArtifactName} — the legacy `plan.md` or any
+ * `*.plan.md`), the same convention the UI uses to detect the plan artifact.
  * Returns `undefined` when no plan attachment landed (upload failed, or the
  * attachment itself failed to inject), which selects the conversation-only
  * directive variant.
@@ -37,9 +62,10 @@ import { PLAN_ARTIFACT_NAME } from "./plan-artifact.js";
 export function findApprovedPlanPath(
   attachmentPaths: readonly string[],
 ): string | undefined {
-  return attachmentPaths.find(
-    (p) => p.split("/").pop() === PLAN_ARTIFACT_NAME,
-  );
+  return attachmentPaths.find((p) => {
+    const name = p.split("/").pop();
+    return name !== undefined && isPlanArtifactName(name);
+  });
 }
 
 /**
@@ -61,6 +87,8 @@ export function buildImplementPlanDirective(planPath?: string): string {
       "That document is the authoritative version of the plan — the user may " +
         "have edited it after it was proposed, so where it differs from the " +
         "conversation above, follow the document.",
+      "",
+      TRACK_PROGRESS_INSTRUCTION,
     ].join("\n");
   }
 
@@ -69,5 +97,7 @@ export function buildImplementPlanDirective(planPath?: string): string {
       "APPROVED.",
     "",
     "Implement the plan proposed in the conversation above, step by step.",
+    "",
+    TRACK_PROGRESS_INSTRUCTION,
   ].join("\n");
 }

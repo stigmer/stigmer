@@ -26,9 +26,11 @@ export type { SkillPackageDetection } from "./detect-skill-package.js";
 
 export {
   isPlanArtifact,
+  isPlanArtifactName,
   findPlanArtifact,
   findLatestSessionPlan,
   PLAN_ARTIFACT_NAME,
+  PLAN_ARTIFACT_SUFFIX,
 } from "./detect-plan-artifact.js";
 export type { SessionPlan } from "./detect-plan-artifact.js";
 

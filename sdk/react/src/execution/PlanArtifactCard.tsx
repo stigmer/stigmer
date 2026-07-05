@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
 import { formatArtifactSize } from "./artifact-utils.js";
+import { useArtifactCopy } from "./useArtifactCopy.js";
 import { useArtifactDownload } from "./useArtifactDownload.js";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
@@ -52,9 +53,10 @@ export interface PlanArtifactCardProps {
  * the panel carries the document.
  *
  * Anatomy: a document-style identity block (plan icon, the plan's title, a
- * `plan.md · size` meta line) with the actions trailing — open and download
- * as icon-only secondaries (labelled via `aria-label`/`title`) and one
- * prominent, themeable primary, **Build** — so the next step is unmistakable.
+ * `<name> · size` meta line) with the actions trailing — open, copy, and
+ * download as icon-only secondaries (labelled via `aria-label`/`title`) and
+ * one prominent, themeable primary, **Build** — so the next step is
+ * unmistakable.
  *
  * Action-label rule (shared with `PlanStreamingCard`, which keeps its
  * labelled "Open plan"): a lone secondary keeps its text label; a row of
@@ -81,6 +83,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
 }: PlanArtifactCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const handleKeyDown = useBuildFromPlanHotkey(onImplement, disabled);
+  const { copy, isCopying, copied } = useArtifactCopy(executionId);
   const { download, isDownloading } = useArtifactDownload(executionId);
 
   return (
@@ -125,6 +128,12 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
           )
         )}
         <IconAction
+          label={copied ? "Copied" : isCopying ? "Copying…" : "Copy plan"}
+          onClick={() => copy(artifact.storageKey)}
+          disabled={isCopying}
+          icon={copied ? <CheckIcon /> : <CopyIcon />}
+        />
+        <IconAction
           label={isDownloading ? "Preparing…" : `Download ${artifact.name}`}
           onClick={() => download(artifact.storageKey, artifact.name)}
           disabled={isDownloading}
@@ -147,6 +156,10 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
             {buildPending ? "Starting build…" : "Build"}
           </button>
         )}
+      </div>
+
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {copied && "Plan copied to clipboard"}
       </div>
 
       {/* The modal open fallback reuses the shared artifact preview popup —
@@ -260,6 +273,46 @@ function DownloadIcon() {
       <path d="M6 1.5V8.5" />
       <path d="M3 6L6 9L9 6" />
       <path d="M2 10.5H10" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
+      <path d="M8 4V2.5C8 1.95 7.55 1.5 7 1.5H2.5C1.95 1.5 1.5 1.95 1.5 2.5V7C1.5 7.55 1.95 8 2.5 8H4" />
+    </svg>
+  );
+}
+
+/** A check glyph — transient confirmation that the copy succeeded. */
+function CheckIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0 text-success"
+      aria-hidden="true"
+    >
+      <path d="M2 6.5L4.5 9L10 3" />
     </svg>
   );
 }

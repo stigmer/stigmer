@@ -2,7 +2,6 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import { PLAN_ARTIFACT_NAME } from "../library/detect-plan-artifact.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 
 /** Props for {@link PlanStreamingCard}. */
@@ -34,8 +33,13 @@ export interface PlanStreamingCardProps {
  * The live counterpart of {@link PlanArtifactCard} — a streaming Plan turn's
  * compact stand-in in the thread while the plan document renders live in the
  * session panel's plan tab. Same anatomy as the completed card (icon, title,
- * `plan.md · size` meta, trailing actions) so the completion handoff reads as
- * the same card settling, not a new element appearing.
+ * a `Writing… · size` meta, trailing actions) so the completion handoff reads
+ * as the same card settling, not a new element appearing.
+ *
+ * The meta line deliberately omits a filename: the artifact's name is derived
+ * from the plan's title, which is still streaming in, so a name shown here
+ * would change under the user when the plan settles. The completed card
+ * introduces the final `<slug>.plan.md` name once it exists.
  *
  * Deliberately action-light: "Open plan" is the only affordance. Download and
  * Build require the published artifact, which does not exist until the turn
@@ -72,8 +76,6 @@ export const PlanStreamingCard = memo(function PlanStreamingCard({
           {title ?? "Writing plan…"}
         </div>
         <div className="text-[0.65rem] text-muted-foreground-faint">
-          {PLAN_ARTIFACT_NAME}
-          <span aria-hidden="true"> · </span>
           <span role="status">Writing…</span>
           <span aria-hidden="true"> · </span>
           <span className="tabular-nums">{formatArtifactSize(sizeBytes)}</span>

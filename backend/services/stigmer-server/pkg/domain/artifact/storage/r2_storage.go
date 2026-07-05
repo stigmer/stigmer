@@ -118,17 +118,26 @@ func (r *R2Storage) Download(ctx context.Context, key string) ([]byte, error) {
 
 // GetSignedURL generates a presigned URL for downloading the artifact.
 // The URL is valid for the specified duration (max 7 days for R2).
-func (r *R2Storage) GetSignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
+//
+// When downloadFilename is non-empty, the response Content-Disposition is
+// signed into the URL so the browser saves the object as an attachment under
+// that name instead of rendering it inline.
+func (r *R2Storage) GetSignedURL(ctx context.Context, key string, expiresIn time.Duration, downloadFilename string) (string, error) {
 	// R2 has a maximum expiration of 7 days
 	maxExpiration := 7 * 24 * time.Hour
 	if expiresIn > maxExpiration {
 		expiresIn = maxExpiration
 	}
 
-	request, err := r.presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+	input := &s3.GetObjectInput{
 		Bucket: aws.String(r.bucket),
 		Key:    aws.String(key),
-	}, func(opts *s3.PresignOptions) {
+	}
+	if downloadFilename != "" {
+		input.ResponseContentDisposition = aws.String(ContentDispositionAttachment(downloadFilename))
+	}
+
+	request, err := r.presignClient.PresignGetObject(ctx, input, func(opts *s3.PresignOptions) {
 		opts.Expires = expiresIn
 	})
 

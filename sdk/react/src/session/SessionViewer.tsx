@@ -36,7 +36,6 @@ import { SessionComposer } from "../composer/index.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useStigmer } from "../hooks.js";
 import {
-  PLAN_ARTIFACT_NAME,
   findLatestSessionPlan,
   findPlanArtifact,
   type SessionPlan,
@@ -62,10 +61,14 @@ import type { SessionAudience } from "./audience.js";
  * Where the approved plan mounts in the implement execution's workspace —
  * the harnesses' standard attachment inputs directory, where the runner's
  * implement-plan directive points the agent (shared/implement-plan-prompt.ts).
- * Attaching at this exact path is what makes the build implement the document
- * the user approved (including in-place edits), not a paraphrase from memory.
+ * Attaching under the plan's own filename (e.g. `feature_x.plan.md`) is what
+ * makes the build implement the document the user approved (including in-place
+ * edits), not a paraphrase from memory; the runner detects it by the plan
+ * filename convention (`isPlanArtifactName`), so the exact name is free to vary.
  */
-const APPROVED_PLAN_MOUNT_PATH = `.stigmer/inputs/${PLAN_ARTIFACT_NAME}`;
+function approvedPlanMountPath(planFileName: string): string {
+  return `.stigmer/inputs/${planFileName}`;
+}
 
 /**
  * The build turn's user message — a short human-readable label, NOT the
@@ -403,22 +406,25 @@ export function SessionViewer({
     // execution. The published artifact itself stays immutable; the approved
     // copy is a new input on the build turn (edit-as-input provenance).
     setIsBuildingFromPlan(true);
+    // The approved copy keeps the published plan's filename, so the mounted
+    // input, the download, and the plan card all agree on one name.
+    const planFileName = sessionPlan.artifact.name;
     void (async () => {
       try {
         const approvedText =
           planDraft.readDraft() ?? (await fetchPlanText(stigmer, sessionPlan));
         const response = await stigmer.agentExecution.uploadAttachment(
           create(UploadAttachmentRequestSchema, {
-            filename: PLAN_ARTIFACT_NAME,
+            filename: planFileName,
             content: new TextEncoder().encode(approvedText),
             contentType: "text/markdown",
           }),
         );
         submitImplementTurn([
           {
-            filename: PLAN_ARTIFACT_NAME,
+            filename: planFileName,
             storageKey: response.storageKey,
-            mountPath: APPROVED_PLAN_MOUNT_PATH,
+            mountPath: approvedPlanMountPath(planFileName),
             contentType: "text/markdown",
           },
         ]);

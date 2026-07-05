@@ -144,6 +144,38 @@ describe("PlanArtifactCard — compact document card", () => {
     expect(onImplement).not.toHaveBeenCalled();
   });
 
+  it("copies the plan text to the clipboard on demand", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const getArtifactContent = vi
+      .fn()
+      .mockResolvedValue({ content: new TextEncoder().encode("# Plan\n\nsteps") });
+    const getArtifactDownloadUrl = vi.fn();
+    const stigmer = {
+      agentExecution: { getArtifactContent, getArtifactDownloadUrl },
+    } as unknown as Stigmer;
+
+    render(
+      withStigmer(
+        <PlanArtifactCard executionId="aex_1" artifact={planArtifact} org="acme" />,
+        stigmer,
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy plan" }));
+
+    // Content is fetched at click time from the stable storage key, then
+    // written to the clipboard — the card never pre-fetches on mount.
+    expect(getArtifactContent).toHaveBeenCalledTimes(1);
+    const req = getArtifactContent.mock.calls[0][0];
+    expect(req.executionId).toBe("aex_1");
+    expect(req.storageKey).toBe("artifacts/aex_1/plan.md");
+    await screen.findByRole("button", { name: "Copied" });
+    expect(writeText).toHaveBeenCalledWith("# Plan\n\nsteps");
+
+    vi.unstubAllGlobals();
+  });
+
   it("downloads the artifact on demand via a freshly minted URL", async () => {
     const { stigmer, getArtifactDownloadUrl } = createStigmerMock();
     render(

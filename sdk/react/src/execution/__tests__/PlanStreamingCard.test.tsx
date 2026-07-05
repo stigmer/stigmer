@@ -5,7 +5,7 @@ import { PlanStreamingCard } from "../PlanStreamingCard";
 afterEach(cleanup);
 
 describe("PlanStreamingCard — live plan stand-in", () => {
-  it("is a busy region with the streaming title, filename, and live size", () => {
+  it("is a busy region with the streaming title, status, and live size", () => {
     render(
       <PlanStreamingCard
         title="Refactor the auth flow"
@@ -17,9 +17,16 @@ describe("PlanStreamingCard — live plan stand-in", () => {
     const region = screen.getByRole("region", { name: "Plan being written" });
     expect(region.getAttribute("aria-busy")).toBe("true");
     expect(region.textContent).toContain("Refactor the auth flow");
-    expect(region.textContent).toContain("plan.md");
     expect(region.textContent).toContain("Writing…");
     expect(region.textContent).toContain("2.0 KB");
+  });
+
+  it("shows no filename mid-stream (the final name is not known yet)", () => {
+    render(
+      <PlanStreamingCard title="Refactor the auth flow" sizeBytes={2048} onOpenPlan={vi.fn()} />,
+    );
+    const region = screen.getByRole("region", { name: "Plan being written" });
+    expect(region.textContent).not.toContain("plan.md");
   });
 
   it("falls back to 'Writing plan…' until the title has streamed in", () => {

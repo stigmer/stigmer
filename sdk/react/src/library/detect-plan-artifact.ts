@@ -15,14 +15,33 @@ export interface SessionPlan {
 }
 
 /**
- * Canonical filename a Plan-mode execution publishes its plan under. Kept in
- * sync with the runner's `publishPlanArtifact` (shared/plan-artifact.ts).
+ * Legacy/fallback filename a Plan-mode execution publishes its plan under when
+ * the plan has no derivable title. Kept in sync with the runner's
+ * `PLAN_ARTIFACT_NAME` (shared/plan-artifact.ts).
  */
 export const PLAN_ARTIFACT_NAME = "plan.md";
 
 /**
- * Returns `true` when an artifact is the published plan: a FILE artifact named
- * `plan.md`.
+ * Suffix every named plan artifact carries (`<slug>.plan.md`). The runner
+ * derives the slug from the plan's title; detection keys on this suffix. Kept
+ * in sync with the runner's `PLAN_ARTIFACT_SUFFIX` (shared/plan-artifact.ts) —
+ * the runner and browser SDK have disjoint module graphs, so the constant is
+ * duplicated by design, mirroring {@link PLAN_ARTIFACT_NAME}.
+ */
+export const PLAN_ARTIFACT_SUFFIX = ".plan.md";
+
+/**
+ * Returns `true` when a filename is a plan's: the legacy exact `plan.md`, or
+ * any `*.plan.md`. Accepting the legacy name keeps plans published before named
+ * artifacts existed detectable.
+ */
+export function isPlanArtifactName(name: string): boolean {
+  return name === PLAN_ARTIFACT_NAME || name.endsWith(PLAN_ARTIFACT_SUFFIX);
+}
+
+/**
+ * Returns `true` when an artifact is the published plan: a FILE artifact whose
+ * name satisfies {@link isPlanArtifactName}.
  *
  * Detection is by convention — the same lightweight, content-free approach used
  * for skill packages ({@link isSkillPackage}) — so the UI never needs an extra
@@ -32,7 +51,7 @@ export const PLAN_ARTIFACT_NAME = "plan.md";
 export function isPlanArtifact(artifact: ExecutionArtifact): boolean {
   return (
     artifact.kind === ExecutionArtifactKind.FILE &&
-    artifact.name === PLAN_ARTIFACT_NAME
+    isPlanArtifactName(artifact.name)
   );
 }
 

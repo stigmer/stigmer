@@ -332,6 +332,13 @@ describe("formatImplementPlanSection", () => {
     expect(formatImplementPlanSection(undefined, [PLAN_PATH])).toBeUndefined();
   });
 
+  it("carries the plan-derived progress-tracking instruction (Tier 3)", () => {
+    const section = formatImplementPlanSection(true, [PLAN_PATH]);
+
+    expect(section).toContain("to-do list");
+    expect(section).toContain("break the plan into");
+  });
+
   it("injects the directive into a build-from-plan first prompt", () => {
     const prompt = buildPrompt(
       input({

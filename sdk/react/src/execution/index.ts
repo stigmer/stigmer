@@ -62,6 +62,9 @@ export type {
 export { useArtifactDownload } from "./useArtifactDownload.js";
 export type { UseArtifactDownloadReturn } from "./useArtifactDownload.js";
 
+export { useArtifactCopy } from "./useArtifactCopy.js";
+export type { UseArtifactCopyReturn } from "./useArtifactCopy.js";
+
 export { useToolOutputContent } from "./useToolOutputContent.js";
 export type {
   UseToolOutputContentReturn,

@@ -586,9 +586,10 @@ export function createDeepAgentActivities(config: Config) {
         }
 
         // Plan mode: the agent's final message is the plan. Publish it as a
-        // first-class plan.md artifact so the UI can render a reviewable Plan
-        // card and a follow-up Implement run can reference it. Read-only mode
-        // produces no file to auto-publish, so this is the only artifact path.
+        // first-class plan artifact (named from the plan's title) so the UI can
+        // render a reviewable Plan card and a follow-up Implement run can
+        // reference it. Read-only mode produces no file to auto-publish, so
+        // this is the only artifact path.
         // Requires artifact storage; with none (proxy misconfig) the plan text
         // still lives in the final message — only the reviewable artifact is
         // skipped (mirrors Cursor's storage-guarded plan publish).

@@ -85,4 +85,28 @@ public interface GetArtifactDownloadUrlRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getStorageKeyBytes();
+
+  /**
+   * <pre>
+   * Whether the URL should force a browser download instead of inline display.
+   *
+   * When true, the presigned URL carries a Content-Disposition: attachment
+   * header keyed to the artifact's filename, so a browser navigating to it
+   * saves the file rather than rendering it in a tab. Browsers ignore the
+   * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
+   * the disposition MUST be signed into the URL itself — this flag is how a
+   * caller requests it.
+   *
+   * When false (the default), the URL displays inline. Inline is required for
+   * rendering surfaces such as an `&lt;img src&gt;` pointing at an offloaded
+   * screenshot; forcing a download there would break the render.
+   *
+   * Use true for click-to-download affordances; false (or unset) for inline
+   * rendering and programmatic reads.
+   * </pre>
+   *
+   * <code>bool as_attachment = 3 [json_name = "asAttachment"];</code>
+   * @return The asAttachment.
+   */
+  boolean getAsAttachment();
 }
