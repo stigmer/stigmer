@@ -3,29 +3,32 @@ import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /**
- * The session's current plan: the published `plan.md` artifact of the most
- * recent execution that produced one, plus the execution it belongs to
- * (artifact content RPCs are execution-scoped).
+ * The session's current plan: the published plan artifact (a `*.plan.md` FILE)
+ * of the most recent execution that produced one, plus the execution it belongs
+ * to (artifact content RPCs are execution-scoped).
  */
 export interface SessionPlan {
   /** ID of the execution that published the plan. */
   readonly executionId: string;
-  /** The published `plan.md` artifact. */
+  /** The published plan artifact (`*.plan.md`). */
   readonly artifact: ExecutionArtifact;
 }
 
 /**
- * Legacy/fallback filename a Plan-mode execution publishes its plan under when
- * the plan has no derivable title. Kept in sync with the runner's
+ * Legacy plan filename. Detection-only: {@link isPlanArtifactName} still
+ * accepts this exact name so plans published before named artifacts existed
+ * keep working. The runner never freshly emits it (a titleless plan falls back
+ * to a bare `<id>.plan.md`). Kept in sync with the runner's
  * `PLAN_ARTIFACT_NAME` (shared/plan-artifact.ts).
  */
 export const PLAN_ARTIFACT_NAME = "plan.md";
 
 /**
- * Suffix every named plan artifact carries (`<slug>.plan.md`). The runner
- * derives the slug from the plan's title; detection keys on this suffix. Kept
- * in sync with the runner's `PLAN_ARTIFACT_SUFFIX` (shared/plan-artifact.ts) —
- * the runner and browser SDK have disjoint module graphs, so the constant is
+ * Suffix every named plan artifact carries (`<slug>_<id>.plan.md`, or a bare
+ * `<id>.plan.md` when untitled). The runner derives the slug from the plan's
+ * title and the `<id>` from its content hash; detection keys on this suffix.
+ * Kept in sync with the runner's `PLAN_ARTIFACT_SUFFIX` (shared/plan-artifact.ts)
+ * — the runner and browser SDK have disjoint module graphs, so the constant is
  * duplicated by design, mirroring {@link PLAN_ARTIFACT_NAME}.
  */
 export const PLAN_ARTIFACT_SUFFIX = ".plan.md";

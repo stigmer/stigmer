@@ -39,7 +39,7 @@ export interface PlanStreamingCardProps {
  * The meta line deliberately omits a filename: the artifact's name is derived
  * from the plan's title, which is still streaming in, so a name shown here
  * would change under the user when the plan settles. The completed card
- * introduces the final `<slug>.plan.md` name once it exists.
+ * introduces the final `<slug>_<id>.plan.md` name once it exists.
  *
  * Deliberately action-light: "Open plan" is the only affordance. Download and
  * Build require the published artifact, which does not exist until the turn

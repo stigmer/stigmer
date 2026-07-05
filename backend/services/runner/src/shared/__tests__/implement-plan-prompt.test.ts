@@ -14,13 +14,13 @@ describe("findApprovedPlanPath", () => {
     ).toBe(".stigmer/inputs/plan.md");
   });
 
-  it("finds a title-named <slug>.plan.md plan", () => {
+  it("finds a title-named <slug>_<id>.plan.md plan", () => {
     expect(
       findApprovedPlanPath([
         ".stigmer/inputs/data.csv",
-        ".stigmer/inputs/plan_card_ux_cleanup.plan.md",
+        ".stigmer/inputs/plan-card-ux-cleanup_a1b2c3d4.plan.md",
       ]),
-    ).toBe(".stigmer/inputs/plan_card_ux_cleanup.plan.md");
+    ).toBe(".stigmer/inputs/plan-card-ux-cleanup_a1b2c3d4.plan.md");
   });
 
   it("returns undefined when no plan attachment resolved", () => {

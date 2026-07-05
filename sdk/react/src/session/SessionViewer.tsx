@@ -61,7 +61,7 @@ import type { SessionAudience } from "./audience.js";
  * Where the approved plan mounts in the implement execution's workspace —
  * the harnesses' standard attachment inputs directory, where the runner's
  * implement-plan directive points the agent (shared/implement-plan-prompt.ts).
- * Attaching under the plan's own filename (e.g. `feature_x.plan.md`) is what
+ * Attaching under the plan's own filename (e.g. `feature-x_a1b2c3d4.plan.md`) is what
  * makes the build implement the document the user approved (including in-place
  * edits), not a paraphrase from memory; the runner detects it by the plan
  * filename convention (`isPlanArtifactName`), so the exact name is free to vary.

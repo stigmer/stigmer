@@ -302,9 +302,10 @@ func TestAgentExecution_PlanMode_PublishesPlanArtifact(t *testing.T) {
 				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 5*time.Minute)
 			require.NoError(t, err, "plan-mode execution should complete")
 
-			// The plan artifact is named from the plan's title (`<slug>.plan.md`),
-			// falling back to the legacy `plan.md` when the plan has no title, so
-			// detection keys on the filename convention, not an exact name.
+			// The plan artifact is named from the plan's title
+			// (`<slug>_<id>.plan.md`, or a bare `<id>.plan.md` when untitled), and
+			// the legacy `plan.md` is still detected, so detection keys on the
+			// filename convention, not an exact name.
 			artifacts := result.GetStatus().GetArtifacts()
 			var plan *agentexecv1.ExecutionArtifact
 			for _, a := range artifacts {

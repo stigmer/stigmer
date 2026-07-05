@@ -17,7 +17,7 @@
  * Placement is always `inputs/{filename}` — the platform namespace this
  * harness can surface in the workspace. An attachment's `mountPath` is
  * honored by convention, not mechanism: the standard mounts (e.g. the
- * approved plan at `.stigmer/inputs/<slug>.plan.md`) resolve to exactly this
+ * approved plan at `.stigmer/inputs/<slug>_<id>.plan.md`) resolve to exactly this
  * placement, and the prompt's `<input_files>` section plus any path-derived
  * directives are built from the RESOLVED paths, so prompt and filesystem can
  * never disagree.

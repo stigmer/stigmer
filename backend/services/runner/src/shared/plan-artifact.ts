@@ -7,11 +7,24 @@
  * copy/download, and a follow-up "Implement" execution can reference it
  * deterministically.
  *
- * The artifact is named from the plan's own title — a slug of its leading
- * `# H1` plus a `.plan.md` suffix (e.g. `plan_card_ux_cleanup.plan.md`), so a
- * downloaded plan lands as a recognizable file and the card, plan tab, and
- * saved file all agree on one name. A plan with no derivable title falls back
- * to the legacy {@link PLAN_ARTIFACT_NAME}.
+ * The artifact is named from the plan's own title — a hyphenated slug of its
+ * leading `# H1`, a `_<hash>` discriminator, and a `.plan.md` suffix (e.g.
+ * `plan-card-ux-cleanup_a1b2c3d4.plan.md`), so a downloaded plan lands as a
+ * recognizable file and the card, plan tab, and saved file all agree on one
+ * name. A plan with no derivable title falls back to a bare `<hash>.plan.md`.
+ *
+ * The `_<hash>` discriminator (first 8 hex of the plan content's SHA-256) is
+ * NOT for storage uniqueness — storage keys are already execution-scoped
+ * (`artifacts/{execId}/<name>`). It exists because the artifact BASENAME is a
+ * user-facing shared namespace: downloads save under it (see the artifact
+ * download disposition) and the artifact list surfaces it, so two same-titled
+ * plans would otherwise collide in the user's Downloads folder and read
+ * identically in the list. Deriving it from content (not a random or
+ * execution-scoped value) keeps naming honestly idempotent — identical content
+ * yields an identical name, so a finalize retry re-uploads to the same key,
+ * while any real edit yields a distinct one. This refines DD-23 §D3 ("no
+ * uniqueness hash"), which was correct about storage but overlooked the
+ * download/list basename namespace introduced by DD-23 §D1.
  *
  * This is deliberately a single, harness-agnostic helper:
  * - The native (deepagents) harness already auto-publishes files an agent
@@ -43,9 +56,10 @@ import type { ArtifactStorage } from "./artifact-storage.js";
 import { utcTimestamp } from "./status.js";
 
 /**
- * Legacy/fallback plan filename, used when a plan has no derivable `# H1`
- * title. Detection ({@link isPlanArtifactName}) still accepts this exact name
- * so plans published before named artifacts existed keep working.
+ * Legacy plan filename. Detection-only: {@link isPlanArtifactName} still
+ * accepts this exact name so plans published before named artifacts existed
+ * keep working. It is NEVER freshly emitted — a titleless plan now falls back
+ * to a bare `<hash>.plan.md` (see {@link planArtifactName}).
  */
 export const PLAN_ARTIFACT_NAME = "plan.md";
 
@@ -58,8 +72,11 @@ export const PLAN_ARTIFACT_NAME = "plan.md";
  */
 export const PLAN_ARTIFACT_SUFFIX = ".plan.md";
 
-/** Longest slug we derive from a plan title before the `.plan.md` suffix. */
+/** Longest slug we derive from a plan title before the `_<id>.plan.md` tail. */
 const MAX_PLAN_SLUG_LENGTH = 60;
+
+/** Hex length of the content-hash discriminator appended to named plans. */
+const PLAN_ID_LENGTH = 8;
 
 /**
  * Reports whether an artifact filename is a plan: the legacy exact name, or any
@@ -101,30 +118,55 @@ function extractPlanTitle(planText: string): string | undefined {
 }
 
 /**
+ * Strips a leading "Plan" LABEL from a title, e.g. `Plan: Create X` -> `Create
+ * X`. The separator (`:` or a dash) is REQUIRED: this removes a redundant label
+ * (a plan document already announces itself via the `.plan.md` suffix and the
+ * Plan card framing) without ever clipping a real title word — a bare `\bplan\b`
+ * would wrongly turn "Plan card UX cleanup" into "card UX cleanup".
+ *
+ * Deliberately runner/filename-only and NOT mirrored into the SDK's title
+ * extraction: display surfaces render the message's own `# H1` faithfully
+ * (`extractLeadingH1` is general-purpose and render-time-only), so the clean
+ * title is fixed at the source — the plan-mode prompt tells the model not to
+ * prefix titles with "Plan:". This strip is the durable-artifact safety net for
+ * when the model (or the enforcement-less Cursor harness) drifts.
+ */
+function stripPlanLabel(title: string): string {
+  return title.replace(/^plan\s*[:\u2013\u2014-]\s*/i, "");
+}
+
+/**
  * Slugifies a plan title into a filename-safe stem: lowercase, every run of
- * non-alphanumerics collapsed to `_`, trimmed of leading/trailing `_`, and
+ * non-alphanumerics collapsed to `-`, trimmed of leading/trailing `-`, and
  * capped at {@link MAX_PLAN_SLUG_LENGTH}. Returns `""` for a title with no
  * alphanumerics (e.g. only punctuation), which selects the fallback name.
  */
 function slugifyPlanTitle(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
     .slice(0, MAX_PLAN_SLUG_LENGTH)
-    .replace(/_+$/g, "");
+    .replace(/-+$/g, "");
 }
 
 /**
- * Derives the plan artifact's filename from its text: `<slug>.plan.md` when the
- * plan opens with a titled `# H1`, else the legacy {@link PLAN_ARTIFACT_NAME}.
- * No uniqueness hash is needed — storage keys are execution-scoped.
+ * Derives the plan artifact's filename from its text: `<slug>_<id>.plan.md`
+ * when the plan opens with a titled `# H1`, else a bare `<id>.plan.md`. The
+ * `<id>` is the first {@link PLAN_ID_LENGTH} hex of the content's SHA-256 — a
+ * user-facing discriminator for the shared download/list basename namespace,
+ * not a storage-uniqueness device (see the module doc).
  */
 export function planArtifactName(planText: string): string {
+  const id = createHash("sha256")
+    .update(planText, "utf-8")
+    .digest("hex")
+    .slice(0, PLAN_ID_LENGTH);
   const title = extractPlanTitle(planText);
-  if (!title) return PLAN_ARTIFACT_NAME;
-  const slug = slugifyPlanTitle(title);
-  return slug.length > 0 ? `${slug}${PLAN_ARTIFACT_SUFFIX}` : PLAN_ARTIFACT_NAME;
+  const slug = title ? slugifyPlanTitle(stripPlanLabel(title)) : "";
+  return slug.length > 0
+    ? `${slug}_${id}${PLAN_ARTIFACT_SUFFIX}`
+    : `${id}${PLAN_ARTIFACT_SUFFIX}`;
 }
 
 /**

@@ -44,6 +44,9 @@ export const PLAN_MODE_DIRECTIVE = [
   "- Write it as a complete, well-structured markdown document: start with " +
     "a single `#` title and organize the work under `##` section headings. " +
     "Use lists and tables where they aid scanning.",
+  '- Give the `#` title a concise, descriptive name for the work itself; do ' +
+    'NOT prefix it with "Plan:" (this document is already a plan — the ' +
+    "prefix is redundant and leaks into the plan's filename).",
   "- Reference concrete file paths and describe the specific changes " +
     "planned for each.",
   "- Do NOT wrap the document in a code fence.",

@@ -11,8 +11,9 @@
  * The directive has two variants, chosen by whether the approved plan document
  * actually materialized in the workspace:
  * - Attached (the normal case): the client uploaded the approved plan text
- *   (edited or not) and attached it, mounted at `.stigmer/inputs/plan.md`.
- *   The directive points the model at that file and names it authoritative —
+ *   (edited or not) and attached it, mounted under `.stigmer/inputs/` as the
+ *   plan's own file (`<slug>_<id>.plan.md`). The directive points the model at
+ *   that file and names it authoritative —
  *   the user may have refined the document after the plan turn, so the
  *   conversation's version can be stale.
  * - Conversation-only (the client's upload failed): the directive falls back
