@@ -803,6 +803,16 @@
           "validation": {
             "minLength": 1
           }
+        },
+        {
+          "name": "AsAttachment",
+          "jsonName": "asAttachment",
+          "protoField": "as_attachment",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the URL should force a browser download instead of inline display.\n\n When true, the presigned URL carries a Content-Disposition: attachment\n header keyed to the artifact's filename, so a browser navigating to it\n saves the file rather than rendering it in a tab. Browsers ignore the\n HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so\n the disposition MUST be signed into the URL itself — this flag is how a\n caller requests it.\n\n When false (the default), the URL displays inline. Inline is required for\n rendering surfaces such as an `\u003cimg src\u003e` pointing at an offloaded\n screenshot; forcing a download there would break the render.\n\n Use true for click-to-download affordances; false (or unset) for inline\n rendering and programmatic reads.",
+          "required": false
         }
       ]
     },

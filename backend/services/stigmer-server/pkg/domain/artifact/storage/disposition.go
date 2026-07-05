@@ -16,7 +16,7 @@ const LocalDownloadQueryParam = "download"
 //
 // It emits both a plain `filename="..."` (an ASCII-sanitized fallback for
 // older clients) and, when the name contains non-ASCII bytes, an RFC 5987
-// `filename*=UTF-8''...` parameter that modern browsers prefer. The fallback
+// `filename*=UTF-8”...` parameter that modern browsers prefer. The fallback
 // is always quoted with embedded quotes and backslashes escaped, so a crafted
 // name can never break out of the header value.
 func ContentDispositionAttachment(filename string) string {

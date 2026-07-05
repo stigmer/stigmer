@@ -234,14 +234,16 @@ Returns a time-limited URL for downloading an artifact published by an agent dur
 const getArtifactDownloadUrlResponse = await stigmer.agentExecution.getArtifactDownloadUrl({
   executionId: "...",
   storageKey: "...",
+  asAttachment: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 getArtifactDownloadUrlResponse, err := client.AgentExecution.GetArtifactDownloadUrl(ctx, &stigmer.GetArtifactDownloadUrlRequest{
-  ExecutionId: "...",
-  StorageKey:  "...",
+  ExecutionId:  "...",
+  StorageKey:   "...",
+  AsAttachment: false,
 })
 ```
 </Tab>
@@ -250,6 +252,7 @@ getArtifactDownloadUrlResponse, err := client.AgentExecution.GetArtifactDownload
 get_artifact_download_url_response = client.agent_executions.get_artifact_download_url(GetArtifactDownloadUrlRequest(
     execution_id="...",
     storage_key="...",
+    as_attachment=False,
 ))
 ```
 </Tab>
@@ -258,6 +261,7 @@ get_artifact_download_url_response = client.agent_executions.get_artifact_downlo
 GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.agentExecutions().getArtifactDownloadUrl(GetArtifactDownloadUrlRequest.builder()
     .executionId("...")
     .storageKey("...")
+    .asAttachment(false)
     .build());
 ```
 </Tab>
@@ -1497,6 +1501,7 @@ GetArtifactDownloadUrlRequest requests a download URL for an execution artifact.
   type={{
     executionId: { type: "string", description: "ID of the agent execution that produced the artifact." },
     storageKey: { type: "string", description: "Storage key of the artifact to download." },
+    asAttachment: { type: "boolean", description: "Whether the URL should force a browser download instead of inline display." },
   }}
 />
 
@@ -1711,6 +1716,7 @@ AgentExecutionStatus contains all execution results and state.
     structuredOutput: { type: "object", description: "Structured output extracted from the agent's final response." },
     fileChangeSets: { type: "FileChangeSet[]", description: "Server-computed projection of file change sets awaiting or completing review for this execution.", typeDescriptionLink: "#filechangeset" },
     fileReviewEventStream: { type: "FileReviewEventStream", description: "Server-owned, append-only record of every file-review event (baseline / candidate capture, file decisions, reconcile, failures).", typeDescriptionLink: "#filerevieweventstream" },
+    fileChangeProgress: { type: "FileChangeProgress", description: "Transient, non-authoritative snapshot of the workspace delta accumulating during the current turn — the live \"N files changed so far\" surface, shown before any review is possible.", typeDescriptionLink: "#filechangeprogress" },
   }}
 />
 
@@ -1870,6 +1876,35 @@ ExecutionArtifact represents a file or directory published by an agent.
     expiresAt: { type: "string", description: "ISO 8601 timestamp when the download URL expires." },
     entries: { type: "string[]", description: "Relative file paths within a directory artifact's archive." },
     contentHash: { type: "string", description: "SHA-256 hex digest of the uploaded artifact bytes." },
+  }}
+/>
+
+### FileChangeProgress
+
+A transient, non-authoritative snapshot of the workspace delta accumulating during the CURRENT turn — the live "N files changed so far" surface.
+
+<TypeTable
+  type={{
+    changeSetId: { type: "string", description: "Id of the CAPTURING change set this progress previews (\"${executionId}:${turnSeq}\")." },
+    filesChanged: { type: "number", description: "Total number of files changed so far this turn." },
+    linesAdded: { type: "number", description: "Total lines added / removed across all changed files this turn." },
+    linesRemoved: { type: "number", description: "" },
+    entries: { type: "FileChangeProgressEntry[]", description: "The per-file entries (slim: no bodies, no digests, no diffs).", typeDescriptionLink: "#filechangeprogressentry" },
+    capturedAt: { type: "string", description: "When this snapshot was taken (RFC3339)." },
+  }}
+/>
+
+### FileChangeProgressEntry
+
+One file within a FileChangeProgress snapshot — a slim, non-authoritative row.
+
+<TypeTable
+  type={{
+    pathBefore: { type: "string", description: "Path before the change (workspace-root-relative)." },
+    pathAfter: { type: "string", description: "Path after the change (workspace-root-relative)." },
+    kind: { type: "FileChangeKind", description: "The per-file outcome.", typeDescriptionLink: "#filechangekind" },
+    linesAdded: { type: "number", description: "Lines added by this change." },
+    linesRemoved: { type: "number", description: "Lines removed by this change." },
   }}
 />
 
