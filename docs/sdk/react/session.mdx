@@ -1395,7 +1395,17 @@ read-only); the tab itself never multiplies.
 
 ### PLAN_DOCUMENT_PATH
 
-The plan tab's path — doubles as its tab label, matching the artifact name.
+The plan tab's path — doubles as its tab label.
+
+Deliberately plan-AGNOSTIC ("Plan"), not the artifact's filename. The
+workspace surface identifies a virtual document's tab by
+`editorKey(entryId, path)`, so `path` is part of the tab's IDENTITY — and the
+session keeps exactly ONE plan tab that swaps which plan it shows (latest
+editable, or a superseded plan read-only). Now that plans carry unique,
+title-derived filenames (`<slug>.plan.md`), binding this label to any one
+plan's name would mint a new tab identity per plan and shatter the
+single-tab design. A stable, generic label is therefore required, not a
+stylistic choice — do not "fix" it to track the filename.
 
 
 ### PlanDraftController

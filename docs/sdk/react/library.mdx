@@ -760,8 +760,8 @@ an instance is about who can run it and see its executions.
 
 ### isPlanArtifact
 
-Returns `true` when an artifact is the published plan: a FILE artifact named
-`plan.md`.
+Returns `true` when an artifact is the published plan: a FILE artifact whose
+name satisfies [`isPlanArtifactName`](#isplanartifactname).
 
 Detection is by convention — the same lightweight, content-free approach used
 for skill packages ([`isSkillPackage`](#isskillpackage)) — so the UI never needs an extra
@@ -770,6 +770,17 @@ RPC to know a plan exists. The plan's text is fetched on demand via
 
 ```tsx
 function isPlanArtifact(artifact: ExecutionArtifact): boolean
+```
+
+
+### isPlanArtifactName
+
+Returns `true` when a filename is a plan's: the legacy exact `plan.md`, or
+any `*.plan.md`. Accepting the legacy name keeps plans published before named
+artifacts existed detectable.
+
+```tsx
+function isPlanArtifactName(name: string): boolean
 ```
 
 
@@ -847,8 +858,18 @@ if (parsed.kind === "Agent") {
 
 ### PLAN_ARTIFACT_NAME
 
-Canonical filename a Plan-mode execution publishes its plan under. Kept in
-sync with the runner's `publishPlanArtifact` (shared/plan-artifact.ts).
+Legacy/fallback filename a Plan-mode execution publishes its plan under when
+the plan has no derivable title. Kept in sync with the runner's
+`PLAN_ARTIFACT_NAME` (shared/plan-artifact.ts).
+
+
+### PLAN_ARTIFACT_SUFFIX
+
+Suffix every named plan artifact carries (`<slug>.plan.md`). The runner
+derives the slug from the plan's title; detection keys on this suffix. Kept
+in sync with the runner's `PLAN_ARTIFACT_SUFFIX` (shared/plan-artifact.ts) —
+the runner and browser SDK have disjoint module graphs, so the constant is
+duplicated by design, mirroring [`PLAN_ARTIFACT_NAME`](#plan_artifact_name).
 
 
 ### PushSkillParams

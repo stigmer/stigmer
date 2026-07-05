@@ -188,6 +188,53 @@ const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
 ```
 
 
+### useArtifactCopy
+
+Behavior hook that copies an execution artifact's text to the clipboard on
+demand.
+
+The imperative sibling of [`useArtifactDownload`](#useartifactdownload): it fetches content at
+click time via `getArtifactContent` (CORS-safe, through the Stigmer API)
+rather than requiring the caller to have loaded it. This suits content-free
+surfaces — a plan card that detects the artifact by convention and never
+fetches until the user acts — where a mount-time [`useArtifactContent`](#useartifactcontent)
+would be wasteful.
+
+Returns an imperative `copy(storageKey)` action plus a transient `copied`
+flag for feedback, mirroring the modal's copy affordance so every surface
+shares one implementation.
+
+**Signature**
+
+```tsx
+function useArtifactCopy(executionId: string | null): UseArtifactCopyReturn
+```
+
+<TypeTable
+  type={{
+    executionId: { type: "string | null", description: "Execution that produced the artifacts, or `null` to   disable (the action becomes a no-op).", required: true },
+  }}
+/>
+
+**Returns** — `UseArtifactCopyReturn`
+
+<TypeTable
+  type={{
+    copied: { type: "boolean", description: "`true` for a brief window after a successful copy (drives \"Copied\" affordance feedback), then resets automatically." },
+    copy: { type: "(storageKey: string) => Promise<void>", description: "Fetch the artifact's text at click time and write it to the clipboard. No-op when the execution id is unknown or a copy is already in flight. Resolves once the copy has been attempted." },
+    error: { type: "Error | null", description: "Error from the last failed copy attempt, or `null` when healthy." },
+    isCopying: { type: "boolean", description: "`true` while the content is being fetched / written to the clipboard." },
+  }}
+/>
+
+```tsx
+const { copy, isCopying, copied } = useArtifactCopy(executionId);
+<button onClick={() => copy(artifact.storageKey)} disabled={isCopying}>
+  {copied ? "Copied" : "Copy"}
+</button>
+```
+
+
 ### useArtifactDownload
 
 Behavior hook that downloads an execution artifact on demand.
@@ -2743,9 +2790,10 @@ thread. The plan document itself lives in the session panel's plan tab
 the panel carries the document.
 
 Anatomy: a document-style identity block (plan icon, the plan's title, a
-`plan.md · size` meta line) with the actions trailing — open and download
-as icon-only secondaries (labelled via `aria-label`/`title`) and one
-prominent, themeable primary, **Build** — so the next step is unmistakable.
+`<name> · size` meta line) with the actions trailing — open, copy, and
+download as icon-only secondaries (labelled via `aria-label`/`title`) and
+one prominent, themeable primary, **Build** — so the next step is
+unmistakable.
 
 Action-label rule (shared with `PlanStreamingCard`, which keeps its
 labelled "Open plan"): a lone secondary keeps its text label; a row of
@@ -2851,8 +2899,13 @@ Props for [`PlanDocumentMessage`](#plandocumentmessage).
 The live counterpart of [`PlanArtifactCard`](#planartifactcard) — a streaming Plan turn's
 compact stand-in in the thread while the plan document renders live in the
 session panel's plan tab. Same anatomy as the completed card (icon, title,
-`plan.md · size` meta, trailing actions) so the completion handoff reads as
-the same card settling, not a new element appearing.
+a `Writing… · size` meta, trailing actions) so the completion handoff reads
+as the same card settling, not a new element appearing.
+
+The meta line deliberately omits a filename: the artifact's name is derived
+from the plan's title, which is still streaming in, so a name shown here
+would change under the user when the plan settles. The completed card
+introduces the final `<slug>.plan.md` name once it exists.
 
 Deliberately action-light: "Open plan" is the only affordance. Download and
 Build require the published artifact, which does not exist until the turn
