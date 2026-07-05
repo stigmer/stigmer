@@ -928,6 +928,134 @@ func TestOffline_FileReview_MixedTurn_TrackedKeptSecretDiscarded(t *testing.T) {
 	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review resolution must NOT re-invoke the model")
 }
 
+// TestOffline_FileReview_TrackedSecret_ContentWithheldNeverPersisted proves the
+// DD-26 follow-up #3 fix. A git-TRACKED secret-like file (a committed
+// credentials.json) that the agent edits FLOWS in capture mode — the gate allows
+// tracked mutations with no secret check (unlike a gitignored secret, which is
+// hard-blocked at the gate) — so its bytes reach the turn boundary in the git
+// diff. The capture seam must withhold them: the ledger entry is content-less
+// (SECRET_WITHHELD / GIT_TRACKED), the set is PARTIAL_BLOCKED (approval refused),
+// NEITHER the pre-edit (baseline) NOR the new secret bytes appear in the persisted
+// status or artifact storage, and a REJECT reverts the file byte-exact to its
+// committed baseline (NOT deleted). This is EXPLICITLY distinct from
+// MixedTurn_TrackedKeptSecretDiscarded, whose secret is a *gitignored* .env and
+// whose tracked file is *non-secret*. It would FAIL before the fix (the git diff
+// carried the inline body straight into the CANDIDATE change).
+func TestOffline_FileReview_TrackedSecret_ContentWithheldNeverPersisted(t *testing.T) {
+	requireOfflineService(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	gitDir := harness.NewGitWorkspace(t)
+	const path = "config/credentials.json" // tracked, NOT gitignored
+	// Distinctive tokens so a substring scan cannot false-positive on the path;
+	// each appears both in the file content AND in the edit's tool args.
+	const oldToken = "OLDSECRETtoken111"
+	const newToken = "NEWSECRETtoken222"
+	const baselineSecret = "API_KEY=sk-live-" + oldToken + "\n"
+	const newSecret = "API_KEY=sk-live-" + newToken + "\n"
+	// Commit the secret so the agent's edit is a MODIFY of a TRACKED file — the git
+	// substrate captures it, and its baseline (before) is real committed bytes.
+	// (edit_file, not write_file: write_file to an existing path no-ops in the
+	// deep-agent, producing no diff; the existing MODIFY test uses edit_file too.)
+	harness.SeedWorkspaceFile(t, gitDir, path, baselineSecret)
+
+	mockLLM, clients, waiter, mgr, execID := startFileReviewRunOpts(t, ctx, gitDir,
+		[]harness.RecordedLLMEntry{
+			editFileTurn(0, "toolu_e_creds", path, oldToken, newToken),
+			textTurn(1, "Updated the credentials file."),
+		},
+		"Update the API key in config/credentials.json using the filesystem tools.",
+		false, // normal gate: the tracked edit flows via capture mode
+	)
+
+	// The tracked-secret write flows (no interrupt), so the turn completes and the
+	// boundary opens a file review — never a tool approval.
+	waiting, err := waiter.WaitForFileReview(ctx, execID, 2*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, execID)
+		t.Fatalf("a tracked-secret edit should flow and open a file review: %v", err)
+	}
+	harness.AssertPendingApprovals(t, waiting, 0)
+
+	set := harness.FindFileChangeSet(waiting, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_AWAITING_REVIEW)
+	require.NotNil(t, set, "the tracked-secret edit must surface an AWAITING_REVIEW change set")
+	assert.Equal(t, agentexecv1.DiffCompleteness_DIFF_COMPLETENESS_PARTIAL_BLOCKED, set.GetDiffCompleteness(),
+		"a withheld tracked secret makes the set PARTIAL_BLOCKED")
+
+	// Content-less MODIFY entry, labeled with its true provenance (GIT_TRACKED).
+	ch := harness.FindCapturedChangeByPath(set, path)
+	require.NotNil(t, ch, "the tracked-secret path must be surfaced (path only) for review")
+	assert.Equal(t, agentexecv1.FileChangeKind_FILE_CHANGE_KIND_MODIFY, ch.GetKind(),
+		"the honest kind is preserved (a MODIFY of the committed file)")
+	assert.False(t, ch.GetDiffComplete(), "a withheld secret entry must be diff_complete=false")
+	assert.Equal(t, agentexecv1.FileReviewBlockReason_FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD, ch.GetBlockedReason(),
+		"the honest cause is recorded so the UI can say why")
+	assert.Equal(t, agentexecv1.FileCaptureClass_FILE_CAPTURE_CLASS_GIT_TRACKED, ch.GetCaptureClass(),
+		"a tracked secret is captured as GIT_TRACKED (its true provenance)")
+	assert.Nil(t, ch.GetBefore(), "no before content: the baseline secret's bytes never enter the ledger")
+	assert.Nil(t, ch.GetAfter(), "no after content: the new secret's bytes never enter the ledger")
+
+	// Leak scan #1 (status): NEITHER the baseline (before) NOR the new (after)
+	// secret token may appear anywhere in the persisted execution — not in the
+	// ledger, and not in the edit's tool args (which the transcript scrub clears).
+	// Before the fix the git diff carried both inline into the CANDIDATE change.
+	statusJSON, err := protojson.Marshal(waiting)
+	require.NoError(t, err, "marshal the persisted execution for the leak scan")
+	assert.NotContains(t, string(statusJSON), oldToken,
+		"the baseline secret token must never persist in the ledger/transcript")
+	assert.NotContains(t, string(statusJSON), newToken,
+		"the new secret token must never persist in the ledger/transcript")
+
+	// Leak scan #2 (storage): neither secret token may reach any artifact file.
+	artifactDir := mgr.LocalArtifactDir()
+	require.NotEmpty(t, artifactDir, "the offline runner must have a local artifact dir")
+	for _, needle := range [][]byte{[]byte(oldToken), []byte(newToken)} {
+		walkErr := filepath.Walk(artifactDir, func(p string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			data, rerr := os.ReadFile(p)
+			if rerr != nil {
+				return rerr
+			}
+			assert.Falsef(t, bytes.Contains(data, needle),
+				"secret bytes must never reach artifact storage; found in %s", p)
+			return nil
+		})
+		require.NoError(t, walkErr, "scan the artifact dir for leaked secret bytes")
+	}
+
+	// APPROVE is refused (discard-only): a diff that was never reviewable cannot be
+	// kept — the completeness gate, before the digest check, exactly as for a
+	// gitignored secret.
+	_, err = clients.AgentExecutionCommand.SubmitFileDecision(ctx, &agentexecv1.SubmitFileDecisionInput{
+		AgentExecutionId: execID,
+		ChangeSetId:      set.GetId(),
+		Scope:            agentexecv1.FileDecisionScope_FILE_DECISION_SCOPE_FILE,
+		FileChangeId:     ch.GetId(),
+		Action:           agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_APPROVE,
+		ExpectedDigest:   ch.GetFileDigest(),
+	})
+	require.Error(t, err, "approving an unreviewable tracked-secret entry must be refused")
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err),
+		"an unreviewable-diff approval is a precondition failure")
+
+	// REJECT (discard) reverts the working tree to the COMMITTED baseline
+	// byte-exact — the tracked file is restored, NOT deleted (unlike a create).
+	harness.SubmitFileDecisionByPath(t, ctx, clients, execID, set, path,
+		agentexecv1.FileDecisionAction_FILE_DECISION_ACTION_REJECT)
+	_, err = waiter.WaitForPhase(ctx, execID, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
+	require.NoError(t, err, "discarding the unreviewable tracked-secret entry must complete the execution")
+	assert.Equal(t, baselineSecret, harness.ReadWorkspaceFile(t, gitDir, path),
+		"the discarded tracked-secret edit must revert to its committed baseline byte-exact")
+	assert.Equal(t, 0, mockLLM.Remaining(), "a pure file-review decision must NOT re-invoke the model")
+}
+
 // TestOffline_FileReview_SecretUnderGlobalBypass_NeverPersisted is the global-
 // bypass safety lock (design doc 12, D4; DD-09 Option A). Under spec.auto_approve_all
 // the approval gate is NOT installed, so a secret-like gitignored write is not

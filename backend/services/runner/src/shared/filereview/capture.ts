@@ -77,6 +77,7 @@ import {
   type CasPathCapture,
   type CasSnapshotRef,
 } from "./cas-substrate.js";
+import { isSecretLikePath } from "./secret-paths.js";
 
 /**
  * Whether a turn runs in apply-then-review CAPTURE mode (file edits flow and are
@@ -244,21 +245,41 @@ export async function captureCandidateToLedger(opts: {
 
   const unreviewable = unreviewablePaths ?? [];
 
+  // Secret handling is three-way across the substrates, and this is the last of
+  // the three (the other two happen upstream at the harness gate):
+  //   1. A gitignored secret WRITE never flows — hard-blocked at the gate /
+  //      deny-gate (DD-12/DD-30). It arrives here only as a path in
+  //      `unreviewablePaths` (recorded by the gate), authored content-less below.
+  //   2. A gitignored secret that flowed under the global bypass is withheld from
+  //      CAS by `partitionIgnoredPathsBySecret` (secret-paths.ts), so its bytes
+  //      never reach `casCaptures`.
+  //   3. A git-TRACKED secret DID flow (the capture-mode gate allows tracked
+  //      mutations with no secret check) and is present in `gitChanges` with real
+  //      bytes. We split it out here and author it content-less, so its content
+  //      never reaches the ledger. Unlike a gitignored secret it HAS a reversible
+  //      substrate (the git refs), so it is withheld-and-reverted rather than
+  //      never-applied — same never-persisted guarantee, appropriate mechanism.
+  const { safe: safeGitChanges, secret: secretGitChanges } =
+    partitionGitChangesBySecret(gitChanges);
+
   // A turn that changed nothing (no tracked/ignored change and no blocked path)
-  // authors no event.
+  // authors no event. A secret-only tracked turn is NOT a no-op — its file is in
+  // `gitChanges`, so the guard below is false and it authors a blocked entry.
   if (gitChanges.length === 0 && casFiles.length === 0 && unreviewable.length === 0) {
     return gitChanges;
   }
 
-  // One combined change set: git-tracked (inline bodies) + CAS (blob refs) +
-  // secret-blocked (content-less, DIFF_UNREVIEWABLE). The aggregate digest folds
-  // all (buildCandidateCapturedEvent sorts by file digest), so the reviewed diff
-  // and its identity span every substrate. deriveDiffCompleteness then rolls the
-  // per-file signals up three ways: any content-less (non-binary) entry forces
-  // PARTIAL_BLOCKED; a set blocked only by binaries is BINARY_SUMMARY_ONLY
-  // (keepable in one acknowledged action); else COMPLETE.
+  // One combined change set: git-tracked (inline bodies) + git-tracked-secret
+  // (content-less) + CAS (blob refs) + gitignored-secret-blocked (content-less).
+  // The aggregate digest folds all (buildCandidateCapturedEvent sorts by file
+  // digest), so the reviewed diff and its identity span every substrate.
+  // deriveDiffCompleteness then rolls the per-file signals up three ways: any
+  // content-less (non-binary) entry forces PARTIAL_BLOCKED; a set blocked only by
+  // binaries is BINARY_SUMMARY_ONLY (keepable in one acknowledged action); else
+  // COMPLETE.
   const captured = [
-    ...gitChanges.map((c) => buildCapturedFileChange(toCapturedChangeInput(changeSetId, c))),
+    ...safeGitChanges.map((c) => buildCapturedFileChange(toCapturedChangeInput(changeSetId, c))),
+    ...secretGitChanges.map((c) => buildCapturedFileChange(trackedSecretChangeInput(changeSetId, c))),
     ...casFiles.map((f) => buildCapturedFileChange(casToCapturedChangeInput(changeSetId, f))),
     ...unreviewable.map((p) => buildCapturedFileChange(unreviewableChangeInput(changeSetId, p, unreviewableCaptureClass))),
   ];
@@ -660,33 +681,113 @@ function casToCapturedChangeInput(
 }
 
 /**
- * Map a secret-blocked gitignored path to a content-less producer input (design
- * doc 12, DD-E). The bytes are deliberately never captured, so both sides are
- * absent (empty enforcement digests) and `diffComplete=false`. Being non-binary
- * incomplete with no keepable bytes, it forces the change set to PARTIAL_BLOCKED
- * (never BINARY_SUMMARY_ONLY) — approval is blocked and the path is surfaced
- * honestly, while its CONTENT never enters the ledger or storage. `blockedReason` records
- * the honest cause (SECRET_WITHHELD) so the review UI can say *why* rather than
- * showing a cause-agnostic "unavailable" (doc 15). Kind is MODIFY: the write was
+ * The single content-less `SECRET_WITHHELD` producer input — the one shape every
+ * secret-blocked change (gitignored OR git-tracked) is authored with, so the two
+ * producers can never drift (a divergence in `diffComplete`/`blockedReason` would
+ * make the backend gate treat one kind of secret differently from the other).
+ *
+ * Both sides are absent (empty enforcement digests) and `diffComplete=false`.
+ * Being non-binary incomplete with no keepable bytes, it forces the change set to
+ * PARTIAL_BLOCKED (never BINARY_SUMMARY_ONLY) — approval is blocked and the path
+ * is surfaced honestly, while its CONTENT never enters the ledger or storage.
+ * `blockedReason=SECRET_WITHHELD` records the honest cause so the review UI can say
+ * *why* rather than a cause-agnostic "unavailable" (doc 15). Callers supply the
+ * id / paths / kind / captureClass so each producer keeps its own honest identity.
+ */
+function secretWithheldChangeInput(
+  id: string,
+  pathBefore: string,
+  pathAfter: string,
+  kind: FileChangeKind,
+  captureClass: FileCaptureClass,
+): CapturedChangeInput {
+  return {
+    id,
+    pathBefore,
+    pathAfter,
+    kind,
+    captureClass,
+    diffComplete: false,
+    blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
+  };
+}
+
+/**
+ * Map a secret-blocked GITIGNORED path (the write never flowed — hard-blocked at
+ * the harness gate, design doc 12 / DD-E) to a content-less entry. The write was
  * blocked before it ran, so create-vs-modify is unknown and irrelevant (nothing
- * is ever applied or reconciled for this entry). `captureClass` is the turn's CAS
- * substrate class (GIT_IGNORED_CAPTURED | NON_GIT_CAS) so the blocked path is
- * labeled with its true provenance.
+ * is ever applied or reconciled for this entry) — kind is MODIFY. `captureClass`
+ * is the turn's CAS substrate class (GIT_IGNORED_CAPTURED | NON_GIT_CAS).
  */
 function unreviewableChangeInput(
   changeSetId: string,
   path: string,
   captureClass: FileCaptureClass,
 ): CapturedChangeInput {
-  return {
-    id: `${changeSetId}:${path}`,
-    pathBefore: path,
-    pathAfter: path,
-    kind: FileChangeKind.MODIFY,
+  return secretWithheldChangeInput(
+    `${changeSetId}:${path}`,
+    path,
+    path,
+    FileChangeKind.MODIFY,
     captureClass,
-    diffComplete: false,
-    blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
-  };
+  );
+}
+
+/**
+ * Map a secret-like GIT-TRACKED change to a content-less entry (DD-26 follow-up
+ * #3). Unlike a gitignored secret, a tracked secret write actually FLOWED (the
+ * capture-mode gate allows tracked mutations), so it is present in the git diff
+ * with real bytes — which must never be persisted into the ledger. We author it
+ * content-less here so its CONTENT never reaches the ledger / Temporal history /
+ * storage, while the honest kind + paths (a CREATE/MODIFY/DELETE, mirroring
+ * {@link toCapturedChangeInput}'s id/path derivation so the resume reconcile
+ * lookup matches) and `GIT_TRACKED` provenance are preserved. It is discard-only
+ * (PARTIAL_BLOCKED): on resume it can only be rejected, and the git substrate
+ * reverts it byte-exact from the baseline ref (the reversible substrate a
+ * gitignored secret lacks — so "withhold + revert" upholds never-persisted here
+ * without the gate hard-block). A DELETE is handled here too: the git diff
+ * resurrects the deleted file's baseline (secret) bytes as the `before` side, a
+ * leak only this seam can withhold (the gate sees no content for a delete).
+ */
+function trackedSecretChangeInput(
+  changeSetId: string,
+  change: GitCapturedChange,
+): CapturedChangeInput {
+  const isCreate = change.changeType === FileChangeType.CREATE;
+  const isDelete = change.changeType === FileChangeType.DELETE;
+  const pathBefore = isCreate ? "" : change.path;
+  const pathAfter = isDelete ? "" : change.path;
+  return secretWithheldChangeInput(
+    `${changeSetId}:${pathAfter || pathBefore}`,
+    pathBefore,
+    pathAfter,
+    toFileChangeKind(change.changeType),
+    FileCaptureClass.GIT_TRACKED,
+  );
+}
+
+/**
+ * Split a turn's git-tracked changes by the secret gate: a secret-like tracked
+ * path (a committed `credentials.json`, `.env.example`, `*.tfvars`, ...) goes to
+ * `secret` (authored content-less via {@link trackedSecretChangeInput}); every
+ * other tracked change stays in `safe` (its diff is captured normally). Pure and
+ * exported for direct unit testing. Keyed on the same {@link isSecretLikePath}
+ * classifier the CAS/gitignored path uses ({@link partitionIgnoredPathsBySecret}
+ * in secret-paths.ts), so a path is classified identically everywhere. NOTE: the
+ * classifier is path-based (DD-12 D2), so a rename to an innocuous name defeats
+ * it — an intentional, cross-substrate limitation, not introduced here.
+ */
+export function partitionGitChangesBySecret(changes: readonly GitCapturedChange[]): {
+  readonly safe: readonly GitCapturedChange[];
+  readonly secret: readonly GitCapturedChange[];
+} {
+  const safe: GitCapturedChange[] = [];
+  const secret: GitCapturedChange[] = [];
+  for (const change of changes) {
+    if (isSecretLikePath(change.path)) secret.push(change);
+    else safe.push(change);
+  }
+  return { safe, secret };
 }
 
 /** Map the git capture kind to the file-review {@link FileChangeKind}. */
