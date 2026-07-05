@@ -158,8 +158,8 @@ terminal reviewer sees the same explanation.
 
 ### changeDisplayPath
 
-The path to show for a change: the post-edit path, or the pre-edit path for a
-deletion. A rename shows `before → after` so both sides are visible.
+The path to show for a reviewable change: the post-edit path, or the pre-edit
+path for a deletion. A rename shows `before → after` so both sides are visible.
 
 
 ### ContextGauge
@@ -202,6 +202,41 @@ Renders nothing for unspecified phases.
     phase: { type: "ExecutionPhase", description: "Current execution phase.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-execution" },
   }}
 />
+
+
+### FileChangeProgressBar
+
+The terminal analogue of the web's non-interactive "N files changing…" strip
+(`@stigmer/react` `FileChangeProgressBar`), for a turn that is still running.
+
+WHY IT EXISTS. The transcript streams per-edit tool rows, but a change made by
+a shell command (a `sed`, a build step) has no tool row, and there is no
+running net-of-many-edits rollup until the turn ends. This strip fills that
+gap: a compact, non-interactive count of the workspace delta accumulating
+during the turn, sitting where the `FileReviewPrompt` will later appear. The
+two are mutually exclusive per turn (progress shows while CAPTURING; the prompt
+once AWAITING_REVIEW), so the strip hands off cleanly to the prompt.
+
+NEVER A DECISION SURFACE. Progress is non-authoritative and carries no file
+bodies — it is never reviewable or decidable, and it owns no keyboard input.
+The reviewed diff is the turn-boundary candidate (`FileReviewPrompt`). A
+secret-like path is surfaced by name with its counts withheld (zeroed), so the
+`+N −M` stat renders nothing for it. The quiet/dim register (no border)
+distinguishes it from the loud, bordered decision prompt.
+
+**Props** — `FileChangeProgressBarProps`
+
+<TypeTable
+  type={{
+    expanded: { type: "boolean", description: "Whether to reveal the per-file list. The compact one-line summary always shows; the list is progressive disclosure. `SessionView` binds this to its existing Ctrl+O \"expand\" toggle so no new keybinding is introduced. Defaults to `false`." },
+    progress: { type: "FileChangeProgress | undefined", description: "The transient mid-run progress snapshot for the active turn (DD-32). Feed this from `useSessionConversation().fileChangeProgress`. Renders nothing when undefined or when no files have changed yet — the server clears it once the turn's change set leaves CAPTURING, so the strip disappears exactly when the decision surface (`FileReviewPrompt`) takes over.", required: true },
+  }}
+/>
+
+```tsx
+const conv = useSessionConversation(sessionId, org);
+<FileChangeProgressBar progress={conv.fileChangeProgress} expanded={expandTools} />
+```
 
 
 ### FileReviewPrompt
@@ -333,6 +368,14 @@ can badge its stamped edit rows.
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval." },
   }}
 />
+
+
+### progressEntryDisplayPath
+
+The path to show for a mid-run progress entry (DD-32), using the same
+rename-aware rule as `changeDisplayPath`. The slim entry carries no
+bodies or digests, only the same before/after/kind triple, so the terminal
+renders its path identically to the reviewable surfaces.
 
 
 ### ResourcePicker
