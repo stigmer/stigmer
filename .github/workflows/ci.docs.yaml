@@ -40,6 +40,15 @@ concurrency:
   group: docs-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+# Make `npm ci` resilient to transient registry drops (ECONNRESET). npm reads
+# these npm_config_* vars, so every install step retries with backoff instead
+# of failing the whole job on the first dropped download.
+env:
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+
 jobs:
   lint-and-build:
     name: Lint & Build

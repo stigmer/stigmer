@@ -45,6 +45,15 @@ concurrency:
 permissions:
   contents: read
 
+# Make `npm ci` resilient to transient registry drops (ECONNRESET). npm reads
+# these npm_config_* vars, so every install step retries with backoff instead
+# of failing the whole job on the first dropped download.
+env:
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+
 jobs:
   sdk-tests:
     name: SDK Tests
@@ -57,6 +66,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Enable Corepack
         run: corepack enable
@@ -87,6 +97,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Enable Corepack
         run: corepack enable
@@ -119,6 +130,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Enable Corepack
         run: corepack enable
@@ -144,6 +156,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Enable Corepack
         run: corepack enable
@@ -168,6 +181,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Enable Corepack
         run: corepack enable
