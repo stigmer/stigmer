@@ -312,6 +312,50 @@ describe("useSessionConversation", () => {
     });
   });
 
+  it("sets NO optimistic pendingUserMessage for a buildFromPlan send (the thread hides the turn)", async () => {
+    methods.listBySession.mockResolvedValue({ entries: [] });
+    const newExec = makeExecution("new-exec", ExecutionPhase.EXECUTION_PENDING);
+    newExec.metadata!.id = "new-exec";
+    methods.executionCreate.mockResolvedValue(newExec);
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendFollowUp("Build from plan", {
+        buildFromPlan: true,
+      });
+    });
+
+    expect(result.current.pendingUserMessage).toBeNull();
+    expect(methods.executionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Build from plan" }),
+    );
+  });
+
+  it("sets pendingUserMessage when a buildFromPlan send FAILS (failure must be visible)", async () => {
+    methods.listBySession.mockResolvedValue({ entries: [] });
+    methods.executionCreate.mockRejectedValue(new Error("create boom"));
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendFollowUp("Build from plan", {
+        buildFromPlan: true,
+      });
+    });
+
+    expect(result.current.sendError?.message).toBe("create boom");
+    expect(result.current.pendingUserMessage).toBe("Build from plan");
+  });
+
   it("preserves the message and surfaces sendError when the send fails", async () => {
     methods.listBySession.mockResolvedValue({ entries: [] });
     methods.executionCreate.mockRejectedValue(new Error("create boom"));

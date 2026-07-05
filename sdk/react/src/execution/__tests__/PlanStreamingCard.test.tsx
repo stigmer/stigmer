@@ -37,8 +37,8 @@ describe("PlanStreamingCard — live plan stand-in", () => {
 
   it("offers no Download or Build actions — nothing final exists yet", () => {
     render(<PlanStreamingCard sizeBytes={64} onOpenPlan={vi.fn()} />);
-    expect(screen.queryByText("Download")).toBeNull();
-    expect(screen.queryByText("Build from plan")).toBeNull();
+    expect(screen.queryByRole("button", { name: /download/i })).toBeNull();
+    expect(screen.queryByText("Build")).toBeNull();
   });
 
   it("renders without an action when onOpenPlan is absent", () => {

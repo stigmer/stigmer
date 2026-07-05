@@ -3,7 +3,7 @@ import { render, fireEvent, cleanup } from "@testing-library/react";
 import { PlanCompletionCard } from "../PlanCompletionCard";
 
 describe("PlanCompletionCard", () => {
-  it("renders the card with status text and a 'Build from plan' button", () => {
+  it("renders the card with status text and a 'Build' button", () => {
     const { container } = render(<PlanCompletionCard onImplement={() => {}} />);
 
     const root = container.firstElementChild as HTMLElement;
@@ -13,7 +13,7 @@ describe("PlanCompletionCard", () => {
 
     const button = root.querySelector("button");
     expect(button).toBeTruthy();
-    expect(button!.textContent).toContain("Build from plan");
+    expect(button!.textContent).toContain("Build");
 
     expect(root.textContent).toContain("Plan complete");
     cleanup();

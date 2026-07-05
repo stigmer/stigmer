@@ -81,9 +81,9 @@ describe("PlanEditor", () => {
     renderEditor({ onBuildFromPlan });
 
     await waitFor(() =>
-      expect(screen.getByText("Build from plan")).toBeTruthy(),
+      expect(screen.getByText("Build")).toBeTruthy(),
     );
-    fireEvent.click(screen.getByText("Build from plan"));
+    fireEvent.click(screen.getByText("Build"));
     expect(onBuildFromPlan).toHaveBeenCalledTimes(1);
   });
 
@@ -99,7 +99,7 @@ describe("PlanEditor", () => {
     );
     expect(screen.getByText("Rollout Plan").className).toContain("truncate");
 
-    const buildLabel = screen.getByText("Build from plan");
+    const buildLabel = screen.getByText("Build");
     expect(buildLabel.className).toContain("truncate");
     const toolbar = screen.getByRole("tablist", { name: "Plan view" })
       .parentElement!;
@@ -188,7 +188,7 @@ describe("PlanEditor — read-only (superseded plan)", () => {
     );
     expect(screen.getByText("Superseded by a newer plan")).toBeTruthy();
     expect(screen.queryByText("Edit")).toBeNull();
-    expect(screen.queryByText("Build from plan")).toBeNull();
+    expect(screen.queryByText("Build")).toBeNull();
   });
 
   it("never applies the current plan's draft to a superseded plan", async () => {

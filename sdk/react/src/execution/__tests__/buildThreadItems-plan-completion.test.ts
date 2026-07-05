@@ -638,7 +638,7 @@ describe("buildThreadItems plan-writing (live streaming collapse)", () => {
   });
 });
 
-describe("buildThreadItems build-from-plan prompt", () => {
+describe("buildThreadItems build-from-plan prompt suppression", () => {
   function promptItem(items: readonly ThreadItem[], execId: string) {
     return items.find(
       (i): i is Extract<ThreadItem, { kind: "message" }> =>
@@ -646,7 +646,7 @@ describe("buildThreadItems build-from-plan prompt", () => {
     );
   }
 
-  it("stamps isBuildFromPlan on the prompt of a build turn", () => {
+  it("synthesizes NO prompt item for a build turn (the label is machine-written, not user prose)", () => {
     const exec = makeExecution({
       id: "exec-build",
       specMessage: "Build from plan",
@@ -656,14 +656,17 @@ describe("buildThreadItems build-from-plan prompt", () => {
     });
 
     const items = buildThreadItems([exec], null, null, false, undefined);
-    const prompt = promptItem(items, "exec-build");
 
-    expect(prompt).toBeDefined();
-    expect(prompt!.isBuildFromPlan).toBe(true);
-    expect(prompt!.message.content).toBe("Build from plan");
+    expect(promptItem(items, "exec-build")).toBeUndefined();
+    // The turn's agent output still renders — only the fake prompt is gone.
+    expect(
+      items.some(
+        (i) => i.kind === "message" && i.message.content === "Implementing…",
+      ),
+    ).toBe(true);
   });
 
-  it("leaves the flag unset on an ordinary prompt (renders as a normal bubble)", () => {
+  it("still synthesizes the prompt for an ordinary turn", () => {
     const exec = makeExecution({
       id: "exec-normal",
       interactionMode: InteractionMode.AGENT,
@@ -674,6 +677,99 @@ describe("buildThreadItems build-from-plan prompt", () => {
     const prompt = promptItem(items, "exec-normal");
 
     expect(prompt).toBeDefined();
-    expect(prompt!.isBuildFromPlan).toBeUndefined();
+    expect(prompt!.message.content).toBe("test message");
+  });
+
+  it("offers no retryMessage on a failed build turn's error item (a plain resend would drop the flag)", () => {
+    const exec = makeExecution({
+      id: "exec-build-fail",
+      specMessage: "Build from plan",
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      interactionMode: InteractionMode.AGENT,
+      buildFromPlan: true,
+    });
+    exec.status!.error = "runner crashed";
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const errorItem = items.find(
+      (i): i is Extract<ThreadItem, { kind: "execution-error" }> =>
+        i.kind === "execution-error",
+    );
+
+    expect(errorItem).toBeDefined();
+    expect(errorItem!.retryMessage).toBeUndefined();
+  });
+
+  it("keeps retryMessage on an ordinary failed turn", () => {
+    const exec = makeExecution({
+      id: "exec-fail",
+      specMessage: "do the thing",
+      phase: ExecutionPhase.EXECUTION_FAILED,
+      interactionMode: InteractionMode.AGENT,
+    });
+    exec.status!.error = "runner crashed";
+
+    const items = buildThreadItems([exec], null, null, false, undefined);
+    const errorItem = items.find(
+      (i): i is Extract<ThreadItem, { kind: "execution-error" }> =>
+        i.kind === "execution-error",
+    );
+
+    expect(errorItem!.retryMessage).toBe("do the thing");
+  });
+});
+
+describe("buildThreadItems pending-bubble tail guard", () => {
+  function pendingItem(items: readonly ThreadItem[]) {
+    return items.find(
+      (i): i is Extract<ThreadItem, { kind: "message" }> =>
+        i.kind === "message" && i.key === "pending-user-turn",
+    );
+  }
+
+  it("suppresses the pending bubble once the same turn has streamed in (succeeded send)", () => {
+    const exec = makeExecution({
+      id: "exec-1",
+      specMessage: "hello there",
+      interactionMode: InteractionMode.AGENT,
+    });
+
+    const items = buildThreadItems(
+      [exec],
+      null,
+      "hello there",
+      false,
+      undefined,
+    );
+
+    expect(pendingItem(items)).toBeUndefined();
+  });
+
+  it("renders a FAILED pending message even when an older execution carries identical text", () => {
+    // Two build attempts of the same plan share the message "Build from
+    // plan". A failed second send created no execution, so the first build
+    // turn must never swallow the failed bubble — the failure would
+    // otherwise render nothing at all (build turns synthesize no prompt).
+    const firstBuild = makeExecution({
+      id: "exec-build-1",
+      specMessage: "Build from plan",
+      interactionMode: InteractionMode.AGENT,
+      buildFromPlan: true,
+    });
+
+    const items = buildThreadItems(
+      [firstBuild],
+      null,
+      "Build from plan",
+      false,
+      undefined,
+      undefined,
+      true, // pendingMessageFailed
+    );
+
+    const failed = pendingItem(items);
+    expect(failed).toBeDefined();
+    expect(failed!.isFailed).toBe(true);
+    expect(failed!.message.content).toBe("Build from plan");
   });
 });

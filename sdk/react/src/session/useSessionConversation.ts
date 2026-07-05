@@ -97,7 +97,7 @@ export interface SendFollowUpOptions {
    */
   readonly interactionMode?: "agent" | "plan";
   /**
-   * Marks this execution as a "Build from plan" turn.
+   * Marks this execution as a Build-from-plan turn.
    *
    * @see {@link CreateAgentExecutionInput.buildFromPlan}
    */
@@ -554,7 +554,14 @@ export function useSessionConversation(
       // Capture for retry and clear any prior failure before the new attempt.
       lastSendRef.current = { message, options };
       setSendError(null);
-      setPendingUserMessage(message);
+      // A Build-from-plan turn shows no optimistic bubble: its message is a
+      // machine-written label, not user prose, and the thread hides the turn
+      // entirely (the plan card's "Starting build…" state covers the send
+      // window). It is still set on FAILURE below, so a failed build send
+      // renders the failed-with-retry bubble instead of vanishing.
+      if (!options?.buildFromPlan) {
+        setPendingUserMessage(message);
+      }
 
       try {
         const needsSessionUpdate =
@@ -596,7 +603,10 @@ export function useSessionConversation(
       } catch (err) {
         // Surface the failure and KEEP the user's message visible (do not clear
         // pendingUserMessage) so the turn renders as failed-with-retry instead
-        // of vanishing. Covers both the update() and create() paths.
+        // of vanishing. Covers both the update() and create() paths. For a
+        // build turn this is the FIRST time the message is set — failure is
+        // the one case where its label must become visible.
+        setPendingUserMessage(message);
         setSendError(toError(err));
         if (process.env.NODE_ENV !== "production") {
           console.error("[useSessionConversation] sendFollowUp failed:", err);

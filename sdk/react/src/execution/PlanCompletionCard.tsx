@@ -6,7 +6,7 @@ import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
 /** Props for {@link PlanCompletionCard}. */
 export interface PlanCompletionCardProps {
-  /** Called when the user clicks the "Build from plan" button. */
+  /** Called when the user clicks the "Build" button. */
   readonly onImplement?: () => void;
   /** Disables the CTA button (e.g., while an execution is active). */
   readonly disabled?: boolean;
@@ -20,9 +20,9 @@ export interface PlanCompletionCardProps {
  * a plan whose upload failed). When a plan artifact exists, the richer
  * `PlanArtifactCard` is shown instead.
  *
- * Mirrors `PlanArtifactCard`'s hierarchy — one prominent, themeable "Build from
- * plan" primary action with the same card-scoped `Cmd/Ctrl+Enter` accelerator —
- * so the two cards feel like the same affordance. The consumer wires the action
+ * Mirrors `PlanArtifactCard`'s hierarchy — one prominent, themeable "Build"
+ * primary action with the same card-scoped `Cmd/Ctrl+Enter` accelerator — so
+ * the two cards feel like the same affordance. The consumer wires the action
  * to switch the interaction mode to Agent and submit the implement turn.
  *
  * Renders nothing when `onImplement` is not provided, so the card is fully
@@ -67,7 +67,7 @@ export const PlanCompletionCard = memo(function PlanCompletionCard({
         )}
       >
         <ImplementIcon />
-        Build from plan
+        Build
       </button>
     </div>
   );

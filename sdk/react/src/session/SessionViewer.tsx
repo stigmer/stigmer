@@ -69,10 +69,10 @@ const APPROVED_PLAN_MOUNT_PATH = `.stigmer/inputs/${PLAN_ARTIFACT_NAME}`;
 /**
  * The build turn's user message — a short human-readable label, NOT the
  * implement instruction. The agent-facing instruction is runner-injected
- * (keyed off `executionConfig.buildFromPlan`), so this text exists for
- * humans: the thread renders the turn as a compact chip from the same flag,
- * and surfaces without the chip treatment (the CLI, older clients) show
- * this label as-is.
+ * (keyed off `executionConfig.buildFromPlan`). The thread hides the turn
+ * entirely from the same flag (the plan card above it is the visible cause);
+ * this label exists for surfaces without that treatment (the CLI, execution
+ * history, older clients), which show it as-is.
  */
 const BUILD_FROM_PLAN_MESSAGE = "Build from plan";
 
@@ -381,7 +381,7 @@ export function SessionViewer({
     setPlanAttachFailed(false);
 
     // `buildFromPlan` (not message text) is what tells the runner to inject
-    // the implement directive and the thread to render the compact chip —
+    // the implement directive and the thread to hide the turn's message —
     // with or without the attachment (the runner picks the directive variant).
     const submitImplementTurn = (attachments?: AttachmentInput[]) => {
       composerRef.current?.submit(BUILD_FROM_PLAN_MESSAGE, {
