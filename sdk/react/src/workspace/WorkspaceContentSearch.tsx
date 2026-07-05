@@ -356,27 +356,31 @@ function LineRow({
   readonly isOpen: boolean;
   readonly onOpen: () => void;
 }) {
+  // The `role="option"` IS the interactive leaf of the listbox (keyboard
+  // activation flows through the combobox input's Enter handler +
+  // aria-activedescendant). It must not nest another interactive control — a
+  // button inside would violate WCAG 4.1.2 (axe `nested-interactive`). So the
+  // click handler and row styling live on the option itself.
   return (
-    <li id={id} role="option" aria-selected={isFocused}>
-      <button
-        type="button"
-        onClick={onOpen}
-        tabIndex={-1}
-        aria-current={isOpen ? "true" : undefined}
-        className={cn(
-          "flex w-full items-baseline gap-2 py-0.5 pl-6 pr-3 text-left text-xs transition-colors",
-          isFocused && "bg-muted",
-          isOpen && "bg-muted",
-          !isFocused && !isOpen && "hover:bg-muted",
-        )}
-      >
-        <span className="w-8 shrink-0 text-right font-mono text-[0.65rem] tabular-nums text-muted-foreground-subtle">
-          {match.line}
-        </span>
-        <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">
-          <HighlightedPreview text={match.preview} query={query} />
-        </span>
-      </button>
+    <li
+      id={id}
+      role="option"
+      aria-selected={isFocused}
+      aria-current={isOpen ? "true" : undefined}
+      onClick={onOpen}
+      className={cn(
+        "flex cursor-pointer items-baseline gap-2 py-0.5 pl-6 pr-3 text-xs transition-colors",
+        isFocused && "bg-muted",
+        isOpen && "bg-muted",
+        !isFocused && !isOpen && "hover:bg-muted",
+      )}
+    >
+      <span className="w-8 shrink-0 text-right font-mono text-[0.65rem] tabular-nums text-muted-foreground-subtle">
+        {match.line}
+      </span>
+      <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">
+        <HighlightedPreview text={match.preview} query={query} />
+      </span>
     </li>
   );
 }

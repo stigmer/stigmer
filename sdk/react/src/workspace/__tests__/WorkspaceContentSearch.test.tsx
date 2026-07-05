@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { WorkspaceContentSearch } from "../WorkspaceContentSearch";
 import type { WorkspaceEntry } from "../useWorkspaceEntries";
 import type {
@@ -99,7 +99,7 @@ describe("WorkspaceContentSearch", () => {
     // Clicking a line hit opens via the shared onOpenFile seam (the same path a
     // tree/filename click uses — this is what makes a changed file honor the
     // FileViewer diff-default; see FileViewer diff-mode suite).
-    fireEvent.click(within(options[0]).getByRole("button"));
+    fireEvent.click(options[0]);
     // The hit's line rides along so the viewer jumps to it (DR-1/DR-2).
     expect(onOpenFile).toHaveBeenCalledWith(entry.id, "src/app.ts", { line: 3 });
   });

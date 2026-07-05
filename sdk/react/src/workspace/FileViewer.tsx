@@ -356,7 +356,12 @@ function FileViewerBody({
 
   if (isLoading) {
     return (
-      <div className="space-y-2 p-4" aria-busy="true" aria-label="Loading file">
+      <div
+        role="status"
+        className="space-y-2 p-4"
+        aria-busy="true"
+        aria-label="Loading file"
+      >
         {SKELETON_LINE_WIDTHS.map((width, i) => (
           <div
             key={i}

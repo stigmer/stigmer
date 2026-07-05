@@ -434,7 +434,7 @@ tidy: ## Run go mod tidy on all Go modules
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
-       test-web test-desktop test-runner-host test-e2e test-e2e-approval check check-all \
+       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-a11y check check-all \
        check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
@@ -483,6 +483,11 @@ verify-web: lint-web typecheck-web ## Lint + typecheck web (~30s)
 
 test-web: ## Run web console component tests (Vitest)
 	npm run test -w client-apps/web
+
+test-a11y: ## Run the SDK workspace-panel accessibility audit (real Chromium via Vitest browser mode)
+	npm run build -w @stigmer/react
+	npx playwright install chromium
+	npm run test:a11y -w @stigmer/react
 
 # ─── Client Apps: Desktop (Tauri v2 + Vite + React) ──
 

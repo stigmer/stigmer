@@ -170,6 +170,10 @@ function ExplorerRootBody({
   if (isLoading) {
     return (
       <div
+        // role="status" both announces the loading state to assistive tech and
+        // makes aria-label permitted here (a role-less generic div cannot carry
+        // an accessible name — axe `aria-prohibited-attr`).
+        role="status"
         className="space-y-1.5 px-2 py-2"
         aria-busy="true"
         aria-label={`Loading files for ${entryName}`}

@@ -318,39 +318,43 @@ function ResultRow({
   const basename = match.path.slice(lastSlash + 1);
   const dir = lastSlash >= 0 ? match.path.slice(0, lastSlash) : "";
 
+  // The `role="option"` IS the interactive leaf of the listbox (keyboard
+  // activation flows through the combobox input's Enter handler +
+  // aria-activedescendant). It must not nest another interactive control — a
+  // button inside would violate WCAG 4.1.2 (axe `nested-interactive`). So the
+  // click handler and row styling live on the option itself.
   return (
-    <li id={id} role="option" aria-selected={isFocused}>
-      <button
-        type="button"
-        onClick={onOpen}
-        tabIndex={-1}
-        aria-current={isOpen ? "true" : undefined}
-        className={cn(
-          "flex w-full items-baseline gap-1.5 px-3 py-1 text-left text-xs transition-colors",
-          isFocused && "bg-muted",
-          isOpen && "bg-muted font-medium text-foreground",
-          !isFocused && !isOpen && "hover:bg-muted",
-        )}
-      >
-        <span className="truncate text-foreground">
+    <li
+      id={id}
+      role="option"
+      aria-selected={isFocused}
+      aria-current={isOpen ? "true" : undefined}
+      onClick={onOpen}
+      className={cn(
+        "flex cursor-pointer items-baseline gap-1.5 px-3 py-1 text-xs transition-colors",
+        isFocused && "bg-muted",
+        isOpen && "bg-muted font-medium text-foreground",
+        !isFocused && !isOpen && "hover:bg-muted",
+      )}
+    >
+      <span className="truncate text-foreground">
+        <HighlightedPath
+          text={basename}
+          offset={lastSlash + 1}
+          matchStart={match.matchStart}
+          matchEnd={match.matchEnd}
+        />
+      </span>
+      {dir && (
+        <span className="truncate text-[0.65rem] text-muted-foreground">
           <HighlightedPath
-            text={basename}
-            offset={lastSlash + 1}
+            text={dir}
+            offset={0}
             matchStart={match.matchStart}
             matchEnd={match.matchEnd}
           />
         </span>
-        {dir && (
-          <span className="truncate text-[0.65rem] text-muted-foreground">
-            <HighlightedPath
-              text={dir}
-              offset={0}
-              matchStart={match.matchStart}
-              matchEnd={match.matchEnd}
-            />
-          </span>
-        )}
-      </button>
+      )}
     </li>
   );
 }

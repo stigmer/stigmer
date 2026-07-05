@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { WorkspaceFileSearch } from "../WorkspaceFileSearch";
 import { __clearWorkspaceListingCache } from "../workspaceListingCache";
 import type { WorkspaceEntry } from "../useWorkspaceEntries";
@@ -74,7 +74,7 @@ describe("WorkspaceFileSearch", () => {
 
     typeQuery("button");
     const option = await screen.findByRole("option");
-    fireEvent.click(within(option).getByRole("button"));
+    fireEvent.click(option);
 
     expect(onOpenFile).toHaveBeenCalledWith(entry.id, "src/button.tsx");
     // Single entry → no group header.
@@ -126,9 +126,7 @@ describe("WorkspaceFileSearch", () => {
     );
     typeQuery("button");
     const option = await screen.findByRole("option");
-    expect(within(option).getByRole("button").getAttribute("aria-current")).toBe(
-      "true",
-    );
+    expect(option.getAttribute("aria-current")).toBe("true");
   });
 
   it("shows a no-match state", async () => {

@@ -47,8 +47,10 @@ export interface EditorTabsProps {
  *
  * A `role="tablist"` of `role="tab"` items; the matching `tabpanel` is the
  * editor body rendered by the surface. Arrow keys move focus between tabs and
- * activate; the per-tab close button is a nested control. All visual properties
- * flow through `--stgm-*` tokens (DD-005).
+ * activate; Delete/Backspace closes the focused tab. The visual close "X" is a
+ * presentational (`aria-hidden`) mouse affordance — assistive tech closes via
+ * the keyboard, so the X is not a nested interactive control (WCAG 4.1.2). All
+ * visual properties flow through `--stgm-*` tokens (DD-005).
  */
 export function EditorTabs({
   editors,
@@ -135,22 +137,26 @@ export function EditorTabs({
             <span className={cn("truncate", editor.preview && "italic")}>
               {basename}
             </span>
-            <button
-              type="button"
+            {/* The visual close "X" is a presentational mouse affordance, NOT a
+                nested interactive control: a `<button>` inside `role="tab"` would
+                violate WCAG 4.1.2 (axe `nested-interactive`). Assistive tech and
+                keyboard users close the focused tab via Delete/Backspace (handled
+                above), so `aria-hidden` here removes the redundant nested control
+                without losing the close action for anyone. */}
+            <span
+              aria-hidden="true"
+              title={`Close ${basename}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onClose(editor.entryId, editor.path);
               }}
-              aria-label={`Close ${basename}`}
-              tabIndex={-1}
               className={cn(
-                "shrink-0 rounded p-0.5 text-muted-foreground transition-opacity hover:bg-accent-hover hover:text-foreground",
-                "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                "shrink-0 cursor-pointer rounded p-0.5 text-muted-foreground transition-opacity hover:bg-accent-hover hover:text-foreground",
                 isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100",
               )}
             >
               <CloseIcon />
-            </button>
+            </span>
           </div>
         );
       })}
