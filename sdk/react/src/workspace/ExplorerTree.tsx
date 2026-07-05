@@ -101,7 +101,10 @@ function ExplorerRoot({
           )}
           title={entry.type === "local" ? entry.localPath : entry.gitUrl}
         >
-          <span className="text-[10px] text-muted-foreground-subtle">
+          <span
+            aria-hidden="true"
+            className="text-[10px] text-muted-foreground-subtle"
+          >
             {expanded ? "▼" : "▶"}
           </span>
           <span className="truncate">{entry.name}</span>
@@ -190,7 +193,7 @@ function ExplorerRootBody({
         <button
           type="button"
           onClick={onRetry}
-          className="ml-2 underline transition-colors hover:text-destructive"
+          className="ml-2 rounded-sm underline transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Retry
         </button>
@@ -226,8 +229,7 @@ function ExplorerRootBody({
       </nav>
       {truncated && (
         <p className="px-3 py-1.5 text-[0.65rem] text-muted-foreground">
-          Showing a partial listing — this repository has too many files to load
-          in full.
+          Showing a partial listing — too many files to load in full.
         </p>
       )}
     </>

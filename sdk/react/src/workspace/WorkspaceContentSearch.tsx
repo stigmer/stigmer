@@ -161,8 +161,28 @@ export function WorkspaceContentSearch({
   const belowMinLength = trimmed.length > 0 && trimmed.length < MIN_QUERY_LENGTH;
   const showEntryHeaders = groups.length > 1;
 
+  // Screen-reader-only summary in a persistent polite live region: status swaps
+  // (searching → results/none) happen across separate unmounting branches, so a
+  // stable region is what actually gets announced. Terse by design.
+  const statusMessage = isUnsupported
+    ? ""
+    : trimmed.length === 0
+      ? ""
+      : belowMinLength
+        ? `Type at least ${MIN_QUERY_LENGTH} characters to search.`
+        : isLoading
+          ? "Searching file contents…"
+          : groups.length === 0
+            ? `No files containing ${trimmed}.`
+            : totalMatches > flatResults.length
+              ? `Showing the first ${flatResults.length} of ${totalMatches} matches.`
+              : `${totalMatches} ${totalMatches === 1 ? "match" : "matches"}.`;
+
   return (
     <div className={cn("flex h-full flex-col", className)}>
+      <div role="status" aria-live="polite" className="sr-only">
+        {statusMessage}
+      </div>
       <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
         <SearchIcon />
         <input

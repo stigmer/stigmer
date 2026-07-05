@@ -132,8 +132,27 @@ export function WorkspaceFileSearch({
   const trimmed = query.trim();
   const showGroupHeaders = groups.length > 1;
 
+  // A concise, screen-reader-only summary of the current result state. It lives
+  // in a persistent polite live region (below) so status changes are announced
+  // even as the visible states — which live in separate, unmounting branches —
+  // swap. Deliberately terse: never the result list itself, only its shape.
+  const statusMessage = isUnsupported
+    ? ""
+    : trimmed.length === 0
+      ? ""
+      : isLoading && totalMatches === 0 && groups.length === 0
+        ? "Searching files…"
+        : groups.length === 0
+          ? `No files matching ${trimmed}.`
+          : totalMatches > flatResults.length
+            ? `Showing the first ${flatResults.length} of ${totalMatches} matching files.`
+            : `${flatResults.length} matching ${flatResults.length === 1 ? "file" : "files"}.`;
+
   return (
     <div className={cn("flex h-full flex-col", className)}>
+      <div role="status" aria-live="polite" className="sr-only">
+        {statusMessage}
+      </div>
       <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
         <SearchIcon />
         <input
@@ -264,7 +283,7 @@ function renderRows({
     if (group.truncated) {
       rows.push(
         <GroupNotice key={`t:${group.entry.id}`}>
-          Partial listing — this repository has too many files to search in full.
+          Partial listing — too many files to search in full.
         </GroupNotice>,
       );
     }

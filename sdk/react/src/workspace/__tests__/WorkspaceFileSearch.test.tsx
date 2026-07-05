@@ -140,7 +140,10 @@ describe("WorkspaceFileSearch", () => {
       />,
     );
     typeQuery("zzzzz");
-    expect(await screen.findByText(/no files matching/i)).toBeTruthy();
+    // Assert the visible message, not the parallel sr-only live-region copy.
+    expect(
+      await screen.findByText(/no files matching/i, { ignore: ".sr-only" }),
+    ).toBeTruthy();
   });
 
   it("renders a truncation notice from a notice entry", async () => {
@@ -182,6 +185,26 @@ describe("WorkspaceFileSearch", () => {
     fireEvent.keyDown(input, { key: "Enter" });
     expect(onOpenFile).toHaveBeenCalledTimes(1);
     expect(onOpenFile.mock.calls[0][0]).toBe(entry.id);
+  });
+
+  it("announces result status in a polite live region", async () => {
+    render(
+      <WorkspaceFileSearch
+        entries={[makeEntry()]}
+        lister={vi.fn(async () => FILES)}
+        onOpenFile={vi.fn()}
+      />,
+    );
+    const status = screen.getByRole("status");
+    expect(status.getAttribute("aria-live")).toBe("polite");
+
+    typeQuery("button");
+    await screen.findByRole("option");
+    expect(status.textContent).toMatch(/matching file/i);
+
+    typeQuery("zzzzz");
+    await screen.findByText(/no files matching/i, { ignore: ".sr-only" });
+    expect(status.textContent).toMatch(/no files matching/i);
   });
 
   it("caps rendered results and reports the total", async () => {

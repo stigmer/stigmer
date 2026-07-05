@@ -69,7 +69,10 @@ describe("WorkspaceContentSearch", () => {
       <WorkspaceContentSearch entries={[makeEntry()]} searcher={searcher} onOpenFile={vi.fn()} />,
     );
     typeQuery("a");
-    expect(screen.getByText(/type at least 2 characters/i)).toBeTruthy();
+    // Assert the visible message, not the parallel sr-only live-region copy.
+    expect(
+      screen.getByText(/type at least 2 characters/i, { ignore: ".sr-only" }),
+    ).toBeTruthy();
     expect(searcher).not.toHaveBeenCalled();
   });
 
@@ -138,7 +141,9 @@ describe("WorkspaceContentSearch", () => {
       />,
     );
     typeQuery("zzz");
-    expect(await screen.findByText(/no files containing/i)).toBeTruthy();
+    expect(
+      await screen.findByText(/no files containing/i, { ignore: ".sr-only" }),
+    ).toBeTruthy();
   });
 
   it("moves virtual focus with ArrowDown and opens on Enter", async () => {
@@ -178,7 +183,35 @@ describe("WorkspaceContentSearch", () => {
     typeQuery("foo");
     await screen.findAllByRole("option");
     expect(screen.getAllByRole("option")).toHaveLength(200);
-    expect(screen.getByText(/showing the first 200 of 250 matches/i)).toBeTruthy();
+    expect(
+      screen.getByText(/showing the first 200 of 250 matches/i, {
+        ignore: ".sr-only",
+      }),
+    ).toBeTruthy();
+  });
+
+  it("announces result status in a polite live region", async () => {
+    // Content matching is backend-delegated, so the searcher must vary by query.
+    const searcher: WorkspaceContentSearcher = vi.fn(async (_e, query) =>
+      query === "foo" ? ok([match("a.ts", 1, "foo")]) : ok([]),
+    );
+    render(
+      <WorkspaceContentSearch
+        entries={[makeEntry()]}
+        searcher={searcher}
+        onOpenFile={vi.fn()}
+      />,
+    );
+    const status = screen.getByRole("status");
+    expect(status.getAttribute("aria-live")).toBe("polite");
+
+    typeQuery("foo");
+    await screen.findByRole("option");
+    expect(status.textContent).toMatch(/match/i);
+
+    typeQuery("zzz");
+    await screen.findByText(/no files containing/i, { ignore: ".sr-only" });
+    expect(status.textContent).toMatch(/no files containing/i);
   });
 
   it("renders a truncation notice when a search was capped", async () => {

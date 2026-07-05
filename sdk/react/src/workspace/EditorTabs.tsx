@@ -4,6 +4,17 @@ import { useCallback, type KeyboardEvent, type MouseEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { editorKey, type OpenEditor } from "../internal/store/index.js";
 
+/**
+ * Deterministic, space-free DOM id for a tab, built from an instance-scoped
+ * `prefix` (a `useId()` value) and the editor `key`. Shared by the tab (its
+ * `id`) and the editor body (its `aria-labelledby`) so the two associate; the
+ * key is percent-encoded because editor keys embed file paths that may contain
+ * characters (spaces) illegal in a space-separated IDREF.
+ */
+export function editorTabDomId(prefix: string, key: string): string {
+  return `${prefix}${encodeURIComponent(key)}`;
+}
+
 /** Props for {@link EditorTabs}. */
 export interface EditorTabsProps {
   /** Open editors in tab order. */
@@ -16,6 +27,14 @@ export interface EditorTabsProps {
   readonly onPin: (entryId: string, path: string) => void;
   /** Close an editor (close button or middle click). */
   readonly onClose: (entryId: string, path: string) => void;
+  /**
+   * DOM id of the editor body (`role="tabpanel"`). When provided together with
+   * {@link tabIdPrefix}, each tab gets a stable `id` and `aria-controls` linking
+   * it to that panel. Optional so the strip degrades gracefully without a panel.
+   */
+  readonly panelId?: string;
+  /** Instance-scoped prefix for per-tab ids (see {@link editorTabDomId}). */
+  readonly tabIdPrefix?: string;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
@@ -37,6 +56,8 @@ export function EditorTabs({
   onActivate,
   onPin,
   onClose,
+  panelId,
+  tabIdPrefix,
   className,
 }: EditorTabsProps) {
   const move = useCallback(
@@ -94,7 +115,9 @@ export function EditorTabs({
           <div
             key={key}
             role="tab"
+            id={tabIdPrefix ? editorTabDomId(tabIdPrefix, key) : undefined}
             aria-selected={isActive}
+            aria-controls={panelId}
             tabIndex={isActive ? 0 : -1}
             title={editor.path}
             onClick={() => onActivate(editor.entryId, editor.path)}
