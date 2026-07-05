@@ -187,6 +187,19 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 				status.GetFileReviewEventStream(),
 			)
 
+			// Mid-run live capture (DD-32): merge the runner-owned transient
+			// progress snapshot (presence-guarded, like streaming_usage), then clear
+			// it unless its change set is still CAPTURING — the setup_progress-style
+			// defense-in-depth clear, run here so it sees the freshly-projected
+			// file_change_sets.
+			if statusUpdates.GetFileChangeProgress() != nil {
+				status.FileChangeProgress = statusUpdates.GetFileChangeProgress()
+			}
+			status.FileChangeProgress = filereview.ReconcileFileChangeProgress(
+				status.GetFileChangeSets(),
+				status.GetFileChangeProgress(),
+			)
+
 			// Error: Update if provided
 			if statusUpdates.GetError() != "" {
 				log.Debug().

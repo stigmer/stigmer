@@ -46,6 +46,12 @@ export function toDisplayFileChange(captured: CapturedFileChange): FileChange {
     captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
     before: captured.before,
     after: captured.after,
+    // The runner's capture-time display counts ride along so renderers can
+    // show `+N −M` even when a body has been offloaded and no inline diff is
+    // computable. Zero means "no count exists" (binary/withheld/legacy) —
+    // consumers hide the stat, never show "+0 −0".
+    linesAdded: captured.linesAdded,
+    linesRemoved: captured.linesRemoved,
     renameFrom:
       captured.kind === FileChangeKind.RENAME ? captured.pathBefore : "",
   });

@@ -55,7 +55,10 @@ func (c *ArtifactController) GetDownloadUrl(ctx context.Context, id *artifactv1.
 	urlCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	downloadURL, err := c.artifactStorage.GetSignedURL(urlCtx, contentHash, downloadURLExpiration)
+	// Empty download filename: this URL is served inline, matching prior
+	// behavior. Attachment disposition is opt-in at the execution-artifact
+	// download path (AgentExecution.GetArtifactDownloadUrl), not here.
+	downloadURL, err := c.artifactStorage.GetSignedURL(urlCtx, contentHash, downloadURLExpiration, "")
 	if err != nil {
 		log.Error().
 			Err(err).

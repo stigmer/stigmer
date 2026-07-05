@@ -138,6 +138,111 @@ describe("buildCapturedFileChange", () => {
     }
   });
 
+  it("stamps display line counts from inline sides", () => {
+    const modify = buildCapturedFileChange({
+      id: "fc-counts",
+      pathBefore: "src/a.ts",
+      pathAfter: "src/a.ts",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      before: "one\ntwo\n",
+      after: "one\nTWO\nthree\n",
+    });
+    expect(modify.linesAdded).toBe(2);
+    expect(modify.linesRemoved).toBe(1);
+
+    const add = buildCapturedFileChange({
+      id: "fc-add-counts",
+      pathBefore: "",
+      pathAfter: "src/new.ts",
+      kind: FileChangeKind.ADD,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      after: "a\nb\nc\n",
+    });
+    expect(add.linesAdded).toBe(3);
+    expect(add.linesRemoved).toBe(0);
+  });
+
+  it("prefers explicit lineCounts (the CAS substrate's capture-time counts) over inline counting", () => {
+    const change = buildCapturedFileChange({
+      id: "fc-explicit",
+      pathBefore: "notes.txt",
+      pathAfter: "notes.txt",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.NON_GIT_CAS,
+      before: {
+        kind: "ref", sha256: "s1", storageKey: "k1", sizeBytes: 10, isBinary: false,
+      },
+      after: {
+        kind: "ref", sha256: "s2", storageKey: "k2", sizeBytes: 12, isBinary: false,
+      },
+      lineCounts: { linesAdded: 7, linesRemoved: 4 },
+    });
+    expect(change.linesAdded).toBe(7);
+    expect(change.linesRemoved).toBe(4);
+  });
+
+  it("leaves counts at zero when a side is not countable (binary / ref without explicit counts / withheld)", () => {
+    // Binary side: no text diff exists, so no count may claim one does.
+    const binary = binaryChange("bin");
+    expect(binary.linesAdded).toBe(0);
+    expect(binary.linesRemoved).toBe(0);
+
+    // Ref side without explicit counts: the bytes are not here to count.
+    const ref = buildCapturedFileChange({
+      id: "fc-ref",
+      pathBefore: "big.txt",
+      pathAfter: "big.txt",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.NON_GIT_CAS,
+      before: { kind: "ref", sha256: "s1", storageKey: "k1", sizeBytes: 9, isBinary: false },
+      after: { kind: "ref", sha256: "s2", storageKey: "k2", sizeBytes: 9, isBinary: false },
+    });
+    expect(ref.linesAdded).toBe(0);
+    expect(ref.linesRemoved).toBe(0);
+
+    // Secret-withheld: content-less by design.
+    const withheld = unavailableChange("secret");
+    expect(withheld.linesAdded).toBe(0);
+    expect(withheld.linesRemoved).toBe(0);
+  });
+
+  it("keeps line counts out of the enforcement digests (informational only)", () => {
+    const common = {
+      id: "fc-digest",
+      pathBefore: "a",
+      pathAfter: "a",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.NON_GIT_CAS,
+      before: {
+        kind: "ref", sha256: "s1", storageKey: "k1", sizeBytes: 3, isBinary: false,
+      },
+      after: {
+        kind: "ref", sha256: "s2", storageKey: "k2", sizeBytes: 3, isBinary: false,
+      },
+    } as const;
+    // Identical content with and without counts must be digest-indistinguishable —
+    // structurally guaranteed (FileDigestInput excludes counts), locked here so a
+    // future refactor cannot silently fold display data into enforcement.
+    const withoutCounts = buildCapturedFileChange(common);
+    const withCounts = buildCapturedFileChange({
+      ...common,
+      lineCounts: { linesAdded: 5, linesRemoved: 2 },
+    });
+    expect(withCounts.fileDigest).toBe(withoutCounts.fileDigest);
+
+    const aggWithout = buildCandidateCapturedEvent(ctx, undefined, [withoutCounts]);
+    const aggWith = buildCandidateCapturedEvent(ctx, undefined, [withCounts]);
+    if (
+      aggWithout.payload.case === "candidateCaptured" &&
+      aggWith.payload.case === "candidateCaptured"
+    ) {
+      expect(aggWith.payload.value.aggregateDigest).toBe(
+        aggWithout.payload.value.aggregateDigest,
+      );
+    }
+  });
+
   it("omits the before side for an ADD and the after side for a DELETE", () => {
     const add = buildCapturedFileChange({
       id: "fc-add",

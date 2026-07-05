@@ -302,26 +302,31 @@ func TestAgentExecution_PlanMode_PublishesPlanArtifact(t *testing.T) {
 				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 5*time.Minute)
 			require.NoError(t, err, "plan-mode execution should complete")
 
+			// The plan artifact is named from the plan's title
+			// (`<slug>_<id>.plan.md`, or a bare `<id>.plan.md` when untitled), and
+			// the legacy `plan.md` is still detected, so detection keys on the
+			// filename convention, not an exact name.
 			artifacts := result.GetStatus().GetArtifacts()
 			var plan *agentexecv1.ExecutionArtifact
 			for _, a := range artifacts {
-				if a.GetName() == "plan.md" {
+				name := a.GetName()
+				if name == "plan.md" || strings.HasSuffix(name, ".plan.md") {
 					plan = a
 					break
 				}
 			}
 
 			require.NotNil(t, plan,
-				"plan-mode execution should publish a plan.md artifact (got %d artifacts) for %s",
+				"plan-mode execution should publish a plan artifact (*.plan.md, got %d artifacts) for %s",
 				len(artifacts), executionID)
 
 			assert.Equal(t,
 				agentexecv1.ExecutionArtifactKind_EXECUTION_ARTIFACT_KIND_FILE, plan.GetKind(),
-				"plan.md should be a FILE artifact")
-			assert.NotEmpty(t, plan.GetStorageKey(), "plan.md should have a storage_key")
+				"the plan should be a FILE artifact")
+			assert.NotEmpty(t, plan.GetStorageKey(), "the plan should have a storage_key")
 			assert.Contains(t, plan.GetStorageKey(), executionID,
-				"plan.md storage_key should be scoped to the execution")
-			assert.Greater(t, plan.GetSizeBytes(), int64(0), "plan.md should be non-empty")
+				"the plan storage_key should be scoped to the execution")
+			assert.Greater(t, plan.GetSizeBytes(), int64(0), "the plan should be non-empty")
 
 			t.Logf("plan artifact: harness=%s execution=%s name=%s size=%d storage_key=%s",
 				h.Name, executionID, plan.GetName(), plan.GetSizeBytes(), plan.GetStorageKey())

@@ -149,4 +149,56 @@ describe("ExplorerTree", () => {
       screen.queryByRole("button", { name: /Remove .* from workspace/ }),
     ).toBeNull();
   });
+
+  it("exposes tree depth via aria-level and keeps aria-expanded on the treeitem", async () => {
+    render(
+      <ExplorerTree
+        entries={[entry("x9")]}
+        lister={lister(["src/nested.ts"])}
+        selectedFile={null}
+        onOpenFile={vi.fn()}
+        onActivateFile={vi.fn()}
+      />,
+    );
+    const folder = await screen.findByText("src");
+    const folderItem = folder.closest('[role="treeitem"]')!;
+    // Top-level treeitem is level 1; expandability is announced on the treeitem.
+    expect(folderItem.getAttribute("aria-level")).toBe("1");
+    expect(folderItem.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(folder);
+    const nested = await screen.findByText("nested.ts");
+    expect(nested.closest('[role="treeitem"]')!.getAttribute("aria-level")).toBe(
+      "2",
+    );
+  });
+
+  it("shows a substrate-agnostic truncation banner from a notice entry (DD-11)", async () => {
+    // A lister that signals an incomplete listing via a `notice` entry (as the
+    // desktop and GitHub listers do). The advisory is stripped from the tree and
+    // surfaced as a banner instead.
+    const truncatedLister: WorkspaceFileLister = vi.fn(async () => [
+      { path: "a.ts", isDirectory: false },
+      {
+        path: "... (listing truncated)",
+        isDirectory: false,
+        notice: true as const,
+      },
+    ]);
+    render(
+      <ExplorerTree
+        entries={[entry("x8")]}
+        lister={truncatedLister}
+        selectedFile={null}
+        onOpenFile={vi.fn()}
+        onActivateFile={vi.fn()}
+      />,
+    );
+    const banner = await screen.findByText(/too many files to load in full/i);
+    expect(banner).toBeTruthy();
+    // Wording must read correctly for a local folder, not just a git repo.
+    expect(banner.textContent).not.toMatch(/repository/i);
+    // The notice advisory is never an openable tree leaf.
+    expect(screen.queryByText("... (listing truncated)")).toBeNull();
+  });
 });

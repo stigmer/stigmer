@@ -326,6 +326,24 @@ describe("FileViewer — diff mode", () => {
       expect(screen.getByRole("radio", { name: "Diff" }).getAttribute("aria-checked")).toBe("true"),
     );
   });
+
+  it("moves focus with selection when roving Diff|File", async () => {
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "src/a.ts" }}
+        entries={ENTRIES}
+        reader={readerFor(text("live content"))}
+        change={wholeFileChange("src/a.ts")}
+      />,
+    );
+
+    const diffRadio = screen.getByRole("radio", { name: "Diff" });
+    diffRadio.focus();
+    fireEvent.keyDown(diffRadio, { key: "ArrowRight" });
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("radio", { name: "File" })),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

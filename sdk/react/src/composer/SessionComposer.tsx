@@ -90,8 +90,9 @@ export interface SessionComposerHandle {
    *   plan" to deliver the approved `plan.md` to the implement execution.
    * @param options.buildFromPlan - Marks this submission as the implement
    *   turn of a Plan → Build handoff (`execution_config.build_from_plan`).
-   *   The runner injects the implement-plan directive and the thread renders
-   *   the turn as a compact chip; the message stays a short label.
+   *   The runner injects the implement-plan directive and the thread hides
+   *   the turn's message; the message stays a short label for surfaces
+   *   without that treatment (the CLI, history).
    */
   submit(
     message: string,
@@ -156,13 +157,13 @@ export interface SessionComposerSubmitContext {
    */
   readonly workspaceFileRefs?: string[];
   /**
-   * The submission is a "Build from plan" turn.
+   * The submission is a Build-from-plan turn.
    *
    * Only ever set through {@link SessionComposerHandle.submit} (the thread
    * card / plan editor CTA) — there is no composer UI for it. Pass to
    * execution creation as `execution_config.build_from_plan`; the runner
-   * injects the implement-plan directive and the thread renders the turn
-   * as a compact chip.
+   * injects the implement-plan directive and the thread hides the turn's
+   * machine-written message (the plan card above it is the visible cause).
    *
    * `undefined` for ordinary submissions.
    */
@@ -796,7 +797,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       }
 
       // Composer-attached files plus caller-supplied extras (e.g. the approved
-      // plan.md from "Build from plan") travel as one attachment list.
+      // plan.md from a Build-from-plan turn) travel as one attachment list.
       const composerAttachments = enableAttachments
         ? attachments.toAttachmentInputs()
         : [];

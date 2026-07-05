@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { ApprovalAction, ExecutionPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -97,7 +97,7 @@ export interface SendFollowUpOptions {
    */
   readonly interactionMode?: "agent" | "plan";
   /**
-   * Marks this execution as a "Build from plan" turn.
+   * Marks this execution as a Build-from-plan turn.
    *
    * @see {@link CreateAgentExecutionInput.buildFromPlan}
    */
@@ -222,6 +222,13 @@ export interface UseSessionConversationReturn {
 
   /** Captured change sets awaiting file review on the active execution, empty when none. */
   readonly fileChangeSets: readonly FileChangeSet[];
+  /**
+   * Mid-run live capture (DD-32): the transient, non-authoritative snapshot of the
+   * workspace delta accumulating during the active turn ("N files changed so far").
+   * Undefined when no turn is currently capturing. Never decidable — the reviewed
+   * diff is {@link fileChangeSets}.
+   */
+  readonly fileChangeProgress: FileChangeProgress | undefined;
   /** Submit a file-review decision for a change set. The executionId is managed internally. */
   readonly submitFileDecision: (
     changeSetId: string,
@@ -554,7 +561,14 @@ export function useSessionConversation(
       // Capture for retry and clear any prior failure before the new attempt.
       lastSendRef.current = { message, options };
       setSendError(null);
-      setPendingUserMessage(message);
+      // A Build-from-plan turn shows no optimistic bubble: its message is a
+      // machine-written label, not user prose, and the thread hides the turn
+      // entirely (the plan card's "Starting build…" state covers the send
+      // window). It is still set on FAILURE below, so a failed build send
+      // renders the failed-with-retry bubble instead of vanishing.
+      if (!options?.buildFromPlan) {
+        setPendingUserMessage(message);
+      }
 
       try {
         const needsSessionUpdate =
@@ -596,7 +610,10 @@ export function useSessionConversation(
       } catch (err) {
         // Surface the failure and KEEP the user's message visible (do not clear
         // pendingUserMessage) so the turn renders as failed-with-retry instead
-        // of vanishing. Covers both the update() and create() paths.
+        // of vanishing. Covers both the update() and create() paths. For a
+        // build turn this is the FIRST time the message is set — failure is
+        // the one case where its label must become visible.
+        setPendingUserMessage(message);
         setSendError(toError(err));
         if (process.env.NODE_ENV !== "production") {
           console.error("[useSessionConversation] sendFollowUp failed:", err);
@@ -638,6 +655,16 @@ export function useSessionConversation(
       (activeStreamExecution?.status?.fileChangeSets ?? []).filter(
         (cs) => cs.status === FileChangeSetStatus.AWAITING_REVIEW,
       ),
+    [activeStreamExecution],
+  );
+
+  // Mid-run live capture (DD-32): the transient, non-authoritative "N files
+  // changed so far" snapshot for the active turn. The server clears it once the
+  // turn's change set leaves CAPTURING, so its mere presence means a turn is
+  // still accumulating changes. Reference-stable per DD-010 (it rides the
+  // structurally-shared live status).
+  const fileChangeProgress = useMemo<FileChangeProgress | undefined>(
+    () => activeStreamExecution?.status?.fileChangeProgress,
     [activeStreamExecution],
   );
 
@@ -685,6 +712,7 @@ export function useSessionConversation(
     clearApprovalError,
 
     fileChangeSets,
+    fileChangeProgress,
     submitFileDecision,
     submittingFileDecisionKeys: submittingDecisionKeys,
     fileDecisionErrors,

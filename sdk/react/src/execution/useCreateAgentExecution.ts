@@ -55,11 +55,13 @@ export interface CreateAgentExecutionInput {
    */
   readonly interactionMode?: "agent" | "plan";
   /**
-   * Marks this execution as a "Build from plan" turn: the user approved a
+   * Marks this execution as a Build-from-plan turn: the user approved a
    * plan from a prior Plan-mode execution and asked the agent to implement
    * it. The runner injects the implement-plan directive (pointing at the
-   * attached approved plan when present); the thread renders the turn as a
-   * compact chip instead of the raw message text.
+   * attached approved plan when present); the thread hides the turn's
+   * machine-written message entirely — the plan card above it is the
+   * visible cause. Surfaces without that treatment (the CLI, history)
+   * show the message text as-is.
    *
    * Maps to `ExecutionConfig.build_from_plan` in the proto.
    */

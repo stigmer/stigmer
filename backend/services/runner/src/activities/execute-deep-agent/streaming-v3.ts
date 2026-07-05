@@ -118,10 +118,15 @@ export async function streamExecutionV3(
         }
 
         statusBuilder.syncSubAgentExecutions();
+        // Mid-run live capture (DD-32): attach file_change_progress to the live
+        // status before it is persisted. Injected so this loop stays ignorant of
+        // file-review specifics; a no-op when the hook is absent or nothing changed.
+        const statusToPersist = statusBuilder.currentStatus;
+        await deps.beforePersist?.(statusToPersist);
         const signal = await persistStatus(
           client,
           executionId,
-          statusBuilder.currentStatus,
+          statusToPersist,
           { offload, retry: retryOptions },
         );
         scheduler.markUpdateSent(eventsProcessed);

@@ -101,7 +101,10 @@ function ExplorerRoot({
           )}
           title={entry.type === "local" ? entry.localPath : entry.gitUrl}
         >
-          <span className="text-[10px] text-muted-foreground-subtle">
+          <span
+            aria-hidden="true"
+            className="text-[10px] text-muted-foreground-subtle"
+          >
             {expanded ? "▼" : "▶"}
           </span>
           <span className="truncate">{entry.name}</span>
@@ -167,6 +170,10 @@ function ExplorerRootBody({
   if (isLoading) {
     return (
       <div
+        // role="status" both announces the loading state to assistive tech and
+        // makes aria-label permitted here (a role-less generic div cannot carry
+        // an accessible name — axe `aria-prohibited-attr`).
+        role="status"
         className="space-y-1.5 px-2 py-2"
         aria-busy="true"
         aria-label={`Loading files for ${entryName}`}
@@ -190,7 +197,7 @@ function ExplorerRootBody({
         <button
           type="button"
           onClick={onRetry}
-          className="ml-2 underline transition-colors hover:text-destructive"
+          className="ml-2 rounded-sm underline transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Retry
         </button>
@@ -226,8 +233,7 @@ function ExplorerRootBody({
       </nav>
       {truncated && (
         <p className="px-3 py-1.5 text-[0.65rem] text-muted-foreground">
-          Showing a partial listing — this repository has too many files to load
-          in full.
+          Showing a partial listing — too many files to load in full.
         </p>
       )}
     </>

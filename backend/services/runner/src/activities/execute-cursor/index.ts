@@ -43,9 +43,9 @@ import { resolveAgent } from "./session-lifecycle.js";
 import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
-import { MessageAccumulator, reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
+import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
-import { collectSubAgentToolCallIds, withholdSecretContentFromMessages } from "../../shared/tool-row.js";
+import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { startStallWatchdog, StallTimeoutError, formatStallFailure, type StallWatchdog } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
@@ -74,16 +74,20 @@ import {
   type ReleaseWorkspaceLock,
 } from "../../shared/workspace/workspace-lock.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
-import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, primaryToken, readDenialLedger, reconstructAdjudicatedApprovals, watchDenialLedger } from "./approval-state.js";
-import { deriveTurnCommandProvenance } from "./command-provenance.js";
+import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, readDenialLedger, reconstructAdjudicatedApprovals, watchDenialLedger } from "./approval-state.js";
 import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "./exact-apply.js";
 import { isGitWorkTree } from "../../shared/filereview/git-substrate.js";
 import {
   captureBaselineToLedger,
-  captureTurnToLedger,
+  captureProgressToStatus,
   applyCaptureDecisions,
   deriveCaptureMode,
 } from "./capture-flow.js";
+import { runTurnBoundary, type TurnBoundaryResult } from "./turn-boundary.js";
+import {
+  newProgressCaptureState,
+  type ProgressCaptureState,
+} from "../../shared/filereview/progress.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
@@ -101,12 +105,6 @@ import { createAgent, createCloudAgent } from "./session-lifecycle.js";
 import { setMaxListeners } from "node:events";
 import { startHeartbeat } from "../../shared/heartbeat.js";
 import { getShutdownSignalForQueue } from "../../runner-manager.js";
-
-// How long Phase 12 waits for the first-denial-stop's run.cancel() to settle
-// before reading the final denial ledger and capturing the turn's tree. Long
-// enough for the SDK's normal teardown, short enough that a wedged cancel
-// cannot noticeably delay the approval pause the user is already waiting on.
-const FIRST_DENIAL_CANCEL_TIMEOUT_MS = 5_000;
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -304,6 +302,9 @@ async function executeCursorInner(
     // Pre-turn baseline tree, pinned before the agent runs (capture mode only)
     // so the turn-end capture diffs against it and the tree restores exactly.
     let baselineTree: string | undefined;
+    // Per-turn state for mid-run live capture (DD-32): the last progress tree sha
+    // (short-circuit) + last capture time (floor), threaded across persists.
+    const progressState: ProgressCaptureState = newProgressCaptureState();
     // Deterministic id of the change set this turn may produce:
     // `${executionId}:${turnSeq}`. Minted from the workflow-threaded turn index
     // so it is stable across a Temporal retry (idempotent ledger authoring) and
@@ -1068,6 +1069,22 @@ async function executeCursorInner(
         // accumulator tracked sub-agents in memory but they only reached the
         // status (and the subscriber stream) after the loop ended.
         status.subAgentExecutions = accumulator.subAgentExecutions;
+        // Mid-run live capture (DD-32): attach the "N files changed so far"
+        // snapshot onto status.file_change_progress, throttled internally by the
+        // floor + tree-sha short-circuit. Git capture mode only (a pinned baseline
+        // exists); shell + sub-agent + tool edits are all captured for free by the
+        // workspace-wide diff. Never authoritative — the turn-boundary candidate
+        // remains the reviewed diff.
+        if (captureMode && gitWorkspace && baselineTree && primaryWorkspaceDir) {
+          await captureProgressToStatus({
+            status,
+            gitRoot: primaryWorkspaceDir,
+            executionId,
+            changeSetId,
+            baselineTree,
+            state: progressState,
+          });
+        }
         const signal = await persist(status);
         deltaEnricher.markPersisted();
         todoTracker.markPersisted();
@@ -1245,155 +1262,88 @@ async function executeCursorInner(
       return slimStatus(status);
     }
 
-    // Phase 12: Surface tools the preToolUse hook gated (HITL).
-    //
-    // The hook records each denial to the ledger; we mark the corresponding tool
-    // calls WAITING_APPROVAL. The backend projects pending_approvals from that
-    // tool-call status (PendingApprovalComputer), so — exactly like the native
-    // harness — the approval surface is driven entirely by tool-call status. We
-    // deliberately do NOT set status.pendingApprovals here: any value would be
-    // discarded by the backend's recompute on the next updateStatus.
-    //
-    // Before reading the ledger, wait (timeboxed) for the first-denial-stop's
-    // run.cancel() to settle. run.cancel() races the SDK's auto-execution: until
-    // it lands, the agent process may still attempt a post-denial workaround
-    // whose hook denial would land AFTER a premature ledger read — the row then
-    // never collapses and renders as RUNNING forever (production case
-    // aex_01kwj07f7g23c3wp9sn8496z5g) — or a late tool could mutate the tree
-    // mid-capture. The timebox keeps a wedged cancel from hanging the pause;
-    // the Phase 12 trims below remain the backstop for that degraded case.
-    if (firstDenialDetected && denialCancelSettled) {
-      await Promise.race([
-        denialCancelSettled,
-        new Promise<void>((resolve) => {
-          const timer = setTimeout(resolve, FIRST_DENIAL_CANCEL_TIMEOUT_MS);
-          timer.unref();
-        }),
-      ]);
-    }
-    const deniedLedger = await readDenialLedger(hitlDir ?? "");
-
-    // Capture mode: author the net change set to the file_review ledger as the
-    // CANDIDATE_CAPTURED event (projected server-side to a file_change_set
-    // AWAITING_REVIEW — the single review surface). The runner-owned gate files
-    // are excluded from the capture. The agent's edits are LEFT applied on the
-    // working tree (Cursor parity — the user reviews the real change; nothing is
-    // committed and the next turn is blocked until approval, and a reject snaps
-    // each file back on resume). Runs BEFORE the denial reconcile so a denied
-    // (gitignored) write stays on the deny-gate path while every flowed edit is
-    // captured to the ledger.
-    let capturedChangeCount = 0;
-    // `baselineTree !== undefined` means a baseline was authored this turn — the
-    // git tree sha for a git workspace, or "" (empty, but authored) for a non-git
-    // one. A plain truthiness check would wrongly skip the non-git capture.
-    if (captureMode && baselineTree !== undefined && primaryWorkspaceDir) {
-      const deniedTokens = new Set(deniedLedger.map((e) => e.token));
-      // Approved-command turn facts (DD-28): when every mutation-capable call
-      // this turn was a consented shell command, attach the provenance so the
-      // backend can verify the cited consent rows and auto-keep the set instead
-      // of arming a second gate. Fail-closed: any non-qualifying turn attaches
-      // nothing and reviews manually exactly as before.
-      const commandProvenance = deriveTurnCommandProvenance({
-        messages: status.messages,
-        turnStartIndex: turnStartMessageIndex,
-        deniedTokens,
-        grantTokenToConsentId: new Map(
-          (approvalGrants ?? []).map((g) => [
-            primaryToken(g.key, g.salient, g.contentDigest),
-            g.sourceToolCallId,
-          ]),
-        ),
-        globalBypass,
-      });
-      if (commandProvenance) {
-        console.log(
-          `ExecuteCursor capture: turn qualifies for approved-command auto-keep ` +
-          `(consent rows: ${commandProvenance.consentToolCallIds.join(",") || "(auto_approve_all)"}); ` +
-          `attaching provenance to candidate (execution=${executionId})`,
-        );
-      }
-      const captured = await captureTurnToLedger({
+    // Phase 12: The turn boundary — author this turn's change set to the
+    // file_review ledger (CANDIDATE_CAPTURED) and overlay the hook's denials as
+    // WAITING_APPROVAL gate rows. The full pipeline and its ordering rationale
+    // live in turn-boundary.ts; this closure binds the turn's state so the
+    // recovery retries below (which re-run the agent AFTER this primary call)
+    // can re-enter the IDENTICAL pipeline — a retry's edits must reach the
+    // ledger or they silently escape review. `baselineTree` is read at call
+    // time, so both entries see the baseline authored at turn start.
+    const runBoundary = (denialSettled?: Promise<void>) =>
+      runTurnBoundary({
         status,
-        gitRoot: primaryWorkspaceDir,
         executionId,
         changeSetId,
-        baselineTree,
-        messages: status.messages,
-        deniedTokens,
-        commandProvenance,
-        // Scope sub-agent row stamping to this turn: the seeded prior sub-agents
-        // (cloned in on resume) are the "before this turn" rows to skip.
-        priorSubAgentToolCallIds: collectSubAgentToolCallIds(seededSubAgents),
-        // The CAS half: read the sidecar the hook staged this turn and compose it
-        // into the change set. hitlDir + storage are present when captureIgnored
-        // was on (a git tree's gitignored writes, or ALL writes in a non-git
-        // workspace). In a git tree this composes with the git diff (HYBRID); in a
-        // non-git workspace it IS the whole change set (CAS-only).
         hitlDir,
-        storage: artifactStorage,
+        captureMode,
+        baselineTree,
+        primaryWorkspaceDir,
         gitWorkspace,
+        turnStartMessageIndex,
+        approvalGrants,
+        globalBypass,
+        seededSubAgents,
+        artifactStorage,
+        mergedPolicies,
+        denialCancelSettled: denialSettled,
       });
-      capturedChangeCount = captured.length;
-      if (capturedChangeCount > 0) {
-        console.log(
-          `ExecuteCursor capture: ${capturedChangeCount} file change(s) authored to the ` +
-          `file_review ledger (change_set=${changeSetId}), working tree left applied ` +
-          `for review (execution=${executionId})`,
-        );
-      }
-    }
-
-    // The gate reads each denied file's pre-edit `before` from the workspace the
-    // runner is co-located with (local FS for OSS; the sandbox in cloud), so a
-    // whole-file rewrite gate renders a true before/after diff. The tool was
-    // DENIED, so disk still holds the old content. User files are never platform
-    // paths, so no platformDir routing is needed here.
-    const gateWorkspaceBackend = new LocalWorkspaceBackend(primaryWorkspaceDir);
-    const deniedToolCalls = await reconcileDeniedToolCalls(
-      status.messages,
-      deniedLedger,
-      mergedPolicies,
-      gateWorkspaceBackend,
-    );
-    // Observability: a synthesized placeholder (id `approval:*`) means a denial
-    // correlated to NO streamed tool call in either the exact or the normalized
-    // pass. After the normalized-path fallback this should be ~0; a non-zero rate
-    // is the early-warning signal of a NEW identity drift (the gate would then
-    // show "No preview available" with no diff). Logged, not thrown — the
-    // synthesized gate still safely surfaces the approval.
-    const synthesizedGateCount = deniedToolCalls.filter((tc) =>
-      tc.id.startsWith("approval:"),
-    ).length;
-    if (synthesizedGateCount > 0) {
-      console.warn(
-        `ExecuteCursor reconcile synthesized ${synthesizedGateCount} placeholder gate(s) ` +
-          `with no correlated stream call (execution=${executionId}); ` +
-          `possible hook/stream identity drift — gate(s) will lack a diff`,
-      );
-    }
-    if (deniedToolCalls.length > 0 || capturedChangeCount > 0) {
-      if (deniedToolCalls.length > 0) {
-        // Deterministic clean-pause: a turn that pauses for approval must read as
-        // the same shape the native harness produces — pre-tool text + the gated
-        // tool calls — never the model's provisional reaction to Cursor's deny
-        // (e.g. "blocked by a hook; enable it in your Cursor settings"). We blank
-        // that reaction in place (keeping the message count, so the finalize stays
-        // append-only) rather than removing it. See
-        // clearProvisionalPostDenialNarration for the full rationale.
-        const redactedNarration = clearProvisionalPostDenialNarration(status.messages, deniedToolCalls);
-        if (redactedNarration.length > 0) {
-          console.log(
-            `ExecuteCursor redacted ${redactedNarration.length} provisional post-denial narration message(s) before pausing for approval`,
-          );
-        }
-      }
+    // Pauses for review exactly like the native harness: the boundary mutated
+    // the transcript in place; we flip the phase, persist, and RETURN to the
+    // workflow, which waits for the approval/file-review signal and reinvokes.
+    const enterApprovalPause = async (boundary: TurnBoundaryResult) => {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
       await persist(status);
       console.log(
-        `ExecuteCursor returning WAITING_FOR_APPROVAL: ${deniedToolCalls.length} gated tool(s), ` +
-        `${capturedChangeCount} file card(s) pending`,
+        `ExecuteCursor returning WAITING_FOR_APPROVAL: ${boundary.deniedToolCallCount} gated tool(s), ` +
+        `${boundary.capturedChangeCount} file card(s) pending`,
       );
       return slimStatus(status);
+    };
+
+    // Stream epilogue + boundary re-entry for a recovery retry (poisoned-handle /
+    // transport-timeout). The retry re-runs the agent AFTER the primary epilogue
+    // and boundary already ran, so its stream state must be settled the same way:
+    //  - flush the enricher's buffered deltas onto the rows (the primary loop
+    //    applies them every iteration; the bare retry loop does not — without the
+    //    flush, a completed tool call never receives its completedAt evidence and
+    //    finalize's reconciliation sweep leaves it RUNNING forever);
+    //  - finalize streaming state and sync sub-agents;
+    //  - refresh streaming usage (the retry's turns accumulated in memory only)
+    //    and re-stamp completedAt (stamped below BEFORE the retry ran);
+    //  - re-enter the turn boundary so edits made by the retry reach the
+    //    file_review ledger / approval gates — without this, a retry's file
+    //    edits silently escape review (production case
+    //    aex_01kws27q1e2esvkqjpvectttxf).
+    // Returns undefined for a cancelled retry: parity with the primary path,
+    // where cancellation exits before the boundary — there is no review to open.
+    const settleRetryTurn = async (
+      retryResultStatus: string,
+    ): Promise<TurnBoundaryResult | undefined> => {
+      accumulator.finalize();
+      deltaEnricher.applyEnrichments(status.messages);
+      deltaEnricher.finalize(status.messages);
+      status.subAgentExecutions = accumulator.subAgentExecutions;
+      if (usageAccumulator.hasTurns) {
+        status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
+      }
+      // Re-flush the (dev-only) event recorder: flush rewrites the full JSONL,
+      // so the recorded trace now includes the retry's events too.
+      await eventRecorder?.flush();
+      const retryBoundary =
+        retryResultStatus === "cancelled" ? undefined : await runBoundary();
+      // Phase 13 stamped completedAt BEFORE the retry ran. A terminal outcome
+      // re-stamps it to the true end; a review pause CLEARS it — the primary
+      // pause path never stamps it (a waiting turn is not complete).
+      status.completedAt = retryBoundary?.waiting ? "" : utcTimestamp();
+      return retryBoundary;
+    };
+
+    // The denial-settle wait applies only when a first denial stopped THIS run;
+    // the recovery retries have no early stop and pass no promise.
+    const boundary = await runBoundary(firstDenialDetected ? denialCancelSettled : undefined);
+    if (boundary.waiting) {
+      return enterApprovalPause(boundary);
     }
 
     // Phase 13: Map final result
@@ -1523,7 +1473,9 @@ async function executeCursorInner(
             for await (const retryEvent of retryRun.stream()) {
               if (Context.current().cancellationSignal.aborted) break;
               retryWatchdog.recordActivity();
+              eventRecorder?.record(retryEvent, eventCount);
               accumulator.processEvent(retryEvent);
+              eventCount++;
               if (retryEvent.type === "status") {
                 const retryStatusEvent = retryEvent as { status?: string; message?: string };
                 if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
@@ -1541,6 +1493,18 @@ async function executeCursorInner(
             `ExecuteCursor retry run.wait(): execution=${executionId}, ` +
             `retryResult=${JSON.stringify(retryResult)}`,
           );
+
+          const retryBoundary = await settleRetryTurn(retryResult.status);
+          if (retryBoundary?.waiting) {
+            // The retry's edits/denials armed the gate — pause for review. On a
+            // retry error this supersedes the failure, exactly as on the primary
+            // path (a captured change pauses the turn before run.wait() is
+            // consulted).
+            console.log(
+              `ExecuteCursor poisoned-handle recovery paused for review: execution=${executionId}`,
+            );
+            return enterApprovalPause(retryBoundary);
+          }
 
           if (retryResult.status === "finished") {
             status.phase = ExecutionPhase.EXECUTION_COMPLETED;
@@ -1632,7 +1596,9 @@ async function executeCursorInner(
             for await (const retryEvent of retryRun.stream()) {
               if (Context.current().cancellationSignal.aborted) break;
               retryWatchdog.recordActivity();
+              eventRecorder?.record(retryEvent, eventCount);
               accumulator.processEvent(retryEvent);
+              eventCount++;
               if (retryEvent.type === "status") {
                 const retryStatusEvent = retryEvent as { status?: string; message?: string };
                 if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
@@ -1646,6 +1612,17 @@ async function executeCursorInner(
           }
 
           const retryResult = await retryRun.wait();
+          const retryBoundary = await settleRetryTurn(retryResult.status);
+          if (retryBoundary?.waiting) {
+            // The retry's edits/denials armed the gate — pause for review (see
+            // the poisoned-handle branch above for the precedence rationale).
+            console.log(
+              `ExecuteCursor transport-timeout recovery paused for review: execution=${executionId}`,
+            );
+            resolution = { ...resolution, agent: freshAgent, agentId: freshAgent.agentId, isNew: true };
+            return enterApprovalPause(retryBoundary);
+          }
+
           if (retryResult.status === "finished") {
             status.phase = ExecutionPhase.EXECUTION_COMPLETED;
             resolution = { ...resolution, agent: freshAgent, agentId: freshAgent.agentId, isNew: true };
@@ -1723,10 +1700,10 @@ async function executeCursorInner(
         status.structuredOutput = structuredOutput as JsonObject;
       }
 
-      // Plan mode: publish the final plan message as a plan.md artifact. The
-      // Cursor harness has no auto-publish pipeline, so this is the only
-      // artifact path; build storage from the same config-driven factory the
-      // native harness uses.
+      // Plan mode: publish the final plan message as a plan artifact (named
+      // from the plan's title). The Cursor harness has no auto-publish
+      // pipeline, so this is the only artifact path; build storage from the
+      // same config-driven factory the native harness uses.
       if (interactionMode === InteractionMode.PLAN && finalText && artifactStorage) {
         try {
           await publishPlanArtifact({ status, executionId, planText: finalText, artifactStorage });

@@ -240,3 +240,71 @@ describe("DeltaEnricher finalize reconciliation", () => {
     expect(messages[1].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 });
+
+describe("DeltaEnricher recovery-retry stream epilogue", () => {
+  // Regression for the zombie RUNNING row of aex_01kws27q1e2esvkqjpvectttxf:
+  // the recovery retry's bare stream loop buffered the tool-call-completed
+  // delta but never flushed it, so the row lacked the completedAt evidence
+  // finalize's sweep requires and persisted as RUNNING forever. The epilogue
+  // must applyEnrichments (flush the buffered evidence) BEFORE finalize.
+  it("applyEnrichments + finalize promotes a retry's buffered-completion RUNNING row", () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const enricher = new DeltaEnricher();
+    const messages: AgentMessage[] = [
+      makeMessage([{ id: "tc-retry", name: "Shell", status: ToolCallStatus.TOOL_CALL_RUNNING }]),
+    ];
+
+    // The retry's onDelta buffered the completion, but the bare retry loop
+    // never applied it to the transcript.
+    enricher.processDelta({
+      type: "tool-call-completed",
+      callId: "tc-retry",
+      toolCall: { type: "shell" },
+    } as unknown as InteractionUpdate);
+
+    // Without the flush, finalize alone cannot promote (no evidence on the row).
+    const unflushed = makeMessage([
+      { id: "tc-retry", name: "Shell", status: ToolCallStatus.TOOL_CALL_RUNNING },
+    ]);
+    new DeltaEnricher().finalize([unflushed]);
+    expect(unflushed.toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+
+    // The epilogue sequence: flush the buffered evidence, then finalize.
+    enricher.applyEnrichments(messages);
+    enricher.finalize(messages);
+
+    const tc = messages[0].toolCalls[0];
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(tc.completedAt).toBeTruthy();
+  });
+
+  it("re-running applyEnrichments and finalize is idempotent", () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const enricher = new DeltaEnricher();
+    const messages: AgentMessage[] = [
+      makeMessage([{ id: "tc-1", name: "Shell", status: ToolCallStatus.TOOL_CALL_RUNNING }]),
+    ];
+
+    enricher.processDelta({
+      type: "tool-call-completed",
+      callId: "tc-1",
+      toolCall: { type: "shell" },
+    } as unknown as InteractionUpdate);
+
+    // Primary epilogue ...
+    enricher.applyEnrichments(messages);
+    enricher.finalize(messages);
+    const stamped = messages[0].toolCalls[0].completedAt;
+
+    // ... and the retry epilogue re-runs both. The row must keep its original
+    // completion evidence and terminal status.
+    enricher.applyEnrichments(messages);
+    enricher.finalize(messages);
+
+    const tc = messages[0].toolCalls[0];
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(tc.completedAt).toBe(stamped);
+  });
+});

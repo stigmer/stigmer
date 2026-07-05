@@ -168,6 +168,19 @@ message CapturedFileChange {
   // into file_digest/aggregate_digest. Binary changes are conveyed by
   // FileContent.is_binary, not here. See FileReviewBlockReason.
   FileReviewBlockReason blocked_reason = 13 [(buf.validate.field).enum.defined_only = true];
+
+  // Lines added by this change, computed at capture time by the runner with the
+  // SAME diff algorithm the SDK renders with, so the list stat and the rendered
+  // diff can never disagree. INFORMATIONAL display counts only — never an
+  // enforcement input and never folded into file_digest/aggregate_digest (the
+  // same contract as blocked_reason). Zero (alongside lines_removed == 0) when
+  // counting was not possible or meaningful: binary changes, secret-withheld
+  // entries, oversized sides, and records captured before this field existed.
+  // Consumers hide the stat in that case rather than showing "+0 -0".
+  int32 lines_added = 14;
+
+  // Lines removed by this change. See lines_added for the contract.
+  int32 lines_removed = 15;
 }
 
 // An immutable pointer to a captured workspace state.
@@ -489,4 +502,81 @@ message FileReviewEventStream {
 
   // Events in lifecycle order.
   repeated FileReviewEvent events = 2;
+}
+
+// A transient, non-authoritative snapshot of the workspace delta accumulating
+// during the CURRENT turn — the live "N files changed so far" surface.
+//
+// @internal
+//
+// This is the file-review analogue of SetupProgress / streaming_usage: a
+// runner-owned, latest-snapshot-wins DISPLAY field, NOT an event-sourced
+// projection. It is deliberately NOT a FileChangeSet — a FileChangeSet is
+// server-authored, ledger-derived, digest-bound, and DECIDABLE; progress is
+// runner-sent, never in the ledger, carries NO file bytes or digests, and is
+// NEVER decidable or authoritative. The turn-boundary CANDIDATE_CAPTURED remains
+// the single reviewable diff (diff(baseline, candidate)); a mid-run snapshot is
+// no more authoritative than a streamed tool-call arg.
+//
+// Lifecycle: the runner overwrites this on each mid-run persist while its change
+// set is CAPTURING; the server clears it once that set leaves CAPTURING (mirroring
+// the setup_progress defense-in-depth clear), so it never outlives the turn.
+//
+// Secret safety: it carries paths + kinds + line counts ONLY — no file bodies —
+// so nothing new can leak. A secret-like path is surfaced with zeroed counts
+// (path visible, content withheld), consistent with the DD-12 rule.
+//
+// @since File-Change HITL Redesign (mid-run live capture)
+message FileChangeProgress {
+  // Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
+  // The server keeps this snapshot only while a CAPTURING FileChangeSet with this
+  // id exists, so a stale prior-turn snapshot is cleared once the next turn pins a
+  // new baseline.
+  string change_set_id = 1;
+
+  // Total number of files changed so far this turn. The honest total: it may
+  // exceed entries.length when the entry list is capped for a very large turn.
+  int32 files_changed = 2;
+
+  // Total lines added / removed across all changed files this turn. Zero when
+  // uncountable (binary / secret-withheld). INFORMATIONAL display only — never an
+  // enforcement input (progress has no digests).
+  int32 lines_added = 3;
+  int32 lines_removed = 4;
+
+  // The per-file entries (slim: no bodies, no digests, no diffs). May be a capped
+  // prefix of the full change list; files_changed carries the true total.
+  repeated FileChangeProgressEntry entries = 5;
+
+  // When this snapshot was taken (RFC3339). Presentation-only; never a digest input.
+  string captured_at = 6;
+}
+
+// One file within a FileChangeProgress snapshot — a slim, non-authoritative row.
+//
+// @internal
+//
+// Carries only what the live strip renders: paths, kind, and line counts. It is
+// NOT a CapturedFileChange (which is the digest-bound, reviewable ledger delta);
+// it has no content, no digests, no unified diff. Path/kind naming mirrors
+// CapturedFileChange so renames read honestly.
+//
+// @since File-Change HITL Redesign (mid-run live capture)
+message FileChangeProgressEntry {
+  // Path before the change (workspace-root-relative). Empty for ADD.
+  string path_before = 1;
+
+  // Path after the change (workspace-root-relative). Empty for DELETE.
+  string path_after = 2;
+
+  // The per-file outcome. See FileChangeKind.
+  FileChangeKind kind = 3 [(buf.validate.field).enum.defined_only = true];
+
+  // Lines added by this change. Zero (alongside lines_removed == 0) when counting
+  // was not possible or meaningful (binary / secret) — consumers hide the stat
+  // rather than show "+0 -0" (the same contract as CapturedFileChange.lines_added).
+  int32 lines_added = 4;
+
+  // Lines removed by this change. See lines_added for the contract.
+  int32 lines_removed = 5;
 }

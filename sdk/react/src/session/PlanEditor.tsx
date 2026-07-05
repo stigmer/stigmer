@@ -203,7 +203,7 @@ export function PlanEditor({
               >
                 <ImplementIcon />
                 <span className="truncate">
-                  {buildDisabled ? "Starting build…" : "Build from plan"}
+                  {buildDisabled ? "Starting build…" : "Build"}
                 </span>
               </button>
             )

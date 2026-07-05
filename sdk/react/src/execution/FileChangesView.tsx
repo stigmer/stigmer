@@ -167,7 +167,13 @@ export function FileChangeDiff({
     if (change.captureLevel === FileChangeCaptureLevel.HUNK_ONLY) {
       return { additions: change.linesAdded, deletions: change.linesRemoved };
     }
-    return countHunks(hunks);
+    // Whole-file: count the rendered hunks (what the user actually sees). When
+    // there are none to count — the body is offloaded/loading/truncated — fall
+    // back to the capture-time counts, which are computed with the same diff
+    // algorithm and so agree with the hunks whenever both exist.
+    const computed = countHunks(hunks);
+    if (computed.additions > 0 || computed.deletions > 0) return computed;
+    return { additions: change.linesAdded, deletions: change.linesRemoved };
   }, [change.captureLevel, change.linesAdded, change.linesRemoved, hunks]);
 
   const showStatsRow = showStats && (stats.additions > 0 || stats.deletions > 0);
@@ -343,8 +349,11 @@ function countHunks(hunks: readonly DiffHunk[]): {
  * Projects a {@link FileChange} into a {@link FileDiffEntry} for the file list.
  *
  * Counts: hunk-only uses the runner's authoritative numbers; whole-file inline
- * is derived from the content; an offloaded whole-file side has no synchronous
- * content, so its count stays 0 until the file is opened and fetched.
+ * is derived from the content (identical to the runner's capture-time counts by
+ * construction — same diff algorithm). A whole-file side with no synchronous
+ * content (offloaded / binary) falls back to the runner's capture-time
+ * `linesAdded`/`linesRemoved` — zero when no count exists, which the list
+ * renders as no stat.
  */
 function toFileDiffEntry(change: FileChange): FileDiffEntry {
   const changeType =
@@ -370,7 +379,12 @@ function toFileDiffEntry(change: FileChange): FileDiffEntry {
     return { path: change.path, changeType, additions, deletions };
   }
 
-  return { path: change.path, changeType, additions: 0, deletions: 0 };
+  return {
+    path: change.path,
+    changeType,
+    additions: change.linesAdded,
+    deletions: change.linesRemoved,
+  };
 }
 
 /** Inline text of a side, or null when absent/offloaded/binary. */

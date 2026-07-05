@@ -392,8 +392,12 @@ func (f *fakeArtifactStorage) Download(_ context.Context, key string) ([]byte, e
 	return d, nil
 }
 
-func (f *fakeArtifactStorage) GetSignedURL(_ context.Context, key string, _ time.Duration) (string, error) {
-	return "http://localhost:7235/" + key, nil
+func (f *fakeArtifactStorage) GetSignedURL(_ context.Context, key string, _ time.Duration, downloadFilename string) (string, error) {
+	url := "http://localhost:7235/" + key
+	if downloadFilename != "" {
+		url += "?download=" + downloadFilename
+	}
+	return url, nil
 }
 
 func (f *fakeArtifactStorage) Delete(_ context.Context, key string) error {

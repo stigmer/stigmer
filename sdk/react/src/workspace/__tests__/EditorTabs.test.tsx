@@ -67,9 +67,11 @@ describe("EditorTabs", () => {
     expect(onPin).toHaveBeenCalledWith("e1", "src/b.ts");
   });
 
-  it("closes a tab via its close button", () => {
+  it("closes a tab via its close affordance (presentational, aria-hidden)", () => {
     const { onClose } = renderTabs();
-    fireEvent.click(screen.getByRole("button", { name: "Close a.ts" }));
+    // The close "X" is a presentational span (not a nested button) to satisfy
+    // WCAG 4.1.2; it is addressable by its title.
+    fireEvent.click(screen.getByTitle("Close a.ts"));
     expect(onClose).toHaveBeenCalledWith("e1", "src/a.ts");
   });
 

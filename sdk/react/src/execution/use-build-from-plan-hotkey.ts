@@ -3,7 +3,7 @@
 import { useCallback, type KeyboardEvent } from "react";
 
 /**
- * Card-scoped `Cmd/Ctrl+Enter` accelerator for the "Build from plan" action.
+ * Card-scoped `Cmd/Ctrl+Enter` accelerator for a plan card's "Build" action.
  *
  * Returns an `onKeyDown` handler for a plan card's root element. Because it is
  * attached to the card (not `window`), it fires only when the keystroke

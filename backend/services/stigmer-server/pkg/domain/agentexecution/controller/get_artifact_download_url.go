@@ -2,6 +2,7 @@ package agentexecution
 
 import (
 	"context"
+	"path"
 	"strings"
 	"time"
 
@@ -21,6 +22,15 @@ const DefaultArtifactURLExpiration = 7 * 24 * time.Hour // 7 days
 // This endpoint generates presigned URLs for artifacts published by agents
 // during execution. The URLs are time-limited and can be used for direct
 // HTTP download without authentication.
+//
+// ## Inline vs. attachment
+//
+// When req.AsAttachment is set, the URL forces a browser download saved under
+// the artifact's filename (Content-Disposition: attachment, derived from the
+// storage key's basename). This is required because browsers ignore the HTML
+// `download` attribute on cross-origin URLs, so text artifacts would otherwise
+// render in a tab instead of saving. When unset, the URL serves inline — the
+// mode needed for rendering surfaces such as an `<img src>`.
 //
 // ## Authorization
 //
@@ -90,7 +100,15 @@ func (c *AgentExecutionController) GetArtifactDownloadUrl(ctx context.Context, r
 	urlCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	downloadURL, err := c.artifactStorage.GetSignedURL(urlCtx, req.StorageKey, expiresIn)
+	// When the caller wants a browser download (as_attachment), derive the
+	// saved filename from the storage key's basename (already validated to be
+	// scoped to this execution above). Empty otherwise, which serves inline.
+	var downloadFilename string
+	if req.AsAttachment {
+		downloadFilename = path.Base(req.StorageKey)
+	}
+
+	downloadURL, err := c.artifactStorage.GetSignedURL(urlCtx, req.StorageKey, expiresIn, downloadFilename)
 	if err != nil {
 		log.Error().
 			Err(err).

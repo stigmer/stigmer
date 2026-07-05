@@ -1524,7 +1524,23 @@ type GetArtifactDownloadUrlRequest struct {
 	// Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
 	//
 	// Validation: Required, minimum 1 character
-	StorageKey    string `protobuf:"bytes,2,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
+	StorageKey string `protobuf:"bytes,2,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
+	// Whether the URL should force a browser download instead of inline display.
+	//
+	// When true, the presigned URL carries a Content-Disposition: attachment
+	// header keyed to the artifact's filename, so a browser navigating to it
+	// saves the file rather than rendering it in a tab. Browsers ignore the
+	// HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
+	// the disposition MUST be signed into the URL itself — this flag is how a
+	// caller requests it.
+	//
+	// When false (the default), the URL displays inline. Inline is required for
+	// rendering surfaces such as an `<img src>` pointing at an offloaded
+	// screenshot; forcing a download there would break the render.
+	//
+	// Use true for click-to-download affordances; false (or unset) for inline
+	// rendering and programmatic reads.
+	AsAttachment  bool `protobuf:"varint,3,opt,name=as_attachment,json=asAttachment,proto3" json:"as_attachment,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1571,6 +1587,13 @@ func (x *GetArtifactDownloadUrlRequest) GetStorageKey() string {
 		return x.StorageKey
 	}
 	return ""
+}
+
+func (x *GetArtifactDownloadUrlRequest) GetAsAttachment() bool {
+	if x != nil {
+		return x.AsAttachment
+	}
+	return false
 }
 
 // GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.
@@ -3306,11 +3329,12 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\";\n" +
 	"\x18UploadAttachmentResponse\x12\x1f\n" +
 	"\vstorage_key\x18\x01 \x01(\tR\n" +
-	"storageKey\"u\n" +
+	"storageKey\"\x9a\x01\n" +
 	"\x1dGetArtifactDownloadUrlRequest\x12*\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12(\n" +
 	"\vstorage_key\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
-	"storageKey\"b\n" +
+	"storageKey\x12#\n" +
+	"\ras_attachment\x18\x03 \x01(\bR\fasAttachment\"b\n" +
 	"\x1eGetArtifactDownloadUrlResponse\x12!\n" +
 	"\fdownload_url\x18\x01 \x01(\tR\vdownloadUrl\x12\x1d\n" +
 	"\n" +

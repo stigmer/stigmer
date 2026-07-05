@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { clone, create } from "@bufbuild/protobuf";
+import { clone, create, toBinary } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
@@ -28,6 +28,7 @@ import {
   FileCaptureClass,
   FileChangeKind,
   FileChangeSetStatus,
+  FileChangeType,
   FileDecisionAction,
   FileDecisionScope,
   FileReviewBlockReason,
@@ -41,7 +42,9 @@ import {
   captureBaselineToLedger,
   captureCandidateToLedger,
   deriveCaptureMode,
+  partitionGitChangesBySecret,
 } from "../capture.js";
+import type { GitSubstrateChange } from "../git-substrate.js";
 import { casBlobReader } from "../cas-substrate.js";
 
 const execFileAsync = promisify(execFile);
@@ -606,6 +609,184 @@ describe("capture orchestration — secret-blocked DIFF_UNREVIEWABLE (DD-E)", ()
     expect(eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)).toHaveLength(1);
     expect(candidateChanges(status).map((c) => c.pathAfter)).toEqual([".env"]);
     expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+  });
+});
+
+// A git-TRACKED secret-like file (a committed credentials.json, .env.example,
+// ...) FLOWS in capture mode (the gate allows tracked mutations with no secret
+// check), so it reaches the turn boundary in the git diff WITH real bytes. Those
+// bytes must never enter the ledger: the capture seam authors it content-less
+// (SECRET_WITHHELD / GIT_TRACKED), discard-only, and the git substrate reverts
+// it byte-exact on reject. This is the one place that can withhold a DELETE's
+// baseline (before) secret too — the gate never sees a delete's content.
+// (DD-26 follow-up #3.)
+describe("capture orchestration — git-tracked secret withheld (DD-26 follow-up #3)", () => {
+  const SECRET_PATH = "config/credentials.json";
+  const BASELINE_SECRET = "OLD_API_KEY=sk-live-OLDSECRET-do-not-persist-111\n";
+  const NEW_SECRET = "NEW_API_KEY=sk-live-NEWSECRET-do-not-persist-222\n";
+
+  async function commitBaselineSecret(): Promise<void> {
+    await write(SECRET_PATH, BASELINE_SECRET);
+    await git(["add", "-A"]);
+    await git(["commit", "-q", "-m", "add tracked secret"]);
+  }
+
+  // Serialize the WHOLE persisted status (ledger + any rows) and assert neither
+  // the baseline nor the new secret bytes survive anywhere — the leak-scan that
+  // would FAIL before this fix (the git diff carried the inline body).
+  function assertNoSecretBytes(status: AgentExecutionStatus): void {
+    const wire = Buffer.from(toBinary(AgentExecutionStatusSchema, status));
+    expect(wire.includes(Buffer.from(BASELINE_SECRET))).toBe(false);
+    expect(wire.includes(Buffer.from(NEW_SECRET))).toBe(false);
+  }
+
+  it("MODIFY: content-less SECRET_WITHHELD/GIT_TRACKED entry; PARTIAL_BLOCKED; nothing persisted", async () => {
+    await commitBaselineSecret();
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await write(SECRET_PATH, NEW_SECRET); // the agent edits the committed secret
+
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS,
+    });
+
+    const entry = candidateChanges(status).find((c) => (c.pathAfter || c.pathBefore) === SECRET_PATH)!;
+    expect(entry).toBeDefined();
+    expect(entry.captureClass).toBe(FileCaptureClass.GIT_TRACKED);
+    expect(entry.kind).toBe(FileChangeKind.MODIFY);
+    expect(entry.diffComplete).toBe(false);
+    expect(entry.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
+    // No content and no enforcement digests on EITHER side (before is secret too).
+    expect(entry.before).toBeUndefined();
+    expect(entry.after).toBeUndefined();
+    expect(entry.beforeSha256).toBe("");
+    expect(entry.afterSha256).toBe("");
+    expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+    assertNoSecretBytes(status);
+  });
+
+  it("CREATE: a newly-created tracked secret is content-less (kind ADD, no after bytes)", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await write(SECRET_PATH, NEW_SECRET); // brand-new secret file this turn
+
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS,
+    });
+
+    const entry = candidateChanges(status).find((c) => (c.pathAfter || c.pathBefore) === SECRET_PATH)!;
+    expect(entry.kind).toBe(FileChangeKind.ADD);
+    expect(entry.captureClass).toBe(FileCaptureClass.GIT_TRACKED);
+    expect(entry.diffComplete).toBe(false);
+    expect(entry.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
+    expect(entry.after).toBeUndefined();
+    expect(entry.afterSha256).toBe("");
+    expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+    assertNoSecretBytes(status);
+  });
+
+  it("DELETE: withholds the deleted file's baseline (before) secret bytes (kind DELETE)", async () => {
+    await commitBaselineSecret();
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await rm(join(repo, SECRET_PATH), { force: true }); // the agent deletes the secret
+
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS,
+    });
+
+    const entry = candidateChanges(status).find((c) => c.pathBefore === SECRET_PATH)!;
+    expect(entry).toBeDefined();
+    expect(entry.kind).toBe(FileChangeKind.DELETE);
+    expect(entry.captureClass).toBe(FileCaptureClass.GIT_TRACKED);
+    expect(entry.diffComplete).toBe(false);
+    // The DELETE's `before` side is the committed secret — the leak only this
+    // seam can withhold (the gate never sees a delete's content).
+    expect(entry.before).toBeUndefined();
+    expect(entry.beforeSha256).toBe("");
+    expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+    assertNoSecretBytes(status);
+  });
+
+  it("mixed set: the non-secret file stays keepable; the secret reverts byte-exact on reject", async () => {
+    await commitBaselineSecret();
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
+    });
+    await write("notes.md", "planton notes\n"); // reviewable tracked change
+    await write(SECRET_PATH, NEW_SECRET); // withheld tracked secret change
+
+    await captureCandidateToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS,
+    });
+
+    const byPath = new Map(candidateChanges(status).map((c) => [c.pathAfter || c.pathBefore, c]));
+    // The non-secret file is fully reviewable/keepable (content present).
+    expect(byPath.get("notes.md")!.diffComplete).toBe(true);
+    expect(byPath.get("notes.md")!.after).toBeDefined();
+    expect(byPath.get("notes.md")!.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
+    // The secret rides alongside content-less, forcing the set PARTIAL_BLOCKED.
+    expect(byPath.get(SECRET_PATH)!.diffComplete).toBe(false);
+    expect(byPath.get(SECRET_PATH)!.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
+    expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
+    assertNoSecretBytes(status);
+
+    // Keep the reviewable file; discard the secret. The git substrate reverts the
+    // secret to its committed baseline BYTE-EXACT (not deleted) and keeps notes.md.
+    const changeSet = decidedChangeSet(status, {
+      "notes.md": FileDecisionAction.APPROVE,
+      [SECRET_PATH]: FileDecisionAction.REJECT,
+    });
+    const result = await applyCaptureDecisions({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
+    });
+
+    expect(result.failed).toBe(false);
+    expect(result.approvedPaths).toEqual(["notes.md"]);
+    expect(result.rejectedPaths).toEqual([SECRET_PATH]);
+    expect(await read("notes.md")).toBe("planton notes\n");
+    expect(await read(SECRET_PATH)).toBe(BASELINE_SECRET); // reverted byte-exact
+    // Even after reconcile, no secret bytes are anywhere in the persisted status.
+    assertNoSecretBytes(status);
+  });
+});
+
+// partitionGitChangesBySecret: the pure split the composition relies on.
+describe("partitionGitChangesBySecret (pure)", () => {
+  const mk = (path: string): GitSubstrateChange => ({
+    path,
+    changeType: FileChangeType.MODIFY,
+    before: { kind: "inline", text: "a" },
+    after: { kind: "inline", text: "b" },
+  });
+
+  it("routes secret-like paths to `secret` and everything else to `safe`", () => {
+    const { safe, secret } = partitionGitChangesBySecret([
+      mk("src/main.ts"),
+      mk("config/credentials.json"),
+      mk(".env"),
+      mk("README.md"),
+      mk("keys/id_rsa"),
+    ]);
+    expect(safe.map((c) => c.path)).toEqual(["src/main.ts", "README.md"]);
+    expect(secret.map((c) => c.path)).toEqual(["config/credentials.json", ".env", "keys/id_rsa"]);
+  });
+
+  it("returns everything safe when no path is secret-like", () => {
+    const { safe, secret } = partitionGitChangesBySecret([mk("a.ts"), mk("b/c.md")]);
+    expect(safe).toHaveLength(2);
+    expect(secret).toHaveLength(0);
   });
 });
 

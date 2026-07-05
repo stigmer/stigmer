@@ -50,6 +50,10 @@ import {
   captureBaselineToLedger,
   captureCandidateToLedger,
 } from "../../shared/filereview/capture.js";
+import {
+  captureFileChangeProgress,
+  newProgressCaptureState,
+} from "../../shared/filereview/progress.js";
 import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
@@ -319,6 +323,15 @@ export function createDeepAgentActivities(config: Config) {
           });
         }
 
+        // Per-turn state for mid-run live capture (DD-32): the last progress tree
+        // sha (short-circuit) + last capture time (floor), threaded across the
+        // streaming loop's persists via the beforePersist hook below. The capture
+        // flags are hoisted so the deferred hook does not depend on `setup`
+        // (non-null here, but not narrowable inside a later-invoked closure).
+        const progressState = newProgressCaptureState();
+        const progressCaptureMode = setup.captureMode;
+        const progressGitWorkspace = setup.gitWorkspace;
+
         const cancellationSignal = Context.current().cancellationSignal;
 
         const result: StreamResult = await streamExecution({
@@ -344,6 +357,23 @@ export function createDeepAgentActivities(config: Config) {
             globalBypass: setup.globalBypass,
           },
           streamVersion: setup.streamVersion,
+          // Mid-run live capture (DD-32): attach file_change_progress before each
+          // scheduled persist. Git capture mode only (a pinned baseline exists);
+          // deep-agent writes no runner-owned gate files into the tree, so no
+          // excludePaths — matching its turn-boundary candidate capture.
+          beforePersist: async (status) => {
+            if (!progressCaptureMode || !progressGitWorkspace || !captureBaselineTree) {
+              return;
+            }
+            await captureFileChangeProgress({
+              status,
+              gitRoot,
+              executionId,
+              changeSetId,
+              baselineTree: captureBaselineTree,
+              state: progressState,
+            });
+          },
         });
 
         await processPostStream({
@@ -556,9 +586,10 @@ export function createDeepAgentActivities(config: Config) {
         }
 
         // Plan mode: the agent's final message is the plan. Publish it as a
-        // first-class plan.md artifact so the UI can render a reviewable Plan
-        // card and a follow-up Implement run can reference it. Read-only mode
-        // produces no file to auto-publish, so this is the only artifact path.
+        // first-class plan artifact (named from the plan's title) so the UI can
+        // render a reviewable Plan card and a follow-up Implement run can
+        // reference it. Read-only mode produces no file to auto-publish, so
+        // this is the only artifact path.
         // Requires artifact storage; with none (proxy misconfig) the plan text
         // still lives in the final message — only the reviewable artifact is
         // skipped (mirrors Cursor's storage-guarded plan publish).

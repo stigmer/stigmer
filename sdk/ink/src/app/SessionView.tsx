@@ -7,6 +7,7 @@ import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
 import { UsageWidget } from "../components/UsageWidget.js";
 import { ExecutionProgress } from "../components/ExecutionProgress.js";
+import { FileChangeProgressBar } from "../components/FileChangeProgressBar.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
 
 /** Interaction mode type used for follow-up executions. */
@@ -179,6 +180,17 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
       )}
 
       <UsageWidget executions={allExecutions} />
+
+      {/* Mid-run live capture (DD-32): the transient "N files changing…" strip
+          for a still-running turn, covering shell-made changes with no tool row.
+          Mutually exclusive with the FileReviewPrompt below — progress shows
+          while CAPTURING, the prompt once AWAITING_REVIEW — so it hands off
+          cleanly when review opens. Non-interactive; the per-file list reuses the
+          existing Ctrl+O expand toggle. */}
+      <FileChangeProgressBar
+        progress={conv.fileChangeProgress}
+        expanded={expandTools}
+      />
 
       {conv.fileChangeSets.length > 0 && (
         <Box flexDirection="column">

@@ -35,6 +35,10 @@ import {
   captureCandidateToLedger as sharedCaptureCandidateToLedger,
   type CaptureResumeResult,
 } from "../../shared/filereview/capture.js";
+import {
+  captureFileChangeProgress,
+  type ProgressCaptureState,
+} from "../../shared/filereview/progress.js";
 import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
@@ -195,6 +199,34 @@ export async function captureTurnToLedger(opts: {
   }
 
   return changes;
+}
+
+/**
+ * Mid-run: attach the live "N files changed so far" snapshot onto
+ * `status.file_change_progress` (DD-32), throttled by the floor + tree-sha
+ * short-circuit inside {@link captureFileChangeProgress}. The Cursor adapter binds
+ * `CURSOR_RUNNER_OWNED_PATHS` so the progress diff excludes the gate's own files —
+ * the SAME exclusion {@link captureTurnToLedger} uses for the turn-boundary
+ * candidate, so the live count and the reviewed set agree. Content-free and
+ * secret-safe; a no-op when nothing changed since the last capture.
+ */
+export async function captureProgressToStatus(opts: {
+  readonly status: AgentExecutionStatus;
+  readonly gitRoot: string;
+  readonly executionId: string;
+  readonly changeSetId: string;
+  readonly baselineTree: string;
+  readonly state: ProgressCaptureState;
+}): Promise<void> {
+  await captureFileChangeProgress({
+    status: opts.status,
+    gitRoot: opts.gitRoot,
+    executionId: opts.executionId,
+    changeSetId: opts.changeSetId,
+    baselineTree: opts.baselineTree,
+    excludePaths: CURSOR_RUNNER_OWNED_PATHS,
+    state: opts.state,
+  });
 }
 
 /**

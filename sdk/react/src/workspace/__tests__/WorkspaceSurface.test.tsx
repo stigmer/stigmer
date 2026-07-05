@@ -152,6 +152,23 @@ describe("WorkspaceSurface", () => {
     expect(tab.getAttribute("aria-selected")).toBe("true");
   });
 
+  it("associates the active tab with the single editor tabpanel", () => {
+    renderSurface();
+    const tab = screen.getByRole("tab", { name: /main\.go/ });
+    const panel = screen.getByRole("tabpanel");
+    const panelId = panel.getAttribute("id");
+    expect(panelId).toBeTruthy();
+    expect(tab.getAttribute("id")).toBeTruthy();
+    // Tab -> panel and panel -> active tab, both directions wired.
+    expect(tab.getAttribute("aria-controls")).toBe(panelId);
+    expect(panel.getAttribute("aria-labelledby")).toBe(tab.getAttribute("id"));
+  });
+
+  it("renders no tabpanel when no editor is open (nothing to label)", () => {
+    renderSurface({ selectedFile: null, editors: [] });
+    expect(screen.queryByRole("tabpanel")).toBeNull();
+  });
+
   it("collapses back to chat when the toolbar control is clicked", () => {
     const { onCollapse } = renderSurface();
     fireEvent.click(screen.getByRole("button", { name: "Back to chat" }));
@@ -241,6 +258,59 @@ describe("WorkspaceSurface extraViews", () => {
     fireEvent.click(search);
     fireEvent.keyDown(search, { key: "ArrowDown" });
     expect(screen.getByTestId("config-probe")).toBeTruthy();
+  });
+
+  it("reaches an injected view beyond the second by keyboard (focus follows selection)", () => {
+    // Regression guard: the old handler moved selection but never DOM focus, so
+    // focus stayed pinned on the entered button and every view past the second
+    // (Config, Changes, …) was keyboard-unreachable. Each arrow must advance
+    // focus so the next arrow computes from the new position.
+    renderSurface({ extraViews: [configView, changesView] });
+    const explorer = screen.getByRole("radio", { name: "Explorer" });
+    explorer.focus();
+    expect(document.activeElement).toBe(explorer);
+
+    // Step 1: Explorer -> Search, focus moves with the selection.
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    const search = screen.getByRole("radio", { name: "Search" });
+    expect(document.activeElement).toBe(search);
+    expect(search.getAttribute("aria-checked")).toBe("true");
+
+    // Step 2: Search -> Config. The step the old code could not make.
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    const config = screen.getByRole("radio", { name: "Config" });
+    expect(document.activeElement).toBe(config);
+    expect(config.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByTestId("config-probe")).toBeTruthy();
+  });
+
+  it("jumps to the last and first rail views with End and Home", () => {
+    renderSurface({ extraViews: [configView, changesView] });
+    const explorer = screen.getByRole("radio", { name: "Explorer" });
+    explorer.focus();
+
+    fireEvent.keyDown(document.activeElement!, { key: "End" });
+    const changes = screen.getByRole("radio", { name: "Changes (3)" });
+    expect(document.activeElement).toBe(changes);
+    expect(changes.getAttribute("aria-checked")).toBe("true");
+
+    fireEvent.keyDown(document.activeElement!, { key: "Home" });
+    const explorerAgain = screen.getByRole("radio", { name: "Explorer" });
+    expect(document.activeElement).toBe(explorerAgain);
+    expect(explorerAgain.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("moves focus with selection in the Name|Text search-mode toggle", () => {
+    renderSurface({ searcher });
+    fireEvent.click(screen.getByRole("radio", { name: "Search" }));
+    const toggle = screen.getByRole("radiogroup", { name: "Search mode" });
+    const name = within(toggle).getByRole("radio", { name: "Name" });
+    name.focus();
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowRight" });
+    const text = within(toggle).getByRole("radio", { name: "Text" });
+    expect(document.activeElement).toBe(text);
+    expect(text.getAttribute("aria-checked")).toBe("true");
   });
 });
 

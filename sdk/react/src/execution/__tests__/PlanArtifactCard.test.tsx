@@ -85,7 +85,7 @@ describe("PlanArtifactCard — compact document card", () => {
     expect(getArtifactContent).not.toHaveBeenCalled();
   });
 
-  it("offers exactly one primary 'Build from plan' action that calls onImplement", () => {
+  it("offers exactly one primary 'Build' action that calls onImplement", () => {
     const onImplement = vi.fn();
     renderCard(
       <PlanArtifactCard
@@ -96,15 +96,15 @@ describe("PlanArtifactCard — compact document card", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Build from plan"));
+    fireEvent.click(screen.getByRole("button", { name: "Build" }));
     expect(onImplement).toHaveBeenCalledTimes(1);
   });
 
-  it("hides 'Build from plan' when onImplement is not provided", () => {
+  it("hides 'Build' when onImplement is not provided", () => {
     renderCard(
       <PlanArtifactCard executionId="aex_1" artifact={planArtifact} org="acme" />,
     );
-    expect(screen.queryByText("Build from plan")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Build" })).toBeNull();
   });
 
   it("shows the pending label while the approved plan uploads (buildPending)", () => {
@@ -121,12 +121,12 @@ describe("PlanArtifactCard — compact document card", () => {
 
     // The primary reads as in-progress and stays disabled — no double-submits
     // while the upload precedes the implement turn.
-    expect(screen.queryByText("Build from plan")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Build" })).toBeNull();
     const button = screen.getByText("Starting build…").closest("button")!;
     expect(button.disabled).toBe(true);
   });
 
-  it("disables 'Build from plan' when disabled", () => {
+  it("disables 'Build' when disabled", () => {
     const onImplement = vi.fn();
     renderCard(
       <PlanArtifactCard
@@ -138,10 +138,42 @@ describe("PlanArtifactCard — compact document card", () => {
       />,
     );
 
-    const button = screen.getByText("Build from plan").closest("button")!;
+    const button = screen.getByRole("button", { name: "Build" }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
     fireEvent.click(button);
     expect(onImplement).not.toHaveBeenCalled();
+  });
+
+  it("copies the plan text to the clipboard on demand", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const getArtifactContent = vi
+      .fn()
+      .mockResolvedValue({ content: new TextEncoder().encode("# Plan\n\nsteps") });
+    const getArtifactDownloadUrl = vi.fn();
+    const stigmer = {
+      agentExecution: { getArtifactContent, getArtifactDownloadUrl },
+    } as unknown as Stigmer;
+
+    render(
+      withStigmer(
+        <PlanArtifactCard executionId="aex_1" artifact={planArtifact} org="acme" />,
+        stigmer,
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy plan" }));
+
+    // Content is fetched at click time from the stable storage key, then
+    // written to the clipboard — the card never pre-fetches on mount.
+    expect(getArtifactContent).toHaveBeenCalledTimes(1);
+    const req = getArtifactContent.mock.calls[0][0];
+    expect(req.executionId).toBe("aex_1");
+    expect(req.storageKey).toBe("artifacts/aex_1/plan.md");
+    await screen.findByRole("button", { name: "Copied" });
+    expect(writeText).toHaveBeenCalledWith("# Plan\n\nsteps");
+
+    vi.unstubAllGlobals();
   });
 
   it("downloads the artifact on demand via a freshly minted URL", async () => {
@@ -152,7 +184,7 @@ describe("PlanArtifactCard — compact document card", () => {
         stigmer,
       ),
     );
-    fireEvent.click(screen.getByText("Download"));
+    fireEvent.click(screen.getByRole("button", { name: "Download plan.md" }));
     // The URL is resolved at click time from the stable storage key — never a
     // baked, expirable URL.
     expect(getArtifactDownloadUrl).toHaveBeenCalledTimes(1);
@@ -229,8 +261,8 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
   });
 });
 
-describe("PlanArtifactCard — Open full (org-gated preview)", () => {
-  it("opens the shared preview modal when 'Open full' is clicked", () => {
+describe("PlanArtifactCard — Open plan modal fallback (org-gated preview)", () => {
+  it("opens the shared preview modal when the open icon is clicked (no onOpenPlan)", () => {
     const { stigmer } = createStigmerMock();
     render(
       withStigmer(
@@ -242,14 +274,14 @@ describe("PlanArtifactCard — Open full (org-gated preview)", () => {
     // No dialog before the user opens it.
     expect(document.querySelector("dialog")).toBeNull();
 
-    fireEvent.click(screen.getByText("Open full"));
+    fireEvent.click(screen.getByRole("button", { name: "Open plan" }));
 
     const dialog = document.querySelector("dialog");
     expect(dialog).toBeTruthy();
     expect(dialog!.getAttribute("aria-label")).toBe("Preview plan.md");
   });
 
-  it("hides 'Open full' when org is absent (modal needs org), keeping Build + Download", () => {
+  it("hides the open action when org is absent (modal needs org), keeping Build + Download", () => {
     const onImplement = vi.fn();
     renderCard(
       <PlanArtifactCard
@@ -258,14 +290,16 @@ describe("PlanArtifactCard — Open full (org-gated preview)", () => {
         onImplement={onImplement}
       />,
     );
-    expect(screen.queryByText("Open full")).toBeNull();
-    expect(screen.queryByText("Build from plan")).not.toBeNull();
-    expect(screen.queryByText("Download")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Open plan" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Build" })).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Download plan.md" }),
+    ).not.toBeNull();
   });
 });
 
 describe("PlanArtifactCard — Open plan (panel-first review)", () => {
-  it("replaces the modal secondary with 'Open plan' when onOpenPlan is provided", () => {
+  it("routes the open action to the panel when onOpenPlan is provided (no modal)", () => {
     const onOpenPlan = vi.fn();
     renderCard(
       <PlanArtifactCard
@@ -277,9 +311,9 @@ describe("PlanArtifactCard — Open plan (panel-first review)", () => {
     );
 
     // One review affordance, not two: the facet supersedes the modal.
-    expect(screen.queryByText("Open full")).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Open plan" })).toHaveLength(1);
 
-    fireEvent.click(screen.getByText("Open plan"));
+    fireEvent.click(screen.getByRole("button", { name: "Open plan" }));
     expect(onOpenPlan).toHaveBeenCalledTimes(1);
     expect(document.querySelector("dialog")).toBeNull();
   });

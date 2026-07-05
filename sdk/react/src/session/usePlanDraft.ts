@@ -32,7 +32,7 @@ export interface PlanDraftController {
   /**
    * Snapshot reader for submit-time consumers: returns the current draft (or
    * `null`) without the caller depending on draft state. Referentially stable
-   * for the lifetime of the component (DD-010) — "Build from plan" reads the
+   * for the lifetime of the component (DD-010) — the "Build" action reads the
    * draft through this at click time, so per-keystroke draft updates never
    * re-bind the build callback or re-render the conversation column.
    */

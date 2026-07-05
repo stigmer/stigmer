@@ -161,8 +161,28 @@ export function WorkspaceContentSearch({
   const belowMinLength = trimmed.length > 0 && trimmed.length < MIN_QUERY_LENGTH;
   const showEntryHeaders = groups.length > 1;
 
+  // Screen-reader-only summary in a persistent polite live region: status swaps
+  // (searching → results/none) happen across separate unmounting branches, so a
+  // stable region is what actually gets announced. Terse by design.
+  const statusMessage = isUnsupported
+    ? ""
+    : trimmed.length === 0
+      ? ""
+      : belowMinLength
+        ? `Type at least ${MIN_QUERY_LENGTH} characters to search.`
+        : isLoading
+          ? "Searching file contents…"
+          : groups.length === 0
+            ? `No files containing ${trimmed}.`
+            : totalMatches > flatResults.length
+              ? `Showing the first ${flatResults.length} of ${totalMatches} matches.`
+              : `${totalMatches} ${totalMatches === 1 ? "match" : "matches"}.`;
+
   return (
     <div className={cn("flex h-full flex-col", className)}>
+      <div role="status" aria-live="polite" className="sr-only">
+        {statusMessage}
+      </div>
       <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
         <SearchIcon />
         <input
@@ -336,27 +356,31 @@ function LineRow({
   readonly isOpen: boolean;
   readonly onOpen: () => void;
 }) {
+  // The `role="option"` IS the interactive leaf of the listbox (keyboard
+  // activation flows through the combobox input's Enter handler +
+  // aria-activedescendant). It must not nest another interactive control — a
+  // button inside would violate WCAG 4.1.2 (axe `nested-interactive`). So the
+  // click handler and row styling live on the option itself.
   return (
-    <li id={id} role="option" aria-selected={isFocused}>
-      <button
-        type="button"
-        onClick={onOpen}
-        tabIndex={-1}
-        aria-current={isOpen ? "true" : undefined}
-        className={cn(
-          "flex w-full items-baseline gap-2 py-0.5 pl-6 pr-3 text-left text-xs transition-colors",
-          isFocused && "bg-muted",
-          isOpen && "bg-muted",
-          !isFocused && !isOpen && "hover:bg-muted",
-        )}
-      >
-        <span className="w-8 shrink-0 text-right font-mono text-[0.65rem] tabular-nums text-muted-foreground-subtle">
-          {match.line}
-        </span>
-        <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">
-          <HighlightedPreview text={match.preview} query={query} />
-        </span>
-      </button>
+    <li
+      id={id}
+      role="option"
+      aria-selected={isFocused}
+      aria-current={isOpen ? "true" : undefined}
+      onClick={onOpen}
+      className={cn(
+        "flex cursor-pointer items-baseline gap-2 py-0.5 pl-6 pr-3 text-xs transition-colors",
+        isFocused && "bg-muted",
+        isOpen && "bg-muted",
+        !isFocused && !isOpen && "hover:bg-muted",
+      )}
+    >
+      <span className="w-8 shrink-0 text-right font-mono text-[0.65rem] tabular-nums text-muted-foreground-subtle">
+        {match.line}
+      </span>
+      <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">
+        <HighlightedPreview text={match.preview} query={query} />
+      </span>
     </li>
   );
 }

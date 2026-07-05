@@ -292,5 +292,16 @@ describe("buildEnhancedSystemPrompt", () => {
 
       expect(prompt).not.toContain("## Implement the approved plan");
     });
+
+    it("carries the plan-derived progress-tracking instruction (Tier 3)", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        buildFromPlan: true,
+        injectedFiles: [planFile],
+      });
+
+      expect(prompt).toContain("to-do list");
+      expect(prompt).toContain("break the plan into");
+    });
   });
 });

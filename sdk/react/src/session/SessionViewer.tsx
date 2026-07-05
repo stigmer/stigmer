@@ -25,13 +25,17 @@ import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.j
 import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
 import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
 import { MessageThread } from "../execution/MessageThread.js";
+import { FileChangeProgressBar } from "../execution/FileChangeProgressBar.js";
 import { FileReviewDock } from "../execution/FileReviewDock.js";
+import {
+  FilePathContext,
+  type FilePathContextValue,
+} from "../execution/FilePathContext.js";
 import { ThreadSkeleton } from "../execution/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useStigmer } from "../hooks.js";
 import {
-  PLAN_ARTIFACT_NAME,
   findLatestSessionPlan,
   findPlanArtifact,
   type SessionPlan,
@@ -57,18 +61,22 @@ import type { SessionAudience } from "./audience.js";
  * Where the approved plan mounts in the implement execution's workspace —
  * the harnesses' standard attachment inputs directory, where the runner's
  * implement-plan directive points the agent (shared/implement-plan-prompt.ts).
- * Attaching at this exact path is what makes the build implement the document
- * the user approved (including in-place edits), not a paraphrase from memory.
+ * Attaching under the plan's own filename (e.g. `feature-x_a1b2c3d4.plan.md`) is what
+ * makes the build implement the document the user approved (including in-place
+ * edits), not a paraphrase from memory; the runner detects it by the plan
+ * filename convention (`isPlanArtifactName`), so the exact name is free to vary.
  */
-const APPROVED_PLAN_MOUNT_PATH = `.stigmer/inputs/${PLAN_ARTIFACT_NAME}`;
+function approvedPlanMountPath(planFileName: string): string {
+  return `.stigmer/inputs/${planFileName}`;
+}
 
 /**
  * The build turn's user message — a short human-readable label, NOT the
  * implement instruction. The agent-facing instruction is runner-injected
- * (keyed off `executionConfig.buildFromPlan`), so this text exists for
- * humans: the thread renders the turn as a compact chip from the same flag,
- * and surfaces without the chip treatment (the CLI, older clients) show
- * this label as-is.
+ * (keyed off `executionConfig.buildFromPlan`). The thread hides the turn
+ * entirely from the same flag (the plan card above it is the visible cause);
+ * this label exists for surfaces without that treatment (the CLI, execution
+ * history, older clients), which show it as-is.
  */
 const BUILD_FROM_PLAN_MESSAGE = "Build from plan";
 
@@ -377,7 +385,7 @@ export function SessionViewer({
     setPlanAttachFailed(false);
 
     // `buildFromPlan` (not message text) is what tells the runner to inject
-    // the implement directive and the thread to render the compact chip —
+    // the implement directive and the thread to hide the turn's message —
     // with or without the attachment (the runner picks the directive variant).
     const submitImplementTurn = (attachments?: AttachmentInput[]) => {
       composerRef.current?.submit(BUILD_FROM_PLAN_MESSAGE, {
@@ -398,22 +406,25 @@ export function SessionViewer({
     // execution. The published artifact itself stays immutable; the approved
     // copy is a new input on the build turn (edit-as-input provenance).
     setIsBuildingFromPlan(true);
+    // The approved copy keeps the published plan's filename, so the mounted
+    // input, the download, and the plan card all agree on one name.
+    const planFileName = sessionPlan.artifact.name;
     void (async () => {
       try {
         const approvedText =
           planDraft.readDraft() ?? (await fetchPlanText(stigmer, sessionPlan));
         const response = await stigmer.agentExecution.uploadAttachment(
           create(UploadAttachmentRequestSchema, {
-            filename: PLAN_ARTIFACT_NAME,
+            filename: planFileName,
             content: new TextEncoder().encode(approvedText),
             contentType: "text/markdown",
           }),
         );
         submitImplementTurn([
           {
-            filename: PLAN_ARTIFACT_NAME,
+            filename: planFileName,
             storageKey: response.storageKey,
-            mountPath: APPROVED_PLAN_MOUNT_PATH,
+            mountPath: approvedPlanMountPath(planFileName),
             contentType: "text/markdown",
           },
         ]);
@@ -655,6 +666,20 @@ const ConversationColumn = memo(function ConversationColumn({
     [conv.stop, composerRef],
   );
 
+  // The composer-docked FileReviewDock sits OUTSIDE MessageThread, so the
+  // thread's own FilePathContext provider does not reach it. This provider
+  // gives the dock's file list the same path resolution and click routing
+  // (open in the panel's viewer; GitHub/copy fallback) as the transcript —
+  // one click behavior for a path everywhere in the session. Memoized so the
+  // dock's memoized cards are not invalidated by unrelated renders (DD-010).
+  const dockFilePathCtx = useMemo<FilePathContextValue>(
+    () => ({
+      workspaceEntries: conv.workspaceEntries ?? [],
+      onFilePathClick,
+    }),
+    [conv.workspaceEntries, onFilePathClick],
+  );
+
   return (
     <div className="flex h-full min-w-0 flex-col">
       <MessageThread
@@ -703,12 +728,19 @@ const ConversationColumn = memo(function ConversationColumn({
             decision the agent is blocked on can never scroll out of view. The
             thread renders only observational rows (badges) and read-only
             settled records; this is the one decision surface. */}
-        <FileReviewDock
-          changeSets={conv.fileChangeSets}
-          onSubmit={conv.submitFileDecision}
-          submittingDecisionKeys={conv.submittingFileDecisionKeys}
-          decisionErrors={conv.fileDecisionErrors}
-        />
+        <FilePathContext.Provider value={dockFilePathCtx}>
+          {/* Mid-run live capture (DD-32): the "N files changed so far" strip for
+              a still-running turn. Mutually exclusive with the dock below —
+              progress shows while CAPTURING, the dock once AWAITING_REVIEW — so it
+              hands off cleanly when review opens. Non-interactive. */}
+          <FileChangeProgressBar progress={conv.fileChangeProgress} />
+          <FileReviewDock
+            changeSets={conv.fileChangeSets}
+            onSubmit={conv.submitFileDecision}
+            submittingDecisionKeys={conv.submittingFileDecisionKeys}
+            decisionErrors={conv.fileDecisionErrors}
+          />
+        </FilePathContext.Provider>
         <SessionComposer
           ref={composerRef}
           onSubmit={flow.handleSubmit}

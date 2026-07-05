@@ -1,5 +1,6 @@
 import type {
   CapturedFileChange,
+  FileChangeProgressEntry,
   FileChangeSet,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
@@ -28,14 +29,39 @@ export function kindLetter(kind: FileChangeKind): string {
 }
 
 /**
- * The path to show for a change: the post-edit path, or the pre-edit path for a
- * deletion. A rename shows `before → after` so both sides are visible.
+ * The one rename-aware path-display rule for the terminal, over the raw
+ * before/after/kind triple shared by every file-change shape (reviewable
+ * `CapturedFileChange` and slim `FileChangeProgressEntry` alike). Kept private
+ * and fed by the typed adapters below so the two surfaces can never grow
+ * divergent rename formatting.
+ */
+function displayChangePath(
+  pathBefore: string,
+  pathAfter: string,
+  kind: FileChangeKind,
+): string {
+  if (kind === FileChangeKind.RENAME && pathBefore && pathAfter) {
+    return `${pathBefore} → ${pathAfter}`;
+  }
+  return pathAfter || pathBefore;
+}
+
+/**
+ * The path to show for a reviewable change: the post-edit path, or the pre-edit
+ * path for a deletion. A rename shows `before → after` so both sides are visible.
  */
 export function changeDisplayPath(change: CapturedFileChange): string {
-  if (change.kind === FileChangeKind.RENAME && change.pathBefore && change.pathAfter) {
-    return `${change.pathBefore} → ${change.pathAfter}`;
-  }
-  return change.pathAfter || change.pathBefore;
+  return displayChangePath(change.pathBefore, change.pathAfter, change.kind);
+}
+
+/**
+ * The path to show for a mid-run progress entry (DD-32), using the same
+ * rename-aware rule as {@link changeDisplayPath}. The slim entry carries no
+ * bodies or digests, only the same before/after/kind triple, so the terminal
+ * renders its path identically to the reviewable surfaces.
+ */
+export function progressEntryDisplayPath(entry: FileChangeProgressEntry): string {
+  return displayChangePath(entry.pathBefore, entry.pathAfter, entry.kind);
 }
 
 /**

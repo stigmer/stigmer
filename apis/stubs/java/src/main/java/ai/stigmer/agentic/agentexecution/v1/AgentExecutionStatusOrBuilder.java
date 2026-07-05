@@ -1227,4 +1227,76 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <code>.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamOrBuilder getFileReviewEventStreamOrBuilder();
+
+  /**
+   * <pre>
+   * Transient, non-authoritative snapshot of the workspace delta accumulating
+   * during the current turn — the live "N files changed so far" surface, shown
+   * before any review is possible.
+   *
+   * &#64;internal
+   *
+   * NOT part of the file-review ledger. This is a runner-owned, latest-snapshot
+   * display field in the family of setup_progress (18) / streaming_usage (20):
+   * the runner overwrites it on each mid-run persist and the server clears it once
+   * its change set leaves CAPTURING, exactly as setup_progress is cleared when the
+   * phase leaves PENDING. It carries paths + kinds + line counts only (no bodies,
+   * no digests) and is never decidable — the turn-boundary CANDIDATE_CAPTURED in
+   * file_change_sets remains the single authoritative, reviewable diff. See
+   * FileChangeProgress.
+   *
+   * Field 25: appended after file_review_event_stream (24), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileChangeProgress file_change_progress = 25 [json_name = "fileChangeProgress"];</code>
+   * @return Whether the fileChangeProgress field is set.
+   */
+  boolean hasFileChangeProgress();
+  /**
+   * <pre>
+   * Transient, non-authoritative snapshot of the workspace delta accumulating
+   * during the current turn — the live "N files changed so far" surface, shown
+   * before any review is possible.
+   *
+   * &#64;internal
+   *
+   * NOT part of the file-review ledger. This is a runner-owned, latest-snapshot
+   * display field in the family of setup_progress (18) / streaming_usage (20):
+   * the runner overwrites it on each mid-run persist and the server clears it once
+   * its change set leaves CAPTURING, exactly as setup_progress is cleared when the
+   * phase leaves PENDING. It carries paths + kinds + line counts only (no bodies,
+   * no digests) and is never decidable — the turn-boundary CANDIDATE_CAPTURED in
+   * file_change_sets remains the single authoritative, reviewable diff. See
+   * FileChangeProgress.
+   *
+   * Field 25: appended after file_review_event_stream (24), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileChangeProgress file_change_progress = 25 [json_name = "fileChangeProgress"];</code>
+   * @return The fileChangeProgress.
+   */
+  ai.stigmer.agentic.agentexecution.v1.FileChangeProgress getFileChangeProgress();
+  /**
+   * <pre>
+   * Transient, non-authoritative snapshot of the workspace delta accumulating
+   * during the current turn — the live "N files changed so far" surface, shown
+   * before any review is possible.
+   *
+   * &#64;internal
+   *
+   * NOT part of the file-review ledger. This is a runner-owned, latest-snapshot
+   * display field in the family of setup_progress (18) / streaming_usage (20):
+   * the runner overwrites it on each mid-run persist and the server clears it once
+   * its change set leaves CAPTURING, exactly as setup_progress is cleared when the
+   * phase leaves PENDING. It carries paths + kinds + line counts only (no bodies,
+   * no digests) and is never decidable — the turn-boundary CANDIDATE_CAPTURED in
+   * file_change_sets remains the single authoritative, reviewable diff. See
+   * FileChangeProgress.
+   *
+   * Field 25: appended after file_review_event_stream (24), the prior maximum.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.FileChangeProgress file_change_progress = 25 [json_name = "fileChangeProgress"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.FileChangeProgressOrBuilder getFileChangeProgressOrBuilder();
 }

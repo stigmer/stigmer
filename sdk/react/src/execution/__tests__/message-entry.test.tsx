@@ -195,49 +195,18 @@ describe("MessageEntry — Human messages", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Build-from-plan chip — the flagged human turn renders as a compact pill
+// Build-from-plan turns — no special human-message treatment
 // ---------------------------------------------------------------------------
 
-describe("MessageEntry — Build-from-plan chip", () => {
-  it("renders a compact chip instead of a prompt bubble when flagged", () => {
-    const msg = makeMessage(MessageType.MESSAGE_HUMAN, "Build from plan");
-    const { container } = render(
-      <MessageEntry message={msg} isBuildFromPlan />,
-    );
-
-    const chip = queryArticle(container, "Build from plan");
-    expect(chip).not.toBeNull();
-    expect(chip!.textContent).toContain("Build from plan");
-    // The ordinary prompt bubble must not render alongside the chip.
-    expect(queryArticle(container, "User message")).toBeNull();
-  });
-
-  it("keeps the ordinary bubble when the flag is absent", () => {
+describe("MessageEntry — Build-from-plan turns", () => {
+  it("renders any human message as the ordinary prompt bubble (the thread hides build turns before they reach MessageEntry)", () => {
+    // The retired chip treatment lived here; today buildThreadItems skips
+    // synthesizing the prompt item for a build turn entirely, so a human
+    // message that DOES reach MessageEntry is always ordinary prose.
     const msg = makeMessage(MessageType.MESSAGE_HUMAN, "Build from plan");
     const { container } = render(<MessageEntry message={msg} />);
 
     expect(queryArticle(container, "User message")).not.toBeNull();
-    expect(queryArticle(container, "Build from plan")).toBeNull();
-  });
-
-  it("never offers Edit on the chip (the label is not user prose)", () => {
-    const msg = makeMessage(MessageType.MESSAGE_HUMAN, "Build from plan");
-    const { container } = render(
-      <MessageEntry message={msg} isBuildFromPlan onEdit={() => {}} />,
-    );
-
-    expect(
-      container.querySelector('[aria-label="Edit message"]'),
-    ).toBeNull();
-  });
-
-  it("ignores the flag on non-human messages", () => {
-    const msg = makeMessage(MessageType.MESSAGE_AI, "Implementing…");
-    const { container } = render(
-      <MessageEntry message={msg} isBuildFromPlan />,
-    );
-
-    expect(queryArticle(container, "AI response")).not.toBeNull();
     expect(queryArticle(container, "Build from plan")).toBeNull();
   });
 });

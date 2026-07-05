@@ -310,6 +310,19 @@ func applyUpdateStatusMerge(
 		status.GetFileReviewEventStream(),
 	)
 
+	// Mid-run live capture (DD-32): merge the runner-owned transient progress
+	// snapshot (presence-guarded replace, like streaming_usage below), then clear
+	// it unless its change set is still CAPTURING. This is the setup_progress-style
+	// defense-in-depth clear — run here so it sees the freshly-projected
+	// file_change_sets — keeping a stale mid-run delta from outliving the turn.
+	if requestStatus.FileChangeProgress != nil {
+		status.FileChangeProgress = requestStatus.FileChangeProgress
+	}
+	status.FileChangeProgress = filereview.ReconcileFileChangeProgress(
+		status.FileChangeSets,
+		status.FileChangeProgress,
+	)
+
 	// Merge streaming_usage (replace with latest from request).
 	// Populated by execution worker's UsageAccumulator during streaming;
 	// used by the frontend as a display-only fallback when proxy-reported

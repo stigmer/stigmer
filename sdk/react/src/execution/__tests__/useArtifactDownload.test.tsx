@@ -38,6 +38,8 @@ describe("useArtifactDownload", () => {
     const req = fn.mock.calls[0][0];
     expect(req.executionId).toBe("aex_1");
     expect(req.storageKey).toBe("artifacts/aex_1/file.bin");
+    // Save-to-disk actions force an attachment disposition on the minted URL.
+    expect(req.asAttachment).toBe(true);
     expect(result.current.isDownloading).toBe(false);
     expect(result.current.error).toBeNull();
   });

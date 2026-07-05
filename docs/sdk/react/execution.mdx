@@ -188,6 +188,53 @@ const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
 ```
 
 
+### useArtifactCopy
+
+Behavior hook that copies an execution artifact's text to the clipboard on
+demand.
+
+The imperative sibling of [`useArtifactDownload`](#useartifactdownload): it fetches content at
+click time via `getArtifactContent` (CORS-safe, through the Stigmer API)
+rather than requiring the caller to have loaded it. This suits content-free
+surfaces — a plan card that detects the artifact by convention and never
+fetches until the user acts — where a mount-time [`useArtifactContent`](#useartifactcontent)
+would be wasteful.
+
+Returns an imperative `copy(storageKey)` action plus a transient `copied`
+flag for feedback, mirroring the modal's copy affordance so every surface
+shares one implementation.
+
+**Signature**
+
+```tsx
+function useArtifactCopy(executionId: string | null): UseArtifactCopyReturn
+```
+
+<TypeTable
+  type={{
+    executionId: { type: "string | null", description: "Execution that produced the artifacts, or `null` to   disable (the action becomes a no-op).", required: true },
+  }}
+/>
+
+**Returns** — `UseArtifactCopyReturn`
+
+<TypeTable
+  type={{
+    copied: { type: "boolean", description: "`true` for a brief window after a successful copy (drives \"Copied\" affordance feedback), then resets automatically." },
+    copy: { type: "(storageKey: string) => Promise<void>", description: "Fetch the artifact's text at click time and write it to the clipboard. No-op when the execution id is unknown or a copy is already in flight. Resolves once the copy has been attempted." },
+    error: { type: "Error | null", description: "Error from the last failed copy attempt, or `null` when healthy." },
+    isCopying: { type: "boolean", description: "`true` while the content is being fetched / written to the clipboard." },
+  }}
+/>
+
+```tsx
+const { copy, isCopying, copied } = useArtifactCopy(executionId);
+<button onClick={() => copy(artifact.storageKey)} disabled={isCopying}>
+  {copied ? "Copied" : "Copy"}
+</button>
+```
+
+
 ### useArtifactDownload
 
 Behavior hook that downloads an execution artifact on demand.
@@ -1021,7 +1068,7 @@ mount this component rather than passing an `active` flag.
     isTerminal: { type: "boolean", description: "Whether the execution is in a terminal phase (completed, failed, cancelled, terminated). Controls Apply/Push CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package is pushed. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
     onClose: { type: "() => void", description: "Called when the close button is clicked.", required: true },
-    onImplement: { type: "() => void", description: "Optional plan-build action. When provided, a \"Build from plan\" primary button appears in the action bar (used for plan artifacts: turn the plan into an Agent run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable artifacts." },
+    onImplement: { type: "() => void", description: "Optional plan-build action. When provided, a \"Build\" primary button appears in the action bar (used for plan artifacts: turn the plan into an Agent run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable artifacts." },
     org: { type: "string", description: "Organization slug for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA.", required: true },
   }}
 />
@@ -1062,7 +1109,7 @@ automatically when the dialog closes.
     isTerminal: { type: "boolean", description: "Whether the execution is in a terminal phase (completed, failed, cancelled, terminated). Controls Apply/Push CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package is pushed. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
     onClose: { type: "() => void", description: "Called when the modal should close (Escape key or close button).", required: true },
-    onImplement: { type: "() => void", description: "Optional plan-build action (see ArtifactPreviewContentProps.onImplement). When provided, a \"Build from plan\" primary button appears; clicking it calls `onImplement` then closes the modal." },
+    onImplement: { type: "() => void", description: "Optional plan-build action (see ArtifactPreviewContentProps.onImplement). When provided, a \"Build\" primary button appears; clicking it calls `onImplement` then closes the modal." },
     open: { type: "boolean", description: "Controls modal visibility. `true` opens the dialog via `showModal()`.", required: true },
     org: { type: "string", description: "Organization slug for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA.", required: true },
   }}
@@ -2024,7 +2071,7 @@ Input for `UseCreateAgentExecutionReturn.create`.
     agentId: { type: "string", description: "Explicit agent ID. When omitted, uses the session's agent instance." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments injected into the agent sandbox.  Each entry must include a `storageKey` obtained from `agentExecution.uploadAttachment()`. The agent can read attached files from their mount paths (default `/inputs/{filename}`)." },
     autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this execution.  When `true`, the human-in-the-loop approval gate is bypassed and no tool waits for approval. When `false` (default), mutating/destructive tools require approval per the configured policies. Maps to `AgentExecutionSpec.auto_approve_all` in the proto." },
-    buildFromPlan: { type: "boolean", description: "Marks this execution as a \"Build from plan\" turn: the user approved a plan from a prior Plan-mode execution and asked the agent to implement it. The runner injects the implement-plan directive (pointing at the attached approved plan when present); the thread renders the turn as a compact chip instead of the raw message text.  Maps to `ExecutionConfig.build_from_plan` in the proto." },
+    buildFromPlan: { type: "boolean", description: "Marks this execution as a Build-from-plan turn: the user approved a plan from a prior Plan-mode execution and asked the agent to implement it. The runner injects the implement-plan directive (pointing at the attached approved plan when present); the thread hides the turn's machine-written message entirely — the plan card above it is the visible cause. Surfaces without that treatment (the CLI, history) show the message text as-is.  Maps to `ExecutionConfig.build_from_plan` in the proto." },
     interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  Maps to `ExecutionConfig.interaction_mode` in the proto." },
     message: { type: "string", description: "User message that initiates the execution.", required: true },
     modelName: { type: "string", description: "Override the default model for this execution." },
@@ -2177,6 +2224,50 @@ runner records on `CapturedFileChange.blocked_reason` (design doc 15).
   persisted status under its size limit.
 - `"unknown"` — incomplete for a reason the wire does not name (a defensive
   catch-all; historical rows and future/unmapped causes land here).
+
+
+### FileChangeProgressBar
+
+The live "N files changed so far" strip for a turn that is still running.
+
+WHY IT EXISTS. The transcript streams per-edit tool rows, but a change made by
+a shell command (a `sed`, a build step) has no tool row, and there is no
+running net-of-many-edits rollup until the turn ends. This bar fills that gap:
+a compact, NON-INTERACTIVE count of the workspace delta accumulating during
+the turn, pinned above the composer where the [`FileReviewDock`](#filereviewdock) will later
+appear. The two are mutually exclusive per turn (progress shows while CAPTURING;
+the dock shows once AWAITING_REVIEW), so the bar hands off cleanly to the dock.
+
+NEVER A DECISION SURFACE. Progress is non-authoritative and carries no file
+bodies — it is never reviewable or decidable. The reviewed diff is the
+turn-boundary candidate ([`FileReviewDock`](#filereviewdock) / the stamped transcript rows).
+A secret-like path is surfaced by name with its counts withheld (zeroed), so
+`FileLineStats` renders nothing for it.
+
+A11Y. Only the summary count is an `aria-live` region — the per-file list is
+not — so a screen reader hears "3 files changing" as the count moves, not a
+per-file barrage on every ~2s refresh.
+
+Purely presentational (headless-first, DD-003): the data lives in
+`useSessionConversation().fileChangeProgress`. `SessionViewer` mounts it above
+the dock by default.
+
+```tsx
+const conv = useSessionConversation(sessionId);
+<FileChangeProgressBar progress={conv.fileChangeProgress} />
+```
+
+
+### FileChangeProgressBarProps
+
+Props for [`FileChangeProgressBar`](#filechangeprogressbar).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    progress: { type: "FileChangeProgress | undefined", description: "The transient mid-run progress snapshot for the active turn (DD-32). Feed this from `useSessionConversation().fileChangeProgress`. Renders nothing when undefined or when no files have changed yet — the server clears it once the turn's change set leaves CAPTURING, so the bar disappears exactly when the decision surface (FileReviewDock) takes over.", required: true },
+  }}
+/>
 
 
 ### fileDecisionKey
@@ -2341,7 +2432,7 @@ Props for [`FileReviewCard`](#filereviewcard).
     fileChangeSet: { type: "FileChangeSet", description: "The captured change set awaiting review (status AWAITING_REVIEW).", required: true },
     interactive: { type: "boolean", description: "Whether the card presents decision controls. Defaults to `true` (the live review surface). Set to `false` to render a **settled** change set read-only: the per-file diffs and each file's committed verdict are shown, but the decision controls, bulk footer, and error affordances are omitted. Used for a decided/reconciled set, or any set on a terminal execution — a historical record of what changed and how it was decided, not an actionable gate." },
     onSubmit: { type: "(action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Called when the user makes a decision. The consumer (typically MessageThread or a platform builder's surface) handles the RPC via useFileReview. A whole-set Approve/Reject sends `CHANGE_SET` scope; a per-file Keep/Discard sends `FILE` scope with the file's id. Optional and ignored when FileReviewCardProps.interactive is `false`." },
-    showDiffs: { type: "boolean", description: "Whether the expanded body renders each file's diff. Defaults to `true` — the right default wherever this card is the *only* review surface (the workflow file-review list, standalone platform-builder embeds).  `MessageThread` passes `false`: the transcript's stamped edit rows already show every diff in place, so the expanded body collapses to a compact file list (kind letter + path + per-file controls) and the card stays purely the decision surface. Decision semantics — digests, scopes, acknowledgments — are identical in both modes; this is presentation only (opt-in with a backward-compatible default, DD-011)." },
+    showDiffs: { type: "boolean", description: "Whether the expanded body renders each file's diff. Defaults to `true` — the right default wherever this card is the *only* review surface (the workflow file-review list, standalone platform-builder embeds).  `MessageThread` passes `false`: the transcript's stamped edit rows already show every diff in place, so the expanded body collapses to a compact file list (kind letter + linked path + `+N −M` + per-file controls) and the card stays purely the decision surface. Decision semantics — digests, scopes, acknowledgments — are identical in both modes; this is presentation only (opt-in with a backward-compatible default, DD-011)." },
     submittingDecisionKeys: { type: "ReadonlySet<string>", description: "The decision keys currently being submitted — exactly the set useFileReview returns as `submittingDecisionKeys`. A card has more than one decision target (the whole set plus each file), so it takes the keyed set rather than a single boolean and derives each control's in-flight state via fileDecisionKey." },
   }}
 />
@@ -2659,7 +2750,6 @@ Props for [`MessageEntry`](#messageentry).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     interactionMode: { type: "InteractionMode", description: "The turn's interaction mode, stamped by the thread builder on the synthetic prompt bubble (`MESSAGE_HUMAN`). Renders the InteractionModeBadge for non-default modes (a \"Plan\" pill), so the transcript reads unambiguously after mode switches. Ignored for non-human messages." },
-    isBuildFromPlan: { type: "boolean", description: "Renders a `MESSAGE_HUMAN` entry as a compact \"Build from plan\" chip instead of a prompt bubble. Stamped by the thread builder from `execution_config.build_from_plan`: the turn's message is a short label (the implement instruction is runner-injected), so a full-width bubble would dignify machine plumbing as user prose. Ignored for non-human messages." },
     isPlanDocument: { type: "boolean", description: "Renders a `MESSAGE_AI` entry as a first-class plan document (PlanDocumentMessage) instead of a chat bubble. Set by the thread builder only on the NO-ARTIFACT fallback path: a completed Plan turn that never published `plan.md` (older executions, failed upload) keeps its plan inline — the message is the only copy of the plan. A turn that published the artifact collapses the message into the compact plan card instead (the document lives in the panel's plan tab). Ignored for non-AI messages." },
     message: { type: "AgentMessage", description: "The agent message to render.", required: true },
     onEdit: { type: "() => void", description: "When provided on a `MESSAGE_HUMAN` entry, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for non-human messages." },
@@ -2700,9 +2790,15 @@ thread. The plan document itself lives in the session panel's plan tab
 the panel carries the document.
 
 Anatomy: a document-style identity block (plan icon, the plan's title, a
-`plan.md · size` meta line) with the actions trailing — **Open plan** and
-**Download** as subdued secondaries and one prominent, themeable primary,
-**Build from plan** — so the next step is unmistakable.
+`<name> · size` meta line) with the actions trailing — open, copy, and
+download as icon-only secondaries (labelled via `aria-label`/`title`) and
+one prominent, themeable primary, **Build** — so the next step is
+unmistakable.
+
+Action-label rule (shared with `PlanStreamingCard`, which keeps its
+labelled "Open plan"): a lone secondary keeps its text label; a row of
+secondaries competing with a primary collapses to icons, so the primary
+carries the card's one visible verb.
 
 Only the LATEST plan's card carries `onImplement`; a superseded plan's card
 is review-only (its `onOpenPlan` opens the document read-only), so a stale
@@ -2723,9 +2819,9 @@ Props for [`PlanArtifactCard`](#planartifactcard).
     className: { type: "string", description: "Additional CSS classes for the root element." },
     disabled: { type: "boolean", description: "Disables the primary CTA (e.g., while an execution is active)." },
     executionId: { type: "string", description: "Execution that produced the plan — used to fetch the plan content.", required: true },
-    onImplement: { type: "() => void", description: "Called when the user clicks \"Build from plan\". Hidden when omitted." },
-    onOpenPlan: { type: "() => void", description: "Opens the plan in the session panel's plan document tab — the side-by-side review/refine surface. When provided it REPLACES the modal-based \"Open full\" secondary with \"Open plan\" (one review affordance, not two). When omitted (hosts without a session panel) the modal remains." },
-    org: { type: "string", description: "Organization slug. Required for the \"Open full\" modal (the shared ArtifactPreviewModal uses it for its detection/apply pipeline and to fetch the content). When omitted, \"Open full\" is hidden — the prominent \"Build from plan\" action and \"Download\" remain." },
+    onImplement: { type: "() => void", description: "Called when the user clicks \"Build\". Hidden when omitted." },
+    onOpenPlan: { type: "() => void", description: "Opens the plan in the session panel's plan document tab — the side-by-side review/refine surface. When provided it REPLACES the modal-based open fallback (one review affordance, not two). When omitted (hosts without a session panel) the same \"Open plan\" icon opens the preview modal instead." },
+    org: { type: "string", description: "Organization slug. Required for the open-in-modal fallback (the shared ArtifactPreviewModal uses it for its detection/apply pipeline and to fetch the content). When omitted, that fallback is hidden — the prominent \"Build\" action and the download icon remain." },
     title: { type: "string", description: "The plan's title (its leading `# H1`). The card is the plan's compact stand-in in the thread, so the title is what makes it recognizable. Falls back to \"Plan\" when omitted." },
   }}
 />
@@ -2738,9 +2834,9 @@ execution that did **not** publish a `plan.md` artifact (older executions, or
 a plan whose upload failed). When a plan artifact exists, the richer
 `PlanArtifactCard` is shown instead.
 
-Mirrors `PlanArtifactCard`'s hierarchy — one prominent, themeable "Build from
-plan" primary action with the same card-scoped `Cmd/Ctrl+Enter` accelerator —
-so the two cards feel like the same affordance. The consumer wires the action
+Mirrors `PlanArtifactCard`'s hierarchy — one prominent, themeable "Build"
+primary action with the same card-scoped `Cmd/Ctrl+Enter` accelerator — so
+the two cards feel like the same affordance. The consumer wires the action
 to switch the interaction mode to Agent and submit the implement turn.
 
 Renders nothing when `onImplement` is not provided, so the card is fully
@@ -2756,7 +2852,7 @@ Props for [`PlanCompletionCard`](#plancompletioncard).
   type={{
     className: { type: "string", description: "Additional CSS classes for the root element." },
     disabled: { type: "boolean", description: "Disables the CTA button (e.g., while an execution is active)." },
-    onImplement: { type: "() => void", description: "Called when the user clicks the \"Build from plan\" button." },
+    onImplement: { type: "() => void", description: "Called when the user clicks the \"Build\" button." },
   }}
 />
 
@@ -2803,8 +2899,13 @@ Props for [`PlanDocumentMessage`](#plandocumentmessage).
 The live counterpart of [`PlanArtifactCard`](#planartifactcard) — a streaming Plan turn's
 compact stand-in in the thread while the plan document renders live in the
 session panel's plan tab. Same anatomy as the completed card (icon, title,
-`plan.md · size` meta, trailing actions) so the completion handoff reads as
-the same card settling, not a new element appearing.
+a `Writing… · size` meta, trailing actions) so the completion handoff reads
+as the same card settling, not a new element appearing.
+
+The meta line deliberately omits a filename: the artifact's name is derived
+from the plan's title, which is still streaming in, so a name shown here
+would change under the user when the plan settles. The completed card
+introduces the final `<slug>_<id>.plan.md` name once it exists.
 
 Deliberately action-light: "Open plan" is the only affordance. Download and
 Build require the published artifact, which does not exist until the turn

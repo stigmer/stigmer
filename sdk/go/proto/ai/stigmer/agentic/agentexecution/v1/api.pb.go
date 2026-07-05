@@ -328,8 +328,25 @@ type AgentExecutionStatus struct {
 	//
 	// Field 24: appended after file_change_sets (23), the prior maximum.
 	FileReviewEventStream *FileReviewEventStream `protobuf:"bytes,24,opt,name=file_review_event_stream,json=fileReviewEventStream,proto3" json:"file_review_event_stream,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Transient, non-authoritative snapshot of the workspace delta accumulating
+	// during the current turn — the live "N files changed so far" surface, shown
+	// before any review is possible.
+	//
+	// @internal
+	//
+	// NOT part of the file-review ledger. This is a runner-owned, latest-snapshot
+	// display field in the family of setup_progress (18) / streaming_usage (20):
+	// the runner overwrites it on each mid-run persist and the server clears it once
+	// its change set leaves CAPTURING, exactly as setup_progress is cleared when the
+	// phase leaves PENDING. It carries paths + kinds + line counts only (no bodies,
+	// no digests) and is never decidable — the turn-boundary CANDIDATE_CAPTURED in
+	// file_change_sets remains the single authoritative, reviewable diff. See
+	// FileChangeProgress.
+	//
+	// Field 25: appended after file_review_event_stream (24), the prior maximum.
+	FileChangeProgress *FileChangeProgress `protobuf:"bytes,25,opt,name=file_change_progress,json=fileChangeProgress,proto3" json:"file_change_progress,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *AgentExecutionStatus) Reset() {
@@ -502,6 +519,13 @@ func (x *AgentExecutionStatus) GetFileReviewEventStream() *FileReviewEventStream
 	return nil
 }
 
+func (x *AgentExecutionStatus) GetFileChangeProgress() *FileChangeProgress {
+	if x != nil {
+		return x.FileChangeProgress
+	}
+	return nil
+}
+
 // Setup progress reported during the EXECUTION_PENDING phase.
 //
 // @internal
@@ -568,7 +592,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xeb\r\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xd7\x0e\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -591,7 +615,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0fstreaming_usage\x18\x14 \x01(\v2;.ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummaryR\x0estreamingUsage\x12D\n" +
 	"\x11structured_output\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x10structuredOutput\x12]\n" +
 	"\x10file_change_sets\x18\x17 \x03(\v23.ai.stigmer.agentic.agentexecution.v1.FileChangeSetR\x0efileChangeSets\x12t\n" +
-	"\x18file_review_event_stream\x18\x18 \x01(\v2;.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamR\x15fileReviewEventStream\x1ah\n" +
+	"\x18file_review_event_stream\x18\x18 \x01(\v2;.ai.stigmer.agentic.agentexecution.v1.FileReviewEventStreamR\x15fileReviewEventStream\x12j\n" +
+	"\x14file_change_progress\x18\x19 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.FileChangeProgressR\x12fileChangeProgress\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -634,7 +659,8 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*structpb.Struct)(nil),                 // 17: google.protobuf.Struct
 	(*FileChangeSet)(nil),                   // 18: ai.stigmer.agentic.agentexecution.v1.FileChangeSet
 	(*FileReviewEventStream)(nil),           // 19: ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
-	(*TodoItem)(nil),                        // 20: ai.stigmer.agentic.agentexecution.v1.TodoItem
+	(*FileChangeProgress)(nil),              // 20: ai.stigmer.agentic.agentexecution.v1.FileChangeProgress
+	(*TodoItem)(nil),                        // 21: ai.stigmer.agentic.agentexecution.v1.TodoItem
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	4,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -656,12 +682,13 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	17, // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.structured_output:type_name -> google.protobuf.Struct
 	18, // 17: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_change_sets:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeSet
 	19, // 18: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_review_event_stream:type_name -> ai.stigmer.agentic.agentexecution.v1.FileReviewEventStream
-	20, // 19: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	20, // [20:20] is the sub-list for method output_type
-	20, // [20:20] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	20, // 19: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.file_change_progress:type_name -> ai.stigmer.agentic.agentexecution.v1.FileChangeProgress
+	21, // 20: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	21, // [21:21] is the sub-list for method output_type
+	21, // [21:21] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }

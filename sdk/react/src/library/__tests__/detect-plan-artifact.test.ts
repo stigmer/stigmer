@@ -9,6 +9,7 @@ import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agente
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   isPlanArtifact,
+  isPlanArtifactName,
   findPlanArtifact,
   findLatestSessionPlan,
   PLAN_ARTIFACT_NAME,
@@ -35,9 +36,29 @@ function executionWithId(id: string, ...artifacts: ReturnType<typeof artifact>[]
   });
 }
 
+describe("isPlanArtifactName", () => {
+  it("accepts the legacy exact name and any *.plan.md", () => {
+    expect(isPlanArtifactName(PLAN_ARTIFACT_NAME)).toBe(true);
+    expect(isPlanArtifactName("feature_x.plan.md")).toBe(true);
+    // The runner's current shape: hyphenated slug + content-hash discriminator.
+    expect(isPlanArtifactName("fix-the-download-ux_a1b2c3d4.plan.md")).toBe(true);
+    expect(isPlanArtifactName("a1b2c3d4.plan.md")).toBe(true);
+  });
+
+  it("rejects non-plan filenames", () => {
+    expect(isPlanArtifactName("report.md")).toBe(false);
+    expect(isPlanArtifactName("plan.txt")).toBe(false);
+    expect(isPlanArtifactName("myplan.md")).toBe(false);
+  });
+});
+
 describe("isPlanArtifact", () => {
   it("is true for a FILE artifact named plan.md", () => {
     expect(isPlanArtifact(artifact({ name: PLAN_ARTIFACT_NAME }))).toBe(true);
+  });
+
+  it("is true for a FILE artifact named <slug>_<id>.plan.md", () => {
+    expect(isPlanArtifact(artifact({ name: "plan-card-ux-cleanup_a1b2c3d4.plan.md" }))).toBe(true);
   });
 
   it("is false for a directory named plan.md", () => {

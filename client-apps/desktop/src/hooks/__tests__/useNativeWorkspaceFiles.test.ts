@@ -75,7 +75,22 @@ describe("useNativeWorkspaceFiles", () => {
     expect(files).toEqual(mockFiles);
   });
 
-  it("maps result.files directly as the return value", async () => {
+  it("returns files unchanged (no notice entry) when not truncated", async () => {
+    const mockFiles = [
+      { path: "README.md", isDirectory: false },
+      { path: "lib", isDirectory: true },
+      { path: "lib/util.ts", isDirectory: false },
+    ];
+    mockedInvoke.mockResolvedValue({ files: mockFiles, truncated: false });
+
+    const { result } = renderHook(() => useNativeWorkspaceFiles());
+    const files = await result.current(makeLocalEntry());
+
+    expect(files).toEqual(mockFiles);
+    expect(files?.some((f) => f.notice)).toBe(false);
+  });
+
+  it("appends a single notice entry when the walker truncates (DD-11 parity)", async () => {
     const mockFiles = [
       { path: "README.md", isDirectory: false },
       { path: "lib", isDirectory: true },
@@ -86,7 +101,12 @@ describe("useNativeWorkspaceFiles", () => {
     const { result } = renderHook(() => useNativeWorkspaceFiles());
     const files = await result.current(makeLocalEntry());
 
-    expect(files).toBe(mockFiles);
+    // Original files preserved, plus exactly one appended advisory notice.
+    expect(files).toHaveLength(mockFiles.length + 1);
+    expect(files?.slice(0, mockFiles.length)).toEqual(mockFiles);
+    const notices = files?.filter((f) => f.notice) ?? [];
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toMatchObject({ isDirectory: false, notice: true });
   });
 
   it("propagates errors from invoke", async () => {

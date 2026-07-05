@@ -65,7 +65,16 @@ export function useArtifactDownload(
       setError(null);
       try {
         const result = await stigmer.agentExecution.getArtifactDownloadUrl(
-          create(GetArtifactDownloadUrlRequestSchema, { executionId, storageKey }),
+          create(GetArtifactDownloadUrlRequestSchema, {
+            executionId,
+            storageKey,
+            // This is a save-to-disk action, so mint a URL that forces a
+            // browser download (Content-Disposition: attachment). Browsers
+            // ignore the anchor's `download` attribute cross-origin, so the
+            // disposition must ride on the URL itself. Contrast
+            // useArtifactDownloadUrl, which stays inline for `<img src>`.
+            asAttachment: true,
+          }),
         );
         if (result.downloadUrl) {
           triggerBrowserDownload(result.downloadUrl, fileName);
@@ -86,10 +95,13 @@ export function useArtifactDownload(
 }
 
 /**
- * Trigger a browser download for a URL via a transient anchor click. The
- * `download` hint is best-effort: browsers ignore it for cross-origin URLs
- * (e.g. R2), in which case the navigation still serves the file. Falls back to
- * a new tab in non-DOM environments.
+ * Trigger a browser download for a URL via a transient anchor click.
+ *
+ * The URL minted for this flow carries `Content-Disposition: attachment`
+ * (requested via `asAttachment`), so the browser saves the file even
+ * cross-origin — where it would ignore the anchor's `download` attribute. The
+ * `download` hint is still set as a same-origin nicety. Falls back to a new tab
+ * in non-DOM environments.
  */
 function triggerBrowserDownload(url: string, fileName?: string): void {
   if (typeof document === "undefined") {

@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -64,7 +65,12 @@ func (s *LocalStorage) Download(ctx context.Context, key string) ([]byte, error)
 // GetSignedURL returns a direct URL to the artifact.
 // For local storage, this is simply the serve URL + key.
 // Note: In production, you'd want proper authentication/authorization.
-func (s *LocalStorage) GetSignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
+//
+// When downloadFilename is non-empty, a `download` query parameter carrying
+// the (URL-encoded) name is appended. The local artifact file server reads it
+// and sets Content-Disposition: attachment, mirroring the R2 backend's signed
+// disposition so the download UX is identical across storage backends.
+func (s *LocalStorage) GetSignedURL(ctx context.Context, key string, expiresIn time.Duration, downloadFilename string) (string, error) {
 	if s.serveURL == "" {
 		return "", fmt.Errorf("local serve URL not configured")
 	}
@@ -72,6 +78,9 @@ func (s *LocalStorage) GetSignedURL(ctx context.Context, key string, expiresIn t
 	// For local storage, we return a simple URL
 	// In production, you might want to add authentication tokens
 	url := fmt.Sprintf("%s/%s", s.serveURL, key)
+	if downloadFilename != "" {
+		url += "?" + LocalDownloadQueryParam + "=" + neturl.QueryEscape(downloadFilename)
+	}
 	return url, nil
 }
 

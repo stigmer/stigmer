@@ -26,8 +26,8 @@ function withStigmer(children: ReactNode) {
 
 afterEach(cleanup);
 
-describe("ArtifactPreviewContent — Build from plan action", () => {
-  it("renders a 'Build from plan' button only when onImplement is provided", () => {
+describe("ArtifactPreviewContent — Build action", () => {
+  it("renders a 'Build' button only when onImplement is provided", () => {
     const { rerender } = render(
       withStigmer(
         <ArtifactPreviewContent
@@ -39,7 +39,7 @@ describe("ArtifactPreviewContent — Build from plan action", () => {
         />,
       ),
     );
-    expect(screen.queryByText("Build from plan")).toBeNull();
+    expect(screen.queryByText("Build")).toBeNull();
 
     rerender(
       withStigmer(
@@ -53,10 +53,10 @@ describe("ArtifactPreviewContent — Build from plan action", () => {
         />,
       ),
     );
-    expect(screen.getByText("Build from plan")).toBeTruthy();
+    expect(screen.getByText("Build")).toBeTruthy();
   });
 
-  it("calls onImplement then closes the modal when 'Build from plan' is clicked", () => {
+  it("calls onImplement then closes the modal when 'Build' is clicked", () => {
     const calls: string[] = [];
     const onImplement = vi.fn(() => calls.push("implement"));
     const onClose = vi.fn(() => calls.push("close"));
@@ -74,7 +74,7 @@ describe("ArtifactPreviewContent — Build from plan action", () => {
       ),
     );
 
-    fireEvent.click(screen.getByText("Build from plan"));
+    fireEvent.click(screen.getByText("Build"));
 
     expect(onImplement).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);

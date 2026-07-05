@@ -91,6 +91,16 @@ public final class FilereviewProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentexecution_v1_FileReviewEventStream_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgress_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgress_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgressEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgressEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -125,7 +135,7 @@ public final class FilereviewProto extends com.google.protobuf.GeneratedFile {
       "cution.v1.DiffCompletenessB\010\272H\005\202\001\002\020\001R\020di" +
       "ffCompleteness\022P\n\tdecisions\030\013 \003(\01322.ai.s" +
       "tigmer.agentic.agentexecution.v1.FileDec" +
-      "isionR\tdecisions\"\213\006\n\022CapturedFileChange\022" +
+      "isionR\tdecisions\"\321\006\n\022CapturedFileChange\022" +
       "\016\n\002id\030\001 \001(\tR\002id\022\037\n\013path_before\030\002 \001(\tR\npa" +
       "thBefore\022\035\n\npath_after\030\003 \001(\tR\tpathAfter\022" +
       "R\n\004kind\030\004 \001(\01624.ai.stigmer.agentic.agent" +
@@ -144,89 +154,104 @@ public final class FilereviewProto extends com.google.protobuf.GeneratedFile {
       "\010R\014diffComplete\022\037\n\013file_digest\030\014 \001(\tR\nfi" +
       "leDigest\022l\n\016blocked_reason\030\r \001(\0162;.ai.st" +
       "igmer.agentic.agentexecution.v1.FileRevi" +
-      "ewBlockReasonB\010\272H\005\202\001\002\020\001R\rblockedReason\"\353" +
-      "\001\n\013SnapshotRef\022P\n\004kind\030\001 \001(\01622.ai.stigme" +
-      "r.agentic.agentexecution.v1.SnapshotKind" +
-      "B\010\272H\005\202\001\002\020\001R\004kind\022B\n\003git\030\002 \001(\01320.ai.stigm" +
-      "er.agentic.agentexecution.v1.GitTreeRefR" +
-      "\003git\022F\n\003cas\030\003 \001(\01324.ai.stigmer.agentic.a" +
-      "gentexecution.v1.CasManifestRefR\003cas\"9\n\n" +
-      "GitTreeRef\022\031\n\010tree_oid\030\001 \001(\tR\007treeOid\022\020\n" +
-      "\003ref\030\002 \001(\tR\003ref\"\\\n\016CasManifestRef\022\'\n\017man" +
-      "ifest_digest\030\001 \001(\tR\016manifestDigest\022!\n\014ar" +
-      "tifact_uri\030\002 \001(\tR\013artifactUri\"\265\004\n\014FileDe" +
-      "cision\022\016\n\002id\030\001 \001(\tR\002id\022\"\n\rchange_set_id\030" +
-      "\002 \001(\tR\013changeSetId\022W\n\005scope\030\003 \001(\01627.ai.s" +
-      "tigmer.agentic.agentexecution.v1.FileDec" +
-      "isionScopeB\010\272H\005\202\001\002\020\001R\005scope\022$\n\016file_chan" +
-      "ge_id\030\004 \001(\tR\014fileChangeId\022Z\n\006action\030\005 \001(" +
-      "\01628.ai.stigmer.agentic.agentexecution.v1" +
-      ".FileDecisionActionB\010\272H\005\202\001\002\020\001R\006action\022\'\n" +
-      "\017expected_digest\030\006 \001(\tR\016expectedDigest\022\037" +
-      "\n\013reviewer_id\030\007 \001(\tR\nreviewerId\022\035\n\ndecid" +
-      "ed_at\030\010 \001(\tR\tdecidedAt\022\026\n\006reason\030\t \001(\tR\006" +
-      "reason\0229\n\030acknowledge_unreviewable\030\n \001(\010" +
-      "R\027acknowledgeUnreviewable\022Z\n\006origin\030\013 \001(" +
-      "\01628.ai.stigmer.agentic.agentexecution.v1" +
-      ".FileDecisionOriginB\010\272H\005\202\001\002\020\001R\006origin\"\330\001" +
-      "\n\032FileReviewBaselineCaptured\022\"\n\rchange_s" +
-      "et_id\030\001 \001(\tR\013changeSetId\022\027\n\007turn_id\030\002 \001(" +
-      "\tR\006turnId\022\035\n\nharness_id\030\003 \001(\tR\tharnessId" +
-      "\022^\n\021baseline_snapshot\030\004 \001(\01321.ai.stigmer" +
-      ".agentic.agentexecution.v1.SnapshotRefR\020" +
-      "baselineSnapshot\"\216\001\n\025TurnCommandProvenan" +
-      "ce\0221\n\025consent_tool_call_ids\030\001 \003(\tR\022conse" +
-      "ntToolCallIds\022B\n\036authorized_by_auto_appr" +
-      "ove_all\030\002 \001(\010R\032authorizedByAutoApproveAl" +
-      "l\"\375\003\n\033FileReviewCandidateCaptured\022\"\n\rcha" +
-      "nge_set_id\030\001 \001(\tR\013changeSetId\022`\n\022candida" +
-      "te_snapshot\030\002 \001(\01321.ai.stigmer.agentic.a" +
-      "gentexecution.v1.SnapshotRefR\021candidateS" +
-      "napshot\022R\n\007changes\030\003 \003(\01328.ai.stigmer.ag" +
-      "entic.agentexecution.v1.CapturedFileChan" +
-      "geR\007changes\022)\n\020aggregate_digest\030\004 \001(\tR\017a" +
-      "ggregateDigest\022m\n\021diff_completeness\030\005 \001(" +
-      "\01626.ai.stigmer.agentic.agentexecution.v1" +
-      ".DiffCompletenessB\010\272H\005\202\001\002\020\001R\020diffComplet" +
-      "eness\022j\n\022command_provenance\030\006 \001(\0132;.ai.s" +
-      "tigmer.agentic.agentexecution.v1.TurnCom" +
-      "mandProvenanceR\021commandProvenance\"\232\001\n\024Fi" +
-      "leReviewReconciled\022\"\n\rchange_set_id\030\001 \001(" +
-      "\tR\013changeSetId\022^\n\021approved_snapshot\030\002 \001(" +
-      "\01321.ai.stigmer.agentic.agentexecution.v1" +
-      ".SnapshotRefR\020approvedSnapshot\"\252\001\n\021FileR" +
-      "eviewFailure\022\"\n\rchange_set_id\030\001 \001(\tR\013cha" +
-      "ngeSetId\022Y\n\004kind\030\002 \001(\0162;.ai.stigmer.agen" +
-      "tic.agentexecution.v1.FileReviewFailureK" +
-      "indB\010\272H\005\202\001\002\020\001R\004kind\022\026\n\006detail\030\003 \001(\tR\006det" +
-      "ail\"\342\005\n\017FileReviewEvent\022\031\n\010event_id\030\001 \001(" +
-      "\tR\007eventId\022\"\n\rchange_set_id\030\002 \001(\tR\013chang" +
-      "eSetId\022b\n\nevent_type\030\003 \001(\01629.ai.stigmer." +
-      "agentic.agentexecution.v1.FileReviewEven" +
-      "tTypeB\010\272H\005\202\001\002\020\001R\teventType\022\034\n\ttimestamp\030" +
-      "\004 \001(\tR\ttimestamp\022\024\n\005actor\030\005 \001(\tR\005actor\022o" +
-      "\n\021baseline_captured\030\006 \001(\0132@.ai.stigmer.a" +
-      "gentic.agentexecution.v1.FileReviewBasel" +
-      "ineCapturedH\000R\020baselineCaptured\022r\n\022candi" +
-      "date_captured\030\007 \001(\0132A.ai.stigmer.agentic" +
-      ".agentexecution.v1.FileReviewCandidateCa" +
-      "pturedH\000R\021candidateCaptured\022W\n\014file_deci" +
-      "ded\030\010 \001(\01322.ai.stigmer.agentic.agentexec" +
-      "ution.v1.FileDecisionH\000R\013fileDecided\022\\\n\n" +
-      "reconciled\030\t \001(\0132:.ai.stigmer.agentic.ag" +
-      "entexecution.v1.FileReviewReconciledH\000R\n" +
-      "reconciled\022Q\n\006failed\030\n \001(\01327.ai.stigmer." +
-      "agentic.agentexecution.v1.FileReviewFail" +
-      "ureH\000R\006failedB\t\n\007payload\"\211\001\n\025FileReviewE" +
-      "ventStream\022!\n\014execution_id\030\001 \001(\tR\013execut" +
-      "ionId\022M\n\006events\030\002 \003(\01325.ai.stigmer.agent" +
-      "ic.agentexecution.v1.FileReviewEventR\006ev" +
-      "entsB\306\001B\017FilereviewProtoP\001\242\002\004ASAA\252\002$Ai.S" +
-      "tigmer.Agentic.Agentexecution.V1\312\002$Ai\\St" +
-      "igmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Sti" +
-      "gmer\\Agentic\\Agentexecution\\V1\\GPBMetada" +
-      "ta\352\002(Ai::Stigmer::Agentic::Agentexecutio" +
-      "n::V1b\006proto3"
+      "ewBlockReasonB\010\272H\005\202\001\002\020\001R\rblockedReason\022\037" +
+      "\n\013lines_added\030\016 \001(\005R\nlinesAdded\022#\n\rlines" +
+      "_removed\030\017 \001(\005R\014linesRemoved\"\353\001\n\013Snapsho" +
+      "tRef\022P\n\004kind\030\001 \001(\01622.ai.stigmer.agentic." +
+      "agentexecution.v1.SnapshotKindB\010\272H\005\202\001\002\020\001" +
+      "R\004kind\022B\n\003git\030\002 \001(\01320.ai.stigmer.agentic" +
+      ".agentexecution.v1.GitTreeRefR\003git\022F\n\003ca" +
+      "s\030\003 \001(\01324.ai.stigmer.agentic.agentexecut" +
+      "ion.v1.CasManifestRefR\003cas\"9\n\nGitTreeRef" +
+      "\022\031\n\010tree_oid\030\001 \001(\tR\007treeOid\022\020\n\003ref\030\002 \001(\t" +
+      "R\003ref\"\\\n\016CasManifestRef\022\'\n\017manifest_dige" +
+      "st\030\001 \001(\tR\016manifestDigest\022!\n\014artifact_uri" +
+      "\030\002 \001(\tR\013artifactUri\"\265\004\n\014FileDecision\022\016\n\002" +
+      "id\030\001 \001(\tR\002id\022\"\n\rchange_set_id\030\002 \001(\tR\013cha" +
+      "ngeSetId\022W\n\005scope\030\003 \001(\01627.ai.stigmer.age" +
+      "ntic.agentexecution.v1.FileDecisionScope" +
+      "B\010\272H\005\202\001\002\020\001R\005scope\022$\n\016file_change_id\030\004 \001(" +
+      "\tR\014fileChangeId\022Z\n\006action\030\005 \001(\01628.ai.sti" +
+      "gmer.agentic.agentexecution.v1.FileDecis" +
+      "ionActionB\010\272H\005\202\001\002\020\001R\006action\022\'\n\017expected_" +
+      "digest\030\006 \001(\tR\016expectedDigest\022\037\n\013reviewer" +
+      "_id\030\007 \001(\tR\nreviewerId\022\035\n\ndecided_at\030\010 \001(" +
+      "\tR\tdecidedAt\022\026\n\006reason\030\t \001(\tR\006reason\0229\n\030" +
+      "acknowledge_unreviewable\030\n \001(\010R\027acknowle" +
+      "dgeUnreviewable\022Z\n\006origin\030\013 \001(\01628.ai.sti" +
+      "gmer.agentic.agentexecution.v1.FileDecis" +
+      "ionOriginB\010\272H\005\202\001\002\020\001R\006origin\"\330\001\n\032FileRevi" +
+      "ewBaselineCaptured\022\"\n\rchange_set_id\030\001 \001(" +
+      "\tR\013changeSetId\022\027\n\007turn_id\030\002 \001(\tR\006turnId\022" +
+      "\035\n\nharness_id\030\003 \001(\tR\tharnessId\022^\n\021baseli" +
+      "ne_snapshot\030\004 \001(\01321.ai.stigmer.agentic.a" +
+      "gentexecution.v1.SnapshotRefR\020baselineSn" +
+      "apshot\"\216\001\n\025TurnCommandProvenance\0221\n\025cons" +
+      "ent_tool_call_ids\030\001 \003(\tR\022consentToolCall" +
+      "Ids\022B\n\036authorized_by_auto_approve_all\030\002 " +
+      "\001(\010R\032authorizedByAutoApproveAll\"\375\003\n\033File" +
+      "ReviewCandidateCaptured\022\"\n\rchange_set_id" +
+      "\030\001 \001(\tR\013changeSetId\022`\n\022candidate_snapsho" +
+      "t\030\002 \001(\01321.ai.stigmer.agentic.agentexecut" +
+      "ion.v1.SnapshotRefR\021candidateSnapshot\022R\n" +
+      "\007changes\030\003 \003(\01328.ai.stigmer.agentic.agen" +
+      "texecution.v1.CapturedFileChangeR\007change" +
+      "s\022)\n\020aggregate_digest\030\004 \001(\tR\017aggregateDi" +
+      "gest\022m\n\021diff_completeness\030\005 \001(\01626.ai.sti" +
+      "gmer.agentic.agentexecution.v1.DiffCompl" +
+      "etenessB\010\272H\005\202\001\002\020\001R\020diffCompleteness\022j\n\022c" +
+      "ommand_provenance\030\006 \001(\0132;.ai.stigmer.age" +
+      "ntic.agentexecution.v1.TurnCommandProven" +
+      "anceR\021commandProvenance\"\232\001\n\024FileReviewRe" +
+      "conciled\022\"\n\rchange_set_id\030\001 \001(\tR\013changeS" +
+      "etId\022^\n\021approved_snapshot\030\002 \001(\01321.ai.sti" +
+      "gmer.agentic.agentexecution.v1.SnapshotR" +
+      "efR\020approvedSnapshot\"\252\001\n\021FileReviewFailu" +
+      "re\022\"\n\rchange_set_id\030\001 \001(\tR\013changeSetId\022Y" +
+      "\n\004kind\030\002 \001(\0162;.ai.stigmer.agentic.agente" +
+      "xecution.v1.FileReviewFailureKindB\010\272H\005\202\001" +
+      "\002\020\001R\004kind\022\026\n\006detail\030\003 \001(\tR\006detail\"\342\005\n\017Fi" +
+      "leReviewEvent\022\031\n\010event_id\030\001 \001(\tR\007eventId" +
+      "\022\"\n\rchange_set_id\030\002 \001(\tR\013changeSetId\022b\n\n" +
+      "event_type\030\003 \001(\01629.ai.stigmer.agentic.ag" +
+      "entexecution.v1.FileReviewEventTypeB\010\272H\005" +
+      "\202\001\002\020\001R\teventType\022\034\n\ttimestamp\030\004 \001(\tR\ttim" +
+      "estamp\022\024\n\005actor\030\005 \001(\tR\005actor\022o\n\021baseline" +
+      "_captured\030\006 \001(\0132@.ai.stigmer.agentic.age" +
+      "ntexecution.v1.FileReviewBaselineCapture" +
+      "dH\000R\020baselineCaptured\022r\n\022candidate_captu" +
+      "red\030\007 \001(\0132A.ai.stigmer.agentic.agentexec" +
+      "ution.v1.FileReviewCandidateCapturedH\000R\021" +
+      "candidateCaptured\022W\n\014file_decided\030\010 \001(\0132" +
+      "2.ai.stigmer.agentic.agentexecution.v1.F" +
+      "ileDecisionH\000R\013fileDecided\022\\\n\nreconciled" +
+      "\030\t \001(\0132:.ai.stigmer.agentic.agentexecuti" +
+      "on.v1.FileReviewReconciledH\000R\nreconciled" +
+      "\022Q\n\006failed\030\n \001(\01327.ai.stigmer.agentic.ag" +
+      "entexecution.v1.FileReviewFailureH\000R\006fai" +
+      "ledB\t\n\007payload\"\211\001\n\025FileReviewEventStream" +
+      "\022!\n\014execution_id\030\001 \001(\tR\013executionId\022M\n\006e" +
+      "vents\030\002 \003(\01325.ai.stigmer.agentic.agentex" +
+      "ecution.v1.FileReviewEventR\006events\"\235\002\n\022F" +
+      "ileChangeProgress\022\"\n\rchange_set_id\030\001 \001(\t" +
+      "R\013changeSetId\022#\n\rfiles_changed\030\002 \001(\005R\014fi" +
+      "lesChanged\022\037\n\013lines_added\030\003 \001(\005R\nlinesAd" +
+      "ded\022#\n\rlines_removed\030\004 \001(\005R\014linesRemoved" +
+      "\022W\n\007entries\030\005 \003(\0132=.ai.stigmer.agentic.a" +
+      "gentexecution.v1.FileChangeProgressEntry" +
+      "R\007entries\022\037\n\013captured_at\030\006 \001(\tR\ncaptured" +
+      "At\"\363\001\n\027FileChangeProgressEntry\022\037\n\013path_b" +
+      "efore\030\001 \001(\tR\npathBefore\022\035\n\npath_after\030\002 " +
+      "\001(\tR\tpathAfter\022R\n\004kind\030\003 \001(\01624.ai.stigme" +
+      "r.agentic.agentexecution.v1.FileChangeKi" +
+      "ndB\010\272H\005\202\001\002\020\001R\004kind\022\037\n\013lines_added\030\004 \001(\005R" +
+      "\nlinesAdded\022#\n\rlines_removed\030\005 \001(\005R\014line" +
+      "sRemovedB\306\001B\017FilereviewProtoP\001\242\002\004ASAA\252\002$" +
+      "Ai.Stigmer.Agentic.Agentexecution.V1\312\002$A" +
+      "i\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020Ai" +
+      "\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMe" +
+      "tadata\352\002(Ai::Stigmer::Agentic::Agentexec" +
+      "ution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -246,7 +271,7 @@ public final class FilereviewProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_CapturedFileChange_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_CapturedFileChange_descriptor,
-        new java.lang.String[] { "Id", "PathBefore", "PathAfter", "Kind", "CaptureClass", "Before", "After", "BeforeSha256", "AfterSha256", "UnifiedDiff", "DiffComplete", "FileDigest", "BlockedReason", });
+        new java.lang.String[] { "Id", "PathBefore", "PathAfter", "Kind", "CaptureClass", "Before", "After", "BeforeSha256", "AfterSha256", "UnifiedDiff", "DiffComplete", "FileDigest", "BlockedReason", "LinesAdded", "LinesRemoved", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_SnapshotRef_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agentexecution_v1_SnapshotRef_fieldAccessorTable = new
@@ -313,6 +338,18 @@ public final class FilereviewProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_FileReviewEventStream_descriptor,
         new java.lang.String[] { "ExecutionId", "Events", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgress_descriptor =
+      getDescriptor().getMessageType(13);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgress_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgress_descriptor,
+        new java.lang.String[] { "ChangeSetId", "FilesChanged", "LinesAdded", "LinesRemoved", "Entries", "CapturedAt", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgressEntry_descriptor =
+      getDescriptor().getMessageType(14);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgressEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_FileChangeProgressEntry_descriptor,
+        new java.lang.String[] { "PathBefore", "PathAfter", "Kind", "LinesAdded", "LinesRemoved", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.MessageProto.getDescriptor();

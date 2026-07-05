@@ -16,10 +16,11 @@ import {
 import { toDisplayFileChange } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { FileChangeDiff } from "./FileChangesView.js";
+import { FileKindBadge, FileLineStats } from "./FileReviewAtoms.js";
+import { FilePathLink } from "./FilePathLink.js";
 import { DiffSummary } from "../version-history/DiffSummary.js";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
-import { splitDisplayPath } from "./file-path-resolver.js";
 import { fileDecisionKey, type FileDecisionOptions } from "./useFileReview.js";
 import {
   changeSetReviewability,
@@ -62,8 +63,8 @@ export interface FileReviewCardProps {
    *
    * `MessageThread` passes `false`: the transcript's stamped edit rows already
    * show every diff in place, so the expanded body collapses to a compact file
-   * list (kind letter + path + per-file controls) and the card stays purely
-   * the decision surface. Decision semantics — digests, scopes,
+   * list (kind letter + linked path + `+N −M` + per-file controls) and the card
+   * stays purely the decision surface. Decision semantics — digests, scopes,
    * acknowledgments — are identical in both modes; this is presentation only
    * (opt-in with a backward-compatible default, DD-011).
    */
@@ -194,11 +195,18 @@ export const FileReviewCard = memo(function FileReviewCard({
 
   // The bar starts expanded exactly when the collapsed bar cannot honestly carry
   // the decision: an incomplete set (binary acknowledgment / blocked files need
-  // their per-file context) or a review already in progress. A complete set and
-  // a settled record start collapsed — the transcript's stamped rows already
-  // show what changed, and the expander reveals the per-file detail on demand.
+  // their per-file context), a review already in progress, or a multi-file set
+  // in compact-list mode — its honest decision surface includes the per-file
+  // Keep/Discard controls, which must be visible without hunting behind the
+  // expander (the docked strip bounds the height, so expanding is cheap there).
+  // Diff-rich mode (`showDiffs`) deliberately stays collapsed for a complete
+  // multi-file set: its expanded body is every full diff with no height cap
+  // (the workflow file-review list), where "Review" is the act of opening it.
+  // A settled record always starts collapsed — the transcript's stamped rows
+  // already show what changed, and the expander reveals detail on demand.
   const [expanded, setExpanded] = useState(
-    () => interactive && (incomplete || decidedCount > 0),
+    () =>
+      interactive && (incomplete || decidedCount > 0 || (total > 1 && !showDiffs)),
   );
   const bodyId = useId();
 
@@ -251,12 +259,18 @@ export const FileReviewCard = memo(function FileReviewCard({
     [onSubmit],
   );
 
+  // The set's aggregate `+N −M`, summed from the capture-time per-file counts
+  // (linesAdded/linesRemoved are stamped by the runner with the same diff
+  // algorithm the renderers use — see CapturedFileChange). A file with no
+  // counts (binary, secret-withheld, or a record predating the fields)
+  // contributes zero; when NO file has counts the aggregate is hidden rather
+  // than shown as a dishonest "+0 −0".
   const totals = useMemo(() => {
     let additions = 0;
     let deletions = 0;
     for (const c of changes) {
-      if (c.kind === FileChangeKind.ADD) additions += 1;
-      else if (c.kind === FileChangeKind.DELETE) deletions += 1;
+      additions += c.linesAdded;
+      deletions += c.linesRemoved;
     }
     return { additions, deletions };
   }, [changes]);
@@ -311,8 +325,16 @@ export const FileReviewCard = memo(function FileReviewCard({
         <span className="shrink-0 font-medium text-foreground">
           {interactive ? "Review file changes" : "File changes"}
         </span>
-        <span className="min-w-0 flex-1 truncate text-muted-foreground">
-          {summary}
+        {/* The flexible middle: the summary (truncating) plus the set's
+            aggregate +N −M, visible even while collapsed so the bar carries
+            the magnitude of what is being decided, not just the file count.
+            Hidden when no file has counts (FileLineStats). */}
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="min-w-0 truncate text-muted-foreground">{summary}</span>
+          <FileLineStats
+            linesAdded={totals.additions}
+            linesRemoved={totals.deletions}
+          />
         </span>
 
         {interactive && showBulkControls && (
@@ -390,9 +412,11 @@ export const FileReviewCard = memo(function FileReviewCard({
           id={bodyId}
           className="space-y-2 border-t border-border-muted px-3 py-2.5"
         >
-          {/* The list body carries no summary header: the collapsed bar's
-              file count is the summary, and per-file counts would require
-              fetching offloaded bodies just to decorate a list. */}
+          {/* The list body carries no summary header: the bar already shows
+              the file count and the aggregate +N −M (per-file counts are
+              capture-time facts on the wire — linesAdded/linesRemoved — so no
+              body fetch is ever needed to decorate the list). Diff mode keeps
+              its fuller DiffSummary line above the rendered diffs. */}
           {showDiffs && (
             <DiffSummary
               fileCount={total}
@@ -640,15 +664,17 @@ function CapturedChangeDiff({ change }: { change: CapturedFileChange }) {
 // ---------------------------------------------------------------------------
 
 /**
- * One file of the change set as a compact, deliberately inert list line: kind
- * letter, path, provenance badge, and an optional trailing slot (the verdict
+ * One file of the change set as a compact list line: kind letter, linked path,
+ * `+N −M` stats, provenance badge, and an optional trailing slot (the verdict
  * control while reviewing; the committed verdict once settled).
  *
- * The path is plain text — not `FilePathLink` — because the list is an
- * inventory of what the decision covers, not a navigation surface: the diffs
- * live on the transcript's stamped edit rows. The full path stays available on
- * hover via `title`. A rename shows its source path so the move reads in one
- * line.
+ * The path renders through `FilePathLink` — the platform-wide path idiom — so
+ * a reviewer can jump from the list to the file itself (the session viewer
+ * routes the click into the panel's diff-first viewer; GitHub/copy is the
+ * fallback) without leaving the decision surface. Deciding and navigating
+ * coexist: the link stops click propagation, so opening a file never fights
+ * the row's Keep/Discard controls. A rename shows its source path so the move
+ * reads in one line.
  */
 function FileListRow({
   change,
@@ -658,7 +684,6 @@ function FileListRow({
   readonly trailing?: React.ReactNode;
 }) {
   const path = change.pathAfter || change.pathBefore;
-  const { dir, base } = splitDisplayPath(path);
   const renamedFrom =
     change.kind === FileChangeKind.RENAME && change.pathBefore !== change.pathAfter
       ? change.pathBefore
@@ -669,77 +694,19 @@ function FileListRow({
       data-cursor-target="file-review-list-row"
     >
       <FileKindBadge kind={change.kind} />
-      {/* The directory truncates (context); the base never shrinks (identity) —
-          the same filename-first rule FilePathLink established. */}
-      <span
-        className="flex min-w-0 flex-1 items-center font-mono text-xs text-foreground"
-        title={path}
-      >
-        {renamedFrom && (
-          <span className="min-w-0 truncate text-muted-foreground-faint">
-            {renamedFrom}&nbsp;→&nbsp;
-          </span>
-        )}
-        {dir && (
-          <span className="min-w-0 truncate text-muted-foreground-faint">{dir}</span>
-        )}
-        <span className="shrink-0">{base}</span>
-      </span>
+      {renamedFrom && (
+        <span className="min-w-0 truncate font-mono text-xs text-muted-foreground-faint">
+          {renamedFrom}&nbsp;→&nbsp;
+        </span>
+      )}
+      <FilePathLink path={path} dirDisplay="dim" className="min-w-0 flex-1 text-xs" />
+      <FileLineStats
+        linesAdded={change.linesAdded}
+        linesRemoved={change.linesRemoved}
+      />
       <CaptureBadge change={change} />
       {trailing}
     </div>
-  );
-}
-
-/** The kind letter, tone, and a11y name for each wire {@link FileChangeKind}. */
-const KIND_BADGE: Partial<
-  Record<FileChangeKind, { letter: string; colorClass: string; label: string }>
-> = {
-  [FileChangeKind.ADD]: {
-    letter: "A",
-    colorClass: "text-diff-added-fg",
-    label: "added",
-  },
-  [FileChangeKind.MODIFY]: {
-    letter: "M",
-    colorClass: "text-diff-hunk-header-fg",
-    label: "modified",
-  },
-  [FileChangeKind.DELETE]: {
-    letter: "D",
-    colorClass: "text-diff-removed-fg",
-    label: "deleted",
-  },
-  [FileChangeKind.RENAME]: {
-    letter: "R",
-    colorClass: "text-diff-hunk-header-fg",
-    label: "renamed",
-  },
-  // A binary change is a modification whose diff is not text; the letter stays
-  // M and the binary-ness is told by the row's "Keep anyway" + reason note.
-  [FileChangeKind.BINARY_CHANGE]: {
-    letter: "M",
-    colorClass: "text-diff-hunk-header-fg",
-    label: "modified (binary)",
-  },
-};
-
-/**
- * The single-letter change-kind marker — the same M/A/D visual vocabulary as
- * the version-history `DiffFileList`, extended with R for captured renames.
- * The letter itself is the non-color channel; the full word is exposed to
- * assistive tech. An UNSPECIFIED kind renders nothing rather than guessing.
- */
-function FileKindBadge({ kind }: { kind: FileChangeKind }) {
-  const badge = KIND_BADGE[kind];
-  if (!badge) return null;
-  return (
-    <span
-      className={cn("shrink-0 font-mono text-[10px] font-bold", badge.colorClass)}
-      aria-label={badge.label}
-    >
-      {badge.letter}
-    </span>
   );
 }
 

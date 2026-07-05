@@ -303,4 +303,31 @@ public interface CapturedFileChangeOrBuilder extends
    * @return The blockedReason.
    */
   ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason getBlockedReason();
+
+  /**
+   * <pre>
+   * Lines added by this change, computed at capture time by the runner with the
+   * SAME diff algorithm the SDK renders with, so the list stat and the rendered
+   * diff can never disagree. INFORMATIONAL display counts only — never an
+   * enforcement input and never folded into file_digest/aggregate_digest (the
+   * same contract as blocked_reason). Zero (alongside lines_removed == 0) when
+   * counting was not possible or meaningful: binary changes, secret-withheld
+   * entries, oversized sides, and records captured before this field existed.
+   * Consumers hide the stat in that case rather than showing "+0 -0".
+   * </pre>
+   *
+   * <code>int32 lines_added = 14 [json_name = "linesAdded"];</code>
+   * @return The linesAdded.
+   */
+  int getLinesAdded();
+
+  /**
+   * <pre>
+   * Lines removed by this change. See lines_added for the contract.
+   * </pre>
+   *
+   * <code>int32 lines_removed = 15 [json_name = "linesRemoved"];</code>
+   * @return The linesRemoved.
+   */
+  int getLinesRemoved();
 }

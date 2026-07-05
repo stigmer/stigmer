@@ -15,9 +15,15 @@ type ArtifactStorage interface {
 	// Download retrieves artifact data by key
 	Download(ctx context.Context, key string) ([]byte, error)
 
-	// GetSignedURL generates a time-limited download URL for the artifact
-	// expiresIn specifies how long the URL should remain valid
-	GetSignedURL(ctx context.Context, key string, expiresIn time.Duration) (string, error)
+	// GetSignedURL generates a time-limited download URL for the artifact.
+	// expiresIn specifies how long the URL should remain valid.
+	//
+	// downloadFilename controls Content-Disposition on the resulting URL: when
+	// non-empty, the URL forces a browser download saved under that filename
+	// (Content-Disposition: attachment); when empty, the URL displays inline
+	// (today's behavior). The disposition is baked into the URL itself because
+	// browsers ignore the HTML `download` attribute on cross-origin URLs.
+	GetSignedURL(ctx context.Context, key string, expiresIn time.Duration, downloadFilename string) (string, error)
 
 	// Delete removes the artifact from storage
 	Delete(ctx context.Context, key string) error

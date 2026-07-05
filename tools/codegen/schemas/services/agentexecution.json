@@ -803,6 +803,16 @@
           "validation": {
             "minLength": 1
           }
+        },
+        {
+          "name": "AsAttachment",
+          "jsonName": "asAttachment",
+          "protoField": "as_attachment",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the URL should force a browser download instead of inline display.\n\n When true, the presigned URL carries a Content-Disposition: attachment\n header keyed to the artifact's filename, so a browser navigating to it\n saves the file rather than rendering it in a tab. Browsers ignore the\n HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so\n the disposition MUST be signed into the URL itself — this flag is how a\n caller requests it.\n\n When false (the default), the URL displays inline. Inline is required for\n rendering surfaces such as an `\u003cimg src\u003e` pointing at an offloaded\n screenshot; forcing a download there would break the render.\n\n Use true for click-to-download affordances; false (or unset) for inline\n rendering and programmatic reads.",
+          "required": false
         }
       ]
     },
@@ -2590,6 +2600,17 @@
         },
         "description": "Server-owned, append-only record of every file-review event (baseline /\n candidate capture, file decisions, reconcile, failures).\n\n @internal\n\n The persisted source of truth that file_change_sets is projected from — a\n sibling of approval_event_stream for the file-review lifecycle (the\n ApprovalEvent oneof is closed, so file events cannot ride it). Appends are\n keyed by the deterministic FileReviewEvent.event_id, so the stream is\n idempotent under retries.\n\n Write contract (one writer per event type): the runner CONTRIBUTES its\n capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /\n RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds\n them into the stored stream append-only, by event_id, on the freshly-loaded\n execution under the write lock. The runner can never replace an existing\n event and never authors FILE_DECIDED (the server drops a runner-sent\n decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored\n stream is otherwise preserved in place across writes. See\n FileReviewEventStream.\n\n Field 24: appended after file_change_sets (23), the prior maximum.",
         "required": false
+      },
+      {
+        "name": "FileChangeProgress",
+        "jsonName": "fileChangeProgress",
+        "protoField": "file_change_progress",
+        "type": {
+          "kind": "message",
+          "messageType": "FileChangeProgress"
+        },
+        "description": "Transient, non-authoritative snapshot of the workspace delta accumulating\n during the current turn — the live \"N files changed so far\" surface, shown\n before any review is possible.\n\n @internal\n\n NOT part of the file-review ledger. This is a runner-owned, latest-snapshot\n display field in the family of setup_progress (18) / streaming_usage (20):\n the runner overwrites it on each mid-run persist and the server clears it once\n its change set leaves CAPTURING, exactly as setup_progress is cleared when the\n phase leaves PENDING. It carries paths + kinds + line counts only (no bodies,\n no digests) and is never decidable — the turn-boundary CANDIDATE_CAPTURED in\n file_change_sets remains the single authoritative, reviewable diff. See\n FileChangeProgress.\n\n Field 25: appended after file_review_event_stream (24), the prior maximum.",
+        "required": false
       }
     ]
   },
@@ -3347,6 +3368,26 @@
           },
           "description": "The honest cause this file's diff is not fully reviewable, set by the runner\n only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL\n provenance for the review UI — never an enforcement input and never folded\n into file_digest/aggregate_digest. Binary changes are conveyed by\n FileContent.is_binary, not here. See FileReviewBlockReason.",
           "required": false
+        },
+        {
+          "name": "LinesAdded",
+          "jsonName": "linesAdded",
+          "protoField": "lines_added",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Lines added by this change, computed at capture time by the runner with the\n SAME diff algorithm the SDK renders with, so the list stat and the rendered\n diff can never disagree. INFORMATIONAL display counts only — never an\n enforcement input and never folded into file_digest/aggregate_digest (the\n same contract as blocked_reason). Zero (alongside lines_removed == 0) when\n counting was not possible or meaningful: binary changes, secret-withheld\n entries, oversized sides, and records captured before this field existed.\n Consumers hide the stat in that case rather than showing \"+0 -0\".",
+          "required": false
+        },
+        {
+          "name": "LinesRemoved",
+          "jsonName": "linesRemoved",
+          "protoField": "lines_removed",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Lines removed by this change. See lines_added for the contract.",
+          "required": false
         }
       ]
     },
@@ -3562,6 +3603,144 @@
             "kind": "string"
           },
           "description": "SHA-256 hex digest of the uploaded artifact bytes.\n\n Used as a cache-invalidation signal by UI clients: when the same file\n is overwritten (e.g., written then edited in the same execution), the\n storage_key remains stable but the content_hash changes. Clients\n include this value in their fetch-effect dependencies so that content\n is re-fetched whenever the underlying bytes change.\n\n Empty for older artifacts created before this field was added.\n Example: \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileChangeProgress",
+      "description": "A transient, non-authoritative snapshot of the workspace delta accumulating\n during the CURRENT turn — the live \"N files changed so far\" surface.\n\n @internal\n\n This is the file-review analogue of SetupProgress / streaming_usage: a\n runner-owned, latest-snapshot-wins DISPLAY field, NOT an event-sourced\n projection. It is deliberately NOT a FileChangeSet — a FileChangeSet is\n server-authored, ledger-derived, digest-bound, and DECIDABLE; progress is\n runner-sent, never in the ledger, carries NO file bytes or digests, and is\n NEVER decidable or authoritative. The turn-boundary CANDIDATE_CAPTURED remains\n the single reviewable diff (diff(baseline, candidate)); a mid-run snapshot is\n no more authoritative than a streamed tool-call arg.\n\n Lifecycle: the runner overwrites this on each mid-run persist while its change\n set is CAPTURING; the server clears it once that set leaves CAPTURING (mirroring\n the setup_progress defense-in-depth clear), so it never outlives the turn.\n\n Secret safety: it carries paths + kinds + line counts ONLY — no file bodies —\n so nothing new can leak. A secret-like path is surfaced with zeroed counts\n (path visible, content withheld), consistent with the DD-12 rule.\n\n @since File-Change HITL Redesign (mid-run live capture)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeProgress",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Id of the CAPTURING change set this progress previews (\"${executionId}:${turnSeq}\").\n The server keeps this snapshot only while a CAPTURING FileChangeSet with this\n id exists, so a stale prior-turn snapshot is cleared once the next turn pins a\n new baseline.",
+          "required": false
+        },
+        {
+          "name": "FilesChanged",
+          "jsonName": "filesChanged",
+          "protoField": "files_changed",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of files changed so far this turn. The honest total: it may\n exceed entries.length when the entry list is capped for a very large turn.",
+          "required": false
+        },
+        {
+          "name": "LinesAdded",
+          "jsonName": "linesAdded",
+          "protoField": "lines_added",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total lines added / removed across all changed files this turn. Zero when\n uncountable (binary / secret-withheld). INFORMATIONAL display only — never an\n enforcement input (progress has no digests).",
+          "required": false
+        },
+        {
+          "name": "LinesRemoved",
+          "jsonName": "linesRemoved",
+          "protoField": "lines_removed",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "FileChangeProgressEntry"
+            }
+          },
+          "description": "The per-file entries (slim: no bodies, no digests, no diffs). May be a capped\n prefix of the full change list; files_changed carries the true total.",
+          "required": false
+        },
+        {
+          "name": "CapturedAt",
+          "jsonName": "capturedAt",
+          "protoField": "captured_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "When this snapshot was taken (RFC3339). Presentation-only; never a digest input.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileChangeProgressEntry",
+      "description": "One file within a FileChangeProgress snapshot — a slim, non-authoritative row.\n\n @internal\n\n Carries only what the live strip renders: paths, kind, and line counts. It is\n NOT a CapturedFileChange (which is the digest-bound, reviewable ledger delta);\n it has no content, no digests, no unified diff. Path/kind naming mirrors\n CapturedFileChange so renames read honestly.\n\n @since File-Change HITL Redesign (mid-run live capture)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.FileChangeProgressEntry",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto",
+      "fields": [
+        {
+          "name": "PathBefore",
+          "jsonName": "pathBefore",
+          "protoField": "path_before",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Path before the change (workspace-root-relative). Empty for ADD.",
+          "required": false
+        },
+        {
+          "name": "PathAfter",
+          "jsonName": "pathAfter",
+          "protoField": "path_after",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Path after the change (workspace-root-relative). Empty for DELETE.",
+          "required": false
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.FileChangeKind",
+            "enumValues": [
+              "FILE_CHANGE_KIND_ADD",
+              "FILE_CHANGE_KIND_MODIFY",
+              "FILE_CHANGE_KIND_DELETE",
+              "FILE_CHANGE_KIND_RENAME",
+              "FILE_CHANGE_KIND_BINARY_CHANGE"
+            ]
+          },
+          "description": "The per-file outcome. See FileChangeKind.",
+          "required": false
+        },
+        {
+          "name": "LinesAdded",
+          "jsonName": "linesAdded",
+          "protoField": "lines_added",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Lines added by this change. Zero (alongside lines_removed == 0) when counting\n was not possible or meaningful (binary / secret) — consumers hide the stat\n rather than show \"+0 -0\" (the same contract as CapturedFileChange.lines_added).",
+          "required": false
+        },
+        {
+          "name": "LinesRemoved",
+          "jsonName": "linesRemoved",
+          "protoField": "lines_removed",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Lines removed by this change. See lines_added for the contract.",
           "required": false
         }
       ]

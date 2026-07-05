@@ -8,6 +8,7 @@ go_library(
         "cas_blob.go",
         "digest.go",
         "gate.go",
+        "progress.go",
         "project.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/filereview",
@@ -28,6 +29,7 @@ go_test(
         "corpus_test.go",
         "digest_test.go",
         "gate_test.go",
+        "progress_test.go",
     ],
     embed = [":filereview"],
     deps = [

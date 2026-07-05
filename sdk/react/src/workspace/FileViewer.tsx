@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
   type KeyboardEvent,
 } from "react";
@@ -194,7 +195,10 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
     <div
       role="region"
       aria-label="File viewer"
-      className={cn("flex h-full flex-col", className)}
+      // Focusable (programmatically / on click) so the Escape-to-close handler
+      // fires even when the read-only body holds no natively focusable element.
+      tabIndex={-1}
+      className={cn("flex h-full flex-col focus:outline-none", className)}
       onKeyDown={handleKeyDown}
     >
       {showHeader && (
@@ -260,17 +264,26 @@ function ViewerModeToggle({
     { value: "file", label: "File" },
   ];
 
+  // Selection follows focus, matching ActivityRail / SearchModeToggle.
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectValue = useCallback(
+    (next: "diff" | "file") => {
+      onChange(next);
+      buttonRefs.current[next === "diff" ? 0 : 1]?.focus();
+    },
+    [onChange],
+  );
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLButtonElement>) => {
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault();
-        onChange("file");
+        selectValue("file");
       } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
         e.preventDefault();
-        onChange("diff");
+        selectValue("diff");
       }
     },
-    [onChange],
+    [selectValue],
   );
 
   return (
@@ -280,11 +293,14 @@ function ViewerModeToggle({
         aria-label="File view"
         className="inline-flex rounded-md bg-muted p-0.5"
       >
-        {options.map((option) => {
+        {options.map((option, index) => {
           const isSelected = value === option.value;
           return (
             <button
               key={option.value}
+              ref={(el) => {
+                buttonRefs.current[index] = el;
+              }}
               type="button"
               role="radio"
               aria-checked={isSelected}
@@ -340,7 +356,12 @@ function FileViewerBody({
 
   if (isLoading) {
     return (
-      <div className="space-y-2 p-4" aria-busy="true" aria-label="Loading file">
+      <div
+        role="status"
+        className="space-y-2 p-4"
+        aria-busy="true"
+        aria-label="Loading file"
+      >
         {SKELETON_LINE_WIDTHS.map((width, i) => (
           <div
             key={i}

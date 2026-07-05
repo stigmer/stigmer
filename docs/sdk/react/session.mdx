@@ -439,6 +439,7 @@ function useSessionConversation(sessionId: string | null, org: string): UseSessi
     clearSendError: { type: "() => void", description: "Reset `sendError` to `null` (keeps the preserved pending message)." },
     completedExecutions: { type: "readonly AgentExecution[]", description: "Executions in terminal phases, in chronological order." },
     connectTimedOut: { type: "boolean", description: "`true` when the stream opened but never delivered a first snapshot within the watchdog window (even after a silent retry) — the agent hasn't started. Distinct from `streamError`: nothing threw, the stream is simply silent. Surface an actionable \"the agent hasn't started — Retry\" banner wired to reconnectStream." },
+    fileChangeProgress: { type: "FileChangeProgress | undefined", description: "Mid-run live capture (DD-32): the transient, non-authoritative snapshot of the workspace delta accumulating during the active turn (\"N files changed so far\"). Undefined when no turn is currently capturing. Never decidable — the reviewed diff is fileChangeSets." },
     fileChangeSets: { type: "readonly FileChangeSet[]", description: "Captured change sets awaiting file review on the active execution, empty when none." },
     fileDecisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed by fileDecisionKey — surfaced in-card by MessageThread/FileReviewCard beside the failed control." },
     fileReviewError: { type: "Error | null", description: "The most-recent file-review failure, or `null` when healthy — the scalar mirror of fileDecisionErrors (symmetric with `approvalError`), for a headless consumer wanting a single error value." },
@@ -1394,7 +1395,17 @@ read-only); the tab itself never multiplies.
 
 ### PLAN_DOCUMENT_PATH
 
-The plan tab's path — doubles as its tab label, matching the artifact name.
+The plan tab's path — doubles as its tab label.
+
+Deliberately plan-AGNOSTIC ("Plan"), not the artifact's filename. The
+workspace surface identifies a virtual document's tab by
+`editorKey(entryId, path)`, so `path` is part of the tab's IDENTITY — and the
+session keeps exactly ONE plan tab that swaps which plan it shows (latest
+editable, or a superseded plan read-only). Now that plans carry unique,
+title-derived filenames (`<slug>_<id>.plan.md`), binding this label to any one
+plan's name would mint a new tab identity per plan and shatter the
+single-tab design. A stable, generic label is therefore required, not a
+stylistic choice — do not "fix" it to track the filename.
 
 
 ### PlanDraftController
@@ -1405,7 +1416,7 @@ Controller returned by [`usePlanDraft`](#useplandraft).
   type={{
     draftText: { type: "string | null", description: "The user's in-place edit of the current plan, or `null` when the plan is unedited. Always scoped to the CURRENT plan — a draft made against a superseded plan reads as `null` here (it is dropped, never migrated).", required: true },
     isEdited: { type: "boolean", description: "True when the current plan has an active draft.", required: true },
-    readDraft: { type: "() => string | null", description: "Snapshot reader for submit-time consumers: returns the current draft (or `null`) without the caller depending on draft state. Referentially stable for the lifetime of the component (DD-010) — \"Build from plan\" reads the draft through this at click time, so per-keystroke draft updates never re-bind the build callback or re-render the conversation column.", required: true },
+    readDraft: { type: "() => string | null", description: "Snapshot reader for submit-time consumers: returns the current draft (or `null`) without the caller depending on draft state. Referentially stable for the lifetime of the component (DD-010) — the \"Build\" action reads the draft through this at click time, so per-keystroke draft updates never re-bind the build callback or re-render the conversation column.", required: true },
     setDraft: { type: "(text: string | null) => void", description: "Set (or update) the draft for the current plan. Pass `null` to revert to the published plan. No-ops when the session has no plan.", required: true },
   }}
 />
@@ -1483,7 +1494,7 @@ values are scoped to the single execution and deleted on completion.
     agentInstanceId: { type: "string", description: "Override the session's agent instance for this and all future executions. When provided, the session is updated before the execution is created." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments for this execution.  Each entry must include a `storageKey` from `agentExecution.uploadAttachment()`. Forwarded directly to execution creation." },
     autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this execution (bypass the HITL gate)." },
-    buildFromPlan: { type: "boolean", description: "Marks this execution as a \"Build from plan\" turn." },
+    buildFromPlan: { type: "boolean", description: "Marks this execution as a Build-from-plan turn." },
     interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     modelName: { type: "string", description: "LLM model name to use for this execution. Overrides the session default." },

@@ -44,7 +44,7 @@ describe("PlanStreamingDocument — live plan tab view", () => {
     render(<PlanStreamingDocument displayText={"# Live Plan\n\nBody"} />);
 
     expect(screen.queryByText("Edit")).toBeNull();
-    expect(screen.queryByText("Build from plan")).toBeNull();
+    expect(screen.queryByText("Build")).toBeNull();
     expect(screen.queryByRole("tablist")).toBeNull();
   });
 });

@@ -102,7 +102,15 @@ export function FileTreeNode({
   );
 
   return (
-    <li role="treeitem" aria-expanded={isFolder ? expanded : undefined}>
+    <li
+      role="treeitem"
+      // Depth conveys tree nesting to assistive tech (indentation is visual
+      // only). aria-level is 1-based; `depth` is 0-based. aria-expanded stays on
+      // the treeitem (the <li>) — its child group is nested here, so this is the
+      // element a tree-aware screen reader reads expandability from.
+      aria-level={depth + 1}
+      aria-expanded={isFolder ? expanded : undefined}
+    >
       <button
         type="button"
         onClick={handleClick}
@@ -123,7 +131,10 @@ export function FileTreeNode({
         aria-current={isSelected ? "true" : undefined}
       >
         {isFolder && (
-          <span className="text-[10px] text-muted-foreground-subtle">
+          <span
+            aria-hidden="true"
+            className="text-[10px] text-muted-foreground-subtle"
+          >
             {expanded ? "▼" : "▶"}
           </span>
         )}

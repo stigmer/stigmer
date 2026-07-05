@@ -132,8 +132,27 @@ export function WorkspaceFileSearch({
   const trimmed = query.trim();
   const showGroupHeaders = groups.length > 1;
 
+  // A concise, screen-reader-only summary of the current result state. It lives
+  // in a persistent polite live region (below) so status changes are announced
+  // even as the visible states — which live in separate, unmounting branches —
+  // swap. Deliberately terse: never the result list itself, only its shape.
+  const statusMessage = isUnsupported
+    ? ""
+    : trimmed.length === 0
+      ? ""
+      : isLoading && totalMatches === 0 && groups.length === 0
+        ? "Searching files…"
+        : groups.length === 0
+          ? `No files matching ${trimmed}.`
+          : totalMatches > flatResults.length
+            ? `Showing the first ${flatResults.length} of ${totalMatches} matching files.`
+            : `${flatResults.length} matching ${flatResults.length === 1 ? "file" : "files"}.`;
+
   return (
     <div className={cn("flex h-full flex-col", className)}>
+      <div role="status" aria-live="polite" className="sr-only">
+        {statusMessage}
+      </div>
       <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
         <SearchIcon />
         <input
@@ -264,7 +283,7 @@ function renderRows({
     if (group.truncated) {
       rows.push(
         <GroupNotice key={`t:${group.entry.id}`}>
-          Partial listing — this repository has too many files to search in full.
+          Partial listing — too many files to search in full.
         </GroupNotice>,
       );
     }
@@ -299,39 +318,43 @@ function ResultRow({
   const basename = match.path.slice(lastSlash + 1);
   const dir = lastSlash >= 0 ? match.path.slice(0, lastSlash) : "";
 
+  // The `role="option"` IS the interactive leaf of the listbox (keyboard
+  // activation flows through the combobox input's Enter handler +
+  // aria-activedescendant). It must not nest another interactive control — a
+  // button inside would violate WCAG 4.1.2 (axe `nested-interactive`). So the
+  // click handler and row styling live on the option itself.
   return (
-    <li id={id} role="option" aria-selected={isFocused}>
-      <button
-        type="button"
-        onClick={onOpen}
-        tabIndex={-1}
-        aria-current={isOpen ? "true" : undefined}
-        className={cn(
-          "flex w-full items-baseline gap-1.5 px-3 py-1 text-left text-xs transition-colors",
-          isFocused && "bg-muted",
-          isOpen && "bg-muted font-medium text-foreground",
-          !isFocused && !isOpen && "hover:bg-muted",
-        )}
-      >
-        <span className="truncate text-foreground">
+    <li
+      id={id}
+      role="option"
+      aria-selected={isFocused}
+      aria-current={isOpen ? "true" : undefined}
+      onClick={onOpen}
+      className={cn(
+        "flex cursor-pointer items-baseline gap-1.5 px-3 py-1 text-xs transition-colors",
+        isFocused && "bg-muted",
+        isOpen && "bg-muted font-medium text-foreground",
+        !isFocused && !isOpen && "hover:bg-muted",
+      )}
+    >
+      <span className="truncate text-foreground">
+        <HighlightedPath
+          text={basename}
+          offset={lastSlash + 1}
+          matchStart={match.matchStart}
+          matchEnd={match.matchEnd}
+        />
+      </span>
+      {dir && (
+        <span className="truncate text-[0.65rem] text-muted-foreground">
           <HighlightedPath
-            text={basename}
-            offset={lastSlash + 1}
+            text={dir}
+            offset={0}
             matchStart={match.matchStart}
             matchEnd={match.matchEnd}
           />
         </span>
-        {dir && (
-          <span className="truncate text-[0.65rem] text-muted-foreground">
-            <HighlightedPath
-              text={dir}
-              offset={0}
-              matchStart={match.matchStart}
-              matchEnd={match.matchEnd}
-            />
-          </span>
-        )}
-      </button>
+      )}
     </li>
   );
 }

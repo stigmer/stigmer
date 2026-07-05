@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { cn } from "@stigmer/theme";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
@@ -18,7 +25,7 @@ import type { WorkspaceContentSearcher } from "./WorkspaceContentSearcher.js";
 import { WorkspaceFileSearch } from "./WorkspaceFileSearch.js";
 import { WorkspaceContentSearch } from "./WorkspaceContentSearch.js";
 import { FileViewer, type FileViewerHandle } from "./FileViewer.js";
-import { EditorTabs } from "./EditorTabs.js";
+import { EditorTabs, editorTabDomId } from "./EditorTabs.js";
 import { ExplorerTree } from "./ExplorerTree.js";
 
 /** The built-in rail views every surface has. */
@@ -302,8 +309,14 @@ function ActivityRail({
     ...(extraViews ?? []),
   ];
 
-  // Roving selection: arrows move relative to the *focused* item's position,
-  // so the rail scales to any number of injected views.
+  // One ref per rail button so selection can move DOM focus with it (below).
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Roving radiogroup: selection follows focus. `keydown` fires on the focused
+  // button, so its `index` is the current position; we select the neighbour AND
+  // move focus to it. Moving focus is essential — without it focus stays pinned
+  // on the entered button (whose index never changes) and every later view
+  // (Config/Changes/…) is unreachable by keyboard.
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
       let nextIndex: number | null = null;
@@ -311,10 +324,15 @@ function ActivityRail({
         nextIndex = Math.min(index + 1, items.length - 1);
       } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
         nextIndex = Math.max(index - 1, 0);
+      } else if (e.key === "Home") {
+        nextIndex = 0;
+      } else if (e.key === "End") {
+        nextIndex = items.length - 1;
       }
       if (nextIndex === null || nextIndex === index) return;
       e.preventDefault();
       onViewChange(items[nextIndex].id);
+      buttonRefs.current[nextIndex]?.focus();
     },
     [items, onViewChange],
   );
@@ -332,6 +350,9 @@ function ActivityRail({
         return (
           <button
             key={item.id}
+            ref={(el) => {
+              buttonRefs.current[index] = el;
+            }}
             type="button"
             role="radio"
             aria-checked={isSelected}
@@ -487,14 +508,26 @@ function SearchModeToggle({
     { value: "text", label: "Text" },
   ];
 
+  // Selection follows focus, matching ActivityRail / ViewerModeToggle.
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectMode = useCallback(
+    (next: SearchMode) => {
+      onChange(next);
+      buttonRefs.current[next === "name" ? 0 : 1]?.focus();
+    },
+    [onChange],
+  );
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLButtonElement>) => {
-      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault();
-        onChange(value === "name" ? "text" : "name");
+        selectMode("text");
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        selectMode("name");
       }
     },
-    [value, onChange],
+    [selectMode],
   );
 
   return (
@@ -504,11 +537,14 @@ function SearchModeToggle({
         aria-label="Search mode"
         className="inline-flex rounded-md bg-muted p-0.5"
       >
-        {options.map((option) => {
+        {options.map((option, index) => {
           const isSelected = value === option.value;
           return (
             <button
               key={option.value}
+              ref={(el) => {
+                buttonRefs.current[index] = el;
+              }}
               type="button"
               role="radio"
               aria-checked={isSelected}
@@ -579,6 +615,10 @@ function EditorArea({
   readonly onCollapse: () => void;
 }) {
   const viewerRef = useRef<FileViewerHandle>(null);
+  // Instance-scoped ids tie each tab to the single editor body (tabpanel).
+  const idBase = useId();
+  const panelId = `${idBase}editor-panel`;
+  const tabIdPrefix = `${idBase}editor-tab-`;
   const activeKey = selectedFile
     ? editorKey(selectedFile.entryId, selectedFile.path)
     : null;
@@ -616,51 +656,69 @@ function EditorArea({
             onActivate={onActivateEditor}
             onPin={onPinEditor}
             onClose={onCloseEditor}
+            panelId={panelId}
+            tabIdPrefix={tabIdPrefix}
             className="min-w-0 flex-1 border-b-0"
           />
         )}
       </div>
-      {activeVirtualDocument ? (
-        // A virtual document owns its body wholesale: no breadcrumbs (there is
-        // no filesystem location) and no FileViewer (there is no reader-backed
-        // file). Keyed like files so switching documents resets cleanly.
-        // Vertical-only scrolling: a lone overflow-y-auto would compute
-        // overflow-x to auto too, giving the pane a horizontal scrollbar the
-        // moment any child refuses to shrink — documents must reflow instead.
-        <div
-          key={activeKey ?? undefined}
-          className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
-        >
-          {activeVirtualDocument.content}
-        </div>
-      ) : selectedFile ? (
-        <>
-          <Breadcrumbs
-            entryName={activeEntryName}
-            path={selectedFile.path}
-            onRefresh={reader ? () => viewerRef.current?.refresh() : undefined}
-          />
-          {/* Per-file remount (key) resets scroll and view-mode state cleanly.
-              The tab strip + breadcrumbs own the file identity, close, and
-              refresh, so the viewer is chrome-less; Escape still collapses. */}
-          <FileViewer
-            ref={viewerRef}
+      {/* The single editor body — the one tabpanel the tab strip controls (the
+          content swaps; the panel is stable). role/labelledby apply only with an
+          active tab (the empty state has no tab to label). Carries the same
+          flex/min-w-0 chain as the branches so the DD-20 reflow is preserved:
+          the wrapper is just a labelled passthrough, not a new layout context. */}
+      <div
+        className="flex min-h-0 min-w-0 flex-1 flex-col"
+        {...(activeKey
+          ? {
+              role: "tabpanel",
+              id: panelId,
+              "aria-labelledby": editorTabDomId(tabIdPrefix, activeKey),
+            }
+          : {})}
+      >
+        {activeVirtualDocument ? (
+          // A virtual document owns its body wholesale: no breadcrumbs (there is
+          // no filesystem location) and no FileViewer (there is no reader-backed
+          // file). Keyed like files so switching documents resets cleanly.
+          // Vertical-only scrolling: a lone overflow-y-auto would compute
+          // overflow-x to auto too, giving the pane a horizontal scrollbar the
+          // moment any child refuses to shrink — documents must reflow instead.
+          <div
             key={activeKey ?? undefined}
-            selectedFile={selectedFile}
-            entries={entries}
-            reader={reader}
-            change={change}
-            reveal={reveal}
-            onClose={onCollapse}
-            showHeader={false}
-            className="min-h-0 flex-1"
-          />
-        </>
-      ) : (
-        <div className="flex flex-1 items-center justify-center p-8 text-center text-xs text-muted-foreground">
-          Select a file to view its contents.
-        </div>
-      )}
+            className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+          >
+            {activeVirtualDocument.content}
+          </div>
+        ) : selectedFile ? (
+          <>
+            <Breadcrumbs
+              entryName={activeEntryName}
+              path={selectedFile.path}
+              onRefresh={reader ? () => viewerRef.current?.refresh() : undefined}
+            />
+            {/* Per-file remount (key) resets scroll and view-mode state cleanly.
+                The tab strip + breadcrumbs own the file identity, close, and
+                refresh, so the viewer is chrome-less; Escape still collapses. */}
+            <FileViewer
+              ref={viewerRef}
+              key={activeKey ?? undefined}
+              selectedFile={selectedFile}
+              entries={entries}
+              reader={reader}
+              change={change}
+              reveal={reveal}
+              onClose={onCollapse}
+              showHeader={false}
+              className="min-h-0 flex-1"
+            />
+          </>
+        ) : (
+          <div className="flex flex-1 items-center justify-center p-8 text-center text-xs text-muted-foreground">
+            Select a file to view its contents.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

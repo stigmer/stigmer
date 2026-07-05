@@ -289,7 +289,7 @@ export function threadContentColumnClass(
  * part of the public API.
  */
 export type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly isBuildFromPlan?: boolean }
+  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
@@ -317,9 +317,9 @@ export type ThreadItem =
       readonly planTitle?: string;
       /**
        * True for the most recent completed Plan execution in the thread — the
-       * only plan whose card carries the primary "Build from plan" action.
-       * Superseded plans keep their review actions (open/download) but never a
-       * build CTA, so a stale plan can't be implemented by accident.
+       * only plan whose card carries the primary "Build" action. Superseded
+       * plans keep their review actions (open/download) but never a build
+       * CTA, so a stale plan can't be implemented by accident.
        */
       readonly isLatestPlan: boolean;
     }
@@ -537,9 +537,9 @@ export function buildThreadItems(
     ? allExecutions.length - 1
     : -1;
 
-  // The most recent completed Plan execution owns the primary "Build from
-  // plan" action; every earlier plan renders as a review-only record. Resolved
-  // up front so each segment can stamp its own card with the right authority.
+  // The most recent completed Plan execution owns the primary "Build" action;
+  // every earlier plan renders as a review-only record. Resolved up front so
+  // each segment can stamp its own card with the right authority.
   let latestPlanExecutionId: string | null = null;
   for (let i = allExecutions.length - 1; i >= 0; i--) {
     if (isCompletedPlanExecution(allExecutions[i])) {
@@ -648,7 +648,13 @@ export function buildThreadItems(
     }
 
     const specMessage = exec.spec?.message;
-    if (specMessage && specMessage !== "execute") {
+    // A Build-from-plan turn synthesizes NO prompt item: its message is a
+    // machine-written label ("Build from plan"), not user prose — the real
+    // instruction is runner-injected from the same flag. The plan card
+    // directly above the turn is the visible cause; rendering the label as a
+    // user bubble would attribute words to the user they never typed.
+    const isBuildTurn = exec.spec?.executionConfig?.buildFromPlan === true;
+    if (specMessage && specMessage !== "execute" && !isBuildTurn) {
       const syntheticHumanMsg = create(AgentMessageSchema);
       syntheticHumanMsg.type = MessageType.MESSAGE_HUMAN;
       syntheticHumanMsg.content = specMessage;
@@ -671,10 +677,6 @@ export function buildThreadItems(
         // The turn's mode marks the prompt bubble (a "Plan" pill on Plan
         // turns) so the transcript reads unambiguously after mode switches.
         interactionMode: exec.spec?.executionConfig?.interactionMode,
-        // A Build-from-plan turn's prompt renders as a compact chip, not the
-        // message text — the text is a short label; the real instruction is
-        // runner-injected from the same flag.
-        isBuildFromPlan: exec.spec?.executionConfig?.buildFromPlan || undefined,
       });
     }
 
@@ -896,11 +898,19 @@ export function buildThreadItems(
     const reason = lastExec?.status?.error;
     if (reason) {
       const specMessage = lastExec?.spec?.message;
+      // A failed build turn offers no inline Retry: resending its label as an
+      // ordinary message would drop the buildFromPlan flag (no runner
+      // directive, no plan attachment). The plan card above the error is the
+      // fully-wired retry — its Build button re-runs the whole pipeline.
+      const isBuildTurn =
+        lastExec?.spec?.executionConfig?.buildFromPlan === true;
       items.push({
         kind: "execution-error",
         error: reason,
         retryMessage:
-          specMessage && specMessage !== "execute" ? specMessage : undefined,
+          specMessage && specMessage !== "execute" && !isBuildTurn
+            ? specMessage
+            : undefined,
         key: `execution-error-${lastExec?.metadata?.id ?? lastPhase}`,
       });
     }
@@ -936,8 +946,13 @@ export function buildThreadItems(
   // not thread items at all: they live in the composer-docked FileReviewDock.
 
   if (pendingUserMessage) {
+    // A FAILED send never created an execution, so an existing execution with
+    // identical text (e.g. two build attempts of the same plan — both
+    // "Build from plan") must never swallow the failed bubble. Suppression
+    // only applies to the succeeded-send window where the stream has
+    // delivered the same turn but the pending state hasn't cleared yet.
     const alreadySynthesized =
-      lastExec?.spec?.message === pendingUserMessage;
+      !pendingMessageFailed && lastExec?.spec?.message === pendingUserMessage;
     if (!alreadySynthesized) {
       const syntheticPending = create(AgentMessageSchema);
       syntheticPending.type = MessageType.MESSAGE_HUMAN;
@@ -1333,7 +1348,6 @@ export function ThreadItemRenderer({
           className={item.isPending ? "opacity-70" : undefined}
           isPlanDocument={item.isPlanDocument}
           interactionMode={item.interactionMode}
-          isBuildFromPlan={item.isBuildFromPlan}
           onEdit={
             item.isEditable && onEditMessage
               ? () => onEditMessage(item.message.content)

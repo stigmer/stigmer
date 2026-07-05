@@ -222,6 +222,35 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int AS_ATTACHMENT_FIELD_NUMBER = 3;
+  private boolean asAttachment_ = false;
+  /**
+   * <pre>
+   * Whether the URL should force a browser download instead of inline display.
+   *
+   * When true, the presigned URL carries a Content-Disposition: attachment
+   * header keyed to the artifact's filename, so a browser navigating to it
+   * saves the file rather than rendering it in a tab. Browsers ignore the
+   * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
+   * the disposition MUST be signed into the URL itself — this flag is how a
+   * caller requests it.
+   *
+   * When false (the default), the URL displays inline. Inline is required for
+   * rendering surfaces such as an `&lt;img src&gt;` pointing at an offloaded
+   * screenshot; forcing a download there would break the render.
+   *
+   * Use true for click-to-download affordances; false (or unset) for inline
+   * rendering and programmatic reads.
+   * </pre>
+   *
+   * <code>bool as_attachment = 3 [json_name = "asAttachment"];</code>
+   * @return The asAttachment.
+   */
+  @java.lang.Override
+  public boolean getAsAttachment() {
+    return asAttachment_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -242,6 +271,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(storageKey_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, storageKey_);
     }
+    if (asAttachment_ != false) {
+      output.writeBool(3, asAttachment_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -256,6 +288,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(storageKey_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, storageKey_);
+    }
+    if (asAttachment_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(3, asAttachment_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -276,6 +312,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getExecutionId())) return false;
     if (!getStorageKey()
         .equals(other.getStorageKey())) return false;
+    if (getAsAttachment()
+        != other.getAsAttachment()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -291,6 +329,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getExecutionId().hashCode();
     hash = (37 * hash) + STORAGE_KEY_FIELD_NUMBER;
     hash = (53 * hash) + getStorageKey().hashCode();
+    hash = (37 * hash) + AS_ATTACHMENT_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getAsAttachment());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -466,6 +507,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       executionId_ = "";
       storageKey_ = "";
+      asAttachment_ = false;
       return this;
     }
 
@@ -505,6 +547,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.storageKey_ = storageKey_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.asAttachment_ = asAttachment_;
+      }
     }
 
     @java.lang.Override
@@ -528,6 +573,9 @@ private static final long serialVersionUID = 0L;
         storageKey_ = other.storageKey_;
         bitField0_ |= 0x00000002;
         onChanged();
+      }
+      if (other.getAsAttachment() != false) {
+        setAsAttachment(other.getAsAttachment());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -565,6 +613,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 24: {
+              asAttachment_ = input.readBool();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -852,6 +905,92 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       storageKey_ = value;
       bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private boolean asAttachment_ ;
+    /**
+     * <pre>
+     * Whether the URL should force a browser download instead of inline display.
+     *
+     * When true, the presigned URL carries a Content-Disposition: attachment
+     * header keyed to the artifact's filename, so a browser navigating to it
+     * saves the file rather than rendering it in a tab. Browsers ignore the
+     * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
+     * the disposition MUST be signed into the URL itself — this flag is how a
+     * caller requests it.
+     *
+     * When false (the default), the URL displays inline. Inline is required for
+     * rendering surfaces such as an `&lt;img src&gt;` pointing at an offloaded
+     * screenshot; forcing a download there would break the render.
+     *
+     * Use true for click-to-download affordances; false (or unset) for inline
+     * rendering and programmatic reads.
+     * </pre>
+     *
+     * <code>bool as_attachment = 3 [json_name = "asAttachment"];</code>
+     * @return The asAttachment.
+     */
+    @java.lang.Override
+    public boolean getAsAttachment() {
+      return asAttachment_;
+    }
+    /**
+     * <pre>
+     * Whether the URL should force a browser download instead of inline display.
+     *
+     * When true, the presigned URL carries a Content-Disposition: attachment
+     * header keyed to the artifact's filename, so a browser navigating to it
+     * saves the file rather than rendering it in a tab. Browsers ignore the
+     * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
+     * the disposition MUST be signed into the URL itself — this flag is how a
+     * caller requests it.
+     *
+     * When false (the default), the URL displays inline. Inline is required for
+     * rendering surfaces such as an `&lt;img src&gt;` pointing at an offloaded
+     * screenshot; forcing a download there would break the render.
+     *
+     * Use true for click-to-download affordances; false (or unset) for inline
+     * rendering and programmatic reads.
+     * </pre>
+     *
+     * <code>bool as_attachment = 3 [json_name = "asAttachment"];</code>
+     * @param value The asAttachment to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAsAttachment(boolean value) {
+
+      asAttachment_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the URL should force a browser download instead of inline display.
+     *
+     * When true, the presigned URL carries a Content-Disposition: attachment
+     * header keyed to the artifact's filename, so a browser navigating to it
+     * saves the file rather than rendering it in a tab. Browsers ignore the
+     * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
+     * the disposition MUST be signed into the URL itself — this flag is how a
+     * caller requests it.
+     *
+     * When false (the default), the URL displays inline. Inline is required for
+     * rendering surfaces such as an `&lt;img src&gt;` pointing at an offloaded
+     * screenshot; forcing a download there would break the render.
+     *
+     * Use true for click-to-download affordances; false (or unset) for inline
+     * rendering and programmatic reads.
+     * </pre>
+     *
+     * <code>bool as_attachment = 3 [json_name = "asAttachment"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAsAttachment() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      asAttachment_ = false;
       onChanged();
       return this;
     }

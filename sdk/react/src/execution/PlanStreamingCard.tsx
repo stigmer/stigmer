@@ -2,7 +2,6 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
-import { PLAN_ARTIFACT_NAME } from "../library/detect-plan-artifact.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 
 /** Props for {@link PlanStreamingCard}. */
@@ -34,8 +33,13 @@ export interface PlanStreamingCardProps {
  * The live counterpart of {@link PlanArtifactCard} — a streaming Plan turn's
  * compact stand-in in the thread while the plan document renders live in the
  * session panel's plan tab. Same anatomy as the completed card (icon, title,
- * `plan.md · size` meta, trailing actions) so the completion handoff reads as
- * the same card settling, not a new element appearing.
+ * a `Writing… · size` meta, trailing actions) so the completion handoff reads
+ * as the same card settling, not a new element appearing.
+ *
+ * The meta line deliberately omits a filename: the artifact's name is derived
+ * from the plan's title, which is still streaming in, so a name shown here
+ * would change under the user when the plan settles. The completed card
+ * introduces the final `<slug>_<id>.plan.md` name once it exists.
  *
  * Deliberately action-light: "Open plan" is the only affordance. Download and
  * Build require the published artifact, which does not exist until the turn
@@ -72,8 +76,6 @@ export const PlanStreamingCard = memo(function PlanStreamingCard({
           {title ?? "Writing plan…"}
         </div>
         <div className="text-[0.65rem] text-muted-foreground-faint">
-          {PLAN_ARTIFACT_NAME}
-          <span aria-hidden="true"> · </span>
           <span role="status">Writing…</span>
           <span aria-hidden="true"> · </span>
           <span className="tabular-nums">{formatArtifactSize(sizeBytes)}</span>
@@ -89,7 +91,7 @@ export const PlanStreamingCard = memo(function PlanStreamingCard({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm",
           )}
         >
-          <ExpandIcon />
+          <EyeIcon />
           Open plan
         </button>
       )}
@@ -117,12 +119,13 @@ function PlanIcon({ className }: { readonly className?: string }) {
   );
 }
 
-function ExpandIcon() {
+/** An eye glyph — "view/open the plan to read it" (matches PlanArtifactCard). */
+function EyeIcon() {
   return (
     <svg
-      width="10"
-      height="10"
-      viewBox="0 0 12 12"
+      width="11"
+      height="11"
+      viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
@@ -131,7 +134,8 @@ function ExpandIcon() {
       className="shrink-0"
       aria-hidden="true"
     >
-      <path d="M7 1.5h3.5V5M10.5 1.5L6.5 5.5M5 10.5H1.5V7M1.5 10.5l4-4" />
+      <path d="M1.5 8S4 3.5 8 3.5s6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5S1.5 8 1.5 8Z" />
+      <circle cx="8" cy="8" r="1.75" />
     </svg>
   );
 }

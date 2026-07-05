@@ -600,7 +600,7 @@ func Run() error {
 	if cfg.ArtifactStorage.Type == "local" {
 		artifactDir := filepath.Join(cfg.ArtifactStorage.LocalBasePath, "artifacts")
 		mux := http.NewServeMux()
-		mux.Handle("/", http.FileServer(http.Dir(artifactDir)))
+		mux.Handle("/", artifactDownloadHandler(http.FileServer(http.Dir(artifactDir))))
 		addr := fmt.Sprintf("127.0.0.1:%d", cfg.ArtifactHTTPPort)
 		go func() {
 			log.Info().
@@ -622,6 +622,22 @@ func Run() error {
 	log.Info().Msg("Stigmer Server stopped")
 
 	return nil
+}
+
+// artifactDownloadHandler wraps the local artifact file server so a request
+// carrying the download query parameter (set by LocalStorage.GetSignedURL)
+// is served as a browser download named by that parameter. This mirrors the
+// R2 backend, which signs Content-Disposition directly into the presigned URL;
+// the local file server has no presigning, so the intent rides in the query
+// string and is applied here. Requests without the parameter are served
+// inline, unchanged.
+func artifactDownloadHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if name := r.URL.Query().Get(artifactstorage.LocalDownloadQueryParam); name != "" {
+			w.Header().Set("Content-Disposition", artifactstorage.ContentDispositionAttachment(name))
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // setupLogging configures zerolog

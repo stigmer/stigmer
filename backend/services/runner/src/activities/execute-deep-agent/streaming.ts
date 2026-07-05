@@ -83,6 +83,13 @@ export interface StreamDependencies {
   readonly approvalProvider?: ApprovalPolicyProvider;
   /** Streaming protocol version. Defaults to "v2" if unset. */
   readonly streamVersion?: "v2" | "v3";
+  /**
+   * Optional hook invoked with the live status just before each scheduled
+   * persist. Used by mid-run live capture (DD-32) to attach file_change_progress.
+   * Kept as an injected callback (closing over the turn's baseline tree / change
+   * set id in index.ts) so this loop stays ignorant of file-review specifics.
+   */
+  readonly beforePersist?: (status: AgentExecutionStatus) => Promise<void>;
 }
 
 export interface StreamResult {
@@ -189,10 +196,14 @@ async function streamExecutionV2(
           statusBuilder.clearForceFlag();
         }
 
+        // Mid-run live capture (DD-32): attach file_change_progress to the live
+        // status before persisting (see streaming-v3.ts for the rationale).
+        const statusToPersist = statusBuilder.currentStatus;
+        await deps.beforePersist?.(statusToPersist);
         const signal = await persistStatus(
           client,
           executionId,
-          statusBuilder.currentStatus,
+          statusToPersist,
           { offload, retry: retryOptions },
         );
         scheduler.markUpdateSent(eventsProcessed);

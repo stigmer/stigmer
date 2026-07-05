@@ -47,10 +47,10 @@ export interface ArtifactPreviewContentProps {
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
-   * Optional plan-build action. When provided, a "Build from plan" primary
-   * button appears in the action bar (used for plan artifacts: turn the
-   * plan into an Agent run). Clicking it calls `onImplement` then closes
-   * the modal. Omit for non-actionable artifacts.
+   * Optional plan-build action. When provided, a "Build" primary button
+   * appears in the action bar (used for plan artifacts: turn the plan into
+   * an Agent run). Clicking it calls `onImplement` then closes the modal.
+   * Omit for non-actionable artifacts.
    */
   readonly onImplement?: () => void;
   /** Additional CSS classes for the root container. */
@@ -228,9 +228,9 @@ export function ArtifactPreviewContent({
     ctaLabel = `Push Skill to ${org}`;
   }
 
-  // "Build from plan" runs the plan; closing the modal lets the host's submit
-  // pipeline take over (switch to Agent + send). Single combined handler keeps
-  // the caller's contract simple ("just give me onImplement").
+  // "Build" runs the plan; closing the modal lets the host's submit pipeline
+  // take over (switch to Agent + send). Single combined handler keeps the
+  // caller's contract simple ("just give me onImplement").
   const handleImplement = useCallback(() => {
     onImplement?.();
     onClose();
@@ -329,7 +329,7 @@ export interface ArtifactPreviewModalProps {
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
    * Optional plan-build action (see {@link ArtifactPreviewContentProps.onImplement}).
-   * When provided, a "Build from plan" primary button appears; clicking it calls
+   * When provided, a "Build" primary button appears; clicking it calls
    * `onImplement` then closes the modal.
    */
   readonly onImplement?: () => void;
@@ -701,7 +701,7 @@ function ActionBar({
             )}
           >
             <ImplementIcon />
-            Build from plan
+            Build
           </button>
         )}
         {applyResult ? (

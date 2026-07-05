@@ -1,10 +1,11 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
 import { formatArtifactSize } from "./artifact-utils.js";
+import { useArtifactCopy } from "./useArtifactCopy.js";
 import { useArtifactDownload } from "./useArtifactDownload.js";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
@@ -21,20 +22,20 @@ export interface PlanArtifactCardProps {
    */
   readonly title?: string;
   /**
-   * Organization slug. Required for the "Open full" modal (the shared
+   * Organization slug. Required for the open-in-modal fallback (the shared
    * {@link ArtifactPreviewModal} uses it for its detection/apply pipeline and
-   * to fetch the content). When omitted, "Open full" is hidden — the prominent
-   * "Build from plan" action and "Download" remain.
+   * to fetch the content). When omitted, that fallback is hidden — the
+   * prominent "Build" action and the download icon remain.
    */
   readonly org?: string;
-  /** Called when the user clicks "Build from plan". Hidden when omitted. */
+  /** Called when the user clicks "Build". Hidden when omitted. */
   readonly onImplement?: () => void;
   /**
    * Opens the plan in the session panel's plan document tab — the
    * side-by-side review/refine surface. When provided it REPLACES the
-   * modal-based "Open full" secondary with "Open plan" (one review
-   * affordance, not two). When omitted (hosts without a session panel) the
-   * modal remains.
+   * modal-based open fallback (one review affordance, not two). When
+   * omitted (hosts without a session panel) the same "Open plan" icon
+   * opens the preview modal instead.
    */
   readonly onOpenPlan?: () => void;
   /** Disables the primary CTA (e.g., while an execution is active). */
@@ -52,9 +53,15 @@ export interface PlanArtifactCardProps {
  * the panel carries the document.
  *
  * Anatomy: a document-style identity block (plan icon, the plan's title, a
- * `plan.md · size` meta line) with the actions trailing — **Open plan** and
- * **Download** as subdued secondaries and one prominent, themeable primary,
- * **Build from plan** — so the next step is unmistakable.
+ * `<name> · size` meta line) with the actions trailing — open, copy, and
+ * download as icon-only secondaries (labelled via `aria-label`/`title`) and
+ * one prominent, themeable primary, **Build** — so the next step is
+ * unmistakable.
+ *
+ * Action-label rule (shared with `PlanStreamingCard`, which keeps its
+ * labelled "Open plan"): a lone secondary keeps its text label; a row of
+ * secondaries competing with a primary collapses to icons, so the primary
+ * carries the card's one visible verb.
  *
  * Only the LATEST plan's card carries `onImplement`; a superseded plan's card
  * is review-only (its `onOpenPlan` opens the document read-only), so a stale
@@ -76,6 +83,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
 }: PlanArtifactCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const handleKeyDown = useBuildFromPlanHotkey(onImplement, disabled);
+  const { copy, isCopying, copied } = useArtifactCopy(executionId);
   const { download, isDownloading } = useArtifactDownload(executionId);
 
   return (
@@ -103,53 +111,41 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
         </div>
       </div>
 
-      <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <div className="ml-auto flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
         {onOpenPlan ? (
-          <button
-            type="button"
+          <IconAction
+            label="Open plan"
             onClick={onOpenPlan}
-            className={cn(
-              "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
-              FOCUS_RING,
-            )}
-          >
-            <ExpandIcon />
-            Open plan
-          </button>
+            icon={<EyeIcon />}
+          />
         ) : (
           org && (
-            <button
-              type="button"
+            <IconAction
+              label="Open plan"
               onClick={() => setPreviewOpen(true)}
-              className={cn(
-                "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
-                FOCUS_RING,
-              )}
-            >
-              <ExpandIcon />
-              Open full
-            </button>
+              icon={<EyeIcon />}
+            />
           )
         )}
-        <button
-          type="button"
+        <IconAction
+          label={copied ? "Copied" : isCopying ? "Copying…" : "Copy plan"}
+          onClick={() => copy(artifact.storageKey)}
+          disabled={isCopying}
+          icon={copied ? <CheckIcon /> : <CopyIcon />}
+        />
+        <IconAction
+          label={isDownloading ? "Preparing…" : `Download ${artifact.name}`}
           onClick={() => download(artifact.storageKey, artifact.name)}
           disabled={isDownloading}
-          className={cn(
-            "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
-            FOCUS_RING,
-          )}
-        >
-          <DownloadIcon />
-          {isDownloading ? "Preparing…" : "Download"}
-        </button>
+          icon={<DownloadIcon />}
+        />
         {onImplement && (
           <button
             type="button"
             disabled={disabled}
             onClick={onImplement}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5",
+              "ml-1.5 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5",
               "text-xs font-medium transition-colors",
               "bg-primary text-primary-foreground hover:bg-primary-hover",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -157,13 +153,18 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
             )}
           >
             <ImplementIcon />
-            {buildPending ? "Starting build…" : "Build from plan"}
+            {buildPending ? "Starting build…" : "Build"}
           </button>
         )}
       </div>
 
-      {/* "Open full" reuses the shared artifact preview popup — the single place
-          that fetches/renders plan content (with Copy + Source/Rendered). */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {copied && "Plan copied to clipboard"}
+      </div>
+
+      {/* The modal open fallback reuses the shared artifact preview popup —
+          the single place that fetches/renders plan content (with Copy +
+          Source/Rendered). */}
       {org && previewOpen && (
         <ArtifactPreviewModal
           artifact={artifact}
@@ -181,6 +182,41 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
 
 const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm";
+
+/**
+ * An icon-only secondary action. The accessible name doubles as the hover
+ * tooltip (native `title` — the codebase's tooltip pattern), and the padded
+ * hit area keeps the target comfortable despite the compact glyph.
+ */
+function IconAction({
+  label,
+  onClick,
+  icon,
+  disabled,
+}: {
+  readonly label: string;
+  readonly onClick: () => void;
+  readonly icon: ReactNode;
+  readonly disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "inline-flex items-center rounded-md p-1.5 text-muted-foreground",
+        "transition-colors hover:bg-muted hover:text-foreground",
+        "disabled:pointer-events-none disabled:opacity-50",
+        FOCUS_RING,
+      )}
+    >
+      {icon}
+    </button>
+  );
+}
 
 function PlanIcon() {
   return (
@@ -223,8 +259,8 @@ function ImplementIcon() {
 function DownloadIcon() {
   return (
     <svg
-      width="10"
-      height="10"
+      width="13"
+      height="13"
       viewBox="0 0 12 12"
       fill="none"
       stroke="currentColor"
@@ -241,12 +277,53 @@ function DownloadIcon() {
   );
 }
 
-function ExpandIcon() {
+function CopyIcon() {
   return (
     <svg
-      width="10"
-      height="10"
+      width="13"
+      height="13"
       viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
+      <path d="M8 4V2.5C8 1.95 7.55 1.5 7 1.5H2.5C1.95 1.5 1.5 1.95 1.5 2.5V7C1.5 7.55 1.95 8 2.5 8H4" />
+    </svg>
+  );
+}
+
+/** A check glyph — transient confirmation that the copy succeeded. */
+function CheckIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0 text-success"
+      aria-hidden="true"
+    >
+      <path d="M2 6.5L4.5 9L10 3" />
+    </svg>
+  );
+}
+
+/** An eye glyph — "view/open the plan to read it". */
+function EyeIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
@@ -255,7 +332,8 @@ function ExpandIcon() {
       className="shrink-0"
       aria-hidden="true"
     >
-      <path d="M7 1.5h3.5V5M10.5 1.5L6.5 5.5M5 10.5H1.5V7M1.5 10.5l4-4" />
+      <path d="M1.5 8S4 3.5 8 3.5s6.5 4.5 6.5 4.5-2.5 4.5-6.5 4.5S1.5 8 1.5 8Z" />
+      <circle cx="8" cy="8" r="1.75" />
     </svg>
   );
 }

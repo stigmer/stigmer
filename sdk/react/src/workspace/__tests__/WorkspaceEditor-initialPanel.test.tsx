@@ -146,6 +146,25 @@ describe("WorkspaceEditor initialPanel", () => {
     expect(screen.getByText("new-repo")).toBeTruthy();
   });
 
+  it("labels the manual git inputs for assistive tech (no OAuth connection)", () => {
+    // With no gitHubConnection, the panel falls back to manual URL/branch entry.
+    render(
+      <WorkspaceEditor
+        workspace={createMockWorkspace()}
+        enableGitHub
+        enableLocal={false}
+        initialPanel="github"
+      />,
+    );
+    // Accessible names come from aria-label, not the disappearing placeholder.
+    expect(
+      screen.getByRole("textbox", { name: "Git repository URL" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("textbox", { name: "Branch (optional)" }),
+    ).toBeTruthy();
+  });
+
   it("shows loading state when GitHub is checking connection with initialPanel='github'", () => {
     const connection = createMockGitHubConnection({ isLoading: true });
 

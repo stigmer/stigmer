@@ -844,7 +844,7 @@ describe("MessageThread", () => {
       />,
     );
 
-    const buildBtn = screen.getByRole("button", { name: /build from plan/i });
+    const buildBtn = screen.getByRole("button", { name: "Build" });
     expect(buildBtn).toBeTruthy();
 
     fireEvent.click(buildBtn);
