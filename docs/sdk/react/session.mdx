@@ -1405,7 +1405,7 @@ Controller returned by [`usePlanDraft`](#useplandraft).
   type={{
     draftText: { type: "string | null", description: "The user's in-place edit of the current plan, or `null` when the plan is unedited. Always scoped to the CURRENT plan — a draft made against a superseded plan reads as `null` here (it is dropped, never migrated).", required: true },
     isEdited: { type: "boolean", description: "True when the current plan has an active draft.", required: true },
-    readDraft: { type: "() => string | null", description: "Snapshot reader for submit-time consumers: returns the current draft (or `null`) without the caller depending on draft state. Referentially stable for the lifetime of the component (DD-010) — \"Build from plan\" reads the draft through this at click time, so per-keystroke draft updates never re-bind the build callback or re-render the conversation column.", required: true },
+    readDraft: { type: "() => string | null", description: "Snapshot reader for submit-time consumers: returns the current draft (or `null`) without the caller depending on draft state. Referentially stable for the lifetime of the component (DD-010) — the \"Build\" action reads the draft through this at click time, so per-keystroke draft updates never re-bind the build callback or re-render the conversation column.", required: true },
     setDraft: { type: "(text: string | null) => void", description: "Set (or update) the draft for the current plan. Pass `null` to revert to the published plan. No-ops when the session has no plan.", required: true },
   }}
 />
@@ -1483,7 +1483,7 @@ values are scoped to the single execution and deleted on completion.
     agentInstanceId: { type: "string", description: "Override the session's agent instance for this and all future executions. When provided, the session is updated before the execution is created." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments for this execution.  Each entry must include a `storageKey` from `agentExecution.uploadAttachment()`. Forwarded directly to execution creation." },
     autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this execution (bypass the HITL gate)." },
-    buildFromPlan: { type: "boolean", description: "Marks this execution as a \"Build from plan\" turn." },
+    buildFromPlan: { type: "boolean", description: "Marks this execution as a Build-from-plan turn." },
     interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     modelName: { type: "string", description: "LLM model name to use for this execution. Overrides the session default." },
