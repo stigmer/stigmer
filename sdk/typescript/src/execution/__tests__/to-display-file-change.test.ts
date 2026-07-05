@@ -88,4 +88,19 @@ describe("toDisplayFileChange", () => {
     );
     expect(fc.after?.isBinary).toBe(true);
   });
+
+  it("carries the capture-time line counts so renderers can show +N −M without the bodies", () => {
+    const fc = toDisplayFileChange(
+      create(CapturedFileChangeSchema, {
+        id: "fc1",
+        pathBefore: "src/a.ts",
+        pathAfter: "src/a.ts",
+        kind: FileChangeKind.MODIFY,
+        linesAdded: 37,
+        linesRemoved: 2,
+      }),
+    );
+    expect(fc.linesAdded).toBe(37);
+    expect(fc.linesRemoved).toBe(2);
+  });
 });

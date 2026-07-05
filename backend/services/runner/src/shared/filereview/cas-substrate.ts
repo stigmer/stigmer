@@ -57,6 +57,7 @@ import {
 import type { ArtifactStorage } from "../artifact-storage.js";
 import { bytesLookBinary } from "../file-change.js";
 import { sha256Bytes, sha256Hex } from "./digest.js";
+import { countLineChanges, type LineChangeCounts } from "./line-counts.js";
 
 /**
  * Reads an artifact's raw bytes back by storage key. Injected so this module
@@ -91,6 +92,14 @@ export interface CasCapturedFile {
   readonly after?: CasBlobRef;
   /** False when a side is binary — the change set cannot be approved as complete. */
   readonly diffComplete: boolean;
+  /**
+   * Display `+N −M` counted from the in-memory bytes at capture — the only
+   * moment a CAS change's text exists outside blob storage. Absent for binary
+   * or oversized sides. Carried in memory to the CANDIDATE event only, never
+   * persisted in the manifest: the manifest is the reconcile's source of truth,
+   * and display decoration does not belong in an enforcement record.
+   */
+  readonly lineCounts?: LineChangeCounts;
 }
 
 /** The durable manifest for one change set — the reconcile's source of truth. */
@@ -210,6 +219,7 @@ async function buildCasCapturedFile(
 
   const isCreate = kind === FileChangeKind.ADD;
   const isDelete = kind === FileChangeKind.DELETE;
+  const isBinary = beforeRef?.isBinary || afterRef?.isBinary;
 
   return {
     pathBefore: isCreate ? "" : path,
@@ -220,7 +230,13 @@ async function buildCasCapturedFile(
     after: afterRef,
     // Binary on either side means the diff cannot render as text; the change set
     // then cannot be approved as complete (parity with the git substrate).
-    diffComplete: !(beforeRef?.isBinary || afterRef?.isBinary),
+    diffComplete: !isBinary,
+    // Display counts are taken NOW, while the text bytes are still in memory —
+    // after this they exist only as offloaded blobs. A binary change has no
+    // line diff to count.
+    lineCounts: isBinary
+      ? undefined
+      : countLineChanges(beforeBuf?.toString("utf8"), afterBuf?.toString("utf8")),
   };
 }
 

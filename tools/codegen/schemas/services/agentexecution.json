@@ -3347,6 +3347,26 @@
           },
           "description": "The honest cause this file's diff is not fully reviewable, set by the runner\n only when diff_complete == false (otherwise UNSPECIFIED). INFORMATIONAL\n provenance for the review UI — never an enforcement input and never folded\n into file_digest/aggregate_digest. Binary changes are conveyed by\n FileContent.is_binary, not here. See FileReviewBlockReason.",
           "required": false
+        },
+        {
+          "name": "LinesAdded",
+          "jsonName": "linesAdded",
+          "protoField": "lines_added",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Lines added by this change, computed at capture time by the runner with the\n SAME diff algorithm the SDK renders with, so the list stat and the rendered\n diff can never disagree. INFORMATIONAL display counts only — never an\n enforcement input and never folded into file_digest/aggregate_digest (the\n same contract as blocked_reason). Zero (alongside lines_removed == 0) when\n counting was not possible or meaningful: binary changes, secret-withheld\n entries, oversized sides, and records captured before this field existed.\n Consumers hide the stat in that case rather than showing \"+0 -0\".",
+          "required": false
+        },
+        {
+          "name": "LinesRemoved",
+          "jsonName": "linesRemoved",
+          "protoField": "lines_removed",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Lines removed by this change. See lines_added for the contract.",
+          "required": false
         }
       ]
     },

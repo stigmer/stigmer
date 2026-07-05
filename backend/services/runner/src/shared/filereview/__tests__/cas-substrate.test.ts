@@ -97,6 +97,40 @@ describe("snapshotCasChangeSet — classification", () => {
     expect(del.before?.sha256).toBe(sha256Bytes(bytes("BYE=1")));
   });
 
+  it("counts display line changes from the in-memory bytes at capture", async () => {
+    const { storage } = makeFakeStorage();
+    const { manifest } = await snapshotCasChangeSet({
+      storage,
+      executionId: EXEC,
+      changeSetId: CHANGE_SET,
+      captures: [
+        { path: "created.env", before: null, after: bytes("A=1\nB=2\n"), captureClass: IGNORED },
+        { path: "changed.env", before: bytes("OLD=1\n"), after: bytes("OLD=2\n"), captureClass: IGNORED },
+        // Binary side: no text diff exists, so no counts may claim one does.
+        { path: "blob.bin", before: null, after: new Uint8Array([0, 1, 2]), captureClass: IGNORED },
+      ],
+    });
+    const byPath = new Map(manifest.files.map((f) => [f.pathAfter || f.pathBefore, f]));
+
+    expect(byPath.get("created.env")!.lineCounts).toEqual({ linesAdded: 2, linesRemoved: 0 });
+    expect(byPath.get("changed.env")!.lineCounts).toEqual({ linesAdded: 1, linesRemoved: 1 });
+    expect(byPath.get("blob.bin")!.lineCounts).toBeUndefined();
+  });
+
+  it("keeps line counts out of the persisted manifest (display data, not an enforcement record)", async () => {
+    const { storage, readBlob } = makeFakeStorage();
+    const { ref } = await snapshotCasChangeSet({
+      storage,
+      executionId: EXEC,
+      changeSetId: CHANGE_SET,
+      captures: [
+        { path: "changed.env", before: bytes("OLD=1\n"), after: bytes("OLD=2\n"), captureClass: IGNORED },
+      ],
+    });
+    const roundTripped = await loadCasManifest({ readBlob, ref });
+    expect(roundTripped.files[0].lineCounts).toBeUndefined();
+  });
+
   it("drops a touched-but-unchanged path (before == after)", async () => {
     const { storage } = makeFakeStorage();
     const { manifest } = await snapshotCasChangeSet({

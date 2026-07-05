@@ -248,6 +248,16 @@ describe("FileReviewCard", () => {
   });
 
   describe("multi-file set (per-file controls)", () => {
+    it("starts a complete multi-file set collapsed in diff mode — auto-expansion is list-mode only", () => {
+      // Diff mode's expanded body is every full diff with NO height cap (the
+      // workflow file-review list); auto-expanding a multi-file set there
+      // would dump every diff open on mount. Only the compact list mode
+      // (showDiffs=false, the dock) starts multi-file sets expanded.
+      render(<FileReviewCard fileChangeSet={multiChangeSet()} onSubmit={noop} />);
+      expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
+      expect(screen.getByRole("button", { name: "Review" })).toBeTruthy();
+    });
+
     it("renders a Keep/Discard radio per file plus whole-set controls", () => {
       render(<FileReviewCard fileChangeSet={multiChangeSet()} onSubmit={noop} />);
       expandCard();
@@ -848,11 +858,12 @@ describe("FileReviewCard", () => {
   // cases mirror the decision cases above without the diff DOM. The default
   // (showDiffs unset) stays covered by every other suite in this file.
   describe("list mode (showDiffs=false)", () => {
+    /** Open a still-collapsed card's file inventory (single complete file). */
     function expandFiles() {
       fireEvent.click(screen.getByRole("button", { name: "Files" }));
     }
 
-    it("labels the expander 'Files' and renders inert list rows with no diff DOM", () => {
+    it("starts a multi-file set expanded — the per-file controls are the honest decision surface", () => {
       render(
         <FileReviewCard
           fileChangeSet={multiChangeSet()}
@@ -860,17 +871,65 @@ describe("FileReviewCard", () => {
           showDiffs={false}
         />,
       );
-      expandFiles();
+      // No expander click: the list rows and per-file controls are immediately
+      // visible, with no diff DOM (the transcript's stamped rows own the diffs).
       expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
       expect(
         document.querySelectorAll('[data-cursor-target="file-review-list-row"]'),
       ).toHaveLength(2);
-      // Filename-first path text, full path available on hover — and no
-      // link/copy affordance (the list is an inventory, not navigation).
+      expect(screen.getByRole("button", { name: "Hide" })).toBeTruthy();
+      // Filename-first linked path (FilePathLink: copy fallback without a
+      // provider — an accessible button, never a bare span), full path on hover.
       expect(screen.getByText("a.ts")).toBeTruthy();
       expect(screen.getByText("b.ts")).toBeTruthy();
+      expect(screen.getByRole("button", { name: /Copy path: src\/a\.ts/ })).toBeTruthy();
       expect(screen.getByTitle("src/a.ts")).toBeTruthy();
-      expect(screen.queryByRole("link")).toBeNull();
+    });
+
+    it("keeps a single complete file collapsed behind the 'Files' expander", () => {
+      render(
+        <FileReviewCard fileChangeSet={changeSet()} onSubmit={noop} showDiffs={false} />,
+      );
+      expect(
+        document.querySelector('[data-cursor-target="file-review-list-row"]'),
+      ).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Files" }));
+      expect(
+        document.querySelector('[data-cursor-target="file-review-list-row"]'),
+      ).toBeTruthy();
+    });
+
+    it("shows per-file +N −M from the capture-time counts, hiding the stat when no count exists", () => {
+      const counted = create(CapturedFileChangeSchema, {
+        id: "fc1",
+        pathBefore: "src/a.ts",
+        pathAfter: "src/a.ts",
+        kind: FileChangeKind.MODIFY,
+        captureClass: FileCaptureClass.GIT_TRACKED,
+        before: inline("old\n"),
+        after: inline("new\n"),
+        fileDigest: "d-fc1",
+        diffComplete: true,
+        linesAdded: 37,
+        linesRemoved: 2,
+      });
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({ fc1: counted })}
+          onSubmit={noop}
+          showDiffs={false}
+        />,
+      );
+      const rows = document.querySelectorAll('[data-cursor-target="file-review-list-row"]');
+      // fc1 carries counts; fc2 (legacy fixture, zero counts) shows no stat —
+      // never a misleading "+0 -0". The bar also aggregates the set's counts,
+      // so exactly two stats render: the bar's and fc1's row.
+      const stats = document.querySelectorAll('[data-cursor-target="file-review-line-stats"]');
+      expect(rows).toHaveLength(2);
+      expect(stats).toHaveLength(2);
+      expect(stats[0].textContent).toBe("+37 -2");
+      expect(stats[1].textContent).toBe("+37 -2");
+      expect(screen.getAllByLabelText("37 added, 2 removed")).toHaveLength(2);
     });
 
     it("marks each file with its change-kind letter (A/M/D)", () => {
@@ -899,7 +958,7 @@ describe("FileReviewCard", () => {
           showDiffs={false}
         />,
       );
-      expandFiles();
+      // A multi-file list-mode set starts expanded — the letters are visible.
       expect(screen.getByLabelText("added").textContent).toBe("A");
       expect(screen.getByLabelText("deleted").textContent).toBe("D");
     });
@@ -937,7 +996,7 @@ describe("FileReviewCard", () => {
           showDiffs={false}
         />,
       );
-      expandFiles();
+      // Starts expanded (multi-file list mode) — the row control is live.
       fireEvent.click(screen.getByRole("radio", { name: "Keep src/a.ts" }));
       expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
         scope: FileDecisionScope.FILE,

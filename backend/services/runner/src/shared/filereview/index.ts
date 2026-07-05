@@ -36,6 +36,12 @@ export {
 export { isGitWorkTree } from "./git-substrate.js";
 
 export {
+  countLineChanges,
+  LINE_COUNT_MAX_BYTES,
+  type LineChangeCounts,
+} from "./line-counts.js";
+
+export {
   applyCasApproved,
   casBlobKey,
   casBlobReader,

@@ -622,7 +622,9 @@ function candidateCasRef(changeSet: FileChangeSet): CasSnapshotRef | undefined {
  * after bodies are carried as blob REFS (already offloaded to artifact storage
  * by the CAS substrate), never re-inlined — so the CANDIDATE event stays small
  * and the bytes are stored exactly once. Enforcement digests come from the blob
- * content addresses, identical in form to the git path.
+ * content addresses, identical in form to the git path. The display line counts
+ * ride along explicitly — a ref side has no inline text for the producer to
+ * count, so the substrate's capture-time counts are the only honest source.
  */
 function casToCapturedChangeInput(
   changeSetId: string,
@@ -634,6 +636,7 @@ function casToCapturedChangeInput(
     pathAfter: file.pathAfter,
     kind: file.kind,
     captureClass: file.captureClass,
+    lineCounts: file.lineCounts,
     before: file.before
       ? {
           kind: "ref",

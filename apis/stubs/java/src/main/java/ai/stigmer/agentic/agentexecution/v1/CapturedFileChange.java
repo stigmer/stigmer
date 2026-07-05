@@ -585,6 +585,43 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason.UNRECOGNIZED : result;
   }
 
+  public static final int LINES_ADDED_FIELD_NUMBER = 14;
+  private int linesAdded_ = 0;
+  /**
+   * <pre>
+   * Lines added by this change, computed at capture time by the runner with the
+   * SAME diff algorithm the SDK renders with, so the list stat and the rendered
+   * diff can never disagree. INFORMATIONAL display counts only — never an
+   * enforcement input and never folded into file_digest/aggregate_digest (the
+   * same contract as blocked_reason). Zero (alongside lines_removed == 0) when
+   * counting was not possible or meaningful: binary changes, secret-withheld
+   * entries, oversized sides, and records captured before this field existed.
+   * Consumers hide the stat in that case rather than showing "+0 -0".
+   * </pre>
+   *
+   * <code>int32 lines_added = 14 [json_name = "linesAdded"];</code>
+   * @return The linesAdded.
+   */
+  @java.lang.Override
+  public int getLinesAdded() {
+    return linesAdded_;
+  }
+
+  public static final int LINES_REMOVED_FIELD_NUMBER = 15;
+  private int linesRemoved_ = 0;
+  /**
+   * <pre>
+   * Lines removed by this change. See lines_added for the contract.
+   * </pre>
+   *
+   * <code>int32 lines_removed = 15 [json_name = "linesRemoved"];</code>
+   * @return The linesRemoved.
+   */
+  @java.lang.Override
+  public int getLinesRemoved() {
+    return linesRemoved_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -637,6 +674,12 @@ private static final long serialVersionUID = 0L;
     }
     if (blockedReason_ != ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason.FILE_REVIEW_BLOCK_REASON_UNSPECIFIED.getNumber()) {
       output.writeEnum(13, blockedReason_);
+    }
+    if (linesAdded_ != 0) {
+      output.writeInt32(14, linesAdded_);
+    }
+    if (linesRemoved_ != 0) {
+      output.writeInt32(15, linesRemoved_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -693,6 +736,14 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(13, blockedReason_);
     }
+    if (linesAdded_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(14, linesAdded_);
+    }
+    if (linesRemoved_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(15, linesRemoved_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -740,6 +791,10 @@ private static final long serialVersionUID = 0L;
     if (!getFileDigest()
         .equals(other.getFileDigest())) return false;
     if (blockedReason_ != other.blockedReason_) return false;
+    if (getLinesAdded()
+        != other.getLinesAdded()) return false;
+    if (getLinesRemoved()
+        != other.getLinesRemoved()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -784,6 +839,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getFileDigest().hashCode();
     hash = (37 * hash) + BLOCKED_REASON_FIELD_NUMBER;
     hash = (53 * hash) + blockedReason_;
+    hash = (37 * hash) + LINES_ADDED_FIELD_NUMBER;
+    hash = (53 * hash) + getLinesAdded();
+    hash = (37 * hash) + LINES_REMOVED_FIELD_NUMBER;
+    hash = (53 * hash) + getLinesRemoved();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -960,6 +1019,8 @@ private static final long serialVersionUID = 0L;
       diffComplete_ = false;
       fileDigest_ = "";
       blockedReason_ = 0;
+      linesAdded_ = 0;
+      linesRemoved_ = 0;
       return this;
     }
 
@@ -1042,6 +1103,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00001000) != 0)) {
         result.blockedReason_ = blockedReason_;
       }
+      if (((from_bitField0_ & 0x00002000) != 0)) {
+        result.linesAdded_ = linesAdded_;
+      }
+      if (((from_bitField0_ & 0x00004000) != 0)) {
+        result.linesRemoved_ = linesRemoved_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1107,6 +1174,12 @@ private static final long serialVersionUID = 0L;
       }
       if (other.blockedReason_ != 0) {
         setBlockedReasonValue(other.getBlockedReasonValue());
+      }
+      if (other.getLinesAdded() != 0) {
+        setLinesAdded(other.getLinesAdded());
+      }
+      if (other.getLinesRemoved() != 0) {
+        setLinesRemoved(other.getLinesRemoved());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1205,6 +1278,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00001000;
               break;
             } // case 104
+            case 112: {
+              linesAdded_ = input.readInt32();
+              bitField0_ |= 0x00002000;
+              break;
+            } // case 112
+            case 120: {
+              linesRemoved_ = input.readInt32();
+              bitField0_ |= 0x00004000;
+              break;
+            } // case 120
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2569,6 +2652,115 @@ private static final long serialVersionUID = 0L;
     public Builder clearBlockedReason() {
       bitField0_ = (bitField0_ & ~0x00001000);
       blockedReason_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int linesAdded_ ;
+    /**
+     * <pre>
+     * Lines added by this change, computed at capture time by the runner with the
+     * SAME diff algorithm the SDK renders with, so the list stat and the rendered
+     * diff can never disagree. INFORMATIONAL display counts only — never an
+     * enforcement input and never folded into file_digest/aggregate_digest (the
+     * same contract as blocked_reason). Zero (alongside lines_removed == 0) when
+     * counting was not possible or meaningful: binary changes, secret-withheld
+     * entries, oversized sides, and records captured before this field existed.
+     * Consumers hide the stat in that case rather than showing "+0 -0".
+     * </pre>
+     *
+     * <code>int32 lines_added = 14 [json_name = "linesAdded"];</code>
+     * @return The linesAdded.
+     */
+    @java.lang.Override
+    public int getLinesAdded() {
+      return linesAdded_;
+    }
+    /**
+     * <pre>
+     * Lines added by this change, computed at capture time by the runner with the
+     * SAME diff algorithm the SDK renders with, so the list stat and the rendered
+     * diff can never disagree. INFORMATIONAL display counts only — never an
+     * enforcement input and never folded into file_digest/aggregate_digest (the
+     * same contract as blocked_reason). Zero (alongside lines_removed == 0) when
+     * counting was not possible or meaningful: binary changes, secret-withheld
+     * entries, oversized sides, and records captured before this field existed.
+     * Consumers hide the stat in that case rather than showing "+0 -0".
+     * </pre>
+     *
+     * <code>int32 lines_added = 14 [json_name = "linesAdded"];</code>
+     * @param value The linesAdded to set.
+     * @return This builder for chaining.
+     */
+    public Builder setLinesAdded(int value) {
+
+      linesAdded_ = value;
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Lines added by this change, computed at capture time by the runner with the
+     * SAME diff algorithm the SDK renders with, so the list stat and the rendered
+     * diff can never disagree. INFORMATIONAL display counts only — never an
+     * enforcement input and never folded into file_digest/aggregate_digest (the
+     * same contract as blocked_reason). Zero (alongside lines_removed == 0) when
+     * counting was not possible or meaningful: binary changes, secret-withheld
+     * entries, oversized sides, and records captured before this field existed.
+     * Consumers hide the stat in that case rather than showing "+0 -0".
+     * </pre>
+     *
+     * <code>int32 lines_added = 14 [json_name = "linesAdded"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearLinesAdded() {
+      bitField0_ = (bitField0_ & ~0x00002000);
+      linesAdded_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int linesRemoved_ ;
+    /**
+     * <pre>
+     * Lines removed by this change. See lines_added for the contract.
+     * </pre>
+     *
+     * <code>int32 lines_removed = 15 [json_name = "linesRemoved"];</code>
+     * @return The linesRemoved.
+     */
+    @java.lang.Override
+    public int getLinesRemoved() {
+      return linesRemoved_;
+    }
+    /**
+     * <pre>
+     * Lines removed by this change. See lines_added for the contract.
+     * </pre>
+     *
+     * <code>int32 lines_removed = 15 [json_name = "linesRemoved"];</code>
+     * @param value The linesRemoved to set.
+     * @return This builder for chaining.
+     */
+    public Builder setLinesRemoved(int value) {
+
+      linesRemoved_ = value;
+      bitField0_ |= 0x00004000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Lines removed by this change. See lines_added for the contract.
+     * </pre>
+     *
+     * <code>int32 lines_removed = 15 [json_name = "linesRemoved"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearLinesRemoved() {
+      bitField0_ = (bitField0_ & ~0x00004000);
+      linesRemoved_ = 0;
       onChanged();
       return this;
     }

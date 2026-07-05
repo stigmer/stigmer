@@ -244,6 +244,17 @@ type CapturedFileChange struct {
 	// into file_digest/aggregate_digest. Binary changes are conveyed by
 	// FileContent.is_binary, not here. See FileReviewBlockReason.
 	BlockedReason FileReviewBlockReason `protobuf:"varint,13,opt,name=blocked_reason,json=blockedReason,proto3,enum=ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReason" json:"blocked_reason,omitempty"`
+	// Lines added by this change, computed at capture time by the runner with the
+	// SAME diff algorithm the SDK renders with, so the list stat and the rendered
+	// diff can never disagree. INFORMATIONAL display counts only — never an
+	// enforcement input and never folded into file_digest/aggregate_digest (the
+	// same contract as blocked_reason). Zero (alongside lines_removed == 0) when
+	// counting was not possible or meaningful: binary changes, secret-withheld
+	// entries, oversized sides, and records captured before this field existed.
+	// Consumers hide the stat in that case rather than showing "+0 -0".
+	LinesAdded int32 `protobuf:"varint,14,opt,name=lines_added,json=linesAdded,proto3" json:"lines_added,omitempty"`
+	// Lines removed by this change. See lines_added for the contract.
+	LinesRemoved  int32 `protobuf:"varint,15,opt,name=lines_removed,json=linesRemoved,proto3" json:"lines_removed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -367,6 +378,20 @@ func (x *CapturedFileChange) GetBlockedReason() FileReviewBlockReason {
 		return x.BlockedReason
 	}
 	return FileReviewBlockReason_FILE_REVIEW_BLOCK_REASON_UNSPECIFIED
+}
+
+func (x *CapturedFileChange) GetLinesAdded() int32 {
+	if x != nil {
+		return x.LinesAdded
+	}
+	return 0
+}
+
+func (x *CapturedFileChange) GetLinesRemoved() int32 {
+	if x != nil {
+		return x.LinesRemoved
+	}
+	return 0
 }
 
 // An immutable pointer to a captured workspace state.
@@ -1403,7 +1428,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDesc = "" +
 	"\x10aggregate_digest\x18\t \x01(\tR\x0faggregateDigest\x12m\n" +
 	"\x11diff_completeness\x18\n" +
 	" \x01(\x0e26.ai.stigmer.agentic.agentexecution.v1.DiffCompletenessB\b\xbaH\x05\x82\x01\x02\x10\x01R\x10diffCompleteness\x12P\n" +
-	"\tdecisions\x18\v \x03(\v22.ai.stigmer.agentic.agentexecution.v1.FileDecisionR\tdecisions\"\x8b\x06\n" +
+	"\tdecisions\x18\v \x03(\v22.ai.stigmer.agentic.agentexecution.v1.FileDecisionR\tdecisions\"\xd1\x06\n" +
 	"\x12CapturedFileChange\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vpath_before\x18\x02 \x01(\tR\n" +
@@ -1421,7 +1446,10 @@ const file_ai_stigmer_agentic_agentexecution_v1_filereview_proto_rawDesc = "" +
 	"\rdiff_complete\x18\v \x01(\bR\fdiffComplete\x12\x1f\n" +
 	"\vfile_digest\x18\f \x01(\tR\n" +
 	"fileDigest\x12l\n" +
-	"\x0eblocked_reason\x18\r \x01(\x0e2;.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReasonB\b\xbaH\x05\x82\x01\x02\x10\x01R\rblockedReason\"\xeb\x01\n" +
+	"\x0eblocked_reason\x18\r \x01(\x0e2;.ai.stigmer.agentic.agentexecution.v1.FileReviewBlockReasonB\b\xbaH\x05\x82\x01\x02\x10\x01R\rblockedReason\x12\x1f\n" +
+	"\vlines_added\x18\x0e \x01(\x05R\n" +
+	"linesAdded\x12#\n" +
+	"\rlines_removed\x18\x0f \x01(\x05R\flinesRemoved\"\xeb\x01\n" +
 	"\vSnapshotRef\x12P\n" +
 	"\x04kind\x18\x01 \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.SnapshotKindB\b\xbaH\x05\x82\x01\x02\x10\x01R\x04kind\x12B\n" +
 	"\x03git\x18\x02 \x01(\v20.ai.stigmer.agentic.agentexecution.v1.GitTreeRefR\x03git\x12F\n" +

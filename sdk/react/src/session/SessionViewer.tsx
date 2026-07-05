@@ -26,6 +26,10 @@ import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
 import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
 import { MessageThread } from "../execution/MessageThread.js";
 import { FileReviewDock } from "../execution/FileReviewDock.js";
+import {
+  FilePathContext,
+  type FilePathContextValue,
+} from "../execution/FilePathContext.js";
 import { ThreadSkeleton } from "../execution/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
@@ -655,6 +659,20 @@ const ConversationColumn = memo(function ConversationColumn({
     [conv.stop, composerRef],
   );
 
+  // The composer-docked FileReviewDock sits OUTSIDE MessageThread, so the
+  // thread's own FilePathContext provider does not reach it. This provider
+  // gives the dock's file list the same path resolution and click routing
+  // (open in the panel's viewer; GitHub/copy fallback) as the transcript —
+  // one click behavior for a path everywhere in the session. Memoized so the
+  // dock's memoized cards are not invalidated by unrelated renders (DD-010).
+  const dockFilePathCtx = useMemo<FilePathContextValue>(
+    () => ({
+      workspaceEntries: conv.workspaceEntries ?? [],
+      onFilePathClick,
+    }),
+    [conv.workspaceEntries, onFilePathClick],
+  );
+
   return (
     <div className="flex h-full min-w-0 flex-col">
       <MessageThread
@@ -703,12 +721,14 @@ const ConversationColumn = memo(function ConversationColumn({
             decision the agent is blocked on can never scroll out of view. The
             thread renders only observational rows (badges) and read-only
             settled records; this is the one decision surface. */}
-        <FileReviewDock
-          changeSets={conv.fileChangeSets}
-          onSubmit={conv.submitFileDecision}
-          submittingDecisionKeys={conv.submittingFileDecisionKeys}
-          decisionErrors={conv.fileDecisionErrors}
-        />
+        <FilePathContext.Provider value={dockFilePathCtx}>
+          <FileReviewDock
+            changeSets={conv.fileChangeSets}
+            onSubmit={conv.submitFileDecision}
+            submittingDecisionKeys={conv.submittingFileDecisionKeys}
+            decisionErrors={conv.fileDecisionErrors}
+          />
+        </FilePathContext.Provider>
         <SessionComposer
           ref={composerRef}
           onSubmit={flow.handleSubmit}

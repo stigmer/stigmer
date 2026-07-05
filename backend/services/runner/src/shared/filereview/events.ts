@@ -42,6 +42,7 @@ import {
   FileReviewFailureKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { aggregateDigest, fileDigest, sha256Bytes } from "./digest.js";
+import { countLineChanges, type LineChangeCounts } from "./line-counts.js";
 import { looksBinary } from "../file-change.js";
 
 // The runner is the author of capture/reconcile/failure events. "runner" (not
@@ -150,6 +151,15 @@ export interface CapturedChangeInput {
    * this UNSPECIFIED. See {@link FileReviewBlockReason}.
    */
   readonly blockedReason?: FileReviewBlockReason;
+  /**
+   * Display line counts for this change, for producers whose bodies are not
+   * inline here (the CAS substrate counts from the in-memory bytes before
+   * offloading them as blob refs). Omit for inline content —
+   * {@link buildCapturedFileChange} then counts the inline sides itself, with
+   * the same shared {@link countLineChanges}. Informational only, never folded
+   * into the digests.
+   */
+  readonly lineCounts?: LineChangeCounts;
 }
 
 /** Normalize the string-shorthand to a {@link CapturedContent}. */
@@ -173,6 +183,37 @@ export function contentSha256(content: CapturedContent): string {
     case "binary":
       return content.sha256;
   }
+}
+
+/**
+ * Count the display `+N −M` from a change's inline sides, or `undefined` when
+ * counting is not honest here: a side that exists without inline text (a `ref`
+ * whose bytes were already offloaded, or a `binary` side with no body), or
+ * inline text that would render as binary (the UI shows "Binary file changed"
+ * for it, never a line diff — a count would describe a diff nobody sees).
+ * An absent side is fine — it is the empty document of an ADD/DELETE.
+ */
+function countInlineSides(
+  before: CapturedContent | undefined,
+  after: CapturedContent | undefined,
+): LineChangeCounts | undefined {
+  const beforeText = inlineTextOrNull(before);
+  const afterText = inlineTextOrNull(after);
+  if (beforeText === null || afterText === null) return undefined;
+  return countLineChanges(beforeText, afterText);
+}
+
+/**
+ * A side's countable inline text: the text for a non-binary inline side,
+ * `undefined` for an absent side (countable as the empty document), and `null`
+ * when the side exists but cannot be counted (ref / binary / binary-looking).
+ */
+function inlineTextOrNull(
+  content: CapturedContent | undefined,
+): string | undefined | null {
+  if (content === undefined) return undefined;
+  if (content.kind !== "inline" || looksBinary(content.text)) return null;
+  return content.text;
 }
 
 /** Build the proto {@link FileContent} for one content side (inline, ref, or binary). */
@@ -212,12 +253,19 @@ function toFileContent(content: CapturedContent): FileContent {
  * `file_digest`) over the captured bytes. Content may be inline (git) or a blob
  * ref (CAS) — the digests are identical either way, so the aggregate digest and
  * the reconcile enforcement compose across both substrates.
+ *
+ * Display line counts are stamped here too — the single seam every substrate
+ * flows through — from `input.lineCounts` when the producer counted at its own
+ * source (CAS), else counted from the inline sides. Counting happens BEFORE any
+ * persist-time offload, so the counts survive a body being elided later. They
+ * never enter `fileDigest` (informational, not enforcement).
  */
 export function buildCapturedFileChange(input: CapturedChangeInput): CapturedFileChange {
   const before = normalizeContent(input.before);
   const after = normalizeContent(input.after);
   const beforeSha256 = before ? contentSha256(before) : "";
   const afterSha256 = after ? contentSha256(after) : "";
+  const counts = input.lineCounts ?? countInlineSides(before, after);
 
   const fc = create(CapturedFileChangeSchema, {
     id: input.id,
@@ -229,6 +277,8 @@ export function buildCapturedFileChange(input: CapturedChangeInput): CapturedFil
     afterSha256,
     diffComplete: input.diffComplete ?? true,
     blockedReason: input.blockedReason ?? FileReviewBlockReason.UNSPECIFIED,
+    linesAdded: counts?.linesAdded ?? 0,
+    linesRemoved: counts?.linesRemoved ?? 0,
     fileDigest: fileDigest({
       pathBefore: input.pathBefore,
       pathAfter: input.pathAfter,
