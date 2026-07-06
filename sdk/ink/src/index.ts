@@ -25,6 +25,7 @@ export {
   FileChangeProgressBar,
   type FileChangeProgressBarProps,
 } from "./components/FileChangeProgressBar.js";
+export { FileLineStats } from "./components/FileReviewAtoms.js";
 
 // File-review pure helpers (kind letters, paths, block reasons, settled counts)
 export {
@@ -32,8 +33,10 @@ export {
   changeDisplayPath,
   progressEntryDisplayPath,
   blockReasonNote,
+  changeSetLineStats,
   settledCounts,
   settledSummary,
+  type LineStats,
   type SettledCounts,
 } from "./file-review.js";
 export { ExecutionProgress, type ExecutionProgressProps } from "./components/ExecutionProgress.js";

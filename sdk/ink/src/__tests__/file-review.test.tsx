@@ -31,6 +31,8 @@ import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
 import { FileReviewRecord } from "../components/FileReviewRecord.js";
 import { MessageThread } from "../components/MessageThread.js";
+import { FileLineStats } from "../components/FileReviewAtoms.js";
+import { changeSetLineStats } from "../file-review.js";
 
 // --- fixtures -------------------------------------------------------------
 
@@ -41,6 +43,8 @@ interface ChangeOpts {
   readonly diffComplete?: boolean;
   readonly binary?: boolean;
   readonly blockedReason?: FileReviewBlockReason;
+  readonly linesAdded?: number;
+  readonly linesRemoved?: number;
 }
 
 function makeChange(opts: ChangeOpts) {
@@ -52,6 +56,8 @@ function makeChange(opts: ChangeOpts) {
     diffComplete: opts.diffComplete ?? true,
     fileDigest: `fd-${opts.id}`,
     blockedReason: opts.blockedReason ?? FileReviewBlockReason.UNSPECIFIED,
+    linesAdded: opts.linesAdded ?? 0,
+    linesRemoved: opts.linesRemoved ?? 0,
     before: opts.binary ? create(FileContentSchema, { isBinary: true }) : undefined,
     after: opts.binary ? create(FileContentSchema, { isBinary: true }) : undefined,
   });
@@ -492,5 +498,134 @@ describe("MessageThread — file-review integration", () => {
     const out = lastFrame() ?? "";
     expect(out).toContain("Pending review"); // the row still badges
     expect(out).not.toContain("File review —"); // but no settled record
+  });
+});
+
+// --- FileLineStats (shared atom) -----------------------------------------
+
+describe("FileLineStats", () => {
+  it("renders nothing when both counts are zero (never +0 -0)", () => {
+    const { lastFrame } = render(<FileLineStats linesAdded={0} linesRemoved={0} />);
+    expect((lastFrame() ?? "").trim()).toBe("");
+  });
+
+  it("renders +N -M when counts exist", () => {
+    const { lastFrame } = render(<FileLineStats linesAdded={7} linesRemoved={3} />);
+    const out = lastFrame() ?? "";
+    expect(out).toContain("+7");
+    expect(out).toContain("-3");
+  });
+
+  it("renders a one-sided stat (added only) without hiding it", () => {
+    const { lastFrame } = render(<FileLineStats linesAdded={5} linesRemoved={0} />);
+    const out = lastFrame() ?? "";
+    expect(out).toContain("+5");
+    expect(out).toContain("-0"); // both sides always shown once any count exists
+  });
+});
+
+// --- changeSetLineStats (pure helper) ------------------------------------
+
+describe("changeSetLineStats", () => {
+  it("sums per-file counts across the set", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [
+        makeChange({ id: "a", path: "one.ts", linesAdded: 10, linesRemoved: 2 }),
+        makeChange({ id: "b", path: "two.ts", linesAdded: 5, linesRemoved: 3 }),
+      ],
+    });
+    expect(changeSetLineStats(set)).toEqual({ linesAdded: 15, linesRemoved: 5 });
+  });
+
+  it("treats an uncountable (binary/withheld) file as a zero contributor — honest understatement", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [
+        makeChange({ id: "txt", path: "app.ts", linesAdded: 8, linesRemoved: 1 }),
+        makeChange({ id: "img", path: "logo.png", kind: FileChangeKind.BINARY_CHANGE, binary: true }),
+      ],
+    });
+    expect(changeSetLineStats(set)).toEqual({ linesAdded: 8, linesRemoved: 1 });
+  });
+
+  it("is zero for a set whose files carry no counts (stat then hidden by the atom)", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [makeChange({ id: "a", path: "one.ts" })],
+    });
+    expect(changeSetLineStats(set)).toEqual({ linesAdded: 0, linesRemoved: 0 });
+  });
+});
+
+// --- Line stats on the review surfaces -----------------------------------
+
+describe("FileReviewPrompt — line stats", () => {
+  it("shows the set aggregate +N -M on the header", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [
+        makeChange({ id: "a", path: "one.ts", linesAdded: 12, linesRemoved: 3 }),
+        makeChange({ id: "b", path: "two.ts", linesAdded: 4, linesRemoved: 1 }),
+      ],
+    });
+    const out = render(<FileReviewPrompt changeSet={set} onSubmit={() => {}} />).lastFrame() ?? "";
+    expect(out).toContain("2 files awaiting review");
+    expect(out).toContain("+16");
+    expect(out).toContain("-4");
+  });
+
+  it("hides the header aggregate when no file has counts (never +0 -0)", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [makeChange({ id: "a", path: "one.ts" })],
+    });
+    const out = render(<FileReviewPrompt changeSet={set} onSubmit={() => {}} />).lastFrame() ?? "";
+    expect(out).not.toContain("+");
+  });
+
+  it("shows per-file +N -M in per-file mode", async () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [
+        makeChange({ id: "a", path: "one.ts", linesAdded: 10, linesRemoved: 2 }),
+        makeChange({ id: "b", path: "two.ts", linesAdded: 4, linesRemoved: 0 }),
+      ],
+    });
+    const { stdin, lastFrame } = render(
+      <FileReviewPrompt changeSet={set} onSubmit={() => {}} />,
+    );
+    stdin.write("f");
+    await tick();
+    const out = lastFrame() ?? "";
+    expect(out).toContain("+10");
+    expect(out).toContain("+4");
+  });
+});
+
+describe("FileReviewRecord — line stats", () => {
+  it("shows the set aggregate and per-file +N -M", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [
+        makeChange({ id: "a", path: "one.ts", linesAdded: 9, linesRemoved: 2 }),
+        makeChange({ id: "b", path: "two.ts", linesAdded: 3, linesRemoved: 1 }),
+      ],
+      decisions: [
+        { scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.APPROVE },
+      ],
+    });
+    const out = render(<FileReviewRecord fileChangeSet={set} />).lastFrame() ?? "";
+    expect(out).toContain("+12"); // aggregate 9+3
+    expect(out).toContain("+9"); // per-file
+    expect(out).toContain("+3"); // per-file
+  });
+
+  it("renders no stat when the set carries no counts", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [makeChange({ id: "a", path: "one.ts" })],
+    });
+    expect(render(<FileReviewRecord fileChangeSet={set} />).lastFrame() ?? "").not.toContain("+");
   });
 });

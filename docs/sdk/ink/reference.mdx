@@ -162,6 +162,17 @@ The path to show for a reviewable change: the post-edit path, or the pre-edit
 path for a deletion. A rename shows `before → after` so both sides are visible.
 
 
+### changeSetLineStats
+
+Sums a change set's per-file `linesAdded`/`linesRemoved` into one aggregate,
+for the set-level `+N −M` shown beside the prompt header and the settled
+record summary (parity with the web card's collapsed-bar aggregate). Counts
+every change regardless of verdict — it reports what changed, not what was
+kept. A file with no counts (binary, secret-withheld, or a record predating
+the fields) contributes zero, so the aggregate honestly understates rather
+than guessing; when NO file has counts it is zero and the stat is hidden.
+
+
 ### ContextGauge
 
 Terminal-native context window utilization gauge.
@@ -237,6 +248,15 @@ distinguishes it from the loud, bordered decision prompt.
 const conv = useSessionConversation(sessionId, org);
 <FileChangeProgressBar progress={conv.fileChangeProgress} expanded={expandTools} />
 ```
+
+
+### FileLineStats
+
+The `+N −M` stat for one file (or a whole set), in the diff colour vocabulary.
+Renders nothing when both counts are zero — the honest signal that no count
+exists (binary or secret-withheld changes, or records captured before the
+counts were stamped) — rather than a misleading `+0 -0`, matching the web
+`FileLineStats` contract.
 
 
 ### FileReviewPrompt
