@@ -325,8 +325,14 @@ export interface GitProgressEntry {
   readonly linesRemoved: number;
 }
 
-/** Result of {@link captureProgressDelta}. */
-export interface ProgressDelta {
+/**
+ * Result of {@link captureProgressDelta} — the git-numstat delta. Distinct from
+ * the substrate-neutral `ProgressDelta` (in {@link ./progress.js}) that the
+ * git/cas/hybrid substrates emit: this carries the working-tree sha (for the
+ * short-circuit) and git's `FileChangeType` entries; the neutral one carries
+ * proto `FileChangeKind` entries and an honest total.
+ */
+export interface GitProgressDelta {
   /** The post-diff working-tree sha, for the caller's short-circuit cache. */
   readonly afterTree: string;
   /** One count-only entry per changed file (no content). */
@@ -357,7 +363,7 @@ export async function captureProgressDelta(
   baselineTree: string,
   excludePaths: readonly string[] = [],
   lastTreeSha?: string,
-): Promise<ProgressDelta | undefined> {
+): Promise<GitProgressDelta | undefined> {
   const gitDir = await resolveGitDir(gitRoot);
   const afterTree = await writeWorkingTree(gitRoot, gitDir, "progress", executionId, excludePaths);
   if (lastTreeSha !== undefined && afterTree === lastTreeSha) return undefined;

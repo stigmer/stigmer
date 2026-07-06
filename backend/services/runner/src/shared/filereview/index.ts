@@ -36,19 +36,31 @@ export {
 export {
   captureProgressDelta,
   isGitWorkTree,
+  type GitProgressDelta,
   type GitProgressEntry,
-  type ProgressDelta,
 } from "./git-substrate.js";
 
 export {
   buildFileChangeProgress,
   captureFileChangeProgress,
+  createGitProgressSubstrate,
+  createHybridProgressSubstrate,
   newProgressCaptureState,
   PROGRESS_CAPTURE_MIN_INTERVAL_MS,
   PROGRESS_MAX_ENTRIES,
   shouldCaptureProgress,
+  type ProgressCapture,
   type ProgressCaptureState,
+  type ProgressDelta,
+  type ProgressEntry,
+  type ProgressSubstrate,
 } from "./progress.js";
+
+export {
+  createCasProgressSubstrate,
+  type CasTouchedReader,
+  type CasTouchedSnapshot,
+} from "./cas-progress.js";
 
 export {
   countLineChanges,
@@ -61,12 +73,14 @@ export {
   casBlobKey,
   casBlobReader,
   casManifestKey,
+  classifyCasChange,
   loadCasManifest,
   restoreCasToBaseline,
   snapshotCasChangeSet,
   type BlobReader,
   type CasBlobRef,
   type CasCapturedFile,
+  type CasChangeClassification,
   type CasManifest,
   type CasPathCapture,
   type CasSnapshotRef,

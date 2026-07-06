@@ -190,6 +190,66 @@ export async function snapshotCasChangeSet(opts: {
 }
 
 /**
+ * The display-facing classification of one CAS path's before/after bytes: the
+ * change kind, whether either side is binary, and the `+N −M` line counts.
+ */
+export interface CasChangeClassification {
+  /** Path before the change (workspace-relative). Empty for ADD. */
+  readonly pathBefore: string;
+  /** Path after the change. Empty for DELETE. */
+  readonly pathAfter: string;
+  readonly kind: FileChangeKind;
+  /** A NUL byte on either side — the diff cannot render as text. */
+  readonly isBinary: boolean;
+  /** `+N −M` from the in-memory bytes; absent for a binary or oversized side. */
+  readonly lineCounts?: LineChangeCounts;
+}
+
+/**
+ * Classify one CAS path's before/after bytes. Returns `undefined` for a
+ * non-change — both sides absent, or a touch that left the bytes unchanged —
+ * exactly as the git substrate's diff omits unchanged files.
+ *
+ * This is the SINGLE classification authority for a CAS before/after pair: the
+ * turn-boundary capture ({@link buildCasCapturedFile}) and the mid-run progress
+ * producer ({@link ./cas-progress.js}) both route through it, so the live "N
+ * files changed so far" strip and the reviewed change set can never disagree on
+ * an edge case (the trailing-newline class of bug {@link ./line-counts.js}
+ * warns about). Kind, no-op detection, binary detection, and counting live here
+ * and nowhere else.
+ */
+export function classifyCasChange(
+  path: string,
+  beforeBuf: Buffer | null,
+  afterBuf: Buffer | null,
+): CasChangeClassification | undefined {
+  if (beforeBuf === null && afterBuf === null) return undefined;
+  // A touch that did not change the bytes is not a reviewable change.
+  if (beforeBuf && afterBuf && beforeBuf.equals(afterBuf)) return undefined;
+
+  const kind =
+    beforeBuf === null
+      ? FileChangeKind.ADD
+      : afterBuf === null
+        ? FileChangeKind.DELETE
+        : FileChangeKind.MODIFY;
+  const isBinary =
+    (beforeBuf !== null && bytesLookBinary(beforeBuf)) ||
+    (afterBuf !== null && bytesLookBinary(afterBuf));
+
+  return {
+    pathBefore: kind === FileChangeKind.ADD ? "" : path,
+    pathAfter: kind === FileChangeKind.DELETE ? "" : path,
+    kind,
+    isBinary,
+    // A binary change has no text line diff to count.
+    lineCounts: isBinary
+      ? undefined
+      : countLineChanges(beforeBuf?.toString("utf8"), afterBuf?.toString("utf8")),
+  };
+}
+
+/**
  * Store one path's before/after blobs and classify the change. Returns
  * `undefined` for a no-op (both sides absent, or an unchanged touch).
  */
@@ -199,44 +259,29 @@ async function buildCasCapturedFile(
   capture: CasPathCapture,
 ): Promise<CasCapturedFile | undefined> {
   const { path, before, after, captureClass } = capture;
-  if (before === null && after === null) return undefined;
-
   const beforeBuf = before === null ? null : Buffer.from(before);
   const afterBuf = after === null ? null : Buffer.from(after);
 
-  // A touch that did not change the bytes is not a reviewable change.
-  if (beforeBuf && afterBuf && beforeBuf.equals(afterBuf)) return undefined;
+  const classification = classifyCasChange(path, beforeBuf, afterBuf);
+  if (!classification) return undefined;
 
   const beforeRef = beforeBuf ? await storeBlob(storage, executionId, beforeBuf) : undefined;
   const afterRef = afterBuf ? await storeBlob(storage, executionId, afterBuf) : undefined;
 
-  const kind =
-    beforeRef === undefined
-      ? FileChangeKind.ADD
-      : afterRef === undefined
-        ? FileChangeKind.DELETE
-        : FileChangeKind.MODIFY;
-
-  const isCreate = kind === FileChangeKind.ADD;
-  const isDelete = kind === FileChangeKind.DELETE;
-  const isBinary = beforeRef?.isBinary || afterRef?.isBinary;
-
   return {
-    pathBefore: isCreate ? "" : path,
-    pathAfter: isDelete ? "" : path,
-    kind,
+    pathBefore: classification.pathBefore,
+    pathAfter: classification.pathAfter,
+    kind: classification.kind,
     captureClass,
     before: beforeRef,
     after: afterRef,
     // Binary on either side means the diff cannot render as text; the change set
     // then cannot be approved as complete (parity with the git substrate).
-    diffComplete: !isBinary,
+    diffComplete: !classification.isBinary,
     // Display counts are taken NOW, while the text bytes are still in memory —
-    // after this they exist only as offloaded blobs. A binary change has no
-    // line diff to count.
-    lineCounts: isBinary
-      ? undefined
-      : countLineChanges(beforeBuf?.toString("utf8"), afterBuf?.toString("utf8")),
+    // after this they exist only as offloaded blobs (the same counts the mid-run
+    // progress producer derives via classifyCasChange).
+    lineCounts: classification.lineCounts,
   };
 }
 

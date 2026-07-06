@@ -52,8 +52,15 @@ import {
 } from "../../shared/filereview/capture.js";
 import {
   captureFileChangeProgress,
+  createGitProgressSubstrate,
+  createHybridProgressSubstrate,
   newProgressCaptureState,
+  type ProgressSubstrate,
 } from "../../shared/filereview/progress.js";
+import {
+  createCasProgressSubstrate,
+  type CasTouchedSnapshot,
+} from "../../shared/filereview/cas-progress.js";
 import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
@@ -323,14 +330,34 @@ export function createDeepAgentActivities(config: Config) {
           });
         }
 
-        // Per-turn state for mid-run live capture (DD-32): the last progress tree
-        // sha (short-circuit) + last capture time (floor), threaded across the
-        // streaming loop's persists via the beforePersist hook below. The capture
-        // flags are hoisted so the deferred hook does not depend on `setup`
-        // (non-null here, but not narrowable inside a later-invoked closure).
+        // Per-turn state + substrate for mid-run live capture (DD-32 / DD-33). The
+        // floor lives in progressState; the substrate is chosen for this turn's
+        // workspace shape and owns its own short-circuit cache. An atomic snapshot
+        // of the shared observer feeds the CAS/HYBRID substrates — copied
+        // synchronously so a concurrent sub-agent write cannot mutate it mid-read.
         const progressState = newProgressCaptureState();
-        const progressCaptureMode = setup.captureMode;
-        const progressGitWorkspace = setup.gitWorkspace;
+        const casObserver = setup.casObserver;
+        const readObserverTouched = (): CasTouchedSnapshot => ({
+          before: new Map(casObserver.before),
+          blockedSecretPaths: new Set(casObserver.blockedSecretPaths),
+        });
+        // Git tree -> hybrid (numstat for tracked + observer for gitignored);
+        // non-git -> cas over the observer (no baseline tree needed). Undefined
+        // outside capture mode (writes are deny-gated, nothing is captured).
+        const progressSubstrate: ProgressSubstrate | undefined = !setup.captureMode
+          ? undefined
+          : setup.gitWorkspace
+            ? captureBaselineTree
+              ? createHybridProgressSubstrate(
+                  createGitProgressSubstrate({
+                    workspaceRoot: gitRoot,
+                    executionId,
+                    baselineTree: captureBaselineTree,
+                  }),
+                  createCasProgressSubstrate({ workspaceRoot: gitRoot, read: readObserverTouched }),
+                )
+              : undefined
+            : createCasProgressSubstrate({ workspaceRoot: gitRoot, read: readObserverTouched });
 
         const cancellationSignal = Context.current().cancellationSignal;
 
@@ -357,20 +384,18 @@ export function createDeepAgentActivities(config: Config) {
             globalBypass: setup.globalBypass,
           },
           streamVersion: setup.streamVersion,
-          // Mid-run live capture (DD-32): attach file_change_progress before each
-          // scheduled persist. Git capture mode only (a pinned baseline exists);
-          // deep-agent writes no runner-owned gate files into the tree, so no
-          // excludePaths — matching its turn-boundary candidate capture.
+          // Mid-run live capture (DD-32 / DD-33): attach file_change_progress
+          // before each scheduled persist, throttled by the floor inside
+          // captureFileChangeProgress. The substrate (git / non-git CAS / hybrid)
+          // was chosen for this turn above; deep-agent writes no runner-owned gate
+          // files into the tree, so the git slice needs no excludePaths — matching
+          // its turn-boundary candidate capture.
           beforePersist: async (status) => {
-            if (!progressCaptureMode || !progressGitWorkspace || !captureBaselineTree) {
-              return;
-            }
+            if (!progressSubstrate) return;
             await captureFileChangeProgress({
               status,
-              gitRoot,
-              executionId,
               changeSetId,
-              baselineTree: captureBaselineTree,
+              substrate: progressSubstrate,
               state: progressState,
             });
           },

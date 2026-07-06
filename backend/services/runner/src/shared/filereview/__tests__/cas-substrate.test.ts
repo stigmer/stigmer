@@ -24,6 +24,7 @@ import {
   casBlobKey,
   casBlobReader,
   casManifestKey,
+  classifyCasChange,
   loadCasManifest,
   restoreCasToBaseline,
   snapshotCasChangeSet,
@@ -434,5 +435,70 @@ describe("digest independence from capture class", () => {
     });
     const files = manifest.files as CasCapturedFile[];
     expect(files.map((f) => f.pathAfter)).toEqual(["a", "m", "z"]);
+  });
+});
+
+// The single classification authority for a CAS before/after pair. Both the
+// turn-boundary capture (buildCasCapturedFile, exercised via snapshotCasChangeSet)
+// and the mid-run progress producer (cas-progress) route through it, so these
+// cases lock the shape the strip and the reviewed set share.
+describe("classifyCasChange (pure)", () => {
+  const buf = (s: string): Buffer => Buffer.from(s, "utf8");
+
+  it("classifies ADD from a null before and blanks the before path", () => {
+    const c = classifyCasChange("new.ts", null, buf("a\nb\nc\n"))!;
+    expect(c.kind).toBe(FileChangeKind.ADD);
+    expect(c.pathBefore).toBe("");
+    expect(c.pathAfter).toBe("new.ts");
+    expect(c.isBinary).toBe(false);
+    expect(c.lineCounts).toEqual({ linesAdded: 3, linesRemoved: 0 });
+  });
+
+  it("classifies DELETE from a null after and blanks the after path", () => {
+    const c = classifyCasChange("gone.ts", buf("x\ny\n"), null)!;
+    expect(c.kind).toBe(FileChangeKind.DELETE);
+    expect(c.pathBefore).toBe("gone.ts");
+    expect(c.pathAfter).toBe("");
+    expect(c.lineCounts).toEqual({ linesAdded: 0, linesRemoved: 2 });
+  });
+
+  it("classifies MODIFY from two present sides", () => {
+    const c = classifyCasChange("m.ts", buf("a\n"), buf("a\nb\n"))!;
+    expect(c.kind).toBe(FileChangeKind.MODIFY);
+    expect(c.pathBefore).toBe("m.ts");
+    expect(c.pathAfter).toBe("m.ts");
+    expect(c.lineCounts).toEqual({ linesAdded: 1, linesRemoved: 0 });
+  });
+
+  it("returns undefined for both-null and for a no-op touch (unchanged bytes)", () => {
+    expect(classifyCasChange("p", null, null)).toBeUndefined();
+    expect(classifyCasChange("p", buf("same\n"), buf("same\n"))).toBeUndefined();
+  });
+
+  it("marks a binary side and withholds line counts", () => {
+    const bin = Buffer.from([0, 1, 2, 0, 255, 0]);
+    const c = classifyCasChange("blob.bin", null, bin)!;
+    expect(c.kind).toBe(FileChangeKind.ADD);
+    expect(c.isBinary).toBe(true);
+    expect(c.lineCounts).toBeUndefined();
+  });
+
+  it("is the authority snapshotCasChangeSet uses (parity guard)", async () => {
+    const { storage } = makeFakeStorage();
+    const before = bytes("one\ntwo\n");
+    const after = bytes("one\ntwo\nthree\n");
+    const { manifest } = await snapshotCasChangeSet({
+      storage, executionId: EXEC, changeSetId: CHANGE_SET,
+      captures: [{ path: "m.ts", before, after, captureClass: IGNORED }],
+    });
+    const file = manifest.files[0];
+    const direct = classifyCasChange("m.ts", Buffer.from(before), Buffer.from(after))!;
+    // The captured file's display classification is exactly what the shared
+    // classifier produces — no second authority that could drift.
+    expect(file.kind).toBe(direct.kind);
+    expect(file.pathBefore).toBe(direct.pathBefore);
+    expect(file.pathAfter).toBe(direct.pathAfter);
+    expect(file.diffComplete).toBe(!direct.isBinary);
+    expect(file.lineCounts).toEqual(direct.lineCounts);
   });
 });

@@ -79,14 +79,16 @@ import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "./exact-
 import { isGitWorkTree } from "../../shared/filereview/git-substrate.js";
 import {
   captureBaselineToLedger,
-  captureProgressToStatus,
+  buildCursorProgressSubstrate,
   applyCaptureDecisions,
   deriveCaptureMode,
 } from "./capture-flow.js";
 import { runTurnBoundary, type TurnBoundaryResult } from "./turn-boundary.js";
 import {
+  captureFileChangeProgress,
   newProgressCaptureState,
   type ProgressCaptureState,
+  type ProgressSubstrate,
 } from "../../shared/filereview/progress.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
@@ -692,6 +694,21 @@ async function executeCursorInner(
       denialLedgerDirty = true;
     });
 
+    // Mid-run live capture (DD-32 / DD-33): choose the progress substrate for this
+    // turn's workspace shape ONCE (git / non-git CAS / hybrid). It owns its own
+    // short-circuit cache across the loop's persists; the floor lives in
+    // progressState. Undefined outside capture mode — writes are deny-gated and
+    // nothing is captured.
+    const progressSubstrate: ProgressSubstrate | undefined = buildCursorProgressSubstrate({
+      captureMode,
+      gitWorkspace,
+      workspaceRoot: primaryWorkspaceDir,
+      baselineTree,
+      executionId,
+      hitlDir,
+      storage: artifactStorage,
+    });
+
     // Phase 5d: Ensure model pricing registry is populated before validation
     await ensurePricingLoaded();
 
@@ -1069,19 +1086,17 @@ async function executeCursorInner(
         // accumulator tracked sub-agents in memory but they only reached the
         // status (and the subscriber stream) after the loop ended.
         status.subAgentExecutions = accumulator.subAgentExecutions;
-        // Mid-run live capture (DD-32): attach the "N files changed so far"
+        // Mid-run live capture (DD-32 / DD-33): attach the "N files changed so far"
         // snapshot onto status.file_change_progress, throttled internally by the
-        // floor + tree-sha short-circuit. Git capture mode only (a pinned baseline
-        // exists); shell + sub-agent + tool edits are all captured for free by the
-        // workspace-wide diff. Never authoritative — the turn-boundary candidate
+        // floor. The substrate (git / non-git CAS / hybrid) was chosen for this
+        // turn above and covers git-tracked (numstat), non-git, and gitignored
+        // (CAS sidecar) writes. Never authoritative — the turn-boundary candidate
         // remains the reviewed diff.
-        if (captureMode && gitWorkspace && baselineTree && primaryWorkspaceDir) {
-          await captureProgressToStatus({
+        if (progressSubstrate) {
+          await captureFileChangeProgress({
             status,
-            gitRoot: primaryWorkspaceDir,
-            executionId,
             changeSetId,
-            baselineTree,
+            substrate: progressSubstrate,
             state: progressState,
           });
         }

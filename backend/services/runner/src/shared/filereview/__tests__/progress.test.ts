@@ -20,12 +20,18 @@ import {
   snapshotBaseline,
   dropCaptureRefs,
   type GitProgressEntry,
-  type ProgressDelta,
+  type GitProgressDelta,
 } from "../git-substrate.js";
 import {
   buildFileChangeProgress,
+  createGitProgressSubstrate,
+  createHybridProgressSubstrate,
   PROGRESS_MAX_ENTRIES,
   shouldCaptureProgress,
+  type ProgressCapture,
+  type ProgressDelta,
+  type ProgressEntry,
+  type ProgressSubstrate,
 } from "../progress.js";
 
 const execFileAsync = promisify(execFile);
@@ -49,7 +55,7 @@ async function writeBytes(rel: string, bytes: Uint8Array): Promise<void> {
   await writeFile(join(repo, rel), bytes);
 }
 
-function entryFor(delta: ProgressDelta, path: string): GitProgressEntry | undefined {
+function entryFor(delta: GitProgressDelta, path: string): GitProgressEntry | undefined {
   return delta.entries.find((e) => e.pathAfter === path || e.pathBefore === path);
 }
 
@@ -157,23 +163,28 @@ describe("captureProgressDelta (real git repo)", () => {
 });
 
 describe("buildFileChangeProgress (pure)", () => {
-  function delta(entries: GitProgressEntry[]): ProgressDelta {
-    return { afterTree: "tree-sha", entries };
+  function delta(entries: ProgressEntry[], totalFilesChanged?: number): ProgressDelta {
+    return totalFilesChanged === undefined ? { entries } : { entries, totalFilesChanged };
   }
-  function entry(path: string, added: number, removed: number): GitProgressEntry {
+  function entry(
+    path: string,
+    added: number,
+    removed: number,
+    kind: FileChangeKind = FileChangeKind.MODIFY,
+  ): ProgressEntry {
     return {
-      pathBefore: path,
+      pathBefore: kind === FileChangeKind.ADD ? "" : path,
       pathAfter: path,
-      changeType: FileChangeType.MODIFY,
+      kind,
       linesAdded: added,
       linesRemoved: removed,
     };
   }
 
-  it("sums aggregate counts and maps kind", () => {
+  it("sums aggregate counts and carries the per-entry kind through unchanged", () => {
     const progress = buildFileChangeProgress(
       delta([
-        { pathBefore: "", pathAfter: "a.ts", changeType: FileChangeType.CREATE, linesAdded: 5, linesRemoved: 0 },
+        entry("a.ts", 5, 0, FileChangeKind.ADD),
         entry("b.ts", 2, 3),
       ]),
       CHANGE_SET_ID,
@@ -185,6 +196,18 @@ describe("buildFileChangeProgress (pure)", () => {
     expect(progress.entries[0].kind).toBe(FileChangeKind.ADD);
     expect(progress.entries[1].kind).toBe(FileChangeKind.MODIFY);
     expect(progress.capturedAt).not.toBe("");
+  });
+
+  it("reports totalFilesChanged when a substrate capped its reads, else the entry count", () => {
+    // git substrate leaves totalFilesChanged undefined -> filesChanged = entries.length.
+    const gitLike = buildFileChangeProgress(delta([entry("a.ts", 1, 0)]), CHANGE_SET_ID);
+    expect(gitLike.filesChanged).toBe(1);
+
+    // cas substrate read only a bounded prefix -> filesChanged reflects the honest
+    // total even though fewer entries were emitted.
+    const casLike = buildFileChangeProgress(delta([entry("a.ts", 1, 0)], 7), CHANGE_SET_ID);
+    expect(casLike.filesChanged).toBe(7);
+    expect(casLike.entries).toHaveLength(1);
   });
 
   it("zeroes counts for secret-like paths (path visible, magnitude withheld)", () => {
@@ -203,7 +226,7 @@ describe("buildFileChangeProgress (pure)", () => {
   });
 
   it("caps entries but keeps files_changed and totals honest over all files", () => {
-    const entries: GitProgressEntry[] = [];
+    const entries: ProgressEntry[] = [];
     for (let i = 0; i < PROGRESS_MAX_ENTRIES + 25; i++) {
       entries.push(entry(`f${i}.ts`, 1, 1));
     }
@@ -232,5 +255,84 @@ describe("shouldCaptureProgress (pure)", () => {
     expect(shouldCaptureProgress(1000, 2500, 2000)).toBe(false);
     expect(shouldCaptureProgress(1000, 3000, 2000)).toBe(true);
     expect(shouldCaptureProgress(1000, 3001, 2000)).toBe(true);
+  });
+});
+
+describe("createGitProgressSubstrate (real git repo)", () => {
+  it("reports changed:true then reuses the cached full delta on an unchanged tree", async () => {
+    const baseline = await snapshotBaseline(repo, EXEC_ID);
+    const sub = createGitProgressSubstrate({
+      workspaceRoot: repo,
+      executionId: EXEC_ID,
+      baselineTree: baseline,
+    });
+
+    await write("src/new.ts", "a\nb\n");
+    const first = await sub.capture();
+    expect(first.changed).toBe(true);
+    expect(first.delta.entries.length).toBeGreaterThan(0);
+
+    // Nothing moved since the last capture: the tree-sha short-circuits, but the
+    // full delta is still returned (changed:false) so a hybrid can merge it.
+    const second = await sub.capture();
+    expect(second.changed).toBe(false);
+    expect(second.delta.entries).toEqual(first.delta.entries);
+  });
+});
+
+/** A fake substrate returning a fixed capture — for merge/short-circuit logic. */
+function fakeSubstrate(capture: ProgressCapture): ProgressSubstrate {
+  return { capture: () => Promise.resolve(capture) };
+}
+
+function progressEntry(path: string): ProgressEntry {
+  return { pathBefore: "", pathAfter: path, kind: FileChangeKind.ADD, linesAdded: 1, linesRemoved: 0 };
+}
+
+describe("createHybridProgressSubstrate", () => {
+  it("concatenates disjoint git + cas slices and sums the honest totals", async () => {
+    const git = fakeSubstrate({
+      delta: { entries: [progressEntry("tracked.ts")] }, // git: total = entries.length
+      changed: true,
+    });
+    const cas = fakeSubstrate({
+      delta: { entries: [progressEntry(".env.local")], totalFilesChanged: 3 }, // cas capped
+      changed: true,
+    });
+    const hybrid = createHybridProgressSubstrate(git, cas);
+
+    const { delta, changed } = await hybrid.capture();
+    expect(changed).toBe(true);
+    expect(delta.entries.map((e) => e.pathAfter)).toEqual(["tracked.ts", ".env.local"]);
+    // 1 (git entries) + 3 (cas honest total) = 4.
+    expect(delta.totalFilesChanged).toBe(4);
+  });
+
+  it("still emits the full git slice when only the cas slice changed", async () => {
+    // Git unchanged returns its cached full delta with changed:false; the hybrid
+    // must keep it (a `ProgressDelta | undefined` contract would have dropped it).
+    const git = fakeSubstrate({
+      delta: { entries: [progressEntry("tracked.ts")] },
+      changed: false,
+    });
+    const cas = fakeSubstrate({
+      delta: { entries: [progressEntry("build/out.js")], totalFilesChanged: 1 },
+      changed: true,
+    });
+    const hybrid = createHybridProgressSubstrate(git, cas);
+
+    const { delta, changed } = await hybrid.capture();
+    expect(changed).toBe(true);
+    expect(delta.entries.map((e) => e.pathAfter)).toEqual(["tracked.ts", "build/out.js"]);
+    expect(delta.totalFilesChanged).toBe(2);
+  });
+
+  it("reports changed:false only when NEITHER slice moved", async () => {
+    const git = fakeSubstrate({ delta: { entries: [] }, changed: false });
+    const cas = fakeSubstrate({ delta: { entries: [], totalFilesChanged: 0 }, changed: false });
+    const hybrid = createHybridProgressSubstrate(git, cas);
+
+    const { changed } = await hybrid.capture();
+    expect(changed).toBe(false);
   });
 });
