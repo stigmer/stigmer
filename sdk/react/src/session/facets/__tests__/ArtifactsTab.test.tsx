@@ -52,6 +52,11 @@ function openRow(name: string) {
   fireEvent.click(screen.getByText(name));
 }
 
+/** Double-click the open target of a row by its artifact name (the pin gesture). */
+function activateRow(name: string) {
+  fireEvent.doubleClick(screen.getByText(name));
+}
+
 afterEach(cleanup);
 
 describe("ArtifactsTab — dense row list", () => {
@@ -114,6 +119,39 @@ describe("ArtifactsTab — open routing", () => {
     openRow("plan.md");
 
     expect(document.querySelector("dialog")).toBeTruthy();
+  });
+});
+
+describe("ArtifactsTab — pin (double-click) routing", () => {
+  it("routes a non-plan double-click to onActivateArtifact (pin)", () => {
+    const onActivateArtifact = vi.fn<(entry: SessionArtifactEntry) => void>();
+    renderTab({ onOpenArtifact: vi.fn(), onActivateArtifact, onOpenPlan: vi.fn() });
+
+    activateRow("notes.md");
+
+    expect(onActivateArtifact).toHaveBeenCalledTimes(1);
+    expect(onActivateArtifact.mock.calls[0][0].artifact.name).toBe("notes.md");
+  });
+
+  it("routes a plan.md double-click to onOpenPlan (its tab is already pinned), never onActivateArtifact", () => {
+    const onActivateArtifact = vi.fn();
+    const onOpenPlan = vi.fn();
+    renderTab({ onOpenArtifact: vi.fn(), onActivateArtifact, onOpenPlan });
+
+    activateRow("plan.md");
+
+    expect(onOpenPlan).toHaveBeenCalledWith("aex_1");
+    expect(onActivateArtifact).not.toHaveBeenCalled();
+  });
+
+  it("binds no double-click when onActivateArtifact is omitted (panel-less host) — a double-click is harmless", () => {
+    const onOpenArtifact = vi.fn();
+    renderTab({ onOpenArtifact });
+
+    // With no pin handler the row binds no onDoubleClick, so a dblclick fires
+    // nothing (in a real browser the leading single-clicks still preview).
+    expect(() => activateRow("notes.md")).not.toThrow();
+    expect(onOpenArtifact).not.toHaveBeenCalled();
   });
 });
 

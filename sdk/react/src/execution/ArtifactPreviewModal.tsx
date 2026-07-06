@@ -58,7 +58,7 @@ export interface ArtifactPreviewContentProps {
  * it inside a `<dialog>`, modal, sheet, overlay, or inline context as
  * needed.
  *
- * Orchestrates the same detection pipeline as {@link ArtifactCard}:
+ * Orchestrates the shared detection pipeline (see {@link useArtifactInspection}):
  *
  * - **FILE artifacts**: Fetches text content via {@link useArtifactContent},
  *   renders via {@link ArtifactContentRenderer} (markdown, YAML, JSON, or
@@ -88,7 +88,7 @@ export interface ArtifactPreviewContentProps {
  * ```
  *
  * @see {@link ArtifactPreviewModal} — wraps this component in a native `<dialog>`
- * @see {@link ArtifactCard} — compact card that triggers preview via `onPreview`
+ * @see {@link ArtifactRow} — dense list row that triggers preview via `onOpen`
  * @see {@link useArtifactContent} — content-fetching hook (headless alternative)
  * @see {@link useDetectStigmerResource} — YAML resource detection (headless)
  * @see {@link useDetectSkillPackage} — skill package detection (headless)
@@ -240,7 +240,7 @@ export interface ArtifactPreviewModalProps {
  * ```
  *
  * @see {@link ArtifactPreviewContent} — the content component (use directly for non-dialog contexts)
- * @see {@link ArtifactCard} — compact card that triggers preview via `onPreview`
+ * @see {@link ArtifactRow} — dense list row that triggers preview via `onOpen`
  */
 export function ArtifactPreviewModal({
   artifact,

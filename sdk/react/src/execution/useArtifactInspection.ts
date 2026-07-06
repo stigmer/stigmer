@@ -82,9 +82,9 @@ export interface ArtifactInspection {
 
 /**
  * Headless behavior hook consolidating the artifact inspect-and-act pipeline
- * that was previously inlined in both `ArtifactPreviewContent` and
- * `ArtifactCard`: content fetch, Agent/McpServer YAML detection, skill-package
- * detection, the Apply/Push mutation, and in-memory clipboard copy.
+ * that was previously inlined per artifact surface: content fetch,
+ * Agent/McpServer YAML detection, skill-package detection, the Apply/Push
+ * mutation, and in-memory clipboard copy.
  *
  * It is the single writer of this pipeline's derived state, consumed by every
  * artifact chrome — the modal action bar and the editor-area

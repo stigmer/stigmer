@@ -2,18 +2,15 @@
 
 import { useCallback, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { cn } from "@stigmer/theme";
 import {
   useSessionArtifacts,
+  artifactKey,
   type SessionArtifactEntry,
 } from "../useSessionArtifacts.js";
 import { ArtifactPreviewModal } from "../../execution/ArtifactPreviewModal.js";
-import { useArtifactDownload } from "../../execution/useArtifactDownload.js";
-import { formatArtifactSize } from "../../execution/artifact-utils.js";
+import { ArtifactRow } from "../../execution/ArtifactRow.js";
 import { isPlanArtifact } from "../../library/detect-plan-artifact.js";
 import type { ApplyResourceResult } from "../../library/useApplyResource.js";
-import { FileTypeIcon, FolderTypeIcon } from "../../internal/file-icons/index.js";
 
 export interface ArtifactsTabProps {
   readonly executions: readonly AgentExecution[];
@@ -41,17 +38,27 @@ export interface ArtifactsTabProps {
    * open mechanism. Plan artifacts always defer to {@link onOpenPlan} first.
    */
   readonly onOpenArtifact?: (entry: SessionArtifactEntry) => void;
+  /**
+   * Pin a non-plan artifact's document tab — the double-click half of the
+   * open/activate split (mirrors the file tree's `onOpenFile`/`onActivateFile`).
+   * When provided, each row binds a double-click that promotes the preview the
+   * single click opened. Omit in panel-less/modal hosts: with no handler the
+   * row binds no double-click, so a double-click is just two harmless single
+   * clicks. Plans always route to {@link onOpenPlan} (their tab is already
+   * pinned), so double-click == single-click for a plan.
+   */
+  readonly onActivateArtifact?: (entry: SessionArtifactEntry) => void;
 }
 
 /**
  * Artifacts facet for the session panel (a `useSessionRailViews` rail view).
  *
- * A VS Code-style dense file list of the session's outputs: one compact row per
- * artifact (shared file-type icon + name + size, with a hover/focus Download).
- * Clicking a row opens the artifact — a `plan.md` in the plan document tab
- * ({@link onOpenPlan}), any other artifact in an editor-pane document
- * ({@link onOpenArtifact}), or, for panel-less hosts that inject neither, the
- * {@link ArtifactPreviewModal} popup fallback.
+ * A VS Code-style dense file list of the session's outputs: one compact
+ * {@link ArtifactRow} per artifact (shared file-type icon + name + size, with a
+ * hover/focus Download). Clicking a row opens the artifact — a `plan.md` in the
+ * plan document tab ({@link onOpenPlan}), any other artifact in an editor-pane
+ * document ({@link onOpenArtifact}), or, for panel-less hosts that inject
+ * neither, the {@link ArtifactPreviewModal} popup fallback.
  *
  * Deliberately metadata-only: rows do NOT fetch content for resource detection
  * (that would be one request per artifact on open) — detection and the
@@ -64,6 +71,7 @@ export function ArtifactsTab({
   onImplementPlan,
   onOpenPlan,
   onOpenArtifact,
+  onActivateArtifact,
 }: ArtifactsTabProps) {
   const { artifacts, hasArtifacts } = useSessionArtifacts(executions);
   const [previewEntry, setPreviewEntry] = useState<SessionArtifactEntry | null>(null);
@@ -86,6 +94,19 @@ export function ArtifactsTab({
     [onOpenPlan, onOpenArtifact],
   );
 
+  const handleActivate = useCallback(
+    (entry: SessionArtifactEntry) => {
+      // A plan's tab is always pinned, so double-click matches single-click:
+      // route to the plan tab, never pin a generic artifact.
+      if (onOpenPlan && isPlanArtifact(entry.artifact)) {
+        onOpenPlan(entry.executionId);
+        return;
+      }
+      onActivateArtifact?.(entry);
+    },
+    [onOpenPlan, onActivateArtifact],
+  );
+
   const handleClosePreview = useCallback(() => {
     setPreviewEntry(null);
   }, []);
@@ -105,9 +126,14 @@ export function ArtifactsTab({
       <ul role="list" className="flex flex-col">
         {artifacts.map((entry) => (
           <ArtifactRow
-            key={entry.artifact.sandboxPath || entry.artifact.name}
-            entry={entry}
-            onOpen={handleOpen}
+            key={artifactKey(entry.artifact)}
+            artifact={entry.artifact}
+            executionId={entry.executionId}
+            hasNameCollision={entry.hasNameCollision}
+            onOpen={() => handleOpen(entry)}
+            onActivate={
+              onActivateArtifact ? () => handleActivate(entry) : undefined
+            }
           />
         ))}
       </ul>
@@ -127,118 +153,5 @@ export function ArtifactsTab({
         />
       )}
     </>
-  );
-}
-
-/**
- * One dense artifact row: a full-width open button (icon + name + collision
- * subtitle + size) with a sibling, hover/focus-revealed Download button.
- *
- * The open target and the Download control are SIBLINGS, never nested — a
- * `<button>` inside a `<button>` is an axe `nested-interactive` (WCAG 4.1.2)
- * violation. This mirrors `ExplorerRoot`'s header + remove-control pattern.
- */
-function ArtifactRow({
-  entry,
-  onOpen,
-}: {
-  readonly entry: SessionArtifactEntry;
-  readonly onOpen: (entry: SessionArtifactEntry) => void;
-}) {
-  const { artifact, hasNameCollision } = entry;
-  const isDirectory = artifact.kind === ExecutionArtifactKind.DIRECTORY;
-  const { download, isDownloading } = useArtifactDownload(entry.executionId);
-
-  const parentDir =
-    hasNameCollision && artifact.sandboxPath
-      ? parentDirectory(artifact.sandboxPath)
-      : null;
-
-  return (
-    <li className="group flex items-stretch">
-      <button
-        type="button"
-        onClick={() => onOpen(entry)}
-        title={artifact.sandboxPath || artifact.name}
-        className={cn(
-          "flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left text-xs text-muted-foreground transition-colors",
-          "hover:bg-muted hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-        )}
-      >
-        <span className="shrink-0 text-muted-foreground">
-          {isDirectory ? <FolderTypeIcon open={false} /> : <FileTypeIcon fileName={artifact.name} />}
-        </span>
-        <span className="min-w-0 flex-1 truncate text-foreground">
-          {artifact.name}
-          {isDirectory && "/"}
-          {parentDir && (
-            <span className="ml-1.5 text-[0.65rem] text-muted-foreground">
-              {parentDir}
-            </span>
-          )}
-        </span>
-        <span className="shrink-0 tabular-nums text-[0.65rem] text-muted-foreground-faint">
-          {formatArtifactSize(artifact.sizeBytes)}
-        </span>
-      </button>
-      <button
-        type="button"
-        onClick={() => download(artifact.storageKey, artifact.name)}
-        disabled={isDownloading}
-        aria-label={
-          isDownloading
-            ? `Preparing ${artifact.name}`
-            : `Download ${artifact.name}`
-        }
-        title={isDirectory ? "Download ZIP" : "Download"}
-        className={cn(
-          "flex shrink-0 items-center px-2 text-muted-foreground opacity-0 transition-opacity",
-          "group-hover:opacity-100 focus-visible:opacity-100",
-          "hover:text-foreground disabled:opacity-50",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-        )}
-      >
-        <DownloadIcon />
-      </button>
-    </li>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Extracts a human-readable parent directory label from a sandbox path.
- * Given `/workspace/configs/agent.yaml` returns `configs/`.
- * Returns `null` when the path has no meaningful parent segment.
- */
-function parentDirectory(sandboxPath: string): string | null {
-  const lastSlash = sandboxPath.lastIndexOf("/");
-  if (lastSlash <= 0) return null;
-  const parent = sandboxPath.slice(0, lastSlash);
-  const segment = parent.slice(parent.lastIndexOf("/") + 1);
-  return segment ? `${segment}/` : null;
-}
-
-function DownloadIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0"
-      aria-hidden="true"
-    >
-      <path d="M6 1.5V8.5" />
-      <path d="M3 6L6 9L9 6" />
-      <path d="M2 10.5H10" />
-    </svg>
   );
 }

@@ -132,6 +132,15 @@ export interface SessionPanelController {
    */
   readonly openArtifact: (artifact: ExecutionArtifact) => void;
   /**
+   * Pin an artifact's tab (clear its preview state) — the double-click half of
+   * the open/activate split, the encapsulated sibling of {@link openArtifact}.
+   * Delegates to the editors store's generic `pin`, exactly as the file tree
+   * pins via `pinEditor`: the leading single-click of the double-click has
+   * already opened the preview tab, so this promotes it to a persistent tab. A
+   * no-op if the artifact is not open.
+   */
+  readonly pinArtifact: (artifact: ExecutionArtifact) => void;
+  /**
    * Report the current thread-item selection. Called from an effect inside the
    * panel subtree (the level that subscribes to the selection store), keeping
    * the owner subscription-free. While the panel is open, a new selection
@@ -245,6 +254,13 @@ export function useSessionPanel({
     [editorsStore],
   );
 
+  const pinArtifact = useCallback(
+    (artifact: ExecutionArtifact) => {
+      editorsStore.pin(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(artifact));
+    },
+    [editorsStore],
+  );
+
   const activateEditor = useCallback(
     (entryId: string, path: string) => editorsStore.activate(entryId, path),
     [editorsStore],
@@ -290,6 +306,7 @@ export function useSessionPanel({
       closeEditor,
       openPlanDocument,
       openArtifact,
+      pinArtifact,
       notifySelection,
     }),
     [
@@ -305,6 +322,7 @@ export function useSessionPanel({
       closeEditor,
       openPlanDocument,
       openArtifact,
+      pinArtifact,
       notifySelection,
     ],
   );

@@ -43,6 +43,11 @@ export interface UseSessionRailViewsOptions {
    */
   readonly onOpenArtifact?: (entry: SessionArtifactEntry) => void;
   /**
+   * Pin a (non-plan) artifact's document tab — the double-click half of the
+   * Artifacts facet's open/activate split. Routed through to the facet's rows.
+   */
+  readonly onActivateArtifact?: (entry: SessionArtifactEntry) => void;
+  /**
    * Whether to offer the execution-derived facets (Changes / Artifacts /
    * Usage). The launcher passes `false` — before a session exists there are no
    * executions to aggregate, so only Config applies.
@@ -70,6 +75,7 @@ export function useSessionRailViews({
   onImplementPlan,
   onOpenPlan,
   onOpenArtifact,
+  onActivateArtifact,
   includeExecutionFacets = true,
 }: UseSessionRailViewsOptions): readonly SurfaceRailView[] {
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(allExecutions);
@@ -112,6 +118,7 @@ export function useSessionRailViews({
               onImplementPlan={onImplementPlan}
               onOpenPlan={onOpenPlan}
               onOpenArtifact={onOpenArtifact}
+              onActivateArtifact={onActivateArtifact}
             />
           ),
         });
@@ -148,6 +155,7 @@ export function useSessionRailViews({
     onImplementPlan,
     onOpenPlan,
     onOpenArtifact,
+    onActivateArtifact,
     selectedItem,
   ]);
 }

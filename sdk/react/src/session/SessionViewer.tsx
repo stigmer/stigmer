@@ -472,6 +472,17 @@ export function SessionViewer({
     [panel.openArtifact],
   );
 
+  // Double-click an artifact row → pin its tab (the leading single click already
+  // opened the preview via `handleOpenArtifact`). Mirrors the file tree's
+  // preview/pin split; plan artifacts are routed to the plan tab upstream (in
+  // ArtifactsTab) and never reach here.
+  const handleActivateArtifact = useCallback(
+    (entry: SessionArtifactEntry) => {
+      panel.pinArtifact(entry.artifact);
+    },
+    [panel.pinArtifact],
+  );
+
   // Open a transcript tool-call file path in the panel's read-only editor.
   // Resolves the (possibly absolute / subdir-prefixed) path to a
   // repo/root-relative selection the editor can fetch; on a definite hit it
@@ -579,6 +590,7 @@ export function SessionViewer({
                 openPlanExecutionId={openPlanExecutionId}
                 onOpenPlan={handleOpenPlan}
                 onOpenArtifact={handleOpenArtifact}
+                onActivateArtifact={handleActivateArtifact}
                 enableLocal={enableLocal}
                 onBrowseLocalFolder={onBrowseLocalFolder}
                 workspaceFileLister={workspaceFileLister}
@@ -874,6 +886,8 @@ interface SessionPanelRegionProps {
   readonly onOpenPlan: (executionId: string) => void;
   /** Opens an artifact as an editor-pane document (routed to the Artifacts facet). */
   readonly onOpenArtifact: (entry: SessionArtifactEntry) => void;
+  /** Pins an artifact's document tab — the double-click half of the open/pin split. */
+  readonly onActivateArtifact: (entry: SessionArtifactEntry) => void;
   readonly enableLocal: boolean;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
@@ -896,6 +910,7 @@ function SessionPanelRegion({
   openPlanExecutionId,
   onOpenPlan,
   onOpenArtifact,
+  onActivateArtifact,
   enableLocal,
   onBrowseLocalFolder,
   workspaceFileLister,
@@ -1107,6 +1122,7 @@ function SessionPanelRegion({
     onImplementPlan,
     onOpenPlan,
     onOpenArtifact,
+    onActivateArtifact,
   });
 
   // Explorer-footer folder attach (desktop only — needs the native picker).

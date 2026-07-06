@@ -242,8 +242,8 @@ export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext.
 export { FileReviewContext, useFileReviewRowState } from "./FileReviewContext.js";
 export type { FileReviewContextValue } from "./FileReviewContext.js";
 
-export { ArtifactCard } from "./ArtifactCard.js";
-export type { ArtifactCardProps } from "./ArtifactCard.js";
+export { ArtifactRow } from "./ArtifactRow.js";
+export type { ArtifactRowProps } from "./ArtifactRow.js";
 
 export { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
 export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer.js";

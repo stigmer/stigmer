@@ -304,6 +304,24 @@ describe("useSessionPanel — artifact document tabs", () => {
       { entryId: ARTIFACT_DOCUMENT_ENTRY_ID, path: ".stigmer/a.md", preview: true },
     ]);
   });
+
+  it("pinArtifact promotes an open artifact preview to a persistent tab", () => {
+    const { result } = renderPanel();
+    const a = artifact(".stigmer/notes.md", "notes.md");
+    // The single-click open leaves a preview tab; the double-click pins it.
+    act(() => result.current.openArtifact(a));
+    act(() => result.current.pinArtifact(a));
+
+    expect(result.current.editorsStore.getSnapshot().editors).toEqual([
+      { entryId: ARTIFACT_DOCUMENT_ENTRY_ID, path: artifactKey(a), preview: false },
+    ]);
+  });
+
+  it("pinArtifact is a no-op when the artifact is not open (mirrors the store's generic pin)", () => {
+    const { result } = renderPanel();
+    act(() => result.current.pinArtifact(artifact(".stigmer/x.md", "x.md")));
+    expect(result.current.editorsStore.getSnapshot().editors).toEqual([]);
+  });
 });
 
 describe("useSessionPanel — defaultView (home view)", () => {

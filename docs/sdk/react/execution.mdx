@@ -340,9 +340,9 @@ return url ? <img src={url} alt="Tool output" /> : null;
 ### useArtifactInspection
 
 Headless behavior hook consolidating the artifact inspect-and-act pipeline
-that was previously inlined in both `ArtifactPreviewContent` and
-`ArtifactCard`: content fetch, Agent/McpServer YAML detection, skill-package
-detection, the Apply/Push mutation, and in-memory clipboard copy.
+that was previously inlined per artifact surface: content fetch,
+Agent/McpServer YAML detection, skill-package detection, the Apply/Push
+mutation, and in-memory clipboard copy.
 
 It is the single writer of this pipeline's derived state, consumed by every
 artifact chrome — the modal action bar and the editor-area
@@ -964,60 +964,6 @@ inline on a [`ToolCallItem`](#toolcallitem), whose own row already serves as the
 />
 
 
-### ArtifactCard
-
-Renders a single execution artifact as a compact summary card with
-automatic Stigmer resource detection and a download link.
-
-The card's role is **signal and navigate**: it tells the user what
-the artifact is (file/directory, size, detected resource type) and
-provides two actions — Preview and Download. The Apply/Push CTA
-lives exclusively in [`ArtifactPreviewModal`](#artifactpreviewmodal) so the user must
-review content before acting (review-before-apply pattern).
-
-Internally orchestrates the detection pipeline:
-
-- **FILE artifacts**: Fetches text content via [`useArtifactContent`](#useartifactcontent),
-  then detects Agent/McpServer YAML via [`useDetectStigmerResource`](/docs/sdk/react/library#usedetectstigmerresource).
-  Only text files under 256 KB are fetched for detection.
-
-- **DIRECTORY artifacts**: Detects skill packages via
-  [`useDetectSkillPackage`](/docs/sdk/react/library#usedetectskillpackage) (checks for `SKILL.md` in the ZIP
-  archive entries).
-
-Detection results are surfaced as a type badge ("Agent detected",
-"Skill · N files"). Non-Stigmer artifacts render with file info
-and a download link only — no error messages or "not detected"
-indicators (detection is silent).
-
-**Props** — `ArtifactCardProps`
-
-<TypeTable
-  type={{
-    artifact: { type: "ExecutionArtifact", description: "The execution artifact to render.", required: true },
-    className: { type: "string", description: "Additional CSS classes for the root element." },
-    executionId: { type: "string", description: "ID of the execution that produced this artifact — used for content fetching.", required: true },
-    hasNameCollision: { type: "boolean", description: "When `true`, another artifact in the list shares the same display `name` but has a different `sandbox_path`. The card renders the parent directory from `sandbox_path` as a muted subtitle for disambiguation.  Set by ArtifactsWidget via useSessionArtifacts. Defaults to `false`." },
-    onPreview: { type: "(artifact: ExecutionArtifact) => void", description: "Called when the user clicks \"Preview\". The consumer is responsible for rendering a preview UI (e.g., ArtifactPreviewModal).  When omitted, the Preview action is not rendered." },
-    org: { type: "string", description: "Organization slug — used for skill package detection which fetches `SKILL.md` frontmatter via the artifact content RPC.", required: true },
-  }}
-/>
-
-```tsx
-const { artifacts } = useExecutionArtifacts(execution);
-
-{artifacts.map((artifact) => (
-  <ArtifactCard
-    key={artifact.storageKey}
-    artifact={artifact}
-    executionId={execution.metadata!.id}
-    org={activeOrg}
-    onPreview={(a) => setPreviewArtifact(a)}
-  />
-))}
-```
-
-
 ### ArtifactContentBody
 
 The shared, chrome-agnostic body of an artifact view: the file-content
@@ -1143,7 +1089,7 @@ content body (file content or directory listing), and action bar
 it inside a `<dialog>`, modal, sheet, overlay, or inline context as
 needed.
 
-Orchestrates the same detection pipeline as [`ArtifactCard`](#artifactcard):
+Orchestrates the shared detection pipeline (see [`useArtifactInspection`](#useartifactinspection)):
 
 - **FILE artifacts**: Fetches text content via [`useArtifactContent`](#useartifactcontent),
   renders via [`ArtifactContentRenderer`](#artifactcontentrenderer) (markdown, YAML, JSON, or
@@ -1234,6 +1180,37 @@ const [previewArtifact, setPreviewArtifact] =
 ```
 
 
+### ArtifactRow
+
+One dense, VS Code-style artifact row: a full-width open button (shared
+file-type icon + name + optional collision subtitle + size) with a sibling,
+hover/focus-revealed Download button.
+
+The open target and the Download control are SIBLINGS, never nested — a
+`<button>` inside a `<button>` is an axe `nested-interactive` (WCAG 4.1.2)
+violation. This mirrors `ExplorerRoot`'s header + remove-control pattern.
+
+Deliberately execution-pure and presentational: it takes only the artifact,
+its `executionId`, and open/activate closures — no session-domain types and
+no content fetch (resource detection and Apply/Push live in the opened
+document/modal, not the list). The two hosts — the session panel's
+`ArtifactsTab` facet and the panel-less [`ArtifactsWidget`](#artifactswidget) — map
+their entries onto these props and own the behavior wiring.
+
+**Props** — `ArtifactRowProps`
+
+<TypeTable
+  type={{
+    artifact: { type: "ExecutionArtifact", description: "The execution artifact to render.", required: true },
+    className: { type: "string", description: "Additional CSS classes for the row's `<li>`." },
+    executionId: { type: "string", description: "ID of the execution that produced this artifact — used to mint its download URL.", required: true },
+    hasNameCollision: { type: "boolean", description: "When `true`, another artifact in the list shares this artifact's display `name` but has a different `sandbox_path`; the row renders the parent directory as a muted subtitle to disambiguate. Typically supplied from SessionArtifactEntry.hasNameCollision." },
+    onActivate: { type: "() => void", description: "Double click: promote the artifact to a persistent (pinned) tab. Mirrors the file tree's `onOpenFile` (preview) / `onActivateFile` (pin) split — the leading single click of the double click has already opened the preview, so this promotes it. Omit in panel-less hosts (e.g. the modal-only widget): with no handler the row binds no `onDoubleClick`, so a double click is just two harmless single clicks, exactly as `FileTreeNode` behaves." },
+    onOpen: { type: "() => void", description: "Single click / Enter / Space: open the artifact (a preview tab, or a modal).", required: true },
+  }}
+/>
+
+
 ### ArtifactsWidget
 
 Right-sidebar widget that surfaces all artifacts produced during a
@@ -1244,18 +1221,15 @@ by `sandbox_path` (latest execution wins), presenting the user with
 a file-explorer-like view of the conversation's output — no
 execution/turn concepts are exposed.
 
-Composes [`ArtifactCard`](#artifactcard) (summary + detection badges) with
-[`ArtifactPreviewModal`](#artifactpreviewmodal) (full content review + Apply/Push CTA).
-The card's "Preview" action opens the modal; the modal is the sole
-location for Apply/Push actions (review-before-apply pattern).
+The panel-less counterpart of the session panel's Artifacts facet: it
+renders the same dense [`ArtifactRow`](#artifactrow) list, but — having no editor pane
+to open document tabs into — a click opens the [`ArtifactPreviewModal`](#artifactpreviewmodal)
+(the review-before-apply popup, and the sole home of the Apply/Push CTA).
+This is the embeddable path a platform builder drops into their own sidebar.
 
 Returns `null` when the executions list is empty or no execution
 has artifacts, matching the conditional-render pattern of
 [`ExecutionProgress`](#executionprogress) and [`UsageWidget`](#usagewidget).
-
-Renders without card chrome — each [`ArtifactCard`](#artifactcard) provides its
-own border and padding. The consumer controls the container styling
-(or places the widget directly in a flex/grid layout).
 
 All visual properties flow through `--stgm-*` tokens.
 
