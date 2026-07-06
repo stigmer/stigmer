@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useIsCodeFenceIncomplete } from "streamdown";
 import { useColorMode } from "../color-mode.js";
 import { loadMermaid } from "./mermaid-loader.js";
+import { MERMAID_THEME_CSS } from "./mermaid-theme-css.js";
 
 /**
  * `mermaid.render` requires a DOM id for its scratch element. Ids must be
@@ -52,12 +53,17 @@ type RenderState =
  * labels, no `click` interactivity) — deliberately stricter than the
  * docs-site renderer, which only ever shows first-party content.
  *
- * Theming: the container chrome is fully `--stgm-*` token-driven; the SVG
- * interior uses mermaid's built-in `default`/`dark` theme selected via
- * {@link useColorMode}. Token-driven `themeVariables` is a known follow-up:
- * the theme tokens are authored in `oklch()`, which mermaid's internal color
- * library (khroma) cannot parse, so wiring them through today would require
- * fragile color-space conversion heuristics.
+ * Theming: the container chrome is fully `--stgm-*` token-driven, and so is
+ * the SVG interior. The built-in `default`/`dark` theme (selected via
+ * {@link useColorMode}) is the base; on top of it we inject
+ * {@link MERMAID_THEME_CSS}, a token-driven stylesheet whose `var(--stgm-*)`
+ * references the browser resolves against the `.stgm` scope. Interiors
+ * therefore track the active preset *and* color mode live — no color is read
+ * in JS, and a preset switch needs no re-render. Feeding tokens through
+ * mermaid's `themeVariables` is not possible: they are authored in `oklch()`,
+ * which mermaid's color engine (khroma) cannot parse. Any element or diagram
+ * type the CSS does not target falls back to the built-in theme, so a diagram
+ * is never blank or mis-colored.
  */
 export function MermaidDiagram({ chart }: MermaidDiagramProps) {
   const isIncomplete = useIsCodeFenceIncomplete();
@@ -85,6 +91,7 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
           startOnLoad: false,
           securityLevel: "strict",
           theme: colorMode === "dark" ? "dark" : "default",
+          themeCSS: MERMAID_THEME_CSS,
           fontFamily: "inherit",
         });
         const { svg } = await mermaid.render(renderId, source);

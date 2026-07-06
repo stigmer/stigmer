@@ -3,6 +3,7 @@ import { render, cleanup, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MermaidDiagram } from "../MermaidDiagram";
 import { loadMermaid, type MermaidModule } from "../mermaid-loader";
+import { MERMAID_THEME_CSS } from "../mermaid-theme-css";
 import { ColorModeContext, type ResolvedColorMode } from "../../color-mode";
 
 // The loader is the component's only side-effectful dependency; mocking it
@@ -101,6 +102,19 @@ describe("MermaidDiagram — security and theming configuration", () => {
     await waitFor(() => expect(mermaid.initialize).toHaveBeenCalled());
     expect(mermaid.initialize).toHaveBeenCalledWith(
       expect.objectContaining({ securityLevel: "strict", startOnLoad: false }),
+    );
+  });
+
+  it("injects the token-driven themeCSS so interiors track --stgm-* tokens", async () => {
+    const mermaid = stubMermaid();
+    renderDiagram(CHART);
+
+    await waitFor(() => expect(mermaid.initialize).toHaveBeenCalled());
+    // The interior palette rides on themeCSS (var(--stgm-*)), layered over the
+    // built-in default/dark base theme. The browser-mode a11y suite verifies
+    // the CSS actually resolves; here we lock the wiring itself.
+    expect(mermaid.initialize).toHaveBeenCalledWith(
+      expect.objectContaining({ themeCSS: MERMAID_THEME_CSS }),
     );
   });
 
