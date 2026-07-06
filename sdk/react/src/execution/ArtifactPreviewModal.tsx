@@ -1,22 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { useArtifactContent } from "./useArtifactContent.js";
 import { useArtifactDownload } from "./useArtifactDownload.js";
-import { isTextArtifact, formatArtifactSize } from "./artifact-utils.js";
-import { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
-import { useDetectStigmerResource } from "../library/useDetectStigmerResource.js";
-import { useDetectSkillPackage } from "../library/useDetectSkillPackage.js";
-import type { SkillPackageDetection } from "../library/detect-skill-package.js";
-import {
-  useApplyResource,
-  type ApplyResourceResult,
-} from "../library/useApplyResource.js";
-
-const COPIED_FEEDBACK_MS = 2000;
+import { formatArtifactSize } from "./artifact-utils.js";
+import { ArtifactContentBody } from "./ArtifactContentBody.js";
+import { ArtifactApplyButton } from "./ArtifactApplyButton.js";
+import { useArtifactInspection } from "./useArtifactInspection.js";
+import type { ApplyResourceResult } from "../library/useApplyResource.js";
 
 // ---------------------------------------------------------------------------
 // ArtifactPreviewContent — standalone content component
@@ -112,121 +104,12 @@ export function ArtifactPreviewContent({
   onImplement,
   className,
 }: ArtifactPreviewContentProps) {
-  const isDirectory = artifact.kind === ExecutionArtifactKind.DIRECTORY;
-  const canFetchContent = !isDirectory && isTextArtifact(artifact);
-
-  // ---------------------------------------------------------------------------
-  // Detection orchestration
-  // ---------------------------------------------------------------------------
-
-  const {
-    content,
-    contentType,
-    isTruncated,
-    isLoading: isContentLoading,
-    error: contentError,
-  } = useArtifactContent(
-    canFetchContent ? executionId : null,
-    canFetchContent ? artifact.storageKey : null,
-    undefined,
-    artifact.contentHash || undefined,
-  );
-
-  const yamlDetection = useDetectStigmerResource(
-    canFetchContent ? content : null,
-  );
-
-  const { detection: skillDetection, isLoading: isSkillLoading } =
-    useDetectSkillPackage(
-      isDirectory ? artifact : null,
-      isDirectory ? executionId : null,
-    );
-
-  // ---------------------------------------------------------------------------
-  // Derived detection state
-  // ---------------------------------------------------------------------------
-
-  const isDetected = yamlDetection.detected || skillDetection.detected;
-  const isDetecting =
-    (canFetchContent && isContentLoading) || (isDirectory && isSkillLoading);
-
-  let detectionLabel: string | null = null;
-  if (yamlDetection.detected) {
-    detectionLabel = `${yamlDetection.displayName} detected`;
-  } else if (skillDetection.detected) {
-    const count = skillDetection.fileCount;
-    detectionLabel = `Skill \u00B7 ${count} ${count === 1 ? "file" : "files"}`;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Apply state
-  // ---------------------------------------------------------------------------
-
-  const {
-    applyYamlResource,
-    pushSkillPackage,
-    isApplying,
-    error: applyError,
-    clearError,
-  } = useApplyResource();
-
-  const [applyResult, setApplyResult] = useState<ApplyResourceResult | null>(
-    null,
-  );
-
-  const handleApply = useCallback(async () => {
-    clearError();
-    try {
-      let result: ApplyResourceResult;
-      if (yamlDetection.detected && content) {
-        result = await applyYamlResource(content, org);
-      } else if (skillDetection.detected) {
-        result = await pushSkillPackage({
-          org,
-          executionId,
-          storageKey: artifact.storageKey,
-        });
-      } else {
-        return;
-      }
-      setApplyResult(result);
-      onApplied?.(result);
-    } catch {
-      // error state managed by useApplyResource
-    }
-  }, [
-    yamlDetection.detected,
-    skillDetection.detected,
-    content,
-    org,
-    executionId,
-    artifact.storageKey,
-    applyYamlResource,
-    pushSkillPackage,
-    clearError,
+  // The whole inspect-and-act pipeline (content, detection, apply/push, copy)
+  // lives in one headless hook, shared with the editor-area ArtifactDocument so
+  // the two surfaces can never drift.
+  const inspection = useArtifactInspection(artifact, executionId, org, {
     onApplied,
-  ]);
-
-  // ---------------------------------------------------------------------------
-  // Copy to clipboard
-  // ---------------------------------------------------------------------------
-
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(() => {
-    if (!content) return;
-    navigator.clipboard.writeText(content).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
-    });
-  }, [content]);
-
-  let ctaLabel: string | null = null;
-  if (yamlDetection.detected) {
-    ctaLabel = `Apply to ${org}`;
-  } else if (skillDetection.detected) {
-    ctaLabel = `Push Skill to ${org}`;
-  }
+  });
 
   // "Build" runs the plan; closing the modal lets the host's submit pipeline
   // take over (switch to Agent + send). Single combined handler keeps the
@@ -236,52 +119,41 @@ export function ArtifactPreviewContent({
     onClose();
   }, [onImplement, onClose]);
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
   return (
     <div className={cn("flex max-h-[80vh] flex-col", className)}>
       <ContentHeader
         artifact={artifact}
-        isDirectory={isDirectory}
-        detectionLabel={detectionLabel}
-        isDetecting={isDetecting}
+        isDirectory={inspection.isDirectory}
+        detectionLabel={inspection.detectionLabel}
+        isDetecting={inspection.isDetecting}
         onClose={onClose}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto border-t border-border">
-        {isDirectory ? (
-          <DirectoryContentView
-            artifact={artifact}
-            skillDetection={skillDetection}
-          />
-        ) : (
-          <FileContentStateView
-            artifact={artifact}
-            content={content}
-            contentType={contentType}
-            isLoading={isContentLoading}
-            error={contentError}
-            isTruncated={isTruncated}
-          />
-        )}
-      </div>
+      <ArtifactContentBody
+        artifact={artifact}
+        content={inspection.content}
+        contentType={inspection.contentType}
+        isLoading={inspection.isLoading}
+        error={inspection.error}
+        isTruncated={inspection.isTruncated}
+        skillDetection={inspection.skillDetection}
+        className="min-h-0 flex-1 overflow-y-auto border-t border-border"
+      />
 
       <ActionBar
         artifact={artifact}
         executionId={executionId}
-        isDirectory={isDirectory}
-        hasContent={content !== null}
-        copied={copied}
-        onCopy={handleCopy}
-        isDetected={isDetected}
-        ctaLabel={ctaLabel}
+        isDirectory={inspection.isDirectory}
+        hasContent={inspection.content !== null}
+        copied={inspection.copied}
+        onCopy={inspection.copy}
+        isDetected={inspection.isDetected}
+        ctaLabel={inspection.ctaLabel}
         isTerminal={isTerminal}
-        isApplying={isApplying}
-        applyResult={applyResult}
-        applyError={applyError}
-        onApply={handleApply}
+        isApplying={inspection.isApplying}
+        applyResult={inspection.applyResult}
+        applyError={inspection.applyError}
+        onApply={inspection.apply}
         onImplement={onImplement ? handleImplement : undefined}
       />
 
@@ -291,7 +163,7 @@ export function ArtifactPreviewContent({
         aria-atomic="true"
         className="sr-only"
       >
-        {copied && "Content copied to clipboard"}
+        {inspection.copied && "Content copied to clipboard"}
       </div>
     </div>
   );
@@ -497,128 +369,6 @@ function ContentHeader({
 }
 
 // ---------------------------------------------------------------------------
-// FileContentStateView (internal — loading/error/empty states + renderer)
-// ---------------------------------------------------------------------------
-
-const SKELETON_LINE_WIDTHS = [85, 72, 90, 65, 78, 88, 70, 82] as const;
-
-function FileContentStateView({
-  artifact,
-  content,
-  contentType,
-  isLoading,
-  error,
-  isTruncated,
-}: {
-  readonly artifact: ExecutionArtifact;
-  readonly content: string | null;
-  readonly contentType: string | null;
-  readonly isLoading: boolean;
-  readonly error: Error | null;
-  readonly isTruncated: boolean;
-}) {
-  if (isLoading) {
-    return (
-      <div className="space-y-2 p-4" aria-busy="true" aria-label="Loading content">
-        {SKELETON_LINE_WIDTHS.map((width, i) => (
-          <div
-            key={i}
-            className="h-4 animate-pulse rounded bg-muted"
-            style={{ width: `${width}%` }}
-            aria-hidden="true"
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
-        <ErrorAlertIcon />
-        <p className="text-sm text-destructive">{error.message}</p>
-      </div>
-    );
-  }
-
-  if (content === null) {
-    return (
-      <div className="p-8 text-center text-sm text-muted-foreground">
-        Content not available for preview.
-      </div>
-    );
-  }
-
-  return (
-    <ArtifactContentRenderer
-      content={content}
-      fileName={artifact.name}
-      contentType={contentType}
-      isTruncated={isTruncated}
-    />
-  );
-}
-
-// ---------------------------------------------------------------------------
-// DirectoryContentView (internal)
-// ---------------------------------------------------------------------------
-
-function DirectoryContentView({
-  artifact,
-  skillDetection,
-}: {
-  readonly artifact: ExecutionArtifact;
-  readonly skillDetection: SkillPackageDetection;
-}) {
-  const entries = artifact.entries;
-
-  return (
-    <div className="p-4">
-      {skillDetection.detected && (
-        <div className="mb-4 rounded-md bg-primary-subtle p-3">
-          <p className="text-sm font-medium text-foreground">
-            {skillDetection.skillName}
-          </p>
-          {skillDetection.skillDescription && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              {skillDetection.skillDescription}
-            </p>
-          )}
-        </div>
-      )}
-
-      {entries.length > 0 ? (
-        <div>
-          <h3 className="mb-2 text-xs font-medium text-muted-foreground">
-            Files ({entries.length})
-          </h3>
-          <ul className="space-y-0.5" role="list">
-            {entries.map((entry) => (
-              <li
-                key={entry}
-                className="flex items-center gap-2 rounded-sm px-2 py-1 font-mono text-xs text-foreground"
-              >
-                <EntryIcon name={entry} />
-                <span className="min-w-0 truncate">{entry}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          File listing not available.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function EntryIcon({ name }: { readonly name: string }) {
-  if (name.endsWith("/")) return <FolderSmallIcon />;
-  return <FileSmallIcon />;
-}
-
-// ---------------------------------------------------------------------------
 // ActionBar (internal)
 // ---------------------------------------------------------------------------
 
@@ -727,7 +477,7 @@ function ActionBar({
           </span>
         ) : isDetected && ctaLabel ? (
           <span data-cursor-target="apply-resource-button">
-            <ApplyButton
+            <ArtifactApplyButton
               label={ctaLabel}
               isTerminal={isTerminal}
               isApplying={isApplying}
@@ -737,46 +487,6 @@ function ActionBar({
         ) : null}
       </div>
     </div>
-  );
-}
-
-function ApplyButton({
-  label,
-  isTerminal,
-  isApplying,
-  onApply,
-}: {
-  readonly label: string;
-  readonly isTerminal: boolean;
-  readonly isApplying: boolean;
-  readonly onApply: () => void;
-}) {
-  const canApply = isTerminal && !isApplying;
-
-  return (
-    <button
-      type="button"
-      onClick={canApply ? onApply : undefined}
-      disabled={!canApply}
-      aria-busy={isApplying}
-      className={cn(
-        "rounded-md px-4 py-1.5 text-xs font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        "disabled:cursor-not-allowed",
-        canApply
-          ? "bg-primary text-primary-foreground hover:bg-primary-hover"
-          : "bg-muted text-muted-foreground",
-      )}
-    >
-      {isApplying ? (
-        <span className="inline-flex items-center gap-1.5">
-          <SpinnerIcon />
-          Applying{"\u2026"}
-        </span>
-      ) : (
-        label
-      )}
-    </button>
   );
 }
 
@@ -836,45 +546,6 @@ function FolderIcon() {
       aria-hidden="true"
     >
       <path d="M14.5 12.5C14.5 13.33 13.83 14 13 14H3C2.17 14 1.5 13.33 1.5 12.5V3.5C1.5 2.67 2.17 2 3 2H6L8 4.5H13C13.83 4.5 14.5 5.17 14.5 6V12.5Z" />
-    </svg>
-  );
-}
-
-function FileSmallIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
-      aria-hidden="true"
-    >
-      <path d="M8 1H4C3.45 1 3 1.45 3 2V12C3 12.55 3.45 13 4 13H10C10.55 13 11 12.55 11 12V4L8 1Z" />
-      <path d="M8 1V4H11" />
-    </svg>
-  );
-}
-
-function FolderSmallIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0 text-muted-foreground"
-      aria-hidden="true"
-    >
-      <path d="M13 11C13 11.55 12.55 12 12 12H2C1.45 12 1 11.55 1 11V3C1 2.45 1.45 2 2 2H5L7 4H12C12.55 4 13 4.45 13 5V11Z" />
     </svg>
   );
 }
@@ -958,40 +629,3 @@ function CheckIcon() {
   );
 }
 
-function SpinnerIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="shrink-0 animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ErrorAlertIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="text-destructive"
-      aria-hidden="true"
-    >
-      <circle cx="8" cy="8" r="6.5" />
-      <path d="M8 5.5V8.5" />
-      <circle cx="8" cy="11" r="0.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}

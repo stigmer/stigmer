@@ -33,7 +33,7 @@ export type {
   UseSessionConversationReturn,
 } from "./useSessionConversation.js";
 
-export { useSessionArtifacts } from "./useSessionArtifacts.js";
+export { useSessionArtifacts, artifactKey } from "./useSessionArtifacts.js";
 export type {
   SessionArtifactEntry,
   UseSessionArtifactsReturn,
@@ -126,6 +126,10 @@ export {
   PLAN_DOCUMENT_ENTRY_ID,
   PLAN_DOCUMENT_PATH,
 } from "./plan-document.js";
+
+// Artifact document — the editor-area rendering of an execution artifact
+// (mounted as an artifact-family virtual document) and the identity of its tabs.
+export { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
 
 // Selection types (for platform builders composing their own Inspect facet)
 export type { SelectedThreadItem } from "../internal/store/selection-store.js";

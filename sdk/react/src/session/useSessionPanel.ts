@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { isTerminalPhase } from "../execution/execution-phases.js";
 import type { SelectedThreadItem } from "../internal/store/selection-store.js";
 import {
@@ -10,6 +11,8 @@ import {
   type WorkspaceEditorsStore,
 } from "../internal/store/index.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
+import { artifactKey } from "./useSessionArtifacts.js";
 
 /** Options for {@link useSessionPanel}. */
 export interface UseSessionPanelOptions {
@@ -119,6 +122,16 @@ export interface SessionPanelController {
    */
   readonly openPlanDocument: () => void;
   /**
+   * Open (or focus) an artifact as an editor-pane document tab and expand the
+   * panel. Uses the PREVIEW slot — like files and content-search hits, casual
+   * artifact browsing reuses one tab (single-click), and double-clicking the
+   * tab pins it. Distinct from `openPlanDocument`, which pins its single tab: a
+   * plan is the turn's deliverable, artifacts are browsable outputs. The
+   * artifact's {@link artifactKey} is the tab identity, shared with the
+   * `SurfaceVirtualDocument` the viewer builds for the open tab.
+   */
+  readonly openArtifact: (artifact: ExecutionArtifact) => void;
+  /**
    * Report the current thread-item selection. Called from an effect inside the
    * panel subtree (the level that subscribes to the selection store), keeping
    * the owner subscription-free. While the panel is open, a new selection
@@ -224,6 +237,14 @@ export function useSessionPanel({
     [editorsStore],
   );
 
+  const openArtifact = useCallback(
+    (artifact: ExecutionArtifact) => {
+      editorsStore.openPreview(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(artifact));
+      setIsOpen(true);
+    },
+    [editorsStore],
+  );
+
   const activateEditor = useCallback(
     (entryId: string, path: string) => editorsStore.activate(entryId, path),
     [editorsStore],
@@ -268,6 +289,7 @@ export function useSessionPanel({
       pinEditor,
       closeEditor,
       openPlanDocument,
+      openArtifact,
       notifySelection,
     }),
     [
@@ -282,6 +304,7 @@ export function useSessionPanel({
       pinEditor,
       closeEditor,
       openPlanDocument,
+      openArtifact,
       notifySelection,
     ],
   );

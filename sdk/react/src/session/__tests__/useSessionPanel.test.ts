@@ -1,8 +1,15 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { create } from "@bufbuild/protobuf";
+import {
+  ExecutionArtifactKind,
+  ExecutionPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { useSessionPanel, type UseSessionPanelOptions } from "../useSessionPanel";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "../plan-document";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../artifact-document";
+import { artifactKey } from "../useSessionArtifacts";
 import type { SelectedThreadItem } from "../../internal/store/selection-store";
 
 // ---------------------------------------------------------------------------
@@ -252,6 +259,50 @@ describe("useSessionPanel — plan document tab", () => {
     act(() => result.current.setView("usage"));
     rerender({ phase: null, hasChanges: false, planKey: "e1:hash-a" });
     expect(result.current.view).toBe("usage");
+  });
+});
+
+describe("useSessionPanel — artifact document tabs", () => {
+  function artifact(sandboxPath: string, name: string) {
+    return create(ExecutionArtifactSchema, {
+      name,
+      kind: ExecutionArtifactKind.FILE,
+      sandboxPath,
+      storageKey: `artifacts/aex_1/${name}`,
+    });
+  }
+
+  it("openArtifact opens the panel with a PREVIEW tab keyed by artifactKey", () => {
+    const { result } = renderPanel();
+    const a = artifact(".stigmer/notes.md", "notes.md");
+    act(() => result.current.openArtifact(a));
+
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.editorsStore.getSnapshot().editors).toEqual([
+      { entryId: ARTIFACT_DOCUMENT_ENTRY_ID, path: artifactKey(a), preview: true },
+    ]);
+  });
+
+  it("reuses the single preview slot as different artifacts are browsed", () => {
+    const { result } = renderPanel();
+    act(() => result.current.openArtifact(artifact(".stigmer/a.md", "a.md")));
+    act(() => result.current.openArtifact(artifact(".stigmer/b.md", "b.md")));
+
+    // VS Code preview semantics: single-click browsing reuses one tab.
+    expect(result.current.editorsStore.getSnapshot().editors).toEqual([
+      { entryId: ARTIFACT_DOCUMENT_ENTRY_ID, path: ".stigmer/b.md", preview: true },
+    ]);
+  });
+
+  it("does not evict a pinned plan tab when an artifact opens", () => {
+    const { result } = renderPanel();
+    act(() => result.current.openPlanDocument());
+    act(() => result.current.openArtifact(artifact(".stigmer/a.md", "a.md")));
+
+    expect(result.current.editorsStore.getSnapshot().editors).toEqual([
+      { entryId: PLAN_DOCUMENT_ENTRY_ID, path: PLAN_DOCUMENT_PATH, preview: false },
+      { entryId: ARTIFACT_DOCUMENT_ENTRY_ID, path: ".stigmer/a.md", preview: true },
+    ]);
   });
 });
 

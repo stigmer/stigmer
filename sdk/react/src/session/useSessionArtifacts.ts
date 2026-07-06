@@ -41,11 +41,22 @@ export interface UseSessionArtifactsReturn {
 }
 
 /**
- * Returns the dedup key for an artifact. Uses `sandbox_path` when
- * available (stable filesystem identity within the session sandbox),
- * falling back to `name` for older artifacts that predate the field.
+ * The stable identity of an artifact within a session. Uses `sandbox_path`
+ * when available (the artifact's filesystem identity within the session
+ * sandbox), falling back to `name` for older artifacts that predate the field.
+ *
+ * This is the SINGLE source of truth for artifact identity across three sites
+ * that must agree or a tab could fail to resolve its artifact:
+ * 1. deduplication here (latest execution wins per key),
+ * 2. the virtual-document tab `path` when an artifact opens in the editor area
+ *    (see `SessionViewer` / `useSessionPanel.openArtifact`), and
+ * 3. the `artifactKey → entry` lookup that renders the open tab's document.
+ *
+ * Its basename doubles as the editor tab's label (paths render as their last
+ * `/` segment in `EditorTabs`), so `sandbox_path` gives a natural filename
+ * label with cross-directory disambiguation for free.
  */
-function dedupKey(artifact: ExecutionArtifact): string {
+export function artifactKey(artifact: ExecutionArtifact): string {
   return artifact.sandboxPath || artifact.name;
 }
 
@@ -102,7 +113,7 @@ export function useSessionArtifacts(
       const terminal = isTerminalPhase(phase);
 
       for (const artifact of execution.status?.artifacts ?? []) {
-        const key = dedupKey(artifact);
+        const key = artifactKey(artifact);
         entryMap.set(key, {
           artifact,
           executionId,

@@ -437,7 +437,7 @@ function useSessionConversation(sessionId: string | null, org: string): UseSessi
     clearFileDecisionError: { type: "(key: string) => void", description: "Clear the error for one decision key (e.g. before a retry of that target)." },
     clearFileReviewError: { type: "() => void", description: "Reset every file-review error (both fileDecisionErrors and `fileReviewError`)." },
     clearSendError: { type: "() => void", description: "Reset `sendError` to `null` (keeps the preserved pending message)." },
-    completedExecutions: { type: "readonly AgentExecution[]", description: "Executions in terminal phases, in chronological order." },
+    completedExecutions: { type: "readonly AgentExecution[]", description: "Executions in terminal phases, in chronological order.  Excludes turns replaced via edit-and-resubmit (an execution whose id appears as another execution's `supersedesExecutionId`) — the edited message stands in the original's place. Superseded records remain in execution history surfaces; only the conversation view hides them." },
     connectTimedOut: { type: "boolean", description: "`true` when the stream opened but never delivered a first snapshot within the watchdog window (even after a silent retry) — the agent hasn't started. Distinct from `streamError`: nothing threw, the stream is simply silent. Surface an actionable \"the agent hasn't started — Retry\" banner wired to reconnectStream." },
     fileChangeProgress: { type: "FileChangeProgress | undefined", description: "Mid-run live capture (DD-32): the transient, non-authoritative snapshot of the workspace delta accumulating during the active turn (\"N files changed so far\"). Undefined when no turn is currently capturing. Never decidable — the reviewed diff is fileChangeSets." },
     fileChangeSets: { type: "readonly FileChangeSet[]", description: "Captured change sets awaiting file review on the active execution, empty when none." },
@@ -1227,6 +1227,39 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
 
 ## Types
 
+### ARTIFACT_DOCUMENT_ENTRY_ID
+
+Virtual entry id of the artifact document FAMILY. Unlike the plan (one tab
+per session), artifacts are many: every opened artifact shares this one
+entry id and is distinguished by its [`artifactKey`](#artifactkey)-derived `path`, so
+`editorKey(ARTIFACT_DOCUMENT_ENTRY_ID, path)` yields one tab per artifact —
+the VS Code "each file is a tab" model. The NUL-namespaced virtual id can
+never alias a real workspace entry, and its distinct `"artifact"` kind can
+never collide with the plan tab's `"plan"` kind.
+
+
+### artifactKey
+
+The stable identity of an artifact within a session. Uses `sandbox_path`
+when available (the artifact's filesystem identity within the session
+sandbox), falling back to `name` for older artifacts that predate the field.
+
+This is the SINGLE source of truth for artifact identity across three sites
+that must agree or a tab could fail to resolve its artifact:
+1. deduplication here (latest execution wins per key),
+2. the virtual-document tab `path` when an artifact opens in the editor area
+   (see `SessionViewer` / `useSessionPanel.openArtifact`), and
+3. the `artifactKey → entry` lookup that renders the open tab's document.
+
+Its basename doubles as the editor tab's label (paths render as their last
+`/` segment in `EditorTabs`), so `sandbox_path` gives a natural filename
+label with cross-directory disambiguation for free.
+
+```tsx
+function artifactKey(artifact: ExecutionArtifact): string
+```
+
+
 ### CreateSessionInput
 
 Input for creating a session. Exactly one agent resolution strategy
@@ -1500,6 +1533,7 @@ values are scoped to the single execution and deleted on completion.
     modelName: { type: "string", description: "LLM model name to use for this execution. Overrides the session default." },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They override both Environment values and agent defaults." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for this execution." },
+    supersedesExecutionId: { type: "string", description: "ID of the execution this follow-up supersedes (edit-and-resubmit).  The conversation read model hides the superseded execution so the edited message replaces the original in place." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries to attach to the execution." },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on.  Lightweight \"attention\" signals — no upload, no injection. The agent reads these files directly from the workspace filesystem." },
   }}
@@ -1586,6 +1620,7 @@ streaming conversation column (DD-009/DD-010, invariant 2).
     editorsStore: { type: "WorkspaceEditorsStore", description: "The open-editor group store; subscribe with `useWorkspaceEditors`.", required: true },
     isOpen: { type: "boolean", description: "Whether the panel is expanded (chat narrow) or collapsed to the chip.", required: true },
     notifySelection: { type: "(item: SelectedThreadItem | null) => void", description: "Report the current thread-item selection. Called from an effect inside the panel subtree (the level that subscribes to the selection store), keeping the owner subscription-free. While the panel is open, a new selection auto-switches to the Inspect view (unless the user picked one explicitly); a collapsed panel deliberately ignores selections — Inspect has no auto-open (it must never pull the user out of the chat).", required: true },
+    openArtifact: { type: "(artifact: ExecutionArtifact) => void", description: "Open (or focus) an artifact as an editor-pane document tab and expand the panel. Uses the PREVIEW slot — like files and content-search hits, casual artifact browsing reuses one tab (single-click), and double-clicking the tab pins it. Distinct from `openPlanDocument`, which pins its single tab: a plan is the turn's deliverable, artifacts are browsable outputs. The artifact's artifactKey is the tab identity, shared with the `SurfaceVirtualDocument` the viewer builds for the open tab.", required: true },
     openFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Open a file as a preview tab and expand the panel. Pass `options.line` to jump to and highlight a specific 1-based line (e.g. a content-search hit) — the file opens in its line-faithful File view scrolled to that line.", required: true },
     openPanel: { type: "() => void", description: "Expand the panel, restoring the previous view (or Inspect if a thread item is selected).", required: true },
     openPlanDocument: { type: "() => void", description: "Open (or focus) the plan document tab and expand the panel. The tab is **pinned**, never the recyclable preview slot — file browsing must not evict the plan — and it activates, replacing the focused tab: the plan is the deliverable being reviewed. Fired by the thread cards' \"Open plan\" (the live `PlanStreamingCard` and the settled `PlanArtifactCard`), the Artifacts facet's `plan.md`, and the new-plan auto-open — which triggers both when a plan STARTS STREAMING and when it publishes (see `planKey`).", required: true },

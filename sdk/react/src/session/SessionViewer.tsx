@@ -47,11 +47,17 @@ import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanD
 import { PlanEditor } from "./PlanEditor.js";
 import { PlanStreamingDocument } from "./PlanStreamingDocument.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
+import { ArtifactDocument } from "../execution/ArtifactDocument.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
-import { useSessionArtifacts } from "./useSessionArtifacts.js";
+import {
+  useSessionArtifacts,
+  artifactKey,
+  type SessionArtifactEntry,
+} from "./useSessionArtifacts.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
@@ -455,6 +461,17 @@ export function SessionViewer({
     [sessionPlan, panel.openPlanDocument],
   );
 
+  // "Open artifact" (an Artifacts-facet row) → an editor-pane document tab.
+  // Writing the editors store re-renders only the panel subtree (which
+  // subscribes), never this streaming column. Plan artifacts are routed to the
+  // plan tab upstream (in ArtifactsTab), so they never reach here.
+  const handleOpenArtifact = useCallback(
+    (entry: SessionArtifactEntry) => {
+      panel.openArtifact(entry.artifact);
+    },
+    [panel.openArtifact],
+  );
+
   // Open a transcript tool-call file path in the panel's read-only editor.
   // Resolves the (possibly absolute / subdir-prefixed) path to a
   // repo/root-relative selection the editor can fetch; on a definite hit it
@@ -561,6 +578,7 @@ export function SessionViewer({
                 planDraft={planDraft}
                 openPlanExecutionId={openPlanExecutionId}
                 onOpenPlan={handleOpenPlan}
+                onOpenArtifact={handleOpenArtifact}
                 enableLocal={enableLocal}
                 onBrowseLocalFolder={onBrowseLocalFolder}
                 workspaceFileLister={workspaceFileLister}
@@ -854,6 +872,8 @@ interface SessionPanelRegionProps {
   readonly openPlanExecutionId: string | null;
   /** Opens a plan in the plan tab (routed to the Artifacts facet's plan.md). */
   readonly onOpenPlan: (executionId: string) => void;
+  /** Opens an artifact as an editor-pane document (routed to the Artifacts facet). */
+  readonly onOpenArtifact: (entry: SessionArtifactEntry) => void;
   readonly enableLocal: boolean;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
@@ -875,6 +895,7 @@ function SessionPanelRegion({
   planDraft,
   openPlanExecutionId,
   onOpenPlan,
+  onOpenArtifact,
   enableLocal,
   onBrowseLocalFolder,
   workspaceFileLister,
@@ -886,6 +907,9 @@ function SessionPanelRegion({
   const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
     panel.editorsStore,
   );
+  // Session artifacts, deduped by identity — the source both the Artifacts
+  // rail-view badge and the open artifact document tabs resolve against.
+  const { artifacts: sessionArtifacts } = useSessionArtifacts(flow.allExecutions);
 
   // Honor a pending jump-to-line reveal only while it targets the active editor
   // (an EditorReveal is structurally a RevealTarget). Switching tabs changes
@@ -941,30 +965,28 @@ function SessionPanelRegion({
   // tab and its turn then ended without publishing, with no earlier plan to
   // fall back to.
   const openPlanIsLatest = openPlan?.executionId === sessionPlan?.executionId;
-  const virtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(() => {
-    return [
-      {
-        entryId: PLAN_DOCUMENT_ENTRY_ID,
-        path: PLAN_DOCUMENT_PATH,
-        content: streamingPlan ? (
-          <PlanStreamingDocument
-            key={`streaming-${streamingPlan.executionId}`}
-            displayText={streamingPlan.displayText}
-          />
-        ) : openPlan ? (
-          <PlanEditor
-            key={planDraftKey(openPlan)}
-            plan={openPlan}
-            draft={openPlanIsLatest ? planDraft : undefined}
-            onBuildFromPlan={openPlanIsLatest ? onImplementPlan : undefined}
-            buildDisabled={implementPlanDisabled}
-            readOnly={!openPlanIsLatest}
-          />
-        ) : (
-          <PlanUnavailableNotice />
-        ),
-      },
-    ];
+  const planVirtualDocument = useMemo<SurfaceVirtualDocument>(() => {
+    return {
+      entryId: PLAN_DOCUMENT_ENTRY_ID,
+      path: PLAN_DOCUMENT_PATH,
+      content: streamingPlan ? (
+        <PlanStreamingDocument
+          key={`streaming-${streamingPlan.executionId}`}
+          displayText={streamingPlan.displayText}
+        />
+      ) : openPlan ? (
+        <PlanEditor
+          key={planDraftKey(openPlan)}
+          plan={openPlan}
+          draft={openPlanIsLatest ? planDraft : undefined}
+          onBuildFromPlan={openPlanIsLatest ? onImplementPlan : undefined}
+          buildDisabled={implementPlanDisabled}
+          readOnly={!openPlanIsLatest}
+        />
+      ) : (
+        <PlanUnavailableNotice />
+      ),
+    };
   }, [
     streamingPlan,
     openPlan,
@@ -973,6 +995,50 @@ function SessionPanelRegion({
     onImplementPlan,
     implementPlanDisabled,
   ]);
+
+  // The open artifact document tabs (the artifact virtual-document FAMILY).
+  // Built in a SEPARATE memo from the plan doc so artifact-tab churn never
+  // recreates the plan doc (and vice versa). Bounded to what is actually open:
+  // one document per editor whose entry id is the artifact family's, resolved
+  // back to its `SessionArtifactEntry` by the same `artifactKey` used to open
+  // it (single source of truth for artifact identity). Only the ACTIVE doc's
+  // `content` is mounted by the surface, so building these elements is cheap;
+  // keying on `contentHash` remounts a tab whose artifact was overwritten by a
+  // later execution. A tab whose artifact no longer exists degrades to an
+  // honest notice rather than vanishing.
+  const artifactByKey = useMemo(
+    () =>
+      new Map(sessionArtifacts.map((entry) => [artifactKey(entry.artifact), entry])),
+    [sessionArtifacts],
+  );
+  const artifactVirtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(() => {
+    return editors
+      .filter((editor) => editor.entryId === ARTIFACT_DOCUMENT_ENTRY_ID)
+      .map((editor) => {
+        const entry = artifactByKey.get(editor.path);
+        return {
+          entryId: ARTIFACT_DOCUMENT_ENTRY_ID,
+          path: editor.path,
+          content: entry ? (
+            <ArtifactDocument
+              key={entry.artifact.contentHash || editor.path}
+              artifact={entry.artifact}
+              executionId={entry.executionId}
+              org={org}
+              isTerminal={entry.isTerminal}
+              onApplied={onApplied}
+            />
+          ) : (
+            <ArtifactUnavailableNotice />
+          ),
+        };
+      });
+  }, [editors, artifactByKey, org, onApplied]);
+
+  const virtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(
+    () => [planVirtualDocument, ...artifactVirtualDocuments],
+    [planVirtualDocument, artifactVirtualDocuments],
+  );
 
   const handleRemoveAgent = useCallback(() => {
     flow.setAgentRef(null);
@@ -1040,6 +1106,7 @@ function SessionPanelRegion({
     onApplied,
     onImplementPlan,
     onOpenPlan,
+    onOpenArtifact,
   });
 
   // Explorer-footer folder attach (desktop only — needs the native picker).
@@ -1159,6 +1226,28 @@ function PlanUnavailableNotice() {
       </p>
       <p className="text-xs text-muted-foreground">
         Any partial plan text remains in the conversation.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Shown in an artifact document tab whose artifact is no longer among the
+ * session's outputs (an edge only reachable if the executions backing the tab
+ * changed underneath it). The tab stays closable; the content is honest rather
+ * than blank.
+ */
+function ArtifactUnavailableNotice() {
+  return (
+    <div
+      role="status"
+      className="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 px-4 py-8 text-center"
+    >
+      <p className="text-xs font-medium text-foreground">
+        This artifact is no longer available.
+      </p>
+      <p className="text-xs text-muted-foreground">
+        It may have been replaced by a newer version of this session.
       </p>
     </div>
   );
