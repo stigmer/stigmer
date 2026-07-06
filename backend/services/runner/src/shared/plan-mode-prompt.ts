@@ -29,6 +29,15 @@
  * message is published verbatim as a plan document (whose filename is derived
  * from the leading `#` title), so a fenced or chat-suffixed plan degrades the
  * reviewable document the user sees.
+ *
+ * Fence hygiene inside the document is part of the same contract. A plan
+ * frequently quotes file content that itself contains fenced code blocks
+ * ("insert this section into README.md"); with a same-length outer fence the
+ * inner block's closer terminates the outer fence early and corrupts the
+ * rendered document — on every client (the react SDK and the terminal
+ * renderer alike). And because the plan viewers render top-level ```mermaid
+ * fences as diagrams, the directive steers diagrams into the plan body proper
+ * rather than leaving them buried, unrendered, inside quoted file content.
  */
 export const PLAN_MODE_DIRECTIVE = [
   "IMPORTANT: You are in Plan mode — a read-only analysis turn whose " +
@@ -50,6 +59,15 @@ export const PLAN_MODE_DIRECTIVE = [
   "- Reference concrete file paths and describe the specific changes " +
     "planned for each.",
   "- Do NOT wrap the document in a code fence.",
+  "- When quoting content that itself contains fenced code blocks (e.g. a " +
+    "proposed file section with a code sample inside), open the outer fence " +
+    "with MORE backticks than any inner fence (four or more) — a same-length " +
+    "inner closer would terminate the outer fence early and corrupt the " +
+    "rendered document.",
+  "- Fenced ```mermaid blocks at the top level of the document render as " +
+    "diagrams in the plan viewer. When a diagram helps communicate the " +
+    "design (architecture, flows), include it directly in the plan body — " +
+    "not only inside quoted file content, where it stays unrendered source.",
   '- Do NOT end with conversational closers ("Let me know...", "Shall I ' +
     'proceed?") — the next step is the user\'s Build action, and trailing ' +
     "chat would be published as part of the document.",

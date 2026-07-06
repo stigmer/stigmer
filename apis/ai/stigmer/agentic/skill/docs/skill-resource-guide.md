@@ -66,7 +66,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 |---|---|
 | `metadata.id` | System-generated unique identifier. Format: `skl_<ulid>`. Never set by users. |
 | `metadata.name` | Canonical display name. Set from `SKILL.md` frontmatter `name` field after normalization. |
-| `metadata.slug` | URL-friendly identifier, unique within the organization. Derived from the frontmatter `name` field (normalized to kebab-case). |
+| `metadata.slug` | URL-friendly identifier, unique within the organization. Derived from the frontmatter `name` field (normalized to kebab-case; dots in the name become hyphens, e.g. `platform.planton-architecture` → `platform-planton-architecture`). |
 | `metadata.org` | Organization that owns this skill. Provided at push time via `--org` flag or CLI context. Every skill belongs to exactly one organization. |
 | `metadata.visibility` | Access control. `visibility_private` (default): only org members can access. `visibility_public`: anyone can read. |
 | `metadata.labels` | Key-value pairs for organization and filtering. Not extracted from the artifact — set via API if needed. |
@@ -98,7 +98,7 @@ The CLI resolves the organization through a priority chain: `--org` flag > `cont
 
 | Field | Source | Description |
 |---|---|---|
-| `spec.name` | `SKILL.md` frontmatter `name` field | Canonical skill identifier in kebab-case. Examples: `calculator`, `web-scraper`. Pattern: `^[a-z0-9]+(-[a-z0-9]+)*$`. |
+| `spec.name` | `SKILL.md` frontmatter `name` field | Canonical skill identifier in kebab-case, optionally scoped with dot-separated namespaces. Examples: `calculator`, `web-scraper`, `platform.planton-architecture`. Pattern: `^[a-z0-9]+([.-][a-z0-9]+)*$`. |
 | `spec.description` | `SKILL.md` frontmatter `description` field | Human-readable summary for marketplace display and prompt injection. 1-2 sentences, ideally under 100 tokens. |
 | `spec.tag` | `--tag` flag at push time | The version tag associated with this version. Defaults to `latest` if no tag was specified at push. Tags are mutable pointers — see [versioning.md](versioning.md). |
 | `spec.skill_md` | Full content of `SKILL.md` | The complete `SKILL.md` file content, including frontmatter and body. This is the content injected into agent prompts. Minimum 1 character (enforced by `buf.validate`). |

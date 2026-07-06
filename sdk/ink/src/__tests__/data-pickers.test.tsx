@@ -2,12 +2,12 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "ink-testing-library";
 import { create } from "@bufbuild/protobuf";
-import type { Stigmer } from "@stigmer/sdk";
 import { SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { InkStigmerProvider } from "../provider.js";
 import { AgentPicker } from "../components/AgentPicker.js";
 import { SessionPicker } from "../components/SessionPicker.js";
+import { fakeClient } from "./test-support.js";
 
 const KEY = { enter: "\r" } as const;
 
@@ -25,11 +25,6 @@ function session(id: string, subject: string, agentInstanceId: string) {
     metadata: { id },
     spec: { subject, agentInstanceId },
   });
-}
-
-// Minimal Stigmer stub exposing only the methods the picker hooks call.
-function fakeClient(overrides: Record<string, unknown>): Stigmer {
-  return overrides as unknown as Stigmer;
 }
 
 describe("AgentPicker", () => {

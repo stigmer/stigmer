@@ -75,6 +75,73 @@ func (w *AgentExecutionWaiter) WaitForFileReview(ctx context.Context, executionI
 		executionID, timeout)
 }
 
+// WaitForFileChangeProgress polls until the execution exposes a MID-RUN
+// file_change_progress snapshot that satisfies pred — i.e. a CAPTURING change
+// set exists AND status.file_change_progress is populated for it AND pred
+// accepts it (DD-32 / DD-33). It is the mid-run counterpart of WaitForFileReview:
+// where that waits for the turn-boundary AWAITING_REVIEW set, this observes the
+// transient pre-boundary window. Modeled on WaitForExecutionUsageReport — the
+// same shape used elsewhere to poll an eventually-settled value instead of
+// sleeping and hoping.
+//
+// The predicate is load-bearing, not a convenience. The runner attaches
+// file_change_progress on the FIRST streaming persist — which fires before a
+// file is written — so an early snapshot legitimately carries files_changed=0.
+// Keying only on "progress != nil" could therefore return that pre-write
+// snapshot and race the writes. Callers pass a settled predicate (e.g.
+// `p.GetFilesChanged() == 2`) whose target is stable for the whole CAPTURING
+// span, making the observation deterministic.
+//
+// The last-seen execution is returned even on timeout or an early terminal
+// phase, so callers can run their assertions against it and produce a diagnostic
+// failure (e.g. "progress settled at files_changed=1") rather than a bare
+// timeout.
+func (w *AgentExecutionWaiter) WaitForFileChangeProgress(
+	ctx context.Context,
+	executionID string,
+	timeout time.Duration,
+	pred func(*agentexecv1.FileChangeProgress) bool,
+) (*agentexecv1.AgentExecution, error) {
+	if timeout == 0 {
+		timeout = defaultTimeout
+	}
+
+	deadline := time.Now().Add(timeout)
+	interval := defaultPollInterval
+
+	var last *agentexecv1.AgentExecution
+	for time.Now().Before(deadline) {
+		exec, err := w.client.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
+		if err == nil {
+			last = exec
+			progress := exec.GetStatus().GetFileChangeProgress()
+			capturing := FindFileChangeSet(exec, agentexecv1.FileChangeSetStatus_FILE_CHANGE_SET_STATUS_CAPTURING)
+			if capturing != nil && progress != nil && (pred == nil || pred(progress)) {
+				return exec, nil
+			}
+
+			if isAgentTerminalPhase(exec.GetStatus().GetPhase()) {
+				return last, fmt.Errorf(
+					"agent execution %s reached terminal phase %s before a mid-run file_change_progress snapshot satisfied the predicate",
+					executionID, exec.GetStatus().GetPhase().String())
+			}
+		} else {
+			w.logger.Debug("agent execution poll error (will retry)", "execution_id", executionID, "error", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			return last, ctx.Err()
+		case <-time.After(interval):
+		}
+		interval = nextInterval(interval)
+	}
+
+	return last, fmt.Errorf(
+		"timed out after %v waiting for a mid-run file_change_progress snapshot on execution %s to satisfy the predicate",
+		timeout, executionID)
+}
+
 // FindFileChangeSet returns the first projected change set in the given status,
 // or nil if none match. Mirror of FindPendingApproval for the file-review
 // projection (status.file_change_sets, recomputed from the file_review ledger on

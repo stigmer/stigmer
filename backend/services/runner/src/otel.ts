@@ -125,12 +125,20 @@ export async function startCursorTurnSpan(attrs: {
         [ATTR_SESSION_ID]: attrs.sessionId,
       },
     });
+    // Guard against a double end / a late setTokens: the turn span is ended from
+    // the activity's finally (finishTurnTelemetry), and OTel warns when a span is
+    // ended twice or mutated after end. Making this a no-op keeps the caller free
+    // to end idempotently on every exit path.
+    let ended = false;
     return {
       setTokens(input: number, output: number) {
+        if (ended) return;
         if (input) span.setAttribute(ATTR_LLM_INPUT_TOKENS, input);
         if (output) span.setAttribute(ATTR_LLM_OUTPUT_TOKENS, output);
       },
       end() {
+        if (ended) return;
+        ended = true;
         span.end();
       },
     };

@@ -6,7 +6,10 @@ import type { SurfaceRailView } from "../workspace/WorkspaceSurface.js";
 import type { SelectedThreadItem } from "../internal/store/selection-store.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
-import { useSessionArtifacts } from "./useSessionArtifacts.js";
+import {
+  useSessionArtifacts,
+  type SessionArtifactEntry,
+} from "./useSessionArtifacts.js";
 import { SetupTab, type SetupTabProps } from "./facets/SetupTab.js";
 import { ChangesTab } from "./facets/ChangesTab.js";
 import { ArtifactsTab } from "./facets/ArtifactsTab.js";
@@ -34,6 +37,17 @@ export interface UseSessionRailViewsOptions {
    */
   readonly onOpenPlan?: (executionId: string) => void;
   /**
+   * Open a (non-plan) artifact as an editor-pane document tab. Routed to the
+   * Artifacts facet so clicking an artifact opens it in the editor area (VS
+   * Code "each file is a tab") instead of the preview modal.
+   */
+  readonly onOpenArtifact?: (entry: SessionArtifactEntry) => void;
+  /**
+   * Pin a (non-plan) artifact's document tab — the double-click half of the
+   * Artifacts facet's open/activate split. Routed through to the facet's rows.
+   */
+  readonly onActivateArtifact?: (entry: SessionArtifactEntry) => void;
+  /**
    * Whether to offer the execution-derived facets (Changes / Artifacts /
    * Usage). The launcher passes `false` — before a session exists there are no
    * executions to aggregate, so only Config applies.
@@ -60,6 +74,8 @@ export function useSessionRailViews({
   onApplied,
   onImplementPlan,
   onOpenPlan,
+  onOpenArtifact,
+  onActivateArtifact,
   includeExecutionFacets = true,
 }: UseSessionRailViewsOptions): readonly SurfaceRailView[] {
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(allExecutions);
@@ -101,6 +117,8 @@ export function useSessionRailViews({
               onApplied={onApplied}
               onImplementPlan={onImplementPlan}
               onOpenPlan={onOpenPlan}
+              onOpenArtifact={onOpenArtifact}
+              onActivateArtifact={onActivateArtifact}
             />
           ),
         });
@@ -136,6 +154,8 @@ export function useSessionRailViews({
     onApplied,
     onImplementPlan,
     onOpenPlan,
+    onOpenArtifact,
+    onActivateArtifact,
     selectedItem,
   ]);
 }

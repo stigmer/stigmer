@@ -36,9 +36,15 @@ import {
   type CaptureResumeResult,
 } from "../../shared/filereview/capture.js";
 import {
-  captureFileChangeProgress,
-  type ProgressCaptureState,
+  createGitProgressSubstrate,
+  createHybridProgressSubstrate,
+  type ProgressSubstrate,
 } from "../../shared/filereview/progress.js";
+import {
+  createCasProgressSubstrate,
+  type CasTouchedReader,
+  type CasTouchedSnapshot,
+} from "../../shared/filereview/cas-progress.js";
 import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
@@ -202,31 +208,71 @@ export async function captureTurnToLedger(opts: {
 }
 
 /**
- * Mid-run: attach the live "N files changed so far" snapshot onto
- * `status.file_change_progress` (DD-32), throttled by the floor + tree-sha
- * short-circuit inside {@link captureFileChangeProgress}. The Cursor adapter binds
- * `CURSOR_RUNNER_OWNED_PATHS` so the progress diff excludes the gate's own files —
- * the SAME exclusion {@link captureTurnToLedger} uses for the turn-boundary
- * candidate, so the live count and the reviewed set agree. Content-free and
- * secret-safe; a no-op when nothing changed since the last capture.
+ * Choose the mid-run progress substrate for this turn's workspace shape (DD-32 /
+ * DD-33), returning `undefined` when there is nothing to observe (not capture
+ * mode, or no workspace). Built ONCE per turn — the substrate owns its own
+ * short-circuit cache across the loop's persists; the floor lives in the caller's
+ * `ProgressCaptureState`. The live count and the turn-boundary reviewed set agree
+ * by construction: the git slice binds the SAME `CURSOR_RUNNER_OWNED_PATHS`
+ * exclusion {@link captureTurnToLedger} uses, and the CAS slice reads the SAME
+ * hook sidecar ({@link readCasObservations}) the boundary reads.
+ *
+ *  - git tree, no storage      -> git substrate only (tracked-file `--numstat`);
+ *  - git tree, storage (HYBRID) -> git + CAS (the gitignored writes the hook staged);
+ *  - non-git workspace          -> CAS only (every tool-mediated write is CAS-staged).
+ *
+ * The CAS slice needs the hook sidecar, which exists only when `captureIgnored`
+ * is on (storage configured). A non-git capture already required storage
+ * (`deriveCaptureMode`), so its sidecar is always present; a git tree with no
+ * storage simply gets the git-only substrate (parity with the pre-DD-33 behavior).
  */
-export async function captureProgressToStatus(opts: {
-  readonly status: AgentExecutionStatus;
-  readonly gitRoot: string;
+export function buildCursorProgressSubstrate(opts: {
+  readonly captureMode: boolean;
+  readonly gitWorkspace: boolean;
+  readonly workspaceRoot: string | undefined;
+  readonly baselineTree: string | undefined;
   readonly executionId: string;
-  readonly changeSetId: string;
-  readonly baselineTree: string;
-  readonly state: ProgressCaptureState;
-}): Promise<void> {
-  await captureFileChangeProgress({
-    status: opts.status,
-    gitRoot: opts.gitRoot,
-    executionId: opts.executionId,
-    changeSetId: opts.changeSetId,
-    baselineTree: opts.baselineTree,
-    excludePaths: CURSOR_RUNNER_OWNED_PATHS,
-    state: opts.state,
-  });
+  readonly hitlDir: string | undefined;
+  readonly storage: ArtifactStorage | undefined;
+}): ProgressSubstrate | undefined {
+  const { captureMode, gitWorkspace, workspaceRoot, baselineTree, executionId, hitlDir, storage } = opts;
+  if (!captureMode || !workspaceRoot) return undefined;
+
+  const casReader: CasTouchedReader | undefined =
+    hitlDir && storage ? createSidecarTouchedReader(hitlDir) : undefined;
+
+  if (gitWorkspace) {
+    if (!baselineTree) return undefined;
+    const git = createGitProgressSubstrate({
+      workspaceRoot,
+      executionId,
+      baselineTree,
+      excludePaths: CURSOR_RUNNER_OWNED_PATHS,
+    });
+    return casReader
+      ? createHybridProgressSubstrate(git, createCasProgressSubstrate({ workspaceRoot, read: casReader }))
+      : git;
+  }
+
+  // Non-git: every tool-mediated write is CAS-staged; there is no git slice.
+  return casReader ? createCasProgressSubstrate({ workspaceRoot, read: casReader }) : undefined;
+}
+
+/**
+ * A {@link CasTouchedReader} over the Cursor hook's on-disk sidecar. Each capture
+ * reads the current observations ({@link readCasObservations}) and maps them to
+ * the substrate's snapshot shape. Reads are bounded by the caller's capture floor
+ * (default 2s), and the sidecar is small (one small marker + before-blob per
+ * touched gitignored path), so re-reading per capture is cheap and always
+ * reflects sub-agent writes staged since the last one.
+ */
+function createSidecarTouchedReader(hitlDir: string): CasTouchedReader {
+  return async (): Promise<CasTouchedSnapshot> => {
+    const { captured, secretPaths } = await readCasObservations(hitlDir);
+    const before = new Map<string, Uint8Array | null>();
+    for (const c of captured) before.set(c.path, c.before);
+    return { before, blockedSecretPaths: new Set(secretPaths) };
+  };
 }
 
 /**

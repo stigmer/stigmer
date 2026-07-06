@@ -185,6 +185,7 @@ export interface AgentExecutionInput {
   attachments?: AttachmentInput[];
   workspaceFileRefs?: string[];
   activityTaskQueue?: string;
+  supersedesExecutionId?: string;
 }
 
 /** SDK input type for ExecutionConfig. */
@@ -278,6 +279,7 @@ export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecu
       attachments,
       workspaceFileRefs: input.workspaceFileRefs,
       activityTaskQueue: input.activityTaskQueue,
+      supersedesExecutionId: input.supersedesExecutionId,
     })),
   }) as AgentExecution;
 }

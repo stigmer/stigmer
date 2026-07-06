@@ -6,5 +6,5 @@
     "rootDir": "src",
     "tsBuildInfoFile": "./tsconfig.build.tsbuildinfo"
   },
-  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.test.tsx"]
+  "exclude": ["node_modules", "dist", "src/**/__tests__/**", "src/**/*.test.ts", "src/**/*.test.tsx"]
 }

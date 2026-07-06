@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase, MessageType, ToolCallStatus, ToolKind, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { V3StatusBuilder } from "../v3-status-builder.js";
 import { normalize } from "../v3-protocol-normalizer.js";
 import type { ApprovalPolicyProvider } from "../status-builder.js";
@@ -502,6 +502,110 @@ describe("V3StatusBuilder", () => {
       const sb = makeBuilder();
       feedAll(sb, [makeToolFinished("unknown_toolu", "some result")]);
       expect(sb.currentStatus.messages).toHaveLength(0);
+    });
+  });
+
+  // ── Todo extraction (write_todos → status.todos) ─────────────────
+  //
+  // The native harness emits write_todos; projecting it into status.todos is
+  // what lights up the client TodoCard at parity with the Cursor harness.
+
+  describe("todo extraction", () => {
+    it("projects a completed write_todos into status.todos", () => {
+      const sb = makeBuilder();
+      feedAll(sb, [
+        makeMessageStart("run-1"),
+        makeTextDelta("run-1", "Planning the build."),
+        makeMessageFinish("run-1", { usage: { input_tokens: 10, output_tokens: 5 } }),
+        makeToolStarted("todo-1", "write_todos", {
+          todos: [
+            { content: "Step one", status: "in_progress" },
+            { content: "Step two", status: "pending" },
+          ],
+        }),
+        makeToolFinished("todo-1", "Todos updated"),
+      ]);
+
+      const todos = sb.currentStatus.todos;
+      expect(Object.keys(todos)).toEqual(["todo-0", "todo-1"]);
+      expect(todos["todo-0"].content).toBe("Step one");
+      expect(todos["todo-0"].status).toBe(TodoStatus.TODO_IN_PROGRESS);
+      expect(todos["todo-1"].content).toBe("Step two");
+      expect(todos["todo-1"].status).toBe(TodoStatus.TODO_PENDING);
+      expect(sb.forceNextUpdate).toBe(true);
+    });
+
+    it("keeps the write_todos ToolCall in messages stamped ToolKind.TODO", () => {
+      const sb = makeBuilder();
+      feedAll(sb, [
+        makeToolStarted("todo-1", "write_todos", {
+          todos: [{ content: "Step one", status: "pending" }],
+        }),
+        makeToolFinished("todo-1", "Todos updated"),
+      ]);
+
+      const toolCalls = sb.currentStatus.messages.flatMap((m) => m.toolCalls);
+      const tc = toolCalls.find((t) => t.name === "write_todos");
+      expect(tc).toBeDefined();
+      expect(tc!.toolKind).toBe(ToolKind.TODO);
+    });
+
+    it("does not project until the call completes", () => {
+      const sb = makeBuilder();
+      feedAll(sb, [
+        makeToolStarted("todo-1", "write_todos", {
+          todos: [{ content: "Step one", status: "pending" }],
+        }),
+      ]);
+      // Tool started but not finished — the state Command has not run yet.
+      expect(Object.keys(sb.currentStatus.todos)).toHaveLength(0);
+
+      feedAll(sb, [makeToolFinished("todo-1", "Todos updated")]);
+      expect(Object.keys(sb.currentStatus.todos)).toHaveLength(1);
+    });
+
+    it("full-replaces the map on a subsequent write_todos", () => {
+      const sb = makeBuilder();
+      feedAll(sb, [
+        makeToolStarted("todo-1", "write_todos", {
+          todos: [
+            { content: "Step one", status: "completed" },
+            { content: "Step two", status: "in_progress" },
+          ],
+        }),
+        makeToolFinished("todo-1", "ok"),
+        makeToolStarted("todo-2", "write_todos", {
+          todos: [{ content: "Step two", status: "completed" }],
+        }),
+        makeToolFinished("todo-2", "ok"),
+      ]);
+
+      const todos = sb.currentStatus.todos;
+      expect(Object.keys(todos)).toEqual(["todo-0"]);
+      expect(todos["todo-0"].content).toBe("Step two");
+      expect(todos["todo-0"].status).toBe(TodoStatus.TODO_COMPLETED);
+    });
+
+    it("does not project a sub-agent's write_todos into parent status.todos", () => {
+      const sb = makeBuilder();
+      const subNs = ["tools:task-1", "tools:sub-todo"];
+      feedAll(sb, [
+        // Register a sub-agent so its namespace routes to the SubAgentTracker.
+        makeToolStarted("task-1", "task", {
+          subagent_type: "worker",
+          description: "delegate",
+        }),
+        // The sub-agent writes todos — must not leak into the parent map.
+        makeToolStarted(
+          "sub-todo",
+          "write_todos",
+          { todos: [{ content: "sub step", status: "pending" }] },
+          { namespace: subNs },
+        ),
+        makeToolFinished("sub-todo", "ok", { namespace: subNs }),
+      ]);
+
+      expect(Object.keys(sb.currentStatus.todos)).toHaveLength(0);
     });
   });
 });

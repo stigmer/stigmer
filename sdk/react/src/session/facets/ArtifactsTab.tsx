@@ -4,10 +4,11 @@ import { useCallback, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   useSessionArtifacts,
+  artifactKey,
   type SessionArtifactEntry,
 } from "../useSessionArtifacts.js";
-import { ArtifactCard } from "../../execution/ArtifactCard.js";
 import { ArtifactPreviewModal } from "../../execution/ArtifactPreviewModal.js";
+import { ArtifactRow } from "../../execution/ArtifactRow.js";
 import { isPlanArtifact } from "../../library/detect-plan-artifact.js";
 import type { ApplyResourceResult } from "../../library/useApplyResource.js";
 
@@ -29,14 +30,39 @@ export interface ArtifactsTabProps {
    * every artifact.
    */
   readonly onOpenPlan?: (executionId: string) => void;
+  /**
+   * Open an artifact as an editor-pane document (the session panel's
+   * artifact-family virtual-document tab — the VS Code "each file is a tab"
+   * model). When provided, clicking a non-plan artifact routes here instead of
+   * the preview modal. When omitted (panel-less hosts) the modal remains the
+   * open mechanism. Plan artifacts always defer to {@link onOpenPlan} first.
+   */
+  readonly onOpenArtifact?: (entry: SessionArtifactEntry) => void;
+  /**
+   * Pin a non-plan artifact's document tab — the double-click half of the
+   * open/activate split (mirrors the file tree's `onOpenFile`/`onActivateFile`).
+   * When provided, each row binds a double-click that promotes the preview the
+   * single click opened. Omit in panel-less/modal hosts: with no handler the
+   * row binds no double-click, so a double-click is just two harmless single
+   * clicks. Plans always route to {@link onOpenPlan} (their tab is already
+   * pinned), so double-click == single-click for a plan.
+   */
+  readonly onActivateArtifact?: (entry: SessionArtifactEntry) => void;
 }
 
 /**
  * Artifacts facet for the session panel (a `useSessionRailViews` rail view).
  *
- * Wraps `useSessionArtifacts` → `ArtifactCard` list with
- * `ArtifactPreviewModal` — the same content as `ArtifactsWidget`
- * without the section heading.
+ * A VS Code-style dense file list of the session's outputs: one compact
+ * {@link ArtifactRow} per artifact (shared file-type icon + name + size, with a
+ * hover/focus Download). Clicking a row opens the artifact — a `plan.md` in the
+ * plan document tab ({@link onOpenPlan}), any other artifact in an editor-pane
+ * document ({@link onOpenArtifact}), or, for panel-less hosts that inject
+ * neither, the {@link ArtifactPreviewModal} popup fallback.
+ *
+ * Deliberately metadata-only: rows do NOT fetch content for resource detection
+ * (that would be one request per artifact on open) — detection and the
+ * Apply/Push action live in the opened document/modal instead.
  */
 export function ArtifactsTab({
   executions,
@@ -44,20 +70,41 @@ export function ArtifactsTab({
   onApplied,
   onImplementPlan,
   onOpenPlan,
+  onOpenArtifact,
+  onActivateArtifact,
 }: ArtifactsTabProps) {
   const { artifacts, hasArtifacts } = useSessionArtifacts(executions);
   const [previewEntry, setPreviewEntry] = useState<SessionArtifactEntry | null>(null);
 
-  const handlePreview = useCallback(
+  const handleOpen = useCallback(
     (entry: SessionArtifactEntry) => {
-      // The plan opens as a document (the panel's plan tab), never a popup.
+      // A plan is a first-class document — it opens in the dedicated plan tab,
+      // never as a generic artifact or a popup.
       if (onOpenPlan && isPlanArtifact(entry.artifact)) {
         onOpenPlan(entry.executionId);
         return;
       }
+      // Editor-pane document when the host injected it; otherwise the modal.
+      if (onOpenArtifact) {
+        onOpenArtifact(entry);
+        return;
+      }
       setPreviewEntry(entry);
     },
-    [onOpenPlan],
+    [onOpenPlan, onOpenArtifact],
+  );
+
+  const handleActivate = useCallback(
+    (entry: SessionArtifactEntry) => {
+      // A plan's tab is always pinned, so double-click matches single-click:
+      // route to the plan tab, never pin a generic artifact.
+      if (onOpenPlan && isPlanArtifact(entry.artifact)) {
+        onOpenPlan(entry.executionId);
+        return;
+      }
+      onActivateArtifact?.(entry);
+    },
+    [onOpenPlan, onActivateArtifact],
   );
 
   const handleClosePreview = useCallback(() => {
@@ -76,19 +123,20 @@ export function ArtifactsTab({
 
   return (
     <>
-      <div role="list" className="space-y-2">
+      <ul role="list" className="flex flex-col">
         {artifacts.map((entry) => (
-          <div key={entry.artifact.sandboxPath || entry.artifact.name} role="listitem">
-            <ArtifactCard
-              artifact={entry.artifact}
-              executionId={entry.executionId}
-              org={org}
-              hasNameCollision={entry.hasNameCollision}
-              onPreview={() => handlePreview(entry)}
-            />
-          </div>
+          <ArtifactRow
+            key={artifactKey(entry.artifact)}
+            artifact={entry.artifact}
+            executionId={entry.executionId}
+            hasNameCollision={entry.hasNameCollision}
+            onOpen={() => handleOpen(entry)}
+            onActivate={
+              onActivateArtifact ? () => handleActivate(entry) : undefined
+            }
+          />
         ))}
-      </div>
+      </ul>
 
       {previewEntry && (
         <ArtifactPreviewModal

@@ -15,7 +15,14 @@ import {
   fileDecisionKey,
   type FileDecisionOptions,
 } from "@stigmer/react";
-import { blockReasonNote, changeDisplayPath, kindLetter } from "../file-review.js";
+import {
+  blockReasonNote,
+  changeDisplayPath,
+  changeSetLineStats,
+  kindLetter,
+} from "../file-review.js";
+import { FileLineStats } from "./FileReviewAtoms.js";
+import { FileDiffBody } from "./FileDiffBody.js";
 
 /** Props for {@link FileReviewPrompt}. */
 export interface FileReviewPromptProps {
@@ -110,6 +117,10 @@ export function FileReviewPrompt({
     for (const c of changes) if (verdicts.has(c.id)) n++;
     return n;
   }, [changes, verdicts]);
+
+  // The set's aggregate +N −M, shown beside the header so the bar carries the
+  // magnitude of what is being decided, not just the file count (web parity).
+  const lineStats = useMemo(() => changeSetLineStats(changeSet), [changeSet]);
 
   const labels = bulkLabels(total, decidedCount, binaryOnly);
 
@@ -230,6 +241,10 @@ export function FileReviewPrompt({
         <Text color="cyan" bold>
           ✎ {total} file{total === 1 ? "" : "s"} awaiting review
         </Text>
+        <FileLineStats
+          linesAdded={lineStats.linesAdded}
+          linesRemoved={lineStats.linesRemoved}
+        />
       </Box>
 
       {perFile ? (
@@ -279,13 +294,19 @@ interface PerFileListProps {
   readonly interactive: boolean;
 }
 
-/** The per-file review list: kind letter, path, verdict/keepability, and a hint. */
+/**
+ * The per-file review list: kind letter, path, verdict/keepability, and a hint,
+ * followed by a master-detail diff pane for the selected file. The list itself
+ * stays stable as the selection moves (the diff renders in a fixed pane below,
+ * not inline between rows), so navigating never reflows the rows above.
+ */
 function PerFileList({
   changes,
   verdicts,
   selectedIndex,
   interactive,
 }: PerFileListProps) {
+  const selectedChange = changes[selectedIndex];
   return (
     <Box flexDirection="column" marginTop={1} paddingLeft={2}>
       {changes.map((change, idx) => {
@@ -311,6 +332,10 @@ function PerFileList({
             >
               {changeDisplayPath(change)}
             </Text>
+            <FileLineStats
+              linesAdded={change.linesAdded}
+              linesRemoved={change.linesRemoved}
+            />
             {decided && <Text dimColor>({decided})</Text>}
             {!decided && note && <Text color="yellow">— {note}</Text>}
           </Box>
@@ -323,6 +348,13 @@ function PerFileList({
             : "read-only"}
         </Text>
       </Box>
+
+      {/* Master-detail: the selected file's diff renders here (keyed by id so it
+          remounts — and lazily re-resolves any offloaded body — as the selection
+          moves), below the list so the controls above never shift. */}
+      {selectedChange && (
+        <FileDiffBody key={selectedChange.id} change={selectedChange} />
+      )}
     </Box>
   );
 }

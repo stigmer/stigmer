@@ -52,14 +52,26 @@ import {
 } from "../../shared/filereview/capture.js";
 import {
   captureFileChangeProgress,
+  createGitProgressSubstrate,
+  createHybridProgressSubstrate,
   newProgressCaptureState,
+  type ProgressSubstrate,
 } from "../../shared/filereview/progress.js";
+import {
+  createCasProgressSubstrate,
+  type CasTouchedSnapshot,
+} from "../../shared/filereview/cas-progress.js";
 import { hasCandidateCaptured } from "../../shared/filereview/events.js";
 import { casBlobReader, type CasPathCapture } from "../../shared/filereview/cas-substrate.js";
 import { partitionIgnoredPathsBySecret } from "../../shared/filereview/secret-paths.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
-import { collectSubAgentToolCallIds, withholdSecretContentFromMessages } from "../../shared/tool-row.js";
+import {
+  collectSettledToolCallIds,
+  collectSubAgentToolCallIds,
+  withholdSecretContentFromMessages,
+} from "../../shared/tool-row.js";
 import { stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "./stamp-flowed-rows.js";
+import { deriveTurnCommandProvenance } from "./command-provenance.js";
 
 /** The harness id stamped on the deep-agent's file-review ledger events. */
 const DEEP_AGENT_HARNESS_ID = "deep-agent";
@@ -312,6 +324,12 @@ export function createDeepAgentActivities(config: Config) {
         // seeds prior sub-agents — but computed, not assumed, so it stays correct
         // if that ever changes; see collectSubAgentToolCallIds).
         const priorSubAgentToolCallIds = collectSubAgentToolCallIds(initialStatus.subAgentExecutions);
+        // Snapshot the top-level tool-call ids already SETTLED before this turn's
+        // stream, so the approved-command provenance (DD-28) scopes itself to THIS
+        // turn's executed commands by identity. The deep-agent's approved shell
+        // executes in place at its seeded position, so the Cursor positional scope
+        // would miss it — see execute-deep-agent/command-provenance.ts.
+        const priorSettledToolCallIds = collectSettledToolCallIds(initialStatus.messages);
         if (setup.captureMode) {
           captureBaselineTree = await captureBaselineToLedger({
             status: initialStatus,
@@ -323,14 +341,34 @@ export function createDeepAgentActivities(config: Config) {
           });
         }
 
-        // Per-turn state for mid-run live capture (DD-32): the last progress tree
-        // sha (short-circuit) + last capture time (floor), threaded across the
-        // streaming loop's persists via the beforePersist hook below. The capture
-        // flags are hoisted so the deferred hook does not depend on `setup`
-        // (non-null here, but not narrowable inside a later-invoked closure).
+        // Per-turn state + substrate for mid-run live capture (DD-32 / DD-33). The
+        // floor lives in progressState; the substrate is chosen for this turn's
+        // workspace shape and owns its own short-circuit cache. An atomic snapshot
+        // of the shared observer feeds the CAS/HYBRID substrates — copied
+        // synchronously so a concurrent sub-agent write cannot mutate it mid-read.
         const progressState = newProgressCaptureState();
-        const progressCaptureMode = setup.captureMode;
-        const progressGitWorkspace = setup.gitWorkspace;
+        const casObserver = setup.casObserver;
+        const readObserverTouched = (): CasTouchedSnapshot => ({
+          before: new Map(casObserver.before),
+          blockedSecretPaths: new Set(casObserver.blockedSecretPaths),
+        });
+        // Git tree -> hybrid (numstat for tracked + observer for gitignored);
+        // non-git -> cas over the observer (no baseline tree needed). Undefined
+        // outside capture mode (writes are deny-gated, nothing is captured).
+        const progressSubstrate: ProgressSubstrate | undefined = !setup.captureMode
+          ? undefined
+          : setup.gitWorkspace
+            ? captureBaselineTree
+              ? createHybridProgressSubstrate(
+                  createGitProgressSubstrate({
+                    workspaceRoot: gitRoot,
+                    executionId,
+                    baselineTree: captureBaselineTree,
+                  }),
+                  createCasProgressSubstrate({ workspaceRoot: gitRoot, read: readObserverTouched }),
+                )
+              : undefined
+            : createCasProgressSubstrate({ workspaceRoot: gitRoot, read: readObserverTouched });
 
         const cancellationSignal = Context.current().cancellationSignal;
 
@@ -357,20 +395,18 @@ export function createDeepAgentActivities(config: Config) {
             globalBypass: setup.globalBypass,
           },
           streamVersion: setup.streamVersion,
-          // Mid-run live capture (DD-32): attach file_change_progress before each
-          // scheduled persist. Git capture mode only (a pinned baseline exists);
-          // deep-agent writes no runner-owned gate files into the tree, so no
-          // excludePaths — matching its turn-boundary candidate capture.
+          // Mid-run live capture (DD-32 / DD-33): attach file_change_progress
+          // before each scheduled persist, throttled by the floor inside
+          // captureFileChangeProgress. The substrate (git / non-git CAS / hybrid)
+          // was chosen for this turn above; deep-agent writes no runner-owned gate
+          // files into the tree, so the git slice needs no excludePaths — matching
+          // its turn-boundary candidate capture.
           beforePersist: async (status) => {
-            if (!progressCaptureMode || !progressGitWorkspace || !captureBaselineTree) {
-              return;
-            }
+            if (!progressSubstrate) return;
             await captureFileChangeProgress({
               status,
-              gitRoot,
-              executionId,
               changeSetId,
-              baselineTree: captureBaselineTree,
+              substrate: progressSubstrate,
               state: progressState,
             });
           },
@@ -429,6 +465,25 @@ export function createDeepAgentActivities(config: Config) {
             gitRoot,
             casCaptureClass,
           );
+          // Approved-command turn facts (DD-28): when every mutation-capable call
+          // this turn was a consented shell command, attach the provenance so the
+          // backend can verify the cited consent rows and auto-keep the set
+          // instead of arming a second review gate. Fail-closed: any non-qualifying
+          // turn attaches nothing and reviews manually exactly as before. Attached
+          // only when captureCandidateToLedger actually authors a CANDIDATE.
+          const commandProvenance = deriveTurnCommandProvenance({
+            status: initialStatus,
+            priorSettledToolCallIds,
+            priorSubAgentToolCallIds,
+            globalBypass: setup.globalBypass,
+          });
+          if (commandProvenance) {
+            console.log(
+              `[ExecuteDeepAgent] capture: turn qualifies for approved-command auto-keep ` +
+              `(consent rows: ${commandProvenance.consentToolCallIds.join(",") || "(auto_approve_all)"}); ` +
+              `attaching provenance to candidate (execution=${executionId})`,
+            );
+          }
           await captureCandidateToLedger({
             status: initialStatus,
             gitRoot,
@@ -441,6 +496,7 @@ export function createDeepAgentActivities(config: Config) {
             unreviewablePaths,
             unreviewableCaptureClass: casCaptureClass,
             gitWorkspace: setup.gitWorkspace,
+            commandProvenance,
           });
           // Review is pending iff a CANDIDATE was actually authored (the seam
           // drops no-op captures), so a turn that only touched-then-unchanged an

@@ -21,7 +21,10 @@ import { getGitBranchName, getGitCommit, getGitRemoteUrl, getGitRepoRoot } from 
 import { createMatcher, REASON_TEXT, type Reason } from "./ignore/index.js";
 
 export const SKILL_FILE = "SKILL.md";
-const SKILL_NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+// Kebab-case, optionally scoped with dot-separated namespaces (e.g.
+// "platform.planton-architecture"). Every segment must be alphanumeric, so no
+// leading/trailing/consecutive separators. The derived slug renders dots as hyphens.
+const SKILL_NAME_RE = /^[a-z0-9]+([.-][a-z0-9]+)*$/;
 
 export interface IgnoreOptions {
   readonly respectGitignore: boolean;
@@ -91,7 +94,7 @@ interface SkillMetadata {
   readonly visibility?: ApiResourceVisibility;
 }
 
-/** Parse SKILL.md YAML frontmatter and validate the skill name (kebab-case). */
+/** Parse SKILL.md YAML frontmatter and validate the skill name (kebab-case, optionally dot-scoped). */
 export function parseSkillMetadata(dir: string): SkillMetadata {
   let content: string;
   try {
@@ -108,14 +111,17 @@ export function parseSkillMetadata(dir: string): SkillMetadata {
     throw new UsageError(
       `${SKILL_FILE} is missing required 'name' field in YAML frontmatter\n\n` +
         "Expected format:\n---\nname: my-skill-name\n---\n\n" +
-        "The name must be kebab-case (lowercase letters, numbers, and hyphens)",
+        "The name must be kebab-case (lowercase letters, numbers, and hyphens), " +
+        "optionally scoped with dots (e.g. 'platform.my-skill')",
     );
   }
   if (!SKILL_NAME_RE.test(name)) {
     throw new UsageError(
       `invalid skill name '${name}' in ${SKILL_FILE}\n\n` +
-        "Skill names must be kebab-case (a-z, 0-9, hyphens).\n" +
-        "Examples: 'calculator', 'web-scraper', 'math-utils'",
+        "Skill names must be kebab-case (a-z, 0-9, hyphens), optionally scoped with\n" +
+        "dot-separated namespaces. Every segment must be alphanumeric (no leading,\n" +
+        "trailing, or consecutive separators).\n" +
+        "Examples: 'calculator', 'web-scraper', 'math-utils', 'platform.planton-architecture'",
     );
   }
   return { name, visibility: parseVisibility(parsed.visibility, SKILL_FILE) };

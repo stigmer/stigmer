@@ -88,6 +88,33 @@ export function blockReasonNote(change: CapturedFileChange): string | null {
   }
 }
 
+/** The aggregate `+N −M` line counts for a change set. */
+export interface LineStats {
+  /** Total lines added across the set's changes. */
+  readonly linesAdded: number;
+  /** Total lines removed across the set's changes. */
+  readonly linesRemoved: number;
+}
+
+/**
+ * Sums a change set's per-file `linesAdded`/`linesRemoved` into one aggregate,
+ * for the set-level `+N −M` shown beside the prompt header and the settled
+ * record summary (parity with the web card's collapsed-bar aggregate). Counts
+ * every change regardless of verdict — it reports what changed, not what was
+ * kept. A file with no counts (binary, secret-withheld, or a record predating
+ * the fields) contributes zero, so the aggregate honestly understates rather
+ * than guessing; when NO file has counts it is zero and the stat is hidden.
+ */
+export function changeSetLineStats(set: FileChangeSet): LineStats {
+  let linesAdded = 0;
+  let linesRemoved = 0;
+  for (const change of set.changes) {
+    linesAdded += change.linesAdded;
+    linesRemoved += change.linesRemoved;
+  }
+  return { linesAdded, linesRemoved };
+}
+
 /** The effective per-file verdict counts for a settled change set. */
 export interface SettledCounts {
   /** Files kept (effective verdict APPROVE). */

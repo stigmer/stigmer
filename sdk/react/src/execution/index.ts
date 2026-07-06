@@ -242,11 +242,23 @@ export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext.
 export { FileReviewContext, useFileReviewRowState } from "./FileReviewContext.js";
 export type { FileReviewContextValue } from "./FileReviewContext.js";
 
-export { ArtifactCard } from "./ArtifactCard.js";
-export type { ArtifactCardProps } from "./ArtifactCard.js";
+export { ArtifactRow } from "./ArtifactRow.js";
+export type { ArtifactRowProps } from "./ArtifactRow.js";
 
 export { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
 export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer.js";
+
+export { ArtifactContentBody } from "./ArtifactContentBody.js";
+export type { ArtifactContentBodyProps } from "./ArtifactContentBody.js";
+
+export { ArtifactDocument } from "./ArtifactDocument.js";
+export type { ArtifactDocumentProps } from "./ArtifactDocument.js";
+
+export { useArtifactInspection } from "./useArtifactInspection.js";
+export type {
+  ArtifactInspection,
+  UseArtifactInspectionOptions,
+} from "./useArtifactInspection.js";
 
 export { ArtifactPreviewContent, ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
 export type { ArtifactPreviewContentProps, ArtifactPreviewModalProps } from "./ArtifactPreviewModal.js";

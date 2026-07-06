@@ -21,10 +21,12 @@ export { TodoList, type TodoListProps } from "./components/TodoList.js";
 export { ApprovalPrompt, type ApprovalPromptProps } from "./components/ApprovalPrompt.js";
 export { FileReviewPrompt, type FileReviewPromptProps } from "./components/FileReviewPrompt.js";
 export { FileReviewRecord, type FileReviewRecordProps } from "./components/FileReviewRecord.js";
+export { FileDiffBody, type FileDiffBodyProps } from "./components/FileDiffBody.js";
 export {
   FileChangeProgressBar,
   type FileChangeProgressBarProps,
 } from "./components/FileChangeProgressBar.js";
+export { FileLineStats } from "./components/FileReviewAtoms.js";
 
 // File-review pure helpers (kind letters, paths, block reasons, settled counts)
 export {
@@ -32,8 +34,10 @@ export {
   changeDisplayPath,
   progressEntryDisplayPath,
   blockReasonNote,
+  changeSetLineStats,
   settledCounts,
   settledSummary,
+  type LineStats,
   type SettledCounts,
 } from "./file-review.js";
 export { ExecutionProgress, type ExecutionProgressProps } from "./components/ExecutionProgress.js";

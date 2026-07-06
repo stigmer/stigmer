@@ -130,7 +130,7 @@ artifacts, use `getArtifactDownloadUrl` instead of this hook.
 **Signature**
 
 ```tsx
-function useArtifactContent(executionId: string | null, storageKey: string | null, entryPath?: string | null, contentHash?: string): UseArtifactContentReturn
+function useArtifactContent(executionId: string | null, storageKey: string | null, entryPath?: string | null, contentHash?: string, cacheKey?: string): UseArtifactContentReturn
 ```
 
 <TypeTable
@@ -139,6 +139,7 @@ function useArtifactContent(executionId: string | null, storageKey: string | nul
     storageKey: { type: "string | null", description: "Storage key from `ExecutionArtifact.storageKey`, or `null` to skip.", required: true },
     entryPath: { type: "string | null", description: "For directory artifacts: relative path of a file within   the archive to extract. `null` returns the full artifact (existing behavior)." },
     contentHash: { type: "string", description: "SHA-256 hex digest from `ExecutionArtifact.contentHash`.   When the same file is overwritten during execution, the `storageKey` stays   stable but `contentHash` changes, triggering a re-fetch so the UI never   shows stale content. Pass `undefined` or omit for backwards compatibility." },
+    cacheKey: { type: "string", description: "Optional cross-mount cache key (DD-014). When set, a remount   with the same key renders the previously-fetched content instantly and   refetches in the background (no skeleton flash) — used by the artifact   document so switching back to a recently-viewed tab is instant. Omit for the   default fetch-on-mount behavior (card / modal / plan callers are unchanged)." },
   }}
 />
 
@@ -334,6 +335,39 @@ const { url, isLoading } = useArtifactDownloadUrl(executionId, storageKey);
 if (isLoading) return <Skeleton />;
 return url ? <img src={url} alt="Tool output" /> : null;
 ```
+
+
+### useArtifactInspection
+
+Headless behavior hook consolidating the artifact inspect-and-act pipeline
+that was previously inlined per artifact surface: content fetch,
+Agent/McpServer YAML detection, skill-package detection, the Apply/Push
+mutation, and in-memory clipboard copy.
+
+It is the single writer of this pipeline's derived state, consumed by every
+artifact chrome — the modal action bar and the editor-area
+`ArtifactDocument` toolbar (DD-003 headless-first). Because there is exactly
+one place computing `detectionLabel` / `ctaLabel` / the apply flow, the two
+surfaces cannot drift.
+
+All four underlying hooks are called unconditionally with null-gated
+arguments (their documented skip contract), so this composition is
+React-rules-clean regardless of the artifact kind.
+
+**Signature**
+
+```tsx
+function useArtifactInspection(artifact: ExecutionArtifact, executionId: string, org: string, options?: UseArtifactInspectionOptions): ArtifactInspection
+```
+
+<TypeTable
+  type={{
+    artifact: { type: "ExecutionArtifact", description: "The artifact to inspect.", required: true },
+    executionId: { type: "string", description: "Execution that produced it (content + skill fetching).", required: true },
+    org: { type: "string", description: "Organization for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA.", required: true },
+    options: { type: "UseArtifactInspectionOptions", description: "UseArtifactInspectionOptions." },
+  }}
+/>
 
 
 ### useContextWindow
@@ -930,58 +964,34 @@ inline on a [`ToolCallItem`](#toolcallitem), whose own row already serves as the
 />
 
 
-### ArtifactCard
+### ArtifactContentBody
 
-Renders a single execution artifact as a compact summary card with
-automatic Stigmer resource detection and a download link.
+The shared, chrome-agnostic body of an artifact view: the file-content
+states (loading / error / binary / text via [`ArtifactContentRenderer`](#artifactcontentrenderer))
+for FILE artifacts, or the file listing + skill banner for DIRECTORY
+artifacts.
 
-The card's role is **signal and navigate**: it tells the user what
-the artifact is (file/directory, size, detected resource type) and
-provides two actions — Preview and Download. The Apply/Push CTA
-lives exclusively in [`ArtifactPreviewModal`](#artifactpreviewmodal) so the user must
-review content before acting (review-before-apply pattern).
+Extracted so the preview modal and the editor-area `ArtifactDocument` render
+artifact bodies identically — only the surrounding chrome (modal header +
+action bar vs. document toolbar) differs. Pair with
+[`useArtifactInspection`](#useartifactinspection), which supplies every prop here.
 
-Internally orchestrates the detection pipeline:
+All visual properties flow through `--stgm-*` tokens (DD-005).
 
-- **FILE artifacts**: Fetches text content via [`useArtifactContent`](#useartifactcontent),
-  then detects Agent/McpServer YAML via [`useDetectStigmerResource`](/docs/sdk/react/library#usedetectstigmerresource).
-  Only text files under 256 KB are fetched for detection.
-
-- **DIRECTORY artifacts**: Detects skill packages via
-  [`useDetectSkillPackage`](/docs/sdk/react/library#usedetectskillpackage) (checks for `SKILL.md` in the ZIP
-  archive entries).
-
-Detection results are surfaced as a type badge ("Agent detected",
-"Skill · N files"). Non-Stigmer artifacts render with file info
-and a download link only — no error messages or "not detected"
-indicators (detection is silent).
-
-**Props** — `ArtifactCardProps`
+**Props** — `ArtifactContentBodyProps`
 
 <TypeTable
   type={{
-    artifact: { type: "ExecutionArtifact", description: "The execution artifact to render.", required: true },
+    artifact: { type: "ExecutionArtifact", description: "The artifact whose body is rendered.", required: true },
     className: { type: "string", description: "Additional CSS classes for the root element." },
-    executionId: { type: "string", description: "ID of the execution that produced this artifact — used for content fetching.", required: true },
-    hasNameCollision: { type: "boolean", description: "When `true`, another artifact in the list shares the same display `name` but has a different `sandbox_path`. The card renders the parent directory from `sandbox_path` as a muted subtitle for disambiguation.  Set by ArtifactsWidget via useSessionArtifacts. Defaults to `false`." },
-    onPreview: { type: "(artifact: ExecutionArtifact) => void", description: "Called when the user clicks \"Preview\". The consumer is responsible for rendering a preview UI (e.g., ArtifactPreviewModal).  When omitted, the Preview action is not rendered." },
-    org: { type: "string", description: "Organization slug — used for skill package detection which fetches `SKILL.md` frontmatter via the artifact content RPC.", required: true },
+    content: { type: "string | null", description: "Decoded text content, or `null` (directory / binary / loading / error).", required: true },
+    contentType: { type: "string | null", description: "Server-detected content type (rendering-strategy fallback).", required: true },
+    error: { type: "Error | null", description: "Content-fetch error, or `null`.", required: true },
+    isLoading: { type: "boolean", description: "`true` while the content request is in-flight.", required: true },
+    isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
+    skillDetection: { type: "SkillPackageDetection", description: "Skill-package detection for directory artifacts.", required: true, typeDescriptionLink: "/docs/sdk/react/library#skillpackagedetection" },
   }}
 />
-
-```tsx
-const { artifacts } = useExecutionArtifacts(execution);
-
-{artifacts.map((artifact) => (
-  <ArtifactCard
-    key={artifact.storageKey}
-    artifact={artifact}
-    executionId={execution.metadata!.id}
-    org={activeOrg}
-    onPreview={(a) => setPreviewArtifact(a)}
-  />
-))}
-```
 
 
 ### ArtifactContentRenderer
@@ -1032,6 +1042,43 @@ function MyArtifactPanel({ executionId, storageKey, fileName }) {
 ```
 
 
+### ArtifactDocument
+
+The editor-pane rendering of a single execution artifact — the
+[`SurfaceVirtualDocument`](/docs/sdk/react/workspace#surfacevirtualdocument) counterpart of the [`ArtifactPreviewModal`](#artifactpreviewmodal)
+popup, mounted as an artifact-family virtual document under
+[`ARTIFACT_DOCUMENT_ENTRY_ID`](/docs/sdk/react/session#artifact_document_entry_id). Opening an artifact from the session
+panel's Artifacts facet lands here (VS Code "each file is a tab") rather than
+a modal.
+
+Shares the modal's exact behavior and body via the two extracted pieces —
+[`useArtifactInspection`](#useartifactinspection) (content + detection + apply/push + copy) and
+[`ArtifactContentBody`](#artifactcontentbody) (loading / error / binary / text / directory) —
+so the two surfaces can never drift. Only the chrome differs: a document
+toolbar (name + size + detection badge; Copy / Download / Apply) over the
+shared body, instead of the modal's header + footer action bar.
+
+Holds no must-survive local state: the panel region unmounts on collapse and
+switching tabs remounts the active document, resetting transient apply/copy
+state exactly as the modal resets on close. A `cacheKey` on the content fetch
+keeps reopening a recently-viewed artifact instant (DD-014).
+
+All visual properties flow through `--stgm-*` tokens (DD-005).
+
+**Props** — `ArtifactDocumentProps`
+
+<TypeTable
+  type={{
+    artifact: { type: "ExecutionArtifact", description: "The artifact to render.", required: true },
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    executionId: { type: "string", description: "Execution that produced this artifact version (content + skill fetching).", required: true },
+    isTerminal: { type: "boolean", description: "Whether the producing execution is terminal. Gates the Apply/Push action (a mid-run artifact's content may still change).", required: true },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied or a skill pushed — the same host callback the preview modal fires, so a document-apply behaves identically (toast / Library refresh)." },
+    org: { type: "string", description: "Organization for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA.", required: true },
+  }}
+/>
+
+
 ### ArtifactPreviewContent
 
 Artifact preview content with detection pipeline and Apply/Push CTA.
@@ -1042,7 +1089,7 @@ content body (file content or directory listing), and action bar
 it inside a `<dialog>`, modal, sheet, overlay, or inline context as
 needed.
 
-Orchestrates the same detection pipeline as [`ArtifactCard`](#artifactcard):
+Orchestrates the shared detection pipeline (see [`useArtifactInspection`](#useartifactinspection)):
 
 - **FILE artifacts**: Fetches text content via [`useArtifactContent`](#useartifactcontent),
   renders via [`ArtifactContentRenderer`](#artifactcontentrenderer) (markdown, YAML, JSON, or
@@ -1133,6 +1180,37 @@ const [previewArtifact, setPreviewArtifact] =
 ```
 
 
+### ArtifactRow
+
+One dense, VS Code-style artifact row: a full-width open button (shared
+file-type icon + name + optional collision subtitle + size) with a sibling,
+hover/focus-revealed Download button.
+
+The open target and the Download control are SIBLINGS, never nested — a
+`<button>` inside a `<button>` is an axe `nested-interactive` (WCAG 4.1.2)
+violation. This mirrors `ExplorerRoot`'s header + remove-control pattern.
+
+Deliberately execution-pure and presentational: it takes only the artifact,
+its `executionId`, and open/activate closures — no session-domain types and
+no content fetch (resource detection and Apply/Push live in the opened
+document/modal, not the list). The two hosts — the session panel's
+`ArtifactsTab` facet and the panel-less [`ArtifactsWidget`](#artifactswidget) — map
+their entries onto these props and own the behavior wiring.
+
+**Props** — `ArtifactRowProps`
+
+<TypeTable
+  type={{
+    artifact: { type: "ExecutionArtifact", description: "The execution artifact to render.", required: true },
+    className: { type: "string", description: "Additional CSS classes for the row's `<li>`." },
+    executionId: { type: "string", description: "ID of the execution that produced this artifact — used to mint its download URL.", required: true },
+    hasNameCollision: { type: "boolean", description: "When `true`, another artifact in the list shares this artifact's display `name` but has a different `sandbox_path`; the row renders the parent directory as a muted subtitle to disambiguate. Typically supplied from SessionArtifactEntry.hasNameCollision." },
+    onActivate: { type: "() => void", description: "Double click: promote the artifact to a persistent (pinned) tab. Mirrors the file tree's `onOpenFile` (preview) / `onActivateFile` (pin) split — the leading single click of the double click has already opened the preview, so this promotes it. Omit in panel-less hosts (e.g. the modal-only widget): with no handler the row binds no `onDoubleClick`, so a double click is just two harmless single clicks, exactly as `FileTreeNode` behaves." },
+    onOpen: { type: "() => void", description: "Single click / Enter / Space: open the artifact (a preview tab, or a modal).", required: true },
+  }}
+/>
+
+
 ### ArtifactsWidget
 
 Right-sidebar widget that surfaces all artifacts produced during a
@@ -1143,18 +1221,15 @@ by `sandbox_path` (latest execution wins), presenting the user with
 a file-explorer-like view of the conversation's output — no
 execution/turn concepts are exposed.
 
-Composes [`ArtifactCard`](#artifactcard) (summary + detection badges) with
-[`ArtifactPreviewModal`](#artifactpreviewmodal) (full content review + Apply/Push CTA).
-The card's "Preview" action opens the modal; the modal is the sole
-location for Apply/Push actions (review-before-apply pattern).
+The panel-less counterpart of the session panel's Artifacts facet: it
+renders the same dense [`ArtifactRow`](#artifactrow) list, but — having no editor pane
+to open document tabs into — a click opens the [`ArtifactPreviewModal`](#artifactpreviewmodal)
+(the review-before-apply popup, and the sole home of the Apply/Push CTA).
+This is the embeddable path a platform builder drops into their own sidebar.
 
 Returns `null` when the executions list is empty or no execution
 has artifacts, matching the conditional-render pattern of
 [`ExecutionProgress`](#executionprogress) and [`UsageWidget`](#usagewidget).
-
-Renders without card chrome — each [`ArtifactCard`](#artifactcard) provides its
-own border and padding. The consumer controls the container styling
-(or places the widget directly in a flex/grid layout).
 
 All visual properties flow through `--stgm-*` tokens.
 
@@ -1945,6 +2020,36 @@ the thread's streaming re-render isolation (DD-009 / DD-010).
 />
 
 
+### ArtifactInspection
+
+Everything a chrome (the modal action bar, the document toolbar, the content
+body) needs to inspect and act on one artifact: fetched content, resource
+detection, the Apply/Push action, and clipboard copy.
+
+<TypeTable
+  type={{
+    apply: { type: "() => Promise<void>", description: "Apply the detected resource / push the detected skill.", required: true },
+    applyError: { type: "Error | null", description: "Apply/push error, or `null`.", required: true },
+    applyResult: { type: "ApplyResourceResult | null", description: "The successful apply result, or `null`.", required: true },
+    content: { type: "string | null", description: "Decoded text content, or `null` (directory / binary / loading / error).", required: true },
+    contentType: { type: "string | null", description: "Server-detected content type, or `null`.", required: true },
+    copied: { type: "boolean", description: "`true` for a short window after a successful copy.", required: true },
+    copy: { type: "() => void", description: "Copy the in-memory content to the clipboard. No-op without content.", required: true },
+    ctaLabel: { type: "string | null", description: "Apply/Push CTA label (`\"Apply to org\"`, `\"Push Skill to org\"`), or `null`.", required: true },
+    detectionLabel: { type: "string | null", description: "Detection badge label (`\"Agent detected\"`, `\"Skill · N files\"`), or `null`.", required: true },
+    error: { type: "Error | null", description: "Content-fetch error, or `null`.", required: true },
+    isApplying: { type: "boolean", description: "`true` while an apply/push is in-flight.", required: true },
+    isDetected: { type: "boolean", description: "`true` when the artifact is a recognized Stigmer resource or skill.", required: true },
+    isDetecting: { type: "boolean", description: "`true` while detection is still resolving (content / skill fetch).", required: true },
+    isDirectory: { type: "boolean", description: "Whether the artifact is a directory (skill package candidate).", required: true },
+    isLoading: { type: "boolean", description: "`true` while the content request is in-flight (first load).", required: true },
+    isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
+    refetch: { type: "() => void", description: "Re-fetch the artifact content.", required: true },
+    skillDetection: { type: "SkillPackageDetection", description: "Skill-package detection for directory artifacts.", required: true, typeDescriptionLink: "/docs/sdk/react/library#skillpackagedetection" },
+  }}
+/>
+
+
 ### ArtifactRenderMode
 
 Content rendering strategy for artifact file preview.
@@ -2079,6 +2184,7 @@ Input for `UseCreateAgentExecutionReturn.create`.
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They take the highest merge priority, overriding both Environment values and agent defaults.  Use this for B2B integrations where per-call credentials are injected at runtime, or for one-off secrets that should not persist.  For persistent credentials that are reused across executions, use the Environment Flow instead (store secrets in an Environment resource and bind them via an AgentInstance)." },
     sessionId: { type: "string", description: "Session to create the execution within.", required: true },
     structuredOutputSchema: { type: "JsonObject", description: "JSON Schema that the agent's final output must conform to.  When set, the runner enforces structured output: - Native harness: ToolStrategy adds an extract tool; agent must call it - Cursor harness: prompt injection + 3-tier extraction fallback  The validated data is returned in `execution.status.structuredOutput`." },
+    supersedesExecutionId: { type: "string", description: "ID of the execution this one supersedes via edit-and-resubmit.  Set when the user stopped an in-flight turn, edited its message, and resubmitted. Chat threads hide the superseded execution so the edited message replaces the original in place; history surfaces keep the full record. Maps to `AgentExecutionSpec.supersedes_execution_id`.  Display-level only — the runner does not rewind model context." },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on.  These are lightweight \"attention\" signals — the agent reads the files directly from the workspace filesystem. No upload, no injection. Populated by the drag-to-reference feature in SessionComposer." },
   }}
 />
@@ -3508,6 +3614,18 @@ Options for [`useArtifactDownloadUrl`](#useartifactdownloadurl).
 <TypeTable
   type={{
     enabled: { type: "boolean", description: "Gate the request. When `false`, the hook stays idle and returns `null` — use this to defer minting a URL until it is actually needed (e.g. only when an image becomes visible, or after a truncation is detected). Defaults to `true`." },
+  }}
+/>
+
+
+### UseArtifactInspectionOptions
+
+Options for [`useArtifactInspection`](#useartifactinspection).
+
+<TypeTable
+  type={{
+    cacheKey: { type: "string", description: "Cross-mount cache key for the content fetch (DD-014). Set it so a remount with the same key renders the previously-fetched content instantly and refetches in the background — the artifact document passes it so switching back to a recently-viewed tab is instant. Omit for fetch-on-mount (the modal, which resets on every open)." },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package pushed. The consumer uses it for post-apply behavior (toast, navigate to Library)." },
   }}
 />
 

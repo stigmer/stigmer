@@ -16,7 +16,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3BlYy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIr4EChJBZ2VudEV4ZWN1dGlvblNwZWMSEgoKc2Vzc2lvbl9pZBgBIAEoCRIQCghhZ2VudF9pZBgCIAEoCRIYCgdtZXNzYWdlGAMgASgJQge6SARyAhABEk8KEGV4ZWN1dGlvbl9jb25maWcYBCABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQ29uZmlnEl0KC3J1bnRpbWVfZW52GAUgAygLMkguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YBiABKAwSGAoQYXV0b19hcHByb3ZlX2FsbBgHIAEoCBIaChJwYXJlbnRfd29ya2Zsb3dfaWQYCCABKAkSRQoLYXR0YWNobWVudHMYCSADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXR0YWNobWVudBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEhsKE2FjdGl2aXR5X3Rhc2tfcXVldWUYCyABKAkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASL9AgoPRXhlY3V0aW9uQ29uZmlnEhIKCm1vZGVsX25hbWUYASABKAkSWQoSY29udGV4dF9tYW5hZ2VtZW50GAIgASgLMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRNYW5hZ2VtZW50Q29uZmlnEhcKD21heF90b29sX3JvdW5kcxgDIAEoBRIdChVtYXhfdG9vbF9yZXN1bHRfY2hhcnMYBCABKAUSFAoMbWF4X2Nvc3RfdXNkGAUgASgBElkKEGludGVyYWN0aW9uX21vZGUYBiABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuSW50ZXJhY3Rpb25Nb2RlQgi6SAWCAQIQARI5ChhzdHJ1Y3R1cmVkX291dHB1dF9zY2hlbWEYByABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhcKD2J1aWxkX2Zyb21fcGxhbhgIIAEoCCKKAQoXQ29udGV4dE1hbmFnZW1lbnRDb25maWcSHQoVZGlzYWJsZV9zdW1tYXJpemF0aW9uGAEgASgIEikKGGN1c3RvbV90cmlnZ2VyX3RocmVzaG9sZBgCIAEoBUIHukgEGgIoABIlChRjdXN0b21fdGFyZ2V0X3Rva2VucxgDIAEoBUIHukgEGgIoACKUAQoKQXR0YWNobWVudBIZCghmaWxlbmFtZRgBIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgCIAEoCUIHukgEcgIQARISCgptb3VudF9wYXRoGAMgASgJEhQKDGNvbnRlbnRfdHlwZRgEIAEoCRIPCgdleHRyYWN0GAUgASgIEhIKCmxvY2FsX3BhdGgYBiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3BlYy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIt8EChJBZ2VudEV4ZWN1dGlvblNwZWMSEgoKc2Vzc2lvbl9pZBgBIAEoCRIQCghhZ2VudF9pZBgCIAEoCRIYCgdtZXNzYWdlGAMgASgJQge6SARyAhABEk8KEGV4ZWN1dGlvbl9jb25maWcYBCABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQ29uZmlnEl0KC3J1bnRpbWVfZW52GAUgAygLMkguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YBiABKAwSGAoQYXV0b19hcHByb3ZlX2FsbBgHIAEoCBIaChJwYXJlbnRfd29ya2Zsb3dfaWQYCCABKAkSRQoLYXR0YWNobWVudHMYCSADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXR0YWNobWVudBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEhsKE2FjdGl2aXR5X3Rhc2tfcXVldWUYCyABKAkSHwoXc3VwZXJzZWRlc19leGVjdXRpb25faWQYDCABKAkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASL9AgoPRXhlY3V0aW9uQ29uZmlnEhIKCm1vZGVsX25hbWUYASABKAkSWQoSY29udGV4dF9tYW5hZ2VtZW50GAIgASgLMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRNYW5hZ2VtZW50Q29uZmlnEhcKD21heF90b29sX3JvdW5kcxgDIAEoBRIdChVtYXhfdG9vbF9yZXN1bHRfY2hhcnMYBCABKAUSFAoMbWF4X2Nvc3RfdXNkGAUgASgBElkKEGludGVyYWN0aW9uX21vZGUYBiABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuSW50ZXJhY3Rpb25Nb2RlQgi6SAWCAQIQARI5ChhzdHJ1Y3R1cmVkX291dHB1dF9zY2hlbWEYByABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhcKD2J1aWxkX2Zyb21fcGxhbhgIIAEoCCKKAQoXQ29udGV4dE1hbmFnZW1lbnRDb25maWcSHQoVZGlzYWJsZV9zdW1tYXJpemF0aW9uGAEgASgIEikKGGN1c3RvbV90cmlnZ2VyX3RocmVzaG9sZBgCIAEoBUIHukgEGgIoABIlChRjdXN0b21fdGFyZ2V0X3Rva2VucxgDIAEoBUIHukgEGgIoACKUAQoKQXR0YWNobWVudBIZCghmaWxlbmFtZRgBIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgCIAEoCUIHukgEcgIQARISCgptb3VudF9wYXRoGAMgASgJEhQKDGNvbnRlbnRfdHlwZRgEIAEoCRIPCgdleHRyYWN0GAUgASgIEhIKCmxvY2FsX3BhdGgYBiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * AgentExecutionSpec contains only user-provided inputs for triggering an execution.
@@ -276,6 +276,35 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * @generated from field: string activity_task_queue = 11;
    */
   activityTaskQueue: string;
+
+  /**
+   * ID of the execution this one supersedes via edit-and-resubmit (optional).
+   *
+   * When a user stops an in-flight turn, edits the message, and resubmits,
+   * the client sets this field on the NEW execution to point at the stopped
+   * one. Chat-thread consumers hide the superseded execution so the edited
+   * message replaces the original in place; history surfaces (CLI, execution
+   * lists) keep showing the full record.
+   *
+   * Empty means this execution is not an edit of another turn.
+   *
+   * @internal
+   *
+   * The link always lives on the successor — the superseded record is never
+   * mutated (append-only execution log, single writer). Chained edits form a
+   * chain of links (A <- B <- C), each persisted on its own successor.
+   *
+   * Display-level semantics only: the runner does NOT rewind model context.
+   * Conversation history lives in an opaque session-keyed store (LangGraph
+   * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+   * superseded turn's partial messages remain visible to the model. Do not
+   * build features that assume the runner skips superseded turns.
+   *
+   * @since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+   *
+   * @generated from field: string supersedes_execution_id = 12;
+   */
+  supersedesExecutionId: string;
 };
 
 /**
@@ -421,10 +450,10 @@ export type ExecutionConfig = Message<"ai.stigmer.agentic.agentexecution.v1.Exec
    *
    * When set, the runner injects the implement-plan directive into the agent's
    * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
-   * document travels as an attachment (the normal case — mounted at
-   * `.stigmer/inputs/plan.md`), the directive points the agent at that file;
-   * when no plan attachment is present (e.g. the client's upload failed), the
-   * directive tells the agent to follow the plan from the conversation instead.
+   * document travels as an attachment (the normal case), the directive points
+   * the agent at the attached plan file and treats it as authoritative; when no
+   * plan attachment is present (e.g. the client's upload failed), the directive
+   * tells the agent to follow the plan from the conversation instead.
    *
    * Clients set this flag INSTEAD of embedding implement instructions in
    * `message`, so `message` stays a short human-readable label (e.g.

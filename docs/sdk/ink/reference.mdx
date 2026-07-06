@@ -142,6 +142,7 @@ option label names that class so the scope is never a surprise.
 
 <TypeTable
   type={{
+    isActive: { type: "boolean", description: "Whether this prompt owns the keyboard. Defaults to `true`. When `false` the prompt renders inert (no `useInput`, no selection cursor, options dimmed) so exactly one decision surface is interactive at a time.  This is the terminal's single-active-decision-surface rule: stdin is delivered to *every* mounted `useInput`, so several live `ApprovalPrompt`s would each consume the same keystroke and settle at once. The caller (MessageThread) marks only the first pending approval active; the file-review prompt in turn yields to any pending approval (`FileReviewPrompt.isActive = pendingApprovals.length === 0` in `SessionView`), so the order is: first approval → else the file-review prompt." },
     isSubmitting: { type: "boolean", description: "Disables input while an approval submission is in flight." },
     onSubmit: { type: "(action: ApprovalAction) => void", description: "Called when the user selects an action.", required: true },
     pendingApproval: { type: "PendingApproval", description: "The pending approval request to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-execution" },
@@ -160,6 +161,17 @@ terminal reviewer sees the same explanation.
 
 The path to show for a reviewable change: the post-edit path, or the pre-edit
 path for a deletion. A rename shows `before → after` so both sides are visible.
+
+
+### changeSetLineStats
+
+Sums a change set's per-file `linesAdded`/`linesRemoved` into one aggregate,
+for the set-level `+N −M` shown beside the prompt header and the settled
+record summary (parity with the web card's collapsed-bar aggregate). Counts
+every change regardless of verdict — it reports what changed, not what was
+kept. A file with no counts (binary, secret-withheld, or a record predating
+the fields) contributes zero, so the aggregate honestly understates rather
+than guessing; when NO file has counts it is zero and the stat is hidden.
 
 
 ### ContextGauge
@@ -237,6 +249,47 @@ distinguishes it from the loud, bordered decision prompt.
 const conv = useSessionConversation(sessionId, org);
 <FileChangeProgressBar progress={conv.fileChangeProgress} expanded={expandTools} />
 ```
+
+
+### FileDiffBody
+
+The terminal analogue of `@stigmer/react`'s `FileChangeDiff` — the whole-file
+branch. Renders a single `CapturedFileChange`'s unified diff for review in the
+terminal.
+
+A capture is always whole-file (`toDisplayFileChange` emits
+`captureLevel = WHOLE_FILE`), so this deliberately handles only that case: it
+resolves the before/after text via the shared `useFileChangeContent` behavior
+hook (inline bodies cost nothing; offloaded bodies are fetched lazily through
+the server proxy) and diffs them with the shared pure `computeDiff` — the SAME
+engine the web renders, so the terminal and web diffs are line-for-line
+identical and cannot drift.
+
+Renders body-only (no filename caption): the caller's selected row already
+names the file and shows its `+N −M`, so a header here would just repeat what
+the reviewer read one line up.
+
+**Requires an `InkStigmerProvider` ancestor.** `useFileChangeContent` reads the
+Stigmer client via `useStigmer()` (to dereference offloaded diff bytes), which
+throws outside a provider. In a live session this always holds — `SessionView`
+renders under `InkStigmerProvider`.
+
+**Props** — `FileDiffBodyProps`
+
+<TypeTable
+  type={{
+    change: { type: "CapturedFileChange", description: "The captured file change whose before/after diff to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-execution" },
+  }}
+/>
+
+
+### FileLineStats
+
+The `+N −M` stat for one file (or a whole set), in the diff colour vocabulary.
+Renders nothing when both counts are zero — the honest signal that no count
+exists (binary or secret-withheld changes, or records captured before the
+counts were stamped) — rather than a misleading `+0 -0`, matching the web
+`FileLineStats` contract.
 
 
 ### FileReviewPrompt

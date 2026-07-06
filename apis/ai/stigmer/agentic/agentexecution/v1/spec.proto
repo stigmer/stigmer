@@ -251,6 +251,37 @@ message AgentExecutionSpec {
   //
   // @since Workflow Sandbox Affinity
   string activity_task_queue = 11;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Edit-and-Resubmit (Supersede Link)
+  //
+  // Marks this execution as the corrected replacement of an earlier turn.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // ID of the execution this one supersedes via edit-and-resubmit (optional).
+  //
+  // When a user stops an in-flight turn, edits the message, and resubmits,
+  // the client sets this field on the NEW execution to point at the stopped
+  // one. Chat-thread consumers hide the superseded execution so the edited
+  // message replaces the original in place; history surfaces (CLI, execution
+  // lists) keep showing the full record.
+  //
+  // Empty means this execution is not an edit of another turn.
+  //
+  // @internal
+  //
+  // The link always lives on the successor — the superseded record is never
+  // mutated (append-only execution log, single writer). Chained edits form a
+  // chain of links (A <- B <- C), each persisted on its own successor.
+  //
+  // Display-level semantics only: the runner does NOT rewind model context.
+  // Conversation history lives in an opaque session-keyed store (LangGraph
+  // checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+  // superseded turn's partial messages remain visible to the model. Do not
+  // build features that assume the runner skips superseded turns.
+  //
+  // @since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+  string supersedes_execution_id = 12;
 }
 
 // Configuration that can be applied at execution time.
@@ -380,10 +411,10 @@ message ExecutionConfig {
   //
   // When set, the runner injects the implement-plan directive into the agent's
   // prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
-  // document travels as an attachment (the normal case — mounted at
-  // `.stigmer/inputs/plan.md`), the directive points the agent at that file;
-  // when no plan attachment is present (e.g. the client's upload failed), the
-  // directive tells the agent to follow the plan from the conversation instead.
+  // document travels as an attachment (the normal case), the directive points
+  // the agent at the attached plan file and treats it as authoritative; when no
+  // plan attachment is present (e.g. the client's upload failed), the directive
+  // tells the agent to follow the plan from the conversation instead.
   //
   // Clients set this flag INSTEAD of embedding implement instructions in
   // `message`, so `message` stays a short human-readable label (e.g.

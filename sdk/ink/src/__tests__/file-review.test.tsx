@@ -6,8 +6,10 @@ import { FileReviewContext } from "@stigmer/react";
 import {
   ToolCallSchema,
   FileContentSchema,
+  ToolCallOutputRefSchema,
   AgentMessageSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   FileChangeSetSchema,
@@ -30,7 +32,11 @@ import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
 import { FileReviewRecord } from "../components/FileReviewRecord.js";
+import { FileDiffBody } from "../components/FileDiffBody.js";
 import { MessageThread } from "../components/MessageThread.js";
+import { FileLineStats } from "../components/FileReviewAtoms.js";
+import { changeSetLineStats } from "../file-review.js";
+import { fakeClient, renderWithClient } from "./test-support.js";
 
 // --- fixtures -------------------------------------------------------------
 
@@ -41,6 +47,8 @@ interface ChangeOpts {
   readonly diffComplete?: boolean;
   readonly binary?: boolean;
   readonly blockedReason?: FileReviewBlockReason;
+  readonly linesAdded?: number;
+  readonly linesRemoved?: number;
 }
 
 function makeChange(opts: ChangeOpts) {
@@ -52,6 +60,8 @@ function makeChange(opts: ChangeOpts) {
     diffComplete: opts.diffComplete ?? true,
     fileDigest: `fd-${opts.id}`,
     blockedReason: opts.blockedReason ?? FileReviewBlockReason.UNSPECIFIED,
+    linesAdded: opts.linesAdded ?? 0,
+    linesRemoved: opts.linesRemoved ?? 0,
     before: opts.binary ? create(FileContentSchema, { isBinary: true }) : undefined,
     after: opts.binary ? create(FileContentSchema, { isBinary: true }) : undefined,
   });
@@ -215,7 +225,9 @@ describe("FileReviewPrompt — per-file", () => {
 
   it("enters per-file mode and keeps a reviewable file with its file digest", async () => {
     const onSubmit = vi.fn();
-    const { stdin, lastFrame } = render(
+    // Per-file mode mounts FileDiffBody, whose useFileChangeContent reads the
+    // Stigmer client — so these tests render under a provider.
+    const { stdin, lastFrame } = renderWithClient(
       <FileReviewPrompt changeSet={blockedSet} onSubmit={onSubmit} />,
     );
     stdin.write("f");
@@ -235,7 +247,7 @@ describe("FileReviewPrompt — per-file", () => {
 
   it("refuses to keep an unavailable file but allows discard", async () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithClient(
       <FileReviewPrompt changeSet={blockedSet} onSubmit={onSubmit} />,
     );
     stdin.write("f");
@@ -262,7 +274,7 @@ describe("FileReviewPrompt — per-file", () => {
       ],
     });
     const onSubmit = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithClient(
       <FileReviewPrompt changeSet={binarySet} onSubmit={onSubmit} />,
     );
     stdin.write("f");
@@ -492,5 +504,280 @@ describe("MessageThread — file-review integration", () => {
     const out = lastFrame() ?? "";
     expect(out).toContain("Pending review"); // the row still badges
     expect(out).not.toContain("File review —"); // but no settled record
+  });
+});
+
+// --- FileLineStats (shared atom) -----------------------------------------
+
+describe("FileLineStats", () => {
+  it("renders nothing when both counts are zero (never +0 -0)", () => {
+    const { lastFrame } = render(<FileLineStats linesAdded={0} linesRemoved={0} />);
+    expect((lastFrame() ?? "").trim()).toBe("");
+  });
+
+  it("renders +N -M when counts exist", () => {
+    const { lastFrame } = render(<FileLineStats linesAdded={7} linesRemoved={3} />);
+    const out = lastFrame() ?? "";
+    expect(out).toContain("+7");
+    expect(out).toContain("-3");
+  });
+
+  it("renders a one-sided stat (added only) without hiding it", () => {
+    const { lastFrame } = render(<FileLineStats linesAdded={5} linesRemoved={0} />);
+    const out = lastFrame() ?? "";
+    expect(out).toContain("+5");
+    expect(out).toContain("-0"); // both sides always shown once any count exists
+  });
+});
+
+// --- changeSetLineStats (pure helper) ------------------------------------
+
+describe("changeSetLineStats", () => {
+  it("sums per-file counts across the set", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [
+        makeChange({ id: "a", path: "one.ts", linesAdded: 10, linesRemoved: 2 }),
+        makeChange({ id: "b", path: "two.ts", linesAdded: 5, linesRemoved: 3 }),
+      ],
+    });
+    expect(changeSetLineStats(set)).toEqual({ linesAdded: 15, linesRemoved: 5 });
+  });
+
+  it("treats an uncountable (binary/withheld) file as a zero contributor — honest understatement", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [
+        makeChange({ id: "txt", path: "app.ts", linesAdded: 8, linesRemoved: 1 }),
+        makeChange({ id: "img", path: "logo.png", kind: FileChangeKind.BINARY_CHANGE, binary: true }),
+      ],
+    });
+    expect(changeSetLineStats(set)).toEqual({ linesAdded: 8, linesRemoved: 1 });
+  });
+
+  it("is zero for a set whose files carry no counts (stat then hidden by the atom)", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [makeChange({ id: "a", path: "one.ts" })],
+    });
+    expect(changeSetLineStats(set)).toEqual({ linesAdded: 0, linesRemoved: 0 });
+  });
+});
+
+// --- Line stats on the review surfaces -----------------------------------
+
+describe("FileReviewPrompt — line stats", () => {
+  it("shows the set aggregate +N -M on the header", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [
+        makeChange({ id: "a", path: "one.ts", linesAdded: 12, linesRemoved: 3 }),
+        makeChange({ id: "b", path: "two.ts", linesAdded: 4, linesRemoved: 1 }),
+      ],
+    });
+    const out = render(<FileReviewPrompt changeSet={set} onSubmit={() => {}} />).lastFrame() ?? "";
+    expect(out).toContain("2 files awaiting review");
+    expect(out).toContain("+16");
+    expect(out).toContain("-4");
+  });
+
+  it("hides the header aggregate when no file has counts (never +0 -0)", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [makeChange({ id: "a", path: "one.ts" })],
+    });
+    const out = render(<FileReviewPrompt changeSet={set} onSubmit={() => {}} />).lastFrame() ?? "";
+    expect(out).not.toContain("+");
+  });
+
+  it("shows per-file +N -M in per-file mode", async () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [
+        makeChange({ id: "a", path: "one.ts", linesAdded: 10, linesRemoved: 2 }),
+        makeChange({ id: "b", path: "two.ts", linesAdded: 4, linesRemoved: 0 }),
+      ],
+    });
+    const { stdin, lastFrame } = renderWithClient(
+      <FileReviewPrompt changeSet={set} onSubmit={() => {}} />,
+    );
+    stdin.write("f");
+    await tick();
+    const out = lastFrame() ?? "";
+    expect(out).toContain("+10");
+    expect(out).toContain("+4");
+  });
+});
+
+describe("FileReviewRecord — line stats", () => {
+  it("shows the set aggregate and per-file +N -M", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [
+        makeChange({ id: "a", path: "one.ts", linesAdded: 9, linesRemoved: 2 }),
+        makeChange({ id: "b", path: "two.ts", linesAdded: 3, linesRemoved: 1 }),
+      ],
+      decisions: [
+        { scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.APPROVE },
+      ],
+    });
+    const out = render(<FileReviewRecord fileChangeSet={set} />).lastFrame() ?? "";
+    expect(out).toContain("+12"); // aggregate 9+3
+    expect(out).toContain("+9"); // per-file
+    expect(out).toContain("+3"); // per-file
+  });
+
+  it("renders no stat when the set carries no counts", () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.RECONCILED,
+      changes: [makeChange({ id: "a", path: "one.ts" })],
+    });
+    expect(render(<FileReviewRecord fileChangeSet={set} />).lastFrame() ?? "").not.toContain("+");
+  });
+});
+
+// --- FileDiffBody ---------------------------------------------------------
+
+/** Let an async artifact fetch resolve and the component re-render. */
+const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 60));
+
+function inlineSide(text: string): FileContent {
+  return create(FileContentSchema, { body: { case: "inline", value: text } });
+}
+
+function offloadedSide(storageKey: string, contentHash = "h"): FileContent {
+  return create(FileContentSchema, {
+    body: {
+      case: "ref",
+      value: create(ToolCallOutputRefSchema, { storageKey, contentHash }),
+    },
+  });
+}
+
+function changeWith(opts: {
+  id: string;
+  kind?: FileChangeKind;
+  before?: FileContent;
+  after?: FileContent;
+}) {
+  return create(CapturedFileChangeSchema, {
+    id: opts.id,
+    pathAfter: "file.ts",
+    pathBefore: "file.ts",
+    kind: opts.kind ?? FileChangeKind.MODIFY,
+    fileDigest: `fd-${opts.id}`,
+    before: opts.before,
+    after: opts.after,
+  });
+}
+
+describe("FileDiffBody", () => {
+  it("renders +/- lines for an inline whole-file diff (computeDiff parity)", () => {
+    const change = changeWith({
+      id: "m",
+      before: inlineSide("keep\nold\ntail\n"),
+      after: inlineSide("keep\nnew\ntail\n"),
+    });
+    const out = renderWithClient(<FileDiffBody change={change} />).lastFrame() ?? "";
+    expect(out).toContain("-old"); // removed, red
+    expect(out).toContain("+new"); // added, green
+    expect(out).toContain("keep"); // context retained
+  });
+
+  it("shows 'Binary file changed.' for a binary side", () => {
+    const change = create(CapturedFileChangeSchema, {
+      id: "bin",
+      pathAfter: "logo.png",
+      pathBefore: "logo.png",
+      kind: FileChangeKind.BINARY_CHANGE,
+      before: create(FileContentSchema, { isBinary: true }),
+      after: create(FileContentSchema, { isBinary: true }),
+    });
+    const out = renderWithClient(<FileDiffBody change={change} />).lastFrame() ?? "";
+    expect(out).toContain("Binary file changed.");
+  });
+
+  it("labels a genuinely empty new file (CREATE with no content)", () => {
+    const change = changeWith({ id: "new", kind: FileChangeKind.ADD, after: inlineSide("") });
+    const out = renderWithClient(<FileDiffBody change={change} />).lastFrame() ?? "";
+    expect(out).toContain("Empty new file.");
+  });
+
+  it("falls back to 'No preview available.' for a MODIFY with no renderable diff", () => {
+    const change = changeWith({ id: "np" }); // no before/after content
+    const out = renderWithClient(<FileDiffBody change={change} />).lastFrame() ?? "";
+    expect(out).toContain("No preview available.");
+  });
+
+  it("shows a loading notice while an offloaded side is in flight", () => {
+    const change = changeWith({ id: "load", after: offloadedSide("artifacts/aex-1/after") });
+    const client = fakeClient({
+      agentExecution: { getArtifactContent: () => new Promise(() => {}) },
+    });
+    const out = renderWithClient(<FileDiffBody change={change} />, client).lastFrame() ?? "";
+    expect(out).toContain("Loading diff");
+  });
+
+  it("reports a server-truncated offloaded side as un-diffable inline", async () => {
+    const change = changeWith({ id: "trunc", after: offloadedSide("artifacts/aex-1/after") });
+    const client = fakeClient({
+      agentExecution: {
+        getArtifactContent: async () => ({
+          content: new TextEncoder().encode("way too big"),
+          contentType: "text/plain",
+          truncated: true,
+        }),
+      },
+    });
+    const { lastFrame } = renderWithClient(<FileDiffBody change={change} />, client);
+    await settle();
+    expect(lastFrame() ?? "").toContain("too large to diff inline");
+  });
+
+  it("surfaces a fetch failure as an honest error notice", async () => {
+    const change = changeWith({ id: "err", after: offloadedSide("artifacts/aex-1/after") });
+    const client = fakeClient({
+      agentExecution: {
+        getArtifactContent: async () => {
+          throw new Error("boom");
+        },
+      },
+    });
+    const { lastFrame } = renderWithClient(<FileDiffBody change={change} />, client);
+    await settle();
+    expect(lastFrame() ?? "").toContain("Could not load this file's contents.");
+  });
+
+  it("caps an oversized diff and reports the overflow", () => {
+    const many = Array.from({ length: 250 }, (_, i) => `line ${i}`).join("\n");
+    const change = changeWith({ id: "big", before: inlineSide(""), after: inlineSide(`${many}\n`) });
+    const out = renderWithClient(<FileDiffBody change={change} />).lastFrame() ?? "";
+    expect(out).toMatch(/… \d+ more lines/);
+  });
+});
+
+describe("FileReviewPrompt — inline diff (master-detail)", () => {
+  it("shows only the selected file's diff and follows the selection", async () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [
+        changeWith({ id: "a", before: inlineSide("alpha\n"), after: inlineSide("ALPHA\n") }),
+        changeWith({ id: "b", before: inlineSide("bravo\n"), after: inlineSide("BRAVO\n") }),
+      ],
+    });
+    const { stdin, lastFrame } = renderWithClient(
+      <FileReviewPrompt changeSet={set} onSubmit={() => {}} />,
+    );
+    stdin.write("f");
+    await tick();
+    const first = lastFrame() ?? "";
+    expect(first).toContain("+ALPHA"); // selected file's diff
+    expect(first).not.toContain("+BRAVO"); // the other file's diff is not mounted
+
+    stdin.write("\u001B[B"); // down → select the second file
+    await tick();
+    const second = lastFrame() ?? "";
+    expect(second).toContain("+BRAVO");
+    expect(second).not.toContain("+ALPHA");
   });
 });

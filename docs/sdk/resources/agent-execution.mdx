@@ -618,27 +618,29 @@ const agentExecution = await stigmer.agentExecution.create({
   attachments: [],
   workspaceFileRefs: [],
   activityTaskQueue: "...",
+  supersedesExecutionId: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
-  Name:              "my-agent-execution",
-  Org:               "acme",
-  Slug:              "...",
-  Labels:            map[string]string{},
-  SessionId:         "...",
-  AgentId:           "...",
-  Message:           "...",
-  ExecutionConfig:   &stigmer.ExecutionConfigInput{},
-  RuntimeEnv:        map[string]string{},
-  CallbackToken:     "...",
-  AutoApproveAll:    false,
-  ParentWorkflowId:  "...",
-  Attachments:       []stigmer.AttachmentInput{},
-  WorkspaceFileRefs: []string{},
-  ActivityTaskQueue: "...",
+  Name:                  "my-agent-execution",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  SessionId:             "...",
+  AgentId:               "...",
+  Message:               "...",
+  ExecutionConfig:       &stigmer.ExecutionConfigInput{},
+  RuntimeEnv:            map[string]string{},
+  CallbackToken:         "...",
+  AutoApproveAll:        false,
+  ParentWorkflowId:      "...",
+  Attachments:           []stigmer.AttachmentInput{},
+  WorkspaceFileRefs:     []string{},
+  ActivityTaskQueue:     "...",
+  SupersedesExecutionId: "...",
 })
 ```
 </Tab>
@@ -660,6 +662,7 @@ agent_execution = client.agent_executions.create(AgentExecutionInput(
     attachments=[],
     workspace_file_refs=[],
     activity_task_queue="...",
+    supersedes_execution_id="...",
 ))
 ```
 </Tab>
@@ -681,6 +684,7 @@ AgentExecution agentExecution = client.agentExecutions().create(AgentExecutionIn
     .attachments(List.of())
     .workspaceFileRefs(List.of())
     .activityTaskQueue("...")
+    .supersedesExecutionId("...")
     .build());
 ```
 </Tab>
@@ -713,27 +717,29 @@ const agentExecution = await stigmer.agentExecution.update({
   attachments: [],
   workspaceFileRefs: [],
   activityTaskQueue: "...",
+  supersedesExecutionId: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecutionInput{
-  Name:              "my-agent-execution",
-  Org:               "acme",
-  Slug:              "...",
-  Labels:            map[string]string{},
-  SessionId:         "...",
-  AgentId:           "...",
-  Message:           "...",
-  ExecutionConfig:   &stigmer.ExecutionConfigInput{},
-  RuntimeEnv:        map[string]string{},
-  CallbackToken:     "...",
-  AutoApproveAll:    false,
-  ParentWorkflowId:  "...",
-  Attachments:       []stigmer.AttachmentInput{},
-  WorkspaceFileRefs: []string{},
-  ActivityTaskQueue: "...",
+  Name:                  "my-agent-execution",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  SessionId:             "...",
+  AgentId:               "...",
+  Message:               "...",
+  ExecutionConfig:       &stigmer.ExecutionConfigInput{},
+  RuntimeEnv:            map[string]string{},
+  CallbackToken:         "...",
+  AutoApproveAll:        false,
+  ParentWorkflowId:      "...",
+  Attachments:           []stigmer.AttachmentInput{},
+  WorkspaceFileRefs:     []string{},
+  ActivityTaskQueue:     "...",
+  SupersedesExecutionId: "...",
 })
 ```
 </Tab>
@@ -755,6 +761,7 @@ agent_execution = client.agent_executions.update(AgentExecutionInput(
     attachments=[],
     workspace_file_refs=[],
     activity_task_queue="...",
+    supersedes_execution_id="...",
 ))
 ```
 </Tab>
@@ -776,6 +783,7 @@ AgentExecution agentExecution = client.agentExecutions().update(AgentExecutionIn
     .attachments(List.of())
     .workspaceFileRefs(List.of())
     .activityTaskQueue("...")
+    .supersedesExecutionId("...")
     .build());
 ```
 </Tab>
@@ -1272,6 +1280,7 @@ Input for creating or updating an Agent Execution.
     attachments: { type: "AttachmentInput[]", description: "Files attached to this execution.", typeDescriptionLink: "#attachmentinput" },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
     activityTaskQueue: { type: "string", description: "Explicit Temporal task queue override for activity routing." },
+    supersedesExecutionId: { type: "string", description: "ID of the execution this one supersedes via edit-and-resubmit (optional)." },
   }}
 />
 

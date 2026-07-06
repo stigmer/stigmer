@@ -38,10 +38,15 @@ func uniqueWorkspacePath(label string) string {
 // starts a UnifiedRunnerManager pointed at it, and returns both. The runner
 // manager uses IPC mode so AddSession() routes activities to per-session
 // workers that hit the mock instead of a real LLM provider.
+//
+// extraEnv threads additional KEY=VALUE entries into the runner process env,
+// scoped to this runner only (see UnifiedRunnerConfig.ExtraEnv). Existing
+// callers pass none.
 func startOfflineRunner(
 	t *testing.T,
 	ctx context.Context,
 	entries []harness.RecordedLLMEntry,
+	extraEnv ...string,
 ) (*harness.MockLLMProxyServer, *harness.UnifiedRunnerManager) {
 	t.Helper()
 
@@ -60,6 +65,7 @@ func startOfflineRunner(
 		CloudAPIURL:      mockLLM.URL(),
 		LocalArtifactDir: t.TempDir(),
 		LogLabel:         t.Name(),
+		ExtraEnv:         extraEnv,
 	}, suiteLogger)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {

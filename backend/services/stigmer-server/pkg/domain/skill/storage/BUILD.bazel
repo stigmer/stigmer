@@ -20,6 +20,7 @@ go_test(
     name = "storage_test",
     srcs = [
         "artifact_storage_test.go",
+        "frontmatter_test.go",
         "zip_extractor_test.go",
     ],
     embed = [":storage"],

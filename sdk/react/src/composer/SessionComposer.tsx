@@ -42,6 +42,7 @@ import {
   SecretsIcon,
   AlertTriangleIcon,
   ResolveSpinner,
+  XIcon,
 } from "./icons.js";
 
 /**
@@ -168,6 +169,18 @@ export interface SessionComposerSubmitContext {
    * `undefined` for ordinary submissions.
    */
   readonly buildFromPlan?: boolean;
+  /**
+   * ID of the execution this submission supersedes (edit-and-resubmit).
+   *
+   * Never set by the composer itself — the session viewer merges it into
+   * the context when the user submits while the composer is in editing
+   * mode (see `SessionComposerProps.isEditing`). Pass to execution
+   * creation as `supersedesExecutionId`; chat threads hide the superseded
+   * execution so the edited message replaces the original in place.
+   *
+   * `undefined` for ordinary submissions.
+   */
+  readonly supersedesExecutionId?: string;
 }
 
 /** Props for {@link SessionComposer}. */
@@ -201,6 +214,26 @@ export interface SessionComposerProps {
   readonly onStop?: () => void;
   /** `true` while a stop request is in flight — shows a spinner on the Stop button. */
   readonly isStopping?: boolean;
+
+  /**
+   * Marks the composer as editing a previously sent message
+   * (edit-and-resubmit). Renders an "Editing message" banner above the
+   * textarea with a cancel (X) affordance; Escape in the textarea also
+   * cancels. The banner is purely presentational — the viewer owns the
+   * editing state and attaches the supersede link on submit.
+   *
+   * Opt-in: when omitted, the composer behaves exactly as before.
+   */
+  readonly isEditing?: boolean;
+  /**
+   * Called when the user cancels editing (banner X or Escape).
+   *
+   * The consumer clears its editing state and typically clears the
+   * prefilled text via {@link SessionComposerHandle.setMessage}.
+   * Required for the editing banner to render its cancel affordance;
+   * ignored when `isEditing` is false.
+   */
+  readonly onCancelEdit?: () => void;
 
   /**
    * Currently selected execution harness.
@@ -531,6 +564,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   disabled = false,
   onStop,
   isStopping = false,
+  isEditing = false,
+  onCancelEdit,
   harness,
   onHarnessChange,
   showHarnessSelector = false,
@@ -1139,13 +1174,21 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   const handleTextareaKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      // Escape exits edit-and-resubmit mode — same reflex as dismissing a
+      // popover. Only intercepted while editing so it never shadows other
+      // Escape behaviors (e.g. closing an open picker above the textarea).
+      if (isEditing && onCancelEdit && e.key === "Escape") {
+        e.preventDefault();
+        onCancelEdit();
+        return;
+      }
       if (!canSend && e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         return;
       }
       composer.textareaProps.onKeyDown(e);
     },
-    [canSend, composer.textareaProps],
+    [canSend, composer.textareaProps, isEditing, onCancelEdit],
   );
 
   const workspaceCount = workspace?.entries.length ?? 0;
@@ -1393,6 +1436,31 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
+        {/* Zone 0.5: Edit-and-resubmit banner. Rendered inside the card so the
+            editing state visually owns the text below it — the user reads
+            "Editing message" and the prefilled prompt as one unit. */}
+        {isEditing && (
+          <div
+            role="status"
+            className="flex items-center justify-between gap-2 rounded-t-xl border-b border-border bg-muted px-3 py-1.5"
+          >
+            <span className="text-xs font-medium text-muted-foreground">
+              Editing message
+            </span>
+            {onCancelEdit && (
+              <button
+                type="button"
+                onClick={onCancelEdit}
+                aria-label="Cancel editing"
+                title="Cancel editing (Esc)"
+                className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <XIcon />
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Zone 1: Textarea */}
         <div className="relative">
           <textarea

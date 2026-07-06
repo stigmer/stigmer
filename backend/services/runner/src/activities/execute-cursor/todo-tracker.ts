@@ -12,33 +12,21 @@
  * parallel extraction into the proto map that downstream consumers
  * (React TodoList, CLI emitTodoEvents) already know how to render.
  *
+ * The payload-to-map mapping lives in the harness-agnostic `applyTodoUpdate`
+ * (shared/todos.ts), shared with the native v2/v3 status builders so no two
+ * writers of `status.todos` can drift. This class owns only the Cursor-specific
+ * concerns: which events carry todos, parsing the SDK's args shape, and the
+ * dirty/force-flush signal.
+ *
  * Follows the same single-responsibility pattern as DeltaEnricher:
  * the orchestrator (execute-cursor.ts) wires it into the event loop.
  */
 
-import { create } from "@bufbuild/protobuf";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
-import { utcTimestamp } from "./message-translator.js";
+import { applyTodoUpdate } from "../../shared/todos.js";
 
 const TODO_TOOL_NAMES = new Set(["TodoWrite", "updateTodos"]);
-
-const STATUS_MAP: Record<string, TodoStatus> = {
-  pending: TodoStatus.TODO_PENDING,
-  in_progress: TodoStatus.TODO_IN_PROGRESS,
-  inprogress: TodoStatus.TODO_IN_PROGRESS,
-  completed: TodoStatus.TODO_COMPLETED,
-  cancelled: TodoStatus.TODO_CANCELLED,
-};
-
-interface RawTodoItem {
-  id?: string;
-  content?: string;
-  status?: string;
-  created_at?: string;
-}
 
 export class TodoTracker {
   private readonly todos: { [key: string]: TodoItem };
@@ -60,43 +48,19 @@ export class TodoTracker {
     const args = this.parseArgs(event.args);
     if (!args) return;
 
-    const rawTodos = args.todos as RawTodoItem[] | undefined;
-    if (!Array.isArray(rawTodos) || rawTodos.length === 0) {
-      if (args.merge !== true) {
-        this.clearMap();
-        this._isDirty = true;
-      }
-      return;
+    const changed = applyTodoUpdate(this.todos, args.todos, {
+      merge: args.merge === true,
+    });
+    if (changed) {
+      this._isDirty = true;
     }
 
-    const merge = args.merge === true;
-    const now = utcTimestamp();
-
-    if (!merge) {
-      this.clearMap();
+    if (Array.isArray(args.todos) && args.todos.length > 0) {
+      console.log(
+        `TodoTracker: processed ${args.todos.length} todo(s) from ${event.name} ` +
+        `(merge=${args.merge === true})`,
+      );
     }
-
-    for (let i = 0; i < rawTodos.length; i++) {
-      const raw = rawTodos[i];
-      const id = raw.id || `todo-${i}`;
-      const statusStr = (raw.status ?? "pending").toLowerCase();
-      const status = STATUS_MAP[statusStr] ?? TodoStatus.TODO_PENDING;
-
-      const existing = merge ? this.todos[id] : undefined;
-
-      this.todos[id] = create(TodoItemSchema, {
-        id,
-        content: raw.content ?? "",
-        status,
-        createdAt: existing?.createdAt || raw.created_at || now,
-        updatedAt: now,
-      });
-    }
-
-    this._isDirty = true;
-    console.log(
-      `TodoTracker: processed ${rawTodos.length} todo(s) from ${event.name} (merge=${merge})`,
-    );
   }
 
   get isDirty(): boolean {
@@ -123,11 +87,5 @@ export class TodoTracker {
     }
 
     return null;
-  }
-
-  private clearMap(): void {
-    for (const key of Object.keys(this.todos)) {
-      delete this.todos[key];
-    }
   }
 }

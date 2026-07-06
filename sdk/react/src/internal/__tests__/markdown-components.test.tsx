@@ -1,17 +1,33 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import type { ComponentType, ReactNode } from "react";
+import Markdown from "react-markdown";
 import {
   MARKDOWN_COMPONENTS,
+  REMARK_PLUGINS,
   extractLeadingH1,
   unwrapEnclosingMarkdownFence,
 } from "../markdown-components";
+
+// Stub the diagram component: these tests verify the DISPATCH seam (which
+// fences route to the diagram vs the code block), not mermaid rendering —
+// that contract is covered by mermaid-diagram.test.tsx.
+vi.mock("../MermaidDiagram", () => ({
+  MermaidDiagram: ({ chart }: { chart: string }) => (
+    <div data-testid="mermaid-diagram">{chart}</div>
+  ),
+}));
 
 afterEach(cleanup);
 
 /** The shared `code` override, typed for direct rendering in tests. */
 const CodeComponent = MARKDOWN_COMPONENTS.code as ComponentType<{
   className?: string;
+  children?: ReactNode;
+}>;
+
+/** The shared `pre` override, typed for direct rendering in tests. */
+const PreComponent = MARKDOWN_COMPONENTS.pre as ComponentType<{
   children?: ReactNode;
 }>;
 
@@ -183,5 +199,81 @@ describe("MARKDOWN_COMPONENTS.code (shared highlight seam)", () => {
     expect(code!.className).not.toContain("hljs");
     expect(code!.className).toContain("bg-muted");
     expect(code!.textContent).toBe("inlineToken");
+  });
+});
+
+describe("MARKDOWN_COMPONENTS.pre (mermaid dispatch seam)", () => {
+  const CHART = "flowchart LR\n  A --> B";
+
+  it("routes an explicit ```mermaid fence to the diagram, dropping the <pre> wrapper", () => {
+    const { container } = render(
+      <PreComponent>
+        <code className="language-mermaid">{CHART}</code>
+      </PreComponent>,
+    );
+
+    const diagram = container.querySelector('[data-testid="mermaid-diagram"]');
+    expect(diagram).not.toBeNull();
+    expect(diagram!.textContent).toBe(CHART);
+    // The diagram replaces the <pre> entirely — a block container inside
+    // <pre> would be invalid HTML and inherit code-block chrome.
+    expect(container.querySelector("pre")).toBeNull();
+  });
+
+  it("matches language-mermaid among multiple classes", () => {
+    const { container } = render(
+      <PreComponent>
+        <code className="language-mermaid extra-class">{CHART}</code>
+      </PreComponent>,
+    );
+
+    expect(
+      container.querySelector('[data-testid="mermaid-diagram"]'),
+    ).not.toBeNull();
+  });
+
+  it.each([
+    [
+      "a different language",
+      <code key="go" className="language-go">{"func main() {}"}</code>,
+    ],
+    [
+      "a language merely PREFIXED with mermaid",
+      <code key="pfx" className="language-mermaidjs">{CHART}</code>,
+    ],
+    ["an untagged fence", <code key="bare">{CHART}</code>],
+    [
+      "non-string code children",
+      <code key="node" className="language-mermaid">
+        <span>{CHART}</span>
+      </code>,
+    ],
+    ["plain-text children (no code element)", CHART],
+  ])("keeps the ordinary <pre> code block for %s", (_label, children) => {
+    const { container } = render(<PreComponent>{children}</PreComponent>);
+
+    expect(container.querySelector('[data-testid="mermaid-diagram"]')).toBeNull();
+    const pre = container.querySelector("pre");
+    expect(pre).not.toBeNull();
+    expect(pre!.className).toContain("bg-muted");
+  });
+
+  it("dispatches through real react-markdown (the artifact/skill surface path)", () => {
+    // Renders an actual document instead of synthetic elements, proving the
+    // element shape react-markdown hands to `pre` matches what the seam
+    // detects. The Streamdown (chat) path has the equivalent end-to-end
+    // coverage in message-entry.test.tsx.
+    const doc = `Before\n\n\`\`\`mermaid\n${CHART}\n\`\`\`\n\n\`\`\`go\nfunc main() {}\n\`\`\``;
+    const { container } = render(
+      <Markdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
+        {doc}
+      </Markdown>,
+    );
+
+    const diagram = container.querySelector('[data-testid="mermaid-diagram"]');
+    expect(diagram).not.toBeNull();
+    expect(diagram!.textContent).toContain("flowchart LR");
+    // The sibling go fence still renders as an ordinary highlighted block.
+    expect(container.querySelector("pre code.language-go")).not.toBeNull();
   });
 });

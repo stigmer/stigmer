@@ -269,6 +269,14 @@ func WithRuntimeEnv(env map[string]*executionctxv1.ExecutionValue) AgentExecutio
 	}
 }
 
+// WithSupersedesExecutionId marks the execution as the edit-and-resubmit
+// replacement of an earlier turn.
+func WithSupersedesExecutionId(executionID string) AgentExecutionOption {
+	return func(s *agentexecv1.AgentExecutionSpec) {
+		s.SupersedesExecutionId = executionID
+	}
+}
+
 // RequireServiceHealthy skips the test if the Java service gRPC connection
 // is not responding. Useful as a guard before expensive test families to
 // avoid cascading failures when the service has crashed.

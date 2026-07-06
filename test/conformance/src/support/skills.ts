@@ -4,8 +4,9 @@
 // Skill is the second versioned domain, but unlike Workflow it has no proto
 // spec the client fills in. A skill is *pushed* as a ZIP whose root SKILL.md
 // carries YAML frontmatter; the backend extracts the kebab-case `name` (which
-// becomes both metadata.name and metadata.slug — backend is the single source
-// of truth) and computes the version hash as the SHA-256 of the ZIP *bytes*.
+// becomes metadata.name, with metadata.slug derived from it — dots become
+// hyphens; backend is the single source of truth) and computes the version hash
+// as the SHA-256 of the ZIP *bytes*.
 //
 // That last fact is the lever these builders expose: the version identity is a
 // function of the artifact bytes, so changing `body` produces a new version,
@@ -19,9 +20,10 @@
 import { strToU8, zipSync } from "fflate";
 
 export interface SkillArtifactOptions {
-  // Kebab-case skill identifier written to the SKILL.md frontmatter `name`
-  // field. Must match ^[a-z0-9]+(-[a-z0-9]+)*$ — uniqueName("skill") qualifies.
-  // The backend derives both metadata.name and metadata.slug from this.
+  // Skill identifier written to the SKILL.md frontmatter `name` field: kebab-case,
+  // optionally scoped with dot-separated namespaces. Must match
+  // ^[a-z0-9]+([.-][a-z0-9]+)*$ — uniqueName("skill") qualifies. The backend
+  // derives metadata.name from this and metadata.slug from it (dots -> hyphens).
   name: string;
   // Markdown body after the frontmatter. The body is part of the ZIP bytes, so
   // changing it changes the version hash — the lever for forcing a new version

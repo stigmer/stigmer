@@ -5,9 +5,10 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { cn } from "@stigmer/theme";
 import {
   useSessionArtifacts,
+  artifactKey,
   type SessionArtifactEntry,
 } from "../session/useSessionArtifacts.js";
-import { ArtifactCard } from "./ArtifactCard.js";
+import { ArtifactRow } from "./ArtifactRow.js";
 import { ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 
@@ -45,18 +46,15 @@ export interface ArtifactsWidgetProps {
  * a file-explorer-like view of the conversation's output — no
  * execution/turn concepts are exposed.
  *
- * Composes {@link ArtifactCard} (summary + detection badges) with
- * {@link ArtifactPreviewModal} (full content review + Apply/Push CTA).
- * The card's "Preview" action opens the modal; the modal is the sole
- * location for Apply/Push actions (review-before-apply pattern).
+ * The panel-less counterpart of the session panel's Artifacts facet: it
+ * renders the same dense {@link ArtifactRow} list, but — having no editor pane
+ * to open document tabs into — a click opens the {@link ArtifactPreviewModal}
+ * (the review-before-apply popup, and the sole home of the Apply/Push CTA).
+ * This is the embeddable path a platform builder drops into their own sidebar.
  *
  * Returns `null` when the executions list is empty or no execution
  * has artifacts, matching the conditional-render pattern of
  * {@link ExecutionProgress} and {@link UsageWidget}.
- *
- * Renders without card chrome — each {@link ArtifactCard} provides its
- * own border and padding. The consumer controls the container styling
- * (or places the widget directly in a flex/grid layout).
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -74,7 +72,7 @@ export interface ArtifactsWidgetProps {
  * />
  * ```
  *
- * @see {@link ArtifactCard} — compact summary card per artifact
+ * @see {@link ArtifactRow} — the dense row rendered per artifact
  * @see {@link ArtifactPreviewModal} — full preview with Apply/Push CTA
  * @see {@link useSessionArtifacts} — headless session-level artifact aggregation hook
  * @see {@link useExecutionArtifacts} — headless single-execution artifact extraction hook
@@ -88,27 +86,22 @@ export function ArtifactsWidget({
   const { artifacts, hasArtifacts, artifactCount } =
     useSessionArtifacts(executions);
 
-  // Store the dedup key (sandboxPath or name) instead of a snapshot of
-  // the full entry.  The actual entry is derived from the live artifacts
-  // list on every render, so the preview modal always reflects the
-  // latest artifact version — even when a newer execution publishes an
-  // updated artifact for the same path while the modal is open.
+  // Store the artifact identity (not a snapshot of the full entry). The entry is
+  // re-derived from the live artifacts list on every render, so the modal always
+  // reflects the latest artifact version — even when a newer execution publishes
+  // an updated artifact for the same path while the modal is open.
   const [previewKey, setPreviewKey] = useState<string | null>(null);
 
   const previewEntry = useMemo<SessionArtifactEntry | null>(
     () =>
       previewKey !== null
-        ? artifacts.find(
-            (e) =>
-              (e.artifact.sandboxPath || e.artifact.name) === previewKey,
-          ) ?? null
+        ? artifacts.find((e) => artifactKey(e.artifact) === previewKey) ?? null
         : null,
     [previewKey, artifacts],
   );
 
-  const handlePreview = useCallback(
-    (entry: SessionArtifactEntry) =>
-      setPreviewKey(entry.artifact.sandboxPath || entry.artifact.name),
+  const handleOpen = useCallback(
+    (entry: SessionArtifactEntry) => setPreviewKey(artifactKey(entry.artifact)),
     [],
   );
 
@@ -123,19 +116,17 @@ export function ArtifactsWidget({
         </span>
       </div>
 
-      <div role="list" className="space-y-2">
+      <ul role="list" className="flex flex-col">
         {artifacts.map((entry) => (
-          <div key={entry.artifact.storageKey} role="listitem">
-            <ArtifactCard
-              artifact={entry.artifact}
-              executionId={entry.executionId}
-              org={org}
-              hasNameCollision={entry.hasNameCollision}
-              onPreview={() => handlePreview(entry)}
-            />
-          </div>
+          <ArtifactRow
+            key={artifactKey(entry.artifact)}
+            artifact={entry.artifact}
+            executionId={entry.executionId}
+            hasNameCollision={entry.hasNameCollision}
+            onOpen={() => handleOpen(entry)}
+          />
         ))}
-      </div>
+      </ul>
 
       {previewEntry && (
         <ArtifactPreviewModal

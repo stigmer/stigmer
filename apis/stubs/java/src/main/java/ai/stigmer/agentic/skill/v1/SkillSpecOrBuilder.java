@@ -64,8 +64,13 @@ public interface SkillSpecOrBuilder extends
    * <pre>
    * Skill name extracted from SKILL.md YAML frontmatter.
    * This is the canonical name used for identification and references.
-   * Must be kebab-case: lowercase letters, numbers, and hyphens only.
-   * Examples: "calculator", "web-scraper", "math-utils"
+   * Kebab-case, optionally scoped with dot-separated namespaces: lowercase
+   * letters, numbers, hyphens (-) to separate words, and dots (.) to separate
+   * namespace segments. Every segment must be alphanumeric, so the name cannot
+   * start or end with a separator nor contain consecutive separators. The
+   * derived slug renders dots as hyphens (e.g. "platform.planton-architecture"
+   * -&gt; slug "platform-planton-architecture").
+   * Examples: "calculator", "web-scraper", "math-utils", "platform.planton-architecture"
    * </pre>
    *
    * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -76,8 +81,13 @@ public interface SkillSpecOrBuilder extends
    * <pre>
    * Skill name extracted from SKILL.md YAML frontmatter.
    * This is the canonical name used for identification and references.
-   * Must be kebab-case: lowercase letters, numbers, and hyphens only.
-   * Examples: "calculator", "web-scraper", "math-utils"
+   * Kebab-case, optionally scoped with dot-separated namespaces: lowercase
+   * letters, numbers, hyphens (-) to separate words, and dots (.) to separate
+   * namespace segments. Every segment must be alphanumeric, so the name cannot
+   * start or end with a separator nor contain consecutive separators. The
+   * derived slug renders dots as hyphens (e.g. "platform.planton-architecture"
+   * -&gt; slug "platform-planton-architecture").
+   * Examples: "calculator", "web-scraper", "math-utils", "platform.planton-architecture"
    * </pre>
    *
    * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>

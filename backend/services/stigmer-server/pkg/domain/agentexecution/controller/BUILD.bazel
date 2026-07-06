@@ -82,6 +82,7 @@ go_test(
     srcs = [
         "agentexecution_controller_test.go",
         "get_artifact_content_test.go",
+        "get_artifact_download_url_test.go",
         "lifecycle_cancel_cascade_test.go",
         "lifecycle_concurrency_test.go",
         "submit_approval_contract_test.go",

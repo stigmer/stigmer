@@ -230,8 +230,32 @@ type AgentExecutionSpec struct {
 	//
 	// @since Workflow Sandbox Affinity
 	ActivityTaskQueue string `protobuf:"bytes,11,opt,name=activity_task_queue,json=activityTaskQueue,proto3" json:"activity_task_queue,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// ID of the execution this one supersedes via edit-and-resubmit (optional).
+	//
+	// When a user stops an in-flight turn, edits the message, and resubmits,
+	// the client sets this field on the NEW execution to point at the stopped
+	// one. Chat-thread consumers hide the superseded execution so the edited
+	// message replaces the original in place; history surfaces (CLI, execution
+	// lists) keep showing the full record.
+	//
+	// Empty means this execution is not an edit of another turn.
+	//
+	// @internal
+	//
+	// The link always lives on the successor — the superseded record is never
+	// mutated (append-only execution log, single writer). Chained edits form a
+	// chain of links (A <- B <- C), each persisted on its own successor.
+	//
+	// Display-level semantics only: the runner does NOT rewind model context.
+	// Conversation history lives in an opaque session-keyed store (LangGraph
+	// checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+	// superseded turn's partial messages remain visible to the model. Do not
+	// build features that assume the runner skips superseded turns.
+	//
+	// @since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+	SupersedesExecutionId string `protobuf:"bytes,12,opt,name=supersedes_execution_id,json=supersedesExecutionId,proto3" json:"supersedes_execution_id,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *AgentExecutionSpec) Reset() {
@@ -341,6 +365,13 @@ func (x *AgentExecutionSpec) GetActivityTaskQueue() string {
 	return ""
 }
 
+func (x *AgentExecutionSpec) GetSupersedesExecutionId() string {
+	if x != nil {
+		return x.SupersedesExecutionId
+	}
+	return ""
+}
+
 // Configuration that can be applied at execution time.
 type ExecutionConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -438,10 +469,10 @@ type ExecutionConfig struct {
 	//
 	// When set, the runner injects the implement-plan directive into the agent's
 	// prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
-	// document travels as an attachment (the normal case — mounted at
-	// `.stigmer/inputs/plan.md`), the directive points the agent at that file;
-	// when no plan attachment is present (e.g. the client's upload failed), the
-	// directive tells the agent to follow the plan from the conversation instead.
+	// document travels as an attachment (the normal case), the directive points
+	// the agent at the attached plan file and treats it as authoritative; when no
+	// plan attachment is present (e.g. the client's upload failed), the directive
+	// tells the agent to follow the plan from the conversation instead.
 	//
 	// Clients set this flag INSTEAD of embedding implement instructions in
 	// `message`, so `message` stays a short human-readable label (e.g.
@@ -815,7 +846,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xe8\x05\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa0\x06\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -830,7 +861,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\vattachments\x18\t \x03(\v20.ai.stigmer.agentic.agentexecution.v1.AttachmentR\vattachments\x12.\n" +
 	"\x13workspace_file_refs\x18\n" +
 	" \x03(\tR\x11workspaceFileRefs\x12.\n" +
-	"\x13activity_task_queue\x18\v \x01(\tR\x11activityTaskQueue\x1au\n" +
+	"\x13activity_task_queue\x18\v \x01(\tR\x11activityTaskQueue\x126\n" +
+	"\x17supersedes_execution_id\x18\f \x01(\tR\x15supersedesExecutionId\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x82\x04\n" +

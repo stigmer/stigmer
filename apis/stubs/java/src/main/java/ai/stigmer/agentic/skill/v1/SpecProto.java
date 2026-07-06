@@ -42,16 +42,16 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n&ai/stigmer/agentic/skill/v1/spec.proto" +
       "\022\033ai.stigmer.agentic.skill.v1\032\033buf/valid" +
-      "ate/validate.proto\"\273\001\n\tSkillSpec\022\"\n\010skil" +
+      "ate/validate.proto\"\276\001\n\tSkillSpec\022\"\n\010skil" +
       "l_md\030\001 \001(\tB\007\272H\004r\002\020\001R\007skillMd\022-\n\003tag\030\002 \001(" +
-      "\tB\033\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$R\003tag\0223\n\004n" +
-      "ame\030\003 \001(\tB\037\272H\034r\0322\030^[a-z0-9]+(-[a-z0-9]+)" +
-      "*$R\004name\022 \n\013description\030\005 \001(\tR\013descripti" +
-      "onJ\004\010\004\020\005B\234\001B\tSpecProtoP\001\242\002\004ASAS\252\002\033Ai.Sti" +
-      "gmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\Agent" +
-      "ic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Skill\\V" +
-      "1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Sk" +
-      "ill::V1b\006proto3"
+      "\tB\033\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$R\003tag\0226\n\004n" +
+      "ame\030\003 \001(\tB\"\272H\037r\0352\033^[a-z0-9]+([.-][a-z0-9" +
+      "]+)*$R\004name\022 \n\013description\030\005 \001(\tR\013descri" +
+      "ptionJ\004\010\004\020\005B\234\001B\tSpecProtoP\001\242\002\004ASAS\252\002\033Ai." +
+      "Stigmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\Ag" +
+      "entic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Skil" +
+      "l\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic:" +
+      ":Skill::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

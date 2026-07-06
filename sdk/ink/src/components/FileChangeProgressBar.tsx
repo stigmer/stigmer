@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { FileChangeProgress } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import { kindLetter, progressEntryDisplayPath } from "../file-review.js";
+import { FileLineStats } from "./FileReviewAtoms.js";
 
 /** Props for {@link FileChangeProgressBar}. */
 export interface FileChangeProgressBarProps {
@@ -63,7 +64,7 @@ export function FileChangeProgressBar({
         <Text dimColor>
           {filesChanged} file{filesChanged === 1 ? "" : "s"} changing…
         </Text>
-        <LineStats linesAdded={linesAdded} linesRemoved={linesRemoved} />
+        <FileLineStats linesAdded={linesAdded} linesRemoved={linesRemoved} />
       </Box>
 
       {expanded && (
@@ -76,7 +77,7 @@ export function FileChangeProgressBar({
                 <Text dimColor wrap="truncate-end">
                   {path}
                 </Text>
-                <LineStats
+                <FileLineStats
                   linesAdded={entry.linesAdded}
                   linesRemoved={entry.linesRemoved}
                 />
@@ -91,32 +92,5 @@ export function FileChangeProgressBar({
         </Box>
       )}
     </Box>
-  );
-}
-
-/**
- * The `+N −M` stat for one file (or the whole turn), in the diff colour
- * vocabulary. Renders nothing when both counts are zero — the honest signal that
- * no count exists (binary or secret-withheld changes) — rather than a misleading
- * `+0 -0`, matching the web `FileLineStats` contract.
- *
- * Kept module-local: this is the only consumer today. When `FileReviewPrompt`
- * and `FileReviewRecord` gain `+N −M` (the deferred "CLI +N −M parity"
- * follow-up), lift this into a shared ink atom (the analogue of `sdk/react`'s
- * `FileReviewAtoms`) so the three surfaces cannot drift — do not copy it.
- */
-function LineStats({
-  linesAdded,
-  linesRemoved,
-}: {
-  readonly linesAdded: number;
-  readonly linesRemoved: number;
-}) {
-  if (linesAdded === 0 && linesRemoved === 0) return null;
-  return (
-    <Text>
-      <Text color="green">+{linesAdded}</Text>
-      <Text color="red"> -{linesRemoved}</Text>
-    </Text>
   );
 }

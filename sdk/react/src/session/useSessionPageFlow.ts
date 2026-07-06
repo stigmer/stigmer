@@ -410,6 +410,7 @@ export function useSessionPageFlow(
         // not from the composer (the pre-arm toggle was removed).
         autoApproveAll: autoApproveAll || undefined,
         workspaceFileRefs: context?.workspaceFileRefs,
+        supersedesExecutionId: context?.supersedesExecutionId,
       });
 
       sessionVariables.clear();

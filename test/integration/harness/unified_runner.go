@@ -61,6 +61,15 @@ type UnifiedRunnerConfig struct {
 	// every per-test manager writes the same unified-runner-manager.log and only
 	// the last survives — useless when a mid-suite test fails. Typically t.Name().
 	LogLabel string
+
+	// ExtraEnv holds additional KEY=VALUE runner-process environment entries,
+	// appended LAST (so they win over the defaults built here). Use it for the
+	// occasional test that must tune runner behavior a dedicated config field does
+	// not cover — e.g. STIGMER_PROGRESS_CAPTURE_MIN_INTERVAL_MS=0 to make mid-run
+	// file_change_progress capture on every persist. Scoping the override to this
+	// runner keeps it out of the shared process env (no os.Setenv leakage to other
+	// tests) and legible at the call site.
+	ExtraEnv []string
 }
 
 // UnifiedRunnerWorkspaceDir returns the WORKSPACE_ROOT_DIR the integration
@@ -735,6 +744,10 @@ func buildUnifiedRunnerEnv(cfg UnifiedRunnerConfig, mode, taskQueue string) []st
 	if os.Getenv("ANTHROPIC_API_KEY") == "" && os.Getenv("CURSOR_API_KEY") == "" {
 		env = append(env, "STIGMER_LLM_REQUEST_TIMEOUT_MS=5000")
 	}
+
+	// Caller-supplied overrides go last so a test can tune runner behavior beyond
+	// the dedicated config fields (see UnifiedRunnerConfig.ExtraEnv).
+	env = append(env, cfg.ExtraEnv...)
 
 	return env
 }
