@@ -1,9 +1,22 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { render, cleanup } from "@testing-library/react";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { render, cleanup, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { MessageEntry } from "../MessageEntry";
+import type { MermaidModule } from "../../internal/mermaid-loader";
+
+// Stub only the library loader: the real MermaidDiagram + markdown overrides
+// run end-to-end through Streamdown, so these tests cover the full chat path
+// from fenced source to rendered diagram.
+vi.mock("../../internal/mermaid-loader", () => ({
+  loadMermaid: vi.fn().mockResolvedValue({
+    initialize: vi.fn(),
+    render: vi
+      .fn()
+      .mockResolvedValue({ svg: "<svg data-testid='mermaid-svg'></svg>" }),
+  } as unknown as MermaidModule),
+}));
 
 afterEach(cleanup);
 
@@ -168,6 +181,41 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
     expect(
       article!.querySelectorAll('span[class*="hljs-"]').length,
     ).toBeGreaterThan(0);
+  });
+
+  it("renders a completed ```mermaid fence as a diagram, not a code block", async () => {
+    const msg = makeMessage(
+      MessageType.MESSAGE_AI,
+      "Here is the flow:\n\n```mermaid\nflowchart LR\n  A --> B\n```",
+    );
+    const { container } = render(<MessageEntry message={msg} />);
+
+    const article = queryArticle(container, "AI response");
+    await waitFor(() =>
+      expect(
+        article!.querySelector('[role="img"][aria-label="Mermaid diagram"]'),
+      ).not.toBeNull(),
+    );
+    expect(article!.querySelector("[data-testid='mermaid-svg']")).not.toBeNull();
+    // The fenced source is no longer shown as a code block.
+    expect(article!.querySelector("pre")).toBeNull();
+  });
+
+  it("keeps an unclosed ```mermaid fence as a code block while streaming", () => {
+    const msg = makeMessage(
+      MessageType.MESSAGE_AI,
+      "```mermaid\nflowchart LR\n  A --> B",
+      { isStreaming: true },
+    );
+    const { container } = render(<MessageEntry message={msg} />);
+
+    const article = queryArticle(container, "AI response");
+    // Mid-stream the source stays a plain code block — no diagram, and no
+    // half-parsed error flashing.
+    expect(
+      article!.querySelector('[role="img"][aria-label="Mermaid diagram"]'),
+    ).toBeNull();
+    expect(article!.textContent).toContain("flowchart LR");
   });
 });
 

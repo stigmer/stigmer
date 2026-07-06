@@ -1,10 +1,12 @@
-import type { ComponentProps, JSX } from "react";
+import { isValidElement, type ComponentProps, type JSX, type ReactNode } from "react";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@stigmer/theme";
 import { highlightToReact } from "./code-highlight.js";
+import { MermaidDiagram } from "./MermaidDiagram.js";
 
 const LANGUAGE_CLASS_PREFIX = "language-";
+const MERMAID_LANGUAGE_CLASS = "language-mermaid";
 
 type MdProps<T extends keyof JSX.IntrinsicElements> = ComponentProps<T>;
 
@@ -120,6 +122,30 @@ export function extractLeadingH1(markdown: string): {
 }
 
 /**
+ * Returns the mermaid source when a `pre` element's children are a single
+ * fenced code block explicitly tagged `mermaid`, or `null` otherwise.
+ *
+ * Both renderers (Streamdown for chat, react-markdown for artifacts/skills)
+ * hand `pre` exactly one `<code>` child whose `className` carries the fence's
+ * info string as `language-*` and whose children are the raw source text.
+ * Anything that deviates from that shape — a different language, a missing
+ * tag, non-string children — is not a mermaid fence and keeps the ordinary
+ * code-block rendering. Only the explicit `mermaid` tag qualifies:
+ * inspecting fence bodies to guess diagram intent is the kind of fuzzy
+ * heuristic this codebase avoids.
+ */
+function extractMermaidSource(children: ReactNode): string | null {
+  if (!isValidElement(children)) return null;
+  const { className, children: code } = children.props as {
+    className?: unknown;
+    children?: unknown;
+  };
+  if (typeof className !== "string") return null;
+  if (!className.split(/\s+/).includes(MERMAID_LANGUAGE_CLASS)) return null;
+  return typeof code === "string" ? code : null;
+}
+
+/**
  * Styled react-markdown component overrides for SDK markdown surfaces.
  *
  * Every element uses `--stgm-*` design tokens via Tailwind semantic classes,
@@ -208,6 +234,15 @@ export const MARKDOWN_COMPONENTS: Components = {
   },
 
   pre({ children, ...props }: MdProps<"pre">) {
+    // A ```mermaid fence renders as a diagram, not a code block. The check
+    // lives here (not in the `code` override) because the diagram must
+    // replace the <pre> wrapper too — a block-level diagram container inside
+    // <pre> is invalid HTML and would inherit code-block chrome.
+    const mermaidSource = extractMermaidSource(children);
+    if (mermaidSource !== null) {
+      return <MermaidDiagram chart={mermaidSource} />;
+    }
+
     return (
       <pre
         className="mb-3 last:mb-0 overflow-x-auto rounded-md bg-muted p-3"
