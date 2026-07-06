@@ -638,8 +638,31 @@ describe("FileReviewRecord — line stats", () => {
 
 // --- FileDiffBody ---------------------------------------------------------
 
-/** Let an async artifact fetch resolve and the component re-render. */
-const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 60));
+/**
+ * Polls the rendered frame until it contains `needle`, then returns. Replaces a
+ * fixed sleep: an artifact fetch resolves on its own microtask schedule (and a
+ * truncated side chains a second download-url fetch), so any single delay raced
+ * green locally but timed out under CI load. Polling waits exactly as long as
+ * the render needs and no longer, and fails with the actual frame on timeout.
+ */
+async function waitForFrame(
+  lastFrame: () => string | undefined,
+  needle: string,
+  timeoutMs = 2000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if ((lastFrame() ?? "").includes(needle)) return;
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `waitForFrame timed out after ${timeoutMs}ms waiting for ${JSON.stringify(
+          needle,
+        )}; last frame was ${JSON.stringify(lastFrame() ?? "")}`,
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
 
 function inlineSide(text: string): FileContent {
   return create(FileContentSchema, { body: { case: "inline", value: text } });
@@ -727,10 +750,15 @@ describe("FileDiffBody", () => {
           contentType: "text/plain",
           truncated: true,
         }),
+        // A truncated side activates useArtifactDownloadUrl (the notice offers a
+        // full-file download). Stub it so the fetch resolves instead of throwing
+        // on an undefined method — an unstubbed throw unmounts the ink tree and
+        // blanks the frame, which raced green locally but failed under CI load.
+        getArtifactDownloadUrl: async () => ({ downloadUrl: "https://example.test/full" }),
       },
     });
     const { lastFrame } = renderWithClient(<FileDiffBody change={change} />, client);
-    await settle();
+    await waitForFrame(lastFrame, "too large to diff inline");
     expect(lastFrame() ?? "").toContain("too large to diff inline");
   });
 
@@ -744,7 +772,7 @@ describe("FileDiffBody", () => {
       },
     });
     const { lastFrame } = renderWithClient(<FileDiffBody change={change} />, client);
-    await settle();
+    await waitForFrame(lastFrame, "Could not load this file's contents.");
     expect(lastFrame() ?? "").toContain("Could not load this file's contents.");
   });
 
