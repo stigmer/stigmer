@@ -438,10 +438,10 @@ type ExecutionConfig struct {
 	//
 	// When set, the runner injects the implement-plan directive into the agent's
 	// prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
-	// document travels as an attachment (the normal case — mounted at
-	// `.stigmer/inputs/plan.md`), the directive points the agent at that file;
-	// when no plan attachment is present (e.g. the client's upload failed), the
-	// directive tells the agent to follow the plan from the conversation instead.
+	// document travels as an attachment (the normal case), the directive points
+	// the agent at the attached plan file and treats it as authoritative; when no
+	// plan attachment is present (e.g. the client's upload failed), the directive
+	// tells the agent to follow the plan from the conversation instead.
 	//
 	// Clients set this flag INSTEAD of embedding implement instructions in
 	// `message`, so `message` stays a short human-readable label (e.g.
