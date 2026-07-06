@@ -29,13 +29,16 @@ version: "1.0.0"
 
 | Field | Required | Format | Description |
 |---|---|---|---|
-| `name` | **Yes** | Kebab-case: `^[a-z0-9]+(-[a-z0-9]+)*$` | The canonical skill identifier. Used as the slug for referencing the skill from agents. Must start with a letter or number, contain only lowercase letters, numbers, and hyphens. Examples: `calculator`, `web-scraper`, `math-utils`. |
+| `name` | **Yes** | Kebab-case, optionally dot-scoped: `^[a-z0-9]+([.-][a-z0-9]+)*$` | The canonical skill identifier. Used to derive the slug for referencing the skill from agents. Lowercase letters, numbers, hyphens between words, and dots to separate namespace segments; every segment must be alphanumeric. The slug renders dots as hyphens (`platform.planton-architecture` → slug `platform-planton-architecture`). Examples: `calculator`, `web-scraper`, `math-utils`, `platform.planton-architecture`. |
 | `description` | Strongly recommended | Plain text, 1-2 sentences, under 100 tokens | A concise summary of what this skill does. Shown in the marketplace, used by the runtime to decide when to activate the skill's full content. Short, precise descriptions improve context-window efficiency. |
 | `version` | No | Freeform string | An informational version label. **Not used for platform versioning** — the platform uses the artifact's SHA-256 hash as the authoritative version. This field is for human reference only. Examples: `"1.0.0"`, `"2024-01"`. |
 
 ### Name Constraints
 
-The `name` field has strict format requirements enforced by the backend:
+The `name` field has strict format requirements enforced by the backend. It is
+kebab-case, optionally scoped with dot-separated namespaces — dots let you
+organize skills by scope (e.g. platform-managed vs org-specific) without name
+collisions. The derived slug renders dots as hyphens.
 
 ```yaml
 # Correct
@@ -43,6 +46,10 @@ name: calculator
 name: web-scraper
 name: math-utils
 name: pdf-extractor2
+
+# Correct — dot-separated namespaces (slug becomes platform-planton-architecture)
+name: platform.planton-architecture
+name: org.acme.custom-runbook
 
 # Wrong — uppercase letters
 name: Calculator
@@ -54,8 +61,12 @@ name: webScraper
 # Wrong — underscores
 name: web_scraper
 
-# Wrong — starts with hyphen
+# Wrong — starts with a separator
 name: -scraper
+name: .platform
+
+# Wrong — consecutive separators
+name: platform..architecture
 
 # Wrong — spaces
 name: web scraper

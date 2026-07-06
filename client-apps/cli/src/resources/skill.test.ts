@@ -53,6 +53,16 @@ describe("parseSkillMetadata", () => {
     expect(() => parseSkillMetadata(dir)).toThrow(/kebab-case/);
   });
 
+  it("accepts a dot-scoped namespace name", () => {
+    writeFileSync(join(dir, "SKILL.md"), "---\nname: platform.planton-architecture\n---\n");
+    expect(parseSkillMetadata(dir)).toEqual({ name: "platform.planton-architecture" });
+  });
+
+  it("rejects consecutive separators in a dotted name", () => {
+    writeFileSync(join(dir, "SKILL.md"), "---\nname: platform..architecture\n---\n");
+    expect(() => parseSkillMetadata(dir)).toThrow(/kebab-case/);
+  });
+
   it("rejects content without frontmatter", () => {
     writeFileSync(join(dir, "SKILL.md"), "# No frontmatter here\n");
     expect(() => parseSkillMetadata(dir)).toThrow(/frontmatter/);

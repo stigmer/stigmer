@@ -178,7 +178,7 @@ describe("Skill conformance — push validation negatives", () => {
 
   it("rejects a frontmatter name that is not kebab-case (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    // "Not Kebab" violates ^[a-z0-9]+(-[a-z0-9]+)*$ (uppercase + spaces).
+    // "Not Kebab" violates ^[a-z0-9]+([.-][a-z0-9]+)*$ (uppercase + spaces).
     await expectGrpcCode(
       () =>
         clients.skillCommand.push({
@@ -188,6 +188,20 @@ describe("Skill conformance — push validation negatives", () => {
       Code.InvalidArgument,
       "push non-kebab frontmatter name",
     );
+  });
+
+  it("accepts a dot-scoped namespace name and derives a hyphenated slug", async () => {
+    const { org } = await target.provisionTenancy();
+    // Dots namespace the skill (issue #144); the slug renders them as hyphens.
+    const name = `platform.${uniqueName("skill")}`;
+    const pushed = await pushSkill(org, makeSkillArtifact({ name, description: "a namespaced skill" }));
+
+    expect(pushed.metadata?.name, "name preserves the dotted namespace").toBe(name);
+    expect(pushed.metadata?.slug, "slug converts dots to hyphens").toBe(name.replace(/\./g, "-"));
+
+    // The hyphenated slug is the reference key.
+    const fetched = await clients.skillQuery.getByReference({ org, slug: name.replace(/\./g, "-") });
+    expect(fetched.metadata?.id).toBe(pushed.metadata?.id);
   });
 });
 

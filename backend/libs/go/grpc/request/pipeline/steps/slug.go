@@ -12,7 +12,7 @@ import (
 //
 // The slug is generated according to these rules:
 //   - Convert to lowercase
-//   - Replace spaces with hyphens
+//   - Replace spaces and dots (namespace separators) with hyphens
 //   - Remove special characters (keep only ASCII alphanumeric and hyphens)
 //   - Collapse multiple consecutive hyphens into one
 //   - Trim leading and trailing hyphens
@@ -76,18 +76,22 @@ func (s *ResolveSlugStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 //
 // Rules:
 // - Convert to lowercase
-// - Replace spaces with hyphens
-// - Remove special characters (keep only ASCII alphanumeric and hyphens)
+// - Replace spaces and dots with hyphens (dots are namespace separators, e.g.
+//   "platform.sara" -> "platform-sara"); this keeps dotted, namespace-scoped names
+//   (agents and skills) readable and collision-resistant, and matches the cloud Java
+//   slug generator rather than stripping the dot.
+// - Remove remaining special characters (keep only ASCII alphanumeric and hyphens)
 // - Collapse multiple consecutive hyphens into one
 // - Trim leading and trailing hyphens
 //
-// Example: "My Cool Agent" -> "my-cool-agent"
+// Example: "My Cool Agent" -> "my-cool-agent"; "platform.planton-architecture" -> "platform-planton-architecture"
 func GenerateSlug(name string) string {
 	// 1. Convert to lowercase
 	slug := strings.ToLower(name)
 
-	// 2. Replace spaces with hyphens
+	// 2. Replace spaces and dots (namespace separators) with hyphens
 	slug = strings.ReplaceAll(slug, " ", "-")
+	slug = strings.ReplaceAll(slug, ".", "-")
 
 	// 3. Remove non-alphanumeric characters except hyphens
 	slug = removeNonAlphanumeric(slug)

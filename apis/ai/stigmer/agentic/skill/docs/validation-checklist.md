@@ -12,7 +12,7 @@ Run through this list before pushing a skill with `stigmer push skill`.
 - [ ] `SKILL.md` starts with `---` on the very first line (no blank lines before the opening delimiter)
 - [ ] The frontmatter is closed with a second `---` on its own line
 - [ ] The `name` field is present and non-empty in the frontmatter
-- [ ] The `name` field is kebab-case: only lowercase letters (`a-z`), numbers (`0-9`), and hyphens (`-`); starts with a letter or number; no underscores, spaces, or uppercase letters
+- [ ] The `name` field is kebab-case: lowercase letters (`a-z`), numbers (`0-9`), and hyphens (`-`), optionally scoped with dots (`.`) for namespaces (e.g. `platform.planton-architecture`); every segment is alphanumeric (no leading/trailing/consecutive separators); no underscores, spaces, or uppercase letters
 - [ ] The `description` field is present and is a clear 1–2 sentence summary of *when to use* this skill (strongly recommended, not enforced)
 - [ ] The `SKILL.md` body is non-empty and contains agent-directed instructions, not developer documentation
 
@@ -81,7 +81,8 @@ description: "A useful skill"
 
 ### Invalid `name` Format
 
-The `name` must match `^[a-z0-9]+(-[a-z0-9]+)*$`. The most common violations:
+The `name` must match `^[a-z0-9]+([.-][a-z0-9]+)*$` — kebab-case, optionally
+scoped with dot-separated namespaces. The most common violations:
 
 ```yaml
 # Wrong — uppercase letters
@@ -95,11 +96,16 @@ name: webScraper
 name: web_scraper
 name: my_new_skill
 
-# Wrong — starts with a hyphen
+# Wrong — starts with a separator
 name: -my-skill
+name: .platform
 
-# Wrong — ends with a hyphen
+# Wrong — ends with a separator
 name: my-skill-
+name: platform.
+
+# Wrong — consecutive separators
+name: platform..architecture
 
 # Wrong — contains a space
 name: my skill
@@ -109,6 +115,10 @@ name: my-skill
 name: webscraper
 name: web-scraper-v2
 name: pdf2text
+
+# Correct — dot-separated namespace (slug becomes platform-planton-architecture)
+name: platform.planton-architecture
+name: org.acme.custom-runbook
 ```
 
 ### Frontmatter Not Closed

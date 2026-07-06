@@ -42,8 +42,13 @@ type SkillSpec struct {
 	Tag string `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
 	// Skill name extracted from SKILL.md YAML frontmatter.
 	// This is the canonical name used for identification and references.
-	// Must be kebab-case: lowercase letters, numbers, and hyphens only.
-	// Examples: "calculator", "web-scraper", "math-utils"
+	// Kebab-case, optionally scoped with dot-separated namespaces: lowercase
+	// letters, numbers, hyphens (-) to separate words, and dots (.) to separate
+	// namespace segments. Every segment must be alphanumeric, so the name cannot
+	// start or end with a separator nor contain consecutive separators. The
+	// derived slug renders dots as hyphens (e.g. "platform.planton-architecture"
+	// -> slug "platform-planton-architecture").
+	// Examples: "calculator", "web-scraper", "math-utils", "platform.planton-architecture"
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// Human-readable description extracted from SKILL.md YAML frontmatter.
 	// Provides a concise summary of what this skill does for marketplace display
@@ -117,11 +122,11 @@ var File_ai_stigmer_agentic_skill_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a\x1bbuf/validate/validate.proto\"\xbb\x01\n" +
+	"&ai/stigmer/agentic/skill/v1/spec.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a\x1bbuf/validate/validate.proto\"\xbe\x01\n" +
 	"\tSkillSpec\x12\"\n" +
 	"\bskill_md\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\askillMd\x12-\n" +
-	"\x03tag\x18\x02 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x123\n" +
-	"\x04name\x18\x03 \x01(\tB\x1f\xbaH\x1cr\x1a2\x18^[a-z0-9]+(-[a-z0-9]+)*$R\x04name\x12 \n" +
+	"\x03tag\x18\x02 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x126\n" +
+	"\x04name\x18\x03 \x01(\tB\"\xbaH\x1fr\x1d2\x1b^[a-z0-9]+([.-][a-z0-9]+)*$R\x04name\x12 \n" +
 	"\vdescription\x18\x05 \x01(\tR\vdescriptionJ\x04\b\x04\x10\x05B\x8b\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\tSpecProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 

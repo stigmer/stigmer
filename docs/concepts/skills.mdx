@@ -77,7 +77,7 @@ The frontmatter contains two required fields:
 
 | Field         | Purpose                                                                                                                                                                  |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `name`        | A kebab-case identifier for the Skill                                                                                                                                    |
+| `name`        | A kebab-case identifier for the Skill, optionally scoped with dot-separated namespaces (e.g. `platform.planton-architecture`); dots become hyphens in the slug           |
 | `description` | Tells the Agent _when_ to use this Skill. Write it like a trigger condition — "Use when customers ask about returns" is better than "Contains return policy information" |
 
 The `description` is critical. It's always present in the Agent's context, so

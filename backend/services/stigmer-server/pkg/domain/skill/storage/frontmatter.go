@@ -14,8 +14,9 @@ import (
 // section at the beginning of a SKILL.md file.
 type SkillFrontmatter struct {
 	// Name is the canonical skill identifier (required).
-	// Must be kebab-case: lowercase letters, numbers, and hyphens only.
-	// Examples: "calculator", "web-scraper", "math-utils"
+	// Kebab-case, optionally scoped with dot-separated namespaces: lowercase
+	// letters, numbers, hyphens (words), and dots (namespace segments).
+	// Examples: "calculator", "web-scraper", "math-utils", "platform.planton-architecture"
 	Name string `yaml:"name"`
 
 	// Description is a human-readable summary of what the skill does (optional but recommended).
@@ -28,16 +29,21 @@ type SkillFrontmatter struct {
 	Version string `yaml:"version"`
 }
 
-// skillNamePattern validates kebab-case skill names.
-// Valid names: lowercase letters (a-z), numbers (0-9), and hyphens (-) to separate words.
-// The name must start with a letter or number, not a hyphen.
-var skillNamePattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+// skillNamePattern validates kebab-case skill names, optionally scoped with
+// dot-separated namespaces.
+// Valid names: lowercase letters (a-z), numbers (0-9), hyphens (-) to separate
+// words, and dots (.) to separate namespace segments (e.g. "platform.planton-architecture").
+// Every segment between separators must be alphanumeric, so a name cannot start
+// or end with a separator, nor contain consecutive separators. The derived slug
+// renders dots as hyphens (see steps.GenerateSlug).
+var skillNamePattern = regexp.MustCompile(`^[a-z0-9]+([.-][a-z0-9]+)*$`)
 
 // ParseFrontmatter extracts and parses YAML frontmatter from SKILL.md content.
 // The frontmatter must be enclosed between --- markers at the start of the file.
 //
 // Required fields:
-//   - name: Must be kebab-case (lowercase letters, numbers, hyphens)
+//   - name: Must be kebab-case (lowercase letters, numbers, hyphens), optionally
+//     scoped with dot-separated namespaces (e.g. "platform.my-skill")
 //
 // Optional fields:
 //   - description: Human-readable summary (recommended for marketplace display)
@@ -135,17 +141,20 @@ func validateFrontmatter(fm *SkillFrontmatter) error {
 			"---\n" +
 			"name: my-skill-name\n" +
 			"---\n\n" +
-			"The name must be kebab-case (lowercase letters, numbers, and hyphens)")
+			"The name must be kebab-case (lowercase letters, numbers, and hyphens), " +
+			"optionally scoped with dots (e.g. 'platform.my-skill')")
 	}
 
-	// Validate name format (kebab-case)
+	// Validate name format (kebab-case, optionally dot-scoped)
 	if !skillNamePattern.MatchString(fm.Name) {
 		return fmt.Errorf("invalid skill name '%s' in SKILL.md\n\n"+
-			"Skill names must be kebab-case:\n"+
+			"Skill names must be kebab-case, optionally scoped with dot-separated namespaces:\n"+
 			"- Lowercase letters (a-z)\n"+
 			"- Numbers (0-9)\n"+
-			"- Hyphens (-) to separate words\n\n"+
-			"Examples: 'calculator', 'web-scraper', 'math-utils'", fm.Name)
+			"- Hyphens (-) to separate words\n"+
+			"- Dots (.) to separate namespace segments\n\n"+
+			"Every segment must be alphanumeric: no leading, trailing, or consecutive separators.\n\n"+
+			"Examples: 'calculator', 'web-scraper', 'math-utils', 'platform.planton-architecture'", fm.Name)
 	}
 
 	return nil
