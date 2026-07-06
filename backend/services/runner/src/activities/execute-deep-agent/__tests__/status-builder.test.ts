@@ -10,6 +10,8 @@ import {
   ExecutionPhase,
   MessageType,
   ToolCallStatus,
+  ToolKind,
+  TodoStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { StatusBuilder, type StreamEvent, type ApprovalPolicyProvider } from "../status-builder.js";
 import type { MergedToolPolicy } from "../../../shared/approval-policy.js";
@@ -1850,6 +1852,82 @@ describe("StatusBuilder", () => {
 
       // No re-gate: the resumed tool must not flip the run back to waiting.
       expect(status.phase).not.toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    });
+  });
+
+  // ── Todo extraction (write_todos → status.todos) ─────────────────
+  //
+  // v2 parity with V3StatusBuilder: a completed write_todos projects into
+  // status.todos through the same shared mapper; a failed one does not.
+
+  describe("todo extraction", () => {
+    it("projects a completed write_todos into status.todos", () => {
+      const sb = makeBuilder();
+      sb.processEvent(
+        toolStartEvent("run-1", "write_todos", {
+          todos: [
+            { content: "Step one", status: "in_progress" },
+            { content: "Step two", status: "pending" },
+          ],
+        }),
+      );
+      sb.processEvent(toolEndEvent("run-1", "Todos updated"));
+
+      const todos = sb.currentStatus.todos;
+      expect(Object.keys(todos)).toEqual(["todo-0", "todo-1"]);
+      expect(todos["todo-0"].content).toBe("Step one");
+      expect(todos["todo-0"].status).toBe(TodoStatus.TODO_IN_PROGRESS);
+      expect(todos["todo-1"].status).toBe(TodoStatus.TODO_PENDING);
+    });
+
+    it("keeps the write_todos ToolCall in messages stamped ToolKind.TODO", () => {
+      const sb = makeBuilder();
+      sb.processEvent(
+        toolStartEvent("run-1", "write_todos", {
+          todos: [{ content: "A", status: "pending" }],
+        }),
+      );
+      sb.processEvent(toolEndEvent("run-1", "ok"));
+
+      const tc = sb.currentStatus.messages
+        .flatMap((m) => m.toolCalls)
+        .find((t) => t.name === "write_todos");
+      expect(tc).toBeDefined();
+      expect(tc!.toolKind).toBe(ToolKind.TODO);
+    });
+
+    it("does not project on a failed write_todos (Command never ran)", () => {
+      const sb = makeBuilder();
+      sb.processEvent(
+        toolStartEvent("run-1", "write_todos", {
+          todos: [{ content: "A", status: "pending" }],
+        }),
+      );
+      sb.processEvent(toolEndEvent("run-1", { error: "boom" }));
+      expect(Object.keys(sb.currentStatus.todos)).toHaveLength(0);
+    });
+
+    it("full-replaces the map on a subsequent write_todos", () => {
+      const sb = makeBuilder();
+      sb.processEvent(
+        toolStartEvent("run-1", "write_todos", {
+          todos: [
+            { content: "one", status: "completed" },
+            { content: "two", status: "in_progress" },
+          ],
+        }),
+      );
+      sb.processEvent(toolEndEvent("run-1", "ok"));
+      sb.processEvent(
+        toolStartEvent("run-2", "write_todos", {
+          todos: [{ content: "two", status: "completed" }],
+        }),
+      );
+      sb.processEvent(toolEndEvent("run-2", "ok"));
+
+      const todos = sb.currentStatus.todos;
+      expect(Object.keys(todos)).toEqual(["todo-0"]);
+      expect(todos["todo-0"].status).toBe(TodoStatus.TODO_COMPLETED);
     });
   });
 });

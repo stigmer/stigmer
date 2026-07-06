@@ -23,9 +23,11 @@ import {
   ExecutionPhase,
   MessageType,
   ToolCallStatus,
+  ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
 import { classifyTool } from "../../shared/tool-kind.js";
+import { applyTodoUpdate } from "../../shared/todos.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "./execution-status-writer.js";
@@ -339,6 +341,17 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
     tc.isStreaming = false;
     this.state.toolStartTimes.delete(callId);
     this.toolArgBuffers.delete(callId);
+
+    // Project a completed to-do write into status.todos. deepagents' write_todos
+    // runs its state-mutating Command when the tool node COMPLETES, so we mirror
+    // it here (not at tool-start) — a call cancelled before finishing correctly
+    // projects nothing. Keyed on the harness-agnostic ToolKind.TODO (stamped at
+    // tool-start) and fed by the same shared mapper the Cursor tracker uses;
+    // deepagents always full-replaces (no merge field). The tool call itself
+    // stays in messages (the client filters ToolKind.TODO from the thread).
+    if (tc.toolKind === ToolKind.TODO) {
+      applyTodoUpdate(this.state.proto.todos, tc.args?.todos, { merge: false });
+    }
 
     this._forceNextUpdate = true;
   }

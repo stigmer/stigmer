@@ -24,9 +24,11 @@ import {
   ExecutionPhase,
   MessageType,
   ToolCallStatus,
+  ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { resolveApprovalMessage as resolveApprovalMsg } from "../../shared/approval-policy.js";
 import { classifyTool } from "../../shared/tool-kind.js";
+import { applyTodoUpdate } from "../../shared/todos.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import type { ExecutionStatusWriter } from "./execution-status-writer.js";
@@ -348,6 +350,13 @@ export class StatusBuilder {
       // (see v3 builder note). Truncating here would corrupt image base64.
       tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
       tc.result = extractToolResult(event.data);
+
+      // Project a completed to-do write into status.todos — success branch only,
+      // since a failed write_todos never ran its state-mutating Command. Shares
+      // the mapper and rationale documented in V3StatusBuilder.handleToolFinished.
+      if (tc.toolKind === ToolKind.TODO) {
+        applyTodoUpdate(this.state.proto.todos, tc.args?.todos, { merge: false });
+      }
     }
 
     tc.completedAt = utcTimestamp();
