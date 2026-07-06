@@ -2631,7 +2631,7 @@ __metadata:
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=461988&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=def5d9&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@dagrejs/dagre": "npm:^1.1.4"
@@ -2663,6 +2663,7 @@ __metadata:
     "@xyflow/react": ^12.0.0
     elkjs: ^0.9.0
     lucide-react: ">=0.400.0"
+    mermaid: ^11.0.0
     react: ^19.0.0
     react-dom: ^19.0.0
     react-virtuoso: ^4.0.0
@@ -2692,17 +2693,19 @@ __metadata:
       optional: true
     elkjs:
       optional: true
+    mermaid:
+      optional: true
     react-virtuoso:
       optional: true
     recharts:
       optional: true
-  checksum: 10c0/af8cf1c837cb1283500bf1b82e295c79e25a33a2d59ed1ecde74b20ac313cf818a4bb49d850f3107470af1463657ace0dbb7c3ad366a3c96cbe810fec4ae6727
+  checksum: 10c0/28da575e97b81953dfee0bde49773d94dae00cf8b177e9cd91b80d61cc4cb4e282ccc88b84e54bdd93a442e53967428b875f4d6d45e4279210663c24f3bc3d1a
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=12a1ae&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=57d51c&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2713,7 +2716,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/d7dbae39f7ee665373c60e7fd6441891e7e8d24b6e15a6471c332dae667edfa537926844f8ad9b818d18974ab9ccfa222d72db47f392eae5ca87d9ec1ff5f442
+  checksum: 10c0/b3a5a62e1b3fbdbc5619c84cf97df5fba0747a7fdc8dcb30276998d48925b1f672333d28a73340613a91b61c1b6f0eb63201532c03aeb691cca20edbed7e63a8
   languageName: node
   linkType: hard
 

@@ -48,7 +48,7 @@ export interface ArtifactRowProps {
  * its `executionId`, and open/activate closures — no session-domain types and
  * no content fetch (resource detection and Apply/Push live in the opened
  * document/modal, not the list). The two hosts — the session panel's
- * {@link ArtifactsTab} facet and the panel-less {@link ArtifactsWidget} — map
+ * `ArtifactsTab` facet and the panel-less {@link ArtifactsWidget} — map
  * their entries onto these props and own the behavior wiring.
  *
  * @see ArtifactsTab — session-panel facet (rows open editor-pane document tabs)

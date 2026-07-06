@@ -75,14 +75,14 @@ func (s *ResolveSlugStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 // would generate the same slug after truncation.
 //
 // Rules:
-// - Convert to lowercase
-// - Replace spaces and dots with hyphens (dots are namespace separators, e.g.
-//   "platform.sara" -> "platform-sara"); this keeps dotted, namespace-scoped names
-//   (agents and skills) readable and collision-resistant, and matches the cloud Java
-//   slug generator rather than stripping the dot.
-// - Remove remaining special characters (keep only ASCII alphanumeric and hyphens)
-// - Collapse multiple consecutive hyphens into one
-// - Trim leading and trailing hyphens
+//   - Convert to lowercase
+//   - Replace spaces and dots with hyphens (dots are namespace separators, e.g.
+//     "platform.sara" -> "platform-sara"); this keeps dotted, namespace-scoped names
+//     (agents and skills) readable and collision-resistant, and matches the cloud Java
+//     slug generator rather than stripping the dot.
+//   - Remove remaining special characters (keep only ASCII alphanumeric and hyphens)
+//   - Collapse multiple consecutive hyphens into one
+//   - Trim leading and trailing hyphens
 //
 // Example: "My Cool Agent" -> "my-cool-agent"; "platform.planton-architecture" -> "platform-planton-architecture"
 func GenerateSlug(name string) string {
