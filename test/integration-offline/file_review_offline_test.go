@@ -76,6 +76,10 @@ func startFileReviewRun(
 // `autoApproveAll` selects the global bypass (no approval gate installed), and
 // the runner manager is returned so a test can reach its LocalArtifactDir to
 // assert on what did — or must never — reach durable storage.
+//
+// extraRunnerEnv threads additional KEY=VALUE entries into the runner process
+// env, scoped to this runner (see UnifiedRunnerConfig.ExtraEnv). Existing
+// callers pass none.
 func startFileReviewRunOpts(
 	t *testing.T,
 	ctx context.Context,
@@ -83,10 +87,11 @@ func startFileReviewRunOpts(
 	entries []harness.RecordedLLMEntry,
 	message string,
 	autoApproveAll bool,
+	extraRunnerEnv ...string,
 ) (*harness.MockLLMProxyServer, *harness.Clients, *harness.AgentExecutionWaiter, *harness.UnifiedRunnerManager, string) {
 	t.Helper()
 
-	mockLLM, mgr := startOfflineRunner(t, ctx, entries)
+	mockLLM, mgr := startOfflineRunner(t, ctx, entries, extraRunnerEnv...)
 
 	clients := harness.NewClients(grpcConn)
 	harness.RequireServiceHealthy(t, ctx, clients)
