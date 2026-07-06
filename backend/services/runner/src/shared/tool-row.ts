@@ -186,3 +186,37 @@ export function collectSubAgentToolCallIds(
   }
   return ids;
 }
+
+/** Terminal tool-call statuses — a row that has finished (however it finished). */
+const TERMINAL_TOOL_CALL_STATUSES: ReadonlySet<ToolCallStatus> = new Set([
+  ToolCallStatus.TOOL_CALL_COMPLETED,
+  ToolCallStatus.TOOL_CALL_FAILED,
+  ToolCallStatus.TOOL_CALL_SKIPPED,
+]);
+
+/**
+ * Collect the ids of tool-call rows that have already SETTLED (reached a terminal
+ * state: completed, failed, or skipped) in a transcript.
+ *
+ * The deep-agent turn-boundary provenance derivation (DD-28) snapshots this
+ * BEFORE a turn's stream to scope "this turn's tool calls" by identity: a call
+ * whose id is absent from the snapshot is this-turn's — either freshly streamed,
+ * or a prior gate that was WAITING_APPROVAL before the stream and executes now on
+ * resume (StatusBuilder updates the seeded row in place, so it keeps its id).
+ * Unlike the Cursor harness, the deep-agent cannot scope positionally — an
+ * approved command executes at its SEEDED position — so identity is the only
+ * correct scope, mirroring {@link collectSubAgentToolCallIds}. Terminal (not just
+ * completed) so a PRIOR turn's failed/skipped non-shell call is excluded and
+ * cannot spuriously disqualify this turn.
+ */
+export function collectSettledToolCallIds(
+  messages: readonly AgentMessage[],
+): Set<string> {
+  const ids = new Set<string>();
+  for (const msg of messages) {
+    for (const tc of msg.toolCalls) {
+      if (TERMINAL_TOOL_CALL_STATUSES.has(tc.status)) ids.add(tc.id);
+    }
+  }
+  return ids;
+}
