@@ -31,6 +31,7 @@ public final class AgentExecutionInput {
     private final java.util.List<AttachmentInput> attachments;
     private final java.util.List<String> workspaceFileRefs;
     private final String activityTaskQueue;
+    private final String supersedesExecutionId;
 
     private AgentExecutionInput(Builder builder) {
         this.name = builder.name;
@@ -49,6 +50,7 @@ public final class AgentExecutionInput {
         this.attachments = builder.attachments;
         this.workspaceFileRefs = builder.workspaceFileRefs;
         this.activityTaskQueue = builder.activityTaskQueue;
+        this.supersedesExecutionId = builder.supersedesExecutionId;
     }
 
     AgentExecution toProto() {
@@ -91,6 +93,9 @@ public final class AgentExecutionInput {
         if (this.activityTaskQueue != null) {
             spec.setActivityTaskQueue(this.activityTaskQueue);
         }
+        if (this.supersedesExecutionId != null) {
+            spec.setSupersedesExecutionId(this.supersedesExecutionId);
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -130,6 +135,7 @@ public final class AgentExecutionInput {
         private java.util.List<AttachmentInput> attachments;
         private java.util.List<String> workspaceFileRefs;
         private String activityTaskQueue;
+        private String supersedesExecutionId;
 
         private Builder() {}
 
@@ -149,6 +155,7 @@ public final class AgentExecutionInput {
         public Builder attachments(java.util.List<AttachmentInput> attachments) { this.attachments = attachments; return this; }
         public Builder workspaceFileRefs(java.util.List<String> workspaceFileRefs) { this.workspaceFileRefs = workspaceFileRefs; return this; }
         public Builder activityTaskQueue(String activityTaskQueue) { this.activityTaskQueue = activityTaskQueue; return this; }
+        public Builder supersedesExecutionId(String supersedesExecutionId) { this.supersedesExecutionId = supersedesExecutionId; return this; }
 
         public AgentExecutionInput build() { return new AgentExecutionInput(this); }
     }

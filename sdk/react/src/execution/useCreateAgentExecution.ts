@@ -93,6 +93,17 @@ export interface CreateAgentExecutionInput {
    * Populated by the drag-to-reference feature in SessionComposer.
    */
   readonly workspaceFileRefs?: string[];
+  /**
+   * ID of the execution this one supersedes via edit-and-resubmit.
+   *
+   * Set when the user stopped an in-flight turn, edited its message, and
+   * resubmitted. Chat threads hide the superseded execution so the edited
+   * message replaces the original in place; history surfaces keep the full
+   * record. Maps to `AgentExecutionSpec.supersedes_execution_id`.
+   *
+   * Display-level only — the runner does not rewind model context.
+   */
+  readonly supersedesExecutionId?: string;
 }
 
 /** Resolved output of {@link UseCreateAgentExecutionReturn.create}. */
@@ -199,6 +210,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           runtimeEnv: input.runtimeEnv,
           attachments: input.attachments,
           workspaceFileRefs: input.workspaceFileRefs,
+          supersedesExecutionId: input.supersedesExecutionId,
         });
 
         return {

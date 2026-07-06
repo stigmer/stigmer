@@ -672,4 +672,68 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    */
   com.google.protobuf.ByteString
       getActivityTaskQueueBytes();
+
+  /**
+   * <pre>
+   * ID of the execution this one supersedes via edit-and-resubmit (optional).
+   *
+   * When a user stops an in-flight turn, edits the message, and resubmits,
+   * the client sets this field on the NEW execution to point at the stopped
+   * one. Chat-thread consumers hide the superseded execution so the edited
+   * message replaces the original in place; history surfaces (CLI, execution
+   * lists) keep showing the full record.
+   *
+   * Empty means this execution is not an edit of another turn.
+   *
+   * &#64;internal
+   *
+   * The link always lives on the successor — the superseded record is never
+   * mutated (append-only execution log, single writer). Chained edits form a
+   * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
+   *
+   * Display-level semantics only: the runner does NOT rewind model context.
+   * Conversation history lives in an opaque session-keyed store (LangGraph
+   * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+   * superseded turn's partial messages remain visible to the model. Do not
+   * build features that assume the runner skips superseded turns.
+   *
+   * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+   * </pre>
+   *
+   * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
+   * @return The supersedesExecutionId.
+   */
+  java.lang.String getSupersedesExecutionId();
+  /**
+   * <pre>
+   * ID of the execution this one supersedes via edit-and-resubmit (optional).
+   *
+   * When a user stops an in-flight turn, edits the message, and resubmits,
+   * the client sets this field on the NEW execution to point at the stopped
+   * one. Chat-thread consumers hide the superseded execution so the edited
+   * message replaces the original in place; history surfaces (CLI, execution
+   * lists) keep showing the full record.
+   *
+   * Empty means this execution is not an edit of another turn.
+   *
+   * &#64;internal
+   *
+   * The link always lives on the successor — the superseded record is never
+   * mutated (append-only execution log, single writer). Chained edits form a
+   * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
+   *
+   * Display-level semantics only: the runner does NOT rewind model context.
+   * Conversation history lives in an opaque session-keyed store (LangGraph
+   * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+   * superseded turn's partial messages remain visible to the model. Do not
+   * build features that assume the runner skips superseded turns.
+   *
+   * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+   * </pre>
+   *
+   * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
+   * @return The bytes for supersedesExecutionId.
+   */
+  com.google.protobuf.ByteString
+      getSupersedesExecutionIdBytes();
 }

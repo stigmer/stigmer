@@ -17,7 +17,7 @@ import {
   WorkspaceSurface,
   type SurfaceVirtualDocument,
 } from "../workspace/WorkspaceSurface.js";
-import type { InteractionModeOption, SessionComposerHandle } from "../composer/index.js";
+import type { InteractionModeOption, SessionComposerHandle, SessionComposerSubmitContext } from "../composer/index.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import { SelectionStore } from "../internal/store/selection-store.js";
@@ -652,18 +652,55 @@ const ConversationColumn = memo(function ConversationColumn({
     void conv.stop();
   }, [conv.stop]);
 
-  // Edit-and-resubmit: stop the in-flight turn and pre-fill the composer with
-  // the original text. The append-only execution log can't be rewritten, so
-  // the user reviews the prefilled message and resubmits it as a NEW execution
-  // through the normal Send pipeline. The cancelled turn stays in history with
-  // its phase badge — an honest record rather than a silent edit.
+  // Edit-and-resubmit: stop the in-flight turn, pre-fill the composer with
+  // the original text, and remember which execution is being edited. The
+  // append-only execution log is never rewritten — submitting while editing
+  // creates a NEW execution that carries `supersedesExecutionId`, and the
+  // conversation read model hides the superseded turn so the edited message
+  // replaces the original in place (Cursor-style, stigmer/stigmer#181).
+  //
+  // The editing state is explicit (banner + cancel in the composer) so the
+  // supersede link only attaches when the user actually resubmits the edit.
+  // Cancelling drops the link — a subsequent unrelated message appends
+  // normally without hiding any history.
+  const [editingExecutionId, setEditingExecutionId] = useState<string | null>(
+    null,
+  );
+  const activeExecutionId = conv.activeStreamExecution?.metadata?.id ?? null;
+
   const handleEditMessage = useCallback(
     (text: string) => {
       void conv.stop();
+      setEditingExecutionId(activeExecutionId);
       composerRef.current?.setMessage(text);
       composerRef.current?.focus();
     },
-    [conv.stop, composerRef],
+    [conv.stop, activeExecutionId, composerRef],
+  );
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingExecutionId(null);
+    composerRef.current?.setMessage("");
+  }, [composerRef]);
+
+  // Submit wrapper that attaches the supersede link while editing, then
+  // exits editing mode. Ordinary (non-editing) submits pass through as-is.
+  const handleComposerSubmit = useCallback(
+    (
+      message: string,
+      modelName?: string,
+      context?: SessionComposerSubmitContext,
+    ) => {
+      void flow.handleSubmit(
+        message,
+        modelName,
+        editingExecutionId
+          ? { ...context, supersedesExecutionId: editingExecutionId }
+          : context,
+      );
+      setEditingExecutionId(null);
+    },
+    [flow.handleSubmit, editingExecutionId],
   );
 
   // The composer-docked FileReviewDock sits OUTSIDE MessageThread, so the
@@ -743,11 +780,13 @@ const ConversationColumn = memo(function ConversationColumn({
         </FilePathContext.Provider>
         <SessionComposer
           ref={composerRef}
-          onSubmit={flow.handleSubmit}
+          onSubmit={handleComposerSubmit}
           isSubmitting={conv.isSending}
           disabled={!conv.canSendFollowUp}
           onStop={conv.isStoppable ? handleStop : undefined}
           isStopping={conv.isStopping}
+          isEditing={editingExecutionId != null}
+          onCancelEdit={handleCancelEdit}
           org={org}
           harness={flow.harness}
           defaultModelId={modelId}

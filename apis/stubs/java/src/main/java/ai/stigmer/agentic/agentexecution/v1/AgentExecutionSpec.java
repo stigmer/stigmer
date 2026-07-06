@@ -42,6 +42,7 @@ private static final long serialVersionUID = 0L;
     workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     activityTaskQueue_ = "";
+    supersedesExecutionId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -960,6 +961,97 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
   }
 
+  public static final int SUPERSEDES_EXECUTION_ID_FIELD_NUMBER = 12;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object supersedesExecutionId_ = "";
+  /**
+   * <pre>
+   * ID of the execution this one supersedes via edit-and-resubmit (optional).
+   *
+   * When a user stops an in-flight turn, edits the message, and resubmits,
+   * the client sets this field on the NEW execution to point at the stopped
+   * one. Chat-thread consumers hide the superseded execution so the edited
+   * message replaces the original in place; history surfaces (CLI, execution
+   * lists) keep showing the full record.
+   *
+   * Empty means this execution is not an edit of another turn.
+   *
+   * &#64;internal
+   *
+   * The link always lives on the successor — the superseded record is never
+   * mutated (append-only execution log, single writer). Chained edits form a
+   * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
+   *
+   * Display-level semantics only: the runner does NOT rewind model context.
+   * Conversation history lives in an opaque session-keyed store (LangGraph
+   * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+   * superseded turn's partial messages remain visible to the model. Do not
+   * build features that assume the runner skips superseded turns.
+   *
+   * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+   * </pre>
+   *
+   * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
+   * @return The supersedesExecutionId.
+   */
+  @java.lang.Override
+  public java.lang.String getSupersedesExecutionId() {
+    java.lang.Object ref = supersedesExecutionId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      supersedesExecutionId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * ID of the execution this one supersedes via edit-and-resubmit (optional).
+   *
+   * When a user stops an in-flight turn, edits the message, and resubmits,
+   * the client sets this field on the NEW execution to point at the stopped
+   * one. Chat-thread consumers hide the superseded execution so the edited
+   * message replaces the original in place; history surfaces (CLI, execution
+   * lists) keep showing the full record.
+   *
+   * Empty means this execution is not an edit of another turn.
+   *
+   * &#64;internal
+   *
+   * The link always lives on the successor — the superseded record is never
+   * mutated (append-only execution log, single writer). Chained edits form a
+   * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
+   *
+   * Display-level semantics only: the runner does NOT rewind model context.
+   * Conversation history lives in an opaque session-keyed store (LangGraph
+   * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+   * superseded turn's partial messages remain visible to the model. Do not
+   * build features that assume the runner skips superseded turns.
+   *
+   * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+   * </pre>
+   *
+   * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
+   * @return The bytes for supersedesExecutionId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getSupersedesExecutionIdBytes() {
+    java.lang.Object ref = supersedesExecutionId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      supersedesExecutionId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1009,6 +1101,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(activityTaskQueue_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 11, activityTaskQueue_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(supersedesExecutionId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 12, supersedesExecutionId_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1073,6 +1168,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(activityTaskQueue_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(11, activityTaskQueue_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(supersedesExecutionId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(12, supersedesExecutionId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1113,6 +1211,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         .equals(other.getWorkspaceFileRefsList())) return false;
     if (!getActivityTaskQueue()
         .equals(other.getActivityTaskQueue())) return false;
+    if (!getSupersedesExecutionId()
+        .equals(other.getSupersedesExecutionId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1155,6 +1255,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     hash = (37 * hash) + ACTIVITY_TASK_QUEUE_FIELD_NUMBER;
     hash = (53 * hash) + getActivityTaskQueue().hashCode();
+    hash = (37 * hash) + SUPERSEDES_EXECUTION_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getSupersedesExecutionId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1342,6 +1444,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       workspaceFileRefs_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       activityTaskQueue_ = "";
+      supersedesExecutionId_ = "";
       return this;
     }
 
@@ -1422,6 +1525,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.activityTaskQueue_ = activityTaskQueue_;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.supersedesExecutionId_ = supersedesExecutionId_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1509,6 +1615,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!other.getActivityTaskQueue().isEmpty()) {
         activityTaskQueue_ = other.activityTaskQueue_;
         bitField0_ |= 0x00000400;
+        onChanged();
+      }
+      if (!other.getSupersedesExecutionId().isEmpty()) {
+        supersedesExecutionId_ = other.supersedesExecutionId_;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1606,6 +1717,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               bitField0_ |= 0x00000400;
               break;
             } // case 90
+            case 98: {
+              supersedesExecutionId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 98
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3980,6 +4096,208 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       checkByteStringIsUtf8(value);
       activityTaskQueue_ = value;
       bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object supersedesExecutionId_ = "";
+    /**
+     * <pre>
+     * ID of the execution this one supersedes via edit-and-resubmit (optional).
+     *
+     * When a user stops an in-flight turn, edits the message, and resubmits,
+     * the client sets this field on the NEW execution to point at the stopped
+     * one. Chat-thread consumers hide the superseded execution so the edited
+     * message replaces the original in place; history surfaces (CLI, execution
+     * lists) keep showing the full record.
+     *
+     * Empty means this execution is not an edit of another turn.
+     *
+     * &#64;internal
+     *
+     * The link always lives on the successor — the superseded record is never
+     * mutated (append-only execution log, single writer). Chained edits form a
+     * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
+     *
+     * Display-level semantics only: the runner does NOT rewind model context.
+     * Conversation history lives in an opaque session-keyed store (LangGraph
+     * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+     * superseded turn's partial messages remain visible to the model. Do not
+     * build features that assume the runner skips superseded turns.
+     *
+     * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+     * </pre>
+     *
+     * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
+     * @return The supersedesExecutionId.
+     */
+    public java.lang.String getSupersedesExecutionId() {
+      java.lang.Object ref = supersedesExecutionId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        supersedesExecutionId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ID of the execution this one supersedes via edit-and-resubmit (optional).
+     *
+     * When a user stops an in-flight turn, edits the message, and resubmits,
+     * the client sets this field on the NEW execution to point at the stopped
+     * one. Chat-thread consumers hide the superseded execution so the edited
+     * message replaces the original in place; history surfaces (CLI, execution
+     * lists) keep showing the full record.
+     *
+     * Empty means this execution is not an edit of another turn.
+     *
+     * &#64;internal
+     *
+     * The link always lives on the successor — the superseded record is never
+     * mutated (append-only execution log, single writer). Chained edits form a
+     * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
+     *
+     * Display-level semantics only: the runner does NOT rewind model context.
+     * Conversation history lives in an opaque session-keyed store (LangGraph
+     * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+     * superseded turn's partial messages remain visible to the model. Do not
+     * build features that assume the runner skips superseded turns.
+     *
+     * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+     * </pre>
+     *
+     * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
+     * @return The bytes for supersedesExecutionId.
+     */
+    public com.google.protobuf.ByteString
+        getSupersedesExecutionIdBytes() {
+      java.lang.Object ref = supersedesExecutionId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        supersedesExecutionId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ID of the execution this one supersedes via edit-and-resubmit (optional).
+     *
+     * When a user stops an in-flight turn, edits the message, and resubmits,
+     * the client sets this field on the NEW execution to point at the stopped
+     * one. Chat-thread consumers hide the superseded execution so the edited
+     * message replaces the original in place; history surfaces (CLI, execution
+     * lists) keep showing the full record.
+     *
+     * Empty means this execution is not an edit of another turn.
+     *
+     * &#64;internal
+     *
+     * The link always lives on the successor — the superseded record is never
+     * mutated (append-only execution log, single writer). Chained edits form a
+     * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
+     *
+     * Display-level semantics only: the runner does NOT rewind model context.
+     * Conversation history lives in an opaque session-keyed store (LangGraph
+     * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+     * superseded turn's partial messages remain visible to the model. Do not
+     * build features that assume the runner skips superseded turns.
+     *
+     * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+     * </pre>
+     *
+     * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
+     * @param value The supersedesExecutionId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSupersedesExecutionId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      supersedesExecutionId_ = value;
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ID of the execution this one supersedes via edit-and-resubmit (optional).
+     *
+     * When a user stops an in-flight turn, edits the message, and resubmits,
+     * the client sets this field on the NEW execution to point at the stopped
+     * one. Chat-thread consumers hide the superseded execution so the edited
+     * message replaces the original in place; history surfaces (CLI, execution
+     * lists) keep showing the full record.
+     *
+     * Empty means this execution is not an edit of another turn.
+     *
+     * &#64;internal
+     *
+     * The link always lives on the successor — the superseded record is never
+     * mutated (append-only execution log, single writer). Chained edits form a
+     * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
+     *
+     * Display-level semantics only: the runner does NOT rewind model context.
+     * Conversation history lives in an opaque session-keyed store (LangGraph
+     * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+     * superseded turn's partial messages remain visible to the model. Do not
+     * build features that assume the runner skips superseded turns.
+     *
+     * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+     * </pre>
+     *
+     * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSupersedesExecutionId() {
+      supersedesExecutionId_ = getDefaultInstance().getSupersedesExecutionId();
+      bitField0_ = (bitField0_ & ~0x00000800);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ID of the execution this one supersedes via edit-and-resubmit (optional).
+     *
+     * When a user stops an in-flight turn, edits the message, and resubmits,
+     * the client sets this field on the NEW execution to point at the stopped
+     * one. Chat-thread consumers hide the superseded execution so the edited
+     * message replaces the original in place; history surfaces (CLI, execution
+     * lists) keep showing the full record.
+     *
+     * Empty means this execution is not an edit of another turn.
+     *
+     * &#64;internal
+     *
+     * The link always lives on the successor — the superseded record is never
+     * mutated (append-only execution log, single writer). Chained edits form a
+     * chain of links (A &lt;- B &lt;- C), each persisted on its own successor.
+     *
+     * Display-level semantics only: the runner does NOT rewind model context.
+     * Conversation history lives in an opaque session-keyed store (LangGraph
+     * checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+     * superseded turn's partial messages remain visible to the model. Do not
+     * build features that assume the runner skips superseded turns.
+     *
+     * &#64;since Edit-and-Resubmit In Place (stigmer/stigmer#181)
+     * </pre>
+     *
+     * <code>string supersedes_execution_id = 12 [json_name = "supersedesExecutionId"];</code>
+     * @param value The bytes for supersedesExecutionId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSupersedesExecutionIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      supersedesExecutionId_ = value;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }

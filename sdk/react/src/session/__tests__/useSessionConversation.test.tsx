@@ -7,6 +7,7 @@ import {
   AgentExecutionStatusSchema,
   type AgentExecution,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -25,7 +26,11 @@ function makeSession(id: string): Session {
   return session;
 }
 
-function makeExecution(id: string, phase: ExecutionPhase): AgentExecution {
+function makeExecution(
+  id: string,
+  phase: ExecutionPhase,
+  opts?: { supersedes?: string },
+): AgentExecution {
   const exec = create(AgentExecutionSchema);
   const metadata = create(ApiResourceMetadataSchema);
   metadata.id = id;
@@ -33,6 +38,11 @@ function makeExecution(id: string, phase: ExecutionPhase): AgentExecution {
   const status = create(AgentExecutionStatusSchema);
   status.phase = phase;
   exec.status = status;
+  if (opts?.supersedes) {
+    const spec = create(AgentExecutionSpecSchema);
+    spec.supersedesExecutionId = opts.supersedes;
+    exec.spec = spec;
+  }
   return exec;
 }
 
@@ -546,6 +556,167 @@ describe("useSessionConversation", () => {
 
     expect(methods.cancel).not.toHaveBeenCalled();
     expect(methods.terminate).not.toHaveBeenCalled();
+  });
+});
+
+describe("useSessionConversation — supersede filtering (edit-and-resubmit)", () => {
+  let methods: MockMethods;
+  let mockStigmer: Stigmer;
+  let stream: ReturnType<typeof createControllableStream<AgentExecution>>;
+
+  beforeEach(() => {
+    stream = createControllableStream<AgentExecution>();
+    methods = {
+      sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
+      listBySession: vi.fn().mockResolvedValue({ entries: [] }),
+      executionCreate: vi.fn(),
+      subscribe: vi.fn().mockReturnValue(stream.generator),
+      submitApproval: vi.fn().mockResolvedValue({}),
+    };
+    mockStigmer = createMockStigmer(methods);
+  });
+
+  it("hides a superseded execution from completedExecutions", async () => {
+    const cancelled = makeExecution("e1", ExecutionPhase.EXECUTION_CANCELLED);
+    const successor = makeExecution("e2", ExecutionPhase.EXECUTION_COMPLETED, {
+      supersedes: "e1",
+    });
+    methods.listBySession.mockResolvedValue({
+      entries: [cancelled, successor],
+    });
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.completedExecutions).toHaveLength(1);
+    expect(result.current.completedExecutions[0]).toBe(successor);
+  });
+
+  it("hides every link of a chained supersede (A <- B <- C)", async () => {
+    const a = makeExecution("e1", ExecutionPhase.EXECUTION_CANCELLED);
+    const b = makeExecution("e2", ExecutionPhase.EXECUTION_CANCELLED, {
+      supersedes: "e1",
+    });
+    const c = makeExecution("e3", ExecutionPhase.EXECUTION_COMPLETED, {
+      supersedes: "e2",
+    });
+    methods.listBySession.mockResolvedValue({ entries: [a, b, c] });
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.completedExecutions).toHaveLength(1);
+    expect(result.current.completedExecutions[0]).toBe(c);
+  });
+
+  it("filters via the streaming successor's link before the list refetch delivers it", async () => {
+    // The stopped turn is still the only listed execution; its successor
+    // exists only as the live stream — the supersede link must be read off
+    // the stream copy for the old turn to disappear immediately.
+    const stopped = makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    methods.listBySession.mockResolvedValue({ entries: [stopped] });
+
+    const successorStream = createControllableStream<AgentExecution>();
+    methods.subscribe.mockReturnValue(successorStream.generator);
+    methods.executionCreate.mockResolvedValue(
+      makeExecution("e2", ExecutionPhase.EXECUTION_PENDING),
+    );
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendFollowUp("corrected message", {
+        supersedesExecutionId: "e1",
+      });
+    });
+
+    act(() => {
+      successorStream.push(
+        makeExecution("e2", ExecutionPhase.EXECUTION_IN_PROGRESS, {
+          supersedes: "e1",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.completedExecutions).toHaveLength(0);
+    });
+  });
+
+  it("treats a dangling supersede link as a no-op", async () => {
+    const completed = makeExecution("e1", ExecutionPhase.EXECUTION_COMPLETED);
+    const successor = makeExecution("e2", ExecutionPhase.EXECUTION_COMPLETED, {
+      supersedes: "does-not-exist",
+    });
+    methods.listBySession.mockResolvedValue({
+      entries: [completed, successor],
+    });
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.completedExecutions).toHaveLength(2);
+  });
+
+  it("sendFollowUp forwards supersedesExecutionId to execution creation", async () => {
+    methods.listBySession.mockResolvedValue({ entries: [] });
+    methods.executionCreate.mockResolvedValue(
+      makeExecution("e2", ExecutionPhase.EXECUTION_PENDING),
+    );
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendFollowUp("corrected message", {
+        supersedesExecutionId: "e1",
+      });
+    });
+
+    expect(methods.executionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "corrected message",
+        supersedesExecutionId: "e1",
+      }),
+    );
+  });
+
+  it("keeps active-id resolution on the raw list when the superseded turn is still winding down", async () => {
+    // e1 was cancelled but has not reached a terminal phase yet; e2 (its
+    // successor) is the active turn. The display filter hides e1, but the
+    // active execution must still resolve to e2 from the UNfiltered list.
+    const windingDown = makeExecution("e1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    const successor = makeExecution("e2", ExecutionPhase.EXECUTION_IN_PROGRESS, {
+      supersedes: "e1",
+    });
+    methods.listBySession.mockResolvedValue({
+      entries: [windingDown, successor],
+    });
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.activeStreamExecution?.metadata?.id).toBe("e2");
+    expect(result.current.completedExecutions).toHaveLength(0);
   });
 });
 

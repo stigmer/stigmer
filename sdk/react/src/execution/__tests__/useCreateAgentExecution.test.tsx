@@ -83,3 +83,38 @@ describe("useCreateAgentExecution — executionConfig mapping", () => {
     expect(mockCreate.mock.calls[0][0].executionConfig).toBeUndefined();
   });
 });
+
+describe("useCreateAgentExecution — supersede link (edit-and-resubmit)", () => {
+  it("maps supersedesExecutionId into the create call", async () => {
+    const { result } = renderHook(() => useCreateAgentExecution(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        sessionId: "ses-1",
+        message: "corrected message",
+        supersedesExecutionId: "aex-old",
+      });
+    });
+
+    expect(mockCreate.mock.calls[0][0].supersedesExecutionId).toBe("aex-old");
+  });
+
+  it("leaves supersedesExecutionId undefined for ordinary sends", async () => {
+    const { result } = renderHook(() => useCreateAgentExecution(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        sessionId: "ses-1",
+        message: "Hello",
+      });
+    });
+
+    expect(mockCreate.mock.calls[0][0].supersedesExecutionId).toBeUndefined();
+  });
+});

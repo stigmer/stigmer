@@ -162,22 +162,23 @@ func (a *AgentExecutionClient) GetExecutionSummary(ctx context.Context, input *a
 
 // AgentExecutionInput holds the fields for creating/updating a AgentExecution.
 type AgentExecutionInput struct {
-	Name              string
-	Slug              string
-	Org               string
-	Labels            map[string]string
-	Visibility        apiresource.ApiResourceVisibility
-	SessionId         string
-	AgentId           string
-	Message           string
-	ExecutionConfig   *ExecutionConfigInput
-	RuntimeEnv        map[string]EnvVarInput
-	CallbackToken     []byte
-	AutoApproveAll    bool
-	ParentWorkflowId  string
-	Attachments       []*AttachmentInput
-	WorkspaceFileRefs []string
-	ActivityTaskQueue string
+	Name                  string
+	Slug                  string
+	Org                   string
+	Labels                map[string]string
+	Visibility            apiresource.ApiResourceVisibility
+	SessionId             string
+	AgentId               string
+	Message               string
+	ExecutionConfig       *ExecutionConfigInput
+	RuntimeEnv            map[string]EnvVarInput
+	CallbackToken         []byte
+	AutoApproveAll        bool
+	ParentWorkflowId      string
+	Attachments           []*AttachmentInput
+	WorkspaceFileRefs     []string
+	ActivityTaskQueue     string
+	SupersedesExecutionId string
 }
 
 // ExecutionConfigInput is the SDK input type for ExecutionConfig.
@@ -242,6 +243,7 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 	}
 	resource.Spec.WorkspaceFileRefs = i.WorkspaceFileRefs
 	resource.Spec.ActivityTaskQueue = i.ActivityTaskQueue
+	resource.Spec.SupersedesExecutionId = i.SupersedesExecutionId
 	return resource
 }
 
@@ -313,6 +315,7 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 		}
 		input.WorkspaceFileRefs = s.GetWorkspaceFileRefs()
 		input.ActivityTaskQueue = s.GetActivityTaskQueue()
+		input.SupersedesExecutionId = s.GetSupersedesExecutionId()
 	}
 	return input
 }

@@ -117,6 +117,15 @@ export interface SendFollowUpOptions {
    * @see {@link CreateAgentExecutionInput.workspaceFileRefs}
    */
   readonly workspaceFileRefs?: string[];
+  /**
+   * ID of the execution this follow-up supersedes (edit-and-resubmit).
+   *
+   * The conversation read model hides the superseded execution so the
+   * edited message replaces the original in place.
+   *
+   * @see {@link CreateAgentExecutionInput.supersedesExecutionId}
+   */
+  readonly supersedesExecutionId?: string;
 }
 
 /**
@@ -129,7 +138,14 @@ export interface SendFollowUpOptions {
 export interface UseSessionConversationReturn {
   /** The session object, or null while loading. */
   readonly session: Session | null;
-  /** Executions in terminal phases, in chronological order. */
+  /**
+   * Executions in terminal phases, in chronological order.
+   *
+   * Excludes turns replaced via edit-and-resubmit (an execution whose id
+   * appears as another execution's `supersedesExecutionId`) — the edited
+   * message stands in the original's place. Superseded records remain in
+   * execution history surfaces; only the conversation view hides them.
+   */
   readonly completedExecutions: readonly AgentExecution[];
   /** Currently streaming execution (stream or fetch fallback), or null. */
   readonly activeStreamExecution: AgentExecution | null;
@@ -491,12 +507,37 @@ export function useSessionConversation(
     }
   }, [activeExecutionId, stream.phase, refetch]);
 
+  // Executions replaced via edit-and-resubmit. The successor carries
+  // `spec.supersedes_execution_id`; hiding the superseded turn makes the
+  // edited message read as a single corrected exchange (in-place replace).
+  // The link must also be read off the live stream copy — right after a
+  // resubmit, the successor streams before the list refetch delivers it.
+  // Display-only: the raw `executions` list (and therefore active-id
+  // resolution above) is never filtered.
+  //
+  // Dep is the scalar link, NOT stream.execution: the stream object changes
+  // reference every frame, and rebuilding the Set per frame would hand
+  // MessageThread a fresh executions array mid-stream, defeating its
+  // memoization (DD-010).
+  const streamSupersededId =
+    stream.execution?.spec?.supersedesExecutionId || null;
+  const supersededIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of executions) {
+      const superseded = e.spec?.supersedesExecutionId;
+      if (superseded) ids.add(superseded);
+    }
+    if (streamSupersededId) ids.add(streamSupersededId);
+    return ids;
+  }, [executions, streamSupersededId]);
+
   const completedExecutions = useMemo(() => {
-    if (!activeExecutionId) return executions;
-    return executions.filter(
-      (e) => (e.metadata?.id ?? "") !== activeExecutionId,
-    );
-  }, [executions, activeExecutionId]);
+    return executions.filter((e) => {
+      const id = e.metadata?.id ?? "";
+      if (activeExecutionId && id === activeExecutionId) return false;
+      return !supersededIds.has(id);
+    });
+  }, [executions, activeExecutionId, supersededIds]);
 
   const fetchedActiveExecution = useMemo(() => {
     if (!activeExecutionId) return null;
@@ -604,6 +645,7 @@ export function useSessionConversation(
           buildFromPlan: options?.buildFromPlan,
           autoApproveAll: options?.autoApproveAll,
           workspaceFileRefs: options?.workspaceFileRefs,
+          supersedesExecutionId: options?.supersedesExecutionId,
         });
         setPendingExecutionId(result.executionId);
         refetch();
