@@ -35,7 +35,7 @@ import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agent
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionControlSignal, ExecutionPhase, FileChangeSetStatus, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { SDKMessage, Run, ConversationTurn } from "@cursor/sdk";
+import type { Run, ConversationTurn } from "@cursor/sdk";
 
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
@@ -46,12 +46,11 @@ import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
-import { startStallWatchdog, StallTimeoutError, formatStallFailure, type StallWatchdog } from "../../shared/stall-watchdog.js";
+import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
-import { shouldPersistStreamingStatus } from "./persist-decision.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
 import { resolveMcpServers, validateMcpServerEnv } from "./mcp-resolver.js";
@@ -74,7 +73,7 @@ import {
   type ReleaseWorkspaceLock,
 } from "../../shared/workspace/workspace-lock.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
-import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, readDenialLedger, reconstructAdjudicatedApprovals, watchDenialLedger } from "./approval-state.js";
+import { buildApprovalState, buildApprovalGrants, emitCursorGrantReceipts, reconstructAdjudicatedApprovals, watchDenialLedger } from "./approval-state.js";
 import { applyApprovedWholeFileWrites, excludeAppliedFromGrants } from "./exact-apply.js";
 import { isGitWorkTree } from "../../shared/filereview/git-substrate.js";
 import {
@@ -84,6 +83,13 @@ import {
   deriveCaptureMode,
 } from "./capture-flow.js";
 import { runTurnBoundary, type TurnBoundaryResult } from "./turn-boundary.js";
+import {
+  consumeCursorTurnStream,
+  makeCursorTurnOnDelta,
+  newTurnStreamState,
+  type CursorTurnStreamDeps,
+  type TurnOnDeltaDeps,
+} from "./turn-stream.js";
 import {
   captureFileChangeProgress,
   newProgressCaptureState,
@@ -202,40 +208,30 @@ async function executeCursorInner(
 
   let sessionId: string | undefined;
   let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
-  let pauseDetected = false;
+  // Single owner for every flag the turn's stream produces (pause, stall,
+  // first-denial, platform-stop, event count, the stall watchdog, …). Created
+  // once here — before the fs denial-watcher, the SDK onDelta, the stall
+  // watchdog, and the stream loop are wired — so all four producers plus the
+  // epilogue and the outer catch/finally share ONE source of truth. The primary
+  // turn and both recovery retries drive the same stream code against this
+  // object (see turn-stream.ts for per-field ownership).
+  const turnState = newTurnStreamState();
+  // NOT part of turnState: derived post-loop from the periodic heartbeat +
+  // shutdown signal (a runner-manager shutdown, not a stream event), and read by
+  // the epilogue + outer catch. Kept as a plain let alongside the stream flags.
   let workerShutdownDetected = false;
-  // Set by the stall watchdog when the SDK stream makes no progress for
-  // config.cursorStreamStallTimeoutMs. stallError carries the recognizable
-  // message surfaced to the user; both feed the Phase 11a stall branch.
-  let stallDetected = false;
-  let stallError: StallTimeoutError | undefined;
-  // Set the moment the preToolUse hook records its first denial in the ledger.
-  // We then stop consuming the stream and cancel the run so the model never
-  // reacts to Cursor's tool-failure surface (narrate defeat, attempt a second
-  // gated tool) — converging the Cursor harness toward the native harness, which
-  // pauses BEFORE the model sees a denial. Phase 12 reconciles the denied tool
-  // calls into WAITING_FOR_APPROVAL exactly as after a natural stream end.
-  let firstDenialDetected = false;
-  // Flipped by the denial-ledger fs watcher the instant the hook writes a
-  // denial, so the NEXT stream event of ANY type triggers the ledger read —
-  // instead of waiting for the next tool_call event, during which the model's
-  // full post-denial reaction (thinking, narration, a workaround tool) would
-  // stream and persist (observed in production: aex_01kwj07f7g23c3wp9sn8496z5g).
-  // The tool_call-event read below remains the backstop where fs.watch is
-  // unreliable.
-  let denialLedgerDirty = false;
   let stopDenialWatcher: (() => void) | undefined;
-  // The in-flight run.cancel() started by the first-denial stop. Awaited
-  // (timeboxed) before Phase 12 so the agent process has actually stopped
-  // before the final ledger read and the turn-boundary tree capture — closing
-  // the race where a post-denial workaround's ledger entry lands after the
-  // read (it would then never be collapsed) or a late tool mutates the tree
-  // mid-capture.
-  let denialCancelSettled: Promise<void> | undefined;
   let periodicHeartbeat: ReturnType<typeof startHeartbeat> | undefined;
-  // Progress-based stall watchdog (see ../../shared/stall-watchdog.ts). Stopped
-  // in the finally on every exit path; complements the liveness heartbeat.
-  let stallWatchdog: StallWatchdog | undefined;
+  // Ends the OTel turn span + records turn metrics with the FINAL token snapshot.
+  // Hoisted and invoked from the finally so the span is closed exactly once on
+  // EVERY exit path — a happy completion, an approval pause, an early return, a
+  // throw, or a recovery retry (whose tokens accrue AFTER the primary stream
+  // ends). Ending it inline in the epilogue leaked the span on every non-happy
+  // path and excluded retry tokens/duration. Assigned when the span is created
+  // (once usageAccumulator exists); undefined — a no-op — before then (e.g. a
+  // pure-reconcile resume that returns before the agent runs) or when OTel is
+  // off. Idempotent: safe to call more than once.
+  let finishTurnTelemetry: (() => Promise<void>) | undefined;
   // Session HITL directory (runner-owned, outside the workspace) where the hook
   // script, approval-state file, and denial ledger live. Set once the gate is
   // installed; the WAITING_FOR_APPROVAL path reads the denial ledger from here.
@@ -691,7 +687,7 @@ async function executeCursorInner(
     // reset may flip the flag once before the run starts; the loop's read then
     // sees an empty ledger and clears it — harmless by construction.
     stopDenialWatcher = watchDenialLedger(hitlDir, () => {
-      denialLedgerDirty = true;
+      turnState.denialLedgerDirty = true;
     });
 
     // Mid-run live capture (DD-32 / DD-33): choose the progress substrate for this
@@ -858,13 +854,42 @@ async function executeCursorInner(
     await ensurePricingLoaded();
     const usageAccumulator = new UsageAccumulator(validatedModel);
 
-    // Phase 10c: Start OTel turn span (coarse-grained — wraps entire agent.send + stream)
+    // Phase 10c: Start OTel turn span. Coarse-grained — spans the whole turn
+    // (agent.send + stream + any recovery retry + the turn boundary), ended once
+    // from the finally via finishTurnTelemetry with the final token snapshot.
     const { startCursorTurnSpan } = await import("../../otel.js");
     const turnSpan = await startCursorTurnSpan({
       model: validatedModel,
       mode: agentMode,
       sessionId: sessionId ?? "",
     });
+    // Bind the telemetry-finish closure now that the span + usage accumulator
+    // exist. Reads usageAccumulator at CALL time (in the finally), so it captures
+    // tokens from any recovery retry that ran after the primary stream. Guarded
+    // so a second call (finally after an inline path already finished it) is a
+    // no-op. Metrics failures are swallowed — OTel is optional.
+    let turnTelemetryFinished = false;
+    finishTurnTelemetry = async () => {
+      if (turnTelemetryFinished) return;
+      turnTelemetryFinished = true;
+      const usage = usageAccumulator.snapshot();
+      turnSpan.setTokens(Number(usage.inputTokens), Number(usage.outputTokens));
+      turnSpan.end();
+      try {
+        const { recordTurnMetrics } = await import("../../otel.js");
+        const durationMs =
+          Date.now() - (status.startedAt ? new Date(status.startedAt).getTime() : Date.now());
+        await recordTurnMetrics({
+          durationMs,
+          inputTokens: Number(usage.inputTokens),
+          outputTokens: Number(usage.outputTokens),
+          model: validatedModel,
+          mode: agentMode,
+        });
+      } catch {
+        // Metrics not initialized — silently skip.
+      }
+    };
 
     // Phase 11: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
@@ -873,13 +898,21 @@ async function executeCursorInner(
     const todoTracker = new TodoTracker(status.todos);
     const eventRecorder = createCursorEventRecorder(executionId);
 
-    let platformStopSignaled = false;
-    let firstTurnAttributionLogged = false;
-    let streamErrorMessage: string | undefined;
+    // The two recovery retries (poisoned-handle / transport-timeout) below run at
+    // most once per turn; this guard is the latch.
     let alreadyRetriedWithFreshAgent = false;
-    // Most recent tool name observed on the stream, used only to enrich the
-    // stall message ("last tool: …") so a wedged turn names the likely culprit.
-    let lastToolName: string | undefined;
+
+    // The shared onDelta only needs the usage/enricher/heartbeat/state subset,
+    // and it is wired at SEND time — before the accumulator exists — so it takes
+    // the narrow deps. The primary send and both retry sends reuse this object.
+    const onDeltaDeps: TurnOnDeltaDeps = {
+      usageAccumulator,
+      deltaEnricher,
+      heartbeat,
+      promptEstimatedTokens,
+      executionId,
+      state: turnState,
+    };
 
     // Periodic heartbeat keeps Temporal informed during silent SDK operations
     // (e.g. long tool calls, MCP requests, model thinking). Without this,
@@ -907,61 +940,11 @@ async function executeCursorInner(
       // (e.g. older SDK), the warning is harmless — ignore.
     }
 
+    // The stall watchdog is armed inside consumeCursorTurnStream (it needs the
+    // run to cancel), stored on turnState.stallWatchdog so this shared onDelta can
+    // reset it and the activity's finally can stop it as a backstop.
     const run = await resolution.agent.send(effectivePrompt, {
-      onDelta: ({ update }) => {
-        // Reset the stall timer on the delta channel too: a long model
-        // generation emits token deltas but few discrete stream events, so
-        // resetting only in the stream loop would false-positive a stall.
-        stallWatchdog?.recordActivity();
-        if (update.type === "turn-ended" && update.usage) {
-          usageAccumulator.addTurn(update.usage);
-
-          if (!firstTurnAttributionLogged) {
-            firstTurnAttributionLogged = true;
-            const sdkInputTokens = update.usage.inputTokens ?? 0;
-            const cursorOverhead = Math.max(0, sdkInputTokens - promptEstimatedTokens);
-            console.log(
-              `ExecuteCursor context attribution (first turn): execution=${executionId}, ` +
-              `sdkInputTokens=${sdkInputTokens}, stigmerPreamble=${promptEstimatedTokens}, ` +
-              `cursorOverhead=${cursorOverhead} (estimated)`,
-            );
-          }
-        }
-        deltaEnricher.processDelta(update);
-        try {
-          heartbeat();
-        } catch (hbErr) {
-          if (hbErr instanceof CancelledFailure) {
-            pauseDetected = true;
-            return;
-          }
-          throw hbErr;
-        }
-      },
-    });
-
-    // Arm the stall watchdog now that the run exists. The periodic heartbeat
-    // above proves the process is alive, not that the agent is progressing: if
-    // the stream wedges (a tool call or model connection that never returns),
-    // no event/delta arrives, Phase 12 below is never reached, and the
-    // execution hangs at EXECUTION_IN_PROGRESS forever. On stall we end the run
-    // cleanly via the SDK's run.cancel() (guarded by supports("cancel")), which
-    // unblocks the for-await; the stallDetected branch in Phase 11a then
-    // reports EXECUTION_FAILED with a recognizable, actionable message.
-    stallWatchdog = startStallWatchdog(config.cursorStreamStallTimeoutMs, (idleMs) => {
-      stallDetected = true;
-      stallError = new StallTimeoutError(idleMs, lastToolName ? `last tool: ${lastToolName}` : undefined);
-      console.warn(
-        `ExecuteCursor stall detected: execution=${executionId}, idleMs=${idleMs}, lastTool=${lastToolName ?? "none"}`,
-      );
-      if (run.supports?.("cancel")) {
-        void run.cancel().catch((cancelErr) => {
-          console.warn(
-            `ExecuteCursor run.cancel() after stall failed (non-fatal): execution=${executionId}, ` +
-            `error=${cancelErr instanceof Error ? cancelErr.message : cancelErr}`,
-          );
-        });
-      }
+      onDelta: makeCursorTurnOnDelta(onDeltaDeps),
     });
 
     // Everything at an index >= this was produced by THIS turn's stream — the
@@ -979,303 +962,185 @@ async function executeCursorInner(
     // flush; high-frequency token deltas ride this scheduler's time cadence
     // (env-tunable via STREAMING_* — see loadStreamingConfig).
     const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
-    let eventCount = 0;
 
-    try {
-    for await (const event of run.stream()) {
-      if (pauseDetected || Context.current().cancellationSignal.aborted) {
-        pauseDetected = true;
-        break;
+    // Full deps for the shared stream loop — the collaborators + the injected
+    // heartbeat/cancellation (so the loop is testable, mirroring the deep-agent
+    // streamExecution seam), all keyed off the single turnState. Consumed by the
+    // primary stream here and by both recovery retries below.
+    const streamDeps: CursorTurnStreamDeps = {
+      ...onDeltaDeps,
+      status,
+      accumulator,
+      todoTracker,
+      eventRecorder,
+      scheduler,
+      progressSubstrate,
+      progressState,
+      changeSetId,
+      hitlDir,
+      stallTimeoutMs: config.cursorStreamStallTimeoutMs,
+      persist,
+      isCancelled: () => Context.current().cancellationSignal.aborted,
+    };
+
+    // Primary stream. consumeCursorTurnStream owns the per-event loop (transcript,
+    // todos, sub-agent tracking, live persist, DD-32/DD-33 mid-run progress, the
+    // first-denial early stop, and the stall watchdog) and reports why it ended;
+    // resolvePreBoundaryTerminal below maps that to a terminal outcome. The two
+    // recovery retries drive the identical loop, so they inherit every one of
+    // these behaviors instead of the old bare loop that dropped them.
+    await consumeCursorTurnStream(run, streamDeps);
+
+    periodicHeartbeat.stop();
+    // Worker-shutdown vs. user-pause disambiguation. Primary-only: the periodic
+    // heartbeat is stopped here, before any recovery retry runs, so a retry
+    // classifies a shutdown from the shutdown signal directly (in
+    // resolvePreBoundaryTerminal). The heartbeat timer may set `cancelled` before
+    // the AbortSignal microtask propagates; the direct signal check catches that.
+    const isShutdown = periodicHeartbeat.workerShutdown || (shutdownSignal?.aborted ?? false);
+    if (isShutdown) {
+      turnState.pauseDetected = false;
+    } else if (periodicHeartbeat.cancelled) {
+      turnState.pauseDetected = true;
+    }
+    workerShutdownDetected = isShutdown;
+
+    // Post-stream finalize, shared by the primary turn and both recovery retries:
+    // finalize the transcript + streaming flags, mark any in-flight sub-agent
+    // CANCELLED on an aborted turn, snapshot usage, flush the recorder, and
+    // persist so the UI sees the settled rows. The unified loop applies delta
+    // enrichments per-iteration, so — unlike the old bare retry path — no
+    // compensating applyEnrichments() is needed here.
+    const finalizeStreamPhase = async () => {
+      accumulator.finalize();
+      deltaEnricher.finalize(status.messages);
+      // A pause / cancel / worker shutdown aborts the Cursor SDK run, so any
+      // sub-agent the parent had delegated is no longer executing. Mark it
+      // CANCELLED rather than leaving a permanent IN_PROGRESS "zombie" in the
+      // final snapshot (parity with the native harness's cancelSubAgents()).
+      if (
+        turnState.pauseDetected ||
+        workerShutdownDetected ||
+        turnState.stallDetected ||
+        Context.current().cancellationSignal.aborted
+      ) {
+        accumulator.cancelInProgressSubAgents();
       }
-      if (stallDetected) break;
-
-      // Progress: reset the stall timer on every stream event.
-      stallWatchdog.recordActivity();
-      if (event.type === "tool_call" && typeof event.name === "string") {
-        lastToolName = event.name;
-      }
-
-      eventRecorder?.record(event, eventCount);
-
-      accumulator.processEvent(event);
-      todoTracker.processEvent(event);
-
-      if (event.type === "tool_call" && event.name === "task") {
-        accumulator.trackSubAgentExecution(
-          event as Extract<SDKMessage, { type: "tool_call" }>,
-        );
-      }
-
-      // First-denial stop (HITL clean pause). In CAPTURE mode this fires only for
-      // an IRREVERSIBLE tool the hook still gates (shell, MCP, or a gitignored
-      // write/delete) — file edits flow freely and are captured at the turn
-      // boundary, so they never enter the ledger. In the deny-gate FALLBACK
-      // (non-git workspace) it fires for every gated file edit too. Either way:
-      // the preToolUse hook appends to the denial ledger the instant it gates a
-      // tool — before Cursor surfaces the failure to the model — and the fs
-      // watcher flips denialLedgerDirty the moment that write lands. Confirming
-      // the flag with a read on the very next event (of ANY type — thinking
-      // deltas arrive within milliseconds) ends the turn before the model's
-      // reaction can persist: waiting for the next tool_call event let the full
-      // post-denial reaction (thinking, narration, a workaround shell) stream
-      // and persist live (production case aex_01kwj07f7g23c3wp9sn8496z5g). The
-      // tool_call-event read stays as the backstop for platforms where fs.watch
-      // is unreliable; the current event was already accumulated above, so the
-      // anchor's own row is always present for the Phase 12 gate overlay. This
-      // mirrors the native harness's pause-before-react semantics; Phase 12
-      // reconciles the denied calls and its trim remains the last-resort
-      // backstop for anything that persisted before the stop.
-      if (!firstDenialDetected && hitlDir && (denialLedgerDirty || event.type === "tool_call")) {
-        denialLedgerDirty = false;
-        const denials = await readDenialLedger(hitlDir);
-        if (denials.length > 0) {
-          firstDenialDetected = true;
-          console.log(
-            `ExecuteCursor first denial detected (${denials.length} ledger ` +
-            `entr${denials.length === 1 ? "y" : "ies"}); stopping turn to pause ` +
-            `cleanly for approval: execution=${executionId}`,
-          );
-          if (run.supports?.("cancel")) {
-            // Kept (not fire-and-forget): awaited timeboxed before Phase 12 so
-            // the ledger read and tree capture see a stopped agent.
-            denialCancelSettled = run.cancel().then(
-              () => {},
-              (cancelErr: unknown) => {
-                console.warn(
-                  `ExecuteCursor run.cancel() after first denial failed (non-fatal): ` +
-                  `execution=${executionId}, ` +
-                  `error=${cancelErr instanceof Error ? cancelErr.message : cancelErr}`,
-                );
-              },
-            );
-          }
-          break;
-        }
-      }
-
-      deltaEnricher.applyEnrichments(status.messages);
-      eventCount++;
-
-      if (event.type === "status") {
-        console.log(
-          `ExecuteCursor stream status: execution=${executionId}, status=${JSON.stringify(event)}`,
-        );
-        const statusEvent = event as { status?: string; message?: string };
-        if (statusEvent.status === "ERROR" && statusEvent.message) {
-          streamErrorMessage = statusEvent.message;
-        }
-      }
-
-      const shouldPersist = shouldPersistStreamingStatus(
-        {
-          deltaEnricherDirty: deltaEnricher.isDirty,
-          todosDirty: todoTracker.isDirty,
-          contentDirty: accumulator.isDirty,
-        },
-        scheduler,
-        eventCount,
-      );
+      status.subAgentExecutions = accumulator.subAgentExecutions;
+      await eventRecorder?.flush();
       if (usageAccumulator.hasTurns) {
         status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
       }
-      if (shouldPersist) {
-        // Sync sub-agent executions into status before every persist so the
-        // live UI reflects delegation (including the IN_PROGRESS state) while
-        // the parent is still running — matching the native harness, which
-        // calls syncSubAgentExecutions() on each persist. Without this, the
-        // accumulator tracked sub-agents in memory but they only reached the
-        // status (and the subscriber stream) after the loop ended.
-        status.subAgentExecutions = accumulator.subAgentExecutions;
-        // Mid-run live capture (DD-32 / DD-33): attach the "N files changed so far"
-        // snapshot onto status.file_change_progress, throttled internally by the
-        // floor. The substrate (git / non-git CAS / hybrid) was chosen for this
-        // turn above and covers git-tracked (numstat), non-git, and gitignored
-        // (CAS sidecar) writes. Never authoritative — the turn-boundary candidate
-        // remains the reviewed diff.
-        if (progressSubstrate) {
-          await captureFileChangeProgress({
-            status,
-            changeSetId,
-            substrate: progressSubstrate,
-            state: progressState,
-          });
-        }
-        const signal = await persist(status);
-        deltaEnricher.markPersisted();
-        todoTracker.markPersisted();
-        accumulator.markPersisted();
-        scheduler.markUpdateSent(eventCount);
-        heartbeat();
-        if (signal === ExecutionControlSignal.STOP) {
-          platformStopSignaled = true;
-          console.warn(
-            `ExecuteCursor platform stop signal received: execution=${executionId}`,
-          );
-        }
-      }
-
-      if (platformStopSignaled) {
-        console.log(`ExecuteCursor stopping stream due to platform stop signal: execution=${executionId}`);
-        break;
-      }
-    }
-    } catch (streamErr) {
-      // run.cancel() — from the stall watchdog or the first-denial stop — can
-      // make the stream iterator reject as it tears down; that is the expected
-      // teardown for both, so swallow it and fall through (stallDetected ->
-      // Phase 11a; firstDenialDetected -> Phase 12). Anything else is a genuine
-      // stream failure — rethrow it to the outer error handler.
-      if (!stallDetected && !firstDenialDetected) throw streamErr;
-      console.warn(
-        `ExecuteCursor stream ended via cancel: execution=${executionId}, ` +
-        `stall=${stallDetected}, firstDenial=${firstDenialDetected}`,
+      console.log(
+        `ExecuteCursor stream ended: execution=${executionId}, events=${turnState.eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
       );
-    }
-
-    periodicHeartbeat.stop();
-    stallWatchdog.stop();
-    // Check both the heartbeat flag AND the shutdown signal directly.
-    // Race condition: the heartbeat timer may detect Temporal's CancelledFailure
-    // (from worker.shutdown()) before the AbortSignal microtask propagates,
-    // causing it to set `cancelled` instead of `workerShutdown`. The direct
-    // signal check catches this case.
-    const isShutdown = periodicHeartbeat.workerShutdown || (shutdownSignal?.aborted ?? false);
-    if (isShutdown) {
-      pauseDetected = false;
-    } else if (periodicHeartbeat.cancelled) {
-      pauseDetected = true;
-    }
-
-    workerShutdownDetected = isShutdown;
-
-    accumulator.finalize();
-    deltaEnricher.finalize(status.messages);
-    // A pause / cancel / worker shutdown aborts the Cursor SDK run, so any
-    // sub-agent the parent had delegated is no longer executing. Mark it
-    // CANCELLED rather than leaving a permanent IN_PROGRESS "zombie" in the
-    // final snapshot (parity with the native harness's cancelSubAgents()).
-    if (pauseDetected || workerShutdownDetected || stallDetected || Context.current().cancellationSignal.aborted) {
-      accumulator.cancelInProgressSubAgents();
-    }
-    status.subAgentExecutions = accumulator.subAgentExecutions;
-    await eventRecorder?.flush();
-    if (usageAccumulator.hasTurns) {
-      status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
-    }
-    console.log(
-      `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
-    );
-
-    // Persist immediately after finalize so the UI sees correct tool
-    // call statuses before run.wait() / structured output extraction.
-    // This is unconditional (not throttled) because finalize is a
-    // once-per-execution correctness boundary.
-    await persist(status);
-    heartbeat();
-
-    // End OTel turn span with accumulated token usage
-    const usageSnapshot = usageAccumulator.snapshot();
-    turnSpan.setTokens(Number(usageSnapshot.inputTokens), Number(usageSnapshot.outputTokens));
-    turnSpan.end();
-
-    // Record cursor turn metrics (duration, tokens)
-    try {
-      const { recordTurnMetrics } = await import("../../otel.js");
-      const turnDurationMs = Date.now() - (status.startedAt ? new Date(status.startedAt).getTime() : Date.now());
-      await recordTurnMetrics({
-        durationMs: turnDurationMs,
-        inputTokens: Number(usageSnapshot.inputTokens),
-        outputTokens: Number(usageSnapshot.outputTokens),
-        model: validatedModel,
-        mode: agentMode,
-      });
-    } catch {
-      // Metrics not initialized — silently skip.
-    }
-
-
-    // Phase 11a: Handle stall, worker shutdown, pause, or infrastructure cancellation.
-
-    // Stall: the watchdog cancelled a turn that made no progress for longer
-    // than config.cursorStreamStallTimeoutMs (a wedged tool call or a dead
-    // model connection). The keep-alive heartbeat proves liveness, so Temporal
-    // never reaps this on its own — this branch is the only clean exit. We
-    // RETURN (not throw): re-running the identical prompt via Temporal retry
-    // would very likely wedge again. accumulator.finalize() above already
-    // cleared isStreaming, so the UI spinners stop.
-    if (stallDetected) {
-      const err = stallError ?? new StallTimeoutError(config.cursorStreamStallTimeoutMs);
-      status.phase = ExecutionPhase.EXECUTION_FAILED;
-      status.error = formatStallFailure(err);
-      status.completedAt = utcTimestamp();
-      status.messages.push(create(AgentMessageSchema, {
-        type: MessageType.MESSAGE_SYSTEM,
-        content: `Execution failed: the agent made no progress for too long and was stopped (${err.message}). You can retry or resume.`,
-        timestamp: utcTimestamp(),
-      }));
+      // Persist immediately after finalize so the UI sees correct tool-call
+      // statuses before the boundary / run.wait() / structured-output extraction.
       await persist(status);
-      console.warn(`ExecuteCursor stalled: execution=${executionId}, events=${eventCount}, error=${status.error}`);
-      return slimStatus(status);
-    }
+      heartbeat();
+    };
 
-    // Worker shutdown: the runner-manager aborted the shutdown signal before
-    // calling worker.shutdown(). This is NOT a user-initiated pause — it's
-    // an infrastructure event (e.g., premature removal from UI race).
-    if (workerShutdownDetected) {
-      status.phase = ExecutionPhase.EXECUTION_FAILED;
-      status.error = "Execution interrupted: runner worker was shut down. Retry or resume.";
-      status.completedAt = utcTimestamp();
-      status.messages.push(create(AgentMessageSchema, {
-        type: MessageType.MESSAGE_SYSTEM,
-        content: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
-        timestamp: utcTimestamp(),
-      }));
-      await persist(status);      console.log(`ExecuteCursor interrupted (worker shutdown): execution=${executionId}, events=${eventCount}`);
-      throw new CancelledFailure("Activity cancelled (worker shutdown, not user pause)");
-    }
+    // Pre-boundary terminal handling, shared by the primary turn and both retries
+    // so a retry that stalls, pauses, is cancelled, or is platform-stopped is
+    // mapped IDENTICALLY to the primary — the fix for the mid-retry pause that
+    // used to surface as EXECUTION_FAILED. "proceed" (a normal completion or a
+    // first denial) goes on to the turn boundary; a stall / platform-stop asks
+    // the caller to RETURN a terminal status; a worker-shutdown / pause /
+    // infra-cancel asks the caller to THROW CancelledFailure. The OTel turn span
+    // + metrics are ended once from the finally (finishTurnTelemetry), so they
+    // include any recovery retry and never leak on these exits.
+    type PreBoundaryTerminal =
+      | { kind: "proceed" }
+      | { kind: "return" }
+      | { kind: "throw"; message: string };
+    const resolvePreBoundaryTerminal = async (): Promise<PreBoundaryTerminal> => {
+      // Stall: the watchdog cancelled a turn that made no progress. RETURN (not
+      // throw): re-running the identical prompt via Temporal retry would very
+      // likely wedge again.
+      if (turnState.stallDetected) {
+        const err = turnState.stallError ?? new StallTimeoutError(config.cursorStreamStallTimeoutMs);
+        status.phase = ExecutionPhase.EXECUTION_FAILED;
+        status.error = formatStallFailure(err);
+        status.completedAt = utcTimestamp();
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: `Execution failed: the agent made no progress for too long and was stopped (${err.message}). You can retry or resume.`,
+          timestamp: utcTimestamp(),
+        }));
+        await persist(status);
+        console.warn(`ExecuteCursor stalled: execution=${executionId}, events=${turnState.eventCount}, error=${status.error}`);
+        return { kind: "return" };
+      }
 
-    // pauseDetected is only true if a heartbeat() call threw CancelledFailure,
-    // confirming the orchestrator explicitly requested a pause.
-    if (pauseDetected) {
-      status.phase = ExecutionPhase.EXECUTION_PAUSED;
-      status.messages.push(create(AgentMessageSchema, {
-        type: MessageType.MESSAGE_SYSTEM,
-        content: "Execution paused by user. Use resume to continue.",
-        timestamp: utcTimestamp(),
-      }));
-      await persist(status);      console.log(`ExecuteCursor paused: execution=${executionId}, events=${eventCount}`);
-      throw new CancelledFailure("Activity paused by orchestrator");
-    }
+      // Worker shutdown: the runner-manager aborted the shutdown signal. NOT a
+      // user pause. Checked via the shutdown signal directly so a retry (whose
+      // periodic heartbeat is already stopped) still classifies it correctly.
+      if (workerShutdownDetected || (shutdownSignal?.aborted ?? false)) {
+        status.phase = ExecutionPhase.EXECUTION_FAILED;
+        status.error = "Execution interrupted: runner worker was shut down. Retry or resume.";
+        status.completedAt = utcTimestamp();
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
+          timestamp: utcTimestamp(),
+        }));
+        await persist(status);
+        console.log(`ExecuteCursor interrupted (worker shutdown): execution=${executionId}, events=${turnState.eventCount}`);
+        return { kind: "throw", message: "Activity cancelled (worker shutdown, not user pause)" };
+      }
 
-    // If cancellation arrived without pauseDetected (e.g. heartbeat timeout
-    // that slipped past the periodic heartbeat, or worker shutdown), report
-    // as failed rather than misleadingly labeling it as user-paused.
-    if (Context.current().cancellationSignal.aborted) {
-      status.phase = ExecutionPhase.EXECUTION_FAILED;
-      status.error = "Execution interrupted: agent was unresponsive (heartbeat timeout). Retry or resume.";
-      status.completedAt = utcTimestamp();
-      status.messages.push(create(AgentMessageSchema, {
-        type: MessageType.MESSAGE_SYSTEM,
-        content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
-        timestamp: utcTimestamp(),
-      }));
-      await persist(status);      console.log(`ExecuteCursor interrupted (infrastructure cancel): execution=${executionId}, events=${eventCount}`);
-      throw new CancelledFailure("Activity cancelled (heartbeat timeout, not user pause)");
-    }
+      // pauseDetected is only true if a heartbeat() call threw CancelledFailure,
+      // confirming the orchestrator explicitly requested a pause.
+      if (turnState.pauseDetected) {
+        status.phase = ExecutionPhase.EXECUTION_PAUSED;
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Execution paused by user. Use resume to continue.",
+          timestamp: utcTimestamp(),
+        }));
+        await persist(status);
+        console.log(`ExecuteCursor paused: execution=${executionId}, events=${turnState.eventCount}`);
+        return { kind: "throw", message: "Activity paused by orchestrator" };
+      }
 
-    // Phase 11b: Handle platform stop signal early exit
-    if (platformStopSignaled) {
-      status.phase = ExecutionPhase.EXECUTION_COMPLETED;
-      status.completedAt = utcTimestamp();
-      status.messages.push(create(AgentMessageSchema, {
-        type: MessageType.MESSAGE_SYSTEM,
-        content: "Execution stopped by the platform.",
-        timestamp: utcTimestamp(),
-      }));
-      await persist(status);      try { resolution.agent.close(); } catch { /* best effort */ }
-      console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
-      return slimStatus(status);
-    }
+      // Cancellation without pauseDetected (e.g. heartbeat timeout): report as
+      // failed rather than misleadingly labeling it a user pause.
+      if (Context.current().cancellationSignal.aborted) {
+        status.phase = ExecutionPhase.EXECUTION_FAILED;
+        status.error = "Execution interrupted: agent was unresponsive (heartbeat timeout). Retry or resume.";
+        status.completedAt = utcTimestamp();
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
+          timestamp: utcTimestamp(),
+        }));
+        await persist(status);
+        console.log(`ExecuteCursor interrupted (infrastructure cancel): execution=${executionId}, events=${turnState.eventCount}`);
+        return { kind: "throw", message: "Activity cancelled (heartbeat timeout, not user pause)" };
+      }
+
+      // Platform stop signal: a clean COMPLETED early exit.
+      if (turnState.platformStopSignaled) {
+        status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+        status.completedAt = utcTimestamp();
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: "Execution stopped by the platform.",
+          timestamp: utcTimestamp(),
+        }));
+        await persist(status);
+        try { resolution.agent.close(); } catch { /* best effort */ }
+        console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
+        return { kind: "return" };
+      }
+
+      return { kind: "proceed" };
+    };
+
+    await finalizeStreamPhase();
+    const primaryTerminal = await resolvePreBoundaryTerminal();
+    if (primaryTerminal.kind === "return") return slimStatus(status);
+    if (primaryTerminal.kind === "throw") throw new CancelledFailure(primaryTerminal.message);
 
     // Phase 12: The turn boundary — author this turn's change set to the
     // file_review ledger (CANDIDATE_CAPTURED) and overlay the hook's denials as
@@ -1316,37 +1181,24 @@ async function executeCursorInner(
       return slimStatus(status);
     };
 
-    // Stream epilogue + boundary re-entry for a recovery retry (poisoned-handle /
-    // transport-timeout). The retry re-runs the agent AFTER the primary epilogue
-    // and boundary already ran, so its stream state must be settled the same way:
-    //  - flush the enricher's buffered deltas onto the rows (the primary loop
-    //    applies them every iteration; the bare retry loop does not — without the
-    //    flush, a completed tool call never receives its completedAt evidence and
-    //    finalize's reconciliation sweep leaves it RUNNING forever);
-    //  - finalize streaming state and sync sub-agents;
-    //  - refresh streaming usage (the retry's turns accumulated in memory only)
-    //    and re-stamp completedAt (stamped below BEFORE the retry ran);
-    //  - re-enter the turn boundary so edits made by the retry reach the
-    //    file_review ledger / approval gates — without this, a retry's file
-    //    edits silently escape review (production case
-    //    aex_01kws27q1e2esvkqjpvectttxf).
-    // Returns undefined for a cancelled retry: parity with the primary path,
-    // where cancellation exits before the boundary — there is no review to open.
+    // Re-enter the turn boundary for a recovery retry: author the retry's net
+    // change set to the file_review ledger and overlay any denials as gates —
+    // without this a retry's file edits silently escape review (production case
+    // aex_01kws27q1e2esvkqjpvectttxf). The stream finalize now runs through the
+    // shared finalizeStreamPhase (in runRecoveryStream), so this is only the
+    // boundary + completedAt. Returns undefined for a cancelled retry — there is
+    // no review to open. Passes denialCancelSettled so a first denial that stopped
+    // the RETRY waits for run.cancel() before the ledger read, exactly like the
+    // primary path.
     const settleRetryTurn = async (
       retryResultStatus: string,
     ): Promise<TurnBoundaryResult | undefined> => {
-      accumulator.finalize();
-      deltaEnricher.applyEnrichments(status.messages);
-      deltaEnricher.finalize(status.messages);
-      status.subAgentExecutions = accumulator.subAgentExecutions;
-      if (usageAccumulator.hasTurns) {
-        status.streamingUsage = create(StreamingUsageSummarySchema, usageAccumulator.snapshot());
-      }
-      // Re-flush the (dev-only) event recorder: flush rewrites the full JSONL,
-      // so the recorded trace now includes the retry's events too.
-      await eventRecorder?.flush();
       const retryBoundary =
-        retryResultStatus === "cancelled" ? undefined : await runBoundary();
+        retryResultStatus === "cancelled"
+          ? undefined
+          : await runBoundary(
+              turnState.firstDenialDetected ? turnState.denialCancelSettled : undefined,
+            );
       // Phase 13 stamped completedAt BEFORE the retry ran. A terminal outcome
       // re-stamps it to the true end; a review pause CLEARS it — the primary
       // pause path never stamps it (a waiting turn is not complete).
@@ -1354,9 +1206,53 @@ async function executeCursorInner(
       return retryBoundary;
     };
 
+    // The shared recovery spine. A fresh agent runs the IDENTICAL stream loop,
+    // finalize, and pre-boundary terminal handling as the primary turn, then — on
+    // a normal completion or a first denial — waits and re-enters the boundary.
+    // The two recovery call sites below differ only in how they build the fresh
+    // agent/prompt and how they classify a retry ERROR; everything the primary
+    // does mid-stream (live persist, DD-32/DD-33 mid-run progress, sub-agent
+    // tracking, the first-denial stop, and correct pause/stall/platform-stop
+    // mapping) they now inherit for free instead of the old bare loop.
+    type RecoveryOutcome =
+      | { proceeded: false; terminal: Exclude<PreBoundaryTerminal, { kind: "proceed" }> }
+      | {
+          proceeded: true;
+          retryRun: Run;
+          retryResult: Awaited<ReturnType<Run["wait"]>>;
+          retryBoundary: TurnBoundaryResult | undefined;
+        };
+    const runRecoveryStream = async (
+      freshAgent: AgentResolution["agent"],
+      retryPrompt: string,
+    ): Promise<RecoveryOutcome> => {
+      // The fresh agent is now the live handle: point resolution at it so the
+      // terminal close() (platform stop, or Phase 14 success) frees THIS agent's
+      // executor lease rather than the disposed one it replaced. (Without this the
+      // poisoned-handle path leaked the fresh agent — it closed the stale one.)
+      resolution = { ...resolution, agent: freshAgent, agentId: freshAgent.agentId, isNew: true };
+      turnState.streamErrorMessage = undefined;
+      const retryRun = await freshAgent.send(retryPrompt, {
+        onDelta: makeCursorTurnOnDelta(onDeltaDeps),
+      });
+      await consumeCursorTurnStream(retryRun, streamDeps);
+      await finalizeStreamPhase();
+      const terminal = await resolvePreBoundaryTerminal();
+      if (terminal.kind !== "proceed") return { proceeded: false, terminal };
+      const retryResult = await retryRun.wait();
+      console.log(
+        `ExecuteCursor retry run.wait(): execution=${executionId}, ` +
+        `retryResult=${JSON.stringify(retryResult)}`,
+      );
+      const retryBoundary = await settleRetryTurn(retryResult.status);
+      return { proceeded: true, retryRun, retryResult, retryBoundary };
+    };
+
     // The denial-settle wait applies only when a first denial stopped THIS run;
-    // the recovery retries have no early stop and pass no promise.
-    const boundary = await runBoundary(firstDenialDetected ? denialCancelSettled : undefined);
+    // a normal completion passes no promise.
+    const boundary = await runBoundary(
+      turnState.firstDenialDetected ? turnState.denialCancelSettled : undefined,
+    );
     if (boundary.waiting) {
       return enterApprovalPause(boundary);
     }
@@ -1397,7 +1293,7 @@ async function executeCursorInner(
 
         const classified = synthesizeError({
           sdkResultFields: sdkErrorStr,
-          streamErrorMessage,
+          streamErrorMessage: turnState.streamErrorMessage,
           capturedRejection,
           conversationErrorText,
           isResumedHandle: resolution.reason === "resumed_successfully",
@@ -1463,53 +1359,13 @@ async function executeCursorInner(
             console.warn("Failed to update session with fresh agentId (non-fatal):", updateErr);
           }
 
-          let retryWatchdog: StallWatchdog | undefined;
-          const retryRun = await freshAgent.send(freshPrompt, {
-            onDelta: ({ update }) => {
-              retryWatchdog?.recordActivity();
-              if (update.type === "turn-ended" && update.usage) {
-                usageAccumulator.addTurn(update.usage);
-              }
-              deltaEnricher.processDelta(update);
-              try { heartbeat(); } catch { /* swallow during retry */ }
-            },
-          });
-          // Mirror the primary stream's stall protection: a wedged retry must
-          // not hang the activity. On stall, cancel the run so the loop ends and
-          // retryRun.wait() resolves down the existing non-finished failure path.
-          retryWatchdog = startStallWatchdog(config.cursorStreamStallTimeoutMs, (idleMs) => {
-            console.warn(`ExecuteCursor retry stall detected: execution=${executionId}, idleMs=${idleMs}`);
-            if (retryRun.supports?.("cancel")) void retryRun.cancel().catch(() => { /* best effort */ });
-          });
-
-          streamErrorMessage = undefined;
-
-          try {
-            for await (const retryEvent of retryRun.stream()) {
-              if (Context.current().cancellationSignal.aborted) break;
-              retryWatchdog.recordActivity();
-              eventRecorder?.record(retryEvent, eventCount);
-              accumulator.processEvent(retryEvent);
-              eventCount++;
-              if (retryEvent.type === "status") {
-                const retryStatusEvent = retryEvent as { status?: string; message?: string };
-                if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
-                  streamErrorMessage = retryStatusEvent.message;
-                }
-              }
-              heartbeat();
-            }
-          } finally {
-            retryWatchdog.stop();
+          const outcome = await runRecoveryStream(freshAgent, freshPrompt);
+          if (!outcome.proceeded) {
+            if (outcome.terminal.kind === "return") return slimStatus(status);
+            throw new CancelledFailure(outcome.terminal.message);
           }
 
-          const retryResult = await retryRun.wait();
-          console.log(
-            `ExecuteCursor retry run.wait(): execution=${executionId}, ` +
-            `retryResult=${JSON.stringify(retryResult)}`,
-          );
-
-          const retryBoundary = await settleRetryTurn(retryResult.status);
+          const { retryRun, retryResult, retryBoundary } = outcome;
           if (retryBoundary?.waiting) {
             // The retry's edits/denials armed the gate — pause for review. On a
             // retry error this supersedes the failure, exactly as on the primary
@@ -1541,7 +1397,7 @@ async function executeCursorInner(
 
           const retryClassified = synthesizeError({
             sdkResultFields: retryResult.result ? String(retryResult.result) : undefined,
-            streamErrorMessage,
+            streamErrorMessage: turnState.streamErrorMessage,
             capturedRejection: retryRejection,
             conversationErrorText: retryConversationErrorText,
             isResumedHandle: false,
@@ -1586,61 +1442,24 @@ async function executeCursorInner(
             console.warn("Failed to update session with fresh agentId (non-fatal):", updateErr);
           }
 
-          let retryWatchdog: StallWatchdog | undefined;
-          const retryRun = await freshAgent.send(effectivePrompt, {
-            onDelta: ({ update }) => {
-              retryWatchdog?.recordActivity();
-              if (update.type === "turn-ended" && update.usage) {
-                usageAccumulator.addTurn(update.usage);
-              }
-              deltaEnricher.processDelta(update);
-              try { heartbeat(); } catch { /* swallow during retry */ }
-            },
-          });
-          // Mirror the primary stream's stall protection: a wedged retry must
-          // not hang the activity. On stall, cancel the run so the loop ends and
-          // retryRun.wait() resolves down the existing non-finished failure path.
-          retryWatchdog = startStallWatchdog(config.cursorStreamStallTimeoutMs, (idleMs) => {
-            console.warn(`ExecuteCursor retry stall detected: execution=${executionId}, idleMs=${idleMs}`);
-            if (retryRun.supports?.("cancel")) void retryRun.cancel().catch(() => { /* best effort */ });
-          });
-
-          streamErrorMessage = undefined;
-
-          try {
-            for await (const retryEvent of retryRun.stream()) {
-              if (Context.current().cancellationSignal.aborted) break;
-              retryWatchdog.recordActivity();
-              eventRecorder?.record(retryEvent, eventCount);
-              accumulator.processEvent(retryEvent);
-              eventCount++;
-              if (retryEvent.type === "status") {
-                const retryStatusEvent = retryEvent as { status?: string; message?: string };
-                if (retryStatusEvent.status === "ERROR" && retryStatusEvent.message) {
-                  streamErrorMessage = retryStatusEvent.message;
-                }
-              }
-              heartbeat();
-            }
-          } finally {
-            retryWatchdog.stop();
+          const outcome = await runRecoveryStream(freshAgent, effectivePrompt);
+          if (!outcome.proceeded) {
+            if (outcome.terminal.kind === "return") return slimStatus(status);
+            throw new CancelledFailure(outcome.terminal.message);
           }
 
-          const retryResult = await retryRun.wait();
-          const retryBoundary = await settleRetryTurn(retryResult.status);
+          const { retryResult, retryBoundary } = outcome;
           if (retryBoundary?.waiting) {
             // The retry's edits/denials armed the gate — pause for review (see
             // the poisoned-handle branch above for the precedence rationale).
             console.log(
               `ExecuteCursor transport-timeout recovery paused for review: execution=${executionId}`,
             );
-            resolution = { ...resolution, agent: freshAgent, agentId: freshAgent.agentId, isNew: true };
             return enterApprovalPause(retryBoundary);
           }
 
           if (retryResult.status === "finished") {
             status.phase = ExecutionPhase.EXECUTION_COMPLETED;
-            resolution = { ...resolution, agent: freshAgent, agentId: freshAgent.agentId, isNew: true };
             break;
           }
 
@@ -1784,7 +1603,7 @@ async function executeCursorInner(
           content: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
           timestamp: utcTimestamp(),
         }));
-      } else if (pauseDetected) {
+      } else if (turnState.pauseDetected) {
         console.log(`ExecuteCursor cancelled (pause) for execution ${executionId}`);
         status.phase = ExecutionPhase.EXECUTION_PAUSED;
         status.messages.push(create(AgentMessageSchema, {
@@ -1813,7 +1632,7 @@ async function executeCursorInner(
     // treat the execution as paused rather than failed. The error was likely
     // caused by the cancellation (e.g. SDK stream teardown) and should not
     // overwrite the PAUSED state that the Pause RPC already set in the DB.
-    if (pauseDetected) {
+    if (turnState.pauseDetected) {
       const errDetail = err instanceof Error ? err.message : String(err);
       console.log(
         `ExecuteCursor error during pause (treating as pause): execution=${executionId}, error=${errDetail}`,
@@ -1916,10 +1735,16 @@ async function executeCursorInner(
 
     return slimStatus(status);
   } finally {
-    // Disarm the stall watchdog on EVERY exit path (idempotent). The happy
-    // path stops it after the stream loop; this covers throws before that
-    // point so no orphaned timer survives the activity.
-    stallWatchdog?.stop();
+    // End the OTel turn span + record metrics with the final token snapshot on
+    // EVERY exit path (idempotent). Placed here so the span covers any recovery
+    // retry (whose tokens accrue after the primary stream) and never leaks on an
+    // early return or throw. A no-op when OTel is off or the span never opened.
+    await finishTurnTelemetry?.();
+
+    // Disarm the stall watchdog on EVERY exit path (idempotent). consumeCursorTurnStream
+    // stops the one it armed; this covers throws before that point so no orphaned
+    // timer survives the activity.
+    turnState.stallWatchdog?.stop();
 
     // Close the denial-ledger watcher on EVERY exit path (idempotent) so no
     // orphaned fs.watch handle survives the activity.
