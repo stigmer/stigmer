@@ -7,10 +7,12 @@ import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexec
 import { MessageType, ExecutionPhase, ToolCallStatus, ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { MessageEntry } from "../components/MessageEntry.js";
 import { ExecutionProgress } from "../components/ExecutionProgress.js";
 import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ApprovalPrompt } from "../components/ApprovalPrompt.js";
+import { MessageThread } from "../components/MessageThread.js";
 
 describe("MessageEntry", () => {
   it("renders a human message with 'You' prefix", () => {
@@ -220,5 +222,68 @@ describe("ApprovalPrompt", () => {
     stdin.write("y");
 
     expect(onSubmit).toHaveBeenCalledWith(ApprovalAction.APPROVE);
+  });
+
+  it("ignores keyboard input when inactive", () => {
+    const pending = create(PendingApprovalSchema);
+    pending.toolCallId = "tc-1";
+    pending.toolName = "write_file";
+    const onSubmit = vi.fn();
+
+    const { stdin } = render(
+      <ApprovalPrompt
+        pendingApproval={pending}
+        onSubmit={onSubmit}
+        isActive={false}
+      />,
+    );
+    stdin.write("y");
+    stdin.write("a");
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe("MessageThread — multi-approval keyboard arbitration", () => {
+  function execWithApprovals(...toolCallIds: string[]) {
+    const pendingApprovals = toolCallIds.map((id) => {
+      const pa = create(PendingApprovalSchema);
+      pa.toolCallId = id;
+      pa.toolName = "write_file";
+      return pa;
+    });
+    return create(AgentExecutionSchema, {
+      metadata: { id: "aex-1" },
+      status: { pendingApprovals },
+    });
+  }
+
+  it("routes a single keystroke to only the FIRST of multiple pending approvals", () => {
+    // The regression lock for the keyboard-sharing bug: two live ApprovalPrompts
+    // each had an unconditional useInput, so one keystroke settled both. Now only
+    // the first is active.
+    const onApprovalSubmit = vi.fn();
+    const exec = execWithApprovals("tc-1", "tc-2");
+
+    const { stdin } = render(
+      <MessageThread executions={[exec]} onApprovalSubmit={onApprovalSubmit} />,
+    );
+    stdin.write("y");
+
+    expect(onApprovalSubmit).toHaveBeenCalledTimes(1);
+    expect(onApprovalSubmit).toHaveBeenCalledWith("tc-1", ApprovalAction.APPROVE);
+  });
+
+  it("keeps the sole pending approval interactive", () => {
+    const onApprovalSubmit = vi.fn();
+    const exec = execWithApprovals("tc-1");
+
+    const { stdin } = render(
+      <MessageThread executions={[exec]} onApprovalSubmit={onApprovalSubmit} />,
+    );
+    stdin.write("y");
+
+    expect(onApprovalSubmit).toHaveBeenCalledTimes(1);
+    expect(onApprovalSubmit).toHaveBeenCalledWith("tc-1", ApprovalAction.APPROVE);
   });
 });

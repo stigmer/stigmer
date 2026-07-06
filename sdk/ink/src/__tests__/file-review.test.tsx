@@ -6,8 +6,10 @@ import { FileReviewContext } from "@stigmer/react";
 import {
   ToolCallSchema,
   FileContentSchema,
+  ToolCallOutputRefSchema,
   AgentMessageSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   FileChangeSetSchema,
@@ -30,9 +32,11 @@ import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
 import { FileReviewRecord } from "../components/FileReviewRecord.js";
+import { FileDiffBody } from "../components/FileDiffBody.js";
 import { MessageThread } from "../components/MessageThread.js";
 import { FileLineStats } from "../components/FileReviewAtoms.js";
 import { changeSetLineStats } from "../file-review.js";
+import { fakeClient, renderWithClient } from "./test-support.js";
 
 // --- fixtures -------------------------------------------------------------
 
@@ -221,7 +225,9 @@ describe("FileReviewPrompt — per-file", () => {
 
   it("enters per-file mode and keeps a reviewable file with its file digest", async () => {
     const onSubmit = vi.fn();
-    const { stdin, lastFrame } = render(
+    // Per-file mode mounts FileDiffBody, whose useFileChangeContent reads the
+    // Stigmer client — so these tests render under a provider.
+    const { stdin, lastFrame } = renderWithClient(
       <FileReviewPrompt changeSet={blockedSet} onSubmit={onSubmit} />,
     );
     stdin.write("f");
@@ -241,7 +247,7 @@ describe("FileReviewPrompt — per-file", () => {
 
   it("refuses to keep an unavailable file but allows discard", async () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithClient(
       <FileReviewPrompt changeSet={blockedSet} onSubmit={onSubmit} />,
     );
     stdin.write("f");
@@ -268,7 +274,7 @@ describe("FileReviewPrompt — per-file", () => {
       ],
     });
     const onSubmit = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithClient(
       <FileReviewPrompt changeSet={binarySet} onSubmit={onSubmit} />,
     );
     stdin.write("f");
@@ -592,7 +598,7 @@ describe("FileReviewPrompt — line stats", () => {
         makeChange({ id: "b", path: "two.ts", linesAdded: 4, linesRemoved: 0 }),
       ],
     });
-    const { stdin, lastFrame } = render(
+    const { stdin, lastFrame } = renderWithClient(
       <FileReviewPrompt changeSet={set} onSubmit={() => {}} />,
     );
     stdin.write("f");
@@ -627,5 +633,151 @@ describe("FileReviewRecord — line stats", () => {
       changes: [makeChange({ id: "a", path: "one.ts" })],
     });
     expect(render(<FileReviewRecord fileChangeSet={set} />).lastFrame() ?? "").not.toContain("+");
+  });
+});
+
+// --- FileDiffBody ---------------------------------------------------------
+
+/** Let an async artifact fetch resolve and the component re-render. */
+const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 60));
+
+function inlineSide(text: string): FileContent {
+  return create(FileContentSchema, { body: { case: "inline", value: text } });
+}
+
+function offloadedSide(storageKey: string, contentHash = "h"): FileContent {
+  return create(FileContentSchema, {
+    body: {
+      case: "ref",
+      value: create(ToolCallOutputRefSchema, { storageKey, contentHash }),
+    },
+  });
+}
+
+function changeWith(opts: {
+  id: string;
+  kind?: FileChangeKind;
+  before?: FileContent;
+  after?: FileContent;
+}) {
+  return create(CapturedFileChangeSchema, {
+    id: opts.id,
+    pathAfter: "file.ts",
+    pathBefore: "file.ts",
+    kind: opts.kind ?? FileChangeKind.MODIFY,
+    fileDigest: `fd-${opts.id}`,
+    before: opts.before,
+    after: opts.after,
+  });
+}
+
+describe("FileDiffBody", () => {
+  it("renders +/- lines for an inline whole-file diff (computeDiff parity)", () => {
+    const change = changeWith({
+      id: "m",
+      before: inlineSide("keep\nold\ntail\n"),
+      after: inlineSide("keep\nnew\ntail\n"),
+    });
+    const out = renderWithClient(<FileDiffBody change={change} />).lastFrame() ?? "";
+    expect(out).toContain("-old"); // removed, red
+    expect(out).toContain("+new"); // added, green
+    expect(out).toContain("keep"); // context retained
+  });
+
+  it("shows 'Binary file changed.' for a binary side", () => {
+    const change = create(CapturedFileChangeSchema, {
+      id: "bin",
+      pathAfter: "logo.png",
+      pathBefore: "logo.png",
+      kind: FileChangeKind.BINARY_CHANGE,
+      before: create(FileContentSchema, { isBinary: true }),
+      after: create(FileContentSchema, { isBinary: true }),
+    });
+    const out = renderWithClient(<FileDiffBody change={change} />).lastFrame() ?? "";
+    expect(out).toContain("Binary file changed.");
+  });
+
+  it("labels a genuinely empty new file (CREATE with no content)", () => {
+    const change = changeWith({ id: "new", kind: FileChangeKind.ADD, after: inlineSide("") });
+    const out = renderWithClient(<FileDiffBody change={change} />).lastFrame() ?? "";
+    expect(out).toContain("Empty new file.");
+  });
+
+  it("falls back to 'No preview available.' for a MODIFY with no renderable diff", () => {
+    const change = changeWith({ id: "np" }); // no before/after content
+    const out = renderWithClient(<FileDiffBody change={change} />).lastFrame() ?? "";
+    expect(out).toContain("No preview available.");
+  });
+
+  it("shows a loading notice while an offloaded side is in flight", () => {
+    const change = changeWith({ id: "load", after: offloadedSide("artifacts/aex-1/after") });
+    const client = fakeClient({
+      agentExecution: { getArtifactContent: () => new Promise(() => {}) },
+    });
+    const out = renderWithClient(<FileDiffBody change={change} />, client).lastFrame() ?? "";
+    expect(out).toContain("Loading diff");
+  });
+
+  it("reports a server-truncated offloaded side as un-diffable inline", async () => {
+    const change = changeWith({ id: "trunc", after: offloadedSide("artifacts/aex-1/after") });
+    const client = fakeClient({
+      agentExecution: {
+        getArtifactContent: async () => ({
+          content: new TextEncoder().encode("way too big"),
+          contentType: "text/plain",
+          truncated: true,
+        }),
+      },
+    });
+    const { lastFrame } = renderWithClient(<FileDiffBody change={change} />, client);
+    await settle();
+    expect(lastFrame() ?? "").toContain("too large to diff inline");
+  });
+
+  it("surfaces a fetch failure as an honest error notice", async () => {
+    const change = changeWith({ id: "err", after: offloadedSide("artifacts/aex-1/after") });
+    const client = fakeClient({
+      agentExecution: {
+        getArtifactContent: async () => {
+          throw new Error("boom");
+        },
+      },
+    });
+    const { lastFrame } = renderWithClient(<FileDiffBody change={change} />, client);
+    await settle();
+    expect(lastFrame() ?? "").toContain("Could not load this file's contents.");
+  });
+
+  it("caps an oversized diff and reports the overflow", () => {
+    const many = Array.from({ length: 250 }, (_, i) => `line ${i}`).join("\n");
+    const change = changeWith({ id: "big", before: inlineSide(""), after: inlineSide(`${many}\n`) });
+    const out = renderWithClient(<FileDiffBody change={change} />).lastFrame() ?? "";
+    expect(out).toMatch(/… \d+ more lines/);
+  });
+});
+
+describe("FileReviewPrompt — inline diff (master-detail)", () => {
+  it("shows only the selected file's diff and follows the selection", async () => {
+    const set = makeSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [
+        changeWith({ id: "a", before: inlineSide("alpha\n"), after: inlineSide("ALPHA\n") }),
+        changeWith({ id: "b", before: inlineSide("bravo\n"), after: inlineSide("BRAVO\n") }),
+      ],
+    });
+    const { stdin, lastFrame } = renderWithClient(
+      <FileReviewPrompt changeSet={set} onSubmit={() => {}} />,
+    );
+    stdin.write("f");
+    await tick();
+    const first = lastFrame() ?? "";
+    expect(first).toContain("+ALPHA"); // selected file's diff
+    expect(first).not.toContain("+BRAVO"); // the other file's diff is not mounted
+
+    stdin.write("\u001B[B"); // down → select the second file
+    await tick();
+    const second = lastFrame() ?? "";
+    expect(second).toContain("+BRAVO");
+    expect(second).not.toContain("+ALPHA");
   });
 });

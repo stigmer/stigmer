@@ -16,6 +16,20 @@ export interface ApprovalPromptProps {
   readonly onSubmit: (action: ApprovalAction) => void;
   /** Disables input while an approval submission is in flight. */
   readonly isSubmitting?: boolean;
+  /**
+   * Whether this prompt owns the keyboard. Defaults to `true`. When `false` the
+   * prompt renders inert (no `useInput`, no selection cursor, options dimmed) so
+   * exactly one decision surface is interactive at a time.
+   *
+   * This is the terminal's single-active-decision-surface rule: stdin is
+   * delivered to *every* mounted `useInput`, so several live `ApprovalPrompt`s
+   * would each consume the same keystroke and settle at once. The caller
+   * ({@link MessageThread}) marks only the first pending approval active; the
+   * file-review prompt in turn yields to any pending approval
+   * (`FileReviewPrompt.isActive = pendingApprovals.length === 0` in `SessionView`),
+   * so the order is: first approval → else the file-review prompt.
+   */
+  readonly isActive?: boolean;
 }
 
 interface ActionOption {
@@ -70,6 +84,7 @@ export function ApprovalPrompt({
   pendingApproval,
   onSubmit,
   isSubmitting = false,
+  isActive = true,
 }: ApprovalPromptProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -125,6 +140,7 @@ export function ApprovalPrompt({
         }
       }
     },
+    { isActive: isActive && !isSubmitting },
   );
 
   const serverSlug = pendingApproval.mcpServerSlug;
@@ -181,17 +197,23 @@ export function ApprovalPrompt({
       </Box>
 
       <Box gap={2} marginTop={1} paddingLeft={2}>
-        {options.map((opt, idx) => (
-          <Text
-            key={opt.shortcut}
-            color={idx === selectedIndex ? opt.color : undefined}
-            dimColor={idx !== selectedIndex}
-            bold={idx === selectedIndex}
-          >
-            {idx === selectedIndex ? "▸ " : "  "}
-            [{opt.shortcut}] {opt.label}
-          </Text>
-        ))}
+        {options.map((opt, idx) => {
+          // When inactive, no option is selected and all read dim — the active
+          // prompt's highlight (vs. these dimmed rows) is the cue for which
+          // approval owns the keyboard, so no per-prompt hint is needed.
+          const selected = isActive && idx === selectedIndex;
+          return (
+            <Text
+              key={opt.shortcut}
+              color={selected ? opt.color : undefined}
+              dimColor={!selected}
+              bold={selected}
+            >
+              {selected ? "▸ " : "  "}
+              [{opt.shortcut}] {opt.label}
+            </Text>
+          );
+        })}
       </Box>
 
       {isSubmitting && (

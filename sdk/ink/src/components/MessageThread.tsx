@@ -302,6 +302,16 @@ export function MessageThread({
     [executions, activeStreamExecution],
   );
 
+  // The single active decision surface: stdin is delivered to every mounted
+  // `useInput`, so only the FIRST pending approval owns the keyboard — the rest
+  // render inert. The file-review prompt (in `SessionView`) in turn yields while
+  // any approval is pending, so the terminal always has exactly one interactive
+  // decision surface: first approval → else the file-review prompt.
+  const firstApprovalKey = useMemo(
+    () => items.find((it) => it.kind === "approval")?.key,
+    [items],
+  );
+
   const historyItems = items.slice(0, liveStart);
   const liveItems = items.slice(liveStart);
 
@@ -311,14 +321,14 @@ export function MessageThread({
         <Static items={historyItems}>
           {(item) => (
             <Box key={item.key} flexDirection="column" marginBottom={1}>
-              {renderItem(item, onApprovalSubmit, submittingApprovalIds, expandToolCalls)}
+              {renderItem(item, onApprovalSubmit, submittingApprovalIds, expandToolCalls, firstApprovalKey)}
             </Box>
           )}
         </Static>
 
         {liveItems.map((item) => (
           <Box key={item.key} flexDirection="column" marginBottom={1}>
-            {renderItem(item, onApprovalSubmit, submittingApprovalIds, expandToolCalls)}
+            {renderItem(item, onApprovalSubmit, submittingApprovalIds, expandToolCalls, firstApprovalKey)}
           </Box>
         ))}
       </Box>
@@ -331,6 +341,7 @@ function renderItem(
   onApprovalSubmit?: (toolCallId: string, action: ApprovalAction) => void,
   submittingApprovalIds?: ReadonlySet<string>,
   expandToolCalls?: boolean,
+  activeApprovalKey?: string,
 ): React.ReactNode {
   switch (item.kind) {
     case "message":
@@ -353,6 +364,8 @@ function renderItem(
           isSubmitting={
             submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false
           }
+          // Only the first pending approval is interactive (see firstApprovalKey).
+          isActive={item.key === activeApprovalKey}
         />
       ) : null;
     case "pending-message":

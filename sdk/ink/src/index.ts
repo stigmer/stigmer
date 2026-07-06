@@ -21,6 +21,7 @@ export { TodoList, type TodoListProps } from "./components/TodoList.js";
 export { ApprovalPrompt, type ApprovalPromptProps } from "./components/ApprovalPrompt.js";
 export { FileReviewPrompt, type FileReviewPromptProps } from "./components/FileReviewPrompt.js";
 export { FileReviewRecord, type FileReviewRecordProps } from "./components/FileReviewRecord.js";
+export { FileDiffBody, type FileDiffBodyProps } from "./components/FileDiffBody.js";
 export {
   FileChangeProgressBar,
   type FileChangeProgressBarProps,
