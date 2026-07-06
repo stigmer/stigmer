@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/skill/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxIpoBCglTa2lsbFNwZWMSGQoIc2tpbGxfbWQYASABKAlCB7pIBHICEAESKAoDdGFnGAIgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQSLQoEbmFtZRgDIAEoCUIfukgcchoyGF5bYS16MC05XSsoLVthLXowLTldKykqJBITCgtkZXNjcmlwdGlvbhgFIAEoCUoECAQQBWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxIp0BCglTa2lsbFNwZWMSGQoIc2tpbGxfbWQYASABKAlCB7pIBHICEAESKAoDdGFnGAIgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQSMAoEbmFtZRgDIAEoCUIiukgfch0yG15bYS16MC05XSsoWy4tXVthLXowLTldKykqJBITCgtkZXNjcmlwdGlvbhgFIAEoCUoECAQQBWIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
  * SkillSpec defines the desired state of a skill.
@@ -47,8 +47,13 @@ export type SkillSpec = Message<"ai.stigmer.agentic.skill.v1.SkillSpec"> & {
   /**
    * Skill name extracted from SKILL.md YAML frontmatter.
    * This is the canonical name used for identification and references.
-   * Must be kebab-case: lowercase letters, numbers, and hyphens only.
-   * Examples: "calculator", "web-scraper", "math-utils"
+   * Kebab-case, optionally scoped with dot-separated namespaces: lowercase
+   * letters, numbers, hyphens (-) to separate words, and dots (.) to separate
+   * namespace segments. Every segment must be alphanumeric, so the name cannot
+   * start or end with a separator nor contain consecutive separators. The
+   * derived slug renders dots as hyphens (e.g. "platform.planton-architecture"
+   * -> slug "platform-planton-architecture").
+   * Examples: "calculator", "web-scraper", "math-utils", "platform.planton-architecture"
    *
    * @generated from field: string name = 3;
    */

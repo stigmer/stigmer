@@ -38,10 +38,10 @@
       "type": {
         "kind": "string"
       },
-      "description": "Skill name extracted from SKILL.md YAML frontmatter.\n This is the canonical name used for identification and references.\n Must be kebab-case: lowercase letters, numbers, and hyphens only.\n Examples: \"calculator\", \"web-scraper\", \"math-utils\"",
+      "description": "Skill name extracted from SKILL.md YAML frontmatter.\n This is the canonical name used for identification and references.\n Kebab-case, optionally scoped with dot-separated namespaces: lowercase\n letters, numbers, hyphens (-) to separate words, and dots (.) to separate\n namespace segments. Every segment must be alphanumeric, so the name cannot\n start or end with a separator nor contain consecutive separators. The\n derived slug renders dots as hyphens (e.g. \"platform.planton-architecture\"\n -\u003e slug \"platform-planton-architecture\").\n Examples: \"calculator\", \"web-scraper\", \"math-utils\", \"platform.planton-architecture\"",
       "required": false,
       "validation": {
-        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        "pattern": "^[a-z0-9]+([.-][a-z0-9]+)*$"
       }
     },
     {
