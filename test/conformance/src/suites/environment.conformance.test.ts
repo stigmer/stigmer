@@ -472,4 +472,28 @@ describe("Environment conformance — negative paths", () => {
       "duplicate personal environment",
     );
   });
+
+  it("allows a personal environment in each org (per-org uniqueness)", async () => {
+    // Personal-environment uniqueness is scoped to the org: a personal env in one
+    // org must never block creating one in another. Regression guard for the
+    // cross-tenant leak reported in stigmer/stigmer#193.
+    const a = await target.provisionTenancy();
+    const b = await target.provisionTenancy();
+
+    const makePersonal = (org: string) => ({
+      apiVersion: ENVIRONMENT_API_VERSION,
+      kind: ENVIRONMENT_KIND,
+      metadata: { name: uniqueName("personal"), org, labels: { "stigmer.ai/personal": "true" } },
+      spec: makeEnvironmentSpec(),
+    });
+
+    const inA = await clients.environmentCommand.create(makePersonal(a.org));
+    fixtures.defer(() => clients.environmentCommand.delete({ resourceId: inA.metadata!.id }));
+    const inB = await clients.environmentCommand.create(makePersonal(b.org));
+    fixtures.defer(() => clients.environmentCommand.delete({ resourceId: inB.metadata!.id }));
+
+    expect(inA.metadata?.org).toBe(a.org);
+    expect(inB.metadata?.org).toBe(b.org);
+    expect(inA.metadata?.id).not.toBe(inB.metadata?.id);
+  });
 });
