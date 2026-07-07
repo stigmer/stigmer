@@ -10,8 +10,9 @@ package ai.stigmer.agentic.workflow.v1.serverless;
  * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
  *
  * &#64;internal
- * Populated asynchronously after workflow creation via a Temporal workflow
- * that validates the workflow structure.
+ * Produced synchronously by in-process workflow validation: on create/update it
+ * is persisted onto WorkflowStatus, and it is the direct response of the
+ * validateSpec RPC.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation}
@@ -296,10 +297,12 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object validationWorkflowId_ = "";
   /**
    * <pre>
-   * Validation process ID for tracking validation progress.
+   * Optional identifier for tracking a validation run.
    *
    * &#64;internal
-   * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+   * Legacy field from when validation ran as a separate async process. In-process
+   * validation is synchronous and does not populate this; retained for wire
+   * compatibility.
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -320,10 +323,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Validation process ID for tracking validation progress.
+   * Optional identifier for tracking a validation run.
    *
    * &#64;internal
-   * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+   * Legacy field from when validation ran as a separate async process. In-process
+   * validation is synchronous and does not populate this; retained for wire
+   * compatibility.
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -575,8 +580,9 @@ private static final long serialVersionUID = 0L;
    * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
    *
    * &#64;internal
-   * Populated asynchronously after workflow creation via a Temporal workflow
-   * that validates the workflow structure.
+   * Produced synchronously by in-process workflow validation: on create/update it
+   * is persisted onto WorkflowStatus, and it is the direct response of the
+   * validateSpec RPC.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation}
@@ -1456,10 +1462,12 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object validationWorkflowId_ = "";
     /**
      * <pre>
-     * Validation process ID for tracking validation progress.
+     * Optional identifier for tracking a validation run.
      *
      * &#64;internal
-     * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+     * Legacy field from when validation ran as a separate async process. In-process
+     * validation is synchronous and does not populate this; retained for wire
+     * compatibility.
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1479,10 +1487,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation process ID for tracking validation progress.
+     * Optional identifier for tracking a validation run.
      *
      * &#64;internal
-     * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+     * Legacy field from when validation ran as a separate async process. In-process
+     * validation is synchronous and does not populate this; retained for wire
+     * compatibility.
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1503,10 +1513,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation process ID for tracking validation progress.
+     * Optional identifier for tracking a validation run.
      *
      * &#64;internal
-     * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+     * Legacy field from when validation ran as a separate async process. In-process
+     * validation is synchronous and does not populate this; retained for wire
+     * compatibility.
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1523,10 +1535,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation process ID for tracking validation progress.
+     * Optional identifier for tracking a validation run.
      *
      * &#64;internal
-     * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+     * Legacy field from when validation ran as a separate async process. In-process
+     * validation is synchronous and does not populate this; retained for wire
+     * compatibility.
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -1540,10 +1554,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Validation process ID for tracking validation progress.
+     * Optional identifier for tracking a validation run.
      *
      * &#64;internal
-     * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+     * Legacy field from when validation ran as a separate async process. In-process
+     * validation is synchronous and does not populate this; retained for wire
+     * compatibility.
      * </pre>
      *
      * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>

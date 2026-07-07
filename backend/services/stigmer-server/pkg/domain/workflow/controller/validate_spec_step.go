@@ -14,19 +14,24 @@ const (
 	ServerlessValidationKey = "serverless_validation"
 )
 
-// validateWorkflowSpecStep validates WorkflowSpec by converting it to CNCF
-// Serverless Workflow DSL YAML and running structural + cross-reference
-// validation. The generated YAML is stored in pipeline context for use by
-// the populateServerlessValidation step.
+// validateWorkflowSpecStep is the Create/Update persist-path validation gate. It
+// performs Layer 2 of workflow validation (proto -> CNCF Serverless Workflow DSL
+// YAML plus structural / cross-reference checks) and does two things at once:
 //
-// This step performs Layer 2 of workflow validation:
-//  1. Layer 1: Proto Validation - Already handled by ValidateProtoStep (buf validate rules)
-//  2. Layer 2: In-process validation - Converts proto to CNCF YAML, validates structure
+//  1. Produce: it stores the ServerlessWorkflowValidation result in pipeline
+//     context under ServerlessValidationKey, so populateServerlessValidation can
+//     persist the generated YAML and state onto WorkflowStatus.
+//  2. Gate: it returns an error for any non-VALID state, which aborts the
+//     pipeline. This is intentional and correct for Create/Update — an invalid
+//     workflow must never be persisted.
 //
-// Validation Result Storage:
-// The validation result (ServerlessWorkflowValidation) is stored in pipeline context
-// using ServerlessValidationKey. The populateServerlessValidation step retrieves this
-// result to populate WorkflowStatus.serverless_workflow_validation.
+// This produce-and-gate behavior is exactly why ValidateSpec does NOT reuse this
+// step: the validateSpec RPC must return the structured verdict for INVALID
+// specs rather than abort. See ValidateSpec in validate_spec.go, which composes
+// the same two layers directly with a non-throwing contract.
+//
+// Layer 1 (generic proto field constraints) runs before this step via
+// steps.ValidateProtoStep in the Create/Update pipelines.
 type validateWorkflowSpecStep struct {
 	validator validation.WorkflowValidator
 }

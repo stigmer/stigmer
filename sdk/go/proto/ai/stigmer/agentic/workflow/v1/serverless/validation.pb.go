@@ -91,8 +91,9 @@ func (ValidationState) EnumDescriptor() ([]byte, []int) {
 // ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
 //
 // @internal
-// Populated asynchronously after workflow creation via a Temporal workflow
-// that validates the workflow structure.
+// Produced synchronously by in-process workflow validation: on create/update it
+// is persisted onto WorkflowStatus, and it is the direct response of the
+// validateSpec RPC.
 type ServerlessWorkflowValidation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Current validation state.
@@ -110,10 +111,12 @@ type ServerlessWorkflowValidation struct {
 	Warnings []string `protobuf:"bytes,4,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	// When the validation was performed.
 	ValidatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=validated_at,json=validatedAt,proto3" json:"validated_at,omitempty"`
-	// Validation process ID for tracking validation progress.
+	// Optional identifier for tracking a validation run.
 	//
 	// @internal
-	// Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+	// Legacy field from when validation ran as a separate async process. In-process
+	// validation is synchronous and does not populate this; retained for wire
+	// compatibility.
 	ValidationWorkflowId string `protobuf:"bytes,6,opt,name=validation_workflow_id,json=validationWorkflowId,proto3" json:"validation_workflow_id,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache

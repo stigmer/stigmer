@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -107,17 +108,13 @@ func TestValidateSpec_InvalidTaskKind(t *testing.T) {
 
 	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
 
-	// The RPC may return an error for severely malformed input, or it may
-	// return a result with INVALID state. Both are acceptable behaviors.
-	if err != nil {
-		t.Logf("validateSpec returned error for invalid task kind (acceptable): %v", err)
-		return
-	}
-
-	assert.NotEqual(t, serverless.ValidationState_VALID, result.GetState(),
-		"workflow with invalid task kind should not be VALID")
-
-	t.Logf("validateSpec result: state=%s, errors=%v", result.GetState().String(), result.GetErrors())
+	// An unknown task kind is a user-fixable structural error: validateSpec must
+	// return a structured INVALID result, never a gRPC error.
+	require.NoError(t, err, "validateSpec must not throw for an unknown task kind")
+	require.NotNil(t, result)
+	assert.Equal(t, serverless.ValidationState_INVALID, result.GetState(),
+		"workflow with invalid task kind should be INVALID")
+	assert.NotEmpty(t, result.GetErrors(), "invalid task kind should produce structured errors")
 }
 
 func TestValidateSpec_MissingDocument(t *testing.T) {
@@ -143,15 +140,15 @@ func TestValidateSpec_MissingDocument(t *testing.T) {
 	}
 
 	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
-	if err != nil {
-		t.Logf("validateSpec returned error for missing document (acceptable): %v", err)
-		return
-	}
 
-	assert.NotEqual(t, serverless.ValidationState_VALID, result.GetState(),
-		"workflow with missing document should not be VALID")
-
-	t.Logf("validateSpec result: state=%s, errors=%v", result.GetState().String(), result.GetErrors())
+	// A missing required field (document) is folded into a structured INVALID
+	// result (Layer 1), not thrown as a gRPC error.
+	require.NoError(t, err, "validateSpec must not throw for a missing document")
+	require.NotNil(t, result)
+	assert.Equal(t, serverless.ValidationState_INVALID, result.GetState(),
+		"workflow with missing document should be INVALID")
+	joined := strings.Join(result.GetErrors(), " ")
+	assert.Contains(t, joined, "document", "missing document should be named in the errors")
 }
 
 func TestValidateSpec_EmptySpec(t *testing.T) {
@@ -173,14 +170,12 @@ func TestValidateSpec_EmptySpec(t *testing.T) {
 	}
 
 	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
-	if err != nil {
-		// Graceful error for empty spec is acceptable — no panic.
-		t.Logf("validateSpec returned error for empty spec (acceptable, no panic): %v", err)
-		return
-	}
 
-	assert.NotEqual(t, serverless.ValidationState_VALID, result.GetState(),
-		"empty workflow spec should not be VALID")
-
-	t.Logf("validateSpec result: state=%s, errors=%v", result.GetState().String(), result.GetErrors())
+	// An empty spec fails Layer-1 required-field constraints (document, tasks)
+	// and comes back as a structured INVALID result rather than a gRPC error.
+	require.NoError(t, err, "validateSpec must not throw for an empty spec")
+	require.NotNil(t, result)
+	assert.Equal(t, serverless.ValidationState_INVALID, result.GetState(),
+		"empty workflow spec should be INVALID")
+	assert.NotEmpty(t, result.GetErrors(), "empty spec should produce structured errors")
 }
