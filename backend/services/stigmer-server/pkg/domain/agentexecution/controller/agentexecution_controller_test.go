@@ -10,6 +10,8 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // contextWithAgentExecutionKind creates a context with the agent execution resource kind injected
@@ -91,6 +93,41 @@ func TestAgentExecutionController_Create(t *testing.T) {
 		// Verify session_id is preserved
 		if created.Spec.SessionId != "test-session-id" {
 			t.Errorf("Expected session_id 'test-session-id', got '%s'", created.Spec.SessionId)
+		}
+	})
+
+	t.Run("engine unavailable - rejects with Unavailable and leaves no trace", func(t *testing.T) {
+		// The test controller is constructed without a workflow creator, so the
+		// engine-availability guard rejects the create before any state is persisted.
+		// This is the F8 regression guard: fail fast with Unavailable, no orphaned record.
+		execution := &agentexecutionv1.AgentExecution{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "AgentExecution",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "Engine Unavailable Execution",
+				Org:  "test-org",
+			},
+			Spec: &agentexecutionv1.AgentExecutionSpec{
+				SessionId: "test-session-id",
+				Message:   "Test message",
+			},
+		}
+
+		_, err := controller.Create(contextWithAgentExecutionKind(), execution)
+		if err == nil {
+			t.Fatal("Expected Create to fail when the agent execution engine is unavailable")
+		}
+		if code := status.Code(err); code != codes.Unavailable {
+			t.Errorf("Expected gRPC code Unavailable, got %v (err: %v)", code, err)
+		}
+
+		// Zero trace: no execution record should have been persisted.
+		executions, listErr := store.ListResources(contextWithAgentExecutionKind(), apiresourcekind.ApiResourceKind_agent_execution)
+		if listErr != nil {
+			t.Fatalf("failed to list executions: %v", listErr)
+		}
+		if len(executions) != 0 {
+			t.Errorf("Expected zero persisted executions after a rejected create, got %d", len(executions))
 		}
 	})
 
