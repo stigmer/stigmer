@@ -80,6 +80,13 @@ export type { UseWorkspaceWriteBacksReturn } from "./useWorkspaceWriteBacks.js";
 export { WriteBackCard } from "./WriteBackCard.js";
 export type { WriteBackCardProps } from "./WriteBackCard.js";
 
+export {
+  parseDiffStatSummary,
+  trailingDiffStatLine,
+  writeBackDisplayName,
+} from "./write-back-utils.js";
+export type { DiffStatSummary } from "./write-back-utils.js";
+
 export { FileChangesView, FileChangeDiff } from "./FileChangesView.js";
 export type { FileChangesViewProps, FileChangeDiffProps } from "./FileChangesView.js";
 
