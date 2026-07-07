@@ -127,6 +127,18 @@ Override one token and every corner in every component reshapes
 proportionally — `0.125rem` gives the sharp Fintech look, `1.25rem` the very
 round Friendly look.
 
+## Tool-call output blocks
+
+Every tool-call output the agent produces — the terminal/shell session (the
+`$ command` line and its stdout/stderr), code and file blocks, and search
+and list results — renders on one shared surface: `--stgm-muted-subtle` with
+`--stgm-foreground` text (and `--stgm-destructive` for stderr and non-zero
+exit codes). There is no separate "terminal" token, and no block ships a
+fixed dark box: they all track the active preset and color mode through the
+core tokens, so a themed light surface stays light. Override the core
+surface and text tokens and every output block follows — including the
+terminal. All of these pairings are covered by the CI contrast audit.
+
 ## Beyond tokens: component slots
 
 When your design system needs different *structure* — not just different
