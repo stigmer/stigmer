@@ -45,6 +45,8 @@ export type {
   UseSessionWriteBacksReturn,
 } from "./useSessionWriteBacks.js";
 
+export { useWorkspaceReadRefs } from "./useWorkspaceReadRefs.js";
+
 export { useSessionFileChanges } from "./useSessionFileChanges.js";
 export type { UseSessionFileChangesReturn } from "./useSessionFileChanges.js";
 

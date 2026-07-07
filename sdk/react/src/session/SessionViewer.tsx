@@ -24,7 +24,7 @@ import { SelectionStore } from "../internal/store/selection-store.js";
 import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.js";
 import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
 import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
-import { MessageThread } from "../execution/MessageThread.js";
+import { MessageThread, type MessageThreadSlots } from "../execution/MessageThread.js";
 import { FileChangeProgressBar } from "../execution/FileChangeProgressBar.js";
 import { FileReviewDock } from "../execution/FileReviewDock.js";
 import {
@@ -53,6 +53,7 @@ import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
+import { useWorkspaceReadRefs } from "./useWorkspaceReadRefs.js";
 import {
   useSessionArtifacts,
   artifactKey,
@@ -228,6 +229,15 @@ export interface SessionViewerProps {
   readonly accessSlot?: ReactNode;
   /** Called after a resource is applied from the Artifacts tab. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
+  /**
+   * Component overrides for the conversation thread's chrome (message
+   * bubbles, approval card, to-dos card, plan cards, thinking indicator) —
+   * forwarded to the inner {@link MessageThread}. See
+   * {@link MessageThreadSlots}. Define the object and its components at
+   * module level (or memoize) so thread rows keep their streaming
+   * re-render guarantees.
+   */
+  readonly threadSlots?: MessageThreadSlots;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -289,6 +299,7 @@ export function SessionViewer({
   headerActions,
   accessSlot,
   onApplied,
+  threadSlots,
   className,
 }: SessionViewerProps) {
   const flow = useSessionPageFlow({ sessionId, org, getRuntimeEnv });
@@ -572,6 +583,7 @@ export function SessionViewer({
               onDismissPlanAttachFailed={() => setPlanAttachFailed(false)}
               onFilePathClick={handleTranscriptFilePathClick}
               isEndUser={isEndUser}
+              threadSlots={threadSlots}
             />
           }
           secondary={
@@ -637,6 +649,7 @@ interface ConversationColumnProps {
    */
   readonly onFilePathClick: (path: string) => boolean;
   readonly isEndUser: boolean;
+  readonly threadSlots?: MessageThreadSlots;
 }
 
 const ConversationColumn = memo(function ConversationColumn({
@@ -658,6 +671,7 @@ const ConversationColumn = memo(function ConversationColumn({
   onDismissPlanAttachFailed,
   onFilePathClick,
   isEndUser,
+  threadSlots,
 }: ConversationColumnProps) {
   const { conv } = flow;
   // Approval failures are NOT folded into this banner: they now surface in-card,
@@ -770,6 +784,7 @@ const ConversationColumn = memo(function ConversationColumn({
         planActionsDisabled={!conv.canSendFollowUp || isBuildingFromPlan}
         planBuildPending={isBuildingFromPlan}
         contentColumn="center"
+        slots={threadSlots}
         className="flex-1"
       />
       <div className={CONVERSATION_COLUMN_CLASS}>
@@ -1133,9 +1148,19 @@ function SessionPanelRegion({
     if (path) flow.workspace.addLocalPath(path);
   }, [onBrowseLocalFolder, flow.workspace.addLocalPath]);
 
+  // Entries decorated with per-entry read refs (the latest write-back commit
+  // SHA), so the surface's read-side capabilities — file viewer, tree listing,
+  // name search — resolve at the ref the agent's changes actually live on. A
+  // read-side projection only: `flow.workspace.entries` stays undecorated for
+  // setup and session input.
+  const surfaceEntries = useWorkspaceReadRefs(
+    flow.allExecutions,
+    flow.workspace.entries,
+  );
+
   return (
     <WorkspaceSurface
-      entries={flow.workspace.entries}
+      entries={surfaceEntries}
       lister={workspaceFileLister}
       reader={workspaceFileReader}
       searcher={workspaceContentSearcher}

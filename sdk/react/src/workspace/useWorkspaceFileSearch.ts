@@ -82,11 +82,16 @@ export function useWorkspaceFileSearch({
 }: UseWorkspaceFileSearchOptions): UseWorkspaceFileSearchReturn {
   const [states, setStates] = useState<Record<string, EntryListingState>>({});
 
-  // Latest entries read inside the effect without widening its dependency to the
-  // (possibly per-render) array identity — the effect keys on the id set instead.
+  // Latest entries read inside the effect without widening its dependency to
+  // the (possibly per-render) array identity — the effect keys on the set of
+  // (id, readRef) pairs instead. The ref participates because a listing is a
+  // snapshot of one ref: when a write-back advances an entry's readRef, its
+  // listing must be re-fetched even though the id set is unchanged.
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
-  const entriesKey = entries.map((entry) => entry.id).join("\u0000");
+  const entriesKey = entries
+    .map((entry) => `${entry.id}\u0001${entry.readRef ?? ""}`)
+    .join("\u0000");
 
   // Ignore resolutions from a superseded entry set (id set or lister changed).
   const generationRef = useRef(0);

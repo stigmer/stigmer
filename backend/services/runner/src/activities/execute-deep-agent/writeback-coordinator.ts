@@ -27,6 +27,7 @@ import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
 import { SourceType } from "../../shared/workspace/types.js";
+import { gitCommitAsAgent } from "../../shared/workspace/git-identity.js";
 import type { ExecutionStatusWriter } from "./execution-status-writer.js";
 
 const WRITE_BACK_ENABLED_MODES = new Set([
@@ -273,7 +274,10 @@ export class WriteBackCoordinator {
     commitMsg: string,
   ): Promise<void> {
     await exec("git add -A");
-    await exec(`git commit -m "${commitMsg}"`);
+    // Committed as the agent identity: the cloud sandbox has no git identity
+    // configured (a bare commit fails with "Author identity unknown"), and in
+    // local mode the agent's work should not be attributed to the host user.
+    await exec(gitCommitAsAgent(commitMsg));
 
     entryState.commitCount++;
     const shaOutput = await exec("git rev-parse HEAD");

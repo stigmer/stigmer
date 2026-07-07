@@ -34,9 +34,10 @@ beforeEach(() => {
   };
 });
 import type { WorkspaceEntry } from "../useWorkspaceEntries";
-import type {
-  WorkspaceFileContent,
-  WorkspaceFileReader,
+import {
+  WorkspaceFileNotFoundError,
+  type WorkspaceFileContent,
+  type WorkspaceFileReader,
 } from "../WorkspaceFileReader";
 
 function wholeFileChange(path: string): FileChange {
@@ -343,6 +344,140 @@ describe("FileViewer — diff mode", () => {
     await waitFor(() =>
       expect(document.activeElement).toBe(screen.getByRole("radio", { name: "File" })),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Not-found fallback — captured content when the live substrate lacks the file
+// ---------------------------------------------------------------------------
+
+describe("FileViewer — not-found and captured-content fallback", () => {
+  function notFoundReader(): WorkspaceFileReader {
+    return vi.fn(async (_e, path: string) => {
+      throw new WorkspaceFileNotFoundError(path);
+    });
+  }
+
+  it("falls back to the captured after-content when the file isn't at the ref", async () => {
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "notes.md" }}
+        entries={ENTRIES}
+        reader={notFoundReader()}
+        change={wholeFileChange("notes.md")}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: "File" }));
+
+    // The captured after side ("beta") renders with the provenance caption —
+    // not an error, not the live caption.
+    await waitFor(() =>
+      expect(screen.getByText(/As of the agent.s last change/i)).toBeTruthy(),
+    );
+    expect(screen.getByText("beta")).toBeTruthy();
+    expect(screen.queryByText("Retry")).toBeNull();
+    expect(screen.queryByText(/Live — may differ/i)).toBeNull();
+  });
+
+  it("falls back to captured content when the substrate is unsupported (reader resolves null)", async () => {
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "notes.md" }}
+        entries={ENTRIES}
+        reader={readerFor(null)}
+        change={wholeFileChange("notes.md")}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: "File" }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/As of the agent.s last change/i)).toBeTruthy(),
+    );
+    expect(screen.getByText("beta")).toBeTruthy();
+  });
+
+  it("shows the calm not-found state (no error styling) when nothing is captured", async () => {
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "notes.md" }}
+        entries={ENTRIES}
+        reader={notFoundReader()}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(/isn.t available in the workspace source yet/i)).toBeTruthy(),
+    );
+    // A calm notice, not a failure: retry is offered as "Check again".
+    expect(screen.getByText("Check again")).toBeTruthy();
+    expect(screen.queryByText("Retry")).toBeNull();
+  });
+
+  it("Check again re-reads and renders content once the file lands at the ref", async () => {
+    let attempt = 0;
+    const reader: WorkspaceFileReader = vi.fn(async (_e, path: string) => {
+      attempt += 1;
+      if (attempt === 1) throw new WorkspaceFileNotFoundError(path);
+      return text("now it exists");
+    });
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "notes.md" }}
+        entries={ENTRIES}
+        reader={reader}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText("Check again")).toBeTruthy());
+    fireEvent.click(screen.getByText("Check again"));
+
+    await waitFor(() => expect(screen.getByText("now it exists")).toBeTruthy());
+  });
+
+  it("keeps the not-found state calm for a HUNK_ONLY change (no whole-file capture to serve)", async () => {
+    const hunkOnly = create(FileChangeSchema, {
+      path: "notes.md",
+      changeType: FileChangeType.MODIFY,
+      captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+      unifiedDiff: "@@ -1 +1 @@\n-alpha\n+beta\n",
+    });
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "notes.md" }}
+        entries={ENTRIES}
+        reader={notFoundReader()}
+        change={hunkOnly}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: "File" }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/isn.t available in the workspace source yet/i)).toBeTruthy(),
+    );
+    expect(screen.queryByText(/As of the agent.s last change/i)).toBeNull();
+  });
+
+  it("a generic reader error still shows the error state with Retry, never the fallback", async () => {
+    const reader: WorkspaceFileReader = vi.fn(async () => {
+      throw new Error("rate limited (HTTP 429)");
+    });
+    render(
+      <FileViewer
+        selectedFile={{ entryId: "e1", path: "notes.md" }}
+        entries={ENTRIES}
+        reader={reader}
+        change={wholeFileChange("notes.md")}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("radio", { name: "File" }));
+
+    await waitFor(() => expect(screen.getByText(/rate limited/i)).toBeTruthy());
+    expect(screen.getByText("Retry")).toBeTruthy();
+    expect(screen.queryByText(/As of the agent.s last change/i)).toBeNull();
   });
 });
 

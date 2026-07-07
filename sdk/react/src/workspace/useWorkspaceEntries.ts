@@ -33,6 +33,17 @@ export interface WorkspaceEntry {
   readonly gitUrl?: string;
   /** Branch to clone. Set when `type` is `"git"`. */
   readonly gitBranch?: string;
+  /**
+   * The git ref (branch or commit SHA) at which read-side operations —
+   * file content, tree listing, name search — resolve. Defaults to
+   * `gitBranch` when absent.
+   *
+   * Never user-configured: a session derives it from the latest workspace
+   * write-back so viewers read the agent's pushed commit instead of the
+   * stale base branch (see `useWorkspaceReadRefs`). A read-side projection
+   * only — never persisted, never part of the session input.
+   */
+  readonly readRef?: string;
   /** Absolute filesystem path. Set when `type` is `"local"`. */
   readonly localPath?: string;
 }

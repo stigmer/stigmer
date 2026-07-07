@@ -33,6 +33,25 @@ export interface WorkspaceFileContent {
 }
 
 /**
+ * Thrown by a {@link WorkspaceFileReader} when the requested path does not
+ * exist at the entry's read ref — as opposed to a transport or permission
+ * failure.
+ *
+ * The distinction matters to consumers: a file the agent just created exists
+ * in session state before it exists at any readable ref, so "not found" is a
+ * recoverable, expected condition (the viewer falls back to the session's
+ * captured content), while a network error or 5xx is a genuine failure worth
+ * a retry affordance. Platform builders implementing custom readers should
+ * throw this class for their substrate's not-found condition.
+ */
+export class WorkspaceFileNotFoundError extends Error {
+  constructor(path: string) {
+    super(`"${path}" doesn't exist at the workspace's current ref.`);
+    this.name = "WorkspaceFileNotFoundError";
+  }
+}
+
+/**
  * Platform-injected callback that reads the content of a single workspace file.
  *
  * The byte-reading sibling of {@link WorkspaceFileLister}:
@@ -46,6 +65,8 @@ export interface WorkspaceFileContent {
  * - **Throws** on a genuine failure (404, network error, 5xx, unreadable file,
  *   a directory path). Consumers catch this into a distinct error state — a
  *   clicked file that 404s is "failed to load," not "unsupported here."
+ *   A missing path should throw {@link WorkspaceFileNotFoundError} so
+ *   consumers can distinguish "not there yet" from "broken."
  *
  * `path` is repo-relative for git entries and root-relative for local entries —
  * exactly the strings the matching `WorkspaceFileLister` emits, so a file-tree

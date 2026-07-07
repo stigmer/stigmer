@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useGitHubFileReader } from "../useGitHubFileReader";
+import { WorkspaceFileNotFoundError } from "../../workspace/WorkspaceFileReader";
 import type { WorkspaceEntry } from "../../workspace/useWorkspaceEntries";
 
 function gitEntry(overrides?: Partial<WorkspaceEntry>): WorkspaceEntry {
@@ -120,11 +121,43 @@ describe("useGitHubFileReader", () => {
     );
   });
 
-  it("throws on a non-OK response (404 = failed to load, not unsupported)", async () => {
+  it("throws the typed WorkspaceFileNotFoundError on a 404", async () => {
     vi.mocked(globalThis.fetch).mockResolvedValue(new Response("nope", { status: 404 }));
 
     const { result } = renderHook(() => useGitHubFileReader("ghp_abc"));
-    await expect(result.current!(gitEntry(), "missing.ts")).rejects.toThrow("HTTP 404");
+    await expect(result.current!(gitEntry(), "missing.ts")).rejects.toThrow(
+      WorkspaceFileNotFoundError,
+    );
+  });
+
+  it("throws a generic error (not the typed not-found) on other non-OK responses", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(new Response("boom", { status: 500 }));
+
+    const { result } = renderHook(() => useGitHubFileReader("ghp_abc"));
+    const error = await result.current!(gitEntry(), "src/index.ts").then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain("HTTP 500");
+    expect(error).not.toBeInstanceOf(WorkspaceFileNotFoundError);
+  });
+
+  it("reads at readRef in preference to gitBranch when both are set", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(
+      jsonResponse({ encoding: "base64", size: 1, content: b64("x"), sha: "s1" }),
+    );
+
+    const { result } = renderHook(() => useGitHubFileReader("ghp_abc"));
+    await result.current!(
+      gitEntry({ gitBranch: "main", readRef: "abc123def456" }),
+      "notes.md",
+    );
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("?ref=abc123def456"),
+      expect.anything(),
+    );
   });
 
   it("throws when the path is a directory (Contents API returns an array)", async () => {

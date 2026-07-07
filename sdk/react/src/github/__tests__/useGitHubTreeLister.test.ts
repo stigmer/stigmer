@@ -148,6 +148,20 @@ describe("useGitHubTreeLister", () => {
     );
   });
 
+  it("lists at readRef in preference to gitBranch when both are set", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(
+      new Response(JSON.stringify(SAMPLE_TREE_RESPONSE), { status: 200 }),
+    );
+
+    const { result } = renderHook(() => useGitHubTreeLister("ghp_abc"));
+    await result.current!(gitEntry({ gitBranch: "main", readRef: "abc123def456" }));
+
+    expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledWith(
+      expect.stringContaining("/git/trees/abc123def456?"),
+      expect.anything(),
+    );
+  });
+
   it("encodes branch names with special characters", async () => {
     vi.mocked(globalThis.fetch).mockResolvedValue(
       new Response(JSON.stringify(SAMPLE_TREE_RESPONSE), { status: 200 }),

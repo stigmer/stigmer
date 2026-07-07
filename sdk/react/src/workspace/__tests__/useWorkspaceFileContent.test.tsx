@@ -172,6 +172,26 @@ describe("useWorkspaceFileContent", () => {
     expect(result.current.content?.text).toBe("FAST");
   });
 
+  it("re-reads when the entry's readRef advances (same id, new write-back push)", async () => {
+    const reader: WorkspaceFileReader = vi.fn(async (e) =>
+      textContent(`at:${e.readRef ?? e.gitBranch}`),
+    );
+    const { result, rerender } = renderHook(
+      (props: { entry: WorkspaceEntry }) =>
+        useWorkspaceFileContent({ entry: props.entry, path: "notes.md", reader }),
+      { initialProps: { entry: gitEntry() } },
+    );
+
+    await waitFor(() => expect(result.current.content?.text).toBe("at:main"));
+
+    // A write-back push advances readRef while entry.id stays stable — the
+    // same path at a new ref is different content and must be re-read.
+    rerender({ entry: { ...gitEntry(), readRef: "sha-2" } });
+
+    await waitFor(() => expect(result.current.content?.text).toBe("at:sha-2"));
+    expect(reader).toHaveBeenCalledTimes(2);
+  });
+
   it("goes idle when the entry is removed (entry -> null)", async () => {
     const reader: WorkspaceFileReader = vi.fn(async () => textContent("x"));
     const { result, rerender } = renderHook(

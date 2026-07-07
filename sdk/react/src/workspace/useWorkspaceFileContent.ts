@@ -105,7 +105,10 @@ export function useWorkspaceFileContent({
         ? () => reader(entry, path).then((c) => ({ content: c }))
         : null,
       // Identity deps: a change to any of these is a different file to read.
-      [entry?.id ?? null, path ?? null, reader],
+      // The read ref participates because the same path at a different ref is
+      // different content — a write-back push advances `readRef` while
+      // `entry.id` stays stable.
+      [entry?.id ?? null, entry?.readRef ?? null, path ?? null, reader],
       EMPTY_CONTENT,
     );
 
