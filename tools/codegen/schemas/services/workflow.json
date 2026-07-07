@@ -678,7 +678,7 @@
         {
           "name": "FAILED",
           "number": 4,
-          "description": "Validation process failed due to a system error (not a user error).\n Retry validation or contact support.\n\n @internal\n Examples: Temporal workflow crashed, activity timeout, etc."
+          "description": "Validation process failed due to a system error (not a user error).\n Retry validation or contact support.\n\n @internal\n Reserved for a genuine validator fault (e.g., the converter panics or an\n unexpected internal error prevents validation from completing) — not a\n user-fixable spec problem."
         }
       ]
     },

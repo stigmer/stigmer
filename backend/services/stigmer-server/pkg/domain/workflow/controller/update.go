@@ -13,7 +13,7 @@ import (
 //
 // Pipeline (Stigmer OSS):
 // 1. ValidateFieldConstraints - Validate proto field constraints using buf validate (Layer 1)
-// 2. ValidateWorkflowSpec - Validate workflow via Temporal (Layer 2: Go converts + validates - SSOT)
+// 2. ValidateWorkflowSpec - Validate workflow spec in-process (Layer 2: proto → CNCF YAML + structural checks - SSOT)
 // 3. ResolveSlug - Generate slug from metadata.name
 // 4. LoadExisting - Load existing workflow from repository to verify it exists
 // 5. BuildUpdateState - Merge spec, preserve IDs and status, update audit timestamps

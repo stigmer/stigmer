@@ -39,7 +39,9 @@ const (
 	// Retry validation or contact support.
 	//
 	// @internal
-	// Examples: Temporal workflow crashed, activity timeout, etc.
+	// Reserved for a genuine validator fault (e.g., the converter panics or an
+	// unexpected internal error prevents validation from completing) — not a
+	// user-fixable spec problem.
 	ValidationState_FAILED ValidationState = 4
 )
 
