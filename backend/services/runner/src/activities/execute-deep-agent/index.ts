@@ -45,7 +45,7 @@ import { streamExecution, type StreamResult } from "./streaming.js";
 import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { StatusBuilder } from "./status-builder.js";
 import { InlinePublisher } from "./inline-publisher.js";
-import { WriteBackCoordinator } from "./writeback-coordinator.js";
+import { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import { processPostStream } from "./post-stream.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { captureApprovalArtifacts } from "./approval-file-change.js";
@@ -184,6 +184,13 @@ export function createDeepAgentActivities(config: Config) {
           ? new WriteBackCoordinator({
               statusWriter: statusBuilder,
               executionId,
+              // Branch/PR are session-scoped: every turn of this session
+              // appends commits to the same stigmer/<session-id> branch.
+              sessionId: setup.session.metadata?.id ?? "",
+              // The PR API token, plumbed from the resolved execution env —
+              // gitMetadata.repoUrl is token-stripped by construction, so the
+              // coordinator can never recover it from provisioning state.
+              githubToken: setup.mergedEnvVars.GITHUB_TOKEN ?? "",
               provisionResults: setup.provisionResults,
               workspaceEntries: workspaceEntries as any,
               workspaceBackend: setup.workspaceBackend,

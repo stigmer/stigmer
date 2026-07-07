@@ -311,7 +311,7 @@ export async function reconcileProjectMembers(
     }
   }
 
-  await discoverAppliedMcpServers(deps.stigmer, appliedMcpServers, deps.info);
+  await discoverAppliedMcpServers(deps.stigmer, appliedMcpServers, deps.org, deps.info);
 
   injectOrg(project, deps.org);
   if (project.spec === undefined) project.spec = create(ProjectSpecSchema, {});

@@ -19,6 +19,7 @@ import {
   DEMO_SHELL_HEIGHT,
   DEMO_SHELL_HEIGHT_MIN,
 } from "../shared/tokens";
+import { useDocsColorMode } from "../shared/useDocsColorMode";
 
 export type ManagementNavId =
   | "org-profile"
@@ -105,10 +106,12 @@ export function ManagementShell({
 }: ManagementShellProps) {
   const slideX =
     slideDirection === "forward" ? 24 : slideDirection === "backward" ? -24 : 0;
+  const colorMode = useDocsColorMode();
 
   return (
     <div
-      className="flex overflow-hidden rounded-lg border border-border bg-card"
+      className="stgm flex overflow-hidden rounded-lg border border-border bg-card"
+      data-stgm-color-mode={colorMode}
       style={{
         height: `var(--scenar-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
       }}

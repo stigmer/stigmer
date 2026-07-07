@@ -35,4 +35,27 @@ describe("ChangesTab", () => {
     expect(screen.getByText(/no changes yet/i)).toBeTruthy();
     expect(screen.getByText(/pull requests/i)).toBeTruthy();
   });
+
+  // Pre-push states for a session expected to write back (cloud + git):
+  // live turns promise where approved work will land; a settled execution
+  // reports honestly that nothing was pushed.
+  it("renders the in-review promise while a write-back is expected and the session is live", () => {
+    render(<ChangesTab executions={[]} expectsWriteBack isSettled={false} />);
+    expect(screen.getByText(/stay in the session workspace/i)).toBeTruthy();
+    expect(screen.getByText(/pushed to a branch and pull request here/i)).toBeTruthy();
+  });
+
+  it("renders the nothing-pushed state when expected but the execution settled without a push", () => {
+    render(<ChangesTab executions={[]} expectsWriteBack isSettled />);
+    expect(screen.getByText(/no changes have been pushed yet/i)).toBeTruthy();
+  });
+
+  it("write-backs take precedence over the pre-push states", () => {
+    writeBacksReturn.writeBacks = [{ writeBack: { workspaceEntryName: "w1" } }];
+    writeBacksReturn.hasWriteBacks = true;
+
+    render(<ChangesTab executions={[]} expectsWriteBack />);
+    expect(screen.getByTestId("write-back-card")).toBeTruthy();
+    expect(screen.queryByText(/no changes/i)).toBeNull();
+  });
 });

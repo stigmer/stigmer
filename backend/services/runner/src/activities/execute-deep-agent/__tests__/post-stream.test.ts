@@ -3,7 +3,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { processPostStream } from "../post-stream.js";
 import type { InlinePublisher } from "../inline-publisher.js";
-import type { WriteBackCoordinator } from "../writeback-coordinator.js";
+import type { WriteBackCoordinator } from "../../../shared/workspace/writeback-coordinator.js";
 
 function mockInlinePublisher(): InlinePublisher {
   return {

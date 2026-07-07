@@ -11,7 +11,8 @@ import { connectFixture } from "@scenar/preview/connect";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
-import { DEMO_CONTENT_ZOOM, DEMO_DETAIL_CLASSES } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
+import { DemoDetailShell } from "../../shared/DemoDetailShell";
 import {
   type CreateAgentTourStep,
   createAgentTourSteps,
@@ -96,7 +97,7 @@ export function CreateAgentTour() {
 
               case "agent-config":
                 return (
-                  <div className={DEMO_DETAIL_CLASSES}>
+                  <DemoDetailShell>
                     <div
                       data-scroll-container
                       className="h-full overflow-y-auto p-4"
@@ -104,7 +105,7 @@ export function CreateAgentTour() {
                     >
                       <AgentDetailView org={DEMO_ORG} slug={DEMO_SLUG} />
                     </div>
-                  </div>
+                  </DemoDetailShell>
                 );
 
               case "code-simplified":

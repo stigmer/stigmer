@@ -80,6 +80,18 @@ describe("useSessionRailViews", () => {
     ]);
   });
 
+  it("offers Changes pre-push when a write-back is expected, without a zero badge", () => {
+    const { result } = renderViews({ expectsWriteBack: true });
+    const changes = result.current.find((v) => v.id === "changes");
+    expect(changes, "cloud git sessions get the facet before any push").toBeTruthy();
+    expect(changes?.badge).toBeUndefined();
+  });
+
+  it("hides Changes when no write-back exists and none is expected", () => {
+    const { result } = renderViews({ expectsWriteBack: false });
+    expect(result.current.some((v) => v.id === "changes")).toBe(false);
+  });
+
   it("surfaces Artifacts with a count badge", () => {
     artifactsState.hasArtifacts = true;
     artifactsState.artifactCount = 4;

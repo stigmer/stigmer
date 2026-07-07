@@ -39,7 +39,7 @@ import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
 import type { InlinePublisher } from "./inline-publisher.js";
-import type { WriteBackCoordinator } from "./writeback-coordinator.js";
+import type { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import { createV2EventRecorder } from "./event-recorder.js";
 import { streamExecutionV3 } from "./streaming-v3.js";
 import { extractFilePath, isFileModifyingTool } from "../../shared/file-tools.js";

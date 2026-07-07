@@ -101,7 +101,8 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
 
   // ── Semantic text ───────────────────────────────────────────────────
   pair("--stgm-destructive-foreground", "--stgm-destructive", "text", "destructive buttons (approval Deny)"),
-  pair("--stgm-destructive", "--stgm-destructive-subtle", "text", "error notices (ExecutionErrorNotice failure state)"),
+  pair("--stgm-destructive", "--stgm-destructive-subtle", "text", "error notices (ExecutionErrorNotice failure state), terminal exit-code badge (TerminalSession)"),
+  pair("--stgm-destructive", "--stgm-muted-subtle", "text", "stderr output on the shared code/output surface (TerminalSession)"),
   pair("--stgm-destructive", "--stgm-background", "text", "inline error text (FailedUserMessage)"),
   pair("--stgm-success-foreground", "--stgm-success", "text", "success badges"),
   pair("--stgm-warning-foreground", "--stgm-warning", "text", "warning badges"),

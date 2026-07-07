@@ -49,6 +49,20 @@ async function runConnect(reference: string, options: ConnectFlags, command: Com
   ensureAuthenticated(client.config);
   const org = resolveOrganization(client.config, globalOrg(command));
 
+  // Connecting pushes to the backend, which requires an org for credential
+  // resolution. Fail with actionable guidance instead of the backend's cryptic
+  // "org value length must be at least 1" validation error. Dry-run discovers
+  // locally (no backend push) and needs no org for an id reference, so it is
+  // exempt — mirrors the org guard in run/draft/resume.
+  if (options.dryRun !== true && org === "") {
+    throw new UsageError(
+      "organization not set\n\n" +
+        "Set it with:\n" +
+        "  stigmer config context set --org <org>\n" +
+        "  stigmer connect mcp-server <server> --org <org>",
+    );
+  }
+
   const result = await connectMcpServer(client.stigmer, {
     reference,
     org,

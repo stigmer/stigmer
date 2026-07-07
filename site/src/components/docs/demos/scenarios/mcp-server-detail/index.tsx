@@ -20,7 +20,8 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { connectFixture } from "@scenar/preview/connect";
-import { DEMO_CONTENT_ZOOM, DEMO_DETAIL_CLASSES } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
+import { DemoDetailShell } from "../../shared/DemoDetailShell";
 
 const DEMO_ORG = "acme";
 
@@ -84,11 +85,11 @@ const previewFixtures = [
 export function McpServerDetail() {
   return (
     <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
-      <div className={DEMO_DETAIL_CLASSES}>
+      <DemoDetailShell>
         <div className="p-4" style={{ zoom: DEMO_CONTENT_ZOOM }}>
           <McpServerDetailView org={DEMO_ORG} slug="order-management-api" />
         </div>
-      </div>
+      </DemoDetailShell>
     </PreviewProvider>
   );
 }

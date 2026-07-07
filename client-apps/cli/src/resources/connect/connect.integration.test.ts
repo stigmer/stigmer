@@ -6,7 +6,7 @@
 // guidance gate, and the dry-run path (local discovery, no Connect RPC).
 
 import { create } from "@bufbuild/protobuf";
-import type { ConnectRouter } from "@connectrpc/connect";
+import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
@@ -69,7 +69,14 @@ beforeAll(async () => {
       getOAuthGrantStatus: () => create(GetOAuthGrantStatusOutputSchema, { connected: grantConnected }),
     });
     router.service(McpServerCommandController, {
-      connect: (req) => (connectCalls.push(req), updatedServer),
+      // Mirror the backend's protovalidate rule (org min_len=1): reject an empty
+      // org so a regression that drops org fails loudly here instead of silently
+      // passing (the mock adapter does not run protovalidate on its own).
+      connect: (req) => {
+        if (req.org === "") throw new ConnectError("org – value length must be at least 1 characters", Code.InvalidArgument);
+        connectCalls.push(req);
+        return updatedServer;
+      },
     });
   };
 
@@ -102,6 +109,9 @@ describe("connect push path", () => {
 
     expect(connectCalls).toHaveLength(1);
     expect(connectCalls[0].mcpServerId).toBe("mcp_1");
+    // The org resolved by the command must ride along on ConnectInput — the
+    // backend requires it (issue #140: the CLI used to drop it entirely).
+    expect(connectCalls[0].org).toBe("acme");
     expect(connectCalls[0].runtimeEnv.GITHUB_TOKEN.value).toBe("ghp-override");
     expect(connectCalls[0].runtimeEnv.GITHUB_TOKEN.isSecret).toBe(true);
 

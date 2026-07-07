@@ -68,6 +68,9 @@
     "recharts": "^2.15.0",
     "tailwind-merge": "^3.0.0"
   },
+  "resolutions": {
+    "@stigmer/theme": "file:../sdk/theme"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@next/bundle-analyzer": "^16.1.6",

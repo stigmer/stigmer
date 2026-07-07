@@ -99,6 +99,8 @@ import {
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { provisionCursorWorkspace } from "./workspace-provision.js";
+import { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
+import { statusProtoWriter } from "../../shared/execution-status-writer.js";
 import { setInterceptorExecutionId, runWithExecutionContext } from "./fetch-interceptor.js";
 import { closeProxySessions } from "./http2-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "./model-pricing.js";
@@ -277,10 +279,31 @@ async function executeCursorInner(
     // native harness. Git provisioning is idempotent across multi-turn and
     // HITL reinvocations.
     await reportSetupProgress(client, executionId, "Provisioning workspace");
-    blueprint.workspaceDirs = await provisionCursorWorkspace(
+    const workspaceProvision = await provisionCursorWorkspace(
       config, session, envVars, sessionId ?? "",
     );
+    blueprint.workspaceDirs = workspaceProvision.workspaceDirs;
     heartbeat();
+
+    // Git write-back: pushes the session's APPROVED tree to the session
+    // branch (stigmer/<session-id>) and keeps one PR open — the same
+    // approval-gated model as the deep-agent harness (its
+    // processCaptureWriteback). Finalize runs at exactly two seams below:
+    // the pure-file-review resume (after decisions reconcile) and terminal
+    // completion. Never mid-turn: the working tree is speculative until
+    // reviewed. Non-eligible workspaces (local paths, no credentials) make
+    // this a no-op coordinator.
+    const writebackCoordinator = workspaceProvision.provisionResults.length > 0
+      ? new WriteBackCoordinator({
+          statusWriter: statusProtoWriter(status),
+          executionId,
+          sessionId: sessionId ?? "",
+          githubToken: envVars.GITHUB_TOKEN ?? "",
+          provisionResults: workspaceProvision.provisionResults,
+          workspaceEntries: session.spec?.workspaceEntries ?? [],
+          workspaceBackend: workspaceProvision.workspaceBackend,
+        })
+      : null;
 
     // Apply-then-review is the universal file-review model (Slice 2c). When the
     // primary workspace is a real git work tree, file edits flow during the turn
@@ -478,6 +501,14 @@ async function executeCursorInner(
         // (Cursor-like). The reconcile is done; the execution is complete.
         status.phase = ExecutionPhase.EXECUTION_COMPLETED;
         status.completedAt = utcTimestamp();
+        // Push the APPROVED tree — reconcile snapped rejected files back to
+        // baseline, so what finalize commits is exactly what the user kept.
+        // Mirrors the deep-agent's processCaptureWriteback: after reconcile,
+        // before persist, never on a failed reconcile (diverged bytes must
+        // not reach the remote).
+        if (!fileReviewFailed && writebackCoordinator) {
+          await writebackCoordinator.finalize();
+        }
         if (fileReviewFailed) {
           // What-you-approve-is-what-applies could not be honored (on-disk bytes
           // diverged from the approved digest). Surface it to the human; the
@@ -1564,6 +1595,15 @@ async function executeCursorInner(
         `ExecuteCursor collapsed ${collapsedTwins} redundant tool-call twin(s) at ` +
           `terminal finalize (kept in place as hidden SKIPPED rows): execution=${executionId}`,
       );
+    }
+
+    // Write-back safety net on terminal completion. A capture-mode turn with
+    // captured changes always paused above (boundary.waiting), so reaching
+    // here means no reviewable delta this turn and this is normally a no-op —
+    // it exists for the same reason the deep-agent finalizes on completion:
+    // stragglers outside the capture (and it never runs mid-turn).
+    if (status.phase === ExecutionPhase.EXECUTION_COMPLETED && writebackCoordinator) {
+      await writebackCoordinator.finalize();
     }
 
     // NOW persist — subscriber sees COMPLETED + structured_output atomically

@@ -56,6 +56,7 @@ export async function connectMcpServer(client: Stigmer, opts: ConnectOptions): P
   const updated = await client.mcpServer.connect(
     create(ConnectInputSchema, {
       mcpServerId: server.metadata?.id ?? "",
+      org: opts.org,
       runtimeEnv: buildRuntimeEnv(server, opts.envOverrides),
     }),
   );

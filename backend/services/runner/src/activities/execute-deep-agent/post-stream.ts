@@ -13,7 +13,7 @@
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { InlinePublisher } from "./inline-publisher.js";
-import type { WriteBackCoordinator } from "./writeback-coordinator.js";
+import type { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import { autoPublishWrittenFiles } from "./auto-publish.js";
 
 export interface PostStreamOptions {

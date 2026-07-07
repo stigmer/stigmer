@@ -6,7 +6,7 @@ import { PreviewProvider } from "@scenar/preview/runtime";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { connectFixture } from "@scenar/preview/connect";
-import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
+import { DemoDetailShell } from "../../shared/DemoDetailShell";
 
 const DEMO_ORG = "acme";
 
@@ -57,11 +57,11 @@ const previewFixtures = [
 export function SkillDetail() {
   return (
     <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
-      <div className={DEMO_DETAIL_CLASSES}>
+      <DemoDetailShell>
         <div className="p-4">
           <SkillDetailView org={DEMO_ORG} slug="return-policy" />
         </div>
-      </div>
+      </DemoDetailShell>
     </PreviewProvider>
   );
 }

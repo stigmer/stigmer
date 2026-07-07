@@ -54,6 +54,21 @@ export interface UseSessionRailViewsOptions {
    * @default true
    */
   readonly includeExecutionFacets?: boolean;
+  /**
+   * Whether the session is expected to push approved changes to a git remote
+   * (a cloud session with git workspace entries). When `true` the Changes
+   * facet is offered from the start — with an honest pre-push state — instead
+   * of only materializing once a write-back exists, so "where does my work
+   * go?" always has an answer. See {@link ChangesTabProps.expectsWriteBack}.
+   * @default false
+   */
+  readonly expectsWriteBack?: boolean;
+  /**
+   * Whether the session's latest execution is settled (terminal) — forwarded
+   * to the Changes facet's pre-push states. See {@link ChangesTabProps.isSettled}.
+   * @default false
+   */
+  readonly changesSettled?: boolean;
 }
 
 /**
@@ -77,6 +92,8 @@ export function useSessionRailViews({
   onOpenArtifact,
   onActivateArtifact,
   includeExecutionFacets = true,
+  expectsWriteBack = false,
+  changesSettled = false,
 }: UseSessionRailViewsOptions): readonly SurfaceRailView[] {
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(allExecutions);
   const { hasArtifacts, artifactCount } = useSessionArtifacts(allExecutions);
@@ -94,13 +111,22 @@ export function useSessionRailViews({
     }
 
     if (includeExecutionFacets) {
-      if (hasWriteBacks) {
+      // Offered when a write-back exists OR the session is expected to
+      // produce one — the facet then carries an honest pre-push state
+      // instead of being invisible until the first push.
+      if (hasWriteBacks || expectsWriteBack) {
         views.push({
           id: "changes",
           label: "Changes",
           icon: <ChangesIcon />,
-          badge: writeBackCount,
-          content: <ChangesTab executions={allExecutions} />,
+          badge: writeBackCount > 0 ? writeBackCount : undefined,
+          content: (
+            <ChangesTab
+              executions={allExecutions}
+              expectsWriteBack={expectsWriteBack}
+              isSettled={changesSettled}
+            />
+          ),
         });
       }
 
@@ -145,6 +171,8 @@ export function useSessionRailViews({
   }, [
     sessionConfig,
     includeExecutionFacets,
+    expectsWriteBack,
+    changesSettled,
     hasWriteBacks,
     writeBackCount,
     hasArtifacts,

@@ -184,7 +184,7 @@ async function runFileApply(
     if (outcome.appliedMcpServer !== undefined) appliedMcpServers.push(outcome.appliedMcpServer);
   }
 
-  await discoverAppliedMcpServers(client.stigmer, appliedMcpServers, (line) => process.stderr.write(`${line}\n`));
+  await discoverAppliedMcpServers(client.stigmer, appliedMcpServers, org, (line) => process.stderr.write(`${line}\n`));
 }
 
 function buildAtomicGuidance(): CommandResult {
