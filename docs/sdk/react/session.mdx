@@ -986,6 +986,53 @@ function RenameSession({ session }: { session: Session }) {
 ```
 
 
+### useWorkspaceReadRefs
+
+Pure derivation hook that projects the session's workspace write-backs onto
+its workspace entries as per-entry read refs.
+
+The agent's file changes land on a write-back branch (`stigmer/<id>`), not
+the branch the session was configured with — so read-side surfaces (file
+viewer, tree listing, name search) pointed at the configured branch would
+404 on agent-created files and silently show stale content for modified
+ones. This hook returns the entries with `readRef` set to the latest
+write-back commit SHA, which those surfaces resolve in preference to
+`gitBranch`. A commit SHA (not the branch name) so reads are immutable-ref
+exact, immune to branch eventual-consistency.
+
+**Ref selection:** the latest write-back with a non-empty `commitSha` wins
+per workspace entry, across all executions in chronological order. FAILED
+write-back records carry no SHA and never regress the ref.
+
+**Entry matching** mirrors the runner's `WriteBackCoordinator.resolveEntry`:
+single-entry sessions provision with an empty `workspaceEntryName`, so when
+the session has exactly one git entry every write-back applies to it;
+multi-entry sessions match strictly by name.
+
+**Reference stability (DD-010):** the decorated array is memoized on the
+entries array and a value signature of the derived refs — streaming frames
+that don't change any write-back SHA return the identical array, so
+downstream listing/content effects never churn.
+
+**Signature**
+
+```tsx
+function useWorkspaceReadRefs(executions: readonly AgentExecution[], entries: readonly WorkspaceEntry[]): readonly WorkspaceEntry[]
+```
+
+<TypeTable
+  type={{
+    executions: { type: "readonly AgentExecution[]", description: "All executions for the session, in chronological order   (same input contract as useSessionWriteBacks).", required: true },
+    entries: { type: "readonly WorkspaceEntry[]", description: "The session's workspace entries. Returned as-is (same   reference) when no entry derives a ref.", required: true },
+  }}
+/>
+
+```tsx
+const surfaceEntries = useWorkspaceReadRefs(flow.allExecutions, flow.workspace.entries);
+<WorkspaceSurface entries={surfaceEntries} ... />
+```
+
+
 ## Components
 
 ### NewSessionViewer
@@ -1166,6 +1213,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided alongside `enableLocal`, the composer renders a \"Browse Folder\" button that opens the system folder dialog. Without this callback `enableLocal` alone is not sufficient for the UI to render the local option.  Desktop apps supply this via Tauri's dialog plugin. Web apps omit it (no native picker available)." },
     org: { type: "string", description: "Organization slug.", required: true },
     sessionId: { type: "string", description: "Session ID to load and display.", required: true },
+    threadSlots: { type: "MessageThreadSlots", description: "Component overrides for the conversation thread's chrome (message bubbles, approval card, to-dos card, plan cards, thinking indicator) — forwarded to the inner MessageThread. See MessageThreadSlots. Define the object and its components at module level (or memoize) so thread rows keep their streaming re-render guarantees." },
     workspaceContentSearcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher. When provided, the session panel's Search pane gains a `Name | Text` toggle for full-text search across the workspace. Desktop injects a native ripgrep-backed searcher; web leaves it undefined (git content search needs a branch-accurate backend — DD-09), keeping Search filename-only there (DD-004, DD-011 opt-in).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacecontentsearcher" },
     workspaceFileLister: { type: "WorkspaceFileLister", description: "Platform-injected file lister for workspace entries. When provided, each entry in the Setup tab's workspace section renders an expandable file tree. (DD-004 capability injection, DD-011 opt-in.)", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
     workspaceFileReader: { type: "WorkspaceFileReader", description: "Platform-injected content reader for the read-only file viewer. When provided, clicking a file in the Workspace tree opens it in a contextual \"Viewer\" tab. GitHub Contents/blob on web, Tauri fs on desktop; `undefined` degrades the viewer to an \"unavailable here\" state (DD-004, DD-011 opt-in).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilereader" },

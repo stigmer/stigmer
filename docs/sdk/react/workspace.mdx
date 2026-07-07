@@ -179,7 +179,8 @@ workspace entry, converting it into a `TreeNode` hierarchy.
   `loadEntryFiles` cache) when the
   entry changes.
 - Reads the shared listing cache so tab switches, re-expands, and the search
-  surface are instant without re-fetching (one cache, keyed by `entry.id`).
+  surface are instant without re-fetching (one cache, keyed by `entry.id` +
+  effective read ref — a ref advance is a cache miss by design).
 - Returns an empty tree and skips the call when `lister` is
   `undefined` (graceful degradation — DD-011 opt-in).
 - Memoizes the return value for referential stability (DD-010).
@@ -795,6 +796,7 @@ added by the user before starting an agent session.
     id: { type: "string", description: "Stable client-side identifier used as a React key and for removal.", required: true },
     localPath: { type: "string", description: "Absolute filesystem path. Set when `type` is `\"local\"`." },
     name: { type: "string", description: "Display name derived from the git URL or local path.", required: true },
+    readRef: { type: "string", description: "The git ref (branch or commit SHA) at which read-side operations — file content, tree listing, name search — resolve. Defaults to `gitBranch` when absent.  Never user-configured: a session derives it from the latest workspace write-back so viewers read the agent's pushed commit instead of the stale base branch (see `useWorkspaceReadRefs`). A read-side projection only — never persisted, never part of the session input." },
     type: { type: "\"local\" | \"git\"", description: "Source type: `\"git\"` for remote repositories, `\"local\"` for filesystem paths.", required: true },
   }}
 />
@@ -897,6 +899,8 @@ Two distinct failure axes — do not conflate them:
 - **Throws** on a genuine failure (404, network error, 5xx, unreadable file,
   a directory path). Consumers catch this into a distinct error state — a
   clicked file that 404s is "failed to load," not "unsupported here."
+  A missing path should throw `WorkspaceFileNotFoundError` so
+  consumers can distinguish "not there yet" from "broken."
 
 `path` is repo-relative for git entries and root-relative for local entries —
 exactly the strings the matching `WorkspaceFileLister` emits, so a file-tree

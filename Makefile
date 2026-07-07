@@ -77,7 +77,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim protos codegen build-ts-stubs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-task-docs-check gen-ipc-fixtures gen-ipc-fixtures-check
 build: libs-build build-web verify-desktop docs-build build-java-sdk build-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
@@ -124,7 +124,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-cli-docs gen-task-docs gen-task-registry ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs gen-task-docs gen-task-registry ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
@@ -172,7 +172,10 @@ gen-ink-sdk-docs: ## Generate Ink SDK reference docs from TypeDoc
 	cd sdk/ink && npm run typedoc:json
 	cd site && yarn generate-ink-sdk-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-cli-docs-check gen-task-docs-check gen-task-registry-check ## Verify all SDK docs are up to date (CI)
+gen-theme-docs: ## Generate theme token reference docs from tokens.css
+	cd site && yarn generate-theme-docs
+
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check gen-task-docs-check gen-task-registry-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@tmpdir=$$(mktemp -d) && \
@@ -232,6 +235,21 @@ gen-ink-sdk-docs-check: ## Verify Ink SDK docs are up to date (CI)
 		echo "error: Ink SDK docs are stale — run 'make gen-ink-sdk-docs'"; exit 1; \
 	fi; \
 	echo "✓ Ink SDK docs are up to date"
+
+gen-theme-docs-check: ## Verify theme token docs are up to date (CI)
+	@tmpdir=$$(mktemp -d) && \
+	(cd site && THEME_DOCS_OUTPUT_DIR="$$tmpdir" yarn generate-theme-docs) && \
+	rc=0; \
+	for f in "$$tmpdir"/*; do \
+		if ! diff -q "$$f" "docs/sdk/theme/$$(basename $$f)" > /dev/null 2>&1; then \
+			rc=1; break; \
+		fi; \
+	done; \
+	rm -rf "$$tmpdir"; \
+	if [ $$rc -ne 0 ]; then \
+		echo "error: theme token docs are stale — run 'make gen-theme-docs'"; exit 1; \
+	fi; \
+	echo "✓ Theme token docs are up to date"
 
 gen-cli-docs: ## Generate CLI reference docs from the TypeScript command tree
 	cd client-apps/cli && npx tsx scripts/gen-cli-docs.ts --output ../../docs/cli/commands/

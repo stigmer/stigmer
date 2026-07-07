@@ -16,6 +16,7 @@
     "validate-demos": "tsx scripts/validate-demos.ts",
     "generate-react-sdk-docs": "tsx scripts/generate-react-sdk-docs/index.ts",
     "generate-ink-sdk-docs": "tsx scripts/generate-ink-sdk-docs/index.ts",
+    "generate-theme-docs": "tsx scripts/generate-theme-docs/index.ts",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
