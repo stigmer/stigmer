@@ -53,10 +53,12 @@ export class WorkspaceProvisionError extends Error {
  * commands route through the Daytona sandbox proxy.
  *
  * When `platformDir` is set, paths under `.stigmer/` are transparently
- * routed to the platform directory instead of the workspace root. This
- * keeps platform files (skills, inputs) physically separate from the
- * user's workspace while presenting a unified `.stigmer/` namespace to
- * the agent.
+ * routed to the platform directory instead of the workspace root, keeping
+ * platform files (skills, inputs) physically separate from the user's
+ * workspace. The routing covers the RUNNER's own reads/writes through
+ * this interface; the agent's file tools resolve against the workspace
+ * root and see the same files through the per-turn `.stigmer` symlink
+ * (see stigmer-link.ts).
  */
 export interface WorkspaceBackend {
   readonly rootDir: string;

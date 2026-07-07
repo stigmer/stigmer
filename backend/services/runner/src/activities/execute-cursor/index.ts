@@ -61,7 +61,7 @@ import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
 import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
 import { resolveSkills } from "./skill-resolver.js";
-import { removeStigmerSymlink } from "./stigmer-link.js";
+import { removeStigmerSymlink } from "../../shared/workspace/stigmer-link.js";
 import { resolveAttachments } from "./attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";

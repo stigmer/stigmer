@@ -34,7 +34,7 @@ import { join, basename } from "node:path";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
-import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "./stigmer-link.js";
+import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
 
 const INPUTS_SUBDIR = "inputs";
 

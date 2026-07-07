@@ -26,6 +26,10 @@ import {
   WorkspaceLockTimeoutError,
   type ReleaseWorkspaceLock,
 } from "../../shared/workspace/workspace-lock.js";
+import {
+  ensureStigmerSymlink,
+  removeStigmerSymlink,
+} from "../../shared/workspace/stigmer-link.js";
 import type { ToolOutputOffloadContext } from "../../shared/status-offload.js";
 import { publishPlanArtifact } from "../../shared/plan-artifact.js";
 import { classifyTool } from "../../shared/tool-kind.js";
@@ -229,6 +233,22 @@ export function createDeepAgentActivities(config: Config) {
           throw lockErr;
         }
 
+        // Bridge the workspace to the session's platform dir so the agent's
+        // file tools can read platform-mounted content (`.stigmer/inputs/…`
+        // attachments incl. the approved plan, `.stigmer/skills/…`) — the
+        // deepagents FilesystemBackend resolves paths against the workspace
+        // root and knows nothing of the LocalWorkspaceBackend's `.stigmer`
+        // routing. Two ordering invariants (see shared/workspace/stigmer-link.ts):
+        //  - AFTER the lock: the link is a tree mutation; sessions sharing one
+        //    attached directory must not re-point it under a running turn.
+        //  - BEFORE the baseline capture below: present in both the baseline
+        //    and candidate trees, the link cancels out of the file-review diff
+        //    even when the workspace's git excludes do not list `.stigmer`.
+        // Removed in cleanup() (the finally below), before the lock releases.
+        if (setup.workspaceBackend.platformDir) {
+          await ensureStigmerSymlink(gitRoot, setup.workspaceBackend.platformDir);
+        }
+
         // (1) Capture-mode resume — reconcile any DECIDED change set FIRST (this
         // drops the per-execution refs), before the next baseline re-pins them
         // (refs are executionId-keyed). Then (2) short-circuit a pure file-review
@@ -315,8 +335,10 @@ export function createDeepAgentActivities(config: Config) {
         }
 
         // Turn start (capture mode): pin the pre-turn tree + author BASELINE. Taken
-        // AFTER any reconcile above and AFTER performSetup's workspace writes, so
-        // the baseline absorbs the reconciled state and the runner-owned files.
+        // AFTER any reconcile above and AFTER performSetup's workspace writes and
+        // the `.stigmer` symlink above, so the baseline absorbs the reconciled
+        // state and the runner-owned files (the symlink then cancels out of the
+        // baseline→candidate diff).
         let captureBaselineTree = "";
         // Snapshot the sub-agent tool-call ids that exist BEFORE this turn's
         // stream, so the turn-boundary stamp scopes itself to sub-agent rows
@@ -398,9 +420,11 @@ export function createDeepAgentActivities(config: Config) {
           // Mid-run live capture (DD-32 / DD-33): attach file_change_progress
           // before each scheduled persist, throttled by the floor inside
           // captureFileChangeProgress. The substrate (git / non-git CAS / hybrid)
-          // was chosen for this turn above; deep-agent writes no runner-owned gate
-          // files into the tree, so the git slice needs no excludePaths — matching
-          // its turn-boundary candidate capture.
+          // was chosen for this turn above; the deep-agent's only runner-owned
+          // tree entry is the `.stigmer` symlink, created before the baseline
+          // so it appears identically in every capture and cancels out of the
+          // diff — the git slice therefore needs no excludePaths, matching its
+          // turn-boundary candidate capture.
           beforePersist: async (status) => {
             if (!progressSubstrate) return;
             await captureFileChangeProgress({
@@ -928,5 +952,12 @@ async function cleanup(setup: SetupResult | null): Promise<void> {
       console.warn("[ExecuteDeepAgent] MCP connection cleanup failed:", err);
     }
   }
+
+  // Drop the workspace→platform `.stigmer` symlink so an attached repo is
+  // left untouched between turns (issue #173 semantics; a multi-turn session
+  // recreates it next turn). Runs in the activity finally, BEFORE the
+  // workspace lock releases, so the next queued turn baselines a clean tree.
+  // Best-effort and symlink-only: a real `.stigmer` directory is never removed.
+  await removeStigmerSymlink(setup.workspaceBackend.rootDir);
 }
 
