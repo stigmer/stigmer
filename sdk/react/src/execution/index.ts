@@ -204,6 +204,7 @@ export {
   deriveEffectiveVerdicts,
   changeForRowPath,
   fileReviewRowState,
+  fileReviewRowChange,
 } from "./file-review-status.js";
 export type {
   FileReviewability,
@@ -239,7 +240,11 @@ export type { FileChangeProgressBarProps } from "./FileChangeProgressBar.js";
 export { ApprovalContext, useApproval } from "./ApprovalContext.js";
 export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext.js";
 
-export { FileReviewContext, useFileReviewRowState } from "./FileReviewContext.js";
+export {
+  FileReviewContext,
+  useFileReviewRowState,
+  useFileReviewRowChange,
+} from "./FileReviewContext.js";
 export type { FileReviewContextValue } from "./FileReviewContext.js";
 
 export { ArtifactRow } from "./ArtifactRow.js";

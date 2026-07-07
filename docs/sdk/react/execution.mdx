@@ -694,6 +694,31 @@ await submitFileDecision(executionId, changeSet.id, FileDecisionAction.APPROVE, 
 ```
 
 
+### useFileReviewRowChange
+
+The captured change a stamped tool row should render as its inline diff, or
+`null` to keep the row's own content view (unstamped row, unknown set, path
+miss, or a non-reviewable change — see [`fileReviewRowChange`](#filereviewrowchange) for the
+honest-degradation rules).
+
+The diff sibling of [`useFileReviewRowState`](#usefilereviewrowstate): both read the same
+context entry through the same path matcher, so a row's badge and its diff
+always describe the same captured artifact.
+
+**Signature**
+
+```tsx
+function useFileReviewRowChange(fileChangeSetId: string, rowPath: string | null): CapturedFileChange | null
+```
+
+<TypeTable
+  type={{
+    fileChangeSetId: { type: "string", description: "The row's `ToolCall.file_change_set_id` (may be \"\").", required: true },
+    rowPath: { type: "string | null", description: "The row's file path (the presenter's primary arg).", required: true },
+  }}
+/>
+
+
 ### useFileReviewRowState
 
 The review state a stamped tool row should badge, or `null` for no badge
@@ -1816,8 +1841,9 @@ a terminal with an exit badge, a search shows a match list, and unknown tools
 degrade to readable JSON instead of a raw dump.
 
 Composition varies by category to avoid redundancy: an edit shows only the
-diff (which already names the file and quantifies the change); a write shows
-its input content; a read shows just the path.
+diff (which already names the file and quantifies the change); a stamped
+write shows its change set's captured diff, degrading to the proposed
+content when no capture resolves; a read shows just the path.
 
 Importable on its own by platform builders composing custom tool UIs.
 
@@ -2571,6 +2597,26 @@ a decision surface — decisions live exclusively on the set's decision bar
     changeSetsById: { type: "ReadonlyMap<string, FileChangeSet>", description: "Every displayable change set across the session, keyed by `FileChangeSet.id`.", required: true },
   }}
 />
+
+
+### fileReviewRowChange
+
+The captured change a stamped transcript row should render as its inline
+diff, or `null` to keep the row's own content view. The row-diff sibling of
+[`fileReviewRowState`](#filereviewrowstate): both resolve through [`changeForRowPath`](#changeforrowpath),
+so the badge and the diff can never disagree about which file a row refers
+to. What renders is the set's captured NET change for the file — the same
+artifact the badge's verdict applies to.
+
+`null` follows the badge's honest-degradation discipline, plus one rule of
+its own: a non-`reviewable` change ([`fileReviewability`](#filereviewability) — binary,
+secret-withheld, size-elided) resolves to `null` so the row falls back to
+showing the tool's own args content rather than a diff that cannot honestly
+render.
+
+```tsx
+function fileReviewRowChange(set: FileChangeSet | undefined, rowPath: string | null): CapturedFileChange | null
+```
 
 
 ### fileReviewRowState

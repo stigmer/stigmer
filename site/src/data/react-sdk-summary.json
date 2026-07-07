@@ -88,7 +88,7 @@
       "slug": "execution",
       "title": "Execution",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
-      "hooks": 19,
+      "hooks": 20,
       "components": 31
     },
     {
@@ -200,7 +200,7 @@
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
-      "hooks": 18,
+      "hooks": 19,
       "components": 5
     },
     {

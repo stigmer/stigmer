@@ -1,6 +1,10 @@
 import { createContext, useContext } from "react";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import type {
+  CapturedFileChange,
+  FileChangeSet,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import {
+  fileReviewRowChange,
   fileReviewRowState,
   type FileReviewRowState,
 } from "./file-review-status.js";
@@ -50,4 +54,26 @@ export function useFileReviewRowState(
   const { changeSetsById } = useContext(FileReviewContext);
   if (!fileChangeSetId) return null;
   return fileReviewRowState(changeSetsById.get(fileChangeSetId), rowPath);
+}
+
+/**
+ * The captured change a stamped tool row should render as its inline diff, or
+ * `null` to keep the row's own content view (unstamped row, unknown set, path
+ * miss, or a non-reviewable change — see {@link fileReviewRowChange} for the
+ * honest-degradation rules).
+ *
+ * The diff sibling of {@link useFileReviewRowState}: both read the same
+ * context entry through the same path matcher, so a row's badge and its diff
+ * always describe the same captured artifact.
+ *
+ * @param fileChangeSetId The row's `ToolCall.file_change_set_id` (may be "").
+ * @param rowPath The row's file path (the presenter's primary arg).
+ */
+export function useFileReviewRowChange(
+  fileChangeSetId: string,
+  rowPath: string | null,
+): CapturedFileChange | null {
+  const { changeSetsById } = useContext(FileReviewContext);
+  if (!fileChangeSetId) return null;
+  return fileReviewRowChange(changeSetsById.get(fileChangeSetId), rowPath);
 }

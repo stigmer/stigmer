@@ -24,6 +24,7 @@ import {
   changeSetReviewability,
   deriveEffectiveVerdicts,
   fileReviewability,
+  fileReviewRowChange,
   fileReviewRowState,
 } from "../file-review-status";
 
@@ -288,6 +289,52 @@ describe("changeForRowPath", () => {
   it("returns null for an unknown or empty path", () => {
     expect(changeForRowPath(set, "src/b.ts")).toBeNull();
     expect(changeForRowPath(set, "")).toBeNull();
+  });
+});
+
+describe("fileReviewRowChange", () => {
+  it("returns null with no set or path", () => {
+    const set = reviewSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [fileChange("f1", "a.ts")],
+    });
+    expect(fileReviewRowChange(undefined, "a.ts")).toBeNull();
+    expect(fileReviewRowChange(set, null)).toBeNull();
+    expect(fileReviewRowChange(set, "")).toBeNull();
+  });
+
+  it("resolves a reviewable change by row path (same matcher as the badge)", () => {
+    const set = reviewSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [fileChange("f1", "src/a.ts")],
+    });
+    expect(fileReviewRowChange(set, "src/a.ts")?.id).toBe("f1");
+    expect(fileReviewRowChange(set, "/home/user/ws/src/a.ts")?.id).toBe("f1");
+  });
+
+  it("returns null for a path absent from the set", () => {
+    const set = reviewSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [fileChange("f1", "a.ts")],
+    });
+    expect(fileReviewRowChange(set, "gone.ts")).toBeNull();
+  });
+
+  it("returns null for a non-reviewable change (honest degradation)", () => {
+    const set = reviewSet({
+      status: FileChangeSetStatus.AWAITING_REVIEW,
+      changes: [
+        create(CapturedFileChangeSchema, {
+          id: "f1",
+          pathBefore: "secret.env",
+          pathAfter: "secret.env",
+          kind: FileChangeKind.MODIFY,
+          diffComplete: false,
+          blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
+        }),
+      ],
+    });
+    expect(fileReviewRowChange(set, "secret.env")).toBeNull();
   });
 });
 
