@@ -81,10 +81,10 @@ describe("TaskKindRecentsStore", () => {
 
   it("filters out invalid entries from localStorage", () => {
     const data = [
-      { kind: "valid_kind", timestamp: Date.now() },
-      { kind: 123, timestamp: Date.now() }, // invalid: kind is not string
-      { timestamp: Date.now() }, // invalid: missing kind
-      { kind: "another_valid", timestamp: Date.now() },
+      { kind: "valid_kind", timestamp: 2 },
+      { kind: 123, timestamp: 3 }, // invalid: kind is not string
+      { timestamp: 4 }, // invalid: missing kind
+      { kind: "another_valid", timestamp: 1 },
     ];
     globalThis.localStorage.setItem(TEST_KEY, JSON.stringify(data));
 
