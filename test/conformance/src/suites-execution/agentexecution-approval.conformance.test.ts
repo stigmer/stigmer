@@ -14,13 +14,14 @@
 //
 // Contract facts asserted here (sourced from submit_approval.go + the HITL
 // integration tests). The suite asserts the *server-owned, deterministic*
-// surface and deliberately does NOT assert runner-internal projections that are
-// not stable black-box observables — namely per-tool-call FINAL status after the
-// approval resume (the tool call's id = a langchain run_id that is not preserved
-// consistently across resume) and ToolCall.args_preview (empty for MCP-wrapped
-// tools, whose args are absent from the on_tool_start event). The Go integration
-// HITL suite draws the same boundary (it asserts phase only for reject/approve_
-// all). See DD-010 for the rationale and the full finding.
+// surface. It still does not assert the per-tool-call final status of an
+// APPROVED tool (its id = a langchain run_id re-emitted by the resumed stream,
+// not preserved consistently) or ToolCall.args_preview (empty for MCP-wrapped
+// tools, whose args are absent from the on_tool_start event). It DOES assert the
+// terminal status of a REJECTED tool: as of issue #197 the runner terminalizes a
+// non-executing decision from the recorded ToolCall.approval_action
+// (reconcileNonExecutingDecisions), which is decision-derived and therefore
+// stable across resume regardless of run_id instability. See DD-010.
 //
 // Asserted contract:
 // - submitApproval is on the Command controller; SubmitApprovalInput is
@@ -28,10 +29,11 @@
 //   response is the AgentExecution with the decision recorded and
 //   pending_approvals recomputed synchronously.
 // - APPROVE / SKIP / REJECT each resolve the single gate (response
-//   pending_approvals empty) and the execution reaches EXECUTION_COMPLETED —
-//   REJECT fails the tool, not the run (the proto enum's "fail the entire
-//   execution" comment is aspirational; the native runner and integration test
-//   both COMPLETE).
+//   pending_approvals empty) and the execution reaches EXECUTION_COMPLETED.
+//   REJECT denies the tool and continues the run — it does NOT fail the
+//   execution; the rejected tool call resolves to TOOL_CALL_SKIPPED with
+//   approval_action=REJECT. This is the proto contract as of issue #197 — the
+//   enum doc, the native runner, and the Go integration test now all agree.
 // - APPROVE_ALL resolves every co-pending gate in one decision (response
 //   pending_approvals empty) and the run completes without re-gating.
 // - spec.auto_approve_all bypasses the gate entirely (no submit needed).
@@ -48,6 +50,7 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import {
   ApprovalAction,
   ExecutionPhase,
+  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -202,11 +205,26 @@ describe("AgentExecution submitApproval — gate resolution", () => {
     });
     expect(resp.status?.pendingApprovals.length, "reject clears the pending gate").toBe(0);
 
-    // REJECT fails the tool call, not the run: the rejection is fed back to the
-    // LLM, which continues and the execution COMPLETES (contrast the proto enum's
-    // outdated "fail the entire execution" note; recorded in DD-010).
+    // REJECT denies the tool and continues: the objection is fed back to the LLM,
+    // which adapts, and the execution COMPLETES (issue #197 — the proto enum, the
+    // native runner, and this suite now agree; DD-010 updated).
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "rejected execution still COMPLETES").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+
+    // The rejected tool call is terminalized deterministically — never left stuck
+    // at WAITING_APPROVAL — carrying the REJECT decision for audit. This is stable
+    // across resume because it is derived from the recorded approval_action, not
+    // from the resumed stream's (unstable) run_id.
+    const rejectedTc = final.status?.messages
+      .flatMap((m) => m.toolCalls)
+      .find((tc) => tc.id === toolCallId);
+    expect(rejectedTc, "the rejected echo tool call is present in the transcript").toBeDefined();
+    expect(rejectedTc!.status, "rejected tool call resolves to SKIPPED, not WAITING").toBe(
+      ToolCallStatus.TOOL_CALL_SKIPPED,
+    );
+    expect(rejectedTc!.approvalAction, "the REJECT decision is preserved for audit").toBe(
+      ApprovalAction.REJECT,
+    );
   });
 
   it("APPROVE_ALL resolves every co-pending gate in a single decision", async () => {

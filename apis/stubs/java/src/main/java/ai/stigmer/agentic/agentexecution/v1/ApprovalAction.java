@@ -12,14 +12,24 @@ package ai.stigmer.agentic.agentexecution.v1;
  * ## Action Semantics
  *
  * - APPROVE: Execute the tool normally, continue execution
- * - SKIP: Return "skipped by user" message to LLM, continue execution
- * - REJECT: Fail the execution immediately with rejection error
+ * - SKIP: Return a neutral "skipped by user" message to the LLM, continue execution
+ * - REJECT: Deny the tool and feed the user's reasoned objection back to the LLM,
+ * continue execution. REJECT denies a single tool call — it does NOT fail the
+ * run. To stop the whole execution, use Cancel or Terminate.
  *
- * ## LLM Behavior on Skip
+ * ## SKIP vs REJECT
+ *
+ * Both continue the execution without running the tool; they differ only in the
+ * signal fed to the model. SKIP is neutral ("skip this one, move on"); REJECT
+ * carries the user's objection ("I'm denying this, and here's why") so the model
+ * factors that reasoning into what it does next. Neither is a failure.
+ *
+ * ## LLM Behavior on Skip/Reject
  *
  * When a tool is skipped, the LLM receives a message like:
  * "Tool 'delete_repository' was skipped by user. Please proceed without this operation."
- * This allows the LLM to adapt its plan while preserving execution continuity.
+ * When a tool is rejected, the LLM receives the user's objection instead. Either
+ * way the LLM adapts its plan while preserving execution continuity.
  *
  * ## Usage
  *
@@ -65,9 +75,22 @@ public enum ApprovalAction
   APPROVAL_ACTION_SKIP(2),
   /**
    * <pre>
-   * Reject tool execution, fail the entire execution.
-   * Execution phase transitions to FAILED.
-   * Error message includes rejection reason from user's comment.
+   * Deny this tool call and continue the execution.
+   *
+   * The tool is NOT executed. The user's objection (the submitted comment) is
+   * fed back to the model as the tool result, so the model adapts its plan with
+   * that reasoning in mind. The tool call transitions to TOOL_CALL_SKIPPED with
+   * approval_action=REJECT recorded (and a REJECTED approval-event authored), and
+   * the execution phase returns to EXECUTION_IN_PROGRESS and continues to
+   * EXECUTION_COMPLETED.
+   *
+   * REJECT denies a SINGLE tool call — it does NOT fail the run. This mirrors how
+   * interactive agent tools (Cursor, Cline, Claude Code) treat a denied tool: the
+   * agent is told and continues, rather than the whole session dying. To stop the
+   * entire execution, use Cancel (EXECUTION_CANCELLED, graceful user stop) or
+   * Terminate (EXECUTION_TERMINATED, platform stop) — the dedicated hard-stop
+   * verbs. The distinction from SKIP is the strength of the signal, not the
+   * outcome: SKIP is a neutral skip, REJECT carries the user's reasoned denial.
    * </pre>
    *
    * <code>APPROVAL_ACTION_REJECT = 3;</code>
@@ -167,9 +190,22 @@ public enum ApprovalAction
   public static final int APPROVAL_ACTION_SKIP_VALUE = 2;
   /**
    * <pre>
-   * Reject tool execution, fail the entire execution.
-   * Execution phase transitions to FAILED.
-   * Error message includes rejection reason from user's comment.
+   * Deny this tool call and continue the execution.
+   *
+   * The tool is NOT executed. The user's objection (the submitted comment) is
+   * fed back to the model as the tool result, so the model adapts its plan with
+   * that reasoning in mind. The tool call transitions to TOOL_CALL_SKIPPED with
+   * approval_action=REJECT recorded (and a REJECTED approval-event authored), and
+   * the execution phase returns to EXECUTION_IN_PROGRESS and continues to
+   * EXECUTION_COMPLETED.
+   *
+   * REJECT denies a SINGLE tool call — it does NOT fail the run. This mirrors how
+   * interactive agent tools (Cursor, Cline, Claude Code) treat a denied tool: the
+   * agent is told and continues, rather than the whole session dying. To stop the
+   * entire execution, use Cancel (EXECUTION_CANCELLED, graceful user stop) or
+   * Terminate (EXECUTION_TERMINATED, platform stop) — the dedicated hard-stop
+   * verbs. The distinction from SKIP is the strength of the signal, not the
+   * outcome: SKIP is a neutral skip, REJECT carries the user's reasoned denial.
    * </pre>
    *
    * <code>APPROVAL_ACTION_REJECT = 3;</code>

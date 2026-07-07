@@ -88,7 +88,11 @@ public enum ToolCallStatus
    * Transitions:
    * - APPROVE → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED/FAILED
    * - SKIP → TOOL_CALL_SKIPPED
-   * - REJECT → Execution fails (tool remains in WAITING_APPROVAL)
+   * - REJECT → TOOL_CALL_SKIPPED (the tool is denied, not executed; the run
+   * continues). REJECT and SKIP share this terminal tool status — the two are
+   * distinguished by ToolCall.approval_action (REJECT vs SKIP) and by the
+   * append-only approval-event stream (REJECTED vs SKIPPED). REJECT does NOT
+   * fail the execution.
    * </pre>
    *
    * <code>TOOL_CALL_WAITING_APPROVAL = 5;</code>
@@ -179,7 +183,11 @@ public enum ToolCallStatus
    * Transitions:
    * - APPROVE → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED/FAILED
    * - SKIP → TOOL_CALL_SKIPPED
-   * - REJECT → Execution fails (tool remains in WAITING_APPROVAL)
+   * - REJECT → TOOL_CALL_SKIPPED (the tool is denied, not executed; the run
+   * continues). REJECT and SKIP share this terminal tool status — the two are
+   * distinguished by ToolCall.approval_action (REJECT vs SKIP) and by the
+   * append-only approval-event stream (REJECTED vs SKIPPED). REJECT does NOT
+   * fail the execution.
    * </pre>
    *
    * <code>TOOL_CALL_WAITING_APPROVAL = 5;</code>

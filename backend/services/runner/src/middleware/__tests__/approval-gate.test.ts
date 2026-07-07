@@ -168,12 +168,19 @@ describe("ApprovalGateMiddleware", () => {
 
     mockedInterrupt.mockReturnValue({ action: "reject", comment: "too dangerous" });
 
+    // Spy handler so we can prove the tool never executes on reject.
+    const handler = vi.fn(passthrough);
     const req = makeRequest({ name: "tool_b" });
-    const result = await mw.wrapToolCall!(req, passthrough);
+    const result = await mw.wrapToolCall!(req, handler);
 
     expect(result).toBeInstanceOf(ToolMessage);
     expect((result as ToolMessage).content).toContain("rejected");
     expect((result as ToolMessage).content).toContain("too dangerous");
+    // The tool is denied — the handler (execution) must NOT run.
+    expect(handler).not.toHaveBeenCalled();
+    // REJECT denies one tool and continues the run; it does not terminate the
+    // execution (issue #197) — the old "Execution will be terminated" copy is gone.
+    expect((result as ToolMessage).content).not.toContain("terminated");
   });
 
   describe("platform tool defaults", () => {

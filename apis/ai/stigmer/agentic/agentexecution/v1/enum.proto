@@ -92,8 +92,12 @@ enum ExecutionPhase {
   //
   // This is NOT a terminal state - execution resumes after approval decision:
   // - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS
-  // - SKIP: Tool returns skip message, phase returns to EXECUTION_IN_PROGRESS
-  // - REJECT: Execution fails, phase transitions to EXECUTION_FAILED
+  // - SKIP: Tool returns a neutral "skipped" message, phase returns to EXECUTION_IN_PROGRESS
+  // - REJECT: Tool is denied and the user's objection is fed back to the model;
+  //   the tool does NOT execute and phase returns to EXECUTION_IN_PROGRESS. REJECT
+  //   denies a single tool call, it does NOT fail the run — the model adapts and
+  //   the execution continues to EXECUTION_COMPLETED. To stop the whole execution,
+  //   use Cancel (EXECUTION_CANCELLED) or Terminate (EXECUTION_TERMINATED).
   //
   // UI should show distinct treatment for this phase (e.g., approval dialog).
   EXECUTION_WAITING_FOR_APPROVAL = 6;
@@ -201,7 +205,11 @@ enum ToolCallStatus {
   // Transitions:
   // - APPROVE → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED/FAILED
   // - SKIP → TOOL_CALL_SKIPPED
-  // - REJECT → Execution fails (tool remains in WAITING_APPROVAL)
+  // - REJECT → TOOL_CALL_SKIPPED (the tool is denied, not executed; the run
+  //   continues). REJECT and SKIP share this terminal tool status — the two are
+  //   distinguished by ToolCall.approval_action (REJECT vs SKIP) and by the
+  //   append-only approval-event stream (REJECTED vs SKIPPED). REJECT does NOT
+  //   fail the execution.
   TOOL_CALL_WAITING_APPROVAL = 5;
 
   // User skipped this tool (HITL Phase 1).
@@ -447,14 +455,24 @@ enum ExecutionControlSignal {
 // ## Action Semantics
 //
 // - APPROVE: Execute the tool normally, continue execution
-// - SKIP: Return "skipped by user" message to LLM, continue execution
-// - REJECT: Fail the execution immediately with rejection error
+// - SKIP: Return a neutral "skipped by user" message to the LLM, continue execution
+// - REJECT: Deny the tool and feed the user's reasoned objection back to the LLM,
+//   continue execution. REJECT denies a single tool call — it does NOT fail the
+//   run. To stop the whole execution, use Cancel or Terminate.
 //
-// ## LLM Behavior on Skip
+// ## SKIP vs REJECT
+//
+// Both continue the execution without running the tool; they differ only in the
+// signal fed to the model. SKIP is neutral ("skip this one, move on"); REJECT
+// carries the user's objection ("I'm denying this, and here's why") so the model
+// factors that reasoning into what it does next. Neither is a failure.
+//
+// ## LLM Behavior on Skip/Reject
 //
 // When a tool is skipped, the LLM receives a message like:
 // "Tool 'delete_repository' was skipped by user. Please proceed without this operation."
-// This allows the LLM to adapt its plan while preserving execution continuity.
+// When a tool is rejected, the LLM receives the user's objection instead. Either
+// way the LLM adapts its plan while preserving execution continuity.
 //
 // ## Usage
 //
@@ -477,9 +495,22 @@ enum ApprovalAction {
   // Execution continues - this is NOT a failure.
   APPROVAL_ACTION_SKIP = 2;
 
-  // Reject tool execution, fail the entire execution.
-  // Execution phase transitions to FAILED.
-  // Error message includes rejection reason from user's comment.
+  // Deny this tool call and continue the execution.
+  //
+  // The tool is NOT executed. The user's objection (the submitted comment) is
+  // fed back to the model as the tool result, so the model adapts its plan with
+  // that reasoning in mind. The tool call transitions to TOOL_CALL_SKIPPED with
+  // approval_action=REJECT recorded (and a REJECTED approval-event authored), and
+  // the execution phase returns to EXECUTION_IN_PROGRESS and continues to
+  // EXECUTION_COMPLETED.
+  //
+  // REJECT denies a SINGLE tool call — it does NOT fail the run. This mirrors how
+  // interactive agent tools (Cursor, Cline, Claude Code) treat a denied tool: the
+  // agent is told and continues, rather than the whole session dying. To stop the
+  // entire execution, use Cancel (EXECUTION_CANCELLED, graceful user stop) or
+  // Terminate (EXECUTION_TERMINATED, platform stop) — the dedicated hard-stop
+  // verbs. The distinction from SKIP is the strength of the signal, not the
+  // outcome: SKIP is a neutral skip, REJECT carries the user's reasoned denial.
   APPROVAL_ACTION_REJECT = 3;
 
   // Approve this tool call AND grant a run-lifetime lease that auto-approves
