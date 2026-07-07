@@ -61,6 +61,16 @@ three steps in a single action:
 The whole process takes a few seconds. When it finishes, the detail view updates
 to show the discovered tools and their approval policies.
 
+<Callout type="info">
+  **stdio servers run in an isolated cloud sandbox.** In Stigmer Cloud, stdio
+  servers (launched via `npx`, `uvx`, or a binary) run as a subprocess inside a
+  sandbox — not on your own computer. Self-contained servers work as expected,
+  but a server that needs access to your local files, applications, or private
+  network (for example, a filesystem server pointed at a path on your laptop)
+  won't have it there. If a connect fails, the error message names the likely
+  cause for the server's transport.
+</Callout>
+
 ## What changes after connecting
 
 ### Tools tab
@@ -98,6 +108,17 @@ cover the range:
 | **No credentials**        | The server works without authentication (Fetch, Playwright)          | Connects immediately — no extra steps                          |
 | **Environment variables** | The server uses API keys or connection strings (PostgreSQL, MongoDB) | You enter the value in the credential form before connecting   |
 | **OAuth**                 | The server uses OAuth with a vendor like GitHub, Slack, or Figma     | Stigmer redirects you through the OAuth flow to obtain a token |
+| **OAuth-only (hosted)**   | The hosted endpoint accepts only OAuth tokens (Notion, Monday)       | Only "Sign in" is offered — manual token entry is hidden       |
+
+<Callout type="info">
+  Some hosted endpoints — such as Notion (`mcp.notion.com`) and Monday
+  (`mcp.monday.com`) — accept **only** an OAuth-obtained token and reject a
+  personal API token or integration secret pasted into the credential form. For
+  these servers Stigmer offers just the "Sign in" flow and hides manual token
+  entry, so you are never sent down a path that cannot succeed. If you connect
+  such a server another way (for example the CLI `--env` flag or `--dry-run`),
+  you will get a clear message explaining that OAuth is required.
+</Callout>
 
 <Callout type="info">
   OAuth patterns — including automatic discovery (DCR) and vendor-specific flows

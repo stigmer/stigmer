@@ -61,6 +61,35 @@ stigmer connect mcp-server my-server \
 You can also export variables in your shell before running the command. `--env`
 is more convenient and mirrors `stigmer run` and `stigmer draft`.
 
+### Environment variable placeholders
+
+A server's command arguments (stdio) and HTTP headers may reference declared
+environment variables using `${VAR_NAME}` syntax. For example, the filesystem
+server takes its allowed directory as an argument:
+
+```yaml
+stdio:
+  command: npx
+  args:
+    - "-y"
+    - "@modelcontextprotocol/server-filesystem"
+    - "${FILESYSTEM_ALLOWED_DIR}"
+env:
+  FILESYSTEM_ALLOWED_DIR:
+    description: Root directory the server is allowed to access
+```
+
+Placeholders are resolved from the same values `--env` and your shell provide
+(the variable must be declared under the server's `env`). Resolution is strict
+and identical between `--dry-run` and a real connect: a missing variable
+produces a clear error naming the variable, rather than passing a literal
+`${VAR}` to the server.
+
+```bash
+stigmer connect mcp-server mcp-server-filesystem \
+  --dry-run --env FILESYSTEM_ALLOWED_DIR="$HOME/projects"
+```
+
 ### Dry run
 
 Use `--dry-run` to preview discovered capabilities without pushing them to the

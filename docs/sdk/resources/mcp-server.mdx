@@ -1001,6 +1001,7 @@ McpServerAuth configures automated credential acquisition via OAuth.
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime for UI display." },
     scopeHints: { type: "string[]", description: "Optional scope hints for UI display before the OAuth flow starts." },
     discoveryUrl: { type: "string", description: "Optional URL for OAuth authorization server discovery on stdio servers." },
+    oauthOnly: { type: "boolean", description: "Whether the server's endpoint rejects manually-entered static tokens." },
   }}
 />
 

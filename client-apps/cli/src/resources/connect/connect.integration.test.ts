@@ -168,6 +168,66 @@ describe("OAuth guidance gate", () => {
   });
 });
 
+describe("oauth_only servers reject the manual-token routes", () => {
+  beforeEach(() => {
+    servedSpec.spec!.auth = create(McpServerAuthSchema, {
+      targetEnvVar: "GITHUB_TOKEN",
+      oauthOnly: true,
+    });
+  });
+
+  it("rejects --env (which cannot satisfy an OAuth-only endpoint) instead of pushing a doomed token", async () => {
+    const err = await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 30_000,
+      dryRun: false,
+      envOverrides: ["GITHUB_TOKEN=ghp-x"],
+      backendType: "cloud",
+      interactive: false,
+    }).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as UsageError).message).toMatch(/requires OAuth/i);
+    // The guidance must NOT recommend the manual-token route for an oauth_only server.
+    expect((err as UsageError).message).not.toContain("--env TOKEN=");
+    expect(connectCalls).toHaveLength(0);
+  });
+
+  it("omits the --env suggestion from the non-interactive OAuth guidance", async () => {
+    const err = await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 30_000,
+      dryRun: false,
+      envOverrides: [],
+      backendType: "cloud",
+      interactive: false,
+    }).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as UsageError).message).not.toContain("--env TOKEN=");
+    expect(connectCalls).toHaveLength(0);
+  });
+
+  it("refuses --dry-run local discovery (no locally-obtainable OAuth token) with a clear message", async () => {
+    const err = await connectMcpServer(client, {
+      reference: "github",
+      org: "acme",
+      timeoutMs: 10_000,
+      dryRun: true,
+      envOverrides: [],
+      backendType: "cloud",
+      interactive: false,
+    }).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as UsageError).message).toMatch(/requires OAuth/i);
+    expect((err as UsageError).message).toContain("--dry-run");
+    expect(connectCalls).toHaveLength(0);
+  });
+});
+
 describe("dry-run path", () => {
   it("discovers locally and never calls the Connect RPC", async () => {
     const result = await connectMcpServer(client, {
@@ -191,5 +251,36 @@ describe("dry-run path", () => {
     expect(text).toContain("Transport:  stdio");
     expect(text).toContain("Tools (2):");
     expect(text).toContain("Dry run — results not saved");
+  }, 15_000);
+
+  it("maps an unresolved ${VAR} arg to actionable guidance and never calls Connect", async () => {
+    // Server references a declared env var in its args, but it is not set.
+    delete process.env.NEEDED_DIR;
+    servedSpec = create(McpServerSchema, {
+      metadata: { id: "mcp_1", name: "filesystem", slug: "filesystem", org: "acme" },
+      spec: {
+        serverType: {
+          case: "stdio",
+          value: { command: process.execPath, args: [FIXTURE, "${NEEDED_DIR}"] },
+        },
+        env: { NEEDED_DIR: { isSecret: false, description: "Root directory the server may access" } },
+      },
+    });
+
+    const err = await connectMcpServer(client, {
+      reference: "filesystem",
+      org: "acme",
+      timeoutMs: 10_000,
+      dryRun: true,
+      envOverrides: [],
+      backendType: "cloud",
+      interactive: false,
+    }).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(UsageError);
+    const message = (err as UsageError).message;
+    expect(message).toContain("NEEDED_DIR");
+    expect(message).toContain("--env");
+    expect(connectCalls).toHaveLength(0);
   }, 15_000);
 });

@@ -66,6 +66,7 @@ type mcpAuth struct {
 	TokenLifetimeHint string       `yaml:"token_lifetime_hint"`
 	ScopeHints        []string     `yaml:"scope_hints"`
 	DiscoveryURL      string       `yaml:"discovery_url"`
+	OAuthOnly         bool         `yaml:"oauth_only"`
 }
 
 type oauthAppRef struct {
@@ -241,6 +242,55 @@ func TestMcpServers_AuthConsistency(t *testing.T) {
 	}
 }
 
+// TestMcpServers_OAuthTokenHeaderIsBearer enforces the MCP Authorization spec on
+// the wire for every OAuth-managed HTTP server. When Stigmer's Connect flow
+// acquires a token, that token MUST be presented to a remote MCP endpoint as
+// `Authorization: Bearer <token>` — the spec mandates a bearer token in the
+// Authorization header. A custom, env-var-named header (e.g. MONDAY_TOKEN) is the
+// stdio convention: it works when the token is a subprocess env var, but silently
+// fails against a remote OAuth endpoint, which ignores the unknown header and
+// rejects the session with an opaque transport error (stigmer/stigmer#147).
+//
+// Scope is the exact OAuth-managed HTTP set: spec.http is set AND spec.auth is
+// present. Stdio servers are excluded because their token flows as an env var, not
+// a header (see google-calendar). Static-key HTTP servers with no auth block are
+// excluded because Stigmer does not manage their token — they legitimately use
+// other schemes (pagerduty uses `Authorization: Token ...`, context7 uses a custom
+// header). The token env var is read from auth.target_env_var rather than a fixed
+// suffix, because names vary (`neon` uses NEON_API_KEY, not *_ACCESS_TOKEN).
+func TestMcpServers_OAuthTokenHeaderIsBearer(t *testing.T) {
+	servers := loadAllMcpServers(t)
+
+	for name, server := range servers {
+		if server.Spec.HTTP == nil || server.Spec.Auth == nil {
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			targetEnvVar := server.Spec.Auth.TargetEnvVar
+			// AuthConsistency already fails an empty target_env_var; guard here so
+			// this test's message stays specific to the header contract.
+			if targetEnvVar == "" {
+				t.Skip("auth.target_env_var is empty; covered by TestMcpServers_AuthConsistency")
+			}
+
+			want := fmt.Sprintf("Bearer ${%s}", targetEnvVar)
+			got, ok := server.Spec.HTTP.Headers["Authorization"]
+			if !ok {
+				t.Errorf("OAuth-managed HTTP server must send the token via an Authorization header, "+
+					"but %q declares no Authorization header. Set:\n    headers:\n      Authorization: %q",
+					name, want)
+				return
+			}
+			if got != want {
+				t.Errorf("OAuth-managed HTTP server must present the token per the MCP Authorization spec. "+
+					"%q sends Authorization: %q; want %q. A custom or env-var-named token header is the stdio "+
+					"convention and fails against a remote OAuth endpoint (see stigmer/stigmer#147).",
+					name, got, want)
+			}
+		})
+	}
+}
+
 func TestMcpServers_PlaceholderSyntax(t *testing.T) {
 	servers := loadAllMcpServers(t)
 
@@ -328,6 +378,36 @@ func TestMcpServers_CredentialManifestComplete(t *testing.T) {
 		if _, exists := servers[manifestName]; !exists {
 			t.Errorf("credential-manifest.yaml has entry %q but no matching .yaml file in mcp-servers/", manifestName)
 		}
+	}
+}
+
+// TestMcpServers_OAuthOnlyDeclared locks in that endpoints known to reject
+// manually-entered static tokens declare auth.oauth_only=true. Without the flag,
+// the connect UI offers a dead-end "enter token manually" path (stigmer/stigmer#148).
+// An oauth_only server must also carry an auth block with a target_env_var.
+func TestMcpServers_OAuthOnlyDeclared(t *testing.T) {
+	servers := loadAllMcpServers(t)
+
+	// Flagship OAuth-only endpoints verified to reject static tokens. Extend this
+	// list as the remaining dcr_oauth servers are rolled out.
+	oauthOnlySlugs := []string{"notion", "monday"}
+
+	for _, slug := range oauthOnlySlugs {
+		t.Run(slug, func(t *testing.T) {
+			server, ok := servers[slug]
+			if !ok {
+				t.Fatalf("expected seedpack to contain %q", slug)
+			}
+			if server.Spec.Auth == nil {
+				t.Fatalf("%s must declare an auth block", slug)
+			}
+			if !server.Spec.Auth.OAuthOnly {
+				t.Errorf("%s must set auth.oauth_only=true — its endpoint rejects manual tokens", slug)
+			}
+			if server.Spec.Auth.TargetEnvVar == "" {
+				t.Errorf("%s oauth_only server must still declare auth.target_env_var", slug)
+			}
+		})
 	}
 }
 

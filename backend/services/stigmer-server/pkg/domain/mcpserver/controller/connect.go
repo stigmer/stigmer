@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"errors"
@@ -156,7 +157,7 @@ func (c *McpServerController) Connect(
 		ExecutionContextID: executionID,
 	}
 
-	result, err := c.executeConnectWorkflow(ctx, mcpServerID, wfInput)
+	result, err := c.executeConnectWorkflow(ctx, mcpServer, wfInput)
 	if err != nil {
 		return nil, err
 	}
@@ -495,9 +496,10 @@ func (c *McpServerController) startConnectWorkflow(
 // execution workflow's activity routing, not by this connect flow.
 func (c *McpServerController) executeConnectWorkflow(
 	ctx context.Context,
-	mcpServerID string,
+	mcpServer *mcpserverv1.McpServer,
 	input connectWorkflowInput,
 ) (*connectWorkflowOutput, error) {
+	mcpServerID := mcpServer.GetMetadata().GetId()
 	run, err := c.startConnectWorkflow(ctx, mcpServerID, input)
 	if err != nil {
 		log.Error().Err(err).
@@ -519,8 +521,8 @@ func (c *McpServerController) executeConnectWorkflow(
 
 		switch {
 		case errors.As(err, &appErr):
-			return nil, status.Errorf(codes.Internal,
-				"connect failed for MCP server '%s': %s", mcpServerID, appErr.Message())
+			return nil, status.Error(codes.Internal,
+				buildConnectFailureMessage(mcpServer, appErr.Message()))
 		case errors.As(err, &timeoutErr):
 			return nil, status.Errorf(codes.DeadlineExceeded,
 				"connect did not complete within timeout for MCP server '%s'", mcpServerID)
@@ -528,12 +530,45 @@ func (c *McpServerController) executeConnectWorkflow(
 			return nil, grpclib.UnavailableError(
 				"connect service temporarily unavailable for MCP server '%s'", mcpServerID)
 		default:
-			return nil, status.Errorf(codes.Internal,
-				"connect failed for MCP server '%s': %v", mcpServerID, err)
+			return nil, status.Error(codes.Internal,
+				buildConnectFailureMessage(mcpServer, err.Error()))
 		}
 	}
 
 	return &result, nil
+}
+
+// buildConnectFailureMessage builds a user-facing, transport-aware connect
+// failure message, replacing the raw ExceptionGroup/TaskGroup text that told
+// users nothing.
+//
+// In the OSS/local edition the local runner spawns stdio servers on the user's
+// own machine, so a stdio failure is usually a missing command or bad
+// args/environment — and previewing discovery locally with --dry-run is the
+// fastest way to diagnose it. HTTP servers fail on reachability or credentials.
+func buildConnectFailureMessage(mcpServer *mcpserverv1.McpServer, cause string) string {
+	name := mcpServer.GetMetadata().GetName()
+	// The runner classifies a 401 OAuth challenge into a self-contained,
+	// user-facing message (see runner mcp-oauth-detect.ts). It already names the
+	// server and tells the user to sign in, so pass it through verbatim rather
+	// than wrapping it with a generic "check your credentials" suffix that would
+	// contradict it. The "requires OAuth" phrase is the stable marker.
+	if strings.Contains(cause, "requires OAuth") {
+		return cause
+	}
+	if mcpServer.GetSpec().GetStdio() != nil {
+		slug := mcpServer.GetMetadata().GetSlug()
+		return fmt.Sprintf(
+			"connect failed for MCP server '%s': %s. This is a stdio server launched "+
+				"by your local runner — verify the command is installed and its arguments "+
+				"and environment variables are correct. Preview discovery locally with: "+
+				"stigmer connect mcp-server %s --dry-run",
+			name, cause, slug)
+	}
+	return fmt.Sprintf(
+		"connect failed for MCP server '%s': %s. Check that the server URL is "+
+			"reachable and your credentials are valid.",
+		name, cause)
 }
 
 // convertToDiscoveredCapabilities converts the Temporal workflow output

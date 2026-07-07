@@ -179,6 +179,7 @@ type McpServerAuthInput struct {
 	TokenLifetimeHint string
 	ScopeHints        []string
 	DiscoveryUrl      string
+	OauthOnly         bool
 }
 
 func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
@@ -252,6 +253,7 @@ func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
 	p.TokenLifetimeHint = i.TokenLifetimeHint
 	p.ScopeHints = i.ScopeHints
 	p.DiscoveryUrl = i.DiscoveryUrl
+	p.OauthOnly = i.OauthOnly
 	return p
 }
 
@@ -347,5 +349,6 @@ func mcpServerAuthInputFromProto(p *mcpserverv1.McpServerAuth) *McpServerAuthInp
 	input.TokenLifetimeHint = p.GetTokenLifetimeHint()
 	input.ScopeHints = p.GetScopeHints()
 	input.DiscoveryUrl = p.GetDiscoveryUrl()
+	input.OauthOnly = p.GetOauthOnly()
 	return input
 }

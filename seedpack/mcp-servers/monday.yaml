@@ -18,11 +18,14 @@ spec:
   http:
     url: "https://mcp.monday.com/mcp"
     headers:
-      MONDAY_TOKEN: "${MONDAY_ACCESS_TOKEN}"
+      Authorization: "Bearer ${MONDAY_ACCESS_TOKEN}"
   env:
     MONDAY_ACCESS_TOKEN:
       is_secret: true
-      description: "monday.com personal API token — generate at monday.com > Avatar menu > Developers > My Access Tokens. See developer.monday.com for details."
+      description: "monday.com OAuth access token, obtained automatically via Connect. monday's hosted MCP endpoint requires OAuth 2.1 and rejects personal API tokens."
   auth:
     target_env_var: "MONDAY_ACCESS_TOKEN"
     token_lifetime_hint: "1h"
+    # monday's hosted endpoint rejects personal API tokens; OAuth is the only
+    # working credential path, so the connect UI hides manual token entry.
+    oauth_only: true

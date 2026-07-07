@@ -404,6 +404,8 @@ export function McpServerPicker({
     const auth = entry.mcpServer.spec?.auth;
     const oauthTargetEnvVar = auth?.targetEnvVar || null;
     const hasOAuth = !!auth;
+    // oauth_only endpoints reject static tokens — never offer manual entry.
+    const manualEntrySupported = !auth?.oauthOnly;
     const isManualOverride = manualOverrideKeys.has(view.serverKey);
 
     const entryMissingVars =
@@ -454,15 +456,16 @@ export function McpServerPicker({
           }
         : undefined;
 
-    const handleSwitchToManual = hasOAuth
-      ? () => {
-          setManualOverrideKeys((prev) => {
-            const next = new Set(prev);
-            next.add(view.serverKey);
-            return next;
-          });
-        }
-      : undefined;
+    const handleSwitchToManual =
+      hasOAuth && manualEntrySupported
+        ? () => {
+            setManualOverrideKeys((prev) => {
+              const next = new Set(prev);
+              next.add(view.serverKey);
+              return next;
+            });
+          }
+        : undefined;
 
     const handleSwitchToOAuth =
       hasOAuth && isManualOverride

@@ -22,7 +22,10 @@ spec:
   env:
     NOTION_ACCESS_TOKEN:
       is_secret: true
-      description: "Notion API key or OAuth access token (generate at notion.so/my-integrations)"
+      description: "Notion OAuth access token, obtained automatically via Connect. Notion's hosted MCP endpoint requires OAuth 2.1 (PKCE) and rejects internal integration tokens."
   auth:
     target_env_var: "NOTION_ACCESS_TOKEN"
     token_lifetime_hint: "1h"
+    # Notion's hosted endpoint rejects internal integration tokens; OAuth is the
+    # only working credential path, so the connect UI hides manual token entry.
+    oauth_only: true

@@ -20,6 +20,8 @@ import { useMcpServerConnect } from "./useMcpServerConnect.js";
 import { useMcpServerCredentials } from "./useMcpServerCredentials.js";
 import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
 import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect.js";
+import { StdioSandboxNotice } from "./StdioSandboxNotice.js";
+import { OAuthRequiredNotice } from "./OAuthRequiredNotice.js";
 import { useDisconnectOAuth } from "./useDisconnectOAuth.js";
 import { useOrgOAuthApp } from "./useOrgOAuthApp.js";
 import { OAuthAppForm } from "./OAuthAppForm.js";
@@ -488,7 +490,10 @@ export function McpServerDetailView({
       )}
 
       <Section title="Connection">
+        <StdioSandboxNotice serverType={spec?.serverType} className="mb-3" />
+        <OAuthRequiredNotice oauthOnly={spec?.auth?.oauthOnly} className="mb-3" />
         <ConnectBar
+          manualEntrySupported={credentials.manualEntrySupported}
           isConnecting={connection.isConnecting || oauth.isInProgress}
           connectionError={combinedError}
           onConnect={handleConnectClick}
@@ -709,6 +714,7 @@ function ConnectBar({
   isRemovingOrgApp,
   removeOrgAppError,
   onClearRemoveOrgAppError,
+  manualEntrySupported,
   manualOverride,
   onManualOverride,
   onBackToOAuth,
@@ -742,6 +748,8 @@ function ConnectBar({
   readonly isRemovingOrgApp: boolean;
   readonly removeOrgAppError: Error | null;
   readonly onClearRemoveOrgAppError: () => void;
+  /** `false` for `oauth_only` servers — the manual-entry link is suppressed. */
+  readonly manualEntrySupported: boolean;
   readonly manualOverride: boolean;
   readonly onManualOverride: () => void;
   readonly onBackToOAuth: () => void;
@@ -1047,8 +1055,11 @@ function ConnectBar({
         </div>
       )}
 
-      {/* Secondary actions: manual entry, BYOA, back to OAuth */}
-      {authMode === "oauth" && !isOAuthConnected && !isOAuthBusy && !isConnecting && (
+      {/* Secondary actions: manual entry, BYOA, back to OAuth. Suppressed
+          entirely for oauth_only servers with no BYOA option, so no empty
+          action bar renders. */}
+      {authMode === "oauth" && !isOAuthConnected && !isOAuthBusy && !isConnecting &&
+        (manualOverride || manualEntrySupported || canBringOwnApp) && (
         <div className="flex items-center gap-3 border-t border-border px-3 py-1.5">
           {manualOverride ? (
             <button
@@ -1060,13 +1071,15 @@ function ConnectBar({
             </button>
           ) : (
             <>
-              <button
-                type="button"
-                onClick={onManualOverride}
-                className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
-              >
-                Enter token manually
-              </button>
+              {manualEntrySupported && (
+                <button
+                  type="button"
+                  onClick={onManualOverride}
+                  className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+                >
+                  Enter token manually
+                </button>
+              )}
               {canBringOwnApp && !isVendorApprovalBlocked && (
                 <button
                   type="button"
