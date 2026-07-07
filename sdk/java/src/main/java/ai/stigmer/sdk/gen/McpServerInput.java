@@ -321,6 +321,7 @@ public final class McpServerInput {
         private final String tokenLifetimeHint;
         private final java.util.List<String> scopeHints;
         private final String discoveryUrl;
+        private final boolean oauthOnly;
 
         private McpServerAuthInput(Builder builder) {
             this.oauthAppRef = builder.oauthAppRef;
@@ -328,6 +329,7 @@ public final class McpServerInput {
             this.tokenLifetimeHint = builder.tokenLifetimeHint;
             this.scopeHints = builder.scopeHints;
             this.discoveryUrl = builder.discoveryUrl;
+            this.oauthOnly = builder.oauthOnly;
         }
 
         McpServerAuth toProto() {
@@ -348,6 +350,7 @@ public final class McpServerInput {
             if (this.discoveryUrl != null) {
                 builder.setDiscoveryUrl(this.discoveryUrl);
             }
+            builder.setOauthOnly(this.oauthOnly);
             return builder.build();
         }
 
@@ -359,6 +362,7 @@ public final class McpServerInput {
             private String tokenLifetimeHint;
             private java.util.List<String> scopeHints;
             private String discoveryUrl;
+            private boolean oauthOnly;
 
             private Builder() {}
 
@@ -367,6 +371,7 @@ public final class McpServerInput {
             public Builder tokenLifetimeHint(String tokenLifetimeHint) { this.tokenLifetimeHint = tokenLifetimeHint; return this; }
             public Builder scopeHints(java.util.List<String> scopeHints) { this.scopeHints = scopeHints; return this; }
             public Builder discoveryUrl(String discoveryUrl) { this.discoveryUrl = discoveryUrl; return this; }
+            public Builder oauthOnly(boolean oauthOnly) { this.oauthOnly = oauthOnly; return this; }
 
             public McpServerAuthInput build() { return new McpServerAuthInput(this); }
         }

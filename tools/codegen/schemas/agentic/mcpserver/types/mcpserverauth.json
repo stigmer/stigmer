@@ -61,6 +61,16 @@
       },
       "description": "Optional URL for OAuth authorization server discovery on stdio servers.\n\n HTTP servers do not need this: the platform derives the discovery\n endpoint from http.url (fetching /.well-known/oauth-authorization-server\n relative to the server URL).\n\n Stdio servers have no URL, so DCR discovery has nothing to derive from.\n Set this field to the base URL of the vendor's OAuth authorization\n server to enable DCR for a stdio-based MCP server.\n\n Resolution priority:\n   1. discovery_url (if set — used for both stdio and HTTP)\n   2. http.url (default for HTTP servers)\n\n Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints\n directly, no discovery needed).",
       "required": false
+    },
+    {
+      "name": "OauthOnly",
+      "jsonName": "oauthOnly",
+      "protoField": "oauth_only",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether the server's endpoint rejects manually-entered static tokens.\n\n Some hosted MCP endpoints (e.g. Notion, Monday) only accept an access\n token obtained through their OAuth flow — a personal API token or PAT\n pasted into the credential form is rejected with a 401. For these servers\n OAuth is not merely the preferred path, it is the only path that works.\n\n When true, the connect surfaces present OAuth as the sole credential\n option and suppress the \"enter token manually\" affordance, so users are\n never sent down a path that cannot succeed. When false (the default), a\n static token remains a valid alternative — appropriate for API-key servers\n (e.g. Tavily) and for vendor endpoints that also accept a PAT (e.g.\n GitHub). This is a structural fact about the endpoint, not observable from\n the spec shape alone (an OAuth-only server and a PAT-capable server can\n have identical auth blocks), so it must be declared explicitly.",
+      "required": false
     }
   ]
 }

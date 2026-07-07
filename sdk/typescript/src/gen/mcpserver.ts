@@ -199,6 +199,7 @@ export interface McpServerAuthInput {
   tokenLifetimeHint?: string;
   scopeHints?: string[];
   discoveryUrl?: string;
+  oauthOnly?: boolean;
 }
 
 function buildStdioServerConfigProto(input: StdioServerConfigInput) {
@@ -241,6 +242,7 @@ function buildMcpServerAuthProto(input: McpServerAuthInput) {
   if (input.tokenLifetimeHint !== undefined) msg.tokenLifetimeHint = input.tokenLifetimeHint;
   if (input.scopeHints) msg.scopeHints = input.scopeHints;
   if (input.discoveryUrl !== undefined) msg.discoveryUrl = input.discoveryUrl;
+  if (input.oauthOnly !== undefined) msg.oauthOnly = input.oauthOnly;
   return msg;
 }
 

@@ -77,6 +77,7 @@ const McpServerAuthInputSchema = z.object({
   token_lifetime_hint: z.string().optional().describe("Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: '1h', '2h', '90d', 'never'."),
   scope_hints: z.array(z.string()).optional().describe("Optional scope hints for UI display before the OAuth flow starts. For DCR servers: shown to the user since actual scopes are discovered at connect time during authorization server metadata retrieval. For vendor OAuth: informational (scopes are defined on the OAuthApp)."),
   discovery_url: z.string().optional().describe("Optional URL for OAuth authorization server discovery on stdio servers. HTTP servers do not need this: the platform derives the discovery endpoint from http.url (fetching /.well-known/oauth-authorization-server relative to the server URL). Stdio servers have no URL, so DCR discovery has nothing to derive from. Set this field to the base URL of the vendor's OAuth authorization server to enable DCR for a stdio-based MCP server. Resolution priority: 1. discovery_url (if set — used for both stdio and HTTP) 2. http.url (default for HTTP servers) Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints directly, no discovery needed)."),
+  oauth_only: z.boolean().optional().describe("Whether the server's endpoint rejects manually-entered static tokens. Some hosted MCP endpoints (e.g. Notion, Monday) only accept an access token obtained through their OAuth flow — a personal API token or PAT pasted into the credential form is rejected with a 401. For these servers OAuth is not merely the preferred path, it is the only path that works. When true, the connect surfaces present OAuth as the sole credential option and suppress the 'enter token manually' affordance, so users are never sent down a path that cannot succeed. When false (the default), a static token remains a valid alternative — appropriate for API-key servers (e.g. Tavily) and for vendor endpoints that also accept a PAT (e.g. GitHub). This is a structural fact about the endpoint, not observable from the spec shape alone (an OAuth-only server and a PAT-capable server can have identical auth blocks), so it must be declared explicitly."),
 });
 type McpServerAuthInput = z.infer<typeof McpServerAuthInputSchema>;
 
@@ -160,6 +161,7 @@ function mcpServerAuthInputToProto(input: McpServerAuthInput) {
   if (input.token_lifetime_hint !== undefined) result.tokenLifetimeHint = input.token_lifetime_hint;
   if (input.scope_hints !== undefined) result.scopeHints = input.scope_hints;
   if (input.discovery_url !== undefined) result.discoveryUrl = input.discovery_url;
+  if (input.oauth_only !== undefined) result.oauthOnly = input.oauth_only;
   return result;
 }
 

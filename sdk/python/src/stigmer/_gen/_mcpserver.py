@@ -269,12 +269,14 @@ class McpServerAuthInput:
     token_lifetime_hint: str = ""
     scope_hints: list[str] = field(default_factory=list)
     discovery_url: str = ""
+    oauth_only: bool = False
 
     def _to_proto(self) -> spec_pb2.McpServerAuth:
         msg = spec_pb2.McpServerAuth(
             target_env_var=self.target_env_var,
             token_lifetime_hint=self.token_lifetime_hint,
             discovery_url=self.discovery_url,
+            oauth_only=self.oauth_only,
         )
         if self.oauth_app_ref is not None and (self.oauth_app_ref.org or self.oauth_app_ref.slug):
             _ref = self.oauth_app_ref._to_proto()

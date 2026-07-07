@@ -622,7 +622,23 @@ type McpServerAuth struct {
 	//
 	// Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints
 	// directly, no discovery needed).
-	DiscoveryUrl  string `protobuf:"bytes,7,opt,name=discovery_url,json=discoveryUrl,proto3" json:"discovery_url,omitempty"`
+	DiscoveryUrl string `protobuf:"bytes,7,opt,name=discovery_url,json=discoveryUrl,proto3" json:"discovery_url,omitempty"`
+	// Whether the server's endpoint rejects manually-entered static tokens.
+	//
+	// Some hosted MCP endpoints (e.g. Notion, Monday) only accept an access
+	// token obtained through their OAuth flow — a personal API token or PAT
+	// pasted into the credential form is rejected with a 401. For these servers
+	// OAuth is not merely the preferred path, it is the only path that works.
+	//
+	// When true, the connect surfaces present OAuth as the sole credential
+	// option and suppress the "enter token manually" affordance, so users are
+	// never sent down a path that cannot succeed. When false (the default), a
+	// static token remains a valid alternative — appropriate for API-key servers
+	// (e.g. Tavily) and for vendor endpoints that also accept a PAT (e.g.
+	// GitHub). This is a structural fact about the endpoint, not observable from
+	// the spec shape alone (an OAuth-only server and a PAT-capable server can
+	// have identical auth blocks), so it must be declared explicitly.
+	OauthOnly     bool `protobuf:"varint,10,opt,name=oauth_only,json=oauthOnly,proto3" json:"oauth_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -692,6 +708,13 @@ func (x *McpServerAuth) GetDiscoveryUrl() string {
 	return ""
 }
 
+func (x *McpServerAuth) GetOauthOnly() bool {
+	if x != nil {
+		return x.OauthOnly
+	}
+	return false
+}
+
 var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
@@ -733,7 +756,7 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x12ToolApprovalPolicy\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x122\n" +
-	"\x15from_destructive_hint\x18\x03 \x01(\bR\x13fromDestructiveHint\"\xa8\x03\n" +
+	"\x15from_destructive_hint\x18\x03 \x01(\bR\x13fromDestructiveHint\"\xc7\x03\n" +
 	"\rMcpServerAuth\x12\xd9\x01\n" +
 	"\roauth_app_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x7f\xbaHx\xba\x01u\n" +
 	"\x12oauth_app_ref.kind\x12;oauth_app_ref must reference a resource with kind=oauth_app\x1a\"this.slug == '' || this.kind == 22\xe0\x85,\x16R\voauthAppRef\x12-\n" +
@@ -741,7 +764,10 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x13token_lifetime_hint\x18\x03 \x01(\tR\x11tokenLifetimeHint\x12\x1f\n" +
 	"\vscope_hints\x18\x04 \x03(\tR\n" +
 	"scopeHints\x12#\n" +
-	"\rdiscovery_url\x18\a \x01(\tR\fdiscoveryUrlJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"\rdiscovery_url\x18\a \x01(\tR\fdiscoveryUrl\x12\x1d\n" +
+	"\n" +
+	"oauth_only\x18\n" +
+	" \x01(\bR\toauthOnlyJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
 	"B\xa6\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZSgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
