@@ -79,7 +79,10 @@ export const DEMO_PLAYER_CLASSES = "not-prose relative mx-auto max-w-4xl";
 
 /**
  * Container classes for standalone SDK component demos (detail views).
- * Includes stgm scope for theme token resolution.
+ * Includes stgm scope for theme token resolution. Consumed by
+ * `DemoDetailShell`, which pairs the scope with the docs reader's
+ * color mode (`data-stgm-color-mode`) — use that component rather
+ * than these classes directly.
  */
 export const DEMO_DETAIL_CLASSES =
   "stgm not-prose overflow-hidden rounded-lg border border-border";

@@ -12,6 +12,7 @@ import {
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { DEMO_SHELL_HEIGHT } from "../../shared/tokens";
+import { useDocsColorMode, type StigmerColorMode } from "../../shared/useDocsColorMode";
 
 import "@stigmer/theme/presets/corporate.css";
 import "@stigmer/theme/presets/startup.css";
@@ -67,7 +68,11 @@ const COLOR_MODES = ["light", "dark"] as const;
  */
 export function ThemingPlayground() {
   const [presetId, setPresetId] = useState<ThemePresetId>("default");
-  const [colorMode, setColorMode] = useState<(typeof COLOR_MODES)[number]>("dark");
+  // Follow the docs reader's theme until they touch the toggle, then
+  // their explicit choice wins for the rest of the visit.
+  const docsColorMode = useDocsColorMode();
+  const [colorModeOverride, setColorModeOverride] = useState<StigmerColorMode | null>(null);
+  const colorMode = colorModeOverride ?? docsColorMode;
 
   return (
     <div className="not-prose">
@@ -100,7 +105,7 @@ export function ThemingPlayground() {
             <button
               key={mode}
               type="button"
-              onClick={() => setColorMode(mode)}
+              onClick={() => setColorModeOverride(mode)}
               aria-pressed={colorMode === mode}
               className={cn(
                 "rounded-full border px-2.5 py-1 text-xs capitalize transition-colors",

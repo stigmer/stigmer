@@ -2722,21 +2722,11 @@ __metadata:
 
 "@stigmer/theme@file:../sdk/theme::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=022b99&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=c18b7a&locator=stigmer-site%40workspace%3A."
   peerDependencies:
     clsx: ^2.0.0
     tailwind-merge: ^3.0.0
-  checksum: 10c0/77c1fc82cb58fbb4a5dbacb5cfb17d71c1c7048d1eb7729c8e0262973aa3a606a3a58667e23dc1569ff0b51d10f4f7c5177198c308df24f4a562dc0883c2c171
-  languageName: node
-  linkType: hard
-
-"@stigmer/theme@npm:*":
-  version: 0.0.92
-  resolution: "@stigmer/theme@npm:0.0.92"
-  peerDependencies:
-    clsx: ^2.0.0
-    tailwind-merge: ^3.0.0
-  checksum: 10c0/c85d830670b7bee1bf2d00202ef076f1a2812f354a09b7051f8660f6c6b18ad8b094faf6604f40a310231ad19524569f8528b476bd15396b8122c0cd7f477906
+  checksum: 10c0/30a16c95076d1e1bdb098108b246988c3ee816cbdf25a19c5952aa92907c6fdffff062608920240956de756da186ece174d516f245bf316a6db758aa8e4d59fc
   languageName: node
   linkType: hard
 

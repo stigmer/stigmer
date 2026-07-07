@@ -11,7 +11,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { connectFixture } from "@scenar/preview/connect";
-import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
+import { DemoDetailShell } from "../../shared/DemoDetailShell";
 
 const DEMO_ORG = "acme";
 
@@ -78,11 +78,11 @@ const previewFixtures = [
 export function AgentDetail() {
   return (
     <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
-      <div className={DEMO_DETAIL_CLASSES}>
+      <DemoDetailShell>
         <div className="p-4">
           <AgentDetailView org={DEMO_ORG} slug="support-agent" />
         </div>
-      </div>
+      </DemoDetailShell>
     </PreviewProvider>
   );
 }

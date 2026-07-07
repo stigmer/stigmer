@@ -111,6 +111,42 @@ Two rules keep custom themes correct:
   `-foreground` partner so the pair stays readable — dark-mode fills are
   usually lighter, which is why their foregrounds flip to near-black.
 
+## Tailwind hosts: avoid theme-key collisions
+
+Stigmer's stylesheet maps its tokens onto Tailwind's standard theme keys
+(`--color-background`, `--color-card`, `--color-muted`, …) so components can
+use plain utilities like `bg-background`. If your own Tailwind v4 build maps
+those same keys to your palette in an `@theme` block, Tailwind resolves each
+key once — last definition wins — and Stigmer components will silently paint
+with *your* palette, ignoring `data-stgm-color-mode` and presets.
+
+If your app defines those keys, re-point the underlying variables inside the
+Stigmer scope so shared utilities resolve through the token contract again:
+
+```css
+.stgm {
+  --background: var(--stgm-background);
+  --foreground: var(--stgm-foreground);
+  --card: var(--stgm-card);
+  --card-foreground: var(--stgm-card-foreground);
+  --muted: var(--stgm-muted);
+  --muted-foreground: var(--stgm-muted-foreground);
+  --primary: var(--stgm-primary);
+  --primary-foreground: var(--stgm-primary-foreground);
+  --border: var(--stgm-border);
+  /* ...every key both palettes define */
+}
+```
+
+No light/dark pairing is needed here — the `--stgm-*` values already flip
+with `data-stgm-color-mode`. Similarly, if your build declares its own
+`dark` variant (e.g. next-themes' `.dark` class), declare the combined form
+after your imports so both your app and Stigmer scopes respond correctly:
+
+```css
+@custom-variant dark (&:is(.dark *, [data-stgm-color-mode="dark"] *));
+```
+
 ## The radius scale
 
 Components use a four-step radius scale (`rounded-sm` through `rounded-xl`)
