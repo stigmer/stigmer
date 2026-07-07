@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -142,6 +145,177 @@ func TestWorkflowVersioning_DistinctContentCreatesNewVersion(t *testing.T) {
 	assert.Equal(t, hash2, latest.GetStatus().GetVersionHash(), "latest must resolve to the newest version")
 
 	t.Logf("workflow versioning verified: id=%s, v1=%s, v2=%s", workflowID, hash1[:12], hash2[:12])
+}
+
+// buildTaggedWorkflow is buildVersionedWorkflow with an apply-time version tag
+// (metadata.version.tag), the same field the CLI's `--tag` flag populates.
+func buildTaggedWorkflow(t *testing.T, name, varValue, tag string) *workflowv1.Workflow {
+	t.Helper()
+	wf := buildVersionedWorkflow(t, name, varValue)
+	wf.Metadata.Version = &apiresource.ApiResourceMetadataVersion{Tag: tag}
+	return wf
+}
+
+// TestWorkflowVersioning_TagVersionMovesTagAndResolves proves the tagVersion RPC
+// moves a tag end-to-end: the tag stops resolving to its prior holder and starts
+// resolving to the new target, the immutable hash still resolves, and the live
+// head reflects the moved tag (the reconcile invariant).
+func TestWorkflowVersioning_TagVersionMovesTagAndResolves(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	name := fmt.Sprintf("ver-wf-tag-%s", uuid.New().String()[:8])
+
+	// v1 carries an apply-time tag; v2 (changed, untagged) becomes the head.
+	wf1, err := clients.WorkflowCommand.Apply(ctx, buildTaggedWorkflow(t, name, "v1", "stable"))
+	require.NoError(t, err, "first apply should create the workflow")
+
+	workflowID := wf1.GetMetadata().GetId()
+	org := wf1.GetMetadata().GetOrg()
+	slug := wf1.GetMetadata().GetSlug()
+	hash1 := wf1.GetStatus().GetVersionHash()
+	require.NotEmpty(t, hash1, "create must assign a version hash")
+
+	t.Cleanup(func() {
+		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if _, err := clients.WorkflowCommand.Delete(cleanCtx, &workflowv1.WorkflowId{Value: workflowID}); err != nil {
+			t.Logf("warning: failed to clean up workflow %s: %v", workflowID, err)
+		}
+	})
+
+	wf2, err := clients.WorkflowCommand.Apply(ctx, buildVersionedWorkflow(t, name, "v2-changed"))
+	require.NoError(t, err, "second apply should update the workflow")
+	hash2 := wf2.GetStatus().GetVersionHash()
+	require.NotEqual(t, hash1, hash2, "changed content must produce a new version")
+
+	ref := func(version string) *apiresource.ApiResourceReference {
+		return &apiresource.ApiResourceReference{
+			Org:     org,
+			Slug:    slug,
+			Version: version,
+			Kind:    apiresourcekind.ApiResourceKind_workflow,
+		}
+	}
+
+	// The apply-time tag resolves to v1.
+	byTag, err := clients.WorkflowQuery.GetByReference(ctx, ref("stable"))
+	require.NoError(t, err, "getByReference by apply-time tag should succeed")
+	assert.Equal(t, hash1, byTag.GetStatus().GetVersionHash(), "apply-time tag must resolve to v1")
+
+	// Move the tag to the head (v2).
+	_, err = clients.WorkflowCommand.TagVersion(ctx, &workflowv1.TagWorkflowVersionInput{
+		WorkflowId: workflowID, VersionHash: hash2, Tag: "stable",
+	})
+	require.NoError(t, err, "tagVersion should move the tag to the head")
+
+	// "stable" now resolves to v2; v1 stays addressable by its immutable hash.
+	byTagMoved, err := clients.WorkflowQuery.GetByReference(ctx, ref("stable"))
+	require.NoError(t, err)
+	assert.Equal(t, hash2, byTagMoved.GetStatus().GetVersionHash(), "tagVersion must move the tag to v2")
+
+	byHash1, err := clients.WorkflowQuery.GetByReference(ctx, ref(hash1))
+	require.NoError(t, err)
+	assert.Equal(t, hash1, byHash1.GetStatus().GetVersionHash(), "the immutable hash must still resolve to v1")
+	assert.Empty(t, byHash1.GetMetadata().GetVersion().GetTag(), "v1 must no longer advertise the moved tag")
+
+	// The live head reflects the moved tag (reconcile invariant).
+	head, err := clients.WorkflowQuery.Get(ctx, &workflowv1.WorkflowId{Value: workflowID})
+	require.NoError(t, err)
+	assert.Equal(t, "stable", head.GetMetadata().GetVersion().GetTag(), "the live head must reflect the moved tag")
+
+	// listVersions reflects single-holder: only v2 carries the tag now.
+	list, err := clients.WorkflowQuery.ListVersions(ctx, &workflowv1.ListWorkflowVersionsInput{Org: org, Slug: slug})
+	require.NoError(t, err)
+	require.Len(t, list.GetVersions(), 2)
+	tagByHash := map[string]string{}
+	for _, entry := range list.GetVersions() {
+		tagByHash[entry.GetVersionHash()] = entry.GetTag()
+	}
+	assert.Equal(t, "stable", tagByHash[hash2], "the head must hold the moved tag")
+	assert.Equal(t, "", tagByHash[hash1], "the prior holder must be cleared")
+
+	// A well-formed but unknown hash is NotFound.
+	_, err = clients.WorkflowCommand.TagVersion(ctx, &workflowv1.TagWorkflowVersionInput{
+		WorkflowId: workflowID, VersionHash: strings.Repeat("f", 64), Tag: "stable",
+	})
+	requireGrpcStatus(t, err, codes.NotFound)
+}
+
+// TestWorkflowVersioning_ApplyTimeTagIsSingleHolder proves apply-time tagging and
+// the tagVersion RPC share one single-holder model: applying the same tag to two
+// successive changed versions leaves the tag on exactly one (the newer), and
+// tagVersion can move it back.
+func TestWorkflowVersioning_ApplyTimeTagIsSingleHolder(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	name := fmt.Sprintf("ver-wf-single-%s", uuid.New().String()[:8])
+
+	wf1, err := clients.WorkflowCommand.Apply(ctx, buildTaggedWorkflow(t, name, "v1", "prod"))
+	require.NoError(t, err)
+	workflowID := wf1.GetMetadata().GetId()
+	org := wf1.GetMetadata().GetOrg()
+	slug := wf1.GetMetadata().GetSlug()
+	hash1 := wf1.GetStatus().GetVersionHash()
+
+	t.Cleanup(func() {
+		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if _, err := clients.WorkflowCommand.Delete(cleanCtx, &workflowv1.WorkflowId{Value: workflowID}); err != nil {
+			t.Logf("warning: failed to clean up workflow %s: %v", workflowID, err)
+		}
+	})
+
+	// Apply a changed version carrying the SAME tag.
+	wf2, err := clients.WorkflowCommand.Apply(ctx, buildTaggedWorkflow(t, name, "v2-changed", "prod"))
+	require.NoError(t, err)
+	hash2 := wf2.GetStatus().GetVersionHash()
+	require.NotEqual(t, hash1, hash2)
+
+	ref := func(version string) *apiresource.ApiResourceReference {
+		return &apiresource.ApiResourceReference{
+			Org: org, Slug: slug, Version: version, Kind: apiresourcekind.ApiResourceKind_workflow,
+		}
+	}
+
+	// The tag names exactly one version: the newer one.
+	byTag, err := clients.WorkflowQuery.GetByReference(ctx, ref("prod"))
+	require.NoError(t, err)
+	assert.Equal(t, hash2, byTag.GetStatus().GetVersionHash(), "re-applying a tag must move it to the newer version")
+
+	list, err := clients.WorkflowQuery.ListVersions(ctx, &workflowv1.ListWorkflowVersionsInput{Org: org, Slug: slug})
+	require.NoError(t, err)
+	tagByHash := map[string]string{}
+	for _, entry := range list.GetVersions() {
+		tagByHash[entry.GetVersionHash()] = entry.GetTag()
+	}
+	assert.Equal(t, "prod", tagByHash[hash2])
+	assert.Equal(t, "", tagByHash[hash1], "apply-time tagging must not leave the tag on the older version")
+
+	// tagVersion can move the same tag back to v1 — one shared single-holder model.
+	_, err = clients.WorkflowCommand.TagVersion(ctx, &workflowv1.TagWorkflowVersionInput{
+		WorkflowId: workflowID, VersionHash: hash1, Tag: "prod",
+	})
+	require.NoError(t, err)
+
+	movedBack, err := clients.WorkflowQuery.GetByReference(ctx, ref("prod"))
+	require.NoError(t, err)
+	assert.Equal(t, hash1, movedBack.GetStatus().GetVersionHash(), "tagVersion must move the tag back to v1")
+}
+
+func requireGrpcStatus(t *testing.T, err error, want codes.Code) {
+	t.Helper()
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok, "expected a gRPC status error, got %v", err)
+	require.Equal(t, want, st.Code(), "unexpected gRPC code; err=%v", err)
 }
 
 func TestWorkflowVersioning_IdenticalApplyDoesNotCreateVersion(t *testing.T) {

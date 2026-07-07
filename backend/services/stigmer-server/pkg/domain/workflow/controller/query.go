@@ -129,25 +129,40 @@ func (c *WorkflowController) workflowMatchesVersion(wf *workflowv1.Workflow, ver
 }
 
 func (c *WorkflowController) findAuditWorkflowByVersion(ctx context.Context, workflowID, version string) (*workflowv1.Workflow, bool, error) {
-	var wf workflowv1.Workflow
-
+	// A 64-hex value is an exact content hash; anything else is a tag. Either way
+	// the returned snapshot's tag is overlaid from the audit column (the source
+	// of truth) so callers never see a stale embedded tag after a tag move.
+	var rec *store.AuditRecord
+	var err error
 	if workflowHashPattern.MatchString(version) {
-		err := c.store.GetAuditByHash(ctx, apiresourcekind.ApiResourceKind_workflow, workflowID, version, &wf)
-		if err != nil {
-			if errors.Is(err, store.ErrAuditNotFound) {
-				return nil, false, nil
-			}
-			return nil, false, grpclib.InternalError(err, "failed to query workflow audit by hash")
-		}
-		return &wf, true, nil
+		rec, err = c.store.GetAuditRecordByHash(ctx, apiresourcekind.ApiResourceKind_workflow, workflowID, version)
+	} else {
+		rec, err = c.store.GetAuditRecordByTag(ctx, apiresourcekind.ApiResourceKind_workflow, workflowID, version)
 	}
-
-	err := c.store.GetAuditByTag(ctx, apiresourcekind.ApiResourceKind_workflow, workflowID, version, &wf)
 	if err != nil {
 		if errors.Is(err, store.ErrAuditNotFound) {
 			return nil, false, nil
 		}
-		return nil, false, grpclib.InternalError(err, "failed to query workflow audit by tag")
+		return nil, false, grpclib.InternalError(err, "failed to query workflow audit by version")
 	}
+
+	var wf workflowv1.Workflow
+	if err := proto.Unmarshal(rec.Data, &wf); err != nil {
+		return nil, false, grpclib.InternalError(err, "failed to decode archived workflow version")
+	}
+	overlayVersionTag(&wf, rec.Tag)
 	return &wf, true, nil
+}
+
+// overlayVersionTag stamps the authoritative tag (from the audit column) onto a
+// workflow snapshot's metadata.version.tag, so a resolved-by-reference workflow
+// reflects the current tag rather than whatever was embedded at archival time.
+func overlayVersionTag(wf *workflowv1.Workflow, tag string) {
+	if wf.Metadata == nil {
+		wf.Metadata = &apiresource.ApiResourceMetadata{}
+	}
+	if wf.Metadata.Version == nil {
+		wf.Metadata.Version = &apiresource.ApiResourceMetadataVersion{}
+	}
+	wf.Metadata.Version.Tag = tag
 }

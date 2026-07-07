@@ -93,18 +93,19 @@ func (s *loadAndMapWorkflowVersionsStep) Execute(ctx *pipeline.RequestContext[*w
 	req := ctx.Input()
 	workflowID := ctx.Get(listVersionsWorkflowIDKey).(string)
 
-	records, err := s.store.ListAuditHistory(ctx.Context(), apiresourcekind.ApiResourceKind_workflow, workflowID)
+	records, err := s.store.ListAuditRecords(ctx.Context(), apiresourcekind.ApiResourceKind_workflow, workflowID)
 	if err != nil {
 		return grpclib.InternalError(err, "failed to load workflow version history")
 	}
 
 	entries := make([]*workflowv1.WorkflowVersionEntry, 0, len(records))
-	for i, data := range records {
+	for i, rec := range records {
 		var wf workflowv1.Workflow
-		if err := proto.Unmarshal(data, &wf); err != nil {
+		if err := proto.Unmarshal(rec.Data, &wf); err != nil {
 			continue
 		}
-		entries = append(entries, mapWorkflowToVersionEntry(&wf, i == 0))
+		// Tag comes from the audit column (source of truth), not the snapshot.
+		entries = append(entries, mapWorkflowToVersionEntry(&wf, i == 0, rec.Tag))
 	}
 
 	// Pagination

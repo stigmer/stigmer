@@ -8,6 +8,7 @@ import (
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"google.golang.org/protobuf/proto"
 )
 
 // GetVersion retrieves a specific historical version of a workflow by its content hash.
@@ -35,17 +36,18 @@ func (c *WorkflowController) GetVersion(ctx context.Context, req *workflowv1.Get
 	}
 
 	if currentWorkflow.GetStatus().GetVersionHash() == req.VersionHash {
-		return mapWorkflowToVersionEntry(&currentWorkflow, true), nil
+		// The live head's metadata.version.tag is kept reconciled with the head's
+		// authoritative audit tag, so it is the correct tag to surface here.
+		return mapWorkflowToVersionEntry(&currentWorkflow, true, currentWorkflow.GetMetadata().GetVersion().GetTag()), nil
 	}
 
-	// Hash doesn't match current — look up in audit history
-	var archivedWorkflow workflowv1.Workflow
-	err = c.store.GetAuditByHash(
+	// Hash doesn't match current — look up in audit history. The record carries
+	// the tag from the audit column (source of truth), not the embedded snapshot.
+	rec, err := c.store.GetAuditRecordByHash(
 		ctx,
 		apiresourcekind.ApiResourceKind_workflow,
 		req.WorkflowId,
 		req.VersionHash,
-		&archivedWorkflow,
 	)
 	if err != nil {
 		if errors.Is(err, store.ErrAuditNotFound) {
@@ -54,5 +56,10 @@ func (c *WorkflowController) GetVersion(ctx context.Context, req *workflowv1.Get
 		return nil, grpclib.InternalError(err, "failed to load workflow version from audit")
 	}
 
-	return mapWorkflowToVersionEntry(&archivedWorkflow, false), nil
+	var archivedWorkflow workflowv1.Workflow
+	if err := proto.Unmarshal(rec.Data, &archivedWorkflow); err != nil {
+		return nil, grpclib.InternalError(err, "failed to decode archived workflow version")
+	}
+
+	return mapWorkflowToVersionEntry(&archivedWorkflow, false, rec.Tag), nil
 }

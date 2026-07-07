@@ -1070,112 +1070,52 @@ func (s *Store) SaveAudit(ctx context.Context, kind apiresourcekind.ApiResourceK
 
 // GetAuditByHash retrieves an archived version by exact hash match.
 // Returns store.ErrAuditNotFound if no audit record exists with the given hash.
+//
+// Thin adapter over GetAuditRecordByHash: it unmarshals the snapshot into msg.
+// Callers that also need the version's current tag should use the record-based
+// method directly (the tag column, not the embedded snapshot, is authoritative).
 func (s *Store) GetAuditByHash(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, versionHash string, msg proto.Message) error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if s.db == nil {
-		return fmt.Errorf("store is closed")
-	}
-
-	var data []byte
-	// Query uses idx_audit_hash index for efficient lookup
-	err := s.db.QueryRowContext(ctx,
-		`SELECT data FROM resource_audit 
-		 WHERE kind = ? AND resource_id = ? AND version_hash = ?
-		 LIMIT 1`,
-		kind.String(), resourceId, versionHash).Scan(&data)
-
-	if err == sql.ErrNoRows {
-		return fmt.Errorf("%w: %s/%s (hash=%s)", store.ErrAuditNotFound, kind.String(), resourceId, versionHash)
-	}
+	rec, err := s.GetAuditRecordByHash(ctx, kind, resourceId, versionHash)
 	if err != nil {
-		return fmt.Errorf("query audit by hash: %w", err)
+		return err
 	}
-
-	// Unmarshal proto bytes into the provided message
-	if err := proto.Unmarshal(data, msg); err != nil {
+	if err := proto.Unmarshal(rec.Data, msg); err != nil {
 		return fmt.Errorf("unmarshal proto: %w", err)
 	}
-
 	return nil
 }
 
 // GetAuditByTag retrieves the most recent archived version with matching tag.
 // Returns store.ErrAuditNotFound if no audit record exists with the given tag.
+//
+// Thin adapter over GetAuditRecordByTag (see that method for the single-holder
+// invariant and tiebreaker semantics).
 func (s *Store) GetAuditByTag(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, tag string, msg proto.Message) error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if s.db == nil {
-		return fmt.Errorf("store is closed")
-	}
-
-	var data []byte
-	// Query uses idx_audit_tag index and returns most recent by archived_at
-	// Use id DESC as tiebreaker when timestamps are equal (sub-second inserts)
-	err := s.db.QueryRowContext(ctx,
-		`SELECT data FROM resource_audit 
-		 WHERE kind = ? AND resource_id = ? AND tag = ?
-		 ORDER BY archived_at DESC, id DESC
-		 LIMIT 1`,
-		kind.String(), resourceId, tag).Scan(&data)
-
-	if err == sql.ErrNoRows {
-		return fmt.Errorf("%w: %s/%s (tag=%s)", store.ErrAuditNotFound, kind.String(), resourceId, tag)
-	}
+	rec, err := s.GetAuditRecordByTag(ctx, kind, resourceId, tag)
 	if err != nil {
-		return fmt.Errorf("query audit by tag: %w", err)
+		return err
 	}
-
-	// Unmarshal proto bytes into the provided message
-	if err := proto.Unmarshal(data, msg); err != nil {
+	if err := proto.Unmarshal(rec.Data, msg); err != nil {
 		return fmt.Errorf("unmarshal proto: %w", err)
 	}
-
 	return nil
 }
 
 // ListAuditHistory retrieves all archived versions for a resource.
 // Returns newest first (sorted by archived_at DESC).
 // Returns an empty slice (not nil) if no audit records exist.
+//
+// Thin adapter over ListAuditRecords, returning only the serialized snapshots.
 func (s *Store) ListAuditHistory(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) ([][]byte, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if s.db == nil {
-		return nil, fmt.Errorf("store is closed")
-	}
-
-	// Query uses idx_audit_resource index
-	// Use id DESC as tiebreaker when timestamps are equal (sub-second inserts)
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT data FROM resource_audit 
-		 WHERE kind = ? AND resource_id = ?
-		 ORDER BY archived_at DESC, id DESC`,
-		kind.String(), resourceId)
+	records, err := s.ListAuditRecords(ctx, kind, resourceId)
 	if err != nil {
-		return nil, fmt.Errorf("query audit history: %w", err)
-	}
-	defer rows.Close()
-
-	results := make([][]byte, 0)
-
-	for rows.Next() {
-		var data []byte
-		if err := rows.Scan(&data); err != nil {
-			return nil, fmt.Errorf("scan row: %w", err)
-		}
-		// Copy data since database driver may reuse the buffer
-		dataCopy := make([]byte, len(data))
-		copy(dataCopy, data)
-		results = append(results, dataCopy)
+		return nil, err
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate rows: %w", err)
+	results := make([][]byte, 0, len(records))
+	for _, rec := range records {
+		results = append(results, rec.Data)
 	}
-
 	return results, nil
 }
 
@@ -1254,6 +1194,180 @@ func (s *Store) GetLatestAuditHash(ctx context.Context, kind apiresourcekind.Api
 	}
 
 	return versionHash, nil
+}
+
+// SetAuditTag moves a tag to a specific archived version, atomically.
+//
+// The tag column is the source of truth for a version's tag (never the embedded
+// snapshot blob, which stays immutable). To enforce "a tag names exactly one
+// version," the two UPDATEs run in a single transaction: first clear the tag
+// from its prior holder(s), then assign it to the target. If the target hash
+// has no audit record, the transaction is rolled back and ErrAuditNotFound is
+// returned — a missing target never orphans the tag on its prior holder.
+func (s *Store) SetAuditTag(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, versionHash, tag string) error {
+	// Acquire write lock to serialize writes (SQLite single-writer limitation)
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin set audit tag transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Clear the tag from whatever version currently holds it. Restricting to a
+	// non-empty tag never disturbs untagged rows (stored as '').
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE resource_audit SET tag = ''
+		 WHERE kind = ? AND resource_id = ? AND tag = ?`,
+		kind.String(), resourceId, tag); err != nil {
+		return fmt.Errorf("clear prior tag holder: %w", err)
+	}
+
+	// Assign the tag to the target version (replacing any different tag it held).
+	res, err := tx.ExecContext(ctx,
+		`UPDATE resource_audit SET tag = ?
+		 WHERE kind = ? AND resource_id = ? AND version_hash = ?`,
+		tag, kind.String(), resourceId, versionHash)
+	if err != nil {
+		return fmt.Errorf("assign tag to version: %w", err)
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("check rows affected: %w", err)
+	}
+	if affected == 0 {
+		// Rollback (deferred) leaves the prior holder untouched.
+		return fmt.Errorf("%w: %s/%s (hash=%s)", store.ErrAuditNotFound, kind.String(), resourceId, versionHash)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit set audit tag: %w", err)
+	}
+
+	return nil
+}
+
+// ListAuditRecords retrieves all archived versions for a resource, newest first,
+// each carrying its authoritative tag from the tag column.
+func (s *Store) ListAuditRecords(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) ([]store.AuditRecord, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return nil, fmt.Errorf("store is closed")
+	}
+
+	// Use id DESC as tiebreaker when timestamps are equal (sub-second inserts)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT data, version_hash, tag FROM resource_audit
+		 WHERE kind = ? AND resource_id = ?
+		 ORDER BY archived_at DESC, id DESC`,
+		kind.String(), resourceId)
+	if err != nil {
+		return nil, fmt.Errorf("query audit records: %w", err)
+	}
+	defer rows.Close()
+
+	records := make([]store.AuditRecord, 0)
+	for rows.Next() {
+		var (
+			data        []byte
+			versionHash sql.NullString
+			tag         sql.NullString
+		)
+		if err := rows.Scan(&data, &versionHash, &tag); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+		// Copy data since the driver may reuse the buffer across iterations.
+		dataCopy := make([]byte, len(data))
+		copy(dataCopy, data)
+		records = append(records, store.AuditRecord{
+			Data:        dataCopy,
+			VersionHash: versionHash.String,
+			Tag:         tag.String,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+
+	return records, nil
+}
+
+// GetAuditRecordByHash retrieves a single archived version by exact hash,
+// carrying its authoritative tag from the tag column.
+func (s *Store) GetAuditRecordByHash(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, versionHash string) (*store.AuditRecord, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return nil, fmt.Errorf("store is closed")
+	}
+
+	var (
+		data []byte
+		tag  sql.NullString
+	)
+	// Query uses idx_audit_hash index for efficient lookup
+	err := s.db.QueryRowContext(ctx,
+		`SELECT data, tag FROM resource_audit
+		 WHERE kind = ? AND resource_id = ? AND version_hash = ?
+		 LIMIT 1`,
+		kind.String(), resourceId, versionHash).Scan(&data, &tag)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("%w: %s/%s (hash=%s)", store.ErrAuditNotFound, kind.String(), resourceId, versionHash)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query audit record by hash: %w", err)
+	}
+
+	return &store.AuditRecord{Data: data, VersionHash: versionHash, Tag: tag.String}, nil
+}
+
+// GetAuditRecordByTag retrieves the archived version currently holding the given
+// tag, carrying its authoritative tag from the tag column. The single-holder
+// invariant means at most one row matches; ORDER BY archived_at DESC is a
+// defensive tiebreaker for any legacy multi-holder data.
+func (s *Store) GetAuditRecordByTag(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, tag string) (*store.AuditRecord, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return nil, fmt.Errorf("store is closed")
+	}
+
+	var (
+		data        []byte
+		versionHash sql.NullString
+	)
+	// Query uses idx_audit_tag index and returns most recent by archived_at.
+	// Use id DESC as tiebreaker when timestamps are equal (sub-second inserts).
+	err := s.db.QueryRowContext(ctx,
+		`SELECT data, version_hash FROM resource_audit
+		 WHERE kind = ? AND resource_id = ? AND tag = ?
+		 ORDER BY archived_at DESC, id DESC
+		 LIMIT 1`,
+		kind.String(), resourceId, tag).Scan(&data, &versionHash)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("%w: %s/%s (tag=%s)", store.ErrAuditNotFound, kind.String(), resourceId, tag)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query audit record by tag: %w", err)
+	}
+
+	return &store.AuditRecord{Data: data, VersionHash: versionHash.String, Tag: tag}, nil
 }
 
 // =============================================================================

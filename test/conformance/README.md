@@ -170,9 +170,10 @@ which optional behaviors exist. `CapabilityFlags` gate behaviors that
 legitimately differ across editions rather than forking the tests — e.g.
 `externalOrgLookup` is `false` locally (so `getByExternalOrgId` is expected to
 be `Unimplemented`), `multiTenant` is `false` (so list RPCs return everything,
-with no IAM filtering), `versionTagging` is `false` (the dedicated
-`tagVersion` RPC has no OSS handler, so it is expected to be `Unimplemented`;
-version tags are set at apply time via `metadata.version.tag` instead), and
+with no IAM filtering), `versionTagging` is `true` (the dedicated `tagVersion`
+RPC is implemented in both editions; assigning a tag moves it to name exactly
+one version, and apply-time `metadata.version.tag` flows through the same
+single-holder primitive), and
 `secretRedaction` is `false` (single-user OSS returns secret values in plaintext
 on bulk reads, whereas cloud redacts them; the `is_secret` flag and the
 `getSecretValue` reveal endpoint are edition-agnostic), and

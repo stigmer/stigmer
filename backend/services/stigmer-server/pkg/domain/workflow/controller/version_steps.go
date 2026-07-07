@@ -3,8 +3,6 @@ package workflow
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
-	"fmt"
 
 	"github.com/rs/zerolog/log"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -216,7 +214,11 @@ func (s *saveVersionAuditStep) Execute(ctx *pipeline.RequestContext[*workflowv1.
 		kind = apiresourcekind.ApiResourceKind_workflow
 	}
 
-	if err := s.store.SaveAudit(ctx.Context(), kind, workflowID, wf, versionHash, tag); err != nil {
+	// Archive the snapshot tagless. The tag lives only in the audit tag column
+	// (the source of truth), assigned below through the single-holder primitive.
+	// Snapshot blobs are never the tag's home, so a later tag move never rewrites
+	// this immutable content.
+	if err := s.store.SaveAudit(ctx.Context(), kind, workflowID, wf, versionHash, ""); err != nil {
 		log.Error().
 			Err(err).
 			Str("workflow_id", workflowID).
@@ -245,6 +247,28 @@ func (s *saveVersionAuditStep) Execute(ctx *pipeline.RequestContext[*workflowv1.
 		return nil
 	}
 
+	// Assign the requested tag through SetAuditTag — the one primitive shared
+	// with the tagVersion RPC — so apply-time tagging obeys the same
+	// single-holder invariant (a tag names exactly one version). The freshly
+	// archived head becomes the tag's sole holder; any prior holder is cleared.
+	if tag != "" {
+		if err := s.store.SetAuditTag(ctx.Context(), kind, workflowID, versionHash, tag); err != nil {
+			log.Error().
+				Err(err).
+				Str("workflow_id", workflowID).
+				Str("version_hash", truncateHash(versionHash)).
+				Str("tag", tag).
+				Msg("Archived version but failed to assign its tag — clearing the live tag to stay consistent with the audit column")
+
+			// The audit head is now untagged; keep the live head consistent so
+			// get / getByReference never advertise a tag the store cannot resolve.
+			if wf.Metadata != nil && wf.Metadata.Version != nil {
+				wf.Metadata.Version.Tag = ""
+				ctx.SetNewState(wf)
+			}
+		}
+	}
+
 	log.Info().
 		Str("workflow_id", workflowID).
 		Str("version_hash", truncateHash(versionHash)).
@@ -261,74 +285,17 @@ func truncateHash(hash string) string {
 	return hash
 }
 
-// loadWorkflowByReferenceStep loads a workflow by ApiResourceReference with version support.
+// mapWorkflowToVersionEntry converts an archived Workflow proto to a
+// WorkflowVersionEntry.
 //
-// Version resolution (mirroring Skill's LoadSkillByReferenceStep):
-//   - Empty/"latest" → return current head from main resource collection
-//   - If version matches main workflow's status.version_hash → return main
-//   - If 64-char hex → query audit by hash
-//   - Otherwise → query audit by tag (newest with that tag)
-type loadWorkflowByReferenceStep struct {
-	store store.Store
-}
-
-func newLoadWorkflowByReferenceStep(s store.Store) *loadWorkflowByReferenceStep {
-	return &loadWorkflowByReferenceStep{store: s}
-}
-
-func (s *loadWorkflowByReferenceStep) Name() string {
-	return "LoadWorkflowByReference"
-}
-
-func (s *loadWorkflowByReferenceStep) Execute(ctx *pipeline.RequestContext[*workflowv1.Workflow]) error {
-	// This step is used differently — it's called from the query handler
-	// with the ApiResourceReference available in context.
-	// For now, the existing LoadByReferenceStep handles the basic case.
-	// Version resolution is added to the GetByReference handler method.
-	return nil
-}
-
-// getVersionStep retrieves a specific version entry from audit by hash.
-type getVersionStep struct {
-	store store.Store
-}
-
-func newGetVersionStep(s store.Store) *getVersionStep {
-	return &getVersionStep{store: s}
-}
-
-func (s *getVersionStep) Name() string {
-	return "GetVersion"
-}
-
-func (s *getVersionStep) Execute(ctx *pipeline.RequestContext[*workflowv1.GetWorkflowVersionInput]) error {
-	input := ctx.Input()
-
-	var workflow workflowv1.Workflow
-	err := s.store.GetAuditByHash(
-		ctx.Context(),
-		apiresourcekind.ApiResourceKind_workflow,
-		input.WorkflowId,
-		input.VersionHash,
-		&workflow,
-	)
-	if err != nil {
-		if errors.Is(err, store.ErrAuditNotFound) {
-			return fmt.Errorf("workflow version %s not found", input.VersionHash[:12]+"...")
-		}
-		return fmt.Errorf("failed to load workflow version: %w", err)
-	}
-
-	// Map to WorkflowVersionEntry
-	entry := mapWorkflowToVersionEntry(&workflow, false)
-	ctx.Set("versionEntry", entry)
-	return nil
-}
-
-// mapWorkflowToVersionEntry converts an archived Workflow proto to a WorkflowVersionEntry.
-func mapWorkflowToVersionEntry(wf *workflowv1.Workflow, isCurrent bool) *workflowv1.WorkflowVersionEntry {
+// The tag is passed in by the caller from the audit tag column (the source of
+// truth), never read from the embedded snapshot: a snapshot's tag is only
+// correct as of archival time, whereas the column reflects the current tag even
+// after a tag move.
+func mapWorkflowToVersionEntry(wf *workflowv1.Workflow, isCurrent bool, tag string) *workflowv1.WorkflowVersionEntry {
 	entry := &workflowv1.WorkflowVersionEntry{
 		IsCurrent: isCurrent,
+		Tag:       tag,
 	}
 
 	if wf.Status != nil {
@@ -354,7 +321,6 @@ func mapWorkflowToVersionEntry(wf *workflowv1.Workflow, isCurrent bool) *workflo
 
 	if wf.Metadata != nil && wf.Metadata.Version != nil {
 		entry.Message = wf.Metadata.Version.Message
-		entry.Tag = wf.Metadata.Version.Tag
 	}
 
 	return entry

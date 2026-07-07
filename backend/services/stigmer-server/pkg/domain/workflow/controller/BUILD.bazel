@@ -10,6 +10,7 @@ go_library(
         "list_versions.go",
         "populate_serverless_validation_step.go",
         "query.go",
+        "tag_version.go",
         "update.go",
         "update_visibility.go",
         "validate_spec.go",
@@ -43,6 +44,7 @@ go_library(
 go_test(
     name = "controller_test",
     srcs = [
+        "tag_version_test.go",
         "validate_spec_test.go",
         "workflow_controller_test.go",
     ],
