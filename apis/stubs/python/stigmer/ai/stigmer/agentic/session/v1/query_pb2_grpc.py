@@ -26,9 +26,9 @@ class SessionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.FromString,
                 _registered_method=True)
-        self.listByAgent = channel.unary_unary(
-                '/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgent',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByAgentRequest.SerializeToString,
+        self.listByAgentInstance = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgentInstance',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByAgentInstanceRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.FromString,
                 _registered_method=True)
 
@@ -54,11 +54,12 @@ class SessionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def listByAgent(self, request, context):
-        """List all sessions for a specific agent.
+    def listByAgentInstance(self, request, context):
+        """List all sessions for a specific agent instance.
 
         @internal
-        Authorization is handled in-handler via FGA-filtered queries.
+        Authorization is handled in handler via FGA query for authorized
+        session_ids, then filtered by agent_instance_id.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -77,9 +78,9 @@ def add_SessionQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.SerializeToString,
             ),
-            'listByAgent': grpc.unary_unary_rpc_method_handler(
-                    servicer.listByAgent,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByAgentRequest.FromString,
+            'listByAgentInstance': grpc.unary_unary_rpc_method_handler(
+                    servicer.listByAgentInstance,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByAgentInstanceRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.SerializeToString,
             ),
     }
@@ -149,7 +150,7 @@ class SessionQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def listByAgent(request,
+    def listByAgentInstance(request,
             target,
             options=(),
             channel_credentials=None,
@@ -162,8 +163,8 @@ class SessionQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgent',
-            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByAgentRequest.SerializeToString,
+            '/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgentInstance',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByAgentInstanceRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.FromString,
             options,
             channel_credentials,

@@ -8,7 +8,7 @@ go_library(
         "delete.go",
         "get.go",
         "list.go",
-        "list_by_agent.go",
+        "list_by_agent_instance.go",
         "session_controller.go",
         "update.go",
         "update_subject.go",

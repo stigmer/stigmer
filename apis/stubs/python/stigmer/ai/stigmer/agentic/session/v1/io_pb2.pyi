@@ -38,15 +38,15 @@ class ListSessionsRequest(_message.Message):
     tags: _containers.RepeatedScalarFieldContainer[str]
     def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ...) -> None: ...
 
-class ListSessionsByAgentRequest(_message.Message):
-    __slots__ = ("agent_id", "page_size", "page_token")
-    AGENT_ID_FIELD_NUMBER: _ClassVar[int]
+class ListSessionsByAgentInstanceRequest(_message.Message):
+    __slots__ = ("agent_instance_id", "page_size", "page_token")
+    AGENT_INSTANCE_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    agent_id: str
+    agent_instance_id: str
     page_size: int
     page_token: str
-    def __init__(self, agent_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+    def __init__(self, agent_instance_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class UpdateSessionSubjectRequest(_message.Message):
     __slots__ = ("id", "subject")

@@ -9,10 +9,10 @@ import (
 	sessionsteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller/steps"
 )
 
-// ListByAgent retrieves all sessions for a specific agent using the pipeline framework
+// ListByAgentInstance retrieves all sessions for a specific agent instance using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateProto - Validate input ListSessionsByAgentRequest
+// 1. ValidateProto - Validate input ListSessionsByAgentInstanceRequest
 // 2. FilterByAgentInstance - Load sessions filtered by agent_instance_id
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
@@ -26,10 +26,10 @@ import (
 // 2. Filter those by agent_instance_id in a single MongoDB query
 //
 // For OSS local usage, we simply filter by agent_instance_id.
-func (c *SessionController) ListByAgent(ctx context.Context, req *sessionv1.ListSessionsByAgentRequest) (*sessionv1.SessionList, error) {
+func (c *SessionController) ListByAgentInstance(ctx context.Context, req *sessionv1.ListSessionsByAgentInstanceRequest) (*sessionv1.SessionList, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, req)
 
-	p := c.buildListByAgentPipeline()
+	p := c.buildListByAgentInstancePipeline()
 
 	if err := p.Execute(reqCtx); err != nil {
 		return nil, err
@@ -40,12 +40,12 @@ func (c *SessionController) ListByAgent(ctx context.Context, req *sessionv1.List
 	return sessionList, nil
 }
 
-// buildListByAgentPipeline constructs the pipeline for list-by-agent operations
-func (c *SessionController) buildListByAgentPipeline() *pipeline.Pipeline[*sessionv1.ListSessionsByAgentRequest] {
+// buildListByAgentInstancePipeline constructs the pipeline for list-by-agent-instance operations
+func (c *SessionController) buildListByAgentInstancePipeline() *pipeline.Pipeline[*sessionv1.ListSessionsByAgentInstanceRequest] {
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
-	return pipeline.NewPipeline[*sessionv1.ListSessionsByAgentRequest]("session-list-by-agent").
-		AddStep(steps.NewValidateProtoStep[*sessionv1.ListSessionsByAgentRequest]()). // 1. Validate input
-		AddStep(sessionsteps.NewFilterByAgentInstanceStep(c.store)).                  // 2. Filter by agent_instance_id
+	return pipeline.NewPipeline[*sessionv1.ListSessionsByAgentInstanceRequest]("session-list-by-agent-instance").
+		AddStep(steps.NewValidateProtoStep[*sessionv1.ListSessionsByAgentInstanceRequest]()). // 1. Validate input
+		AddStep(sessionsteps.NewFilterByAgentInstanceStep(c.store)).                          // 2. Filter by agent_instance_id
 		Build()
 }

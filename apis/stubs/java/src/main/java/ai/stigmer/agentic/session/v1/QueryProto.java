@@ -41,21 +41,22 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "stigmer/agentic/session/v1/io.proto\0328ai/" +
       "stigmer/commons/apiresource/rpc_service_" +
       "options.proto\032+ai/stigmer/commons/rpc/me" +
-      "thod_options.proto2\220\003\n\026SessionQueryContr" +
+      "thod_options.proto2\241\003\n\026SessionQueryContr" +
       "oller\022\205\001\n\003get\022(.ai.stigmer.agentic.sessi" +
       "on.v1.SessionId\032&.ai.stigmer.agentic.ses" +
       "sion.v1.Session\",\302\270\030(\010\001\020*\"\005value*\033unauth" +
       "orized to get session\022l\n\004list\0222.ai.stigm" +
       "er.agentic.session.v1.ListSessionsReques" +
       "t\032*.ai.stigmer.agentic.session.v1.Sessio" +
-      "nList\"\004\320\270\030\001\022z\n\013listByAgent\0229.ai.stigmer." +
-      "agentic.session.v1.ListSessionsByAgentRe" +
-      "quest\032*.ai.stigmer.agentic.session.v1.Se" +
-      "ssionList\"\004\320\270\030\001\032\004\240\377+*B\245\001B\nQueryProtoP\001\242\002" +
-      "\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035" +
-      "Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigm" +
-      "er\\Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::" +
-      "Stigmer::Agentic::Session::V1b\006proto3"
+      "nList\"\004\320\270\030\001\022\212\001\n\023listByAgentInstance\022A.ai" +
+      ".stigmer.agentic.session.v1.ListSessions" +
+      "ByAgentInstanceRequest\032*.ai.stigmer.agen" +
+      "tic.session.v1.SessionList\"\004\320\270\030\001\032\004\240\377+*B\245" +
+      "\001B\nQueryProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agen" +
+      "tic.Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Sess" +
+      "ion\\V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\G" +
+      "PBMetadata\352\002!Ai::Stigmer::Agentic::Sessi" +
+      "on::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

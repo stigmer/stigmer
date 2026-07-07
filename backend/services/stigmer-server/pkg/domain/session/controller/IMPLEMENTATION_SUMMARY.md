@@ -20,7 +20,7 @@ Implemented complete Session controller for Stigmer OSS following the pipeline f
 - [x] `get.go` - Get by ID handler with pipeline
 - [x] `get_by_reference.go` - Get by slug handler with pipeline
 - [x] `list.go` - List all sessions handler with pipeline
-- [x] `list_by_agent.go` - List by agent instance handler with pipeline
+- [x] `list_by_agent_instance.go` - List by agent instance handler with pipeline
 - [x] `README.md` - Comprehensive architecture documentation
 - [x] `IMPLEMENTATION_SUMMARY.md` - This file
 
@@ -39,7 +39,7 @@ Implemented complete Session controller for Stigmer OSS following the pipeline f
 **SessionQueryController:**
 - [x] `get` - Get session by ID
 - [x] `list` - List all sessions
-- [x] `listByAgent` - List sessions for specific agent
+- [x] `listByAgentInstance` - List sessions for a specific agent instance
 
 **Additional (not in proto but useful):**
 - [x] `GetByReference` - Get session by slug (ApiResourceReference)
@@ -78,7 +78,7 @@ Business logic from Java handlers correctly translated:
 | SessionDeleteHandler | delete.go | ✅ Standard delete pipeline |
 | SessionGetHandler | get.go | ✅ Standard get pipeline |
 | SessionListHandler | list.go | ✅ Simplified (no IAM filtering) |
-| SessionListByAgentHandler | list_by_agent.go | ✅ Custom filter step |
+| SessionListByAgentInstanceHandler | list_by_agent_instance.go | ✅ Custom filter step |
 
 ## Key Implementation Details
 
@@ -135,7 +135,7 @@ session/
 ├── get.go                        # 42 lines - get + pipeline
 ├── get_by_reference.go           # 46 lines - get by slug + pipeline
 ├── list.go                       # 103 lines - list all + custom step
-├── list_by_agent.go              # 45 lines - list by agent + pipeline
+├── list_by_agent_instance.go     # 45 lines - list by agent instance + pipeline
 ├── steps/                        # Custom pipeline steps
 │   └── filter_by_agent_instance.go # 88 lines
 ├── README.md                     # 588 lines - comprehensive docs
@@ -170,8 +170,8 @@ Create `session_controller_test.go` with tests for:
 - [ ] GetByReference - with org filter
 - [ ] List - empty list
 - [ ] List - multiple sessions
-- [ ] ListByAgent - filter by agent_instance_id
-- [ ] ListByAgent - no matching sessions
+- [ ] ListByAgentInstance - filter by agent_instance_id
+- [ ] ListByAgentInstance - no matching sessions
 - [ ] Apply - create new
 - [ ] Apply - update existing
 
@@ -204,7 +204,7 @@ sessionv1.RegisterSessionQueryControllerServer(grpcServer, sessionCtrl)
 | **Default Instance** | ❌ None | ✅ Creates AgentInstance |
 | **Status Updates** | ❌ No post-creation | ✅ Updates with instance ID |
 | **Custom Steps** | 1 (filter) | 2 (create instance, update status) |
-| **List Operations** | List, ListByAgent | None yet |
+| **List Operations** | List, ListByAgentInstance | None yet |
 | **Owner Scopes** | org, identity_account | org, identity_account, platform |
 | **Dependencies** | BadgerDB | BadgerDB + AgentInstance client |
 

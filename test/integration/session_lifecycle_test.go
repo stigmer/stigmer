@@ -293,7 +293,7 @@ func TestSession_List_OffsetPagination(t *testing.T) {
 		page0.GetTotalPages(), foundCount, len(createdIDs))
 }
 
-func TestSession_ListByAgent_FiltersByInstanceId(t *testing.T) {
+func TestSession_ListByAgentInstance_FiltersByInstanceId(t *testing.T) {
 	require.NotNil(t, grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -301,10 +301,10 @@ func TestSession_ListByAgent_FiltersByInstanceId(t *testing.T) {
 
 	clients := harness.NewClients(grpcConn)
 
-	agent1 := harness.CreateAgent(t, ctx, clients, "test-listbyagent-a",
-		"You are test agent A for ListByAgent filtering verification.")
-	agent2 := harness.CreateAgent(t, ctx, clients, "test-listbyagent-b",
-		"You are test agent B for ListByAgent filtering verification.")
+	agent1 := harness.CreateAgent(t, ctx, clients, "test-listbyagentinstance-a",
+		"You are test agent A for listByAgentInstance filtering verification.")
+	agent2 := harness.CreateAgent(t, ctx, clients, "test-listbyagentinstance-b",
+		"You are test agent B for listByAgentInstance filtering verification.")
 
 	instanceID1 := agent1.GetStatus().GetDefaultInstanceId()
 	instanceID2 := agent2.GetStatus().GetDefaultInstanceId()
@@ -313,13 +313,13 @@ func TestSession_ListByAgent_FiltersByInstanceId(t *testing.T) {
 	s1b := createRawSession(t, ctx, clients, instanceID1, "agent1-session-b")
 	s2a := createRawSession(t, ctx, clients, instanceID2, "agent2-session-a")
 
-	// ListByAgent filters by agent_instance_id despite the proto field being
-	// named "agent_id". The Java handler uses the value as spec.agentInstanceId
-	// in the Mongo query (SessionListByAgentHandler.java).
-	list1, err := clients.SessionQuery.ListByAgent(ctx, &sessionv1.ListSessionsByAgentRequest{
-		AgentId: instanceID1,
+	// listByAgentInstance filters sessions by spec.agent_instance_id. The Java
+	// handler uses the request's agent_instance_id as spec.agentInstanceId in the
+	// Mongo query (SessionListByAgentInstanceHandler.java).
+	list1, err := clients.SessionQuery.ListByAgentInstance(ctx, &sessionv1.ListSessionsByAgentInstanceRequest{
+		AgentInstanceId: instanceID1,
 	})
-	require.NoError(t, err, "listByAgent for instance1 should succeed")
+	require.NoError(t, err, "listByAgentInstance for instance1 should succeed")
 
 	foundS1a := false
 	foundS1b := false
@@ -335,12 +335,12 @@ func TestSession_ListByAgent_FiltersByInstanceId(t *testing.T) {
 		}
 	}
 
-	assert.True(t, foundS1a, "agent1 session A should appear in ListByAgent results")
-	assert.True(t, foundS1b, "agent1 session B should appear in ListByAgent results")
+	assert.True(t, foundS1a, "agent1 session A should appear in listByAgentInstance results")
+	assert.True(t, foundS1b, "agent1 session B should appear in listByAgentInstance results")
 	assert.False(t, foundS2a,
 		"agent2 session should NOT appear when filtering by agent1's instance ID")
 
-	t.Logf("listByAgent filtering verified: instance=%s returned %d sessions, "+
+	t.Logf("listByAgentInstance filtering verified: instance=%s returned %d sessions, "+
 		"found expected=%v/%v, excluded=%v",
 		instanceID1, len(list1.GetEntries()), foundS1a, foundS1b, !foundS2a)
 }

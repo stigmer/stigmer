@@ -9,7 +9,7 @@ import { ToolApprovalOverrideSchema, McpServerUsageSchema } from "@stigmer/proto
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionIdSchema, UpdateSessionSubjectRequestSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, type UpdateSessionSubjectRequest, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionIdSchema, UpdateSessionSubjectRequestSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentInstanceRequestSchema, type UpdateSessionSubjectRequest, type ListSessionsRequest, type SessionList, type ListSessionsByAgentInstanceRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -69,9 +69,9 @@ export class SessionClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async listByAgent(input: ListSessionsByAgentRequest): Promise<SessionList> {
+  async listByAgentInstance(input: ListSessionsByAgentInstanceRequest): Promise<SessionList> {
     try {
-      return await this.query.listByAgent(input);
+      return await this.query.listByAgentInstance(input);
     } catch (e) { throw wrapError(e); }
   }
 }

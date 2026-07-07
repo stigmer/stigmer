@@ -59,8 +59,8 @@ func (s *SessionClient) List(ctx context.Context, input *sessionv1.ListSessionsR
 	return resp, wrapErr(err)
 }
 
-func (s *SessionClient) ListByAgent(ctx context.Context, input *sessionv1.ListSessionsByAgentRequest) (*sessionv1.SessionList, error) {
-	resp, err := s.query.ListByAgent(ctx, input)
+func (s *SessionClient) ListByAgentInstance(ctx context.Context, input *sessionv1.ListSessionsByAgentInstanceRequest) (*sessionv1.SessionList, error) {
+	resp, err := s.query.ListByAgentInstance(ctx, input)
 	return resp, wrapErr(err)
 }
 

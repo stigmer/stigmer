@@ -67,9 +67,9 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def list_by_agent(self, input: io_pb2.ListSessionsByAgentRequest) -> io_pb2.SessionList:
+    def list_by_agent_instance(self, input: io_pb2.ListSessionsByAgentInstanceRequest) -> io_pb2.SessionList:
         try:
-            return self._query.listByAgent(input)
+            return self._query.listByAgentInstance(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

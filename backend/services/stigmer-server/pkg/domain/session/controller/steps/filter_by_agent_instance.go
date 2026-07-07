@@ -13,7 +13,7 @@ import (
 // filterByAgentInstanceStep loads all sessions and filters by agent_instance_id
 //
 // This step:
-// 1. Extracts agent_id from ListSessionsByAgentRequest
+// 1. Extracts agent_instance_id from ListSessionsByAgentInstanceRequest
 // 2. Lists all sessions from database
 // 3. Filters sessions where spec.agent_instance_id matches
 // 4. Stores filtered sessions in context for BuildListResponseStep
@@ -34,12 +34,12 @@ func (s *filterByAgentInstanceStep) Name() string {
 	return "FilterByAgentInstance"
 }
 
-func (s *filterByAgentInstanceStep) Execute(ctx *pipeline.RequestContext[*sessionv1.ListSessionsByAgentRequest]) error {
+func (s *filterByAgentInstanceStep) Execute(ctx *pipeline.RequestContext[*sessionv1.ListSessionsByAgentInstanceRequest]) error {
 	req := ctx.Input()
-	agentInstanceID := req.GetAgentId()
+	agentInstanceID := req.GetAgentInstanceId()
 
 	if agentInstanceID == "" {
-		return grpclib.InvalidArgumentError("agent_id is required")
+		return grpclib.InvalidArgumentError("agent_instance_id is required")
 	}
 
 	log.Debug().

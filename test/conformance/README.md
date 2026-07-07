@@ -74,9 +74,8 @@ Covered against the `local-go` target:
   semantic is applied at execution dispatch, not at create — while an explicit
   `harness`/`execution_target` round-trips); the field-level **`updateSubject`**
   contract (only `spec.subject` changes, every other field is preserved); the
-  queries `list` and **`listByAgent`** (note: the filter matches
-  `spec.agent_instance_id`, so the value passed for the proto's `agent_id` field is
-  an agent *instance* id — Finding F6); and spec-first negatives. Session has **no
+  queries `list` and **`listByAgentInstance`** (filters `spec.agent_instance_id`
+  by the request's `agent_instance_id`); and spec-first negatives. Session has **no
   Temporal involvement**, so the lifecycle-bound behaviors it only gates — the
   `harness_state_id` sentinel and the `harness`/`execution_target` immutability it
   enables once an execution has run, plus the runtime merge of session-level

@@ -64,7 +64,7 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get a single session by ID. |
 | [`list`](#list) | List all sessions with pagination and optional filtering. |
-| [`listByAgent`](#listbyagent) | List all sessions for a specific agent. |
+| [`listByAgentInstance`](#listbyagentinstance) | List all sessions for a specific agent instance. |
 | [`apply`](#apply) | Create or update a session. |
 | [`create`](#create) | Create a session. |
 | [`update`](#update) | Update an existing session (e.g., subject, thread_id). |
@@ -153,15 +153,15 @@ SessionList result = client.sessions().list(ListSessionsRequest.builder()
 
 **Returns**: [`SessionList`](#sessionlist)
 
-### listByAgent
+### listByAgentInstance
 
-List all sessions for a specific agent.
+List all sessions for a specific agent instance.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.session.listByAgent({
-  agentId: "...",
+const result = await stigmer.session.listByAgentInstance({
+  agentInstanceId: "...",
   pageSize: 0,
   pageToken: "...",
 });
@@ -169,17 +169,17 @@ const result = await stigmer.session.listByAgent({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Session.ListByAgent(ctx, &stigmer.ListSessionsByAgentRequest{
-  AgentId:   "...",
-  PageSize:  0,
-  PageToken: "...",
+result, err := client.Session.ListByAgentInstance(ctx, &stigmer.ListSessionsByAgentInstanceRequest{
+  AgentInstanceId: "...",
+  PageSize:        0,
+  PageToken:       "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.sessions.list_by_agent(ListSessionsByAgentRequest(
-    agent_id="...",
+result = client.sessions.list_by_agent_instance(ListSessionsByAgentInstanceRequest(
+    agent_instance_id="...",
     page_size=0,
     page_token="...",
 ))
@@ -187,8 +187,8 @@ result = client.sessions.list_by_agent(ListSessionsByAgentRequest(
 </Tab>
 <Tab value="Java">
 ```java
-SessionList result = client.sessions().listByAgent(ListSessionsByAgentRequest.builder()
-    .agentId("...")
+SessionList result = client.sessions().listByAgentInstance(ListSessionsByAgentInstanceRequest.builder()
+    .agentInstanceId("...")
     .pageSize(0)
     .pageToken("...")
     .build());
@@ -196,7 +196,7 @@ SessionList result = client.sessions().listByAgent(ListSessionsByAgentRequest.bu
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ListSessionsByAgentRequest`](#listsessionsbyagentrequest)
+**Parameters**: [`ListSessionsByAgentInstanceRequest`](#listsessionsbyagentinstancerequest)
 
 **Returns**: [`SessionList`](#sessionlist)
 
@@ -695,13 +695,13 @@ SessionList contains a paginated list of sessions.
   }}
 />
 
-### ListSessionsByAgentRequest
+### ListSessionsByAgentInstanceRequest
 
-ListSessionsByAgentRequest lists all sessions for a specific agent.
+ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.
 
 <TypeTable
   type={{
-    agentId: { type: "string", description: "Agent ID to filter by.", required: true },
+    agentInstanceId: { type: "string", description: "Agent instance ID to filter by.", required: true },
     pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
     pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
   }}

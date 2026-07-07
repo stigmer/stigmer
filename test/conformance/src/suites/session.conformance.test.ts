@@ -5,7 +5,7 @@
 // Drives SessionCommandController + SessionQueryController through the raw proto
 // stubs and asserts the contract: CRUD round-trips, apply create/update branching,
 // immutable identity fields, the configuration fields (harness / execution_target),
-// the field-level updateSubject contract, list / listByAgent queries, slug
+// the field-level updateSubject contract, list / listByAgentInstance queries, slug
 // semantics, and spec-first negative paths.
 //
 // Session has NO Temporal involvement — it only persists conversation
@@ -274,7 +274,7 @@ describe("Session conformance — queries", () => {
     expect(ids).toContain(b.metadata?.id);
   });
 
-  it("listByAgent returns only the sessions for the given agent instance", async () => {
+  it("listByAgentInstance returns only the sessions for the given agent instance", async () => {
     const { org } = await target.provisionTenancy();
     const instanceOne = await provisionAgentInstance(org);
     const instanceTwo = await provisionAgentInstance(org);
@@ -282,25 +282,23 @@ describe("Session conformance — queries", () => {
     const forOne = await createSession(org, uniqueName("session"), instanceOne);
     await createSession(org, uniqueName("session"), instanceTwo);
 
-    // Finding F6: despite the field being named agent_id, the OSS filter matches
-    // spec.agent_instance_id, so the value passed must be an agent INSTANCE id.
-    const listed = await clients.sessionQuery.listByAgent({ agentId: instanceOne });
+    const listed = await clients.sessionQuery.listByAgentInstance({ agentInstanceId: instanceOne });
     const ids = listed.entries.map((s) => s.metadata?.id);
 
     expect(ids).toContain(forOne.metadata?.id);
     expect(ids).toHaveLength(1);
   });
 
-  it("listByAgent returns an empty list for an unknown agent instance", async () => {
-    const listed = await clients.sessionQuery.listByAgent({ agentId: "ain_doesnotexist" });
+  it("listByAgentInstance returns an empty list for an unknown agent instance", async () => {
+    const listed = await clients.sessionQuery.listByAgentInstance({ agentInstanceId: "ain_doesnotexist" });
     expect(listed.entries).toHaveLength(0);
   });
 
-  it("listByAgent rejects an empty agent_id with InvalidArgument", () =>
+  it("listByAgentInstance rejects an empty agent_instance_id with InvalidArgument", () =>
     expectGrpcCode(
-      () => clients.sessionQuery.listByAgent({ agentId: "" }),
+      () => clients.sessionQuery.listByAgentInstance({ agentInstanceId: "" }),
       Code.InvalidArgument,
-      "listByAgent empty agent_id",
+      "listByAgentInstance empty agent_instance_id",
     ));
 });
 

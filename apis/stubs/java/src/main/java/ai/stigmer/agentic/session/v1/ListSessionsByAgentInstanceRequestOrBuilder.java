@@ -6,29 +6,29 @@
 package ai.stigmer.agentic.session.v1;
 
 @com.google.protobuf.Generated
-public interface ListSessionsByAgentRequestOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest)
+public interface ListSessionsByAgentInstanceRequestOrBuilder extends
+    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest)
     com.google.protobuf.MessageOrBuilder {
 
   /**
    * <pre>
-   * Agent ID to filter by.
+   * Agent instance ID to filter by.
    * </pre>
    *
-   * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
-   * @return The agentId.
+   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+   * @return The agentInstanceId.
    */
-  java.lang.String getAgentId();
+  java.lang.String getAgentInstanceId();
   /**
    * <pre>
-   * Agent ID to filter by.
+   * Agent instance ID to filter by.
    * </pre>
    *
-   * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for agentId.
+   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for agentInstanceId.
    */
   com.google.protobuf.ByteString
-      getAgentIdBytes();
+      getAgentInstanceIdBytes();
 
   /**
    * <pre>
