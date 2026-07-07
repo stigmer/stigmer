@@ -1906,7 +1906,13 @@ Renders a single workspace write-back outcome as a compact card.
 
 Shows the workspace entry name, branch, diff summary, phase
 indicator, and a "View PR" link when the pull request was
-successfully created. On failure, displays the error message.
+successfully created.
+
+Error rendering follows the record's phase honestly (DD-006):
+a FAILED record's error is destructive (the work did not reach the
+remote), while a PUSHED record carrying an error renders it as a
+degraded notice — the branch is live and its info stays usable; only
+the PR step failed.
 
 Themed via standard semantic tokens — no hardcoded colors, no
 Console dependencies. Embedders can theme this card through
