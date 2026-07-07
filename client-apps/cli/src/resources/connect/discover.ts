@@ -21,7 +21,8 @@ import {
 import type { JsonObject } from "@bufbuild/protobuf";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { mergeProcessEnv } from "../mcp/runtime-env.js";
+import { mergeProcessEnv, resolveDeclaredEnvValues } from "../mcp/runtime-env.js";
+import { resolveHeaders, resolvePlaceholders } from "../mcp/placeholder-resolver.js";
 
 /** Discover an MCP server's capabilities locally without persisting to the backend. */
 export async function localDiscover(
@@ -79,13 +80,21 @@ interface BuiltTransport {
 }
 
 async function buildTransport(spec: McpServerSpec, envOverrides: readonly string[]): Promise<BuiltTransport> {
+  // ${VAR} placeholders in args/headers resolve against the exact same env the
+  // backend hands the runner for real connect (declared keys from the OS env +
+  // --env overrides) — so dry-run is a faithful preview. Resolution is strict:
+  // an unresolved placeholder throws before any subprocess is spawned, matching
+  // the proto contract (never pass a literal "${VAR}" to the server).
+  const resolutionEnv = resolveDeclaredEnvValues(spec.env ?? {}, envOverrides);
+
   if (spec.serverType?.case === "stdio") {
     const { command, args, workingDir } = spec.serverType.value;
     if (command === "") throw new Error("stdio transport requires a command");
+    const resolvedArgs = args.map((arg, i) => resolvePlaceholders(arg, resolutionEnv, `stdio arg[${i}]`));
     const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
     const transport = new StdioClientTransport({
       command,
-      args: [...args],
+      args: resolvedArgs,
       cwd: workingDir !== "" ? workingDir : undefined,
       env: mergeProcessEnv([...envOverrides, ...goRunEnvOverrides(command, args)]),
       // "pipe" exposes the child stderr as a PassThrough immediately, so we can
@@ -104,8 +113,11 @@ async function buildTransport(spec: McpServerSpec, envOverrides: readonly string
     const { url, headers } = spec.serverType.value;
     if (url === "") throw new Error("HTTP transport requires a URL");
     const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
-    const requestInit = Object.keys(headers).length > 0 ? { headers: { ...headers } } : undefined;
-    const transport = new StreamableHTTPClientTransport(new URL(url), requestInit ? { requestInit } : undefined);
+    const resolvedHeaders = Object.keys(headers).length > 0 ? resolveHeaders(headers, resolutionEnv) : undefined;
+    const transport = new StreamableHTTPClientTransport(
+      new URL(url),
+      resolvedHeaders ? { requestInit: { headers: resolvedHeaders } } : undefined,
+    );
     return { transport, readStderr: () => "" };
   }
 

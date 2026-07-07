@@ -3,8 +3,9 @@
 // Spawned as a subprocess by discover.ts via StdioClientTransport. Advertises a
 // single tool and a single resource template using the low-level Server API
 // (the most version-stable surface of @modelcontextprotocol/sdk). It also echoes
-// an --env-provided value through the tool description so tests can assert env
-// propagation when needed.
+// an --env-provided value AND the CLI args it received (process.argv beyond the
+// script path) through the tool description, so tests can assert env propagation
+// and ${VAR} argument expansion.
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -18,11 +19,15 @@ const server = new Server(
   { capabilities: { tools: {}, resources: {} } },
 );
 
+const receivedArgs = process.argv.slice(2);
+
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "echo",
-      description: `echo a message (token=${process.env.FIXTURE_TOKEN ?? "unset"})`,
+      description:
+        `echo a message (token=${process.env.FIXTURE_TOKEN ?? "unset"}) ` +
+        `(args=${JSON.stringify(receivedArgs)})`,
       inputSchema: { type: "object", properties: { text: { type: "string" } } },
     },
     { name: "noop", description: "", inputSchema: { type: "object" } },

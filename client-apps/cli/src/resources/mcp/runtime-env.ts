@@ -37,6 +37,39 @@ export function parseEnvOverrides(overrides: readonly string[]): Record<string, 
 }
 
 /**
+ * Resolve the values behind a server's declared env vars: declared keys pulled
+ * from the OS environment (non-empty only), with `--env` overrides layered on
+ * top (override wins; an undeclared override is still included).
+ *
+ * This is the single source of truth for "which env value is in play". It backs
+ * both the runtime_env sent to the backend (buildRuntimeEnv) and the ${VAR}
+ * placeholder resolution done locally for `--dry-run` (discover.ts), so the two
+ * can never drift: dry-run resolves against the exact same map the backend hands
+ * the runner (minus platform-injected infra vars, which a local machine cannot
+ * know).
+ *
+ * `declarations` is the server's `spec.env` map; only its keys (the declared
+ * variable names) are read, so any map keyed by those names is accepted.
+ */
+export function resolveDeclaredEnvValues(
+  declarations: Record<string, unknown>,
+  envOverrides: readonly string[] = [],
+): Record<string, string> {
+  const values: Record<string, string> = {};
+
+  for (const key of Object.keys(declarations)) {
+    const value = process.env[key];
+    if (value !== undefined && value !== "") values[key] = value;
+  }
+
+  for (const [key, value] of Object.entries(parseEnvOverrides(envOverrides))) {
+    values[key] = value;
+  }
+
+  return values;
+}
+
+/**
  * Build the runtime_env map for the Connect RPC from the OS environment and the
  * supplied --env overrides. Only keys with a non-empty value are emitted.
  */
@@ -45,17 +78,10 @@ export function buildRuntimeEnv(
   envOverrides: readonly string[] = [],
 ): Record<string, ExecutionValue> {
   const declarations = server.spec?.env ?? {};
-  const overrides = parseEnvOverrides(envOverrides);
+  const values = resolveDeclaredEnvValues(declarations, envOverrides);
   const runtime: Record<string, ExecutionValue> = {};
 
-  for (const [key, decl] of Object.entries(declarations)) {
-    const value = process.env[key];
-    if (value !== undefined && value !== "") {
-      runtime[key] = create(ExecutionValueSchema, { value, isSecret: decl.isSecret });
-    }
-  }
-
-  for (const [key, value] of Object.entries(overrides)) {
+  for (const [key, value] of Object.entries(values)) {
     runtime[key] = create(ExecutionValueSchema, { value, isSecret: declarations[key]?.isSecret ?? false });
   }
 

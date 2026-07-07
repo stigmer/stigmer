@@ -18,6 +18,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import type { BackendType } from "../../config/config.js";
 import { UsageError } from "../../errors/index.js";
 import { defaultRegistry } from "../../registry/index.js";
+import { PlaceholderResolutionError } from "../mcp/placeholder-resolver.js";
 import { buildRuntimeEnv } from "../mcp/runtime-env.js";
 import { parseReference } from "../reference.js";
 import { localDiscover } from "./discover.js";
@@ -47,8 +48,16 @@ export async function connectMcpServer(client: Stigmer, opts: ConnectOptions): P
 
   if (opts.dryRun) {
     if (server.spec === undefined) throw new UsageError("MCP server has no spec; cannot discover capabilities");
-    const capabilities = await localDiscover(server.spec, opts.envOverrides, opts.timeoutMs);
-    return { server, capabilities, updated: undefined };
+    try {
+      const capabilities = await localDiscover(server.spec, opts.envOverrides, opts.timeoutMs);
+      return { server, capabilities, updated: undefined };
+    } catch (err) {
+      // A ${VAR} placeholder that could not be resolved is a configuration
+      // problem, not a discovery failure — surface it as actionable guidance
+      // instead of a raw resolver error or a cryptic subprocess crash.
+      if (err instanceof PlaceholderResolutionError) throw unresolvedEnvError(server, err);
+      throw err;
+    }
   }
 
   await ensureOAuthSatisfied(client, server, opts);
@@ -91,6 +100,27 @@ async function ensureOAuthSatisfied(client: Stigmer, server: McpServer, opts: Co
 
   const { runOAuthFlow } = await import("./oauth.js");
   await runOAuthFlow({ client, server, org: opts.org, backendType: opts.backendType });
+}
+
+// Turn a strict-resolution failure into actionable guidance. A declared-but-unset
+// variable is the user's to provide; an undeclared one is a bug in the server
+// definition. Both are far clearer than the cryptic subprocess crash (ENOENT on a
+// literal "${VAR}" path) that motivated issue #141.
+function unresolvedEnvError(server: McpServer, err: PlaceholderResolutionError): UsageError {
+  const slug = server.metadata?.slug ?? server.metadata?.name ?? server.metadata?.id ?? "this server";
+  const decl = server.spec?.env?.[err.variableName];
+  if (decl) {
+    const hint = decl.description !== "" ? ` (${decl.description})` : "";
+    return new UsageError(
+      `MCP server '${slug}' needs environment variable ${err.variableName}${hint}, but it is not set.\n` +
+        `Provide it with --env ${err.variableName}=<value> or export it in your shell before running --dry-run.`,
+    );
+  }
+  const where = err.context !== undefined ? ` in its ${err.context}` : "";
+  return new UsageError(
+    `MCP server '${slug}' references \${${err.variableName}}${where} but does not declare ${err.variableName} under spec.env.\n` +
+      `This is a problem with the server definition — declare ${err.variableName} in the server's env, or remove the placeholder.`,
+  );
 }
 
 function oauthGuidanceError(server: McpServer, reference: string): UsageError {

@@ -4,10 +4,16 @@ import { create } from "@bufbuild/protobuf";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/index.js";
-import { buildRuntimeEnv, mergeProcessEnv, parseEnvOverrides } from "./runtime-env.js";
+import { buildRuntimeEnv, mergeProcessEnv, parseEnvOverrides, resolveDeclaredEnvValues } from "./runtime-env.js";
 
 function serverWithEnv(env: Record<string, { isSecret: boolean }>) {
   return create(McpServerSchema, { metadata: { id: "mcp_1" }, spec: { env } });
+}
+
+// resolveDeclaredEnvValues takes the raw declarations map; the tests only rely on
+// keys being present, so a minimal declaration object is sufficient.
+function decls(...keys: string[]) {
+  return Object.fromEntries(keys.map((k) => [k, { isSecret: false }]));
 }
 
 describe("parseEnvOverrides", () => {
@@ -64,5 +70,33 @@ describe("mergeProcessEnv", () => {
     const merged = mergeProcessEnv(["PATH=/custom", "NEW=1"]);
     expect(merged.PATH).toBe("/custom");
     expect(merged.NEW).toBe("1");
+  });
+});
+
+describe("resolveDeclaredEnvValues", () => {
+  const original = process.env;
+  beforeEach(() => {
+    process.env = { ...original, ALLOWED_DIR: "/from-os", EMPTY_VAR: "" };
+  });
+  afterEach(() => {
+    process.env = original;
+  });
+
+  it("pulls declared keys from the OS environment", () => {
+    expect(resolveDeclaredEnvValues(decls("ALLOWED_DIR"))).toEqual({ ALLOWED_DIR: "/from-os" });
+  });
+
+  it("skips declared keys that are unset or empty in the environment", () => {
+    expect(resolveDeclaredEnvValues(decls("EMPTY_VAR", "MISSING"))).toEqual({});
+  });
+
+  it("lets --env overrides win over the OS environment", () => {
+    expect(resolveDeclaredEnvValues(decls("ALLOWED_DIR"), ["ALLOWED_DIR=/override"])).toEqual({
+      ALLOWED_DIR: "/override",
+    });
+  });
+
+  it("includes an --env override even when the key is undeclared (matches buildRuntimeEnv)", () => {
+    expect(resolveDeclaredEnvValues(decls(), ["EXTRA=1"])).toEqual({ EXTRA: "1" });
   });
 });
