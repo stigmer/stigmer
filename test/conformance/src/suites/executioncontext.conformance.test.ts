@@ -23,7 +23,6 @@
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -283,21 +282,18 @@ describe("ExecutionContext conformance — negative paths", () => {
     const name = uniqueName("dup");
     await createExecutionContext(org, name);
 
-    // create's duplicate check is the shared CheckDuplicateStep whose plain error
-    // degrades to Unknown on local-go — the same recorded deviation as elsewhere.
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    // create's duplicate check is the shared CheckDuplicateStep, which returns a
+    // typed AlreadyExists on every target.
+    await expectGrpcCode(
       () => clients.executionContextCommand.create(makeExecutionContext({ org, name })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
 
   it("rejects a create with no name (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.executionContextCommand.create({
           apiVersion: EXECUTION_CONTEXT_API_VERSION,
@@ -305,6 +301,7 @@ describe("ExecutionContext conformance — negative paths", () => {
           metadata: { org },
           spec: makeExecutionContextSpec(),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

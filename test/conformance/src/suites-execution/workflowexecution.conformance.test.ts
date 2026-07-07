@@ -26,7 +26,6 @@ import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/work
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -425,10 +424,9 @@ describe("WorkflowExecution conformance — create negative paths", () => {
     const name = uniqueName("dup");
     await createExecution(org, workflowId, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () => clients.workflowExecutionCommand.create(makeWorkflowExecution({ org, name, workflowId })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -437,10 +435,8 @@ describe("WorkflowExecution conformance — create negative paths", () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     // workflow_id is valid so resolution proceeds to ResolveSlugStep, which is
-    // what rejects the empty name (as a plain error -> Unknown on local-go).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    // what rejects the empty name with a typed InvalidArgument on every target.
+    await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.create({
           apiVersion: WORKFLOW_EXECUTION_API_VERSION,
@@ -448,6 +444,7 @@ describe("WorkflowExecution conformance — create negative paths", () => {
           metadata: { org },
           spec: { workflowId },
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

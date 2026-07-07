@@ -1,9 +1,11 @@
 package steps
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
@@ -46,20 +48,22 @@ func (s *CheckDuplicateStep[T]) Name() string {
 func (s *CheckDuplicateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	resource := ctx.NewState()
 
-	// Type assertion to access metadata
+	// Type assertion to access metadata. These invariants are established by
+	// earlier pipeline steps, so a failure here is a server-side programming
+	// error, not bad client input — hence Internal, not InvalidArgument.
 	metadataResource, ok := any(resource).(HasMetadata)
 	if !ok {
-		return fmt.Errorf("resource does not implement HasMetadata interface")
+		return grpclib.InternalError(errors.New("resource does not implement HasMetadata interface"), "duplicate check")
 	}
 
 	metadata := metadataResource.GetMetadata()
 	if metadata == nil {
-		return fmt.Errorf("resource metadata is nil")
+		return grpclib.InternalError(errors.New("resource metadata is nil"), "duplicate check")
 	}
 
-	// Verify slug is set
+	// Verify slug is set (ResolveSlugStep runs before this step)
 	if metadata.Slug == "" {
-		return fmt.Errorf("resource slug is empty, cannot check for duplicates")
+		return grpclib.InternalError(errors.New("resource slug is empty"), "duplicate check")
 	}
 
 	slug := metadata.Slug
@@ -70,13 +74,13 @@ func (s *CheckDuplicateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 
 	existing, found, err := FindResourceBySlug[T](ctx.Context(), s.store, kind, slug, org)
 	if err != nil {
-		return fmt.Errorf("failed to check for duplicates: %w", err)
+		return grpclib.InternalError(err, "failed to check for duplicates")
 	}
 
 	if found {
 		existingMetadata := any(existing).(HasMetadata).GetMetadata()
 		kindName, _ := apiresource.GetKindName(kind)
-		return fmt.Errorf("%s with slug '%s' already exists in org '%s' (id: %s)", kindName, slug, existingMetadata.Org, existingMetadata.Id)
+		return grpclib.AlreadyExistsError(kindName, fmt.Sprintf("slug '%s' in org '%s' (id: %s)", slug, existingMetadata.Org, existingMetadata.Id))
 	}
 
 	return nil

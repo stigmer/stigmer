@@ -18,7 +18,6 @@ import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/a
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -155,15 +154,14 @@ describe("Workflow conformance — CRUD & identity", () => {
 
   it("rejects a workflow without a spec (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    await expectCodeOrDeviation(
-      target.name,
-      "workflow.create.missing-spec.code",
+    await expectGrpcCode(
       () =>
         clients.workflowCommand.create({
           apiVersion: WORKFLOW_API_VERSION,
           kind: WORKFLOW_KIND,
           metadata: { name: uniqueName("nospec"), org },
         }),
+      Code.InvalidArgument,
       "create without spec",
     );
   });
@@ -173,10 +171,9 @@ describe("Workflow conformance — CRUD & identity", () => {
     const name = uniqueName("dup");
     await createWorkflow(org, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () => clients.workflowCommand.create(makeWorkflow({ org, name })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -185,9 +182,7 @@ describe("Workflow conformance — CRUD & identity", () => {
     const { org } = await target.provisionTenancy();
     // Spec is valid so Layer 1/2 pass; the empty name is what must be rejected
     // (slug resolution has nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.workflowCommand.create({
           apiVersion: WORKFLOW_API_VERSION,
@@ -195,6 +190,7 @@ describe("Workflow conformance — CRUD & identity", () => {
           metadata: { org },
           spec: makeWorkflowSpec({ namespace: org }),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });
@@ -269,12 +265,11 @@ describe("Workflow conformance — version history", () => {
     const created = await createWorkflow(org, uniqueName("wf"));
     const id = created.metadata!.id;
 
-    // Contract: a hash violating the proto pattern is InvalidArgument. local-go
-    // skips protovalidate in this handler (deviation tracked).
-    await expectCodeOrDeviation(
-      target.name,
-      "workflow.get-version.malformed-hash.code",
+    // Contract: a hash violating the proto pattern is InvalidArgument, enforced
+    // for every target by the transport-boundary protovalidate interceptor.
+    await expectGrpcCode(
       () => clients.workflowQuery.getVersion({ workflowId: id, versionHash: "not-a-valid-hash" }),
+      Code.InvalidArgument,
       "getVersion malformed hash",
     );
     // A well-formed but unknown hash is unambiguously NotFound everywhere.

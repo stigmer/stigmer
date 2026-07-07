@@ -12,7 +12,6 @@
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -216,10 +215,9 @@ describe("McpServer conformance — negative paths", () => {
     const name = uniqueName("dup");
     await createMcpServer(org, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () => clients.mcpServerCommand.create(makeMcpServer({ org, name })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -228,9 +226,7 @@ describe("McpServer conformance — negative paths", () => {
     const { org } = await target.provisionTenancy();
     // Spec is valid so Layer 1 passes; the empty name is what must be rejected
     // (slug resolution has nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.mcpServerCommand.create({
           apiVersion: MCPSERVER_API_VERSION,
@@ -238,6 +234,7 @@ describe("McpServer conformance — negative paths", () => {
           metadata: { org },
           spec: makeMcpServerSpec(),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

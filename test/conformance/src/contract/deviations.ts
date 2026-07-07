@@ -25,45 +25,11 @@ export interface KnownDeviation {
   tracking: string;
 }
 
-export const KNOWN_DEVIATIONS: KnownDeviation[] = [
-  {
-    id: "create.duplicate.code",
-    // Same Go server, so both the CRUD and execution-engine targets exhibit it.
-    targets: ["local-go", "local-go-execution"],
-    expected: Code.AlreadyExists,
-    actual: Code.Unknown,
-    rationale:
-      "CheckDuplicateStep returns a plain fmt.Errorf, so the gRPC status is lost in the pipeline wrapper and the client sees Unknown instead of AlreadyExists.",
-    tracking: "backend/libs/go/grpc/request/pipeline/steps/duplicate.go",
-  },
-  {
-    id: "create.missing-name.code",
-    targets: ["local-go", "local-go-execution"],
-    expected: Code.InvalidArgument,
-    actual: Code.Unknown,
-    rationale:
-      "ResolveSlugStep returns a plain fmt.Errorf when name and slug are both empty, so the client sees Unknown instead of InvalidArgument.",
-    tracking: "backend/libs/go/grpc/request/pipeline/steps/slug.go",
-  },
-  {
-    id: "workflow.create.missing-spec.code",
-    targets: ["local-go"],
-    expected: Code.InvalidArgument,
-    actual: Code.Unknown,
-    rationale:
-      "Workflow.spec is not marked required at the proto level, so a spec-less create passes Layer 1 and reaches validateWorkflowSpecStep, which returns a plain fmt.Errorf for the nil spec — the gRPC status is lost and the client sees Unknown instead of InvalidArgument.",
-    tracking: "backend/services/stigmer-server/pkg/domain/workflow/controller/validate_spec_step.go",
-  },
-  {
-    id: "workflow.get-version.malformed-hash.code",
-    targets: ["local-go"],
-    expected: Code.InvalidArgument,
-    actual: Code.NotFound,
-    rationale:
-      "GetWorkflowVersionInput.version_hash declares pattern ^[a-f0-9]{64}$, but getVersion is a direct handler with no ValidateProtoStep — protovalidate never runs. A malformed hash is treated as a (nonexistent) version and falls through to the audit lookup, so the client sees NotFound instead of InvalidArgument.",
-    tracking: "backend/services/stigmer-server/pkg/domain/workflow/controller/get_version.go",
-  },
-];
+// No known deviations are currently tracked: every target returns the contract
+// gRPC code. Add an entry here (and route the assertion through
+// expectCodeOrDeviation) only when a target has a known, tracked bug that
+// returns the wrong code; remove it the moment the target is fixed.
+export const KNOWN_DEVIATIONS: KnownDeviation[] = [];
 
 // Asserts the contract code, transparently accommodating a registered deviation
 // for the active target. The deviation is reported (never silently swallowed),

@@ -21,7 +21,6 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ExecutionTarget, Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -243,6 +242,22 @@ describe("Session conformance — subject", () => {
 
     expect(updated.spec?.subject).toBe("");
   });
+
+  it("updateSubject rejects an empty id with InvalidArgument", () =>
+    // id declares required=true; the transport-boundary protovalidate interceptor
+    // enforces it before the handler runs (previously Unknown on local-go).
+    expectGrpcCode(
+      () => clients.sessionCommand.updateSubject({ id: "", subject: "anything" }),
+      Code.InvalidArgument,
+      "updateSubject empty id",
+    ));
+
+  it("updateSubject on a missing session returns NotFound", () =>
+    expectGrpcCode(
+      () => clients.sessionCommand.updateSubject({ id: "ses_doesnotexist", subject: "anything" }),
+      Code.NotFound,
+      "updateSubject missing session",
+    ));
 });
 
 describe("Session conformance — queries", () => {
@@ -361,12 +376,11 @@ describe("Session conformance — negative paths", () => {
     const name = uniqueName("dup");
     await createSession(org, name, agentInstanceId);
 
-    // create's duplicate check is the shared CheckDuplicateStep whose plain error
-    // degrades to Unknown on local-go — the same recorded deviation as elsewhere.
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    // create's duplicate check is the shared CheckDuplicateStep, which returns a
+    // typed AlreadyExists on every target.
+    await expectGrpcCode(
       () => clients.sessionCommand.create(makeSession({ org, name, agentInstanceId })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -377,9 +391,7 @@ describe("Session conformance — negative paths", () => {
     // agent_instance_id is set so default-agent resolution is skipped and the spec
     // is valid; the empty name is what must be rejected (slug resolution has
     // nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.sessionCommand.create({
           apiVersion: SESSION_API_VERSION,
@@ -387,6 +399,7 @@ describe("Session conformance — negative paths", () => {
           metadata: { org },
           spec: makeSessionSpec({ agentInstanceId }),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

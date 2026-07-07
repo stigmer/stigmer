@@ -2,10 +2,14 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "grpc",
-    srcs = ["server.go"],
+    srcs = [
+        "server.go",
+        "validator.go",
+    ],
     importpath = "github.com/stigmer/stigmer/backend/libs/go/grpc",
     visibility = ["//visibility:public"],
     deps = [
+        "@build_buf_go_protovalidate//:protovalidate",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",

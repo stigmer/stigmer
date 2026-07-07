@@ -1,9 +1,10 @@
 package steps
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"google.golang.org/protobuf/proto"
 )
@@ -41,15 +42,16 @@ func (s *ResolveSlugStep[T]) Name() string {
 func (s *ResolveSlugStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	resource := ctx.NewState()
 
-	// Type assertion to access metadata
+	// Type assertion to access metadata. This invariant is a server-side
+	// programming error if it fails, not bad client input — hence Internal.
 	metadataResource, ok := any(resource).(HasMetadata)
 	if !ok {
-		return fmt.Errorf("resource does not implement HasMetadata interface")
+		return grpclib.InternalError(errors.New("resource does not implement HasMetadata interface"), "slug resolution")
 	}
 
 	metadata := metadataResource.GetMetadata()
 	if metadata == nil {
-		return fmt.Errorf("resource metadata is nil")
+		return grpclib.InternalError(errors.New("resource metadata is nil"), "slug resolution")
 	}
 
 	// If slug already set, skip (idempotent)
@@ -57,9 +59,10 @@ func (s *ResolveSlugStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		return nil
 	}
 
-	// Generate slug from name
+	// A resource needs a name to derive a slug from; its absence is a client
+	// input error (name and slug both empty), so this is InvalidArgument.
 	if metadata.Name == "" {
-		return fmt.Errorf("resource name is empty, cannot generate slug")
+		return grpclib.InvalidArgumentError("resource name is required")
 	}
 
 	slug := GenerateSlug(metadata.Name)

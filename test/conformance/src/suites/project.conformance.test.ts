@@ -9,7 +9,6 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ProjectSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -200,9 +199,7 @@ describe("Project conformance", () => {
     const name = uniqueName("dup");
     await createProject(org, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () =>
         clients.projectCommand.create({
           apiVersion: API_VERSION,
@@ -210,6 +207,7 @@ describe("Project conformance", () => {
           metadata: { name, org },
           spec: { description: "second" },
         }),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -218,10 +216,9 @@ describe("Project conformance", () => {
     const { org } = await target.provisionTenancy();
     // Spec is present so validation passes; the empty name is what must be
     // rejected (slug resolution has nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () => clients.projectCommand.create({ apiVersion: API_VERSION, kind: KIND, metadata: { org }, spec: { description: "x" } }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

@@ -56,9 +56,9 @@ Covered against the `local-go` target:
   contract (re-submitting `***REDACTED***` for an existing secret on `update`
   preserves the stored value, and using it for a non-existent secret is rejected);
   incremental variable management (`updateVariables` merge, `removeVariables`); and
-  `list` filtering. Negatives include the shared duplicate/missing-name deviations
-  plus the proper-code contrast that a duplicate **personal** environment returns
-  a real `AlreadyExists`.
+  `list` filtering. Negatives include the shared duplicate/missing-name contract
+  checks plus the proper-code contrast that a duplicate **personal** environment
+  returns a real `AlreadyExists`.
 - **ExecutionContext** — the execution-scoped, flat resource the engine creates per
   run. Coverage: CRUD & identity (`ectx_` id, slug derivation); resolution by id,
   by reference, and by parent **`getByExecutionId`**; the distinctive **`apply` is
@@ -151,12 +151,13 @@ the test quietly asserting the wrong behavior. `expectCodeOrDeviation(...)`:
 - **fails** if a deviating target starts returning the contract code — that
   signals the bug is fixed and the entry should be deleted.
 
-So the registry can never hide a regression or bless a bug permanently. Current
-entries (all `local-go`): duplicate-create and missing-name/missing-spec return
-`Unknown` instead of `AlreadyExists` / `InvalidArgument` (the Go pipeline wraps
-plain errors and loses the gRPC status), and `getVersion` with a malformed hash
-returns `NotFound` instead of `InvalidArgument` (the handler skips protovalidate,
-so the proto's `version_hash` pattern is never enforced).
+So the registry can never hide a regression or bless a bug permanently. There
+are currently no tracked deviations: every target returns the contract code.
+The previous `local-go` entries — duplicate-create / missing-name / missing-spec
+returning `Unknown`, and `getVersion` with a malformed hash returning `NotFound`
+— were resolved (stigmer/stigmer#192) by enforcing protovalidate at the gRPC
+transport boundary and by making the affected pipeline steps return typed gRPC
+status errors, and their registry entries were removed.
 
 `parity.ts` compares resources while ignoring server-owned, non-deterministic
 fields (`metadata.id`, `metadata.version`, `status`). `errors.ts` asserts gRPC

@@ -9,7 +9,6 @@
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -202,10 +201,9 @@ describe("Agent conformance — negative paths", () => {
     const name = uniqueName("dup");
     await createAgent(org, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () => clients.agentCommand.create(makeAgent({ org, name })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -214,9 +212,7 @@ describe("Agent conformance — negative paths", () => {
     const { org } = await target.provisionTenancy();
     // Spec is valid so Layer 1 passes; the empty name is what must be rejected
     // (slug resolution has nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.agentCommand.create({
           apiVersion: AGENT_API_VERSION,
@@ -224,6 +220,7 @@ describe("Agent conformance — negative paths", () => {
           metadata: { org },
           spec: makeAgentSpec(),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

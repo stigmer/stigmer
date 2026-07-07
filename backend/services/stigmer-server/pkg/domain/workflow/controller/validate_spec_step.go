@@ -1,11 +1,12 @@
 package workflow
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/rs/zerolog/log"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	serverlessv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/validation"
 )
@@ -52,8 +53,11 @@ func (s *validateWorkflowSpecStep) Execute(ctx *pipeline.RequestContext[*workflo
 
 	workflow := ctx.Input()
 
+	// Workflow.spec is not marked required at the proto level (protovalidate
+	// cannot catch it), so a spec-less create reaches this step. It is a client
+	// input error, hence InvalidArgument rather than a plain (Unknown) error.
 	if workflow == nil || workflow.Spec == nil {
-		return fmt.Errorf("workflow or workflow spec is nil")
+		return grpclib.InvalidArgumentError("workflow spec is required")
 	}
 
 	spec := workflow.Spec
@@ -65,7 +69,7 @@ func (s *validateWorkflowSpecStep) Execute(ctx *pipeline.RequestContext[*workflo
 		log.Error().
 			Err(err).
 			Msg("Layer 2: Validation execution failed")
-		return fmt.Errorf("workflow validation system error: %w", err)
+		return grpclib.InternalError(err, "workflow validation system error")
 	}
 
 	ctx.Set(ServerlessValidationKey, validationResult)
@@ -88,7 +92,7 @@ func (s *validateWorkflowSpecStep) Execute(ctx *pipeline.RequestContext[*workflo
 			errorMessage = validationResult.Errors[0]
 		}
 
-		return fmt.Errorf("workflow validation failed: %s", errorMessage)
+		return grpclib.InvalidArgumentError("workflow validation failed: %s", errorMessage)
 
 	case serverlessv1.ValidationState_FAILED:
 		log.Error().
@@ -100,12 +104,12 @@ func (s *validateWorkflowSpecStep) Execute(ctx *pipeline.RequestContext[*workflo
 			systemError = validationResult.Errors[0]
 		}
 
-		return fmt.Errorf("workflow validation system error: %s", systemError)
+		return grpclib.InternalError(errors.New(systemError), "workflow validation system error")
 
 	default:
 		log.Error().
 			Str("state", validationResult.State.String()).
 			Msg("Layer 2: Unknown validation state")
-		return fmt.Errorf("workflow validation returned unknown state: %s", validationResult.State.String())
+		return grpclib.InternalError(errors.New(validationResult.State.String()), "workflow validation returned unknown state")
 	}
 }

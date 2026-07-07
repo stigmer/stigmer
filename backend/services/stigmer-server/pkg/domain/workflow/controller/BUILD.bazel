@@ -45,6 +45,7 @@ go_test(
     name = "controller_test",
     srcs = [
         "tag_version_test.go",
+        "validate_spec_step_test.go",
         "validate_spec_test.go",
         "workflow_controller_test.go",
     ],
@@ -56,6 +57,7 @@ go_test(
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
         "//backend/services/stigmer-server/pkg/domain/workflow/validation",

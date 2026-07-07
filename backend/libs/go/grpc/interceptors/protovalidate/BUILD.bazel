@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "protovalidate",
+    srcs = ["interceptor.go"],
+    importpath = "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/protovalidate",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/libs/go/grpc",
+        "@build_buf_go_protovalidate//:protovalidate",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "protovalidate_test",
+    srcs = ["interceptor_test.go"],
+    embed = [":protovalidate"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+    ],
+)

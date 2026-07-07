@@ -29,6 +29,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/tenancy/project/v1:project",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/interceptors/apiresource",
+        "//backend/libs/go/grpc/interceptors/protovalidate",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
         "//backend/services/stigmer-server/pkg/config",
