@@ -178,6 +178,30 @@ export function changeForRowPath(
 }
 
 /**
+ * The captured change a stamped transcript row should render as its inline
+ * diff, or `null` to keep the row's own content view. The row-diff sibling of
+ * {@link fileReviewRowState}: both resolve through {@link changeForRowPath},
+ * so the badge and the diff can never disagree about which file a row refers
+ * to. What renders is the set's captured NET change for the file — the same
+ * artifact the badge's verdict applies to.
+ *
+ * `null` follows the badge's honest-degradation discipline, plus one rule of
+ * its own: a non-`reviewable` change ({@link fileReviewability} — binary,
+ * secret-withheld, size-elided) resolves to `null` so the row falls back to
+ * showing the tool's own args content rather than a diff that cannot honestly
+ * render.
+ */
+export function fileReviewRowChange(
+  set: FileChangeSet | undefined,
+  rowPath: string | null,
+): CapturedFileChange | null {
+  if (!set || !rowPath) return null;
+  const change = changeForRowPath(set, rowPath);
+  if (!change) return null;
+  return fileReviewability(change).kind === "reviewable" ? change : null;
+}
+
+/**
  * The review state a stamped transcript row should badge — how this file edit
  * stands in its change set's review lifecycle. `null` means "show no badge",
  * chosen over guessing: a missing set (not yet projected), a CAPTURING set, or

@@ -3,6 +3,7 @@
   "pages": [
     "react",
     "ink",
+    "theme",
     "streaming",
     "resources"
   ]

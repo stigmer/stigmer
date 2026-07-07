@@ -11,14 +11,21 @@ import {
 } from "react";
 import { cn } from "@stigmer/theme";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  FileChangeCaptureLevel,
+  FileChangeType,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ArtifactContentRenderer } from "../execution/ArtifactContentRenderer.js";
 import { FileChangeDiff } from "../execution/FileChangesView.js";
+import { useFileChangeContent } from "../execution/useFileChangeContent.js";
 import type { RevealTarget } from "../internal/useRevealLine.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { useWorkspaceFileContent } from "./useWorkspaceFileContent.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
-import type { WorkspaceFileReader } from "./WorkspaceFileReader.js";
+import {
+  WorkspaceFileNotFoundError,
+  type WorkspaceFileReader,
+} from "./WorkspaceFileReader.js";
 
 /** Line-skeleton widths, mirroring `FileContentStateView` in `ArtifactPreviewModal`. */
 const SKELETON_LINE_WIDTHS = [85, 72, 90, 65, 78, 88, 70, 82] as const;
@@ -218,22 +225,16 @@ export const FileViewer = forwardRef<FileViewerHandle, FileViewerProps>(
             <FileChangeDiff change={change} showFileName={false} showStats />
           </div>
         ) : (
-          <>
-            {change && (
-              <p className="border-b border-border-muted px-4 py-1.5 text-[0.65rem] text-muted-foreground">
-                Live — may differ from the reviewed change.
-              </p>
-            )}
-            <FileViewerBody
-              basename={basename}
-              content={content}
-              isLoading={isLoading}
-              isUnsupported={isUnsupported}
-              error={error}
-              onRetry={refetch}
-              reveal={reveal}
-            />
-          </>
+          <FileViewerBody
+            basename={basename}
+            content={content}
+            isLoading={isLoading}
+            isUnsupported={isUnsupported}
+            error={error}
+            onRetry={refetch}
+            reveal={reveal}
+            change={change}
+          />
         )}
       </div>
     </div>
@@ -328,6 +329,23 @@ function ViewerModeToggle({
 // Body — exactly one state, mirroring FileContentStateView + workspace extras
 // ---------------------------------------------------------------------------
 
+/**
+ * Whether the session captured this change's full after-content — the
+ * precondition for serving it when the live substrate can't (a cloud file not
+ * yet pushed to any readable ref). A DELETE has no after side, and a
+ * HUNK_ONLY capture carries only the diff, never the whole file.
+ */
+function hasCapturedAfterContent(
+  change: FileChange | undefined,
+): change is FileChange {
+  return (
+    change !== undefined &&
+    change.changeType !== FileChangeType.DELETE &&
+    change.captureLevel !== FileChangeCaptureLevel.HUNK_ONLY &&
+    change.after !== undefined
+  );
+}
+
 function FileViewerBody({
   basename,
   content,
@@ -336,6 +354,7 @@ function FileViewerBody({
   error,
   onRetry,
   reveal,
+  change,
 }: {
   readonly basename: string;
   readonly content: ReturnType<typeof useWorkspaceFileContent>["content"];
@@ -344,7 +363,20 @@ function FileViewerBody({
   readonly error: Error | null;
   readonly onRetry: () => void;
   readonly reveal?: RevealTarget;
+  readonly change?: FileChange;
 }) {
+  // A live read that can't be served (unsupported substrate, or the file
+  // isn't at the read ref yet) degrades to the session's captured
+  // after-content when the change carries it — the same bytes the Diff view
+  // renders, so nothing is fabricated. Other errors keep the retry path.
+  const isNotFound = error instanceof WorkspaceFileNotFoundError;
+  const canFallBackToCaptured =
+    (isUnsupported || isNotFound) && hasCapturedAfterContent(change);
+
+  if (canFallBackToCaptured) {
+    return <CapturedFileContent change={change} basename={basename} reveal={reveal} />;
+  }
+
   // Unsupported comes first: a missing reader means there is nothing to load.
   if (isUnsupported) {
     return (
@@ -355,21 +387,25 @@ function FileViewerBody({
   }
 
   if (isLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (isNotFound) {
+    // Expected while the agent's write-back is still syncing to the ref —
+    // a calm notice (DD-006), not a failure.
     return (
-      <div
-        role="status"
-        className="space-y-2 p-4"
-        aria-busy="true"
-        aria-label="Loading file"
-      >
-        {SKELETON_LINE_WIDTHS.map((width, i) => (
-          <div
-            key={i}
-            className="h-4 animate-pulse rounded bg-muted"
-            style={{ width: `${width}%` }}
-            aria-hidden="true"
-          />
-        ))}
+      <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
+        <p className="text-xs text-muted-foreground">
+          This file isn&rsquo;t available in the workspace source yet. The
+          agent&rsquo;s latest changes may still be syncing.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="text-xs font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm"
+        >
+          Check again
+        </button>
       </div>
     );
   }
@@ -417,12 +453,82 @@ function FileViewerBody({
   }
 
   return (
-    <ArtifactContentRenderer
-      content={content.text}
-      fileName={basename}
-      isTruncated={content.truncated}
-      reveal={reveal}
-    />
+    <>
+      {change && (
+        <p className="border-b border-border-muted px-4 py-1.5 text-[0.65rem] text-muted-foreground">
+          Live — may differ from the reviewed change.
+        </p>
+      )}
+      <ArtifactContentRenderer
+        content={content.text}
+        fileName={basename}
+        isTruncated={content.truncated}
+        reveal={reveal}
+      />
+    </>
+  );
+}
+
+/**
+ * The captured-content fallback: renders a change's after-side text (the
+ * bytes the session already holds — inline or offloaded to artifact storage)
+ * when no live substrate can serve the file. Mounted only when eligible, so
+ * its content fetch never runs for live-served files.
+ */
+function CapturedFileContent({
+  change,
+  basename,
+  reveal,
+}: {
+  readonly change: FileChange;
+  readonly basename: string;
+  readonly reveal?: RevealTarget;
+}) {
+  const { afterText, isBinary, isLoading, error } = useFileChangeContent(change);
+
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (isBinary) {
+    return <MessageState>Binary file — not shown.</MessageState>;
+  }
+
+  if (error || afterText === null) {
+    return <MessageState>Content not available for preview.</MessageState>;
+  }
+
+  return (
+    <>
+      <p className="border-b border-border-muted px-4 py-1.5 text-[0.65rem] text-muted-foreground">
+        As of the agent&rsquo;s last change — not yet in the workspace source.
+      </p>
+      <ArtifactContentRenderer
+        content={afterText}
+        fileName={basename}
+        reveal={reveal}
+      />
+    </>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div
+      role="status"
+      className="space-y-2 p-4"
+      aria-busy="true"
+      aria-label="Loading file"
+    >
+      {SKELETON_LINE_WIDTHS.map((width, i) => (
+        <div
+          key={i}
+          className="h-4 animate-pulse rounded bg-muted"
+          style={{ width: `${width}%` }}
+          aria-hidden="true"
+        />
+      ))}
+    </div>
   );
 }
 

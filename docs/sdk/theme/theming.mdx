@@ -1,0 +1,184 @@
+---
+title: Theming
+description: Adapt Stigmer components to your product's design system with presets, color modes, and --stgm-* token overrides.
+---
+
+Every Stigmer component reads its colors, radii, fonts, shadows, and motion
+from `--stgm-*` CSS custom properties — nothing visual is hardcoded. To make
+the components wear your design language, you override tokens; the component
+markup never changes.
+
+Try it below: the conversation is rendered by the real `MessageThread`
+organism from `@stigmer/react`. Switching preset or color mode changes only
+token values.
+
+<DemoThemingPlayground />
+
+## How the scope works
+
+`StigmerProvider` wraps your subtree in a scoping element:
+
+```html
+<div class="stgm stgm-theme-corporate" data-stgm-color-mode="dark">
+  <!-- your app + Stigmer components -->
+</div>
+```
+
+Three mechanisms keep Stigmer's styles from colliding with your host
+application:
+
+- **The `.stgm` class** scopes every Stigmer style rule. Outside the scope,
+  Stigmer's CSS does nothing.
+- **The `stgm` cascade layer** (`@layer stgm`) gives Stigmer's rules lower
+  priority than your unlayered host CSS, so your styles win ties by default.
+- **The `--stgm-*` namespace** keeps token names from clashing with your own
+  custom properties.
+
+Portaled surfaces (dropdowns, dialogs, tooltips) render into a container on
+`document.body` that carries the same theme class and color-mode attribute,
+so they stay themed even though they render outside your DOM subtree.
+
+## Set the color mode
+
+Pass `colorMode` to `StigmerProvider`:
+
+```tsx
+<StigmerProvider client={client} colorMode="dark">
+```
+
+- `"light"` (default) and `"dark"` set the mode explicitly.
+- `"system"` follows the OS preference and updates live.
+
+The resolved mode is applied as `data-stgm-color-mode` on the scope, and all
+dark token values key off that attribute — no ancestor classes required. If
+your app already has a theme state (next-themes, MUI, your own context),
+pass its current value straight through:
+
+```tsx
+const { resolvedTheme } = useTheme(); // next-themes
+<StigmerProvider client={client} colorMode={resolvedTheme === "dark" ? "dark" : "light"}>
+```
+
+## Start from a preset
+
+Presets are complete design languages — radius, palette, surfaces, sidebar
+treatment — shipped as CSS classes. Import the CSS once and select the
+preset on the provider:
+
+```tsx
+import "@stigmer/theme/tokens.css";
+import "@stigmer/theme/presets/corporate.css";
+
+<StigmerProvider client={client} preset="corporate" colorMode="system">
+```
+
+See [Presets](/docs/sdk/theme/presets) for the six built-in design languages
+and every token each one overrides.
+
+## Override tokens directly
+
+For a custom brand, define a theme class that overrides the tokens you care
+about and pass it via `className`. Anything you do not override falls
+through to the [defaults](/docs/sdk/theme/tokens).
+
+```css
+.acme-theme {
+  --stgm-radius: 0.375rem;
+  --stgm-primary: oklch(0.55 0.2 260);
+  --stgm-primary-foreground: oklch(0.985 0 0);
+  --stgm-ring: oklch(0.55 0.15 260);
+}
+
+.acme-theme[data-stgm-color-mode="dark"],
+[data-stgm-color-mode="dark"] .acme-theme {
+  --stgm-primary: oklch(0.72 0.18 260);
+  --stgm-primary-foreground: oklch(0.145 0 0);
+}
+```
+
+```tsx
+<StigmerProvider client={client} className="acme-theme" colorMode="dark">
+```
+
+Two rules keep custom themes correct:
+
+- **Always pair light and dark.** A token defined only in your light block
+  outranks Stigmer's default dark value in the cascade, so the light value
+  would leak into dark mode. If you override a token, give it a dark value
+  too (the dual selector above handles both attribute placements).
+- **Mind contrast.** Stigmer's defaults are contrast-audited in CI (WCAG 2.1
+  AA for every declared text pairing). When you replace a fill, replace its
+  `-foreground` partner so the pair stays readable — dark-mode fills are
+  usually lighter, which is why their foregrounds flip to near-black.
+
+## The radius scale
+
+Components use a four-step radius scale (`rounded-sm` through `rounded-xl`)
+that is *derived* from the single `--stgm-radius` token:
+
+| Step | Value |
+|------|-------|
+| `sm` | `--stgm-radius` − 4px |
+| `md` | `--stgm-radius` − 2px |
+| `lg` | `--stgm-radius` |
+| `xl` | `--stgm-radius` + 4px |
+
+Override one token and every corner in every component reshapes
+proportionally — `0.125rem` gives the sharp Fintech look, `1.25rem` the very
+round Friendly look.
+
+## Beyond tokens: component slots
+
+When your design system needs different *structure* — not just different
+colors — the conversation chrome accepts component overrides through the
+`slots` prop on `MessageThread` (forwarded as `threadSlots` by
+`SessionViewer`). Each slot replaces one built-in and receives exactly that
+built-in's props, so an override can always delegate back to the default
+for the cases it does not customize:
+
+```tsx
+import {
+  MessageEntry,
+  type MessageEntryProps,
+  type MessageThreadSlots,
+  type TodoRowProps,
+} from "@stigmer/react";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+
+// Restyle only user bubbles; every other message keeps the built-in.
+function BrandedMessageEntry(props: MessageEntryProps) {
+  if (props.message.type !== MessageType.MESSAGE_HUMAN) {
+    return <MessageEntry {...props} />;
+  }
+  return <div className="acme-bubble">{props.message.content}</div>;
+}
+
+// Bring your own to-do row (and iconography) inside the built-in card.
+function BrandedTodoRow({ item }: TodoRowProps) {
+  return (
+    <li className="acme-todo-row">
+      <AcmeCheckIcon done={item.status === 3} /> {item.content}
+    </li>
+  );
+}
+
+// Module level, so thread rows keep their streaming re-render guarantees.
+const THREAD_SLOTS: MessageThreadSlots = {
+  MessageEntry: BrandedMessageEntry,
+  TodoRow: BrandedTodoRow,
+};
+
+<SessionViewer sessionId={id} org={org} threadSlots={THREAD_SLOTS} />;
+```
+
+Available slots: `MessageEntry`, `ApprovalCard`, `TodoCard`, `TodoRow`,
+`PlanArtifactCard`, `PlanCompletionCard`, `PlanStreamingCard`, and
+`SetupProgress` (the pre-first-token "Thinking…" indicator). See the
+[execution reference](/docs/sdk/react/execution) for each slot's props.
+
+## Token reference
+
+The complete contract — all tokens with purposes, light/dark values, and
+swatches — is in the [Design Tokens](/docs/sdk/theme/tokens) reference. It
+is generated from the theme package's source stylesheet, so it always
+matches the shipped values.

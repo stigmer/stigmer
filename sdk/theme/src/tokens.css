@@ -1,116 +1,257 @@
+/* The --stgm-* design token contract for all Stigmer UI components.
+   This file is the single source of truth: the token reference docs are
+   generated from it (group headers and per-token comments below are parsed
+   by site/scripts/generate-theme-docs), and the contrast contract in
+   src/contract/ gates every value against WCAG thresholds in CI.
+
+   Light values live on :root; dark values in the block below. Descriptions
+   are written once, on the light declarations — a dark declaration changes
+   the value, never the meaning. */
+
 :root {
+  /* @group Typography */
+  /* UI text font stack. Hosts override by defining the fallback variable or the token itself. */
   --stgm-font-sans: var(--font-geist-sans, system-ui, sans-serif);
+  /* Code and tabular-figure font stack. */
   --stgm-font-mono: var(--font-geist-mono, ui-monospace, monospace);
+
+  /* @group Shape */
+  /* Base corner radius. The Tailwind radius scale (sm/md/lg/xl) is derived from this single token, so one override reshapes every component. */
   --stgm-radius: 0.625rem;
+
+  /* @group Core surfaces & text */
+  /* Page background behind all Stigmer content. */
   --stgm-background: oklch(0.98 0 0);
+  /* Primary body text on the page background. */
   --stgm-foreground: oklch(0.145 0 0);
+  /* Card fill (approval cards, plan cards, panels). */
   --stgm-card: oklch(1 0 0);
+  /* Text on card surfaces. */
   --stgm-card-foreground: oklch(0.145 0 0);
+  /* Floating surface fill (dropdowns, dialogs, tooltips). */
   --stgm-popover: oklch(1 0 0);
+  /* Text on floating surfaces. */
   --stgm-popover-foreground: oklch(0.145 0 0);
-  --stgm-primary: oklch(0.55 0.12 190);
+  /* Brand action color (primary buttons, active states, links). */
+  --stgm-primary: oklch(0.52 0.12 190);
+  /* Text on primary-filled elements. */
   --stgm-primary-foreground: oklch(0.985 0 0);
+  /* Secondary button and low-emphasis control fill. */
   --stgm-secondary: oklch(0.94 0 0);
+  /* Text on secondary-filled elements. */
   --stgm-secondary-foreground: oklch(0.205 0 0);
+  /* Muted panel fill (code blocks, quiet notices). */
   --stgm-muted: oklch(0.94 0 0);
-  --stgm-muted-foreground: oklch(0.556 0 0);
+  /* Supporting text (captions, timestamps, the Thinking indicator). */
+  --stgm-muted-foreground: oklch(0.5 0 0);
+  /* Hover/selection fill for menu items and list rows. */
   --stgm-accent: oklch(0.94 0 0);
+  /* Text on accent-filled elements. */
   --stgm-accent-foreground: oklch(0.205 0 0);
-  --stgm-destructive: oklch(0.577 0.245 27.325);
+
+  /* @group Semantic colors */
+  /* Destructive action color (deny buttons, error text). */
+  --stgm-destructive: oklch(0.55 0.245 27.325);
+  /* Text on destructive-filled elements. */
   --stgm-destructive-foreground: oklch(0.985 0 0);
-  --stgm-success: oklch(0.55 0.15 150);
+  /* Positive state color (success badges, confirmations). */
+  --stgm-success: oklch(0.5 0.15 150);
+  /* Text on success-filled elements. */
   --stgm-success-foreground: oklch(0.985 0 0);
+  /* Quiet success surface (subtle badges, inline confirmations). */
   --stgm-success-subtle: oklch(0.95 0.03 150);
+  /* Caution state color (warning badges). */
   --stgm-warning: oklch(0.75 0.18 80);
+  /* Text on warning-filled elements. */
   --stgm-warning-foreground: oklch(0.145 0 0);
+  /* Informational state color (info badges, hints). */
   --stgm-info: oklch(0.55 0.15 250);
+  /* Text on info-filled elements. */
   --stgm-info-foreground: oklch(0.985 0 0);
+
+  /* @group Forms & focus */
+  /* Default border for cards, dividers, and containers. */
   --stgm-border: oklch(0.885 0 0);
+  /* Input control border. */
   --stgm-input: oklch(0.87 0 0);
+  /* Input control fill. */
   --stgm-input-bg: oklch(1 0 0);
+  /* Focus ring color. */
   --stgm-ring: oklch(0.55 0.1 190);
+
+  /* @group Charts */
+  /* Categorical chart series 1. */
   --stgm-chart-1: oklch(0.646 0.222 41.116);
+  /* Categorical chart series 2. */
   --stgm-chart-2: oklch(0.6 0.118 184.704);
+  /* Categorical chart series 3. */
   --stgm-chart-3: oklch(0.398 0.07 227.392);
+  /* Categorical chart series 4. */
   --stgm-chart-4: oklch(0.828 0.189 84.429);
+  /* Categorical chart series 5. */
   --stgm-chart-5: oklch(0.769 0.188 70.08);
+  /* Named chart color for cross-view consistency (e.g. token usage). */
   --stgm-chart-purple: oklch(0.585 0.233 292);
+  /* Named chart color for cross-view consistency. */
   --stgm-chart-blue: oklch(0.546 0.245 262);
+  /* Named chart color for cross-view consistency. */
   --stgm-chart-green: oklch(0.577 0.174 149);
+  /* Named chart color for cross-view consistency. */
   --stgm-chart-orange: oklch(0.702 0.209 41);
+  /* Named chart color for cross-view consistency. */
   --stgm-chart-yellow: oklch(0.795 0.184 86);
+
+  /* @group Emphasis & elevation */
+  /* Stronger border for emphasized containers and separators. */
   --stgm-border-prominent: oklch(0.75 0 0);
+  /* Small elevation shadow (inputs, buttons). */
   --stgm-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  /* Medium elevation shadow (cards, panels). */
   --stgm-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  /* Large elevation shadow (dialogs, popovers). */
   --stgm-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* @group Motion & layering */
+  /* Base transition duration for interactive state changes. */
   --stgm-transition-duration: 150ms;
+  /* Base transition easing curve. */
   --stgm-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Stacking order for portaled surfaces (dropdowns, dialogs). */
   --stgm-z-popover: 50;
-  --stgm-primary-hover: oklch(0.50 0.11 190);
+
+  /* @group State shades */
+  /* Primary fill on hover. */
+  --stgm-primary-hover: oklch(0.47 0.11 190);
+  /* Quiet primary-tinted surface (selected rows, active nav). */
   --stgm-primary-subtle: oklch(0.95 0.02 190);
+  /* Quiet destructive surface (error notices, danger zones). */
   --stgm-destructive-subtle: oklch(0.95 0.03 27);
+  /* Subtlest distinct fill on the page background (user message bubble). Kept borderless-legible: the contrast contract enforces its separation from --stgm-background. */
   --stgm-muted-subtle: oklch(0.96 0 0);
+  /* De-emphasized supporting text, one step quieter than muted-foreground. */
   --stgm-muted-foreground-subtle: oklch(0.64 0 0);
+  /* Accent fill on hover. */
   --stgm-accent-hover: oklch(0.96 0 0);
+  /* Destructive fill on hover. */
   --stgm-destructive-hover: oklch(0.52 0.22 27.325);
+  /* Foreground-colored interactive text on hover. */
   --stgm-foreground-hover: oklch(0.20 0 0);
+  /* Quieter border for nested or low-emphasis containers. */
   --stgm-border-muted: oklch(0.92 0 0);
+  /* Faintest distinct fill (zebra stripes, ghost rows). */
   --stgm-muted-faint: oklch(0.975 0 0);
+  /* Desaturated primary for secondary indicators. */
   --stgm-primary-muted: oklch(0.62 0.08 190);
+  /* Desaturated destructive for secondary error indicators. */
   --stgm-destructive-muted: oklch(0.65 0.12 27.325);
-  --stgm-muted-foreground-faint: oklch(0.72 0 0);
+  /* Faintest readable text (placeholder-level hints). Held to a 3:1 floor by the contrast contract. */
+  --stgm-muted-foreground-faint: oklch(0.64 0 0);
+  /* Modal backdrop overlay behind dialogs. */
   --stgm-backdrop: oklch(0.98 0 0 / 80%);
+
+  /* @group Sidebar */
+  /* Sidebar background. Sidebar tokens form their own context: presets may give the sidebar a contrasting (e.g. dark-on-light) treatment. */
   --stgm-sidebar: oklch(0.97 0 0);
+  /* Primary text in the sidebar. */
   --stgm-sidebar-foreground: oklch(0.145 0 0);
-  --stgm-sidebar-primary: oklch(0.55 0.12 190);
+  /* Brand action color inside the sidebar. */
+  --stgm-sidebar-primary: oklch(0.52 0.12 190);
+  /* Text on sidebar-primary fills. */
   --stgm-sidebar-primary-foreground: oklch(0.985 0 0);
+  /* Muted panel fill inside the sidebar. */
   --stgm-sidebar-muted: oklch(0.94 0 0);
-  --stgm-sidebar-muted-foreground: oklch(0.556 0 0);
+  /* Supporting text in the sidebar (section headers). */
+  --stgm-sidebar-muted-foreground: oklch(0.5 0 0);
+  /* Hover/active item fill in the sidebar. */
   --stgm-sidebar-accent: oklch(0.94 0 0);
+  /* Text on sidebar accent fills. */
   --stgm-sidebar-accent-foreground: oklch(0.205 0 0);
+  /* Borders and dividers inside the sidebar. */
   --stgm-sidebar-border: oklch(0.885 0 0);
+  /* Focus ring inside the sidebar. */
   --stgm-sidebar-ring: oklch(0.55 0.1 190);
 
-  --stgm-status-ready: oklch(0.55 0.15 150);
+  /* @group Status */
+  /* Ready/healthy status accent (pill text, solid fills, dots). */
+  --stgm-status-ready: oklch(0.5 0.15 150);
+  /* Text on a solid ready fill. */
   --stgm-status-ready-foreground: oklch(0.985 0 0);
+  /* Quiet ready surface (status pill fill). */
   --stgm-status-ready-subtle: oklch(0.95 0.03 150);
-  --stgm-status-running: oklch(0.55 0.14 230);
+  /* Running/in-progress status accent. */
+  --stgm-status-running: oklch(0.5 0.14 230);
+  /* Text on a solid running fill. */
   --stgm-status-running-foreground: oklch(0.985 0 0);
+  /* Quiet running surface. */
   --stgm-status-running-subtle: oklch(0.95 0.03 230);
-  --stgm-status-pending: oklch(0.556 0 0);
+  /* Pending/queued status accent. */
+  --stgm-status-pending: oklch(0.5 0 0);
+  /* Text on a solid pending fill. */
   --stgm-status-pending-foreground: oklch(0.985 0 0);
+  /* Quiet pending surface. */
   --stgm-status-pending-subtle: oklch(0.95 0 0);
-  --stgm-status-degraded: oklch(0.72 0.17 80);
-  --stgm-status-degraded-foreground: oklch(0.145 0 0);
+  /* Degraded/at-risk status accent. */
+  --stgm-status-degraded: oklch(0.52 0.17 80);
+  /* Text on a solid degraded fill. */
+  --stgm-status-degraded-foreground: oklch(0.985 0 0);
+  /* Quiet degraded surface. */
   --stgm-status-degraded-subtle: oklch(0.95 0.03 80);
-  --stgm-status-failed: oklch(0.577 0.245 27.325);
+  /* Failed/error status accent. */
+  --stgm-status-failed: oklch(0.55 0.245 27.325);
+  /* Text on a solid failed fill. */
   --stgm-status-failed-foreground: oklch(0.985 0 0);
+  /* Quiet failed surface. */
   --stgm-status-failed-subtle: oklch(0.95 0.03 27);
-  --stgm-status-disabled: oklch(0.64 0 0);
+  /* Disabled/inactive status accent. */
+  --stgm-status-disabled: oklch(0.5 0 0);
+  /* Text on a solid disabled fill. */
   --stgm-status-disabled-foreground: oklch(0.985 0 0);
+  /* Quiet disabled surface. */
   --stgm-status-disabled-subtle: oklch(0.94 0 0);
-  --stgm-status-draft: oklch(0.556 0 0);
+  /* Draft/unpublished status accent. */
+  --stgm-status-draft: oklch(0.5 0 0);
+  /* Text on a solid draft fill. */
   --stgm-status-draft-foreground: oklch(0.985 0 0);
+  /* Quiet draft surface. */
   --stgm-status-draft-subtle: oklch(0.95 0 0);
 
+  /* @group Diff viewer */
+  /* Added-line background in diffs. */
   --stgm-diff-added-bg: oklch(0.96 0.04 150);
+  /* Added-line text in diffs. */
   --stgm-diff-added-fg: oklch(0.35 0.12 150);
+  /* Removed-line background in diffs. */
   --stgm-diff-removed-bg: oklch(0.96 0.04 27);
+  /* Removed-line text in diffs. */
   --stgm-diff-removed-fg: oklch(0.40 0.16 27);
+  /* Hunk header background in diffs. */
   --stgm-diff-hunk-header-bg: oklch(0.96 0.02 250);
+  /* Hunk header text in diffs. */
   --stgm-diff-hunk-header-fg: oklch(0.45 0.08 250);
 
+  /* @group Syntax highlighting */
+  /* Keywords in highlighted code. */
   --stgm-syntax-keyword: oklch(0.45 0.15 280);
+  /* Properties, attributes, and titles in highlighted code. */
   --stgm-syntax-property: oklch(0.40 0.14 250);
+  /* String literals in highlighted code. */
   --stgm-syntax-string: oklch(0.42 0.12 150);
+  /* Numeric literals in highlighted code. */
   --stgm-syntax-number: oklch(0.50 0.16 50);
+  /* Booleans and literals in highlighted code. */
   --stgm-syntax-bool: oklch(0.45 0.15 280);
+  /* Comments in highlighted code. */
   --stgm-syntax-comment: oklch(0.55 0 0);
+  /* Atoms and symbols in highlighted code. */
   --stgm-syntax-atom: oklch(0.50 0.10 25);
+  /* Meta and preprocessor tokens in highlighted code. */
   --stgm-syntax-meta: oklch(0.50 0.12 320);
+  /* Tags in highlighted markup. */
   --stgm-syntax-tag: oklch(0.45 0.15 20);
 }
 
+/* Dark values for the same contract. Tokens omitted here inherit their
+   light value (fonts, radius, motion, z-index). */
 [data-stgm-color-mode="dark"] {
   --stgm-background: oklch(0.145 0 0);
   --stgm-foreground: oklch(0.985 0 0);
@@ -123,18 +264,20 @@
   --stgm-secondary: oklch(0.269 0 0);
   --stgm-secondary-foreground: oklch(0.985 0 0);
   --stgm-muted: oklch(0.269 0 0);
-  --stgm-muted-foreground: oklch(0.708 0 0);
+  --stgm-muted-foreground: oklch(0.75 0 0);
   --stgm-accent: oklch(0.371 0 0);
   --stgm-accent-foreground: oklch(0.985 0 0);
+  /* Dark fills are lightened, so their foregrounds flip to near-black
+     (matching --stgm-primary-foreground) to preserve AA contrast. */
   --stgm-destructive: oklch(0.704 0.191 22.216);
-  --stgm-destructive-foreground: oklch(0.985 0 0);
+  --stgm-destructive-foreground: oklch(0.145 0 0);
   --stgm-success: oklch(0.7 0.15 150);
-  --stgm-success-foreground: oklch(0.985 0 0);
+  --stgm-success-foreground: oklch(0.145 0 0);
   --stgm-success-subtle: oklch(0.24 0.04 150);
   --stgm-warning: oklch(0.78 0.16 80);
   --stgm-warning-foreground: oklch(0.145 0 0);
   --stgm-info: oklch(0.7 0.15 250);
-  --stgm-info-foreground: oklch(0.985 0 0);
+  --stgm-info-foreground: oklch(0.145 0 0);
   --stgm-border: oklch(1 0 0 / 14%);
   --stgm-input: oklch(1 0 0 / 20%);
   --stgm-input-bg: oklch(0.205 0 0);
@@ -156,7 +299,7 @@
   --stgm-primary-hover: oklch(0.66 0.11 190);
   --stgm-primary-subtle: oklch(0.24 0.03 190);
   --stgm-destructive-subtle: oklch(0.24 0.04 22);
-  --stgm-muted-subtle: oklch(0.21 0 0);
+  --stgm-muted-subtle: oklch(0.24 0 0);
   --stgm-muted-foreground-subtle: oklch(0.60 0 0);
   --stgm-accent-hover: oklch(0.30 0 0);
   --stgm-destructive-hover: oklch(0.64 0.17 22.216);
@@ -179,25 +322,25 @@
   --stgm-sidebar-ring: oklch(0.5 0.08 190);
 
   --stgm-status-ready: oklch(0.7 0.15 150);
-  --stgm-status-ready-foreground: oklch(0.985 0 0);
+  --stgm-status-ready-foreground: oklch(0.145 0 0);
   --stgm-status-ready-subtle: oklch(0.24 0.04 150);
   --stgm-status-running: oklch(0.7 0.14 230);
-  --stgm-status-running-foreground: oklch(0.985 0 0);
+  --stgm-status-running-foreground: oklch(0.145 0 0);
   --stgm-status-running-subtle: oklch(0.24 0.04 230);
   --stgm-status-pending: oklch(0.708 0 0);
-  --stgm-status-pending-foreground: oklch(0.985 0 0);
+  --stgm-status-pending-foreground: oklch(0.145 0 0);
   --stgm-status-pending-subtle: oklch(0.24 0 0);
   --stgm-status-degraded: oklch(0.78 0.16 80);
   --stgm-status-degraded-foreground: oklch(0.145 0 0);
   --stgm-status-degraded-subtle: oklch(0.24 0.04 80);
   --stgm-status-failed: oklch(0.704 0.191 22.216);
-  --stgm-status-failed-foreground: oklch(0.985 0 0);
+  --stgm-status-failed-foreground: oklch(0.145 0 0);
   --stgm-status-failed-subtle: oklch(0.24 0.04 22);
-  --stgm-status-disabled: oklch(0.55 0 0);
-  --stgm-status-disabled-foreground: oklch(0.985 0 0);
+  --stgm-status-disabled: oklch(0.62 0 0);
+  --stgm-status-disabled-foreground: oklch(0.145 0 0);
   --stgm-status-disabled-subtle: oklch(0.21 0 0);
   --stgm-status-draft: oklch(0.708 0 0);
-  --stgm-status-draft-foreground: oklch(0.985 0 0);
+  --stgm-status-draft-foreground: oklch(0.145 0 0);
   --stgm-status-draft-subtle: oklch(0.24 0 0);
 
   --stgm-diff-added-bg: oklch(0.22 0.04 150);

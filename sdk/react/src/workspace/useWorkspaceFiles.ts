@@ -43,7 +43,8 @@ const EMPTY_TREE: readonly TreeNode[] = [];
  *   {@link loadEntryFiles} cache) when the
  *   entry changes.
  * - Reads the shared listing cache so tab switches, re-expands, and the search
- *   surface are instant without re-fetching (one cache, keyed by `entry.id`).
+ *   surface are instant without re-fetching (one cache, keyed by `entry.id` +
+ *   effective read ref — a ref advance is a cache miss by design).
  * - Returns an empty tree and skips the call when `lister` is
  *   `undefined` (graceful degradation — DD-011 opt-in).
  * - Memoizes the return value for referential stability (DD-010).
@@ -72,7 +73,7 @@ export function useWorkspaceFiles({
       if (!lister) return;
 
       if (!bustCache) {
-        const cached = peekEntryListing(target.id);
+        const cached = peekEntryListing(target);
         if (cached) {
           setTree(cached.tree);
           setTruncated(cached.truncated);

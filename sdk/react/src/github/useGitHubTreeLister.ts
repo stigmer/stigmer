@@ -38,7 +38,8 @@ const TRUNCATION_MARKER: WorkspaceFileEntry = {
  * Creates a {@link WorkspaceFileLister} backed by the GitHub Trees API.
  *
  * Uses the existing client-side OAuth token (same one that powers
- * `GitHubRepoPicker`) to call `GET /repos/{owner}/{repo}/git/trees/{branch}?recursive=1`.
+ * `GitHubRepoPicker`) to call `GET /repos/{owner}/{repo}/git/trees/{ref}?recursive=1`,
+ * where the ref is the entry's `readRef` (write-back commit) or `gitBranch`.
  *
  * Returns `null` for:
  * - Non-git workspace entries
@@ -64,8 +65,11 @@ export function useGitHubTreeLister(
       const parsed = parseGitUrl(entry.gitUrl);
       if (!parsed) return null;
 
-      const branch = entry.gitBranch || "main";
-      const url = `${GITHUB_TREES_API}/${parsed.owner}/${parsed.repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+      // readRef (the session's write-back commit SHA, when one exists) wins
+      // over the configured branch, so the tree includes agent-created files.
+      // The Trees API accepts a branch name or a commit SHA interchangeably.
+      const ref = entry.readRef || entry.gitBranch || "main";
+      const url = `${GITHUB_TREES_API}/${parsed.owner}/${parsed.repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`;
 
       const resp = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },

@@ -17,7 +17,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { SkillMetadata } from "./prompt-builder.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import { extractZipFileEntries } from "../../shared/zip-extract.js";
-import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "./stigmer-link.js";
+import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
 
 const SKILLS_SUBDIR = "skills";
 

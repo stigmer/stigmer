@@ -15,6 +15,7 @@ import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import {
   ThreadItemRenderer,
   threadContentColumnClass,
+  type MessageThreadSlots,
   type ThreadItem,
   type ThreadContentColumn,
 } from "../execution/MessageThread.js";
@@ -55,6 +56,7 @@ export interface VirtualizedThreadProps {
   readonly onRetrySend?: () => void;
   readonly onRetryExecution?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
+  readonly slots?: MessageThreadSlots;
 }
 
 // ---------------------------------------------------------------------------
@@ -124,6 +126,7 @@ export function VirtualizedThread({
   onRetrySend,
   onRetryExecution,
   onEditMessage,
+  slots,
 }: VirtualizedThreadProps) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -161,8 +164,9 @@ export function VirtualizedThread({
       onRetrySend,
       onRetryExecution,
       onEditMessage,
+      slots,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onBuildFromPlan, onOpenPlan, org, planActionsDisabled, planBuildPending, onRetrySend, onRetryExecution, onEditMessage],
+    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onBuildFromPlan, onOpenPlan, org, planActionsDisabled, planBuildPending, onRetrySend, onRetryExecution, onEditMessage, slots],
   );
 
   return (

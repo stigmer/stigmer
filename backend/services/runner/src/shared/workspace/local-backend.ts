@@ -6,8 +6,12 @@
  * sandbox) backend will be added in Phase 3.
  *
  * When `platformDir` is provided, paths under `.stigmer/` are
- * transparently routed to the platform directory. The agent sees a
- * unified namespace; the workspace directory is never polluted.
+ * transparently routed to the platform directory, keeping platform files
+ * out of the workspace tree. This routing serves the RUNNER's own I/O
+ * (skill/attachment materialization, `execute` command rewriting) — the
+ * agent's file tools do not go through this backend. Agent-visible reads
+ * of `.stigmer/…` reach the same physical files through the per-turn
+ * workspace symlink instead (see shared/workspace/stigmer-link.ts).
  */
 
 import { execFile } from "node:child_process";

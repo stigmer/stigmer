@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ComponentType } from "react";
 import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
@@ -14,6 +14,12 @@ export interface TodoListProps {
   readonly todos: { readonly [key: string]: TodoItem };
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Replacement row component. Receives {@link TodoRowProps} for each
+   * item; defaults to the built-in {@link TodoRow}. Renders inside a
+   * `<ul role="list">`, so the component must produce an `<li>`.
+   */
+  readonly TodoRow?: ComponentType<TodoRowProps>;
 }
 
 const STATUS_SORT_ORDER: ReadonlyMap<TodoStatus, number> = new Map([
@@ -47,7 +53,11 @@ function todoSortKey(item: TodoItem): number {
  * <TodoList todos={todos} />
  * ```
  */
-export function TodoList({ todos, className }: TodoListProps) {
+export function TodoList({
+  todos,
+  className,
+  TodoRow: RowComponent = TodoRow,
+}: TodoListProps) {
   const sortedTodos = useMemo(() => {
     const items = Object.values(todos);
     if (items.length === 0) return [];
@@ -63,7 +73,7 @@ export function TodoList({ todos, className }: TodoListProps) {
       aria-label="Tasks"
     >
       {sortedTodos.map((item) => (
-        <TodoRow key={item.id} item={item} />
+        <RowComponent key={item.id} item={item} />
       ))}
     </ul>
   );
@@ -108,7 +118,19 @@ export function todoCompletionSummary(
 // TodoRow — single todo item with status icon
 // ---------------------------------------------------------------------------
 
-function TodoRow({ item }: { readonly item: TodoItem }) {
+/** Props for {@link TodoRow}. */
+export interface TodoRowProps {
+  /** The todo item to render. */
+  readonly item: TodoItem;
+}
+
+/**
+ * One to-do checklist row: status icon plus task description, rendered as
+ * an `<li>`. The default row for {@link TodoList} — replace it via the
+ * `TodoRow` prop (or `MessageThread`'s `slots.TodoRow`) to restyle rows or
+ * bring host iconography while keeping the built-in card chrome.
+ */
+export function TodoRow({ item }: TodoRowProps) {
   const Icon = TODO_ICONS[item.status] ?? TodoPendingIcon;
   const colorClass = TODO_COLORS[item.status] ?? "text-muted-foreground";
   const cancelled = item.status === TodoStatus.TODO_CANCELLED;

@@ -1,9 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { toDisplayFileChange } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { BoundedContent } from "../internal/BoundedContent.js";
+import { FileChangeDiff } from "./FileChangesView.js";
+import { useFileReviewRowChange } from "./FileReviewContext.js";
 import { McpToolDetail } from "./McpToolDetail.js";
 import { ToolArgsView } from "./ToolArgsView.js";
 import { ResultView } from "./ResultView.js";
@@ -43,8 +48,9 @@ export interface ToolCallDetailProps {
  * degrade to readable JSON instead of a raw dump.
  *
  * Composition varies by category to avoid redundancy: an edit shows only the
- * diff (which already names the file and quantifies the change); a write shows
- * its input content; a read shows just the path.
+ * diff (which already names the file and quantifies the change); a stamped
+ * write shows its change set's captured diff, degrading to the proposed
+ * content when no capture resolves; a read shows just the path.
  *
  * Importable on its own by platform builders composing custom tool UIs.
  *
@@ -60,6 +66,16 @@ export function ToolCallDetail({
 }: ToolCallDetailProps) {
   const { category, result, primaryArg } = useToolPresentation(toolCall);
 
+  // The captured net change a stamped write row renders as its inline diff
+  // (see the write branch below). Resolved here unconditionally (Rules of
+  // Hooks); null for every other category's rows — they are never stamped —
+  // and for every honest-degradation case, so this costs nothing outside the
+  // stamped-write path.
+  const capturedChange = useFileReviewRowChange(
+    toolCall.fileChangeSetId,
+    primaryArg,
+  );
+
   return (
     <div className={cn("space-y-2 text-xs", className)}>
       <CategoryDetail
@@ -68,6 +84,7 @@ export function ToolCallDetail({
         result={result}
         primaryArg={primaryArg}
         primaryArgTruncated={primaryArgTruncated}
+        capturedChange={capturedChange}
       />
     </div>
   );
@@ -90,12 +107,14 @@ function CategoryDetail({
   result,
   primaryArg,
   primaryArgTruncated,
+  capturedChange,
 }: {
   toolCall: ToolCall;
   category: ToolCategory;
   result: ToolResultView;
   primaryArg: string | null;
   primaryArgTruncated: boolean;
+  capturedChange: CapturedFileChange | null;
 }) {
   const args = <ArgsSection toolCall={toolCall} />;
 
@@ -128,27 +147,50 @@ function CategoryDetail({
       );
 
     case "edit":
-    case "write":
+    case "write": {
       // The diff already names the file and quantifies the change, so it stands
-      // alone — showing the written content as an argument would duplicate it. A
-      // write whose capture is unavailable degrades to a `file` result here
-      // (ResultView shows the content), so the input is never lost. The owning
-      // row already names the file, so the body suppresses the path.
+      // alone — showing the written content as an argument would duplicate it.
+      // The owning row already names the file, so the body suppresses the path.
       //
-      // The diff is the one tool body with no internal truncation of its own, so
-      // it is bounded by the shared BoundedContent budget (the same clamp the
-      // approval gate diff uses) — a large or still-streaming edit shows a
-      // consistent, scannable window with one in-place reveal, never the whole
-      // file. Every other category's body self-truncates (terminal / text via
-      // CollapsiblePre), so only edit/write wrap here — never double-bound.
+      // An EDIT's diff is reconstructed per-call from its own args (old/new
+      // strings, or the Cursor envelope's unified diff). A whole-file WRITE has
+      // no per-call before-image in its args, so a stamped write renders the
+      // captured NET change from its change set instead — the same artifact the
+      // row's review badge refers to, resolved through the same path matcher so
+      // the two can never disagree. An unresolvable write (still streaming
+      // before the turn-boundary capture, no capture mode, legacy session, or a
+      // non-reviewable change) keeps the honest fallback: the proposed content
+      // from the args, as a `file` view.
+      if (category === "write" && capturedChange) {
+        return (
+          <>
+            <ProvenanceNote toolCall={toolCall} />
+            <CapturedRowDiff change={capturedChange} />
+          </>
+        );
+      }
+      // Bounding is keyed on the VIEW, not the category: BoundedContent is for
+      // bodies with no internal truncation of their own — the diff and a FAILED
+      // call's error `<pre>` — giving a large or still-streaming edit the same
+      // scannable clamp the approval gate uses. The `file` view self-truncates
+      // (CollapsibleCode's line cap), so wrapping it would stack two reveal
+      // controls on one block — exactly what BoundedContent's contract forbids.
+      const body = (
+        <ResultView view={result} showFileName={false} showStats={false} />
+      );
       return (
         <>
           <ProvenanceNote toolCall={toolCall} />
-          <BoundedContent cursorTarget="tool-detail-expand">
-            <ResultView view={result} showFileName={false} showStats={false} />
-          </BoundedContent>
+          {result.type === "file" ? (
+            body
+          ) : (
+            <BoundedContent cursorTarget="tool-detail-expand">
+              {body}
+            </BoundedContent>
+          )}
         </>
       );
+    }
 
     case "read":
     case "delete":
@@ -244,6 +286,17 @@ function ThinkToolDetail({ toolCall }: { toolCall: ToolCall }) {
 // ---------------------------------------------------------------------------
 // Shared sub-components
 // ---------------------------------------------------------------------------
+
+// A stamped write row's inline diff: the captured change projected onto the
+// display FileChange and rendered through the same bounded FileChangeDiff the
+// review card's body uses — offloaded-body fetch, binary notices, and
+// truncation states included. The file name is suppressed (the owning row
+// header names it); the `+N −M` stats stay because a write row's header
+// summary carries none.
+function CapturedRowDiff({ change }: { change: CapturedFileChange }) {
+  const adapted = useMemo(() => toDisplayFileChange(change), [change]);
+  return <FileChangeDiff change={adapted} bounded showFileName={false} />;
+}
 
 // The detail body's only metadata. Duration and the MCP slug live in the owning
 // row header (ToolCallItem / ApprovalCardHeader), so the body never restates

@@ -11,6 +11,10 @@ import {
 } from "../writeback-coordinator.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../../shared/workspace/types.js";
 import { SourceType } from "../../../shared/workspace/types.js";
+import {
+  AGENT_GIT_AUTHOR_NAME,
+  AGENT_GIT_AUTHOR_EMAIL,
+} from "../../../shared/workspace/git-identity.js";
 
 function makeStatusBuilder(): StatusBuilder {
   return new StatusBuilder("exec-wb-test", create(AgentExecutionStatusSchema, {}));
@@ -53,7 +57,7 @@ function mockWorkspaceBackend(responses: Record<string, string> = {}): Workspace
     "git ls-files --others --exclude-standard": "",
     "git checkout -b": "",
     "git add -A": "",
-    "git commit -m": "",
+    "commit -m": "",
     "git rev-parse HEAD": "abc123def456",
     "git push -u origin": "",
     "git push": "",
@@ -163,8 +167,31 @@ describe("WriteBackCoordinator", () => {
     const commands = executeCalls.map((c: any) => c[0] as string);
     expect(commands.some((c: string) => c.includes("git checkout -b stigmer/exec-123"))).toBe(true);
     expect(commands.some((c: string) => c.includes("git add -A"))).toBe(true);
-    expect(commands.some((c: string) => c.includes("git commit"))).toBe(true);
+    expect(commands.some((c: string) => c.includes("commit -m"))).toBe(true);
     expect(commands.some((c: string) => c.includes("git push -u origin"))).toBe(true);
+  });
+
+  it("commits with the agent identity pinned via -c flags", async () => {
+    const backend = mockWorkspaceBackend();
+    const coord = new WriteBackCoordinator({
+      statusWriter: sb,
+      executionId: "exec-12345678rest",
+      provisionResults: [makeProvisionResult()],
+      workspaceEntries: [makeWorkspaceEntry("my-app")],
+      workspaceBackend: backend,
+    });
+
+    await coord.onFileModified("src/main.ts");
+
+    const executeCalls = (backend.execute as ReturnType<typeof vi.fn>).mock.calls;
+    const commands = executeCalls.map((c: any) => c[0] as string);
+    const commitCommand = commands.find((c: string) => c.includes("git") && c.includes("commit -m"));
+    expect(commitCommand,
+      "commit must not depend on ambient git identity — the cloud sandbox has none",
+    ).toBeDefined();
+    expect(commitCommand).toContain(`-c user.name='${AGENT_GIT_AUTHOR_NAME}'`);
+    expect(commitCommand).toContain(`-c user.email='${AGENT_GIT_AUTHOR_EMAIL}'`);
+    expect(commitCommand).toContain('commit -m "agent changes (1)"');
   });
 
   it("skips when there are no changes", async () => {
@@ -218,7 +245,7 @@ describe("WriteBackCoordinator", () => {
       if (cmd.includes("git diff --cached")) return "";
       if (cmd.includes("git checkout -b")) return "";
       if (cmd.includes("git add")) return "";
-      if (cmd.includes("git commit")) throw new Error("commit failed: lock");
+      if (cmd.includes("commit -m")) throw new Error("commit failed: lock");
       return "";
     });
 

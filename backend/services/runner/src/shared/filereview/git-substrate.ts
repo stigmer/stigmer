@@ -97,6 +97,10 @@ export function captureRef(executionId: string): string {
  * garbage collection — but `git commit-tree` still requires an author/committer,
  * and the repo may have no user.name/email configured. Supplied via env so we
  * never mutate the repo's config.
+ *
+ * Deliberately distinct from the public agent identity in
+ * `../workspace/git-identity.ts`, which authors the write-back commits that
+ * land on real branches and pull requests.
  */
 const SNAPSHOT_IDENTITY_ENV: Record<string, string> = {
   GIT_AUTHOR_NAME: "stigmer-runner",

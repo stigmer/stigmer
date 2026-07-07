@@ -2,9 +2,10 @@
 
 import { useCallback } from "react";
 import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
-import type {
-  WorkspaceFileContent,
-  WorkspaceFileReader,
+import {
+  WorkspaceFileNotFoundError,
+  type WorkspaceFileContent,
+  type WorkspaceFileReader,
 } from "../workspace/WorkspaceFileReader.js";
 import { base64ToBytes, normalizeGitHubContent } from "./decodeGitHubContent.js";
 import { parseGitUrl } from "./parseGitUrl.js";
@@ -58,7 +59,9 @@ function encodePath(path: string): string {
  *   (non-git entry, missing/unparseable URL) — the "unsupported here" state.
  * - **Throws** on a real failure: a non-OK response, or a directory path
  *   (which the Contents API returns as a JSON array). Consumers surface these
- *   as an error, distinct from the null "unsupported" state.
+ *   as an error, distinct from the null "unsupported" state. A 404 throws the
+ *   typed {@link WorkspaceFileNotFoundError} so consumers can fall back to
+ *   session-captured content for files not yet pushed to the ref.
  *
  * @example
  * ```tsx
@@ -80,14 +83,24 @@ export function useGitHubFileReader(
       const parsed = parseGitUrl(entry.gitUrl);
       if (!parsed) return null;
 
-      const branch = entry.gitBranch || "main";
+      // readRef (the session's write-back commit SHA, when one exists) wins
+      // over the configured branch: agent-created files live on the pushed
+      // write-back commit, not the base branch. The Contents API accepts a
+      // branch name or a commit SHA interchangeably as `ref`.
+      const ref = entry.readRef || entry.gitBranch || "main";
       const url =
         `${GITHUB_API}/${parsed.owner}/${parsed.repo}/contents/${encodePath(path)}` +
-        `?ref=${encodeURIComponent(branch)}`;
+        `?ref=${encodeURIComponent(ref)}`;
 
       const resp = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      // 404 is typed: a file that isn't at this ref (yet) is an expected,
+      // recoverable state — e.g. an agent-created file whose write-back
+      // hasn't pushed — that consumers handle differently from a failure.
+      if (resp.status === 404) {
+        throw new WorkspaceFileNotFoundError(path);
+      }
       if (!resp.ok) {
         throw new Error(
           `GitHub content fetch failed for ${path} (HTTP ${resp.status})`,

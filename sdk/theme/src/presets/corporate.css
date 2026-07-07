@@ -44,7 +44,7 @@
   --stgm-muted-faint: oklch(0.96 0.01 250);
   --stgm-primary-muted: oklch(0.58 0.10 250);
   --stgm-destructive-muted: oklch(0.65 0.12 27);
-  --stgm-muted-foreground-faint: oklch(0.68 0.02 250);
+  --stgm-muted-foreground-faint: oklch(0.62 0.02 250);
   --stgm-backdrop: oklch(0.97 0.01 250 / 80%);
   --stgm-sidebar: oklch(0.20 0.06 250);
   --stgm-sidebar-foreground: oklch(0.93 0 0);
@@ -98,7 +98,7 @@
   --stgm-muted-faint: oklch(0.19 0.03 250);
   --stgm-primary-muted: oklch(0.60 0.10 250);
   --stgm-destructive-muted: oklch(0.60 0.10 22);
-  --stgm-muted-foreground-faint: oklch(0.48 0.03 250);
+  --stgm-muted-foreground-faint: oklch(0.5 0.03 250);
   --stgm-backdrop: oklch(0.16 0.04 250 / 80%);
   --stgm-sidebar: oklch(0.13 0.05 250);
   --stgm-sidebar-foreground: oklch(0.93 0 0);

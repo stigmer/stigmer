@@ -694,6 +694,31 @@ await submitFileDecision(executionId, changeSet.id, FileDecisionAction.APPROVE, 
 ```
 
 
+### useFileReviewRowChange
+
+The captured change a stamped tool row should render as its inline diff, or
+`null` to keep the row's own content view (unstamped row, unknown set, path
+miss, or a non-reviewable change — see [`fileReviewRowChange`](#filereviewrowchange) for the
+honest-degradation rules).
+
+The diff sibling of [`useFileReviewRowState`](#usefilereviewrowstate): both read the same
+context entry through the same path matcher, so a row's badge and its diff
+always describe the same captured artifact.
+
+**Signature**
+
+```tsx
+function useFileReviewRowChange(fileChangeSetId: string, rowPath: string | null): CapturedFileChange | null
+```
+
+<TypeTable
+  type={{
+    fileChangeSetId: { type: "string", description: "The row's `ToolCall.file_change_set_id` (may be \"\").", required: true },
+    rowPath: { type: "string | null", description: "The row's file path (the presenter's primary arg).", required: true },
+  }}
+/>
+
+
 ### useFileReviewRowState
 
 The review state a stamped tool row should badge, or `null` for no badge
@@ -1607,6 +1632,7 @@ All visual properties flow through `--stgm-*` tokens.
     planBuildPending: { type: "boolean", description: "True while the approved plan is being uploaded ahead of the build turn." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
     showFileReviewRecords: { type: "boolean", description: "Render each *settled* captured change set as a read-only record card at its anchor in the thread (after the set's last stamped edit row) — the durable history of what changed and how it was decided. This is the only in-thread trace for a set with no stamped rows (e.g. changes made by shell commands), so the surface that owns the session history should enable it.  The thread never renders *decision* controls: a pending (AWAITING_REVIEW) set on a live execution is deliberately NOT emitted here — its decision surface is the composer-docked FileReviewDock, which cannot scroll out of view. The stamped rows' badges carry the pending state in-thread.  Opt-in with a backward-compatible default (DD-011); `SessionViewer` enables it." },
+    slots: { type: "MessageThreadSlots", description: "Component overrides for the thread's chrome — see MessageThreadSlots. Omitted slots render the built-ins; omitting the prop entirely changes nothing (DD-011)." },
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval. Drives per-card loading state. Only meaningful when `onApprovalSubmit` is provided." },
     summarizationEvents: { type: "readonly SummarizationEventView[]", description: "Summarization events from context window tracking. When provided, \"Context compacted\" cards are interleaved into the thread at the correct chronological position based on event timestamps.  Obtain from useContextWindow.summarizationEvents." },
     virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
@@ -1755,6 +1781,7 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    TodoRow: { type: "ComponentType<TodoRowProps>", description: "Replacement row component. Receives TodoRowProps for each item; defaults to the built-in TodoRow. Renders inside a `<ul role=\"list\">`, so the component must produce an `<li>`." },
     todos: { type: "object", description: "Todo items keyed by ID. Accepts the proto map shape directly (`execution.status.todos` or `subAgentExecution.todos`).", required: true },
   }}
 />
@@ -1816,8 +1843,9 @@ a terminal with an exit badge, a search shows a match list, and unknown tools
 degrade to readable JSON instead of a raw dump.
 
 Composition varies by category to avoid redundancy: an edit shows only the
-diff (which already names the file and quantifies the change); a write shows
-its input content; a read shows just the path.
+diff (which already names the file and quantifies the change); a stamped
+write shows its change set's captured diff, degrading to the proposed
+content when no capture resolves; a read shows just the path.
 
 Importable on its own by platform builders composing custom tool UIs.
 
@@ -2571,6 +2599,26 @@ a decision surface — decisions live exclusively on the set's decision bar
     changeSetsById: { type: "ReadonlyMap<string, FileChangeSet>", description: "Every displayable change set across the session, keyed by `FileChangeSet.id`.", required: true },
   }}
 />
+
+
+### fileReviewRowChange
+
+The captured change a stamped transcript row should render as its inline
+diff, or `null` to keep the row's own content view. The row-diff sibling of
+[`fileReviewRowState`](#filereviewrowstate): both resolve through [`changeForRowPath`](#changeforrowpath),
+so the badge and the diff can never disagree about which file a row refers
+to. What renders is the set's captured NET change for the file — the same
+artifact the badge's verdict applies to.
+
+`null` follows the badge's honest-degradation discipline, plus one rule of
+its own: a non-`reviewable` change ([`fileReviewability`](#filereviewability) — binary,
+secret-withheld, size-elided) resolves to `null` so the row falls back to
+showing the tool's own args content rather than a diff that cannot honestly
+render.
+
+```tsx
+function fileReviewRowChange(set: FileChangeSet | undefined, rowPath: string | null): CapturedFileChange | null
+```
 
 
 ### fileReviewRowState
@@ -3398,6 +3446,7 @@ Props for [`TodoCard`](#todocard).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    TodoRow: { type: "ComponentType<TodoRowProps>", description: "Replacement row component, forwarded to the inner TodoList. Lets a host restyle individual rows while keeping the card's collapse/progress chrome. Defaults to the built-in TodoRow." },
     todos: { type: "object", description: "The agent's todo map for one execution — the proto map shape (`execution.status.todos`) passed through by reference so a settled card skips re-renders while siblings stream (DD-009/010).", required: true },
   }}
 />

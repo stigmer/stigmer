@@ -169,7 +169,11 @@ export { MessageEntry } from "./MessageEntry.js";
 export type { MessageEntryProps } from "./MessageEntry.js";
 
 export { MessageThread } from "./MessageThread.js";
-export type { MessageThreadProps, ThreadContentColumn } from "./MessageThread.js";
+export type {
+  MessageThreadProps,
+  MessageThreadSlots,
+  ThreadContentColumn,
+} from "./MessageThread.js";
 
 export { ThreadSkeleton } from "./ThreadSkeleton.js";
 export type { ThreadSkeletonProps } from "./ThreadSkeleton.js";
@@ -182,11 +186,12 @@ export type { ExecutionProgressProps } from "./ExecutionProgress.js";
 
 export {
   TodoList,
+  TodoRow,
   TodoInProgressIcon,
   findActiveTodo,
   todoCompletionSummary,
 } from "./TodoList.js";
-export type { TodoListProps } from "./TodoList.js";
+export type { TodoListProps, TodoRowProps } from "./TodoList.js";
 
 export { TodoCard } from "./TodoCard.js";
 export type { TodoCardProps } from "./TodoCard.js";
@@ -204,6 +209,7 @@ export {
   deriveEffectiveVerdicts,
   changeForRowPath,
   fileReviewRowState,
+  fileReviewRowChange,
 } from "./file-review-status.js";
 export type {
   FileReviewability,
@@ -239,7 +245,11 @@ export type { FileChangeProgressBarProps } from "./FileChangeProgressBar.js";
 export { ApprovalContext, useApproval } from "./ApprovalContext.js";
 export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext.js";
 
-export { FileReviewContext, useFileReviewRowState } from "./FileReviewContext.js";
+export {
+  FileReviewContext,
+  useFileReviewRowState,
+  useFileReviewRowChange,
+} from "./FileReviewContext.js";
 export type { FileReviewContextValue } from "./FileReviewContext.js";
 
 export { ArtifactRow } from "./ArtifactRow.js";
