@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"errors"
@@ -547,6 +548,14 @@ func (c *McpServerController) executeConnectWorkflow(
 // fastest way to diagnose it. HTTP servers fail on reachability or credentials.
 func buildConnectFailureMessage(mcpServer *mcpserverv1.McpServer, cause string) string {
 	name := mcpServer.GetMetadata().GetName()
+	// The runner classifies a 401 OAuth challenge into a self-contained,
+	// user-facing message (see runner mcp-oauth-detect.ts). It already names the
+	// server and tells the user to sign in, so pass it through verbatim rather
+	// than wrapping it with a generic "check your credentials" suffix that would
+	// contradict it. The "requires OAuth" phrase is the stable marker.
+	if strings.Contains(cause, "requires OAuth") {
+		return cause
+	}
 	if mcpServer.GetSpec().GetStdio() != nil {
 		slug := mcpServer.GetMetadata().GetSlug()
 		return fmt.Sprintf(

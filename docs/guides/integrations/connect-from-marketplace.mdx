@@ -108,6 +108,17 @@ cover the range:
 | **No credentials**        | The server works without authentication (Fetch, Playwright)          | Connects immediately — no extra steps                          |
 | **Environment variables** | The server uses API keys or connection strings (PostgreSQL, MongoDB) | You enter the value in the credential form before connecting   |
 | **OAuth**                 | The server uses OAuth with a vendor like GitHub, Slack, or Figma     | Stigmer redirects you through the OAuth flow to obtain a token |
+| **OAuth-only (hosted)**   | The hosted endpoint accepts only OAuth tokens (Notion, Monday)       | Only "Sign in" is offered — manual token entry is hidden       |
+
+<Callout type="info">
+  Some hosted endpoints — such as Notion (`mcp.notion.com`) and Monday
+  (`mcp.monday.com`) — accept **only** an OAuth-obtained token and reject a
+  personal API token or integration secret pasted into the credential form. For
+  these servers Stigmer offers just the "Sign in" flow and hides manual token
+  entry, so you are never sent down a path that cannot succeed. If you connect
+  such a server another way (for example the CLI `--env` flag or `--dry-run`),
+  you will get a clear message explaining that OAuth is required.
+</Callout>
 
 <Callout type="info">
   OAuth patterns — including automatic discovery (DCR) and vendor-specific flows

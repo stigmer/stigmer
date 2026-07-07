@@ -184,6 +184,20 @@ func TestBuildConnectFailureMessage(t *testing.T) {
 		assert.Contains(t, msg, "reachable", "mentions reachability")
 		assert.NotContains(t, msg, "--dry-run", "http guidance must not suggest the stdio preview")
 	})
+
+	t.Run("an OAuth-required cause passes through verbatim, without the generic suffix", func(t *testing.T) {
+		// The runner emits a complete, actionable message for a 401 OAuth
+		// challenge; wrapping it with "check your credentials" would contradict
+		// it. The "requires OAuth" marker triggers the passthrough.
+		const oauthCause = "MCP server 'notion' requires OAuth: its endpoint " +
+			"returned an authentication challenge (HTTP 401). A manually-entered " +
+			"API token will not work here — connect it with the OAuth \"Sign in\" flow instead."
+
+		msg := buildConnectFailureMessage(httpServer, oauthCause)
+		assert.Equal(t, oauthCause, msg, "the OAuth-required message is surfaced verbatim")
+		assert.NotContains(t, msg, "reachable",
+			"must not append the generic reachability suffix over an OAuth message")
+	})
 }
 
 // newTestController returns an McpServerController backed by a fresh temp SQLite

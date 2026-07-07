@@ -24,6 +24,7 @@ import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { mcpServerToResolved } from "../shared/mcp-resolver.js";
 import { toMcpClientConfig } from "../shared/mcp-manager.js";
+import { detectOAuthChallenge } from "../shared/mcp-oauth-detect.js";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Config } from "../config.js";
 
@@ -374,6 +375,14 @@ async function connectAndDiscover(
         );
       }
     });
+  } catch (err) {
+    // The MCP client surfaces a 401 OAuth challenge as an opaque aggregate
+    // ("unhandled errors in a TaskGroup"). For HTTP servers, re-probe once to
+    // see if the endpoint is actually asking for OAuth and, if so, replace the
+    // useless error with an actionable one. Non-OAuth failures rethrow as-is.
+    const oauthError = await classifyHttpOAuthFailure(slug, connectionConfig);
+    if (oauthError) throw oauthError;
+    throw err;
   } finally {
     await client.close().catch((err: unknown) => {
       console.warn(
@@ -384,6 +393,22 @@ async function connectAndDiscover(
   }
 
   return { tools, resourceTemplates };
+}
+
+/**
+ * If the server uses HTTP transport, probe its endpoint to classify a discovery
+ * failure as an OAuth challenge. Returns the actionable error to throw, or
+ * `null` for stdio servers and non-OAuth failures (caller rethrows original).
+ */
+async function classifyHttpOAuthFailure(
+  slug: string,
+  connectionConfig: ReturnType<typeof toMcpClientConfig>,
+): Promise<Error | null> {
+  const connection = connectionConfig[slug];
+  if (!connection || connection.transport !== "http" || !connection.url) {
+    return null;
+  }
+  return detectOAuthChallenge(connection.url, connection.headers, slug);
 }
 
 async function withTimeout<T>(

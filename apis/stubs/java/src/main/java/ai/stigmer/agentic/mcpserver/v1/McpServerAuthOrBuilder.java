@@ -221,4 +221,28 @@ public interface McpServerAuthOrBuilder extends
    */
   com.google.protobuf.ByteString
       getDiscoveryUrlBytes();
+
+  /**
+   * <pre>
+   * Whether the server's endpoint rejects manually-entered static tokens.
+   *
+   * Some hosted MCP endpoints (e.g. Notion, Monday) only accept an access
+   * token obtained through their OAuth flow — a personal API token or PAT
+   * pasted into the credential form is rejected with a 401. For these servers
+   * OAuth is not merely the preferred path, it is the only path that works.
+   *
+   * When true, the connect surfaces present OAuth as the sole credential
+   * option and suppress the "enter token manually" affordance, so users are
+   * never sent down a path that cannot succeed. When false (the default), a
+   * static token remains a valid alternative — appropriate for API-key servers
+   * (e.g. Tavily) and for vendor endpoints that also accept a PAT (e.g.
+   * GitHub). This is a structural fact about the endpoint, not observable from
+   * the spec shape alone (an OAuth-only server and a PAT-capable server can
+   * have identical auth blocks), so it must be declared explicitly.
+   * </pre>
+   *
+   * <code>bool oauth_only = 10 [json_name = "oauthOnly"];</code>
+   * @return The oauthOnly.
+   */
+  boolean getOauthOnly();
 }

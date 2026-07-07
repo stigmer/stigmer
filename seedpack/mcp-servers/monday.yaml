@@ -26,3 +26,6 @@ spec:
   auth:
     target_env_var: "MONDAY_ACCESS_TOKEN"
     token_lifetime_hint: "1h"
+    # monday's hosted endpoint rejects personal API tokens; OAuth is the only
+    # working credential path, so the connect UI hides manual token entry.
+    oauth_only: true

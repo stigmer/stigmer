@@ -154,6 +154,18 @@ export interface UseMcpServerCredentialsReturn {
    */
   readonly canBringOwnApp: boolean;
   /**
+   * `true` when a manually-entered static token is a valid way to
+   * authenticate this server. `false` for `oauth_only` servers whose
+   * hosted endpoint rejects static tokens (`spec.auth.oauth_only`), where
+   * OAuth is the sole credential path.
+   *
+   * Connect surfaces use this to decide whether to offer the "enter token
+   * manually" affordance — offering it on an `oauth_only` server would send
+   * the user down a path that cannot succeed. Always `true` for manual-only
+   * and PAT-capable servers.
+   */
+  readonly manualEntrySupported: boolean;
+  /**
    * When `true`, the user has opted to bypass OAuth and enter the
    * `target_env_var` token manually. In this state:
    *
@@ -251,6 +263,14 @@ export function useMcpServerCredentials(
   const oauthTargetEnvVar = auth?.targetEnvVar || null;
   const tokenLifetimeHint = auth?.tokenLifetimeHint || null;
 
+  // A static token is a valid credential for every server except those whose
+  // endpoint declares it rejects them (`oauth_only`). This is the single source
+  // of truth the connect surfaces consult before offering manual entry.
+  const manualEntrySupported = !auth?.oauthOnly;
+  // Defensively force manual override off for oauth_only servers so no surface
+  // can enter a dead-end manual-entry state, even if a stale toggle is set.
+  const effectiveManualOverride = manualOverride && manualEntrySupported;
+
   const oauthStatus = mcpServer?.status?.oauthStatus;
   const isVendorApprovalPending =
     authMode === "oauth" &&
@@ -298,15 +318,15 @@ export function useMcpServerCredentials(
   );
 
   const missingVariables = useMemo(() => {
-    if (!oauthTargetEnvVar || manualOverride) return requiredMissing;
+    if (!oauthTargetEnvVar || effectiveManualOverride) return requiredMissing;
     return requiredMissing.filter((v) => v.key !== oauthTargetEnvVar);
-  }, [requiredMissing, oauthTargetEnvVar, manualOverride]);
+  }, [requiredMissing, oauthTargetEnvVar, effectiveManualOverride]);
 
   const isReady =
     !personalEnv.isLoading &&
     !grantStatus.isLoading &&
     missingVariables.length === 0 &&
-    (authMode === "manual" || manualOverride || isOAuthConnected);
+    (authMode === "manual" || effectiveManualOverride || isOAuthConnected);
 
   const saveCredentials = useCallback(
     async (values: Record<string, EnvVarInput>): Promise<void> => {
@@ -335,6 +355,7 @@ export function useMcpServerCredentials(
     effectiveOAuthSource,
     isOrgOAuthApp,
     canBringOwnApp,
+    manualEntrySupported,
     missingVariables,
     isReady,
     isLoading: personalEnv.isLoading || grantStatus.isLoading,
@@ -342,7 +363,7 @@ export function useMcpServerCredentials(
     saveCredentials,
     isSaving: personalEnv.isMutating,
     refetch,
-    manualOverride,
+    manualOverride: effectiveManualOverride,
     setManualOverride,
   };
 }

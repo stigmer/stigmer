@@ -12,6 +12,7 @@ import { useDisconnectOAuth } from "./useDisconnectOAuth.js";
 import { EnvVarForm } from "../environment/EnvVarForm.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { StdioSandboxNotice } from "./StdioSandboxNotice.js";
+import { OAuthRequiredNotice } from "./OAuthRequiredNotice.js";
 
 /** Props for {@link McpServerConnectDialog}. */
 export interface McpServerConnectDialogProps {
@@ -278,6 +279,7 @@ function ConnectDialogContent({
       )}
 
       <StdioSandboxNotice serverType={mcpServer.spec?.serverType} className="mb-4" />
+      <OAuthRequiredNotice oauthOnly={mcpServer.spec?.auth?.oauthOnly} className="mb-4" />
 
       {activeError && (
         <div className="mb-4">
@@ -298,7 +300,11 @@ function ConnectDialogContent({
           phase={oauth.phase}
           onSignIn={handleOAuthSignIn}
           isVendorApprovalBlocked={creds.isVendorApprovalBlocked}
-          onSwitchToManual={() => creds.setManualOverride(true)}
+          onSwitchToManual={
+            creds.manualEntrySupported
+              ? () => creds.setManualOverride(true)
+              : undefined
+          }
           disabled={isConnectingPhase}
         />
       )}
@@ -411,7 +417,8 @@ function OAuthSection({
   readonly phase: OAuthConnectPhase;
   readonly onSignIn: () => void;
   readonly isVendorApprovalBlocked: boolean;
-  readonly onSwitchToManual: () => void;
+  /** When omitted (e.g. `oauth_only` servers), no manual-entry link is shown. */
+  readonly onSwitchToManual?: () => void;
   readonly disabled?: boolean;
 }) {
   if (isConnected) {
@@ -448,19 +455,21 @@ function OAuthSection({
         {isInProgress && <LoadingSpinner size="sm" />}
         {isInProgress ? (phaseLabel[phase] ?? "Connecting...") : "Sign in with OAuth"}
       </button>
-      {isVendorApprovalBlocked && (
+      {isVendorApprovalBlocked && onSwitchToManual && (
         <p className="text-xs text-muted-foreground">
           OAuth sign-in is pending vendor approval. You can enter your token manually instead.
         </p>
       )}
-      <button
-        type="button"
-        onClick={onSwitchToManual}
-        disabled={disabled || isInProgress}
-        className="text-xs text-muted-foreground underline hover:text-foreground"
-      >
-        Enter token manually
-      </button>
+      {onSwitchToManual && (
+        <button
+          type="button"
+          onClick={onSwitchToManual}
+          disabled={disabled || isInProgress}
+          className="text-xs text-muted-foreground underline hover:text-foreground"
+        >
+          Enter token manually
+        </button>
+      )}
     </div>
   );
 }

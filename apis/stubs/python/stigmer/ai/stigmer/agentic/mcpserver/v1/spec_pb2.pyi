@@ -90,15 +90,17 @@ class ToolApprovalPolicy(_message.Message):
     def __init__(self, tool_name: _Optional[str] = ..., message: _Optional[str] = ..., from_destructive_hint: bool = ...) -> None: ...
 
 class McpServerAuth(_message.Message):
-    __slots__ = ("oauth_app_ref", "target_env_var", "token_lifetime_hint", "scope_hints", "discovery_url")
+    __slots__ = ("oauth_app_ref", "target_env_var", "token_lifetime_hint", "scope_hints", "discovery_url", "oauth_only")
     OAUTH_APP_REF_FIELD_NUMBER: _ClassVar[int]
     TARGET_ENV_VAR_FIELD_NUMBER: _ClassVar[int]
     TOKEN_LIFETIME_HINT_FIELD_NUMBER: _ClassVar[int]
     SCOPE_HINTS_FIELD_NUMBER: _ClassVar[int]
     DISCOVERY_URL_FIELD_NUMBER: _ClassVar[int]
+    OAUTH_ONLY_FIELD_NUMBER: _ClassVar[int]
     oauth_app_ref: _io_pb2.ApiResourceReference
     target_env_var: str
     token_lifetime_hint: str
     scope_hints: _containers.RepeatedScalarFieldContainer[str]
     discovery_url: str
-    def __init__(self, oauth_app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ..., scope_hints: _Optional[_Iterable[str]] = ..., discovery_url: _Optional[str] = ...) -> None: ...
+    oauth_only: bool
+    def __init__(self, oauth_app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., target_env_var: _Optional[str] = ..., token_lifetime_hint: _Optional[str] = ..., scope_hints: _Optional[_Iterable[str]] = ..., discovery_url: _Optional[str] = ..., oauth_only: bool = ...) -> None: ...

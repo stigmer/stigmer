@@ -400,6 +400,35 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int OAUTH_ONLY_FIELD_NUMBER = 10;
+  private boolean oauthOnly_ = false;
+  /**
+   * <pre>
+   * Whether the server's endpoint rejects manually-entered static tokens.
+   *
+   * Some hosted MCP endpoints (e.g. Notion, Monday) only accept an access
+   * token obtained through their OAuth flow — a personal API token or PAT
+   * pasted into the credential form is rejected with a 401. For these servers
+   * OAuth is not merely the preferred path, it is the only path that works.
+   *
+   * When true, the connect surfaces present OAuth as the sole credential
+   * option and suppress the "enter token manually" affordance, so users are
+   * never sent down a path that cannot succeed. When false (the default), a
+   * static token remains a valid alternative — appropriate for API-key servers
+   * (e.g. Tavily) and for vendor endpoints that also accept a PAT (e.g.
+   * GitHub). This is a structural fact about the endpoint, not observable from
+   * the spec shape alone (an OAuth-only server and a PAT-capable server can
+   * have identical auth blocks), so it must be declared explicitly.
+   * </pre>
+   *
+   * <code>bool oauth_only = 10 [json_name = "oauthOnly"];</code>
+   * @return The oauthOnly.
+   */
+  @java.lang.Override
+  public boolean getOauthOnly() {
+    return oauthOnly_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -428,6 +457,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(discoveryUrl_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, discoveryUrl_);
+    }
+    if (oauthOnly_ != false) {
+      output.writeBool(10, oauthOnly_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -459,6 +491,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(discoveryUrl_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, discoveryUrl_);
     }
+    if (oauthOnly_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(10, oauthOnly_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -487,6 +523,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getScopeHintsList())) return false;
     if (!getDiscoveryUrl()
         .equals(other.getDiscoveryUrl())) return false;
+    if (getOauthOnly()
+        != other.getOauthOnly()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -512,6 +550,9 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + DISCOVERY_URL_FIELD_NUMBER;
     hash = (53 * hash) + getDiscoveryUrl().hashCode();
+    hash = (37 * hash) + OAUTH_ONLY_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getOauthOnly());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -689,6 +730,7 @@ private static final long serialVersionUID = 0L;
       scopeHints_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       discoveryUrl_ = "";
+      oauthOnly_ = false;
       return this;
     }
 
@@ -742,6 +784,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.discoveryUrl_ = discoveryUrl_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.oauthOnly_ = oauthOnly_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -784,6 +829,9 @@ private static final long serialVersionUID = 0L;
         discoveryUrl_ = other.discoveryUrl_;
         bitField0_ |= 0x00000010;
         onChanged();
+      }
+      if (other.getOauthOnly() != false) {
+        setOauthOnly(other.getOauthOnly());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -838,6 +886,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 58
+            case 80: {
+              oauthOnly_ = input.readBool();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 80
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1653,6 +1706,92 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       discoveryUrl_ = value;
       bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+
+    private boolean oauthOnly_ ;
+    /**
+     * <pre>
+     * Whether the server's endpoint rejects manually-entered static tokens.
+     *
+     * Some hosted MCP endpoints (e.g. Notion, Monday) only accept an access
+     * token obtained through their OAuth flow — a personal API token or PAT
+     * pasted into the credential form is rejected with a 401. For these servers
+     * OAuth is not merely the preferred path, it is the only path that works.
+     *
+     * When true, the connect surfaces present OAuth as the sole credential
+     * option and suppress the "enter token manually" affordance, so users are
+     * never sent down a path that cannot succeed. When false (the default), a
+     * static token remains a valid alternative — appropriate for API-key servers
+     * (e.g. Tavily) and for vendor endpoints that also accept a PAT (e.g.
+     * GitHub). This is a structural fact about the endpoint, not observable from
+     * the spec shape alone (an OAuth-only server and a PAT-capable server can
+     * have identical auth blocks), so it must be declared explicitly.
+     * </pre>
+     *
+     * <code>bool oauth_only = 10 [json_name = "oauthOnly"];</code>
+     * @return The oauthOnly.
+     */
+    @java.lang.Override
+    public boolean getOauthOnly() {
+      return oauthOnly_;
+    }
+    /**
+     * <pre>
+     * Whether the server's endpoint rejects manually-entered static tokens.
+     *
+     * Some hosted MCP endpoints (e.g. Notion, Monday) only accept an access
+     * token obtained through their OAuth flow — a personal API token or PAT
+     * pasted into the credential form is rejected with a 401. For these servers
+     * OAuth is not merely the preferred path, it is the only path that works.
+     *
+     * When true, the connect surfaces present OAuth as the sole credential
+     * option and suppress the "enter token manually" affordance, so users are
+     * never sent down a path that cannot succeed. When false (the default), a
+     * static token remains a valid alternative — appropriate for API-key servers
+     * (e.g. Tavily) and for vendor endpoints that also accept a PAT (e.g.
+     * GitHub). This is a structural fact about the endpoint, not observable from
+     * the spec shape alone (an OAuth-only server and a PAT-capable server can
+     * have identical auth blocks), so it must be declared explicitly.
+     * </pre>
+     *
+     * <code>bool oauth_only = 10 [json_name = "oauthOnly"];</code>
+     * @param value The oauthOnly to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOauthOnly(boolean value) {
+
+      oauthOnly_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the server's endpoint rejects manually-entered static tokens.
+     *
+     * Some hosted MCP endpoints (e.g. Notion, Monday) only accept an access
+     * token obtained through their OAuth flow — a personal API token or PAT
+     * pasted into the credential form is rejected with a 401. For these servers
+     * OAuth is not merely the preferred path, it is the only path that works.
+     *
+     * When true, the connect surfaces present OAuth as the sole credential
+     * option and suppress the "enter token manually" affordance, so users are
+     * never sent down a path that cannot succeed. When false (the default), a
+     * static token remains a valid alternative — appropriate for API-key servers
+     * (e.g. Tavily) and for vendor endpoints that also accept a PAT (e.g.
+     * GitHub). This is a structural fact about the endpoint, not observable from
+     * the spec shape alone (an OAuth-only server and a PAT-capable server can
+     * have identical auth blocks), so it must be declared explicitly.
+     * </pre>
+     *
+     * <code>bool oauth_only = 10 [json_name = "oauthOnly"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOauthOnly() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      oauthOnly_ = false;
       onChanged();
       return this;
     }

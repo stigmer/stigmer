@@ -136,6 +136,49 @@ spec:
 | `spec.env` | Environment variable declarations (`EnvVarDeclaration`) the server requires. Each entry supports `is_secret`, `description`, and `optional` fields. |
 | `spec.default_enabled_tools` | Subset of tools to enable by default |
 | `spec.pinned_tool_approvals` | Manual approval policies for dangerous tools |
+| `spec.auth` | OAuth configuration for automated credential acquisition (see below) |
+
+### OAuth authentication (`spec.auth`)
+
+Add a `spec.auth` block when the server authenticates via OAuth. Stigmer then
+offers a "Sign in" flow on the Connect page and stores the acquired token in a
+system-managed environment, injecting it into the header via `target_env_var`.
+
+There are two OAuth modes, chosen by whether `oauth_app_ref` is set:
+
+```yaml
+spec:
+  http:
+    url: "https://mcp.example.com/mcp"
+    headers:
+      Authorization: "Bearer ${EXAMPLE_ACCESS_TOKEN}"
+  env:
+    EXAMPLE_ACCESS_TOKEN:
+      is_secret: true
+      description: "OAuth access token, obtained automatically via Connect."
+  auth:
+    # target_env_var must match a spec.env key: it is both the allowlist that
+    # lets the managed OAuth token reach the header AND where the token is stored.
+    target_env_var: "EXAMPLE_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"     # optional, informational
+    # oauth_only: set true ONLY when the endpoint rejects manually-entered
+    # static tokens (personal API tokens / PATs). It hides the "enter token
+    # manually" option so users are not sent down a path that cannot succeed.
+    # Leave unset (false) for API-key servers and vendors that also accept a PAT.
+    oauth_only: true
+    # oauth_app_ref: set ONLY for vendor OAuth (a pre-registered platform
+    # OAuthApp, e.g. GitHub/Slack). Omit for MCP-spec DCR servers, which
+    # Stigmer discovers and registers automatically from the http.url.
+    # oauth_app_ref:
+    #   org: stigmer
+    #   kind: oauth_app
+    #   slug: example-oauth
+```
+
+> **Keep `spec.env` even for `oauth_only` servers.** The declaration is the
+> allowlist that permits the managed OAuth token to be injected into the header
+> at execution time. Removing it makes the connected server silently drop out of
+> the agent's toolset.
 
 ### Quality Bar
 

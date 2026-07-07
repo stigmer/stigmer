@@ -66,6 +66,7 @@ type mcpAuth struct {
 	TokenLifetimeHint string       `yaml:"token_lifetime_hint"`
 	ScopeHints        []string     `yaml:"scope_hints"`
 	DiscoveryURL      string       `yaml:"discovery_url"`
+	OAuthOnly         bool         `yaml:"oauth_only"`
 }
 
 type oauthAppRef struct {
@@ -377,6 +378,36 @@ func TestMcpServers_CredentialManifestComplete(t *testing.T) {
 		if _, exists := servers[manifestName]; !exists {
 			t.Errorf("credential-manifest.yaml has entry %q but no matching .yaml file in mcp-servers/", manifestName)
 		}
+	}
+}
+
+// TestMcpServers_OAuthOnlyDeclared locks in that endpoints known to reject
+// manually-entered static tokens declare auth.oauth_only=true. Without the flag,
+// the connect UI offers a dead-end "enter token manually" path (stigmer/stigmer#148).
+// An oauth_only server must also carry an auth block with a target_env_var.
+func TestMcpServers_OAuthOnlyDeclared(t *testing.T) {
+	servers := loadAllMcpServers(t)
+
+	// Flagship OAuth-only endpoints verified to reject static tokens. Extend this
+	// list as the remaining dcr_oauth servers are rolled out.
+	oauthOnlySlugs := []string{"notion", "monday"}
+
+	for _, slug := range oauthOnlySlugs {
+		t.Run(slug, func(t *testing.T) {
+			server, ok := servers[slug]
+			if !ok {
+				t.Fatalf("expected seedpack to contain %q", slug)
+			}
+			if server.Spec.Auth == nil {
+				t.Fatalf("%s must declare an auth block", slug)
+			}
+			if !server.Spec.Auth.OAuthOnly {
+				t.Errorf("%s must set auth.oauth_only=true — its endpoint rejects manual tokens", slug)
+			}
+			if server.Spec.Auth.TargetEnvVar == "" {
+				t.Errorf("%s oauth_only server must still declare auth.target_env_var", slug)
+			}
+		})
 	}
 }
 
