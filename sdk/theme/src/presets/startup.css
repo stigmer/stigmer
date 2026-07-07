@@ -43,7 +43,7 @@
   --stgm-muted-faint: oklch(0.98 0 0);
   --stgm-primary-muted: oklch(0.58 0.14 285);
   --stgm-destructive-muted: oklch(0.65 0.12 27);
-  --stgm-muted-foreground-faint: oklch(0.72 0 0);
+  --stgm-muted-foreground-faint: oklch(0.62 0 0);
   --stgm-backdrop: oklch(0.99 0 0 / 80%);
   --stgm-sidebar: oklch(0.97 0 0);
   --stgm-sidebar-foreground: oklch(0.13 0 0);
@@ -70,7 +70,7 @@
   --stgm-secondary: oklch(0.16 0 0);
   --stgm-secondary-foreground: oklch(0.85 0 0);
   --stgm-muted: oklch(0.16 0 0);
-  --stgm-muted-foreground: oklch(0.55 0 0);
+  --stgm-muted-foreground: oklch(0.62 0 0);
   --stgm-accent: oklch(0.20 0 0);
   --stgm-accent-foreground: oklch(0.90 0 0);
   --stgm-border: oklch(0.22 0 0);
@@ -88,8 +88,8 @@
   --stgm-primary-hover: oklch(0.66 0.18 285);
   --stgm-primary-subtle: oklch(0.16 0.04 285);
   --stgm-destructive-subtle: oklch(0.16 0.04 22);
-  --stgm-muted-subtle: oklch(0.12 0 0);
-  --stgm-muted-foreground-subtle: oklch(0.45 0 0);
+  --stgm-muted-subtle: oklch(0.15 0 0);
+  --stgm-muted-foreground-subtle: oklch(0.52 0 0);
   --stgm-accent-hover: oklch(0.15 0 0);
   --stgm-destructive-hover: oklch(0.64 0.17 22);
   --stgm-foreground-hover: oklch(0.82 0 0);
@@ -97,14 +97,14 @@
   --stgm-muted-faint: oklch(0.11 0 0);
   --stgm-primary-muted: oklch(0.62 0.12 285);
   --stgm-destructive-muted: oklch(0.60 0.10 22);
-  --stgm-muted-foreground-faint: oklch(0.38 0 0);
+  --stgm-muted-foreground-faint: oklch(0.48 0 0);
   --stgm-backdrop: oklch(0.09 0 0 / 80%);
   --stgm-sidebar: oklch(0.07 0 0);
   --stgm-sidebar-foreground: oklch(0.85 0 0);
   --stgm-sidebar-primary: oklch(0.72 0.20 285);
   --stgm-sidebar-primary-foreground: oklch(0.10 0 0);
   --stgm-sidebar-muted: oklch(0.13 0 0);
-  --stgm-sidebar-muted-foreground: oklch(0.50 0 0);
+  --stgm-sidebar-muted-foreground: oklch(0.58 0 0);
   --stgm-sidebar-accent: oklch(0.14 0 0);
   --stgm-sidebar-accent-foreground: oklch(0.85 0 0);
   --stgm-sidebar-border: oklch(0.18 0 0);

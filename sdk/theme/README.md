@@ -22,79 +22,34 @@ This defines CSS custom properties on `:root` (light) and `[data-stgm-color-mode
 
 ### Token Reference
 
-#### Layout
+The complete token contract — every token with its purpose, light/dark
+defaults, and swatches — is documented at
+[stigmer.ai/docs/sdk/theme/tokens](https://stigmer.ai/docs/sdk/theme/tokens).
+That reference is generated directly from `src/tokens.css`, so it can never
+drift from the shipped values. The token groups:
 
-| Token | Purpose |
-|-------|---------|
-| `--stgm-radius` | Base border radius |
+- **Typography** — `--stgm-font-sans`, `--stgm-font-mono`
+- **Shape** — `--stgm-radius` (the whole radius scale derives from it)
+- **Core surfaces & text** — background/foreground, card, popover, primary, secondary, muted, accent (each with its `-foreground` pair)
+- **Semantic colors** — destructive, success, warning, info
+- **Forms & focus** — border, input, input-bg, ring
+- **Charts** — 5 categorical series + named chart colors
+- **Emphasis & elevation** — prominent borders, shadow scale
+- **Motion & layering** — transition duration/easing, popover z-index
+- **State shades** — hover/subtle/muted/faint variants of the core colors
+- **Sidebar** — a self-contained token context for contrasting sidebars
+- **Status** — ready/running/pending/degraded/failed/disabled/draft, each with `-foreground` and `-subtle`
+- **Diff viewer** and **Syntax highlighting** token sets
 
-#### Colors (Core)
-
-| Token | Purpose |
-|-------|---------|
-| `--stgm-background` | Page / app background |
-| `--stgm-foreground` | Default text color |
-| `--stgm-primary` | Primary brand / action color |
-| `--stgm-primary-foreground` | Text on primary |
-| `--stgm-secondary` | Secondary surfaces |
-| `--stgm-secondary-foreground` | Text on secondary |
-| `--stgm-muted` | Muted / disabled surfaces |
-| `--stgm-muted-foreground` | Text on muted |
-| `--stgm-accent` | Accent highlights |
-| `--stgm-accent-foreground` | Text on accent |
-
-#### Colors (Semantic)
-
-| Token | Purpose |
-|-------|---------|
-| `--stgm-destructive` | Destructive / error actions |
-| `--stgm-destructive-foreground` | Text on destructive |
-| `--stgm-success` | Success states |
-| `--stgm-success-foreground` | Text on success |
-| `--stgm-warning` | Warning states |
-| `--stgm-warning-foreground` | Text on warning |
-| `--stgm-info` | Informational states |
-| `--stgm-info-foreground` | Text on info |
-
-#### Colors (Surfaces)
-
-| Token | Purpose |
-|-------|---------|
-| `--stgm-card` | Card background |
-| `--stgm-card-foreground` | Card text |
-| `--stgm-popover` | Popover / dropdown background |
-| `--stgm-popover-foreground` | Popover text |
-
-#### Colors (Form)
-
-| Token | Purpose |
-|-------|---------|
-| `--stgm-border` | Default border color |
-| `--stgm-input` | Input border color |
-| `--stgm-ring` | Focus ring color |
-
-#### Colors (Chart)
-
-| Token | Purpose |
-|-------|---------|
-| `--stgm-chart-1` through `--stgm-chart-5` | Data visualization palette |
-
-#### Colors (Sidebar)
-
-| Token | Purpose |
-|-------|---------|
-| `--stgm-sidebar` | Sidebar background |
-| `--stgm-sidebar-foreground` | Sidebar text |
-| `--stgm-sidebar-primary` | Sidebar active item |
-| `--stgm-sidebar-primary-foreground` | Text on sidebar active |
-| `--stgm-sidebar-accent` | Sidebar hover / accent |
-| `--stgm-sidebar-accent-foreground` | Text on sidebar accent |
-| `--stgm-sidebar-border` | Sidebar border |
-| `--stgm-sidebar-ring` | Sidebar focus ring |
+Default token values are contrast-audited in CI: `src/contract/` measures
+every declared text/surface pairing (WCAG 2.1 AA for text, a documented
+lightness-delta floor for borderless surfaces) across all presets and both
+color modes. Run `npx tsx scripts/contrast-report.ts` in this package to see
+the full matrix.
 
 ## Design Language Presets
 
-Stigmer ships with 5 design language presets. Each represents a real-world product category's visual DNA — not just a color swap, but a complete design language with different border radius, surface treatments, border styles, sidebar appearance, and color palette.
+Stigmer ships with 6 design language presets. Each represents a real-world product category's visual DNA — not just a color swap, but a complete design language with different border radius, surface treatments, border styles, sidebar appearance, and color palette.
 
 | Preset | Archetype | Import | CSS Class |
 |--------|-----------|--------|-----------|
@@ -103,8 +58,9 @@ Stigmer ships with 5 design language presets. Each represents a real-world produ
 | Startup | Dev tools (Linear, Vercel) | `@stigmer/theme/presets/startup.css` | `stgm-theme-startup` |
 | Friendly | Consumer SaaS (Notion, Intercom) | `@stigmer/theme/presets/friendly.css` | `stgm-theme-friendly` |
 | Fintech | Premium financial (Stripe, Mercury) | `@stigmer/theme/presets/fintech.css` | `stgm-theme-fintech` |
+| Monochrome | Editorial black-and-white (Linear, Notion) | `@stigmer/theme/presets/monochrome.css` | `stgm-theme-monochrome` |
 
-Each preset overrides the full token surface — radius, all surface colors, borders, sidebar, and accent palette — for both light and dark modes.
+Each preset overrides most of the token surface — radius, surface colors, borders, sidebar, and accent palette — for both light and dark modes, and falls through to the defaults for anything it leaves alone (Monochrome deliberately keeps the semantic status colors). The full per-preset override tables are at [stigmer.ai/docs/sdk/theme/presets](https://stigmer.ai/docs/sdk/theme/presets).
 
 ### Using a Preset
 
@@ -172,9 +128,9 @@ Apply via `className` on `StigmerProvider`:
 
 ### What a Full Preset Overrides
 
-A complete design language preset overrides the entire token surface:
+A complete design language preset overrides most of the token surface:
 
-- **Shape**: `--stgm-radius` (sharp `0.25rem` to very rounded `0.875rem`)
+- **Shape**: `--stgm-radius` (sharp `0.125rem` in Fintech to very rounded `1.25rem` in Friendly)
 - **Surfaces**: `--stgm-background`, `--stgm-card`, `--stgm-popover`, `--stgm-muted`, `--stgm-secondary`, `--stgm-accent`
 - **Text**: `--stgm-foreground`, `--stgm-card-foreground`, `--stgm-muted-foreground`, etc.
 - **Accent**: `--stgm-primary` / `--stgm-primary-foreground`, `--stgm-ring`
@@ -183,6 +139,11 @@ A complete design language preset overrides the entire token surface:
 - **Charts**: `--stgm-chart-1` through `--stgm-chart-5`
 
 You can also create minimal presets that override only a subset of tokens.
+
+If your preset defines a token in its light block, define its dark value
+too: preset-light declarations outrank the default dark block in the
+cascade, so a light-only override would leak into dark mode. The theme
+package's contract tests flag this automatically for built-in presets.
 
 ### Color Format
 
@@ -211,6 +172,7 @@ import { cn } from "@stigmer/theme";
 | `@stigmer/theme/presets/startup.css` | Startup (Modern dev tools) design language |
 | `@stigmer/theme/presets/friendly.css` | Friendly (Consumer SaaS) design language |
 | `@stigmer/theme/presets/fintech.css` | Fintech (Premium financial) design language |
+| `@stigmer/theme/presets/monochrome.css` | Monochrome (Editorial black-and-white) design language |
 
 ## License
 

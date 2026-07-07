@@ -71,6 +71,8 @@
     "tailwind-merge": "^3.0.0"
   },
   "devDependencies": {
+    "@types/culori": "^4.0.1",
+    "culori": "^4.0.2",
     "vitest": "^3.2.4"
   }
 }
