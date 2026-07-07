@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, memo, Suspense, useCallback, useMemo, useState } from "react";
+import { lazy, memo, Suspense, useCallback, useMemo, useState, type ComponentType } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -21,18 +21,19 @@ import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/
 import { displayFileChangeSets } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { isTerminalPhase } from "./execution-phases.js";
-import { MessageEntry } from "./MessageEntry.js";
+import { MessageEntry, type MessageEntryProps } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubAgentSection } from "./SubAgentSection.js";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge.js";
-import { SetupProgress } from "./SetupProgress.js";
-import { ApprovalCard } from "./ApprovalCard.js";
+import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
+import { ApprovalCard, type ApprovalCardProps } from "./ApprovalCard.js";
 import { FileReviewCard } from "./FileReviewCard.js";
 import { SummarizationCard } from "./SummarizationCard.js";
-import { PlanCompletionCard } from "./PlanCompletionCard.js";
-import { PlanArtifactCard } from "./PlanArtifactCard.js";
-import { PlanStreamingCard } from "./PlanStreamingCard.js";
-import { TodoCard } from "./TodoCard.js";
+import { PlanCompletionCard, type PlanCompletionCardProps } from "./PlanCompletionCard.js";
+import { PlanArtifactCard, type PlanArtifactCardProps } from "./PlanArtifactCard.js";
+import { PlanStreamingCard, type PlanStreamingCardProps } from "./PlanStreamingCard.js";
+import { TodoCard, type TodoCardProps } from "./TodoCard.js";
+import type { TodoRowProps } from "./TodoList.js";
 import { findPlanArtifact } from "../library/detect-plan-artifact.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import type { SummarizationEventView } from "./useContextWindow.js";
@@ -62,6 +63,49 @@ const LazyVirtualizedThread = lazy(() =>
 const EMPTY_APPROVALS: readonly PendingApproval[] = [];
 const EMPTY_SUBMITTING_IDS: ReadonlySet<string> = new Set();
 const EMPTY_APPROVAL_ERRORS: ReadonlyMap<string, Error> = new Map();
+
+/**
+ * Component overrides for the chrome {@link MessageThread} renders — the
+ * adaptation surface for hosts whose design system needs different
+ * *structure*, not just different `--stgm-*` token values (stigmer#187).
+ *
+ * Each slot is keyed by the built-in component it replaces and receives
+ * exactly that component's exported props interface, so an override can
+ * always delegate to the built-in for the cases it does not customize
+ * (e.g. a `MessageEntry` slot that restyles `MESSAGE_HUMAN` bubbles and
+ * renders the default `MessageEntry` for everything else).
+ *
+ * Define slot components at module level (or memoize them). The thread's
+ * rows rely on `React.memo` + structural sharing to skip re-renders during
+ * streaming (DD-009/DD-010); a slot component recreated on every host
+ * render defeats that for its rows.
+ */
+export interface MessageThreadSlots {
+  /**
+   * All message bubbles — human, assistant, thinking, and system entries.
+   * Also wraps the failed-send bubble (the inline Retry chrome around it
+   * stays built-in).
+   */
+  readonly MessageEntry?: ComponentType<MessageEntryProps>;
+  /** The HITL tool-approval gate card. */
+  readonly ApprovalCard?: ComponentType<ApprovalCardProps>;
+  /** The collapsible in-thread to-dos card. */
+  readonly TodoCard?: ComponentType<TodoCardProps>;
+  /**
+   * One to-do row inside the built-in {@link TodoCard}'s list. Ignored
+   * when `TodoCard` is also overridden (the replacement receives it via
+   * {@link TodoCardProps.TodoRow} and may forward or ignore it).
+   */
+  readonly TodoRow?: ComponentType<TodoRowProps>;
+  /** Completed Plan turn that published a plan artifact. */
+  readonly PlanArtifactCard?: ComponentType<PlanArtifactCardProps>;
+  /** Completed Plan turn without an artifact — the bare Implement CTA. */
+  readonly PlanCompletionCard?: ComponentType<PlanCompletionCardProps>;
+  /** Live stand-in card while a Plan turn is writing its document. */
+  readonly PlanStreamingCard?: ComponentType<PlanStreamingCardProps>;
+  /** Pre-first-token setup / "Thinking…" indicator. */
+  readonly SetupProgress?: ComponentType<SetupProgressProps>;
+}
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
@@ -261,6 +305,12 @@ export interface MessageThreadProps {
    * existing consumers see no layout change.
    */
   readonly contentColumn?: ThreadContentColumn;
+  /**
+   * Component overrides for the thread's chrome — see
+   * {@link MessageThreadSlots}. Omitted slots render the built-ins;
+   * omitting the prop entirely changes nothing (DD-011).
+   */
+  readonly slots?: MessageThreadSlots;
 }
 
 /** Reading-column alignment for {@link MessageThread} content. */
@@ -1020,6 +1070,7 @@ export function MessageThread({
   planActionsDisabled,
   planBuildPending,
   contentColumn,
+  slots,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
@@ -1124,6 +1175,7 @@ export function MessageThread({
             onRetrySend={onRetrySend}
             onRetryExecution={onRetryExecution}
             onEditMessage={onEditMessage}
+            slots={slots}
           />
         </Suspense>
       </div>
@@ -1152,6 +1204,7 @@ export function MessageThread({
       onRetrySend={onRetrySend}
       onRetryExecution={onRetryExecution}
       onEditMessage={onEditMessage}
+      slots={slots}
     />
   );
 }
@@ -1186,6 +1239,7 @@ interface NonVirtualizedThreadProps {
   readonly onRetrySend?: () => void;
   readonly onRetryExecution?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
+  readonly slots?: MessageThreadSlots;
 }
 
 function NonVirtualizedThread({
@@ -1209,6 +1263,7 @@ function NonVirtualizedThread({
   onRetrySend,
   onRetryExecution,
   onEditMessage,
+  slots,
 }: NonVirtualizedThreadProps) {
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
@@ -1252,6 +1307,7 @@ function NonVirtualizedThread({
                   onRetrySend={onRetrySend}
                   onRetryExecution={onRetryExecution}
                   onEditMessage={onEditMessage}
+                  slots={slots}
                 />
               </ThreadItemWrapper>
             ))}
@@ -1307,12 +1363,18 @@ export interface ThreadItemRendererProps {
   readonly onRetrySend?: () => void;
   readonly onRetryExecution?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
+  readonly slots?: MessageThreadSlots;
 }
 
 /**
  * Renders a single thread item by discriminated `kind`. Used by both
  * the non-virtualized `items.map()` path and the virtualized
  * `Virtuoso.itemContent` callback.
+ *
+ * Slot resolution happens here, per case, as `slots?.X ?? X` — no merged
+ * defaults object, no allocation, and the memoized row wrappers below
+ * (`ApprovalCardRow`, `FileReviewRecordRow`) keep their DD-010 callback
+ * stabilization around whichever component renders inside them.
  *
  * Does not receive a `key` prop — the caller is responsible for
  * keying (either via `items.map` or `computeItemKey`).
@@ -1334,16 +1396,22 @@ export function ThreadItemRenderer({
   onRetrySend,
   onRetryExecution,
   onEditMessage,
+  slots,
 }: ThreadItemRendererProps) {
   switch (item.kind) {
-    case "message":
+    case "message": {
+      const Entry = slots?.MessageEntry ?? MessageEntry;
       if (item.isFailed) {
         return (
-          <FailedUserMessage message={item.message} onRetry={onRetrySend} />
+          <FailedUserMessage
+            message={item.message}
+            onRetry={onRetrySend}
+            MessageEntryComponent={Entry}
+          />
         );
       }
       return (
-        <MessageEntry
+        <Entry
           message={item.message}
           className={item.isPending ? "opacity-70" : undefined}
           isPlanDocument={item.isPlanDocument}
@@ -1355,6 +1423,7 @@ export function ThreadItemRenderer({
           }
         />
       );
+    }
     case "tool-group":
       return (
         <ToolCallGroup
@@ -1392,30 +1461,37 @@ export function ThreadItemRenderer({
           onApprovalSubmit={onApprovalSubmit!}
           isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
           error={approvalErrors?.get(item.pendingApproval.toolCallId) ?? null}
+          ApprovalCardComponent={slots?.ApprovalCard ?? ApprovalCard}
         />
       );
     case "file-review-record":
       return <FileReviewRecordRow fileChangeSet={item.fileChangeSet} />;
-    case "setup-progress":
+    case "setup-progress": {
+      const Setup = slots?.SetupProgress ?? SetupProgress;
       return (
-        <SetupProgress
+        <Setup
           workspaceEntries={item.workspaceEntries}
           serverPhase={item.serverPhase}
           isAwaitingResponse={item.isAwaitingResponse}
         />
       );
+    }
     case "context-compacted":
       return <SummarizationCard event={item.event} />;
-    case "todos":
-      return <TodoCard todos={item.todos} className="mx-4" />;
-    case "plan-completion":
+    case "todos": {
+      const Todos = slots?.TodoCard ?? TodoCard;
+      return <Todos todos={item.todos} className="mx-4" TodoRow={slots?.TodoRow} />;
+    }
+    case "plan-completion": {
       // When the plan was published as an artifact, show the richer reviewable
       // card (preview / copy / download / implement). Otherwise fall back to the
       // bare Implement CTA (older executions, or a plan that failed to publish).
       // Only the latest plan receives the build action — a superseded plan's
       // card is review-only, so a stale plan can never be implemented from it.
+      const Artifact = slots?.PlanArtifactCard ?? PlanArtifactCard;
+      const Completion = slots?.PlanCompletionCard ?? PlanCompletionCard;
       return item.planArtifact && item.executionId ? (
-        <PlanArtifactCard
+        <Artifact
           executionId={item.executionId}
           artifact={item.planArtifact}
           title={item.planTitle}
@@ -1432,17 +1508,19 @@ export function ThreadItemRenderer({
           buildPending={planBuildPending}
         />
       ) : (
-        <PlanCompletionCard
+        <Completion
           onImplement={item.isLatestPlan ? onBuildFromPlan : undefined}
           disabled={planActionsDisabled}
         />
       );
-    case "plan-writing":
+    }
+    case "plan-writing": {
       // The live stand-in for a plan the active turn is writing. Emitted only
       // when onOpenPlan is wired (see buildThreadItems' collapseStreamingPlan
       // gate), so the action is always available in practice.
+      const Streaming = slots?.PlanStreamingCard ?? PlanStreamingCard;
       return (
-        <PlanStreamingCard
+        <Streaming
           title={item.planTitle}
           sizeBytes={item.planSize}
           onOpenPlan={
@@ -1450,6 +1528,7 @@ export function ThreadItemRenderer({
           }
         />
       );
+    }
   }
 }
 
@@ -1462,17 +1541,22 @@ export function ThreadItemRenderer({
  * (so the typed text is never lost) with an inline, actionable error beneath
  * it. The error copy is intentionally short — the full reason is surfaced by
  * the consumer's send-error banner; this is the in-thread "Retry" affordance.
+ *
+ * The bubble renders through the caller-resolved MessageEntry slot so an
+ * overridden bubble style also applies to failed sends.
  */
 function FailedUserMessage({
   message,
   onRetry,
+  MessageEntryComponent,
 }: {
   message: AgentMessage;
   onRetry?: () => void;
+  MessageEntryComponent: ComponentType<MessageEntryProps>;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <MessageEntry message={message} />
+      <MessageEntryComponent message={message} />
       <div
         role="alert"
         className="mx-4 flex items-center gap-2 text-xs text-destructive"
@@ -1587,6 +1671,9 @@ interface ApprovalCardRowProps {
   // This gate's last failed decision, or null — a stable ref from the
   // approvalErrors map, so the row re-renders only when its error appears/clears.
   readonly error?: Error | null;
+  // The (possibly slotted) card component. The row's callback stabilization
+  // wraps whichever card renders, so a slot override keeps the memo behavior.
+  readonly ApprovalCardComponent: ComponentType<ApprovalCardProps>;
 }
 
 const ApprovalCardRow = memo(function ApprovalCardRow({
@@ -1594,6 +1681,7 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
   onApprovalSubmit,
   isSubmitting,
   error = null,
+  ApprovalCardComponent,
 }: ApprovalCardRowProps) {
   const handleSubmit = useCallback(
     (action: ApprovalAction, comment?: string) => {
@@ -1603,7 +1691,7 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
   );
 
   return (
-    <ApprovalCard
+    <ApprovalCardComponent
       pendingApproval={pendingApproval}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}

@@ -1,12 +1,17 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, type ComponentType } from "react";
 import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
-import { TodoList, findActiveTodo, todoCompletionSummary } from "./TodoList.js";
+import {
+  TodoList,
+  findActiveTodo,
+  todoCompletionSummary,
+  type TodoRowProps,
+} from "./TodoList.js";
 
 /** Props for {@link TodoCard}. */
 export interface TodoCardProps {
@@ -18,6 +23,12 @@ export interface TodoCardProps {
   readonly todos: { readonly [key: string]: TodoItem };
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Replacement row component, forwarded to the inner {@link TodoList}.
+   * Lets a host restyle individual rows while keeping the card's
+   * collapse/progress chrome. Defaults to the built-in {@link TodoRow}.
+   */
+  readonly TodoRow?: ComponentType<TodoRowProps>;
 }
 
 /**
@@ -52,6 +63,7 @@ export interface TodoCardProps {
 export const TodoCard = memo(function TodoCard({
   todos,
   className,
+  TodoRow,
 }: TodoCardProps) {
   useRenderTracer("TodoCard", { todos });
 
@@ -121,7 +133,7 @@ export const TodoCard = memo(function TodoCard({
 
       {expanded && (
         <div className="border-t border-border-muted px-2.5 py-2">
-          <TodoList todos={todos} />
+          <TodoList todos={todos} TodoRow={TodoRow} />
         </div>
       )}
     </div>
@@ -139,7 +151,11 @@ export function todoCardPropsEqual(
   prev: Readonly<TodoCardProps>,
   next: Readonly<TodoCardProps>,
 ): boolean {
-  return prev.todos === next.todos && prev.className === next.className;
+  return (
+    prev.todos === next.todos &&
+    prev.className === next.className &&
+    prev.TodoRow === next.TodoRow
+  );
 }
 
 // ---------------------------------------------------------------------------
