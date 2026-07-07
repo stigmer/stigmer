@@ -1,6 +1,11 @@
 package pipeline
 
-import "fmt"
+import (
+	"fmt"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
 
 // PipelineError wraps errors that occur during step execution.
 // It preserves the step name for debugging and troubleshooting.
@@ -21,6 +26,25 @@ func (e *PipelineError) Error() string {
 // This allows errors.Is and errors.As to work correctly.
 func (e *PipelineError) Unwrap() error {
 	return e.Err
+}
+
+// GRPCStatus lets the transport recover the step's intended gRPC code. A step
+// that returns a typed status (AlreadyExists, InvalidArgument, FailedPrecondition,
+// NotFound) has it preserved verbatim; any un-statused error becomes Internal
+// rather than Unknown, so the pipeline never leaks gRPC's "no status" sentinel
+// for a step that simply returned a plain error.
+//
+// Implementing GRPCStatus() (not just Unwrap) makes status.FromError hit its
+// explicit fast path instead of relying on errors.As chain-walking, so the
+// contract does not depend on grpc-go internals. Returning the inner status
+// directly also strips the "pipeline step X failed:" prefix from the wire
+// message on typed errors, giving clients the clean domain message; the step
+// name is still retained in server logs and in Error() for debugging.
+func (e *PipelineError) GRPCStatus() *status.Status {
+	if st, ok := status.FromError(e.Err); ok {
+		return st
+	}
+	return status.New(codes.Internal, e.Error())
 }
 
 // StepError creates a new PipelineError wrapping the given error.

@@ -8,9 +8,9 @@
 //   - There is NO update RPC and NO list RPC. Reads are by id, by reference
 //     (org + slug), or by the parent execution_id (getByExecutionId).
 //   - apply is create-or-FAIL: applying over an existing slug returns a real
-//     AlreadyExists (apply.go), not an update. By contrast, create's duplicate
-//     check is the shared CheckDuplicateStep, whose plain error degrades to
-//     Unknown — the same recorded deviation as every other domain.
+//     AlreadyExists (apply.go), not an update. create's duplicate check is the
+//     shared CheckDuplicateStep, which returns a typed AlreadyExists on every
+//     target — same contract as apply, reached via a different path.
 //
 // envmerge precedence (how spec.data is populated from layered Environments at
 // execution start) is intentionally out of scope: it is only observable after a
@@ -181,7 +181,7 @@ describe("ExecutionContext conformance — apply (create-or-fail)", () => {
     fixtures.defer(() => clients.executionContextCommand.delete({ resourceId: first.metadata!.id }));
 
     // ExecutionContext has no update RPC; apply over an existing slug returns a
-    // real AlreadyExists (apply.go), distinct from create's Unknown deviation.
+    // real AlreadyExists (apply.go) — the same code create returns for a duplicate.
     await expectGrpcCode(
       () => clients.executionContextCommand.apply(makeExecutionContext({ org, name })),
       Code.AlreadyExists,

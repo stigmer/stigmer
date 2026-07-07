@@ -16,9 +16,9 @@
 //     value in BOTH editions by design (cloud gates it behind can_read_secrets),
 //     so its value assertion is NOT gated.
 //
-// Two recorded deviations apply to create (shared with every other domain):
-// duplicate-create and missing-name lose their gRPC status in the pipeline
-// wrapper and surface as Unknown — see contract/deviations.ts.
+// The shared create steps return typed gRPC codes on every target:
+// duplicate-create -> AlreadyExists (CheckDuplicateStep) and missing-name ->
+// InvalidArgument. No deviations are tracked.
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -445,10 +445,10 @@ describe("Environment conformance — negative paths", () => {
 
   it("rejects a duplicate personal environment with a real AlreadyExists", async () => {
     const { org } = await target.provisionTenancy();
-    // The personal-environment uniqueness step returns a real gRPC status
-    // (codes.AlreadyExists), unlike the generic slug CheckDuplicateStep whose
-    // plain error degrades to Unknown. This documents that the deviation is a
-    // property of the generic step, not of duplicate detection itself.
+    // The personal-environment uniqueness step returns a real
+    // codes.AlreadyExists — the same code the generic slug CheckDuplicateStep
+    // returns. This documents that both duplicate-detection paths carry a typed
+    // status; they differ only in which step enforces uniqueness.
     const first = await clients.environmentCommand.create({
       apiVersion: ENVIRONMENT_API_VERSION,
       kind: ENVIRONMENT_KIND,
