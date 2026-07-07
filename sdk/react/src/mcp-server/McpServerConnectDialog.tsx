@@ -11,6 +11,7 @@ import { useMcpServerConnect } from "./useMcpServerConnect.js";
 import { useDisconnectOAuth } from "./useDisconnectOAuth.js";
 import { EnvVarForm } from "../environment/EnvVarForm.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { StdioSandboxNotice } from "./StdioSandboxNotice.js";
 
 /** Props for {@link McpServerConnectDialog}. */
 export interface McpServerConnectDialogProps {
@@ -275,6 +276,8 @@ function ConnectDialogContent({
           {mcpServer.spec.description}
         </p>
       )}
+
+      <StdioSandboxNotice serverType={mcpServer.spec?.serverType} className="mb-4" />
 
       {activeError && (
         <div className="mb-4">

@@ -20,6 +20,7 @@ import { useMcpServerConnect } from "./useMcpServerConnect.js";
 import { useMcpServerCredentials } from "./useMcpServerCredentials.js";
 import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
 import type { OAuthConnectPhase } from "./useMcpServerOAuthConnect.js";
+import { StdioSandboxNotice } from "./StdioSandboxNotice.js";
 import { useDisconnectOAuth } from "./useDisconnectOAuth.js";
 import { useOrgOAuthApp } from "./useOrgOAuthApp.js";
 import { OAuthAppForm } from "./OAuthAppForm.js";
@@ -488,6 +489,7 @@ export function McpServerDetailView({
       )}
 
       <Section title="Connection">
+        <StdioSandboxNotice serverType={spec?.serverType} className="mb-3" />
         <ConnectBar
           isConnecting={connection.isConnecting || oauth.isInProgress}
           connectionError={combinedError}

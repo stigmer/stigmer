@@ -61,6 +61,16 @@ three steps in a single action:
 The whole process takes a few seconds. When it finishes, the detail view updates
 to show the discovered tools and their approval policies.
 
+<Callout type="info">
+  **stdio servers run in an isolated cloud sandbox.** In Stigmer Cloud, stdio
+  servers (launched via `npx`, `uvx`, or a binary) run as a subprocess inside a
+  sandbox — not on your own computer. Self-contained servers work as expected,
+  but a server that needs access to your local files, applications, or private
+  network (for example, a filesystem server pointed at a path on your laptop)
+  won't have it there. If a connect fails, the error message names the likely
+  cause for the server's transport.
+</Callout>
+
 ## What changes after connecting
 
 ### Tools tab

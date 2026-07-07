@@ -148,6 +148,44 @@ func TestSetToolApprovalsFromConnect(t *testing.T) {
 	})
 }
 
+func TestBuildConnectFailureMessage(t *testing.T) {
+	const cause = "unhandled errors in a TaskGroup (1 sub-exception)"
+
+	stdioServer := &mcpserverv1.McpServer{
+		Metadata: &apiresource.ApiResourceMetadata{Name: "Filesystem", Slug: "filesystem"},
+		Spec: &mcpserverv1.McpServerSpec{
+			ServerType: &mcpserverv1.McpServerSpec_Stdio{
+				Stdio: &mcpserverv1.StdioServerConfig{Command: "npx"},
+			},
+		},
+	}
+	httpServer := &mcpserverv1.McpServer{
+		Metadata: &apiresource.ApiResourceMetadata{Name: "Remote API", Slug: "remote-api"},
+		Spec: &mcpserverv1.McpServerSpec{
+			ServerType: &mcpserverv1.McpServerSpec_Http{
+				Http: &mcpserverv1.HttpServerConfig{Url: "https://example.com"},
+			},
+		},
+	}
+
+	t.Run("stdio message names the server, keeps the cause, and gives a local --dry-run hint", func(t *testing.T) {
+		msg := buildConnectFailureMessage(stdioServer, cause)
+		assert.Contains(t, msg, "Filesystem", "names the server")
+		assert.Contains(t, msg, cause, "preserves the root cause")
+		assert.Contains(t, msg, "stdio server", "identifies the transport")
+		assert.Contains(t, msg, "stigmer connect mcp-server filesystem --dry-run",
+			"points at the locally-runnable preview command with the server slug")
+	})
+
+	t.Run("http message uses reachability guidance, not the stdio hint", func(t *testing.T) {
+		msg := buildConnectFailureMessage(httpServer, cause)
+		assert.Contains(t, msg, "Remote API", "names the server")
+		assert.Contains(t, msg, cause, "preserves the root cause")
+		assert.Contains(t, msg, "reachable", "mentions reachability")
+		assert.NotContains(t, msg, "--dry-run", "http guidance must not suggest the stdio preview")
+	})
+}
+
 // newTestController returns an McpServerController backed by a fresh temp SQLite
 // store, so persistConnectResult exercises the real atomic UpdateResource path.
 func newTestController(t *testing.T) (*McpServerController, store.Store) {
