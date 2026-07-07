@@ -31,7 +31,7 @@ import { classifyTool } from "../../shared/tool-kind.js";
 import { applyTodoUpdate } from "../../shared/todos.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
-import type { ExecutionStatusWriter } from "./execution-status-writer.js";
+import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
 import {
   UsageAccumulator,
   extractToolResult,

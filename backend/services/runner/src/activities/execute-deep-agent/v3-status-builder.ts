@@ -30,7 +30,7 @@ import { classifyTool } from "../../shared/tool-kind.js";
 import { applyTodoUpdate } from "../../shared/todos.js";
 import { ExecutionState } from "./execution-state.js";
 import { utcTimestamp } from "../../shared/status.js";
-import type { ExecutionStatusWriter } from "./execution-status-writer.js";
+import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
 import type { ApprovalPolicyProvider } from "./status-builder.js";
 import type { StigmerRunEvent, V3UsagePayload } from "./v3-events.js";
 import { namespaceDepth } from "./v3-events.js";

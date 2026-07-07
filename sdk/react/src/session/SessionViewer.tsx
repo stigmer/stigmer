@@ -24,6 +24,7 @@ import { SelectionStore } from "../internal/store/selection-store.js";
 import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.js";
 import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
 import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
+import { isTerminalPhase } from "../execution/execution-phases.js";
 import { MessageThread, type MessageThreadSlots } from "../execution/MessageThread.js";
 import { FileChangeProgressBar } from "../execution/FileChangeProgressBar.js";
 import { FileReviewDock } from "../execution/FileReviewDock.js";
@@ -1126,6 +1127,18 @@ function SessionPanelRegion({
     ],
   );
 
+  // Cloud sessions with a git workspace push approved changes back to a
+  // branch/PR, so the Changes facet is offered from the start with an honest
+  // pre-push state. Deliberately NOT for local sessions: local mode edits the
+  // user's own working tree and never writes back (the runner configures no
+  // push credentials there) — promising a PR would be a lie.
+  const expectsWriteBack =
+    flow.executionTarget === "cloud" &&
+    flow.workspace.entries.some((entry) => entry.type === "git");
+  const displayPhase =
+    flow.displayExecution?.status?.phase ??
+    ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+
   // The session facets (Config / Changes / Artifacts / Usage / Inspect) as
   // injected rail views — the full inspector feature set inside one panel.
   const railViews = useSessionRailViews({
@@ -1138,6 +1151,8 @@ function SessionPanelRegion({
     onOpenPlan,
     onOpenArtifact,
     onActivateArtifact,
+    expectsWriteBack,
+    changesSettled: isTerminalPhase(displayPhase),
   });
 
   // Explorer-footer folder attach (desktop only — needs the native picker).

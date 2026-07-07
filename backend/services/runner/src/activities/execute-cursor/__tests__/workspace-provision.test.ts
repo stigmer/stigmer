@@ -138,12 +138,13 @@ describe("provisionCursorWorkspace", () => {
     const workspaceRoot = join(tmpRoot, "workspace");
     mkdirSync(workspaceRoot, { recursive: true });
 
-    const dirs = await provisionCursorWorkspace(
-      makeConfig(workspaceRoot),
-      gitRepoSession(source),
-      {},
-      "test-session-clone",
-    );
+    const { workspaceDirs: dirs, provisionResults, workspaceBackend } =
+      await provisionCursorWorkspace(
+        makeConfig(workspaceRoot),
+        gitRepoSession(source),
+        {},
+        "test-session-clone",
+      );
 
     expect(dirs).toHaveLength(1);
     const clonedFile = join(dirs[0], MARKER_FILE);
@@ -151,6 +152,12 @@ describe("provisionCursorWorkspace", () => {
     expect(readFileSync(clonedFile, "utf-8")).toBe(MARKER_CONTENT);
     // The clone must be a real git repo (so the agent can run git in it).
     expect(existsSync(join(dirs[0], ".git"))).toBe(true);
+
+    // The provision results carry the git metadata the write-back
+    // coordinator consumes (repo URL, base branch), through the same backend.
+    expect(provisionResults).toHaveLength(1);
+    expect(provisionResults[0].gitMetadata?.branch).toBe("main");
+    expect(workspaceBackend).toBeDefined();
   }, GIT_TEST_TIMEOUT_MS);
 
   it("clones into a workspace root that already contains lost+found (PVC simulation)", async () => {
@@ -161,7 +168,7 @@ describe("provisionCursorWorkspace", () => {
     mkdirSync(join(workspaceRoot, "lost+found"), { recursive: true });
     writeFileSync(join(workspaceRoot, "lost+found", "stray"), "fsck-artifact");
 
-    const dirs = await provisionCursorWorkspace(
+    const { workspaceDirs: dirs } = await provisionCursorWorkspace(
       makeConfig(workspaceRoot),
       gitRepoSession(source),
       {},
@@ -196,7 +203,7 @@ describe("provisionCursorWorkspace", () => {
     const workspaceRoot = join(tmpRoot, "default-branch-workspace");
     mkdirSync(workspaceRoot, { recursive: true });
 
-    const dirs = await provisionCursorWorkspace(
+    const { workspaceDirs: dirs } = await provisionCursorWorkspace(
       makeConfig(workspaceRoot),
       gitRepoSessionNoBranch(source),
       {},
@@ -221,7 +228,7 @@ describe("provisionCursorWorkspace", () => {
     // a worktree here, so it must be left untouched.
     mkdirSync(join(workspaceRoot, "lost+found"), { recursive: true });
 
-    const dirs = await provisionCursorWorkspace(
+    const { workspaceDirs: dirs } = await provisionCursorWorkspace(
       makeConfig(workspaceRoot),
       multiGitRepoSession([
         { name: "frontend", url: frontend },
@@ -259,13 +266,14 @@ describe("provisionCursorWorkspace", () => {
     // Leftovers from other sessions at the shared root must not be visible.
     writeFileSync(join(workspaceRoot, "other-session-leftover.md"), "not yours");
 
-    const dirs = await provisionCursorWorkspace(
+    const { workspaceDirs: dirs, provisionResults } = await provisionCursorWorkspace(
       makeConfig(workspaceRoot),
       emptySession(),
       {},
       "test-session-empty",
     );
 
+    expect(provisionResults).toEqual([]);
     expect(dirs).toEqual([join(workspaceRoot, "sessions", "test-session-empty")]);
     expect(existsSync(dirs[0])).toBe(true);
     expect(existsSync(join(dirs[0], "other-session-leftover.md"))).toBe(false);
@@ -276,9 +284,9 @@ describe("provisionCursorWorkspace", () => {
     mkdirSync(workspaceRoot, { recursive: true });
     const config = makeConfig(workspaceRoot);
 
-    const turn1 = await provisionCursorWorkspace(config, emptySession(), {}, "stable-session");
+    const turn1 = (await provisionCursorWorkspace(config, emptySession(), {}, "stable-session")).workspaceDirs;
     writeFileSync(join(turn1[0], "notes.md"), "turn 1 output");
-    const turn2 = await provisionCursorWorkspace(config, emptySession(), {}, "stable-session");
+    const turn2 = (await provisionCursorWorkspace(config, emptySession(), {}, "stable-session")).workspaceDirs;
 
     expect(turn2).toEqual(turn1);
     expect(readFileSync(join(turn2[0], "notes.md"), "utf-8")).toBe("turn 1 output");
@@ -289,8 +297,8 @@ describe("provisionCursorWorkspace", () => {
     mkdirSync(workspaceRoot, { recursive: true });
     const config = makeConfig(workspaceRoot);
 
-    const [dirA] = await provisionCursorWorkspace(config, emptySession(), {}, "session-a");
-    const [dirB] = await provisionCursorWorkspace(config, emptySession(), {}, "session-b");
+    const [dirA] = (await provisionCursorWorkspace(config, emptySession(), {}, "session-a")).workspaceDirs;
+    const [dirB] = (await provisionCursorWorkspace(config, emptySession(), {}, "session-b")).workspaceDirs;
 
     expect(dirA).not.toBe(dirB);
     writeFileSync(join(dirA, "a.md"), "session a");
@@ -304,7 +312,7 @@ describe("provisionCursorWorkspace", () => {
     const workspaceRoot = join(tmpRoot, "workspace-local");
     mkdirSync(workspaceRoot, { recursive: true });
 
-    const dirs = await provisionCursorWorkspace(
+    const { workspaceDirs: dirs } = await provisionCursorWorkspace(
       makeConfig(workspaceRoot),
       localPathSession(projectDir),
       {},

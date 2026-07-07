@@ -17,7 +17,13 @@ export interface WriteBackCardProps {
  *
  * Shows the workspace entry name, branch, diff summary, phase
  * indicator, and a "View PR" link when the pull request was
- * successfully created. On failure, displays the error message.
+ * successfully created.
+ *
+ * Error rendering follows the record's phase honestly (DD-006):
+ * a FAILED record's error is destructive (the work did not reach the
+ * remote), while a PUSHED record carrying an error renders it as a
+ * degraded notice — the branch is live and its info stays usable; only
+ * the PR step failed.
  *
  * Themed via standard semantic tokens — no hardcoded colors, no
  * Console dependencies. Embedders can theme this card through
@@ -85,9 +91,17 @@ export function WriteBackCard({ writeBack, className }: WriteBackCardProps) {
         </div>
       )}
 
-      {/* Error message */}
-      {isFailed && writeBack.error && (
-        <div className="mt-1.5 rounded bg-destructive-subtle px-2 py-1 text-xs text-destructive">
+      {/* Error message: destructive when the write-back itself failed,
+          degraded when the branch pushed but a later step (the PR) did not. */}
+      {writeBack.error && (
+        <div
+          className={cn(
+            "mt-1.5 rounded px-2 py-1 text-xs",
+            isFailed
+              ? "bg-destructive-subtle text-destructive"
+              : "bg-status-degraded-subtle text-status-degraded",
+          )}
+        >
           {writeBack.error}
         </div>
       )}

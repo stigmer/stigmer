@@ -20,7 +20,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
-import type { ExecutionStatusWriter } from "./execution-status-writer.js";
+import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
 

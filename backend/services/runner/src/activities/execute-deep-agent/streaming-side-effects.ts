@@ -8,7 +8,7 @@
 
 import type { V3ProtocolEvent } from "./v3-event-recorder.js";
 import type { InlinePublisher } from "./inline-publisher.js";
-import type { WriteBackCoordinator } from "./writeback-coordinator.js";
+import type { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import { extractFilePath, isFileModifyingTool } from "../../shared/file-tools.js";
 
 interface CachedToolInput {

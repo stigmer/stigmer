@@ -1,17 +1,27 @@
 /**
- * Incremental git write-back coordinator for workspace entries.
+ * Git write-back coordinator for workspace entries.
  *
- * During agent execution, each file-modifying tool call triggers an
- * incremental commit-and-push cycle for the affected git workspace.
- * The first cycle creates the branch and PR; subsequent cycles add
- * commits to the same branch — the PR updates automatically on GitHub.
+ * Commits the workspace's changes to the session's write-back branch, pushes,
+ * and keeps one pull request open per session. The branch and PR are
+ * SESSION-scoped (`stigmer/<session-id>`): a session is one workstream, so
+ * every approved turn appends commits to the same branch and the same PR —
+ * mirroring how Cursor cloud agents and Codex present a session's deliverable.
+ * Execution-scoped branches were a modeling bug: each turn branched off the
+ * previous turn's branch, leaving a trail of superseded PRs.
  *
- * DD-5: Incremental writeback, not batch.
+ * Because the branch outlives any single execution, every git/GitHub step is
+ * idempotent across coordinator instances: the branch is checked out if it
+ * already exists (locally, or on the remote after a sandbox re-provision), and
+ * an already-open PR for the branch is adopted instead of re-created.
  *
- * Lifecycle:
- *   1. Created after workspace provisioning in index.ts.
- *   2. `onFileModified(path)` called from streaming on each write/edit tool end.
- *   3. `finalize()` called from post-stream as a safety net.
+ * When this runs depends on the harness's file-review mode:
+ *  - Capture mode (apply-then-review — every git workspace): the streaming
+ *    trigger is suppressed and `finalize()` runs exactly once on the APPROVED
+ *    tree, after review decisions reconcile (see processCaptureWriteback in
+ *    index.ts). Speculative mid-turn edits never reach GitHub.
+ *  - Legacy non-capture turns: `onFileModified(path)` triggers an incremental
+ *    commit/push per file-modifying tool call (DD-5), with `finalize()` as the
+ *    post-stream safety net.
  *
  * Concurrency: one mutex per workspace entry serializes git operations.
  */
@@ -25,24 +35,25 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
-import { SourceType } from "../../shared/workspace/types.js";
-import { gitCommitAsAgent } from "../../shared/workspace/git-identity.js";
-import type { ExecutionStatusWriter } from "./execution-status-writer.js";
+import type { WorkspaceBackend, ProvisionResult } from "./types.js";
+import { SourceType } from "./types.js";
+import { gitCommitAsAgent } from "./git-identity.js";
+import type { ExecutionStatusWriter } from "../execution-status-writer.js";
 
 const WRITE_BACK_ENABLED_MODES = new Set([
   GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED,
   GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR,
 ]);
 
+const GITHUB_API = "https://api.github.com";
+
 interface EntryState {
-  branchCreated: boolean;
+  branchReady: boolean;
   prCreated: boolean;
   prUrl: string;
   prNumber: number;
   commitCount: number;
   lastCommitSha: string;
-  githubToken: string;
   githubOwner: string;
   githubRepo: string;
 }
@@ -58,8 +69,15 @@ export class WriteBackCoordinator {
   private readonly statusWriter: ExecutionStatusWriter;
   private readonly executionId: string;
   private readonly workspaceBackend: WorkspaceBackend;
-  private readonly shortId: string;
   private readonly branchName: string;
+  /**
+   * Token for the GitHub PR API, plumbed explicitly from the resolved
+   * execution env (the same GITHUB_TOKEN that credentials the clone/push).
+   * Empty when the session has none — commit/push may still succeed via the
+   * repo-local credential store, so an empty token degrades to PUSHED with an
+   * actionable error rather than blocking the write-back.
+   */
+  private readonly githubToken: string;
 
   private readonly eligible = new Map<string, EligibleEntry>();
   private readonly state = new Map<string, EntryState>();
@@ -68,6 +86,9 @@ export class WriteBackCoordinator {
   constructor(opts: {
     statusWriter: ExecutionStatusWriter;
     executionId: string;
+    /** The owning session's id — the branch/PR are session-scoped. */
+    sessionId: string;
+    githubToken: string;
     provisionResults: readonly ProvisionResult[];
     workspaceEntries: readonly WorkspaceEntry[];
     workspaceBackend: WorkspaceBackend;
@@ -75,8 +96,10 @@ export class WriteBackCoordinator {
     this.statusWriter = opts.statusWriter;
     this.executionId = opts.executionId;
     this.workspaceBackend = opts.workspaceBackend;
-    this.shortId = opts.executionId.slice(0, 8);
-    this.branchName = `stigmer/${this.shortId}`;
+    this.githubToken = opts.githubToken;
+    // The FULL session id: a truncated ULID is timestamp-dominated, so two
+    // sessions created near-simultaneously would collide on a short prefix.
+    this.branchName = `stigmer/${opts.sessionId}`;
 
     this.initEligibleEntries(opts.provisionResults, opts.workspaceEntries);
   }
@@ -86,9 +109,9 @@ export class WriteBackCoordinator {
   }
 
   /**
-   * Called after a file-modifying tool completes. Resolves the path to
-   * a workspace entry and runs an incremental commit/push cycle.
-   * Fire-and-forget: errors are logged, never thrown.
+   * Called after a file-modifying tool completes (legacy non-capture turns
+   * only). Resolves the path to a workspace entry and runs an incremental
+   * commit/push cycle. Fire-and-forget: errors are logged, never thrown.
    */
   async onFileModified(path: string): Promise<void> {
     try {
@@ -96,7 +119,7 @@ export class WriteBackCoordinator {
       if (!entryName) return;
 
       await this.withLock(entryName, () =>
-        this.incrementalWriteBack(entryName),
+        this.writeBackEntry(entryName),
       );
     } catch (err) {
       console.warn(
@@ -107,14 +130,16 @@ export class WriteBackCoordinator {
   }
 
   /**
-   * Post-execution safety net. Checks every eligible workspace entry
-   * for remaining uncommitted changes and commits/pushes them.
+   * Commits and pushes every eligible workspace entry's remaining uncommitted
+   * changes. In capture mode this is THE write-back — invoked once on the
+   * approved tree after review reconcile; on legacy turns it is the
+   * post-stream safety net.
    */
   async finalize(): Promise<void> {
     for (const entryName of this.eligible.keys()) {
       try {
         await this.withLock(entryName, () =>
-          this.incrementalWriteBack(entryName),
+          this.writeBackEntry(entryName),
         );
       } catch (err) {
         console.warn(
@@ -155,13 +180,12 @@ export class WriteBackCoordinator {
       });
 
       this.state.set(pr.entryName, {
-        branchCreated: false,
+        branchReady: false,
         prCreated: false,
         prUrl: "",
         prNumber: 0,
         commitCount: 0,
         lastCommitSha: "",
-        githubToken: "",
         githubOwner: "",
         githubRepo: "",
       });
@@ -190,9 +214,19 @@ export class WriteBackCoordinator {
     return null;
   }
 
-  // ── Core Incremental Write-Back ─────────────────────────────────────
+  // ── Core Write-Back Cycle ───────────────────────────────────────────
 
-  private async incrementalWriteBack(entryName: string): Promise<void> {
+  /**
+   * One write-back cycle for an entry: branch → commit → push → PR → status.
+   *
+   * Failure semantics are split by what actually succeeded (the phases are
+   * facts, not a single verdict):
+   *  - branch/commit/push failure → FAILED (the work did not reach GitHub);
+   *  - PR failure after a successful push → PUSHED with the PR error carried
+   *    in `error` — the branch is live and usable, and saying "failed" for a
+   *    pushed branch would be dishonest (the original cloud regression).
+   */
+  private async writeBackEntry(entryName: string): Promise<void> {
     const entry = this.eligible.get(entryName)!;
     const entryState = this.state.get(entryName)!;
     const rootDir = entry.rootDir;
@@ -201,37 +235,23 @@ export class WriteBackCoordinator {
       return this.workspaceBackend.execute(`cd ${rootDir} && ${cmd}`);
     };
 
-    let mutationStarted = false;
     try {
       const hasChanges = await this.hasChanges(exec);
       if (!hasChanges) return;
 
-      mutationStarted = true;
-
-      if (!entryState.branchCreated) {
-        await this.createBranch(entryName, entryState, exec);
+      if (!entryState.branchReady) {
+        await this.ensureBranch(entryName, entryState, exec);
       }
-
-      const commitMsg = `agent changes (${entryState.commitCount + 1})`;
-      await this.commitAndPush(entryName, entryState, exec, commitMsg);
-
-      if (!entryState.prCreated) {
-        await this.createPr(entryName, entryState, entry, exec);
-      }
-
-      await this.updateStatus(entryName, entryState, entry, exec);
-
+      await this.commitAndPush(entryName, entryState, exec);
     } catch (err) {
       console.warn(
         `[WriteBack] execution=${this.executionId} entry=${entryName} — ` +
-        `incremental error: ${err}`,
+        `commit/push error: ${err}`,
       );
-      if (!mutationStarted) return;
-
       const wb = create(WorkspaceWriteBackSchema, {
         workspaceEntryName: entryName,
         baseBranch: entry.baseBranch,
-        branchName: entryState.branchCreated ? this.branchName : "",
+        branchName: entryState.branchReady ? this.branchName : "",
         phase: WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED,
         error: String(err),
       });
@@ -240,7 +260,23 @@ export class WriteBackCoordinator {
         wb.pullRequestNumber = entryState.prNumber;
       }
       this.statusWriter.addWriteBack(wb);
+      return;
     }
+
+    let prError = "";
+    if (!entryState.prCreated) {
+      try {
+        await this.ensurePr(entryName, entryState, entry);
+      } catch (err) {
+        console.warn(
+          `[WriteBack] execution=${this.executionId} entry=${entryName} — ` +
+          `PR error (branch is pushed): ${err}`,
+        );
+        prError = String(err);
+      }
+    }
+
+    await this.updateStatus(entryName, entryState, entry, exec, prError);
   }
 
   // ── Git Operations ──────────────────────────────────────────────────
@@ -254,16 +290,52 @@ export class WriteBackCoordinator {
     return untracked.trim().length > 0;
   }
 
-  private async createBranch(
+  /**
+   * Put the working tree on the session branch, wherever the branch already
+   * lives. Three cases, in order:
+   *  1. HEAD is already on it — a later turn in the same workspace (the common
+   *     multi-turn path; the previous turn's cycle left HEAD there).
+   *  2. It exists locally or on the remote — a re-provisioned workspace whose
+   *     clone lost the local branch. Checked out (tracking the remote ref when
+   *     that is the only copy). The checkout carries this turn's uncommitted
+   *     changes along; if they collide with the branch's prior commits git
+   *     refuses, and the error surfaces as an honest FAILED record — we never
+   *     force (-B) over the session's pushed history.
+   *  3. Neither — the session's first write-back creates it.
+   */
+  private async ensureBranch(
     entryName: string,
     entryState: EntryState,
     exec: (cmd: string) => Promise<string>,
   ): Promise<void> {
-    await exec(`git checkout -b ${this.branchName}`);
-    entryState.branchCreated = true;
+    const current = (await exec("git branch --show-current").catch(() => "")).trim();
+    if (current === this.branchName) {
+      entryState.branchReady = true;
+      return;
+    }
+
+    const localRef = await exec(
+      `git rev-parse --verify --quiet refs/heads/${this.branchName}`,
+    ).then((out) => out.trim(), () => "");
+
+    if (localRef) {
+      await exec(`git checkout ${this.branchName}`);
+    } else {
+      const remoteRef = (
+        await exec(`git ls-remote --heads origin ${this.branchName}`).catch(() => "")
+      ).trim();
+      if (remoteRef) {
+        await exec(`git fetch origin ${this.branchName}`);
+        await exec(`git checkout -b ${this.branchName} origin/${this.branchName}`);
+      } else {
+        await exec(`git checkout -b ${this.branchName}`);
+      }
+    }
+
+    entryState.branchReady = true;
     console.log(
       `[WriteBack] execution=${this.executionId} entry=${entryName} — ` +
-      `created branch ${this.branchName}`,
+      `on branch ${this.branchName}`,
     );
   }
 
@@ -271,62 +343,82 @@ export class WriteBackCoordinator {
     entryName: string,
     entryState: EntryState,
     exec: (cmd: string) => Promise<string>,
-    commitMsg: string,
   ): Promise<void> {
     await exec("git add -A");
     // Committed as the agent identity: the cloud sandbox has no git identity
     // configured (a bare commit fails with "Author identity unknown"), and in
     // local mode the agent's work should not be attributed to the host user.
-    await exec(gitCommitAsAgent(commitMsg));
+    // The execution id in the message links each commit back to its turn.
+    await exec(gitCommitAsAgent(`agent changes (${this.executionId})`));
 
     entryState.commitCount++;
     const shaOutput = await exec("git rev-parse HEAD");
     entryState.lastCommitSha = shaOutput.trim();
 
-    if (entryState.commitCount === 1) {
-      await exec(`git push -u origin ${this.branchName}`);
-    } else {
-      await exec("git push");
-    }
+    // Always -u: idempotent whether this push creates the remote branch or
+    // appends to it, and it (re-)establishes tracking after a re-provision.
+    await exec(`git push -u origin ${this.branchName}`);
 
     console.log(
       `[WriteBack] execution=${this.executionId} entry=${entryName} — ` +
-      `commit #${entryState.commitCount} pushed (sha=${entryState.lastCommitSha.slice(0, 12)})`,
+      `commit pushed to ${this.branchName} (sha=${entryState.lastCommitSha.slice(0, 12)})`,
     );
   }
 
-  private async createPr(
+  // ── GitHub PR ───────────────────────────────────────────────────────
+
+  /**
+   * Ensure one open PR exists for the session branch: adopt an already-open
+   * one (a prior turn — possibly a prior coordinator instance — created it),
+   * else create it. Runs only after a successful push; a thrown error here is
+   * reported as PUSHED + error, never FAILED.
+   */
+  private async ensurePr(
     entryName: string,
     entryState: EntryState,
     entry: EligibleEntry,
-    _exec: (cmd: string) => Promise<string>,
   ): Promise<void> {
     const meta = entry.provisionResult.gitMetadata!;
-    const { owner, repo } = parseGithubRepo(meta.repoUrl);
-
-    if (!entryState.githubToken) {
-      entryState.githubToken = extractGithubToken(meta.repoUrl);
+    if (!entryState.githubOwner) {
+      const { owner, repo } = parseGithubRepo(meta.repoUrl);
       entryState.githubOwner = owner;
       entryState.githubRepo = repo;
     }
 
-    const prTitle = `Agent changes (${this.shortId})`;
+    if (!this.githubToken) {
+      throw new Error(
+        "No GitHub token available to open a pull request. The branch " +
+        `'${this.branchName}' was pushed — open the PR manually, or configure ` +
+        "GITHUB_TOKEN for the session so PRs are created automatically.",
+      );
+    }
+
+    const existing = await this.findOpenPr(entryState);
+    if (existing) {
+      entryState.prCreated = true;
+      entryState.prUrl = existing.url;
+      entryState.prNumber = existing.number;
+      console.log(
+        `[WriteBack] execution=${this.executionId} entry=${entryName} — ` +
+        `adopted open PR #${existing.number}: ${existing.url}`,
+      );
+      return;
+    }
+
+    const shortSessionId = this.branchName.replace(/^stigmer\//, "");
     const prBody =
-      `Automated pull request from Stigmer agent execution.\n\n` +
-      `**Execution:** \`${this.executionId}\`\n` +
-      `**Workspace:** \`${entryName}\`\n`;
+      `Automated pull request from a Stigmer agent session.\n\n` +
+      `**Session:** \`${shortSessionId}\`\n` +
+      `**Workspace:** \`${entryName}\`\n\n` +
+      `Each approved turn appends its commits to this pull request.\n`;
 
     const resp = await fetch(
-      `https://api.github.com/repos/${entryState.githubOwner}/${entryState.githubRepo}/pulls`,
+      `${GITHUB_API}/repos/${entryState.githubOwner}/${entryState.githubRepo}/pulls`,
       {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${entryState.githubToken}`,
-          "Accept": "application/vnd.github+json",
-          "Content-Type": "application/json",
-        },
+        headers: this.githubHeaders(),
         body: JSON.stringify({
-          title: prTitle,
+          title: `Stigmer agent changes (${shortSessionId})`,
           body: prBody,
           head: this.branchName,
           base: entry.baseBranch,
@@ -350,11 +442,44 @@ export class WriteBackCoordinator {
     );
   }
 
+  /** The open PR whose head is the session branch, if one exists. */
+  private async findOpenPr(
+    entryState: EntryState,
+  ): Promise<{ url: string; number: number } | null> {
+    const head = `${entryState.githubOwner}:${this.branchName}`;
+    const resp = await fetch(
+      `${GITHUB_API}/repos/${entryState.githubOwner}/${entryState.githubRepo}` +
+      `/pulls?head=${encodeURIComponent(head)}&state=open`,
+      { headers: this.githubHeaders() },
+    );
+
+    if (!resp.ok) {
+      const body = await resp.text();
+      throw new Error(`GitHub API error listing PRs (HTTP ${resp.status}): ${body}`);
+    }
+
+    const data = await resp.json() as Array<{ html_url?: string; number?: number }>;
+    const pr = data[0];
+    if (!pr) return null;
+    return { url: pr.html_url ?? "", number: pr.number ?? 0 };
+  }
+
+  private githubHeaders(): Record<string, string> {
+    return {
+      "Authorization": `Bearer ${this.githubToken}`,
+      "Accept": "application/vnd.github+json",
+      "Content-Type": "application/json",
+    };
+  }
+
+  // ── Status Reporting ────────────────────────────────────────────────
+
   private async updateStatus(
     entryName: string,
     entryState: EntryState,
     entry: EligibleEntry,
     exec: (cmd: string) => Promise<string>,
+    prError: string,
   ): Promise<void> {
     const summaryOutput = await exec(
       `git diff --stat ${entry.baseBranch}...HEAD`,
@@ -373,6 +498,9 @@ export class WriteBackCoordinator {
       pullRequestNumber: entryState.prNumber,
       diffSummary: summaryOutput.trim(),
       phase,
+      // Non-empty only for a PUSHED record whose PR step failed: the branch
+      // is live, and the error tells the user why there is no PR link yet.
+      error: prError,
     });
 
     this.statusWriter.addWriteBack(wb);
@@ -405,20 +533,4 @@ export function parseGithubRepo(repoUrl: string): { owner: string; repo: string 
     return { owner: httpsMatch[1], repo: httpsMatch[2] };
   }
   throw new Error(`Cannot parse GitHub owner/repo from URL: ${repoUrl}`);
-}
-
-/**
- * Extract a GitHub token from an HTTPS clone URL that has credentials embedded.
- * Format: https://{token}@github.com/...
- */
-export function extractGithubToken(repoUrl: string): string {
-  const match = repoUrl.match(/https?:\/\/([^@]+)@github\.com/);
-  if (match) return match[1];
-
-  const envToken = process.env.GITHUB_TOKEN;
-  if (envToken) return envToken;
-
-  throw new Error(
-    "Cannot extract GitHub token from repo URL and GITHUB_TOKEN is not set",
-  );
 }

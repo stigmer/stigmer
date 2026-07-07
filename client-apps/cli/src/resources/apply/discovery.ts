@@ -15,10 +15,18 @@ import { buildRuntimeEnv } from "../mcp/runtime-env.js";
 /** A sink for human progress/warning lines (discovery output is not parity). */
 export type DiscoverySink = (line: string) => void;
 
-/** Connect each applied stdio MCP server to trigger capability discovery. */
+/**
+ * Connect each applied stdio MCP server to trigger capability discovery.
+ *
+ * `org` is the resolved apply organization. The backend requires it on every
+ * ConnectInput, and it is guaranteed non-empty here: `applyMessage` injects org
+ * into each resource and the backend rejects an org-less MCP server apply, so
+ * any server that reached `servers` was applied under this org.
+ */
 export async function discoverAppliedMcpServers(
   client: Stigmer,
   servers: readonly McpServer[],
+  org: string,
   sink?: DiscoverySink,
 ): Promise<void> {
   if (servers.length === 0) return;
@@ -40,6 +48,7 @@ export async function discoverAppliedMcpServers(
       await client.mcpServer.connect(
         create(ConnectInputSchema, {
           mcpServerId: server.metadata?.id ?? "",
+          org,
           runtimeEnv: buildRuntimeEnv(server),
         }),
       );

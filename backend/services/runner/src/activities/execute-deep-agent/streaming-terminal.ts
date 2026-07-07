@@ -8,7 +8,7 @@
 import { create } from "@bufbuild/protobuf";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ExecutionStatusWriter } from "./execution-status-writer.js";
+import type { ExecutionStatusWriter } from "../../shared/execution-status-writer.js";
 import type { StreamResult } from "./streaming.js";
 import { slimStatus, utcTimestamp } from "../../shared/status.js";
 
