@@ -38,7 +38,9 @@ const (
 // Pipeline (Stigmer OSS - simplified from Cloud):
 // 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
 // 2. ResolveDefaultAgent - If no session_id or agent_id, resolve platform default agent
-// 3. ValidateSessionOrAgent - Ensure session_id OR agent_id is provided
+// 3. EnsureSessionOrAgentResolved - Post-condition guard: a session or agent
+//    reference must be resolved by this point (see step doc for why this is an
+//    invariant, not input validation)
 // 4. ResolveSlug - Generate slug from metadata.name
 // 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 6. NormalizeReferences - Resolve cross-references (slugs to IDs)
@@ -75,7 +77,7 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                                            // 1. Validate field constraints
 		AddStep(newResolveDefaultAgentStep(c.store)).                                                                       // 2. Resolve platform default agent if needed
-		AddStep(newValidateSessionOrAgentStep()).                                                                           // 3. Validate session_id OR agent_id
+		AddStep(newEnsureSessionOrAgentResolvedStep()).                                                                     // 3. Guard: session or agent reference resolved
 		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).                                              // 4. Resolve slug
 		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).                                            // 5. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()).                                      // 6. Normalize cross-references
@@ -98,9 +100,15 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 // resolveDefaultAgentStep resolves the platform's public default agent when
 // neither session_id nor agent_id is provided on the execution request.
 //
+// Contract: "neither session_id nor agent_id" is a VALID request shape — it is
+// the session-first UX where a user starts a conversation without choosing an
+// agent (see AgentExecutionSpec proto docs for the three-tier resolution). It is
+// not an input error. When the platform has a default agent, this step resolves
+// it; when it does not, the request cannot be served and this step returns
+// NotFound (the same code the Agent.GetDefault RPC returns for this condition).
+//
 // The default agent is a platform-level concept: an agent in the stigmer org
-// labeled stigmer.ai/default-agent: "true" with visibility_public. This enables
-// the session-first UX where users start a conversation without choosing an agent.
+// labeled stigmer.ai/default-agent: "true" with visibility_public.
 //
 // If session_id or agent_id is already provided, this step is a no-op.
 type resolveDefaultAgentStep struct {
@@ -135,10 +143,14 @@ func (s *resolveDefaultAgentStep) Execute(ctx *pipeline.RequestContext[*agentexe
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to find platform default agent")
+		// Caller-actionable message: the create caller can fix this by supplying
+		// a reference. This intentionally differs from the Agent.GetDefault RPC's
+		// message (see agent/controller/get_default.go), whose caller is asking
+		// specifically for the default agent and cannot supply session_id/agent_id.
 		return grpclib.WrapError(
 			fmt.Errorf("no default agent available on this platform: %w", err),
 			codes.NotFound,
-			"No default agent available. Ensure an agent with label stigmer.ai/default-agent=true and visibility_public exists",
+			"No default agent is configured on this platform. Provide session_id or agent_id explicitly, or seed an agent labeled stigmer.ai/default-agent=true with visibility_public",
 		)
 	}
 
@@ -172,40 +184,54 @@ func (s *resolveDefaultAgentStep) Execute(ctx *pipeline.RequestContext[*agentexe
 	return nil
 }
 
-// validateSessionOrAgentStep validates that at least one of session_id or agent_id is provided
-type validateSessionOrAgentStep struct{}
+// ensureSessionOrAgentResolvedStep asserts the post-condition that a session or
+// agent reference has been resolved by the time the pipeline reaches this point.
+//
+// This is an invariant guard, NOT input validation. "Neither session_id nor
+// agent_id" is a valid request shape (session-first UX); ResolveDefaultAgent
+// runs first and guarantees one of two outcomes: it resolves a reference onto
+// newState, or it returns an error (NotFound / FailedPrecondition) that
+// short-circuits the pipeline before this step runs. Reaching this step with
+// neither set is therefore a server-side programming error (e.g. a future step
+// reordering that moves resolution after this guard), not bad client input —
+// hence Internal, not InvalidArgument. This mirrors the invariant-guard idiom in
+// the shared pipeline steps (steps/slug.go, steps/duplicate.go).
+//
+// Note the deliberate divergence from WorkflowExecution's validateWorkflowOrInstanceStep,
+// which correctly returns InvalidArgument: WorkflowExecution has no "resolve
+// default workflow" step, so workflow_id/workflow_instance_id is genuinely
+// required and its check is reachable. Do not "harmonize" the two — the
+// difference reflects a real semantic difference (issue #196).
+type ensureSessionOrAgentResolvedStep struct{}
 
-func newValidateSessionOrAgentStep() *validateSessionOrAgentStep {
-	return &validateSessionOrAgentStep{}
+func newEnsureSessionOrAgentResolvedStep() *ensureSessionOrAgentResolvedStep {
+	return &ensureSessionOrAgentResolvedStep{}
 }
 
-func (s *validateSessionOrAgentStep) Name() string {
-	return "ValidateSessionOrAgent"
+func (s *ensureSessionOrAgentResolvedStep) Name() string {
+	return "EnsureSessionOrAgentResolved"
 }
 
-func (s *validateSessionOrAgentStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
+func (s *ensureSessionOrAgentResolvedStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
 	execution := ctx.NewState()
 	sessionID := execution.GetSpec().GetSessionId()
 	agentID := execution.GetSpec().GetAgentId()
 
-	log.Debug().
-		Str("session_id", sessionID).
-		Str("agent_id", agentID).
-		Msg("Validating session_id or agent_id")
-
-	// At least one must be provided
 	hasSessionID := sessionID != ""
 	hasAgentID := agentID != ""
 
 	if !hasSessionID && !hasAgentID {
-		log.Warn().Msg("Neither session_id nor agent_id provided")
-		return grpclib.InvalidArgumentError("either session_id or agent_id must be provided")
+		log.Error().Msg("Invariant violated: neither session_id nor agent_id resolved after ResolveDefaultAgent")
+		return grpclib.InternalError(
+			fmt.Errorf("neither session_id nor agent_id set after ResolveDefaultAgent"),
+			"execution target not resolved",
+		)
 	}
 
 	log.Debug().
 		Bool("has_session_id", hasSessionID).
 		Bool("has_agent_id", hasAgentID).
-		Msg("Validation successful")
+		Msg("Session or agent reference resolved")
 
 	return nil
 }

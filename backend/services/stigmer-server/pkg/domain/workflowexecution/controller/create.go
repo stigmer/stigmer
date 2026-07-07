@@ -93,8 +93,9 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 
 // validateWorkflowOrInstanceStep validates that at least one of workflow_id or workflow_instance_id is provided.
 //
-// Matches the pattern from Java AgentExecutionCreateHandler (session_id or agent_id) and
-// WorkflowExecutionCreateHandler (workflow_id or workflow_instance_id).
+// Matches WorkflowExecutionCreateHandler (workflow_id or workflow_instance_id).
+// AgentExecution differs: it has a ResolveDefaultAgent step, so its guard is an
+// invariant (Internal), not reachable InvalidArgument validation (issue #196).
 type validateWorkflowOrInstanceStep struct{}
 
 func newValidateWorkflowOrInstanceStep() *validateWorkflowOrInstanceStep {

@@ -131,12 +131,16 @@ func TestAgentExecutionController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("validation error - neither session_id nor agent_id provided", func(t *testing.T) {
+	t.Run("neither session_id nor agent_id + no default agent - rejects with NotFound", func(t *testing.T) {
+		// "Neither provided" is a valid request shape (session-first UX): the
+		// pipeline attempts to resolve the platform default agent. This test store
+		// seeds no default agent, so the reachable contract is NotFound — not the
+		// InvalidArgument that a naive "either/or" validator would raise (issue #196).
 		execution := &agentexecutionv1.AgentExecution{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "AgentExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "Invalid Execution",
+				Name: "No Ref Execution",
 				Org:  "test-org",
 			},
 			Spec: &agentexecutionv1.AgentExecutionSpec{
@@ -146,7 +150,10 @@ func TestAgentExecutionController_Create(t *testing.T) {
 
 		_, err := controller.Create(contextWithAgentExecutionKind(), execution)
 		if err == nil {
-			t.Error("Expected error when neither session_id nor agent_id is provided")
+			t.Fatal("Expected error when neither session_id nor agent_id is provided and no default agent exists")
+		}
+		if code := status.Code(err); code != codes.NotFound {
+			t.Errorf("Expected gRPC code NotFound, got %v (err: %v)", code, err)
 		}
 	})
 

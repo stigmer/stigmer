@@ -14,11 +14,13 @@
 // Contract divergences from WorkflowExecution, encoded as assertions below:
 // - No AlreadyExists on create: repeated identical creates yield distinct aex_
 //   ids (there is no CheckDuplicateStep in the agent-execution pipeline).
-// - "Neither session_id nor agent_id" is NOT an InvalidArgument: resolveDefaultAgentStep
-//   runs before validateSessionOrAgentStep and tries to resolve the platform
-//   default agent, which the single-tenant OSS target does not seed — so the
-//   reachable contract is NotFound (with a clear "no default agent" message).
-//   validateSessionOrAgent's InvalidArgument is unreachable by black-box input here.
+// - "Neither session_id nor agent_id" is NOT an InvalidArgument: it is a valid
+//   request shape (session-first UX). resolveDefaultAgentStep runs first and tries
+//   to resolve the platform default agent, which the single-tenant OSS target does
+//   not seed — so the reachable contract is NotFound (with a clear, caller-actionable
+//   "no default agent" message). The downstream ensureSessionOrAgentResolvedStep is a
+//   post-resolution invariant guard (returns Internal if a reference is somehow still
+//   unresolved), not input validation — so it is unreachable by black-box input here.
 // - The query analogue of listByWorkflow is listBySession (filter by spec.session_id).
 //
 // Covered in a sibling file (kept separate because it needs the MCP tool
@@ -497,10 +499,11 @@ describe("AgentExecution conformance — create negative paths", () => {
 
   it("rejects a create with neither session nor agent (NotFound — no platform default agent)", async () => {
     const { org } = await target.provisionTenancy();
-    // resolveDefaultAgentStep runs first and tries to resolve the platform default
-    // agent (label stigmer.ai/default-agent), which the single-tenant OSS target
-    // does not seed — so the reachable contract is NotFound, not the InvalidArgument
-    // that validateSessionOrAgentStep would raise (it is unreachable here).
+    // "Neither provided" is a valid session-first request shape: resolveDefaultAgentStep
+    // runs first and tries to resolve the platform default agent (label
+    // stigmer.ai/default-agent), which the single-tenant OSS target does not seed — so
+    // the reachable contract is NotFound. The downstream ensureSessionOrAgentResolvedStep
+    // is an invariant guard (Internal), not input validation, so it is unreachable here.
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.create({
