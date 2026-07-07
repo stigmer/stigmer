@@ -106,6 +106,15 @@ spec:
       Authorization: "Bearer ${ACCESS_TOKEN}"
 ```
 
+> **Auth header convention (enforced).** An OAuth-managed HTTP server — one with
+> an `auth` block — must present its token as `Authorization: "Bearer ${target_env_var}"`.
+> This is what the MCP Authorization spec requires on the wire. A custom,
+> env-var-named header (e.g. `MONDAY_TOKEN: "${MONDAY_ACCESS_TOKEN}"`) is the
+> stdio convention: it works as a subprocess env var but silently fails against a
+> remote OAuth endpoint, which ignores the unknown header (stigmer/stigmer#147).
+> The `TestMcpServers_OAuthTokenHeaderIsBearer` static test enforces this. Static-key
+> HTTP servers with no `auth` block are free to use other schemes (e.g. `Token`).
+
 ### Required Fields
 
 | Field | Description |

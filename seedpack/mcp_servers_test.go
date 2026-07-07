@@ -241,6 +241,55 @@ func TestMcpServers_AuthConsistency(t *testing.T) {
 	}
 }
 
+// TestMcpServers_OAuthTokenHeaderIsBearer enforces the MCP Authorization spec on
+// the wire for every OAuth-managed HTTP server. When Stigmer's Connect flow
+// acquires a token, that token MUST be presented to a remote MCP endpoint as
+// `Authorization: Bearer <token>` — the spec mandates a bearer token in the
+// Authorization header. A custom, env-var-named header (e.g. MONDAY_TOKEN) is the
+// stdio convention: it works when the token is a subprocess env var, but silently
+// fails against a remote OAuth endpoint, which ignores the unknown header and
+// rejects the session with an opaque transport error (stigmer/stigmer#147).
+//
+// Scope is the exact OAuth-managed HTTP set: spec.http is set AND spec.auth is
+// present. Stdio servers are excluded because their token flows as an env var, not
+// a header (see google-calendar). Static-key HTTP servers with no auth block are
+// excluded because Stigmer does not manage their token — they legitimately use
+// other schemes (pagerduty uses `Authorization: Token ...`, context7 uses a custom
+// header). The token env var is read from auth.target_env_var rather than a fixed
+// suffix, because names vary (`neon` uses NEON_API_KEY, not *_ACCESS_TOKEN).
+func TestMcpServers_OAuthTokenHeaderIsBearer(t *testing.T) {
+	servers := loadAllMcpServers(t)
+
+	for name, server := range servers {
+		if server.Spec.HTTP == nil || server.Spec.Auth == nil {
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			targetEnvVar := server.Spec.Auth.TargetEnvVar
+			// AuthConsistency already fails an empty target_env_var; guard here so
+			// this test's message stays specific to the header contract.
+			if targetEnvVar == "" {
+				t.Skip("auth.target_env_var is empty; covered by TestMcpServers_AuthConsistency")
+			}
+
+			want := fmt.Sprintf("Bearer ${%s}", targetEnvVar)
+			got, ok := server.Spec.HTTP.Headers["Authorization"]
+			if !ok {
+				t.Errorf("OAuth-managed HTTP server must send the token via an Authorization header, "+
+					"but %q declares no Authorization header. Set:\n    headers:\n      Authorization: %q",
+					name, want)
+				return
+			}
+			if got != want {
+				t.Errorf("OAuth-managed HTTP server must present the token per the MCP Authorization spec. "+
+					"%q sends Authorization: %q; want %q. A custom or env-var-named token header is the stdio "+
+					"convention and fails against a remote OAuth endpoint (see stigmer/stigmer#147).",
+					name, got, want)
+			}
+		})
+	}
+}
+
 func TestMcpServers_PlaceholderSyntax(t *testing.T) {
 	servers := loadAllMcpServers(t)
 
