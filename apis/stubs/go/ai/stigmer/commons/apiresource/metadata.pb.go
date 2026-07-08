@@ -46,7 +46,8 @@ type ApiResourceMetadata struct {
 	// Visibility controls who can access this resource.
 	// - PRIVATE: Only members of the owning organization can access.
 	// - PUBLIC: Anyone can access (read). Write access still requires org membership.
-	// Default: PRIVATE for new resources.
+	// Default: config-driven per kind — blueprint kinds (marked
+	// defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
 	Visibility ApiResourceVisibility `protobuf:"varint,5,opt,name=visibility,proto3,enum=ai.stigmer.commons.apiresource.ApiResourceVisibility" json:"visibility,omitempty"`
 	// Key-value labels for organization and filtering.
 	Labels map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`

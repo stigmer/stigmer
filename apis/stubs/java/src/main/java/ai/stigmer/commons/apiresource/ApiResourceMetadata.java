@@ -288,7 +288,8 @@ private static final long serialVersionUID = 0L;
    * Visibility controls who can access this resource.
    * - PRIVATE: Only members of the owning organization can access.
    * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-   * Default: PRIVATE for new resources.
+   * Default: config-driven per kind — blueprint kinds (marked
+   * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -302,7 +303,8 @@ private static final long serialVersionUID = 0L;
    * Visibility controls who can access this resource.
    * - PRIVATE: Only members of the owning organization can access.
    * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-   * Default: PRIVATE for new resources.
+   * Default: config-driven per kind — blueprint kinds (marked
+   * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1593,7 +1595,8 @@ java.lang.String defaultValue) {
      * Visibility controls who can access this resource.
      * - PRIVATE: Only members of the owning organization can access.
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-     * Default: PRIVATE for new resources.
+     * Default: config-driven per kind — blueprint kinds (marked
+     * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1607,7 +1610,8 @@ java.lang.String defaultValue) {
      * Visibility controls who can access this resource.
      * - PRIVATE: Only members of the owning organization can access.
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-     * Default: PRIVATE for new resources.
+     * Default: config-driven per kind — blueprint kinds (marked
+     * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1626,7 +1630,8 @@ java.lang.String defaultValue) {
      * Visibility controls who can access this resource.
      * - PRIVATE: Only members of the owning organization can access.
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-     * Default: PRIVATE for new resources.
+     * Default: config-driven per kind — blueprint kinds (marked
+     * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1642,7 +1647,8 @@ java.lang.String defaultValue) {
      * Visibility controls who can access this resource.
      * - PRIVATE: Only members of the owning organization can access.
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-     * Default: PRIVATE for new resources.
+     * Default: config-driven per kind — blueprint kinds (marked
+     * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1661,7 +1667,8 @@ java.lang.String defaultValue) {
      * Visibility controls who can access this resource.
      * - PRIVATE: Only members of the owning organization can access.
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-     * Default: PRIVATE for new resources.
+     * Default: config-driven per kind — blueprint kinds (marked
+     * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>

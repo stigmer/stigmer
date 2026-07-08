@@ -154,7 +154,9 @@ export const ApiResourceStateOperationTypeSchema: GenEnum<ApiResourceStateOperat
 export enum ApiResourceVisibility {
   /**
    * Default/unspecified - backend infers from context.
-   * For new resources: defaults to visibility_private.
+   * For new resources the default is config-driven per kind: blueprint kinds
+   * marked defaults_to_org_visibility default to visibility_org; all other
+   * kinds default to visibility_private.
    *
    * @generated from enum value: api_resource_visibility_unspecified = 0;
    */

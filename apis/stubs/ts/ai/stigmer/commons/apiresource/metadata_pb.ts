@@ -63,7 +63,8 @@ export type ApiResourceMetadata = Message<"ai.stigmer.commons.apiresource.ApiRes
    * Visibility controls who can access this resource.
    * - PRIVATE: Only members of the owning organization can access.
    * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-   * Default: PRIVATE for new resources.
+   * Default: config-driven per kind — blueprint kinds (marked
+   * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5;
    */

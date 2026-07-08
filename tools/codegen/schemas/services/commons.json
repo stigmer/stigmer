@@ -64,7 +64,7 @@
               "visibility_platform"
             ]
           },
-          "description": "Visibility controls who can access this resource.\n - PRIVATE: Only members of the owning organization can access.\n - PUBLIC: Anyone can access (read). Write access still requires org membership.\n Default: PRIVATE for new resources.",
+          "description": "Visibility controls who can access this resource.\n - PRIVATE: Only members of the owning organization can access.\n - PUBLIC: Anyone can access (read). Write access still requires org membership.\n Default: config-driven per kind — blueprint kinds (marked\n defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.",
           "required": false
         },
         {

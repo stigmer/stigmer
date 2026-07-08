@@ -409,8 +409,10 @@ type SearchIndexEntry struct {
 	// Used for org-scoped filtering.
 	Org string
 
-	// Visibility is the resource visibility ("visibility_public" or "visibility_private").
-	// Used for filtering public/private resources.
+	// Visibility is the resource visibility level, stored as the enum name
+	// (e.g. "visibility_private", "visibility_org", "visibility_public",
+	// "visibility_platform"). Used by search scope filtering, which only
+	// special-cases "visibility_public"; all other levels are org-scoped.
 	Visibility string
 
 	// CreatedAt is the Unix timestamp (seconds) when the resource was created.

@@ -3,6 +3,7 @@ package apiresource
 import (
 	"fmt"
 
+	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -119,6 +120,24 @@ func GetDisplayName(kind apiresourcekind.ApiResourceKind) (string, error) {
 		return "", err
 	}
 	return meta.DisplayName, nil
+}
+
+// DefaultVisibilityFor returns the visibility a resource of this kind should take
+// when the client leaves metadata.visibility unspecified. Blueprint kinds marked
+// defaults_to_org_visibility get visibility_org; all others get visibility_private.
+//
+// This mirrors Cloud's VisibilityConfigResolver.defaultVisibilityFor so both
+// editions derive the same default from the same proto config, keeping the
+// cross-edition contract consistent by construction.
+func DefaultVisibilityFor(kind apiresourcekind.ApiResourceKind) (apiresourcepb.ApiResourceVisibility, error) {
+	meta, err := GetKindMeta(kind)
+	if err != nil {
+		return apiresourcepb.ApiResourceVisibility_api_resource_visibility_unspecified, err
+	}
+	if meta.GetAuthorization().GetVisibility().GetDefaultsToOrgVisibility() {
+		return apiresourcepb.ApiResourceVisibility_visibility_org, nil
+	}
+	return apiresourcepb.ApiResourceVisibility_visibility_private, nil
 }
 
 // toSnakeCase converts a PascalCase string to snake_case.
