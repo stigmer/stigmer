@@ -4,7 +4,7 @@
 // The suite drives the server through the raw generated @stigmer/protos
 // controllers (no SDK) so it tests the proto contract directly, independent of
 // any client convenience layer that could drift from it.
-import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { createClient, type Client, type Interceptor, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
@@ -62,11 +62,26 @@ export interface ConformanceClients {
   skillQuery: Client<typeof SkillQueryController>;
 }
 
-export function createTransport(baseUrl: string): Transport {
-  // Plain gRPC over h2c: createGrpcTransport always speaks HTTP/2, matching the
-  // OSS server, which serves native gRPC on a single insecure port (no auth in
-  // local mode).
-  return createGrpcTransport({ baseUrl });
+export interface TransportOptions {
+  // Attached as `authorization: Bearer <token>` on every RPC. Used by the
+  // cloud target, whose service authenticates callers; local targets run
+  // without auth and omit it.
+  bearerToken?: string;
+}
+
+export function createTransport(baseUrl: string, options: TransportOptions = {}): Transport {
+  // Plain gRPC over h2c: createGrpcTransport always speaks HTTP/2, matching
+  // both backends — the OSS server and the hermetic cloud service each serve
+  // native gRPC on a single insecure local port.
+  const interceptors: Interceptor[] = [];
+  if (options.bearerToken !== undefined) {
+    const authorization = `Bearer ${options.bearerToken}`;
+    interceptors.push((next) => (req) => {
+      req.header.set("authorization", authorization);
+      return next(req);
+    });
+  }
+  return createGrpcTransport({ baseUrl, interceptors });
 }
 
 export function makeClients(transport: Transport): ConformanceClients {

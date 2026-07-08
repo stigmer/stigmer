@@ -6,7 +6,7 @@ implement the API:
 
 - the OSS Go `stigmer-server` (today),
 - the TypeScript server rewrite (as it lands),
-- the Java cloud `stigmer-service` (as an external target, later).
+- the Java cloud `stigmer-service` (the `cloud` target — Class A today).
 
 The contract — not any one implementation — is the product. This suite is what
 keeps the implementations honest and makes agentic dual-maintenance safe:
@@ -127,6 +127,40 @@ This needs the **`temporal` CLI** on `PATH` (`brew install temporal`, or see the
 source and fails fast with an install hint if the CLI is missing. The default
 target is `local-go-execution`; the same suites will later run against the
 `cloud` target via `CONFORMANCE_TARGET`.
+
+### Cloud target (Class A vs the Java `stigmer-service`)
+
+The `cloud` run drives the same Class A suites against the Stigmer Cloud Java
+service, hermetically:
+
+```bash
+npm run test:cloud -w @stigmer/conformance   # or: make test-conformance-cloud
+```
+
+Its `globalSetup` (`global-setup-cloud.ts`) boots the environment **once per
+run** — a Go launcher (`test/integration/cmd/conformance-cloudenv`, reusing the
+integration harness) starts Testcontainers MongoDB/Redis/MinIO/OpenFGA, a
+Temporal dev server, and the service fat JAR in test security mode with **real
+OpenFGA authorization** — then bootstraps a real identity (PlatformClient ->
+`mintUserToken`) and publishes endpoint + token to workers via env vars
+(`STIGMER_CONFORMANCE_CLOUD_*`). The `CloudTarget` itself is **connect-only**:
+point those env vars at any pre-provisioned endpoint and the globalSetup boot
+is skipped entirely.
+
+Requirements: Docker, `go`, the `fga` CLI (`brew install openfga/tap/fga`), the
+`temporal` CLI, and the service JAR — `STIGMER_SERVICE_JAR`, or built in the
+sibling `stigmer-cloud` checkout with
+`./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar`.
+Files run serially (they share one multi-tenant service), and
+`mcp.conformance.test.ts` is excluded (it tests the `@stigmer/mcp-server`
+bridge against the OSS Go server specifically, not a target). Tenancy is real
+here: `provisionTenancy()` creates an organization through the production RPC
+(the primary user becomes owner; a zero-balance billing account is provisioned
+automatically), unlike the local targets where an org is just a unique slug.
+CI: `.github/workflows/ci.conformance-cloud.yaml` builds the JAR from
+`stigmer-cloud@main` and runs this nightly — the cron is what catches
+cloud-side drift, since path triggers in this repo cannot see stigmer-cloud
+merges.
 
 ## Design
 
@@ -321,7 +355,8 @@ T04 TS rewrite (not the retiring Go server) and should surface the child gate by
 src/
   harness/          go-build, ports, server-process, grpc-ready, clients, fixtures, global-setup
                     + execution: temporal, runner-build, runner-process, mock-llm, mcp-server, global-setup-execution
-  targets/          target (interface + capabilities), local-go, local-go-execution, cloud (stub), index
+                    + cloud: cloud-env, global-setup-cloud
+  targets/          target (interface + capabilities), local-go, local-go-execution, cloud, index
   contract/         errors, deviations, parity
   support/          naming, workflows (set_vars + wait + human_input + agent_call), execution-poll, workflowexecutions, agentexecutions,
                     agents, mcpservers, skills, environments, executioncontexts, sessions

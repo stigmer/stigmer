@@ -133,7 +133,7 @@ describe("Organization conformance", () => {
 
   it("findMyOrganizations returns all organizations when multi-tenancy is off", async () => {
     if (target.capabilities.multiTenant) {
-      // Cloud filters by membership; that behavior is asserted by the cloud target.
+      // Membership filtering is asserted by the multi-tenant test below.
       return;
     }
     await createOrg(uniqueName("myorg"));
@@ -142,6 +142,38 @@ describe("Organization conformance", () => {
     const mine = await clients.organizationQuery.findMyOrganizations({});
 
     expect(mine.entries.length, "local mode applies no IAM filtering").toBe(all.entries.length);
+  });
+
+  it("findMyOrganizations filters by membership and outsiders cannot view the org", async () => {
+    if (!target.capabilities.multiTenant) {
+      // Single-tenant targets have one implicit caller; there is no second
+      // identity to be excluded, so isolation is untestable by construction.
+      return;
+    }
+    if (target.provisionIdentity === undefined) {
+      throw new Error(`target "${target.name}" declares multiTenant but provides no provisionIdentity()`);
+    }
+    const created = await createOrg(uniqueName("myorg"));
+    const id = created.metadata!.id;
+
+    const mine = await clients.organizationQuery.findMyOrganizations({});
+    expect(
+      mine.entries.some((entry) => entry.metadata?.id === id),
+      "the creator (owner) must see the org in findMyOrganizations",
+    ).toBe(true);
+
+    const outsider = await target.provisionIdentity();
+    const theirs = await outsider.organizationQuery.findMyOrganizations({});
+    expect(
+      theirs.entries.some((entry) => entry.metadata?.id === id),
+      "an identity with no grants must not see the org in findMyOrganizations",
+    ).toBe(false);
+
+    await expectGrpcCode(
+      () => outsider.organizationQuery.get({ value: id }),
+      Code.PermissionDenied,
+      "outsider get on a foreign org",
+    );
   });
 
   it("getByExternalOrgId is unavailable locally (Unimplemented)", async () => {
@@ -156,6 +188,28 @@ describe("Organization conformance", () => {
         }),
       Code.Unimplemented,
       "getByExternalOrgId",
+    );
+  });
+
+  it("getByExternalOrgId answers NotFound for an unknown identity provider when implemented", async () => {
+    if (!target.capabilities.externalOrgLookup) {
+      return;
+    }
+    const { org } = await target.provisionTenancy();
+
+    // Minimum-viable contract for the implemented RPC: the lookup pipeline is
+    // reachable (not Unimplemented) and an unknown IdentityProvider reference
+    // is NotFound. The IdP-backed happy path (platform-managed org resolved by
+    // real external coordinates) needs full IdentityProvider provisioning and
+    // is deferred with the rest of the federation surface.
+    await expectGrpcCode(
+      () =>
+        clients.organizationQuery.getByExternalOrgId({
+          externalOrgId: "ext-123",
+          identityProviderRef: { org, slug: "idp-does-not-exist" },
+        }),
+      Code.NotFound,
+      "getByExternalOrgId with unknown identity provider",
     );
   });
 

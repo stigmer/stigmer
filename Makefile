@@ -403,6 +403,24 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 	@echo "=== conformance: execution engine (local-go-execution) ==="
 	CONFORMANCE_TARGET=local-go-execution npm run test:execution -w @stigmer/conformance
 
+.PHONY: test-conformance-cloud
+test-conformance-cloud: build-ts-stubs ## Run gRPC conformance CRUD suite against the Java cloud service (hermetic; needs Docker, `fga`, `temporal`, and the fat JAR)
+	@command -v go >/dev/null 2>&1 || { echo "error: go not found — the harness builds the cloud environment launcher"; exit 1; }
+	@command -v fga >/dev/null 2>&1 || { \
+		echo "error: fga CLI not found — required to load the OpenFGA authorization model"; \
+		echo "  install: brew install openfga/tap/fga"; \
+		exit 1; \
+	}
+	@command -v temporal >/dev/null 2>&1 || { \
+		echo "error: temporal CLI not found — the dev server backs the Java service"; \
+		echo "  install: curl -sSf https://temporal.download/cli.sh | sh"; \
+		exit 1; \
+	}
+	@echo "=== conformance: CRUD contract (cloud / Java stigmer-service) ==="
+	@echo "    (JAR from STIGMER_SERVICE_JAR or the sibling stigmer-cloud bazel-bin;"
+	@echo "     build it with: cd ../stigmer-cloud && ./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar)"
+	npm run test:cloud -w @stigmer/conformance
+
 .PHONY: test-conformance-all
 test-conformance-all: ## Run both conformance slices (CRUD + execution)
 	$(MAKE) test-conformance
