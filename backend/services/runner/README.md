@@ -24,7 +24,7 @@ make build-runner
 
 This runs `npm run build` in `backend/services/runner` (`tsc -p tsconfig.build.json`) and then writes a build fingerprint (see [The stale-build guard](#the-stale-build-guard)). The compiled output lands in `dist/`, with a `stigmer-runner` CLI entry point at `dist/main.js`.
 
-Requires Node.js `>= 20`.
+Requires Node.js `>= 22.13` (the durable local checkpointer uses the built-in `node:sqlite`, unflagged from v22.13 / v23.4).
 
 ### The slim embedding artifact
 

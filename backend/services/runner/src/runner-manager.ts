@@ -94,8 +94,8 @@ export interface RunnerManagerOptions {
   /** Max wait for the per-workspace turn lock (ms). @default 900000 */
   readonly workspaceLockTimeoutMs?: number;
 
-  /** Checkpointer type for LangGraph agent state. @default "memory" (or "http" if proxyEndpoint is set) */
-  readonly checkpointerType?: "memory" | "http";
+  /** Checkpointer type for LangGraph agent state. @default "sqlite" (or "http" if proxyEndpoint is set) */
+  readonly checkpointerType?: "memory" | "http" | "sqlite";
 
   /** Checkpointer proxy endpoint. Falls back to proxyEndpoint. */
   readonly checkpointerProxyEndpoint?: string;
@@ -573,7 +573,7 @@ export function mapManagerOptionsToConfig(
     idleTimeoutSeconds: null,
     cloudModeEnabled: options.cloudModeEnabled ?? false,
     checkpointerType:
-      options.checkpointerType ?? (proxyActive ? "http" : "memory"),
+      options.checkpointerType ?? (proxyActive ? "http" : "sqlite"),
     checkpointerProxyEndpoint:
       options.checkpointerProxyEndpoint ?? options.proxyEndpoint ?? null,
     primaryModel: options.primaryModel ?? "gpt-4.1",

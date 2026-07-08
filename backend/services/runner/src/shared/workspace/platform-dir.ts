@@ -74,6 +74,31 @@ export function getPlatformDir(sessionId: string): string {
 }
 
 /**
+ * Compute the durable-checkpoint database path for a session — the SQLite file
+ * backing the local LangGraph checkpointer (see shared/checkpointer/sqlite-saver.ts).
+ *
+ * Session-scoped by design: a session has exactly one LangGraph thread
+ * (`thread-{sessionId}`), so one DB per session keeps checkpoint lifetime bound
+ * to session lifetime (retention becomes "remove the session dir") and mirrors
+ * the sibling `platform/` and `hitl/` trees. Pure function — performs no I/O.
+ */
+export function getCheckpointDbPath(sessionId: string): string {
+  return join(getSessionDir(sessionId), "checkpoints.db");
+}
+
+/**
+ * Ensure the session directory exists and return the checkpoint DB path.
+ *
+ * Creates the session directory tree if needed (the SQLite driver requires the
+ * parent directory to exist before opening the file). Idempotent — safe across
+ * executions, HITL reinvocations, and activity retries.
+ */
+export async function ensureCheckpointDbPath(sessionId: string): Promise<string> {
+  await mkdir(getSessionDir(sessionId), { recursive: true });
+  return getCheckpointDbPath(sessionId);
+}
+
+/**
  * Ensure the platform directory exists and return its path.
  *
  * Creates the full directory tree if it does not exist. Idempotent —

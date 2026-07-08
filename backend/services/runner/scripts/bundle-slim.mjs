@@ -168,7 +168,7 @@ async function buildWorkerThreadBundle() {
     bundle: true,
     platform: "node",
     format: "cjs",
-    target: "node20",
+    target: "node22",
     minifyWhitespace: true,
     minifySyntax: true,
     minifyIdentifiers: false,
@@ -284,7 +284,7 @@ async function buildMainBundle() {
     // the verify gate. The worker-thread bundle below is already CJS, so the
     // slim build is now uniformly CommonJS.
     format: "cjs",
-    target: "node20",
+    target: "node22",
     // Identifiers are kept so embedders' stack traces stay readable; the
     // external sourcemap recovers original file/line on our side.
     minifyWhitespace: true,

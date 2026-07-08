@@ -29,16 +29,22 @@ import (
 // flip depends on.
 //
 // What they deliberately do NOT prove — runner-internal DURABLE-RESUME branching.
-// Offline uses the ephemeral MemorySaver checkpointer (shared/checkpointer/
-// factory.ts), so a gated execution replays from scratch each invocation rather
-// than resuming via Command(resume)/seedStatusFromExecution; the mock-LLM cursor
-// stays aligned because each gated turn makes exactly one LLM call before
-// re-pausing. A consequence is that the production REJECT -> EXECUTION_FAILED path
-// is not exercised here (this is why TestOffline_HITL_Reject asserts COMPLETED,
-// not FAILED): that branch and transcript accumulation are covered by the runner
-// unit tests and the live suite. Tests that depend on the lease surviving across
-// a re-invocation lean on it being derived from server-persisted status
-// (deriveActiveLeases), not from the lost in-graph checkpoint.
+// This suite is pinned to the ephemeral MemorySaver checkpointer (via
+// startOfflineRunner's STIGMER_CHECKPOINTER_TYPE=memory), so a gated execution
+// replays from scratch each invocation rather than resuming via Command(resume)/
+// seedStatusFromExecution; the mock-LLM cursor stays aligned because each gated
+// turn makes exactly one LLM call before re-pausing. A consequence is that the
+// production REJECT -> EXECUTION_FAILED path is not exercised here (this is why
+// TestOffline_HITL_Reject asserts COMPLETED, not FAILED): that branch and
+// transcript accumulation are covered by the runner unit tests and the live suite.
+// Tests that depend on the lease surviving across a re-invocation lean on it being
+// derived from server-persisted status (deriveActiveLeases), not from the lost
+// in-graph checkpoint.
+//
+// The runner's local default is now the durable sqlite saver (stigmer/stigmer#204);
+// TestOffline_HITL_DurableResume_Approve exercises THAT path — a genuine
+// Command(resume) with the transcript preserved across the resume — by opting into
+// STIGMER_CHECKPOINTER_TYPE=sqlite. It is the offline acceptance vehicle for #204.
 
 // hitlToolCallEntries returns mock LLM entries for a simple HITL flow:
 // Turn 1: LLM calls echo tool (triggers approval gate)
@@ -153,6 +159,115 @@ func TestOffline_HITL_Approve(t *testing.T) {
 		"persisted stream must carry the APPROVED decision event after approval")
 
 	t.Logf("offline HITL approve test passed")
+}
+
+// TestOffline_HITL_DurableResume_Approve is the offline acceptance test for
+// stigmer/stigmer#204: the durable local (sqlite) checkpointer resuming a gated
+// execution via Command(resume) — a true resume, not a replay — with the
+// transcript preserved across the resume.
+//
+// Unlike the memory-pinned tests above, this opts into the durable saver
+// (STIGMER_CHECKPOINTER_TYPE=sqlite, overriding startOfflineRunner's pin). The
+// checkpoint written on the WAITING invocation survives to the post-approval
+// re-invocation, so the graph resumes after the interrupt and actually executes
+// the gated echo tool — its result is produced on resume, and the pre-gate turn
+// (the assistant message proposing the tool call) is retained rather than
+// rebuilt. That preserved, tool-executed transcript is the property the memory
+// checkpointer cannot provide and that #204 is about.
+func TestOffline_HITL_DurableResume_Approve(t *testing.T) {
+	requireOfflinePrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	defer cancel()
+
+	mockLLM, mgr := startOfflineRunner(t, ctx, hitlToolCallEntries(),
+		"STIGMER_CHECKPOINTER_TYPE=sqlite")
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+
+	agent := harness.CreateAgent(t, ctx, clients, "offline-hitl-durable",
+		"You MUST call the echo tool exactly once with the user's input, then stop.",
+		harness.WithMcpServerUsageAndApproval(
+			mcpServer.GetMetadata().GetSlug(),
+			[]*agentv1.ToolApprovalOverride{
+				{ToolName: "echo", RequiresApproval: true, Message: "Execute echo tool"},
+			},
+			"echo",
+		),
+	)
+
+	session := harness.CreateTestSession(t, ctx, clients,
+		agent.GetStatus().GetDefaultInstanceId(),
+		sessionv1.Harness_HARNESS_NATIVE,
+	)
+	sessionID := session.GetMetadata().GetId()
+
+	_, err := mgr.AddSession(ctx, sessionID)
+	require.NoError(t, err)
+
+	exec := harness.CreateTestAgentExecution(t, ctx, clients,
+		sessionID,
+		"Call the echo tool with input 'hello-hitl'. You must use the tool.",
+		harness.WithAutoApproveAll(false))
+
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+	waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
+	require.NoError(t, err, "execution should reach WAITING_FOR_APPROVAL")
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	harness.AssertPendingApprovals(t, waiting, 1)
+
+	gatedCallID := waiting.GetStatus().GetPendingApprovals()[0].GetToolCallId()
+	require.NotEmpty(t, gatedCallID, "the gated tool call must carry an id")
+
+	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		exec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		2*time.Minute,
+	)
+	require.NoError(t, err, "durable resume should complete after approval")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	// Transcript preservation: the SAME gated tool call (matched by id, so this is
+	// the pre-approval turn carried forward, not a fresh one) is present in the
+	// completed transcript, resolved to COMPLETED with a real result. That result
+	// exists only because the resumed graph actually ran the tool — the durable
+	// checkpoint's whole point over the replay path.
+	var gatedCall *agentexecv1.ToolCall
+	for _, msg := range result.GetStatus().GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			if tc.GetId() == gatedCallID {
+				gatedCall = tc
+			}
+		}
+	}
+	require.NotNil(t, gatedCall,
+		"the gated tool call (id=%s) must survive across the durable resume", gatedCallID)
+	assert.Equal(t, "echo", gatedCall.GetName())
+	assert.Equal(t, agentexecv1.ToolCallStatus_TOOL_CALL_COMPLETED, gatedCall.GetStatus(),
+		"the approved tool must resolve to COMPLETED after executing on resume")
+	assert.NotEmpty(t, gatedCall.GetResult(),
+		"the tool result is produced by the resumed graph executing the tool")
+
+	// The post-resume continuation (the model's final answer after the tool ran)
+	// is appended onto the preserved history rather than replacing it.
+	var finalText string
+	for _, msg := range result.GetStatus().GetMessages() {
+		if msg.GetType() == agentexecv1.MessageType_MESSAGE_AI && msg.GetContent() != "" {
+			finalText = msg.GetContent()
+		}
+	}
+	assert.NotEmpty(t, finalText, "the resumed run must append the model's final message")
+
+	// Both mock entries consumed (turn-1 tool_use, post-resume text) — the durable
+	// resume runs the continuation exactly once, it does not re-run the first turn.
+	assert.Equal(t, 0, mockLLM.Remaining(), "all mock LLM entries should be consumed")
+
+	t.Logf("offline HITL durable-resume test passed: gated_call=%s, mock_consumed=%d",
+		gatedCallID, mockLLM.Consumed())
 }
 
 func TestOffline_HITL_Skip(t *testing.T) {

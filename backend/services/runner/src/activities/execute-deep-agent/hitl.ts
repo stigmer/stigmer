@@ -202,12 +202,12 @@ function extractApprovalDecisions(
  * it in place.
  *
  * Why a decision-derived reconciler rather than the resumed stream: on the
- * durable (http) path the gate returns a denial/skip ToolMessage WITHOUT an
- * on_tool_start/on_tool_end pair, and on the memory path the graph replays
- * without ever re-driving the gate — so in both cases the seeded
- * WAITING_APPROVAL row is never flipped by the stream and would persist on a
- * COMPLETED execution. Folding the recorded decision into a terminal status
- * makes the two checkpointers behave identically by construction.
+ * durable path (sqlite local / http cloud) the gate returns a denial/skip
+ * ToolMessage WITHOUT an on_tool_start/on_tool_end pair, and on the memory path
+ * the graph replays without ever re-driving the gate — so in both cases the
+ * seeded WAITING_APPROVAL row is never flipped by the stream and would persist
+ * on a COMPLETED execution. Folding the recorded decision into a terminal status
+ * makes every checkpointer backend behave identically by construction.
  *
  * REJECT and SKIP share TOOL_CALL_SKIPPED as the terminal status (the tool did
  * not run); they stay distinguishable by ToolCall.approval_action and by the

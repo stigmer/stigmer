@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError } from "../../errors/cli-exit-error.js";
-import { MIN_NODE_MAJOR, resolveNode } from "./node.js";
+import { MIN_NODE_MAJOR, MIN_NODE_MINOR_ON_MAJOR, resolveNode } from "./node.js";
 import { acquireRunner, resolveRunner } from "./runner.js";
 import { resolveServerBinary } from "./server.js";
 import { which } from "./which.js";
@@ -57,7 +57,7 @@ describe("resolveNode", () => {
   });
 
   it("honors a valid override", () => {
-    process.env.STIGMER_NODE_BIN = process.execPath; // a real Node >= 20
+    process.env.STIGMER_NODE_BIN = process.execPath; // a real Node >= 22.13
     expect(resolveNode()).toBe(process.execPath);
   });
 
@@ -66,8 +66,9 @@ describe("resolveNode", () => {
     expect(() => resolveNode()).toThrow(CliExitError);
   });
 
-  it("requires Node >= 20", () => {
-    expect(MIN_NODE_MAJOR).toBe(20);
+  it("requires Node >= 22.13 (the node:sqlite floor)", () => {
+    expect(MIN_NODE_MAJOR).toBe(22);
+    expect(MIN_NODE_MINOR_ON_MAJOR).toBe(13);
   });
 });
 

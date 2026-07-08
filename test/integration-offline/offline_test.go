@@ -40,8 +40,19 @@ func uniqueWorkspacePath(label string) string {
 // workers that hit the mock instead of a real LLM provider.
 //
 // extraEnv threads additional KEY=VALUE entries into the runner process env,
-// scoped to this runner only (see UnifiedRunnerConfig.ExtraEnv). Existing
-// callers pass none.
+// scoped to this runner only (see UnifiedRunnerConfig.ExtraEnv). Most callers
+// pass none.
+//
+// Checkpointer pin: this suite proves the Java-side HITL ORCHESTRATION (workflow
+// wait -> approvalGateResolved signal -> activity re-invoke, SubmitApproval, the
+// append-only approval_event_stream) deterministically, and its blind-FIFO mock
+// scripts are tuned to the ephemeral memory checkpointer's replay call pattern.
+// The runner's local default is now the durable sqlite saver (stigmer/stigmer#204),
+// so this pins STIGMER_CHECKPOINTER_TYPE=memory to keep the suite on its intended
+// contract regardless of that default. It is prepended, so a test that opts into a
+// different backend via extraEnv (the durable-resume test passes
+// STIGMER_CHECKPOINTER_TYPE=sqlite) overrides it — os/exec uses the last value for
+// a duplicate key.
 func startOfflineRunner(
 	t *testing.T,
 	ctx context.Context,
@@ -52,6 +63,8 @@ func startOfflineRunner(
 
 	mockLLM := harness.NewMockLLMProxyServerFromEntries(entries)
 	t.Cleanup(func() { mockLLM.Close() })
+
+	runnerEnv := append([]string{"STIGMER_CHECKPOINTER_TYPE=memory"}, extraEnv...)
 
 	mgr, err := harness.StartUnifiedRunnerManager(ctx, harness.UnifiedRunnerConfig{
 		StigmerServiceAddress: testHarness.Service.GRPCAddress(),
@@ -65,7 +78,7 @@ func startOfflineRunner(
 		CloudAPIURL:      mockLLM.URL(),
 		LocalArtifactDir: t.TempDir(),
 		LogLabel:         t.Name(),
-		ExtraEnv:         extraEnv,
+		ExtraEnv:         runnerEnv,
 	}, suiteLogger)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
