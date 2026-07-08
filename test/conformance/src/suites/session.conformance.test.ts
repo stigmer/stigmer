@@ -146,9 +146,11 @@ describe("Session conformance — CRUD & identity", () => {
     );
     const { id } = created.metadata!;
 
-    // delete is open in OSS (no auth step); the proto's operator-only restriction
-    // is a cloud-only concern. We assert the edition-agnostic part: the resource
-    // is returned and is gone afterward.
+    // The session owner deletes their own session (in cloud this is the
+    // can_delete FGA check on the session; OSS has no auth step). Deletion
+    // cascades to the session's agent executions — covered by edition-specific
+    // tests since a conformance run cannot deterministically create a
+    // terminal execution.
     const deleted = await clients.sessionCommand.delete({ value: id });
     expect(deleted.metadata?.id).toBe(id);
 

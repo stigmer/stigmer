@@ -133,13 +133,16 @@ updatedSession, err := controller.Update(ctx, session)
 
 ### Delete
 
-Deletes a session by ID.
+Deletes a session by ID, cascading to its agent executions.
 
 **Pipeline:**
 1. ValidateProto - Validate SessionId
 2. ExtractResourceId - Extract ID from wrapper
 3. LoadExistingForDelete - Load session before deletion
-4. DeleteResource - Delete from database
+4. RejectDeleteWithActiveExecutions - FAILED_PRECONDITION while any execution in the session is still active
+5. CascadeDeleteAgentExecutions - Delete child executions (children before parent, so a mid-failure retry converges)
+6. DeleteResource - Delete from database
+7. DeleteSearchIndex - Remove from search index
 
 **Example:**
 ```go
@@ -149,7 +152,8 @@ deletedSession, err := controller.Delete(ctx, &sessionv1.SessionId{Value: "sessi
 **Key Points:**
 - Returns the deleted session (gRPC convention)
 - No IAM policy cleanup (no IAM in OSS)
-- No cascade deletion of child resources (no child resources for sessions)
+- Cascade-deletes the session's agent executions; billing/usage records are unaffected (immutable, denormalized)
+- Rejected while an execution is PENDING / IN_PROGRESS / WAITING_FOR_APPROVAL / PAUSED — cancel it or wait first
 
 ### Apply (Create or Update)
 

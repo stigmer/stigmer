@@ -522,6 +522,10 @@ Session session = client.sessions().updateSubject(UpdateSessionSubjectRequest.bu
 
 Delete a session.
 
+Deletion cascades to the session's agent executions. Billing usage records are immutable and unaffected — they carry their own copies of the session and execution identifiers.
+
+Fails with FAILED_PRECONDITION while any agent execution in the session is still active (pending, in progress, waiting for approval, or paused); cancel it or wait for it to finish first.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript

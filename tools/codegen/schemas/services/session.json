@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Delete a session.\n\n @internal\n Restricted to platform operators to preserve the billing and audit trail.\n Regular users (including session owners) cannot delete sessions."
+          "description": "Delete a session.\n\n Deletion cascades to the session's agent executions. Billing usage\n records are immutable and unaffected — they carry their own copies of\n the session and execution identifiers.\n\n Fails with FAILED_PRECONDITION while any agent execution in the\n session is still active (pending, in progress, waiting for approval,\n or paused); cancel it or wait for it to finish first.\n\n @internal\n Requires can_delete on the session (owner-only — sessions are personal\n resources, so org admins have no implicit delete access)."
         }
       ]
     },
