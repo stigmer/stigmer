@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentId, GetDefaultAgentRequest } from "./io_pbjs";
+import { AgentId, GetDefaultAgentRequest, SharedAgentProfile } from "./io_pbjs";
 import { Agent } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -62,6 +62,35 @@ export const AgentQueryController = {
       name: "getDefault",
       I: GetDefaultAgentRequest,
       O: Agent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get the public profile of a shared agent by its org/slug reference.
+     *
+     * This is the resolution path for the hosted chat page: anonymous
+     * visitors (no Stigmer account, no token) resolve a shared link to the
+     * trimmed SharedAgentProfile — never the full Agent, whose spec carries
+     * the system prompt, environment declarations, and MCP wiring.
+     *
+     * Returns NOT_FOUND when the agent does not exist OR exists but is not
+     * shared (spec.sharing.enabled is false/unset). The two cases are
+     * deliberately indistinguishable so an unshared agent's URL leaks nothing —
+     * unlike getByReference, which returns PERMISSION_DENIED for an existing
+     * but unauthorized agent. Returns INVALID_ARGUMENT when org is empty:
+     * org+slug is the shared URL's identity, and cross-org slug matching on a
+     * public endpoint would enable enumeration.
+     *
+     * @internal
+     * Public by design (no authentication): enforcement is the app-level
+     * sharing gate in the handler, not FGA — see AgentSharing in spec.proto
+     * for why sharing writes no visibility tuples.
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getSharedProfile
+     */
+    getSharedProfile: {
+      name: "getSharedProfile",
+      I: ApiResourceReference,
+      O: SharedAgentProfile,
       kind: MethodKind.Unary,
     },
   }

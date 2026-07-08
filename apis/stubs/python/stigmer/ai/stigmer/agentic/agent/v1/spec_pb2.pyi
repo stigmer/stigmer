@@ -11,7 +11,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentSpec(_message.Message):
-    __slots__ = ("description", "icon_url", "instructions", "mcp_server_usages", "skill_refs", "sub_agents", "env")
+    __slots__ = ("description", "icon_url", "instructions", "mcp_server_usages", "skill_refs", "sub_agents", "env", "sharing")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -26,6 +26,7 @@ class AgentSpec(_message.Message):
     SKILL_REFS_FIELD_NUMBER: _ClassVar[int]
     SUB_AGENTS_FIELD_NUMBER: _ClassVar[int]
     ENV_FIELD_NUMBER: _ClassVar[int]
+    SHARING_FIELD_NUMBER: _ClassVar[int]
     description: str
     icon_url: str
     instructions: str
@@ -33,7 +34,14 @@ class AgentSpec(_message.Message):
     skill_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     sub_agents: _containers.RepeatedCompositeFieldContainer[SubAgent]
     env: _containers.MessageMap[str, _spec_pb2.EnvVarDeclaration]
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ...) -> None: ...
+    sharing: AgentSharing
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., sharing: _Optional[_Union[AgentSharing, _Mapping]] = ...) -> None: ...
+
+class AgentSharing(_message.Message):
+    __slots__ = ("enabled",)
+    ENABLED_FIELD_NUMBER: _ClassVar[int]
+    enabled: bool
+    def __init__(self, enabled: bool = ...) -> None: ...
 
 class SubAgent(_message.Message):
     __slots__ = ("name", "description", "instructions", "mcp_access", "skill_refs", "model_override")

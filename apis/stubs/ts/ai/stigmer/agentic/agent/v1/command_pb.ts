@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
-import type { AgentIdSchema } from "./io_pb.js";
+import type { AgentIdSchema, UpdateAgentSharingInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_io } from "./io_pb.js";
 import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agent/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxMskFChZBZ2VudENvbW1hbmRDb250cm9sbGVyEk8KBWFwcGx5EiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50EpsBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiScK4GEUIBhAeIgxtZXRhZGF0YS5vcmcqMXVuYXV0aG9yaXplZCB0byBjcmVhdGUgYWdlbnQgaW4gdGhpcyBvcmdhbml6YXRpb24ShQEKBnVwZGF0ZRIiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIzwrgYLwgCECgiC21ldGFkYXRhLmlkKhx1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50Eq0BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCI+wrgYOggCECgiC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50IHZpc2liaWxpdHkSgQEKBmRlbGV0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudElkGiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50Ii3CuBgpCAMQKCIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBkZWxldGUgYWdlbnQaBKD/KyhiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxMvIGChZBZ2VudENvbW1hbmRDb250cm9sbGVyEk8KBWFwcGx5EiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50EpsBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiScK4GEUIBhAeIgxtZXRhZGF0YS5vcmcqMXVuYXV0aG9yaXplZCB0byBjcmVhdGUgYWdlbnQgaW4gdGhpcyBvcmdhbml6YXRpb24ShQEKBnVwZGF0ZRIiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIzwrgYLwgCECgiC21ldGFkYXRhLmlkKhx1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50Eq0BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCI+wrgYOggCECgiC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50IHZpc2liaWxpdHkSpgEKDXVwZGF0ZVNoYXJpbmcSNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuVXBkYXRlQWdlbnRTaGFyaW5nSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiO8K4GDcIAhAoIgtyZXNvdXJjZV9pZCokdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBhZ2VudCBzaGFyaW5nEoEBCgZkZWxldGUSJC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRJZBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCItwrgYKQgDECgiBXZhbHVlKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGFnZW50GgSg/ysoYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentCommandController handles write operations for AI agents.
@@ -80,6 +80,32 @@ export const AgentCommandController: GenService<{
   updateVisibility: {
     methodKind: "unary";
     input: typeof UpdateVisibilityInputSchema;
+    output: typeof AgentSchema;
+  },
+  /**
+   * Update the sharing configuration of an existing agent.
+   *
+   * This is a targeted spec update — it only modifies spec.sharing, leaving
+   * the rest of the spec, metadata, and status untouched. Use this to enable
+   * or revoke anyone-with-link access to the agent's hosted chat without
+   * sending the entire agent resource (avoiding read-modify-write races).
+   *
+   * Sharing is a distinct consent from visibility: updateVisibility governs
+   * who can read the blueprint (marketplace), updateSharing governs who can
+   * chat with the runtime. Conversations over a shared link bill the owning
+   * organization's credits.
+   *
+   * @internal
+   * Authorization: Requires can_edit permission on the agent resource —
+   * the same bar as updateVisibility, since both broaden access.
+   * No FGA tuples are written on share; enforcement is app-level in the
+   * getSharedProfile handler (see AgentSharing in spec.proto).
+   *
+   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.updateSharing
+   */
+  updateSharing: {
+    methodKind: "unary";
+    input: typeof UpdateAgentSharingInputSchema;
     output: typeof AgentSchema;
   },
   /**

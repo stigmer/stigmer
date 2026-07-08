@@ -97,6 +97,17 @@
       },
       "description": "Environment variable declarations for this agent.\n Keys are variable names; values describe their metadata and optionality.",
       "required": false
+    },
+    {
+      "name": "Sharing",
+      "jsonName": "sharing",
+      "protoField": "sharing",
+      "type": {
+        "kind": "message",
+        "messageType": "AgentSharing"
+      },
+      "description": "Sharing configuration for the agent's hosted chat experience.\n\n Controls whether anyone with the agent's public link can chat with the\n running agent. This is a distinct consent from metadata.visibility:\n visibility governs who can READ the agent blueprint (marketplace), while\n sharing governs who can CHAT with the agent runtime. Conversations over a\n shared link consume the owning organization's credits, so enabling\n sharing is an explicit, billing-affecting decision.\n\n Unset is equivalent to sharing disabled.\n\n @internal\n Declarative spec semantics apply: update/apply replace this field like\n any other spec field, so a manifest that omits sharing revokes an active\n share (fails closed). Console and CLI toggle it via the targeted\n updateSharing RPC instead of a full-resource write. Enforcement is\n app-level in the getSharedProfile handler — sharing deliberately writes\n NO FGA visibility tuples, because a public wildcard viewer tuple would\n expose the full blueprint (instructions included) to any authenticated\n account via getByReference, conflating the two consents.",
+      "required": false
     }
   ]
 }

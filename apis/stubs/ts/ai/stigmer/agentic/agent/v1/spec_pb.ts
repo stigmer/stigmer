@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIrAFCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4ASLbAgoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChI6CgptY3BfYWNjZXNzGAQgAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcEFjY2VzcxKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJItUBCg5NY3BTZXJ2ZXJVc2FnZRJYCg5tY3Bfc2VydmVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsLBIVCg1lbmFibGVkX3Rvb2xzGAIgAygJElIKF3Rvb2xfYXBwcm92YWxfb3ZlcnJpZGVzGAMgAygLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlRvb2xBcHByb3ZhbE92ZXJyaWRlIj4KCU1jcEFjY2VzcxIaCgptY3Bfc2VydmVyGAEgASgJQga6SAPIAQESFQoNZW5hYmxlZF90b29scxgCIAMoCSJeChRUb29sQXBwcm92YWxPdmVycmlkZRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESGQoRcmVxdWlyZXNfYXBwcm92YWwYAiABKAgSDwoHbWVzc2FnZRgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIuwFCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkSOgoHc2hhcmluZxgIIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNoYXJpbmcaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4ASIfCgxBZ2VudFNoYXJpbmcSDwoHZW5hYmxlZBgBIAEoCCLbAgoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChI6CgptY3BfYWNjZXNzGAQgAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcEFjY2VzcxKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJItUBCg5NY3BTZXJ2ZXJVc2FnZRJYCg5tY3Bfc2VydmVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsLBIVCg1lbmFibGVkX3Rvb2xzGAIgAygJElIKF3Rvb2xfYXBwcm92YWxfb3ZlcnJpZGVzGAMgAygLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlRvb2xBcHByb3ZhbE92ZXJyaWRlIj4KCU1jcEFjY2VzcxIaCgptY3Bfc2VydmVyGAEgASgJQga6SAPIAQESFQoNZW5hYmxlZF90b29scxgCIAMoCSJeChRUb29sQXBwcm92YWxPdmVycmlkZRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESGQoRcmVxdWlyZXNfYXBwcm92YWwYAiABKAgSDwoHbWVzc2FnZRgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -80,6 +80,32 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 7;
    */
   env: { [key: string]: EnvVarDeclaration };
+
+  /**
+   * Sharing configuration for the agent's hosted chat experience.
+   *
+   * Controls whether anyone with the agent's public link can chat with the
+   * running agent. This is a distinct consent from metadata.visibility:
+   * visibility governs who can READ the agent blueprint (marketplace), while
+   * sharing governs who can CHAT with the agent runtime. Conversations over a
+   * shared link consume the owning organization's credits, so enabling
+   * sharing is an explicit, billing-affecting decision.
+   *
+   * Unset is equivalent to sharing disabled.
+   *
+   * @internal
+   * Declarative spec semantics apply: update/apply replace this field like
+   * any other spec field, so a manifest that omits sharing revokes an active
+   * share (fails closed). Console and CLI toggle it via the targeted
+   * updateSharing RPC instead of a full-resource write. Enforcement is
+   * app-level in the getSharedProfile handler — sharing deliberately writes
+   * NO FGA visibility tuples, because a public wildcard viewer tuple would
+   * expose the full blueprint (instructions included) to any authenticated
+   * account via getByReference, conflating the two consents.
+   *
+   * @generated from field: ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8;
+   */
+  sharing?: AgentSharing;
 };
 
 /**
@@ -88,6 +114,37 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
  */
 export const AgentSpecSchema: GenMessage<AgentSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 0);
+
+/**
+ * AgentSharing controls public, anyone-with-link access to an agent's
+ * hosted chat experience.
+ *
+ * When enabled, the agent's trimmed profile becomes resolvable through the
+ * public getSharedProfile RPC and the hosted chat page can serve visitors
+ * without Stigmer accounts. When disabled (or unset), the shared link
+ * behaves as if the agent does not exist (NOT_FOUND).
+ *
+ * This message is intentionally a wrapper around a single flag so later
+ * phases can add fields (usage caps, org-only mode, expiry) without a
+ * breaking change.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.AgentSharing
+ */
+export type AgentSharing = Message<"ai.stigmer.agentic.agent.v1.AgentSharing"> & {
+  /**
+   * Whether anyone-with-link access to the hosted chat is enabled.
+   *
+   * @generated from field: bool enabled = 1;
+   */
+  enabled: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.AgentSharing.
+ * Use `create(AgentSharingSchema)` to create a new message.
+ */
+export const AgentSharingSchema: GenMessage<AgentSharing> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
 
 /**
  * SubAgent defines a specialized agent that the parent can delegate to.
@@ -154,7 +211,7 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
  * Use `create(SubAgentSchema)` to create a new message.
  */
 export const SubAgentSchema: GenMessage<SubAgent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
 
 /**
  * McpServerUsage declares that this agent uses a McpServer resource.
@@ -207,7 +264,7 @@ export type McpServerUsage = Message<"ai.stigmer.agentic.agent.v1.McpServerUsage
  * Use `create(McpServerUsageSchema)` to create a new message.
  */
 export const McpServerUsageSchema: GenMessage<McpServerUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 3);
 
 /**
  * McpAccess grants a sub-agent access to one of the parent's MCP servers.
@@ -243,7 +300,7 @@ export type McpAccess = Message<"ai.stigmer.agentic.agent.v1.McpAccess"> & {
  * Use `create(McpAccessSchema)` to create a new message.
  */
 export const McpAccessSchema: GenMessage<McpAccess> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 3);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 4);
 
 /**
  * ToolApprovalOverride allows per-agent customization of approval requirements.
@@ -297,5 +354,5 @@ export type ToolApprovalOverride = Message<"ai.stigmer.agentic.agent.v1.ToolAppr
  * Use `create(ToolApprovalOverrideSchema)` to create a new message.
  */
 export const ToolApprovalOverrideSchema: GenMessage<ToolApprovalOverride> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 4);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 5);
 

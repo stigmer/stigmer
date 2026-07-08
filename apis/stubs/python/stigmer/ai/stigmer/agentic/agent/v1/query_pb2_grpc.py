@@ -32,6 +32,11 @@ class AgentQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.GetDefaultAgentRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
                 _registered_method=True)
+        self.getSharedProfile = channel.unary_unary(
+                '/ai.stigmer.agentic.agent.v1.AgentQueryController/getSharedProfile',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.FromString,
+                _registered_method=True)
 
 
 class AgentQueryControllerServicer(object):
@@ -74,6 +79,31 @@ class AgentQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getSharedProfile(self, request, context):
+        """Get the public profile of a shared agent by its org/slug reference.
+
+        This is the resolution path for the hosted chat page: anonymous
+        visitors (no Stigmer account, no token) resolve a shared link to the
+        trimmed SharedAgentProfile — never the full Agent, whose spec carries
+        the system prompt, environment declarations, and MCP wiring.
+
+        Returns NOT_FOUND when the agent does not exist OR exists but is not
+        shared (spec.sharing.enabled is false/unset). The two cases are
+        deliberately indistinguishable so an unshared agent's URL leaks nothing —
+        unlike getByReference, which returns PERMISSION_DENIED for an existing
+        but unauthorized agent. Returns INVALID_ARGUMENT when org is empty:
+        org+slug is the shared URL's identity, and cross-org slug matching on a
+        public endpoint would enable enumeration.
+
+        @internal
+        Public by design (no authentication): enforcement is the app-level
+        sharing gate in the handler, not FGA — see AgentSharing in spec.proto
+        for why sharing writes no visibility tuples.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -91,6 +121,11 @@ def add_AgentQueryControllerServicer_to_server(servicer, server):
                     servicer.getDefault,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.GetDefaultAgentRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
+            ),
+            'getSharedProfile': grpc.unary_unary_rpc_method_handler(
+                    servicer.getSharedProfile,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -175,6 +210,33 @@ class AgentQueryController(object):
             '/ai.stigmer.agentic.agent.v1.AgentQueryController/getDefault',
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.GetDefaultAgentRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getSharedProfile(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agent.v1.AgentQueryController/getSharedProfile',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.FromString,
             options,
             channel_credentials,
             insecure,

@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "r/commons/apiresource/io.proto\0328ai/stigm" +
       "er/commons/apiresource/rpc_service_optio" +
       "ns.proto\032+ai/stigmer/commons/rpc/method_" +
-      "options.proto2\311\005\n\026AgentCommandController" +
+      "options.proto2\362\006\n\026AgentCommandController" +
       "\022O\n\005apply\022\".ai.stigmer.agentic.agent.v1." +
       "Agent\032\".ai.stigmer.agentic.agent.v1.Agen" +
       "t\022\233\001\n\006create\022\".ai.stigmer.agentic.agent." +
@@ -56,15 +56,19 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "i.stigmer.commons.apiresource.UpdateVisi" +
       "bilityInput\032\".ai.stigmer.agentic.agent.v" +
       "1.Agent\">\302\270\030:\010\002\020(\"\013resource_id*\'unauthor" +
-      "ized to update agent visibility\022\201\001\n\006dele" +
-      "te\022$.ai.stigmer.agentic.agent.v1.AgentId" +
-      "\032\".ai.stigmer.agentic.agent.v1.Agent\"-\302\270" +
-      "\030)\010\003\020(\"\005value*\034unauthorized to delete ag" +
-      "ent\032\004\240\377+(B\237\001B\014CommandProtoP\001\242\002\004ASAA\252\002\033Ai" +
-      ".Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\A" +
-      "gentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Age" +
-      "nt\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic" +
-      "::Agent::V1b\006proto3"
+      "ized to update agent visibility\022\246\001\n\rupda" +
+      "teSharing\0224.ai.stigmer.agentic.agent.v1." +
+      "UpdateAgentSharingInput\032\".ai.stigmer.age" +
+      "ntic.agent.v1.Agent\";\302\270\0307\010\002\020(\"\013resource_" +
+      "id*$unauthorized to update agent sharing" +
+      "\022\201\001\n\006delete\022$.ai.stigmer.agentic.agent.v" +
+      "1.AgentId\032\".ai.stigmer.agentic.agent.v1." +
+      "Agent\"-\302\270\030)\010\003\020(\"\005value*\034unauthorized to " +
+      "delete agent\032\004\240\377+(B\237\001B\014CommandProtoP\001\242\002\004" +
+      "ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\" +
+      "Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Ag" +
+      "entic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer" +
+      "::Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

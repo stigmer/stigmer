@@ -74,7 +74,7 @@ export class GeneratedClient {
 
 // Re-export all resource client types and input types.
 export { AgentClient } from "./agent.js";
-export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInput, type SubAgentInput, type McpAccessInput, type EnvVarDeclarationInput } from "./agent.js";
+export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInput, type SubAgentInput, type McpAccessInput, type EnvVarDeclarationInput, type AgentSharingInput } from "./agent.js";
 export { AgentExecutionClient } from "./agentexecution.js";
 export { type AgentExecutionInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput } from "./agentexecution.js";
 export { AgentInstanceClient } from "./agentinstance.js";

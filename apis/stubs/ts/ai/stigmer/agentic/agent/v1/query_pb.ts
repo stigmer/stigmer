@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
-import type { AgentIdSchema, GetDefaultAgentRequestSchema } from "./io_pb.js";
+import type { AgentIdSchema, GetDefaultAgentRequestSchema, SharedAgentProfileSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agent/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTL4AgoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARJrCgpnZXREZWZhdWx0EjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkdldERlZmF1bHRBZ2VudFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiBNC4GAEaBKD/KyhiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTL5AwoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARJrCgpnZXREZWZhdWx0EjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkdldERlZmF1bHRBZ2VudFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiBNC4GAESfwoQZ2V0U2hhcmVkUHJvZmlsZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRovLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5TaGFyZWRBZ2VudFByb2ZpbGUiBMi4GAEaBKD/KyhiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentQueryController handles read operations for AI agents.
@@ -69,6 +69,34 @@ export const AgentQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetDefaultAgentRequestSchema;
     output: typeof AgentSchema;
+  },
+  /**
+   * Get the public profile of a shared agent by its org/slug reference.
+   *
+   * This is the resolution path for the hosted chat page: anonymous
+   * visitors (no Stigmer account, no token) resolve a shared link to the
+   * trimmed SharedAgentProfile — never the full Agent, whose spec carries
+   * the system prompt, environment declarations, and MCP wiring.
+   *
+   * Returns NOT_FOUND when the agent does not exist OR exists but is not
+   * shared (spec.sharing.enabled is false/unset). The two cases are
+   * deliberately indistinguishable so an unshared agent's URL leaks nothing —
+   * unlike getByReference, which returns PERMISSION_DENIED for an existing
+   * but unauthorized agent. Returns INVALID_ARGUMENT when org is empty:
+   * org+slug is the shared URL's identity, and cross-org slug matching on a
+   * public endpoint would enable enumeration.
+   *
+   * @internal
+   * Public by design (no authentication): enforcement is the app-level
+   * sharing gate in the handler, not FGA — see AgentSharing in spec.proto
+   * for why sharing writes no visibility tuples.
+   *
+   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getSharedProfile
+   */
+  getSharedProfile: {
+    methodKind: "unary";
+    input: typeof ApiResourceReferenceSchema;
+    output: typeof SharedAgentProfileSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_agent_v1_query, 0);

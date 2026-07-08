@@ -24,6 +24,7 @@ const (
 	AgentCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/create"
 	AgentCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/update"
 	AgentCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentCommandController/updateVisibility"
+	AgentCommandController_UpdateSharing_FullMethodName    = "/ai.stigmer.agentic.agent.v1.AgentCommandController/updateSharing"
 	AgentCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/delete"
 )
 
@@ -58,6 +59,24 @@ type AgentCommandControllerClient interface {
 	// @internal
 	// Authorization: Requires can_edit permission on the agent resource.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Agent, error)
+	// Update the sharing configuration of an existing agent.
+	//
+	// This is a targeted spec update — it only modifies spec.sharing, leaving
+	// the rest of the spec, metadata, and status untouched. Use this to enable
+	// or revoke anyone-with-link access to the agent's hosted chat without
+	// sending the entire agent resource (avoiding read-modify-write races).
+	//
+	// Sharing is a distinct consent from visibility: updateVisibility governs
+	// who can read the blueprint (marketplace), updateSharing governs who can
+	// chat with the runtime. Conversations over a shared link bill the owning
+	// organization's credits.
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the agent resource —
+	// the same bar as updateVisibility, since both broaden access.
+	// No FGA tuples are written on share; enforcement is app-level in the
+	// getSharedProfile handler (see AgentSharing in spec.proto).
+	UpdateSharing(ctx context.Context, in *UpdateAgentSharingInput, opts ...grpc.CallOption) (*Agent, error)
 	// Delete an agent.
 	Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
 }
@@ -110,6 +129,16 @@ func (c *agentCommandControllerClient) UpdateVisibility(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *agentCommandControllerClient) UpdateSharing(ctx context.Context, in *UpdateAgentSharingInput, opts ...grpc.CallOption) (*Agent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Agent)
+	err := c.cc.Invoke(ctx, AgentCommandController_UpdateSharing_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentCommandControllerClient) Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Agent)
@@ -151,6 +180,24 @@ type AgentCommandControllerServer interface {
 	// @internal
 	// Authorization: Requires can_edit permission on the agent resource.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error)
+	// Update the sharing configuration of an existing agent.
+	//
+	// This is a targeted spec update — it only modifies spec.sharing, leaving
+	// the rest of the spec, metadata, and status untouched. Use this to enable
+	// or revoke anyone-with-link access to the agent's hosted chat without
+	// sending the entire agent resource (avoiding read-modify-write races).
+	//
+	// Sharing is a distinct consent from visibility: updateVisibility governs
+	// who can read the blueprint (marketplace), updateSharing governs who can
+	// chat with the runtime. Conversations over a shared link bill the owning
+	// organization's credits.
+	//
+	// @internal
+	// Authorization: Requires can_edit permission on the agent resource —
+	// the same bar as updateVisibility, since both broaden access.
+	// No FGA tuples are written on share; enforcement is app-level in the
+	// getSharedProfile handler (see AgentSharing in spec.proto).
+	UpdateSharing(context.Context, *UpdateAgentSharingInput) (*Agent, error)
 	// Delete an agent.
 	Delete(context.Context, *AgentId) (*Agent, error)
 }
@@ -173,6 +220,9 @@ func (UnimplementedAgentCommandControllerServer) Update(context.Context, *Agent)
 }
 func (UnimplementedAgentCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
+}
+func (UnimplementedAgentCommandControllerServer) UpdateSharing(context.Context, *UpdateAgentSharingInput) (*Agent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateSharing not implemented")
 }
 func (UnimplementedAgentCommandControllerServer) Delete(context.Context, *AgentId) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -269,6 +319,24 @@ func _AgentCommandController_UpdateVisibility_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentCommandController_UpdateSharing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAgentSharingInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentCommandControllerServer).UpdateSharing(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentCommandController_UpdateSharing_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentCommandControllerServer).UpdateSharing(ctx, req.(*UpdateAgentSharingInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AgentId)
 	if err := dec(in); err != nil {
@@ -309,6 +377,10 @@ var AgentCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "updateVisibility",
 			Handler:    _AgentCommandController_UpdateVisibility_Handler,
+		},
+		{
+			MethodName: "updateSharing",
+			Handler:    _AgentCommandController_UpdateSharing_Handler,
 		},
 		{
 			MethodName: "delete",

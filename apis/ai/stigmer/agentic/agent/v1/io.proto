@@ -2,11 +2,60 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agent.v1;
 
+import "ai/stigmer/agentic/agent/v1/spec.proto";
 import "buf/validate/validate.proto";
 
 // AgentId wraps an agent identifier.
 message AgentId {
   string value = 1 [(buf.validate.field).required = true];
+}
+
+// Input for updating the sharing configuration of an agent.
+//
+// Used by the updateSharing RPC for a targeted update — it only modifies
+// spec.sharing, leaving the rest of the spec, metadata, and status
+// untouched. Use this to enable or revoke anyone-with-link chat access
+// without sending the entire agent resource (avoiding read-modify-write
+// races), mirroring the UpdateVisibilityInput pattern.
+message UpdateAgentSharingInput {
+  // ID of the agent whose sharing configuration is being updated.
+  string resource_id = 1 [(buf.validate.field).required = true];
+
+  // The new sharing configuration for the agent.
+  // Must be present; to disable sharing, send sharing with enabled=false
+  // rather than omitting the field.
+  AgentSharing sharing = 2 [(buf.validate.field).required = true];
+}
+
+// SharedAgentProfile is the public projection of a shared agent.
+//
+// Returned by the getSharedProfile RPC to anonymous visitors of the hosted
+// chat page. It is deliberately trimmed: the full Agent resource carries the
+// system prompt (spec.instructions), environment declarations, and MCP
+// server wiring — none of which may leak to anyone-with-link callers. The
+// profile carries only what the hosted chat page needs to render a header
+// and start a session.
+message SharedAgentProfile {
+  // Organization that owns the shared agent.
+  string org = 1;
+
+  // Slug of the shared agent (unique within the org).
+  // Together with org, this is the identity in the hosted chat URL.
+  string slug = 2;
+
+  // Human-readable agent name for the chat page header.
+  string name = 3;
+
+  // Human-readable description for the chat page header.
+  string description = 4;
+
+  // Icon URL for the chat page header.
+  string icon_url = 5;
+
+  // ID of the agent's default instance, used by the hosted chat page to
+  // create sessions. This is an identifier, not a capability — session
+  // creation still requires an authorized token.
+  string default_instance_id = 6;
 }
 
 // GetDefaultAgentRequest is the input for retrieving the platform default agent.

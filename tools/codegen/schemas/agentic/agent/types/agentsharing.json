@@ -1,0 +1,18 @@
+{
+  "name": "AgentSharing",
+  "description": "AgentSharing controls public, anyone-with-link access to an agent's\n hosted chat experience.\n\n When enabled, the agent's trimmed profile becomes resolvable through the\n public getSharedProfile RPC and the hosted chat page can serve visitors\n without Stigmer accounts. When disabled (or unset), the shared link\n behaves as if the agent does not exist (NOT_FOUND).\n\n This message is intentionally a wrapper around a single flag so later\n phases can add fields (usage caps, org-only mode, expiry) without a\n breaking change.",
+  "protoType": "ai.stigmer.agentic.agent.v1.AgentSharing",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Enabled",
+      "jsonName": "enabled",
+      "protoField": "enabled",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether anyone-with-link access to the hosted chat is enabled.",
+      "required": false
+    }
+  ]
+}

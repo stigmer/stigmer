@@ -6,7 +6,7 @@
 import { generateSlug, visibilityFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, AgentSharingSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -28,6 +28,7 @@ export const AgentInputShape = {
   skill_refs: z.array(z.lazy(() => SkillRefInputSchema)).optional().describe("Skill resources providing additional knowledge to the agent."),
   sub_agents: z.array(z.lazy(() => SubAgentInputSchema)).optional().describe("Sub-agents that can be delegated to. Sub-agents can access a subset of the parent's MCP servers and tools."),
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality."),
+  sharing: z.lazy(() => AgentSharingInputSchema).optional().describe("Sharing configuration for the agent's hosted chat experience. Controls whether anyone with the agent's public link can chat with the running agent. This is a distinct consent from metadata.visibility: visibility governs who can READ the agent blueprint (marketplace), while sharing governs who can CHAT with the agent runtime. Conversations over a shared link consume the owning organization's credits, so enabling sharing is an explicit, billing-affecting decision. Unset is equivalent to sharing disabled. @internal Declarative spec semantics apply: update/apply replace this field like any other spec field, so a manifest that omits sharing revokes an active share (fails closed). Console and CLI toggle it via the targeted updateSharing RPC instead of a full-resource write. Enforcement is app-level in the getSharedProfile handler — sharing deliberately writes NO FGA visibility tuples, because a public wildcard viewer tuple would expose the full blueprint (instructions included) to any authenticated account via getByReference, conflating the two consents."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -83,6 +84,11 @@ const EnvVarDeclarationInputSchema = z.object({
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 
+const AgentSharingInputSchema = z.object({
+  enabled: z.boolean().optional().describe("Whether anyone-with-link access to the hosted chat is enabled."),
+});
+type AgentSharingInput = z.infer<typeof AgentSharingInputSchema>;
+
 
 /** Build the fully-formed Agent proto from the flat MCP apply input. */
 export function agentInputToProto(input: AgentInput): Agent {
@@ -97,6 +103,7 @@ export function agentInputToProto(input: AgentInput): Agent {
   if (input.env !== undefined) {
     for (const [k, v] of Object.entries(input.env)) spec.env[k] = envVarDeclarationInputToProto(v);
   }
+  if (input.sharing !== undefined) spec.sharing = agentSharingInputToProto(input.sharing);
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -168,6 +175,12 @@ function envVarDeclarationInputToProto(input: EnvVarDeclarationInput) {
   if (input.is_secret !== undefined) result.isSecret = input.is_secret;
   if (input.description !== undefined) result.description = input.description;
   if (input.optional !== undefined) result.optional = input.optional;
+  return result;
+}
+
+function agentSharingInputToProto(input: AgentSharingInput) {
+  const result = create(AgentSharingSchema);
+  if (input.enabled !== undefined) result.enabled = input.enabled;
   return result;
 }
 

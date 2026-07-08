@@ -41,6 +41,14 @@
           "description": "Update the visibility of an existing agent.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n make an agent publicly accessible or to revoke public access without\n sending the entire agent resource (avoiding read-modify-write races).\n\n @internal\n Authorization: Requires can_edit permission on the agent resource."
         },
         {
+          "name": "UpdateSharing",
+          "inputType": "UpdateAgentSharingInput",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Update the sharing configuration of an existing agent.\n\n This is a targeted spec update — it only modifies spec.sharing, leaving\n the rest of the spec, metadata, and status untouched. Use this to enable\n or revoke anyone-with-link access to the agent's hosted chat without\n sending the entire agent resource (avoiding read-modify-write races).\n\n Sharing is a distinct consent from visibility: updateVisibility governs\n who can read the blueprint (marketplace), updateSharing governs who can\n chat with the runtime. Conversations over a shared link bill the owning\n organization's credits.\n\n @internal\n Authorization: Requires can_edit permission on the agent resource —\n the same bar as updateVisibility, since both broaden access.\n No FGA tuples are written on share; enforcement is app-level in the\n getSharedProfile handler (see AgentSharing in spec.proto)."
+        },
+        {
           "name": "Delete",
           "inputType": "AgentId",
           "inputFullType": "ai.stigmer.agentic.agent.v1.AgentId",
@@ -78,6 +86,14 @@
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "description": "Get the platform default agent.\n\n Returns the default agent for the platform, including\n status.default_instance_id for creating a session. Use this\n to start a conversation without selecting an agent first.\n\n Returns NOT_FOUND if no default agent is configured.\n\n @internal\n Resolves the agent labeled stigmer.ai/default-agent: \"true\" with\n visibility_public. Custom authorization in handler."
+        },
+        {
+          "name": "GetSharedProfile",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "SharedAgentProfile",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.SharedAgentProfile",
+          "description": "Get the public profile of a shared agent by its org/slug reference.\n\n This is the resolution path for the hosted chat page: anonymous\n visitors (no Stigmer account, no token) resolve a shared link to the\n trimmed SharedAgentProfile — never the full Agent, whose spec carries\n the system prompt, environment declarations, and MCP wiring.\n\n Returns NOT_FOUND when the agent does not exist OR exists but is not\n shared (spec.sharing.enabled is false/unset). The two cases are\n deliberately indistinguishable so an unshared agent's URL leaks nothing —\n unlike getByReference, which returns PERMISSION_DENIED for an existing\n but unauthorized agent. Returns INVALID_ARGUMENT when org is empty:\n org+slug is the shared URL's identity, and cross-org slug matching on a\n public endpoint would enable enumeration.\n\n @internal\n Public by design (no authentication): enforcement is the app-level\n sharing gate in the handler, not FGA — see AgentSharing in spec.proto\n for why sharing writes no visibility tuples."
         }
       ]
     }
@@ -119,6 +135,41 @@
           },
           "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateAgentSharingInput",
+      "description": "Input for updating the sharing configuration of an agent.\n\n Used by the updateSharing RPC for a targeted update — it only modifies\n spec.sharing, leaving the rest of the spec, metadata, and status\n untouched. Use this to enable or revoke anyone-with-link chat access\n without sending the entire agent resource (avoiding read-modify-write\n races), mirroring the UpdateVisibilityInput pattern.",
+      "protoType": "ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent whose sharing configuration is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Sharing",
+          "jsonName": "sharing",
+          "protoField": "sharing",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentSharing"
+          },
+          "description": "The new sharing configuration for the agent.\n Must be present; to disable sharing, send sharing with enabled=false\n rather than omitting the field.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
         }
       ]
     },
@@ -227,6 +278,74 @@
           "validation": {
             "minLength": 1
           }
+        }
+      ]
+    },
+    {
+      "name": "SharedAgentProfile",
+      "description": "SharedAgentProfile is the public projection of a shared agent.\n\n Returned by the getSharedProfile RPC to anonymous visitors of the hosted\n chat page. It is deliberately trimmed: the full Agent resource carries the\n system prompt (spec.instructions), environment declarations, and MCP\n server wiring — none of which may leak to anyone-with-link callers. The\n profile carries only what the hosted chat page needs to render a header\n and start a session.",
+      "protoType": "ai.stigmer.agentic.agent.v1.SharedAgentProfile",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the shared agent.",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the shared agent (unique within the org).\n Together with org, this is the identity in the hosted chat URL.",
+          "required": false
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable agent name for the chat page header.",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description for the chat page header.",
+          "required": false
+        },
+        {
+          "name": "IconUrl",
+          "jsonName": "iconUrl",
+          "protoField": "icon_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Icon URL for the chat page header.",
+          "required": false
+        },
+        {
+          "name": "DefaultInstanceId",
+          "jsonName": "defaultInstanceId",
+          "protoField": "default_instance_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent's default instance, used by the hosted chat page to\n create sessions. This is an identifier, not a capability — session\n creation still requires an authorized token.",
+          "required": false
         }
       ]
     }

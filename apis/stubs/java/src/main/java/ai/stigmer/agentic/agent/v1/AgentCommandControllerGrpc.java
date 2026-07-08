@@ -139,6 +139,37 @@ public final class AgentCommandControllerGrpc {
     return getUpdateVisibilityMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput,
+      ai.stigmer.agentic.agent.v1.Agent> getUpdateSharingMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateSharing",
+      requestType = ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput.class,
+      responseType = ai.stigmer.agentic.agent.v1.Agent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput,
+      ai.stigmer.agentic.agent.v1.Agent> getUpdateSharingMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput, ai.stigmer.agentic.agent.v1.Agent> getUpdateSharingMethod;
+    if ((getUpdateSharingMethod = AgentCommandControllerGrpc.getUpdateSharingMethod) == null) {
+      synchronized (AgentCommandControllerGrpc.class) {
+        if ((getUpdateSharingMethod = AgentCommandControllerGrpc.getUpdateSharingMethod) == null) {
+          AgentCommandControllerGrpc.getUpdateSharingMethod = getUpdateSharingMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput, ai.stigmer.agentic.agent.v1.Agent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateSharing"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.Agent.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentCommandControllerMethodDescriptorSupplier("updateSharing"))
+              .build();
+        }
+      }
+    }
+    return getUpdateSharingMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.AgentId,
       ai.stigmer.agentic.agent.v1.Agent> getDeleteMethod;
 
@@ -291,6 +322,29 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the sharing configuration of an existing agent.
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     * </pre>
+     */
+    default void updateSharing(ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateSharingMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -392,6 +446,30 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the sharing configuration of an existing agent.
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     * </pre>
+     */
+    public void updateSharing(ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateSharingMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -476,6 +554,29 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the sharing configuration of an existing agent.
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent updateSharing(ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateSharingMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -555,6 +656,29 @@ public final class AgentCommandControllerGrpc {
     public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update the sharing configuration of an existing agent.
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent updateSharing(ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateSharingMethod(), getCallOptions(), request);
     }
 
     /**
@@ -646,6 +770,30 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the sharing configuration of an existing agent.
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> updateSharing(
+        ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateSharingMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -660,7 +808,8 @@ public final class AgentCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_VISIBILITY = 3;
-  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_UPDATE_SHARING = 4;
+  private static final int METHODID_DELETE = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -693,6 +842,10 @@ public final class AgentCommandControllerGrpc {
           break;
         case METHODID_UPDATE_VISIBILITY:
           serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
+          break;
+        case METHODID_UPDATE_SHARING:
+          serviceImpl.updateSharing((ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -745,6 +898,13 @@ public final class AgentCommandControllerGrpc {
               ai.stigmer.commons.apiresource.UpdateVisibilityInput,
               ai.stigmer.agentic.agent.v1.Agent>(
                 service, METHODID_UPDATE_VISIBILITY)))
+        .addMethod(
+          getUpdateSharingMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput,
+              ai.stigmer.agentic.agent.v1.Agent>(
+                service, METHODID_UPDATE_SHARING)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -804,6 +964,7 @@ public final class AgentCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateVisibilityMethod())
+              .addMethod(getUpdateSharingMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

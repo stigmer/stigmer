@@ -6,7 +6,7 @@
 import { Agent } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
-import { AgentId } from "./io_pbjs";
+import { AgentId, UpdateAgentSharingInput } from "./io_pbjs";
 
 /**
  * AgentCommandController handles write operations for AI agents.
@@ -74,6 +74,33 @@ export const AgentCommandController = {
     updateVisibility: {
       name: "updateVisibility",
       I: UpdateVisibilityInput,
+      O: Agent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update the sharing configuration of an existing agent.
+     *
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     *
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     *
+     * @internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.updateSharing
+     */
+    updateSharing: {
+      name: "updateSharing",
+      I: UpdateAgentSharingInput,
       O: Agent,
       kind: MethodKind.Unary,
     },

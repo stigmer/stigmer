@@ -55,6 +55,12 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_sharing(self, input: io_pb2.UpdateAgentSharingInput) -> api_pb2.Agent:
+        try:
+            return self._command.updateSharing(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.Agent:
         try:
             return self._command.delete(io_pb2.AgentId(value=id))
@@ -78,6 +84,14 @@ class AgentClient:
     def get_default(self, input: io_pb2.GetDefaultAgentRequest) -> api_pb2.Agent:
         try:
             return self._query.getDefault(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_shared_profile(self, ref: ResourceRef) -> io_pb2.SharedAgentProfile:
+        try:
+            proto = ref._to_proto()
+            proto.kind = api_resource_kind_pb2.agent
+            return self._query.getSharedProfile(proto)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -121,6 +135,7 @@ class AgentInput:
     skill_refs: list[ResourceRef] = field(default_factory=list)
     sub_agents: list[SubAgentInput] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
+    sharing: AgentSharingInput | None = None
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -138,6 +153,8 @@ class AgentInput:
             spec.sub_agents.append(item._to_proto())
         for k, v in self.env.items():
             spec.env[k].CopyFrom(v._to_proto())
+        if self.sharing is not None:
+            spec.sharing.CopyFrom(self.sharing._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -250,6 +267,19 @@ class EnvVarDeclarationInput:
             is_secret=self.is_secret,
             description=self.description,
             optional=self.optional,
+        )
+        return msg
+
+
+@dataclass
+class AgentSharingInput:
+    """SDK input type for AgentSharing."""
+
+    enabled: bool = False
+
+    def _to_proto(self) -> spec_pb2.AgentSharing:
+        msg = spec_pb2.AgentSharing(
+            enabled=self.enabled,
         )
         return msg
 

@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { AgentSharing } from "./spec_pb.js";
+import { file_ai_stigmer_agentic_agent_v1_spec } from "./spec_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -11,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLgoWR2V0RGVmYXVsdEFnZW50UmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiegoXVXBkYXRlQWdlbnRTaGFyaW5nSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARJCCgdzaGFyaW5nGAIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U2hhcmluZ0IGukgDyAEBIoEBChJTaGFyZWRBZ2VudFByb2ZpbGUSCwoDb3JnGAEgASgJEgwKBHNsdWcYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRIbChNkZWZhdWx0X2luc3RhbmNlX2lkGAYgASgJIi4KFkdldERlZmF1bHRBZ2VudFJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_buf_validate_validate]);
 
 /**
  * AgentId wraps an agent identifier.
@@ -31,6 +33,108 @@ export type AgentId = Message<"ai.stigmer.agentic.agent.v1.AgentId"> & {
  */
 export const AgentIdSchema: GenMessage<AgentId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_io, 0);
+
+/**
+ * Input for updating the sharing configuration of an agent.
+ *
+ * Used by the updateSharing RPC for a targeted update — it only modifies
+ * spec.sharing, leaving the rest of the spec, metadata, and status
+ * untouched. Use this to enable or revoke anyone-with-link chat access
+ * without sending the entire agent resource (avoiding read-modify-write
+ * races), mirroring the UpdateVisibilityInput pattern.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput
+ */
+export type UpdateAgentSharingInput = Message<"ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput"> & {
+  /**
+   * ID of the agent whose sharing configuration is being updated.
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+
+  /**
+   * The new sharing configuration for the agent.
+   * Must be present; to disable sharing, send sharing with enabled=false
+   * rather than omitting the field.
+   *
+   * @generated from field: ai.stigmer.agentic.agent.v1.AgentSharing sharing = 2;
+   */
+  sharing?: AgentSharing;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput.
+ * Use `create(UpdateAgentSharingInputSchema)` to create a new message.
+ */
+export const UpdateAgentSharingInputSchema: GenMessage<UpdateAgentSharingInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 1);
+
+/**
+ * SharedAgentProfile is the public projection of a shared agent.
+ *
+ * Returned by the getSharedProfile RPC to anonymous visitors of the hosted
+ * chat page. It is deliberately trimmed: the full Agent resource carries the
+ * system prompt (spec.instructions), environment declarations, and MCP
+ * server wiring — none of which may leak to anyone-with-link callers. The
+ * profile carries only what the hosted chat page needs to render a header
+ * and start a session.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.SharedAgentProfile
+ */
+export type SharedAgentProfile = Message<"ai.stigmer.agentic.agent.v1.SharedAgentProfile"> & {
+  /**
+   * Organization that owns the shared agent.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Slug of the shared agent (unique within the org).
+   * Together with org, this is the identity in the hosted chat URL.
+   *
+   * @generated from field: string slug = 2;
+   */
+  slug: string;
+
+  /**
+   * Human-readable agent name for the chat page header.
+   *
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * Human-readable description for the chat page header.
+   *
+   * @generated from field: string description = 4;
+   */
+  description: string;
+
+  /**
+   * Icon URL for the chat page header.
+   *
+   * @generated from field: string icon_url = 5;
+   */
+  iconUrl: string;
+
+  /**
+   * ID of the agent's default instance, used by the hosted chat page to
+   * create sessions. This is an identifier, not a capability — session
+   * creation still requires an authorized token.
+   *
+   * @generated from field: string default_instance_id = 6;
+   */
+  defaultInstanceId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.SharedAgentProfile.
+ * Use `create(SharedAgentProfileSchema)` to create a new message.
+ */
+export const SharedAgentProfileSchema: GenMessage<SharedAgentProfile> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 2);
 
 /**
  * GetDefaultAgentRequest is the input for retrieving the platform default agent.
@@ -55,5 +159,5 @@ export type GetDefaultAgentRequest = Message<"ai.stigmer.agentic.agent.v1.GetDef
  * Use `create(GetDefaultAgentRequestSchema)` to create a new message.
  */
 export const GetDefaultAgentRequestSchema: GenMessage<GetDefaultAgentRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 1);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 3);
 

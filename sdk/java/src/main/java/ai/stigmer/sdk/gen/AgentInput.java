@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.agent.v1.Agent;
+import ai.stigmer.agentic.agent.v1.AgentSharing;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
 import ai.stigmer.agentic.agent.v1.McpAccess;
 import ai.stigmer.agentic.agent.v1.McpServerUsage;
@@ -27,6 +28,7 @@ public final class AgentInput {
     private final java.util.List<ResourceRef> skillRefs;
     private final java.util.List<SubAgentInput> subAgents;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
+    private final AgentSharingInput sharing;
 
     private AgentInput(Builder builder) {
         this.name = builder.name;
@@ -41,6 +43,7 @@ public final class AgentInput {
         this.skillRefs = builder.skillRefs;
         this.subAgents = builder.subAgents;
         this.env = builder.env;
+        this.sharing = builder.sharing;
     }
 
     Agent toProto() {
@@ -74,6 +77,9 @@ public final class AgentInput {
             for (java.util.Map.Entry<String, EnvVarDeclarationInput> entry : this.env.entrySet()) {
                 spec.putEnv(entry.getKey(), entry.getValue().toProto());
             }
+        }
+        if (this.sharing != null) {
+            spec.setSharing(this.sharing.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -110,6 +116,7 @@ public final class AgentInput {
         private java.util.List<ResourceRef> skillRefs;
         private java.util.List<SubAgentInput> subAgents;
         private java.util.Map<String, EnvVarDeclarationInput> env;
+        private AgentSharingInput sharing;
 
         private Builder() {}
 
@@ -125,6 +132,7 @@ public final class AgentInput {
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
         public Builder subAgents(java.util.List<SubAgentInput> subAgents) { this.subAgents = subAgents; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
+        public Builder sharing(AgentSharingInput sharing) { this.sharing = sharing; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }
@@ -357,6 +365,33 @@ public final class AgentInput {
             public Builder optional(boolean optional) { this.optional = optional; return this; }
 
             public EnvVarDeclarationInput build() { return new EnvVarDeclarationInput(this); }
+        }
+    }
+
+    /** SDK input type for AgentSharing. */
+    public static final class AgentSharingInput {
+        private final boolean enabled;
+
+        private AgentSharingInput(Builder builder) {
+            this.enabled = builder.enabled;
+        }
+
+        AgentSharing toProto() {
+            AgentSharing.Builder builder = AgentSharing.newBuilder();
+            builder.setEnabled(this.enabled);
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private boolean enabled;
+
+            private Builder() {}
+
+            public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
+
+            public AgentSharingInput build() { return new AgentSharingInput(this); }
         }
     }
 }
