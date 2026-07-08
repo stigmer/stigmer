@@ -222,6 +222,40 @@ describe("ExecutionContext conformance — secrets", () => {
 
     expect(secretEntry?.value, "OSS returns the secret value in plaintext").toBe(secretValue);
   });
+
+  it("getByExecutionId under a user token follows the same secret contract as get", async () => {
+    // On cloud, getByExecutionId decrypts only for runner-class credentials
+    // (token_type of sandbox / workflow_sandbox / connect_sandbox /
+    // embedded_runner). The conformance harness authenticates as a user, so it
+    // must see the same redaction as get — this is the stigmer-cloud#152
+    // contract: no read RPC hands plaintext secrets to a user-class caller.
+    // OSS has no redaction, so the value comes back in plaintext.
+    const { org } = await target.provisionTenancy();
+    const secretValue = "runtime-secret-value";
+    const executionId = uniqueName("aex");
+    await createExecutionContext(org, uniqueName("ectx"), {
+      executionId,
+      data: {
+        AWS_SECRET_ACCESS_KEY: { value: secretValue, isSecret: true },
+        AWS_REGION: { value: "us-east-1" },
+      },
+    });
+
+    const fetched = await clients.executionContextQuery.getByExecutionId({ executionId });
+    const secretEntry = fetched.spec?.data?.AWS_SECRET_ACCESS_KEY;
+
+    expect(secretEntry?.isSecret, "is_secret is preserved on read in both editions").toBe(true);
+    expect(fetched.spec?.data?.AWS_REGION?.value, "plaintext values are never redacted").toBe("us-east-1");
+
+    if (target.capabilities.secretRedaction) {
+      expect(secretEntry?.value, "redacting targets must not return the plaintext secret to a user token").not.toBe(
+        secretValue,
+      );
+      return;
+    }
+
+    expect(secretEntry?.value, "OSS returns the secret value in plaintext").toBe(secretValue);
+  });
 });
 
 describe("ExecutionContext conformance — negative paths", () => {

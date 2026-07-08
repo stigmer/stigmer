@@ -97,6 +97,14 @@ export interface Config {
   readonly workspaceLockTimeoutMs: number;
   /** Shared mutable token reference for dynamic token updates (manager mode). */
   readonly stigmerTokenRef?: { current: string | null };
+  /**
+   * Shared mutable reference to the runner credential (manager mode): the
+   * server-minted runner token once adopted, tracking the control-plane token
+   * in lockstep before that. StigmerClient authenticates ExecutionContext
+   * reads with it so the server's runner-class decrypt gate recognizes a
+   * desktop runner (see stigmer-client.ts).
+   */
+  readonly stigmerRunnerTokenRef?: { current: string | null };
 }
 
 export function loadConfig(): Config {

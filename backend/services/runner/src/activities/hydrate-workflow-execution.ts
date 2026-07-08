@@ -33,6 +33,7 @@ export function createHydrateWorkflowActivities(config: Config) {
     endpoint: config.stigmerBackendEndpoint,
     token: config.stigmerToken,
     tokenRef: config.stigmerTokenRef,
+    runnerTokenRef: config.stigmerRunnerTokenRef,
   });
 
   return {

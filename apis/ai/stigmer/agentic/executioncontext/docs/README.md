@@ -23,7 +23,7 @@ ExecutionContexts are not created by end users. They are produced by the Stigmer
 - **Ephemeral by design**: an ExecutionContext exists only for the duration of its execution — created at start, deleted at completion or failure
 - **Tied to one execution**: each ExecutionContext carries the `execution_id` of the `AgentExecution` or `WorkflowExecution` it serves
 - **Runtime secret injection**: supports B2B scenarios (e.g., Planton integrations) where secrets are injected at execution time rather than stored in a persistent Environment
-- **Operator-only access**: all read and write operations require platform-level operator permission — only internal runners can retrieve decrypted values
+- **Owner-scoped access, runner-gated secrets**: reads require `can_view` on the ExecutionContext (owner-only; the owner tuple is written at creation). On cloud, secret values are redacted on every read for user-class callers; only `getByExecutionId` returns decrypted values, and only to platform-minted runner credentials (`token_type` of `sandbox`, `workflow_sandbox`, `connect_sandbox`, or `embedded_runner`). OSS stores and returns plaintext (single-user local)
 - **Consistent value model**: each entry uses the same `value` / `is_secret` pattern as `EnvironmentValue`, keeping the secret-vs-plaintext semantics uniform across the system
 
 ## Documentation Index
@@ -41,6 +41,6 @@ All types in this package are defined in `ai/stigmer/agentic/executioncontext/v1
 |---|---|
 | `api.proto` | `ExecutionContext`, top-level resource message |
 | `spec.proto` | `ExecutionContextSpec` — `execution_id`, `data`; `ExecutionValue` — `value`, `is_secret` |
-| `command.proto` | `ExecutionContextCommandController` — apply, create, delete (all operator-only) |
-| `query.proto` | `ExecutionContextQueryController` — get, getByReference, getByExecutionId (all operator-only) |
+| `command.proto` | `ExecutionContextCommandController` — apply, create, delete (execution-engine internal) |
+| `query.proto` | `ExecutionContextQueryController` — get, getByReference, getByExecutionId (owner `can_view`; decrypted secrets only for runner-class credentials on getByExecutionId) |
 | `io.proto` | Input/output messages — `ExecutionContextId`, `ExecutionContextExecutionIdInput` |

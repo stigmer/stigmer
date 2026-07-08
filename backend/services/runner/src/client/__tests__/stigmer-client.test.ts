@@ -20,9 +20,17 @@ vi.mock("@connectrpc/connect", () => ({
 }));
 
 import { StigmerClient } from "../stigmer-client.js";
+import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 
-function makeRequest(): { header: Map<string, string> } {
-  return { header: new Map() };
+function makeRequest(
+  serviceTypeName = "ai.stigmer.agentic.session.v1.SessionQueryController",
+): { header: Map<string, string>; service: { typeName: string } } {
+  return { header: new Map(), service: { typeName: serviceTypeName } };
+}
+
+/** A request targeting the ExecutionContext query service (runner-credential path). */
+function makeExecutionContextRequest() {
+  return makeRequest(ExecutionContextQueryController.typeName);
 }
 
 async function runInterceptor(req: ReturnType<typeof makeRequest>) {
@@ -117,6 +125,77 @@ describe("StigmerClient", () => {
       const req = makeRequest();
       await runInterceptor(req);
       expect(req.header.has("authorization")).toBe(false);
+    });
+  });
+
+  describe("runnerTokenRef (ExecutionContext credential selection)", () => {
+    // Cloud gates ExecutionContext secret decryption on a runner-class
+    // token_type claim (stigmer-cloud#152). These tests pin the selection
+    // policy: the runner credential is used for the ExecutionContext query
+    // service only, and only when present.
+
+    it("uses the runner credential for ExecutionContext reads", async () => {
+      const tokenRef: TokenRef = { current: "control-plane-tok" };
+      const runnerRef: TokenRef = { current: "runner-tok" };
+      new StigmerClient({
+        endpoint: "http://localhost",
+        token: null,
+        tokenRef,
+        runnerTokenRef: runnerRef,
+      });
+
+      const req = makeExecutionContextRequest();
+      await runInterceptor(req);
+      expect(req.header.get("authorization")).toBe("Bearer runner-tok");
+    });
+
+    it("keeps the control-plane token for every other service", async () => {
+      const tokenRef: TokenRef = { current: "control-plane-tok" };
+      const runnerRef: TokenRef = { current: "runner-tok" };
+      new StigmerClient({
+        endpoint: "http://localhost",
+        token: null,
+        tokenRef,
+        runnerTokenRef: runnerRef,
+      });
+
+      const req = makeRequest();
+      await runInterceptor(req);
+      expect(req.header.get("authorization")).toBe("Bearer control-plane-tok");
+    });
+
+    it("falls back to the control-plane token when no runner credential exists (OSS/local)", async () => {
+      const tokenRef: TokenRef = { current: "control-plane-tok" };
+      const runnerRef: TokenRef = { current: null };
+      new StigmerClient({
+        endpoint: "http://localhost",
+        token: null,
+        tokenRef,
+        runnerTokenRef: runnerRef,
+      });
+
+      const req = makeExecutionContextRequest();
+      await runInterceptor(req);
+      expect(req.header.get("authorization")).toBe("Bearer control-plane-tok");
+    });
+
+    it("propagates runner-credential refreshes on subsequent requests", async () => {
+      const runnerRef: TokenRef = { current: "minted-v1" };
+      new StigmerClient({
+        endpoint: "http://localhost",
+        token: null,
+        runnerTokenRef: runnerRef,
+      });
+
+      const req1 = makeExecutionContextRequest();
+      await runInterceptor(req1);
+      expect(req1.header.get("authorization")).toBe("Bearer minted-v1");
+
+      runnerRef.current = "minted-v2";
+
+      const req2 = makeExecutionContextRequest();
+      await runInterceptor(req2);
+      expect(req2.header.get("authorization")).toBe("Bearer minted-v2");
     });
   });
 

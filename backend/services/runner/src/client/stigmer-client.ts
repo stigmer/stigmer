@@ -82,6 +82,13 @@ export interface StigmerClientOptions {
   endpoint: string;
   token: string | null;
   tokenRef?: TokenRef;
+  /**
+   * Optional runner credential (a server-minted token with a runner-class
+   * `token_type` claim). When populated, ExecutionContext reads authenticate
+   * with this instead of the control-plane token — see the interceptor in the
+   * constructor for why the credential differs per service.
+   */
+  runnerTokenRef?: TokenRef;
 }
 
 export class StigmerClient {
@@ -106,15 +113,32 @@ export class StigmerClient {
   private readonly platformQuery: Client<typeof PlatformQueryController>;
 
   private readonly tokenRef: TokenRef | null;
+  private readonly runnerTokenRef: TokenRef | null;
 
   constructor(options: StigmerClientOptions) {
     this.currentToken = options.token;
     this.tokenRef = options.tokenRef ?? null;
+    this.runnerTokenRef = options.runnerTokenRef ?? null;
     this.transport = createGrpcTransport({
       baseUrl: options.endpoint,
       interceptors: [
+        // Credential selection lives here — one tested decision point — rather
+        // than at call sites. ExecutionContext reads carry decrypted secrets on
+        // cloud, and the server gates that decrypt on a runner-class token_type
+        // claim (stigmer-cloud#152). Sandbox runners' control-plane token is
+        // already runner-class, but a desktop runner's is the user's own Auth0
+        // token, which the server (correctly) treats as a browsing user and
+        // redacts. So when the host holds a minted runner credential, the
+        // ExecutionContext service authenticates with it; everything else keeps
+        // the control-plane token. Falls through unchanged when no runner token
+        // exists (OSS/local, where the server enforces no auth).
         (next) => async (req) => {
-          const token = this.tokenRef?.current ?? this.currentToken;
+          const isExecutionContextRead =
+            req.service.typeName === ExecutionContextQueryController.typeName;
+          const token =
+            (isExecutionContextRead ? this.runnerTokenRef?.current : null)
+            ?? this.tokenRef?.current
+            ?? this.currentToken;
           if (token) {
             req.header.set("authorization", `Bearer ${token}`);
           }

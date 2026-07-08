@@ -202,7 +202,16 @@ export async function createStigmerRunnerManager(
   // installed) — see that module for the two-writer rationale and the staleness
   // history it guards.
   const tokenRef = { current: options.stigmerToken ?? null };
-  const baseConfig = mapManagerOptionsToConfig(options, tokenRef);
+  // `runnerTokenRef` mirrors the coordinator's proxy credential for gRPC use:
+  // the minted runner token (token_type=embedded_runner) once adopted, tracking
+  // the control-plane token in lockstep before that. StigmerClient authenticates
+  // ExecutionContext reads with it so cloud's runner-class decrypt gate
+  // (stigmer-cloud#152) recognizes the desktop runner — its control-plane token
+  // is the user's own Auth0 token, which the server treats as a browsing user
+  // and answers with redacted secrets. Pre-mint the ref equals the control-plane
+  // token, which is exactly what the client would fall back to anyway.
+  const runnerTokenRef = { current: options.stigmerToken ?? null };
+  const baseConfig = mapManagerOptionsToConfig(options, tokenRef, runnerTokenRef);
 
   // Install the Cursor SDK interceptors BEFORE resolving Temporal coordinates.
   // Coordinate discovery dials the control plane via StigmerClient, which loads
@@ -235,14 +244,17 @@ export async function createStigmerRunnerManager(
   await assertHttp2ConnectPatched();
 
   // The token coordinator owns the proxy credential (x-stigmer-auth) and its
-  // refresh lifecycle. It writes ONLY the interceptors and re-mints using the
-  // always-fresh control-plane token in `tokenRef` — never the (possibly
-  // expired) minted token itself, so a slept-past-TTL runner recovers without a
-  // restart.
+  // refresh lifecycle. It writes ONLY its sinks (the interceptors plus the gRPC
+  // runner-credential ref) and re-mints using the always-fresh control-plane
+  // token in `tokenRef` — never the (possibly expired) minted token itself, so
+  // a slept-past-TTL runner recovers without a restart.
   const tokenCoordinator = createRunnerTokenCoordinator({
     applyProxyToken: (token) => {
       updateInterceptorToken(token);
       updateHttp2InterceptorToken(token);
+      // Third sink: keeps the ExecutionContext-read credential in lockstep with
+      // the proxy credential across mint and refresh (see runnerTokenRef above).
+      runnerTokenRef.current = token;
     },
     reMint: () =>
       refreshRunnerAccessToken({
@@ -545,6 +557,7 @@ function validateManagerOptions(options: RunnerManagerOptions): void {
 export function mapManagerOptionsToConfig(
   options: RunnerManagerOptions,
   tokenRef?: { current: string | null },
+  runnerTokenRef?: { current: string | null },
 ): Config {
   const proxyActive = !!options.proxyEndpoint;
 
@@ -563,6 +576,7 @@ export function mapManagerOptionsToConfig(
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),
     stigmerToken: options.stigmerToken ?? null,
     stigmerTokenRef: tokenRef,
+    stigmerRunnerTokenRef: runnerTokenRef,
     cursorApiKey: proxyActive
       ? (options.cursorApiKey ?? "proxy-managed")
       : (options.cursorApiKey ?? ""),

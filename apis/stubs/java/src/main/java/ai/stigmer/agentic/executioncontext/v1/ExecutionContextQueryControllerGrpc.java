@@ -6,13 +6,14 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * <pre>
  * ExecutionContextQueryController handles read operations for ExecutionContext resources.
  * &#64;internal
- * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
- * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
- * FGA model. Authorization is derived from the parent execution:
- *   - All read operations check can_view on parent agent_execution or workflow_execution
- * The handler loads the ExecutionContext, extracts the execution_id from spec,
- * and verifies the caller has permission on whichever parent type matches.
- * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+ * Authorization: All RPCs use is_skip_authorization with handler-level auth.
+ * In cloud, the handler performs a direct FGA check: can_view on
+ * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
+ * time by the create pipeline. OSS enforces no authorization.
+ * Secret handling: values with is_secret=true are returned in plaintext on OSS
+ * (single-user local, no encryption). On cloud they are redacted for user-class
+ * callers on every read RPC; only getByExecutionId can return decrypted values,
+ * and only to runner-class credentials (see that RPC's comment).
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -179,13 +180,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-   * FGA model. Authorization is derived from the parent execution:
-   *   - All read operations check can_view on parent agent_execution or workflow_execution
-   * The handler loads the ExecutionContext, extracts the execution_id from spec,
-   * and verifies the caller has permission on whichever parent type matches.
-   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
+   * In cloud, the handler performs a direct FGA check: can_view on
+   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
+   * time by the create pipeline. OSS enforces no authorization.
+   * Secret handling: values with is_secret=true are returned in plaintext on OSS
+   * (single-user local, no encryption). On cloud they are redacted for user-class
+   * callers on every read RPC; only getByExecutionId can return decrypted values,
+   * and only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public interface AsyncService {
@@ -194,7 +196,8 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by ID.
      * &#64;internal
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret values are redacted on cloud.
      * </pre>
      */
     default void get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request,
@@ -206,7 +209,8 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
      * &#64;internal
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret values are redacted on cloud.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -219,9 +223,15 @@ public final class ExecutionContextQueryControllerGrpc {
      * Get the ExecutionContext for a given execution ID.
      * &#64;internal
      * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution. The returned context contains
-     * decrypted secrets for runner consumption.
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * variables during workflow/agent execution and MCP discovery.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret handling (cloud): the decrypt path is gated by caller credential
+     * class, not by FGA — runners authenticate as the user who owns the
+     * execution, so permissions cannot tell them apart. Callers presenting a
+     * platform-minted runner token (token_type of sandbox, workflow_sandbox,
+     * connect_sandbox, or embedded_runner) receive decrypted secret values;
+     * every other caller (user JWT, SDK, console) receives the same redaction
+     * as get/getByReference.
      * </pre>
      */
     default void getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request,
@@ -235,13 +245,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-   * FGA model. Authorization is derived from the parent execution:
-   *   - All read operations check can_view on parent agent_execution or workflow_execution
-   * The handler loads the ExecutionContext, extracts the execution_id from spec,
-   * and verifies the caller has permission on whichever parent type matches.
-   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
+   * In cloud, the handler performs a direct FGA check: can_view on
+   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
+   * time by the create pipeline. OSS enforces no authorization.
+   * Secret handling: values with is_secret=true are returned in plaintext on OSS
+   * (single-user local, no encryption). On cloud they are redacted for user-class
+   * callers on every read RPC; only getByExecutionId can return decrypted values,
+   * and only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public static abstract class ExecutionContextQueryControllerImplBase
@@ -257,13 +268,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-   * FGA model. Authorization is derived from the parent execution:
-   *   - All read operations check can_view on parent agent_execution or workflow_execution
-   * The handler loads the ExecutionContext, extracts the execution_id from spec,
-   * and verifies the caller has permission on whichever parent type matches.
-   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
+   * In cloud, the handler performs a direct FGA check: can_view on
+   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
+   * time by the create pipeline. OSS enforces no authorization.
+   * Secret handling: values with is_secret=true are returned in plaintext on OSS
+   * (single-user local, no encryption). On cloud they are redacted for user-class
+   * callers on every read RPC; only getByExecutionId can return decrypted values,
+   * and only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public static final class ExecutionContextQueryControllerStub
@@ -283,7 +295,8 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by ID.
      * &#64;internal
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret values are redacted on cloud.
      * </pre>
      */
     public void get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request,
@@ -296,7 +309,8 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
      * &#64;internal
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret values are redacted on cloud.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -310,9 +324,15 @@ public final class ExecutionContextQueryControllerGrpc {
      * Get the ExecutionContext for a given execution ID.
      * &#64;internal
      * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution. The returned context contains
-     * decrypted secrets for runner consumption.
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * variables during workflow/agent execution and MCP discovery.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret handling (cloud): the decrypt path is gated by caller credential
+     * class, not by FGA — runners authenticate as the user who owns the
+     * execution, so permissions cannot tell them apart. Callers presenting a
+     * platform-minted runner token (token_type of sandbox, workflow_sandbox,
+     * connect_sandbox, or embedded_runner) receive decrypted secret values;
+     * every other caller (user JWT, SDK, console) receives the same redaction
+     * as get/getByReference.
      * </pre>
      */
     public void getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request,
@@ -327,13 +347,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-   * FGA model. Authorization is derived from the parent execution:
-   *   - All read operations check can_view on parent agent_execution or workflow_execution
-   * The handler loads the ExecutionContext, extracts the execution_id from spec,
-   * and verifies the caller has permission on whichever parent type matches.
-   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
+   * In cloud, the handler performs a direct FGA check: can_view on
+   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
+   * time by the create pipeline. OSS enforces no authorization.
+   * Secret handling: values with is_secret=true are returned in plaintext on OSS
+   * (single-user local, no encryption). On cloud they are redacted for user-class
+   * callers on every read RPC; only getByExecutionId can return decrypted values,
+   * and only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public static final class ExecutionContextQueryControllerBlockingV2Stub
@@ -353,7 +374,8 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by ID.
      * &#64;internal
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret values are redacted on cloud.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request) throws io.grpc.StatusException {
@@ -365,7 +387,8 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
      * &#64;internal
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret values are redacted on cloud.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -378,9 +401,15 @@ public final class ExecutionContextQueryControllerGrpc {
      * Get the ExecutionContext for a given execution ID.
      * &#64;internal
      * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution. The returned context contains
-     * decrypted secrets for runner consumption.
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * variables during workflow/agent execution and MCP discovery.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret handling (cloud): the decrypt path is gated by caller credential
+     * class, not by FGA — runners authenticate as the user who owns the
+     * execution, so permissions cannot tell them apart. Callers presenting a
+     * platform-minted runner token (token_type of sandbox, workflow_sandbox,
+     * connect_sandbox, or embedded_runner) receive decrypted secret values;
+     * every other caller (user JWT, SDK, console) receives the same redaction
+     * as get/getByReference.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request) throws io.grpc.StatusException {
@@ -394,13 +423,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-   * FGA model. Authorization is derived from the parent execution:
-   *   - All read operations check can_view on parent agent_execution or workflow_execution
-   * The handler loads the ExecutionContext, extracts the execution_id from spec,
-   * and verifies the caller has permission on whichever parent type matches.
-   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
+   * In cloud, the handler performs a direct FGA check: can_view on
+   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
+   * time by the create pipeline. OSS enforces no authorization.
+   * Secret handling: values with is_secret=true are returned in plaintext on OSS
+   * (single-user local, no encryption). On cloud they are redacted for user-class
+   * callers on every read RPC; only getByExecutionId can return decrypted values,
+   * and only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public static final class ExecutionContextQueryControllerBlockingStub
@@ -420,7 +450,8 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by ID.
      * &#64;internal
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret values are redacted on cloud.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request) {
@@ -432,7 +463,8 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
      * &#64;internal
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret values are redacted on cloud.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -445,9 +477,15 @@ public final class ExecutionContextQueryControllerGrpc {
      * Get the ExecutionContext for a given execution ID.
      * &#64;internal
      * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution. The returned context contains
-     * decrypted secrets for runner consumption.
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * variables during workflow/agent execution and MCP discovery.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret handling (cloud): the decrypt path is gated by caller credential
+     * class, not by FGA — runners authenticate as the user who owns the
+     * execution, so permissions cannot tell them apart. Callers presenting a
+     * platform-minted runner token (token_type of sandbox, workflow_sandbox,
+     * connect_sandbox, or embedded_runner) receive decrypted secret values;
+     * every other caller (user JWT, SDK, console) receives the same redaction
+     * as get/getByReference.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request) {
@@ -461,13 +499,14 @@ public final class ExecutionContextQueryControllerGrpc {
    * <pre>
    * ExecutionContextQueryController handles read operations for ExecutionContext resources.
    * &#64;internal
-   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-   * FGA model. Authorization is derived from the parent execution:
-   *   - All read operations check can_view on parent agent_execution or workflow_execution
-   * The handler loads the ExecutionContext, extracts the execution_id from spec,
-   * and verifies the caller has permission on whichever parent type matches.
-   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+   * Authorization: All RPCs use is_skip_authorization with handler-level auth.
+   * In cloud, the handler performs a direct FGA check: can_view on
+   * execution_context:&lt;metadata.id&gt;, against the owner tuple written at creation
+   * time by the create pipeline. OSS enforces no authorization.
+   * Secret handling: values with is_secret=true are returned in plaintext on OSS
+   * (single-user local, no encryption). On cloud they are redacted for user-class
+   * callers on every read RPC; only getByExecutionId can return decrypted values,
+   * and only to runner-class credentials (see that RPC's comment).
    * </pre>
    */
   public static final class ExecutionContextQueryControllerFutureStub
@@ -487,7 +526,8 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by ID.
      * &#64;internal
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret values are redacted on cloud.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> get(
@@ -500,7 +540,8 @@ public final class ExecutionContextQueryControllerGrpc {
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
      * &#64;internal
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret values are redacted on cloud.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> getByReference(
@@ -514,9 +555,15 @@ public final class ExecutionContextQueryControllerGrpc {
      * Get the ExecutionContext for a given execution ID.
      * &#64;internal
      * Primary lookup method used by runners to retrieve the merged environment
-     * variables during workflow/agent execution. The returned context contains
-     * decrypted secrets for runner consumption.
-     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+     * variables during workflow/agent execution and MCP discovery.
+     * Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+     * Secret handling (cloud): the decrypt path is gated by caller credential
+     * class, not by FGA — runners authenticate as the user who owns the
+     * execution, so permissions cannot tell them apart. Callers presenting a
+     * platform-minted runner token (token_type of sandbox, workflow_sandbox,
+     * connect_sandbox, or embedded_runner) receive decrypted secret values;
+     * every other caller (user JWT, SDK, console) receives the same redaction
+     * as get/getByReference.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> getByExecutionId(
