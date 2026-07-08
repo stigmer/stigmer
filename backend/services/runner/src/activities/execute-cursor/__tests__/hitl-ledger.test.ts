@@ -52,8 +52,17 @@ import {
   buildApprovalGrants,
   grantToken,
   watchDenialLedger,
+  approvalDenials,
+  denialKindOf,
 } from "../approval-state.js";
-import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration, collapseRedundantToolCallTwins, toolCallIdentityToken } from "../message-translator.js";
+import {
+  reconcileDeniedToolCalls,
+  clearProvisionalPostDenialNarration,
+  collapseRedundantToolCallTwins,
+  toolCallIdentityToken,
+  detectUnattributedHookBlocks,
+  HOOK_BLOCK_ERROR_MARKERS,
+} from "../message-translator.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 import { generateHookScript } from "../hook-script.js";
@@ -161,6 +170,54 @@ describe("denial ledger reset/read", () => {
     expect(entries[0].input).toEqual(input);
     expect(entries[1].input).toBeUndefined();
     expect(entries[2].input).toBeUndefined();
+  });
+
+  it("parses the kind tag, defaulting an absent/garbled kind to approval", async () => {
+    const ws = makeWorkspace();
+    await resetDenialLedger(ws);
+    await writeFile(
+      denialLedgerPath(ws),
+      // 1) pre-kind format (no kind field), 2) explicit approval, 3) secret,
+      // 4) garbled kind (non-string), 5) unknown future kind.
+      `{"toolName":"Write","token":"${grantToken("write", "a.txt")}"}\n` +
+        `{"toolName":"Shell","token":"${grantToken("shell", "rm x")}","kind":"approval"}\n` +
+        `{"toolName":"Write","token":"${grantToken("write", ".env")}","kind":"secret"}\n` +
+        `{"toolName":"Write","token":"${grantToken("write", "b.txt")}","kind":42}\n` +
+        `{"toolName":"Write","token":"${grantToken("write", "c.txt")}","kind":"quarantine"}\n`,
+      "utf-8",
+    );
+
+    const entries = await readDenialLedger(ws);
+    expect(entries.map((e) => denialKindOf(e))).toEqual([
+      "approval", // absent → the pre-kind format
+      "approval",
+      "secret",
+      "approval", // garbled (non-string) degrades to approval
+      "quarantine", // an unknown kind is preserved, not coerced
+    ]);
+  });
+
+  it("approvalDenials selects only the entries allowed to pause the run", async () => {
+    const ws = makeWorkspace();
+    await resetDenialLedger(ws);
+    await writeFile(
+      denialLedgerPath(ws),
+      `{"toolName":"Write","token":"${grantToken("write", "a.txt")}","kind":"approval"}\n` +
+        `{"toolName":"Write","token":"${grantToken("write", ".env")}","kind":"secret"}\n` +
+        `{"toolName":"Write","token":"${grantToken("write", "app.log")}","kind":"capture-error"}\n` +
+        `{"toolName":"Write","token":"${grantToken("write", "b.txt")}","kind":"fail-closed"}\n` +
+        // Pre-kind format counts as approval; an unknown kind must NOT pause.
+        `{"toolName":"Shell","token":"${grantToken("shell", "rm x")}"}\n` +
+        `{"toolName":"Write","token":"${grantToken("write", "c.txt")}","kind":"quarantine"}\n`,
+      "utf-8",
+    );
+
+    const entries = await readDenialLedger(ws);
+    expect(entries).toHaveLength(6);
+    expect(approvalDenials(entries).map((e) => e.token)).toEqual([
+      grantToken("write", "a.txt"),
+      grantToken("shell", "rm x"),
+    ]);
   });
 });
 
@@ -1415,7 +1472,7 @@ describe("first-denial stop contract", () => {
     | {
         kind: "tool";
         tool: ToolCall;
-        denyToken?: { name: string; token: string };
+        denyToken?: { name: string; token: string; kind?: string };
         // When the hook's ledger append lands relative to the loop's read for
         // THIS event. "before-read" is the common case (the hook adjudicates as
         // the tool_call event surfaces); "after-read" reproduces the production
@@ -1426,9 +1483,11 @@ describe("first-denial stop contract", () => {
 
   // Faithfully mirrors the index.ts loop rule: process each event, then read
   // the denial ledger when the fs watcher flagged it dirty OR the event is a
-  // tool_call (the backstop) — the instant the ledger is non-empty, cancel the
-  // run and stop consuming the stream. The watcher is simulated by flipping the
-  // dirty flag as the append happens (the real fs.watch notification).
+  // tool_call (the backstop) — the instant an APPROVAL-kind denial appears,
+  // cancel the run and stop consuming the stream (non-approval kinds — a secret
+  // hard-block, a capture error — are attributable but never pause). The
+  // watcher is simulated by flipping the dirty flag as the append happens (the
+  // real fs.watch notification).
   async function runTurnWithFirstDenialStop(
     hitlDir: string,
     events: SimEvent[],
@@ -1438,12 +1497,13 @@ describe("first-denial stop contract", () => {
     let cancelled = false;
     let consumed = 0;
     let ledgerDirty = false;
-    let pendingAppend: { name: string; token: string } | undefined;
+    let pendingAppend: { name: string; token: string; kind?: string } | undefined;
 
-    const appendDenial = async (deny: { name: string; token: string }) => {
+    const appendDenial = async (deny: { name: string; token: string; kind?: string }) => {
+      const kindField = deny.kind ? `,"kind":"${deny.kind}"` : "";
       await writeFile(
         denialLedgerPath(hitlDir),
-        `{"toolName":"${deny.name}","token":"${deny.token}"}\n`,
+        `{"toolName":"${deny.name}","token":"${deny.token}"${kindField}}\n`,
         { flag: "a" },
       );
       ledgerDirty = true;
@@ -1470,7 +1530,7 @@ describe("first-denial stop contract", () => {
       }
       if (ledgerDirty || ev.kind === "tool") {
         ledgerDirty = false;
-        const denials = await readDenialLedger(hitlDir);
+        const denials = approvalDenials(await readDenialLedger(hitlDir));
         if (denials.length > 0) {
           cancelled = true;
           break;
@@ -1525,6 +1585,30 @@ describe("first-denial stop contract", () => {
 
     expect(cancelled).toBe(false);
     expect(consumed).toBe(3); // the whole turn is consumed
+  });
+
+  it("does NOT stop on a non-approval denial (secret hard-block: the agent continues)", async () => {
+    // The kinded ledger now records a secret hard-block for attribution (issue
+    // #205), and the append fires the fs watcher — but the model was told to
+    // move on, so the run must NOT be cancelled and no approval may surface.
+    const ws = makeWorkspace();
+    const secretWrite = toolCall({
+      id: "c1", name: "edit", status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "blocked by a hook", args: { path: ".env" },
+    });
+    const read = toolCall({ id: "c2", name: "read", status: ToolCallStatus.TOOL_CALL_COMPLETED, args: { path: "a.txt" } });
+
+    const { cancelled, consumed } = await runTurnWithFirstDenialStop(ws, [
+      { kind: "tool", tool: secretWrite, denyToken: { name: "Write", token: grantToken("write", ".env"), kind: "secret" } },
+      { kind: "text", content: "That file is protected — moving on." },
+      { kind: "tool", tool: read },
+    ]);
+
+    expect(cancelled).toBe(false);
+    expect(consumed).toBe(3); // the whole turn is consumed
+    // And the boundary reconcile manufactures no gate from it either.
+    const denied = await reconcileDeniedToolCalls([], await readDenialLedger(ws));
+    expect(denied).toEqual([]);
   });
 
   it("stops on the NEXT event of any type when the denial lands after the tool_call read (the watcher rule)", async () => {
@@ -1594,8 +1678,173 @@ describe("watchDenialLedger", () => {
   });
 });
 
+// Issue #205: a FOREIGN `.cursor/hooks.json` hook (preserved by the merge) can
+// deny the runner's tools without writing our denial ledger; the SDK has no
+// structured "denied by hook" signal, so the only stream trace is Cursor's
+// generic hook-block error text on the FAILED call. The detector matches this
+// turn's hook-blocked FAILED rows against the FULL ledger (all kinds) and
+// reports the leftovers — which the activity surfaces as EXECUTION_FAILED
+// instead of the silent completion the issue describes. These pin the whole
+// attribution matrix.
+describe("detectUnattributedHookBlocks (issue #205)", () => {
+  // Cursor's generic replacement text for a hook deny (Phase 0 ground truth).
+  const HOOK_BLOCK = "Command blocked by a hook. Check the hooks configuration.";
+
+  const failedShell = (id: string, command: string, error: string = HOOK_BLOCK) =>
+    toolCall({ id, name: "shell", status: ToolCallStatus.TOOL_CALL_FAILED, error, args: { command } });
+  const failedEdit = (id: string, path: string, error: string = HOOK_BLOCK) =>
+    toolCall({ id, name: "edit", status: ToolCallStatus.TOOL_CALL_FAILED, error, args: { path } });
+
+  it("detects a hook-blocked call when the ledger is EMPTY (the reproduce-first #205 shape)", () => {
+    const edit = failedEdit("f1", "notes.md");
+    const blocks = detectUnattributedHookBlocks([aiMessageWith([edit])], 0, []);
+    expect(blocks).toEqual([{ toolCallId: "f1", toolName: "edit", error: HOOK_BLOCK }]);
+  });
+
+  it("matches the marker case-insensitively (single-sourced marker family)", () => {
+    expect(HOOK_BLOCK_ERROR_MARKERS).toContain("blocked by a hook");
+    const edit = failedEdit("f1", "notes.md", "Tool was Blocked By A Hook.");
+    expect(detectUnattributedHookBlocks([aiMessageWith([edit])], 0, [])).toHaveLength(1);
+  });
+
+  it("attributes our own denial by exact token — not reported", () => {
+    const shell = failedShell("s1", "rm -rf build");
+    const ledger = [{ toolName: "Shell", token: toolCallIdentityToken(shell), kind: "approval" }];
+    expect(detectUnattributedHookBlocks([aiMessageWith([shell])], 0, ledger)).toEqual([]);
+  });
+
+  it("attributes a secret hard-block via its kind:'secret' entry — not reported", () => {
+    // The agent continues past a secret block; its FAILED row must never be
+    // misdiagnosed as a foreign hook (the false positive the kinded ledger
+    // exists to prevent).
+    const secretWrite = failedEdit("e1", ".env");
+    const ledger = [{ toolName: "Write", token: toolCallIdentityToken(secretWrite), kind: "secret" }];
+    expect(detectUnattributedHookBlocks([aiMessageWith([secretWrite])], 0, ledger)).toEqual([]);
+  });
+
+  it("attributes a capture-error deny via its kind:'capture-error' entry — not reported", () => {
+    const write = failedEdit("e1", "app.log");
+    const ledger = [{ toolName: "Write", token: toolCallIdentityToken(write), kind: "capture-error" }];
+    expect(detectUnattributedHookBlocks([aiMessageWith([write])], 0, ledger)).toEqual([]);
+  });
+
+  it("attributes across abs-vs-rel path drift via the workspace-normalized salient", () => {
+    // The hook records the RAW absolute path Cursor handed it; the stream row
+    // carries the relative one. Exact tokens differ; the normalized (category,
+    // path) must still attribute — the same drift reconcile's second pass heals.
+    const edit = failedEdit("e1", "notes.md");
+    const ledger = [{ toolName: "Write", token: grantToken("write", `${ROOT}/notes.md`), kind: "secret" }];
+    // Without a workspace root the raw tokens cannot be reconciled…
+    expect(detectUnattributedHookBlocks([aiMessageWith([edit])], 0, ledger)).toHaveLength(1);
+    // …with it, the normalized pass attributes the block to our own entry.
+    expect(detectUnattributedHookBlocks([aiMessageWith([edit])], 0, ledger, ROOT)).toEqual([]);
+  });
+
+  it("treats a fail-closed turn as attributed — the broken gate denied everything it saw", () => {
+    // With the state file missing, EVERY gated tool was denied by OUR OWN
+    // (broken) hook; per-call correlation is meaningless and none of it is a
+    // foreign hook. The boundary logs the broken-gate condition separately.
+    const shell = failedShell("s1", "make build");
+    const edit = failedEdit("e1", "other.txt");
+    const ledger = [{ toolName: "Shell", token: grantToken("shell", "make build"), kind: "fail-closed" }];
+    expect(
+      detectUnattributedHookBlocks([aiMessageWith([shell, edit])], 0, ledger),
+    ).toEqual([]);
+  });
+
+  it("scopes to THIS turn only — seeded prior-turn rows never re-trigger", () => {
+    const priorTurnRow = failedShell("old-1", "yarn deploy");
+    const thisTurnRow = failedShell("new-1", "yarn build");
+    const messages = [aiMessageWith([priorTurnRow]), aiMessageWith([thisTurnRow])];
+    const blocks = detectUnattributedHookBlocks(messages, 1, []);
+    expect(blocks.map((b) => b.toolCallId)).toEqual(["new-1"]);
+  });
+
+  it("mixed turn: reports the foreign block even when our own anchor denial is present", () => {
+    // The caller pauses on the anchor (a pausing turn is never silent) and only
+    // logs this — but the detector itself must still see the foreign block.
+    const ourEdit = failedEdit("ours", "gated.txt");
+    const foreignShell = failedShell("theirs", "terraform apply");
+    const ledger = [{ toolName: "Write", token: toolCallIdentityToken(ourEdit), kind: "approval" }];
+    const blocks = detectUnattributedHookBlocks(
+      [aiMessageWith([ourEdit, foreignShell])], 0, ledger,
+    );
+    expect(blocks.map((b) => b.toolCallId)).toEqual(["theirs"]);
+  });
+
+  it("ignores ordinary tool failures without hook-block text", () => {
+    const failed = failedShell("s1", "make test", "exit code 2: tests failed");
+    const noError = toolCall({ id: "s2", name: "shell", status: ToolCallStatus.TOOL_CALL_FAILED, error: "", args: { command: "ls" } });
+    expect(detectUnattributedHookBlocks([aiMessageWith([failed, noError])], 0, [])).toEqual([]);
+  });
+
+  it("ignores non-FAILED rows even when their output mentions the marker", () => {
+    // Adversarial: the marker appearing in a tool's legitimate RESULT (e.g. the
+    // agent grepped these very words) must never trigger — only a FAILED row's
+    // error text reads as a hook block.
+    const completed = toolCall({
+      id: "c1", name: "shell", status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      result: 'found "blocked by a hook" in docs/hitl.md', args: { command: "grep -r hook docs" },
+    });
+    const waiting = toolCall({
+      id: "w1", name: "edit", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, args: { path: "gated.txt" },
+    });
+    expect(detectUnattributedHookBlocks([aiMessageWith([completed, waiting])], 0, [])).toEqual([]);
+  });
+
+  it("reports every distinct foreign block in the turn", () => {
+    const one = failedEdit("f1", "a.txt");
+    const two = failedShell("f2", "rm -rf build");
+    const blocks = detectUnattributedHookBlocks([aiMessageWith([one]), aiMessageWith([two])], 0, []);
+    expect(blocks.map((b) => b.toolCallId)).toEqual(["f1", "f2"]);
+  });
+});
+
+// The reconcile itself must never manufacture a pause from a non-approval
+// denial, regardless of caller discipline (defense-in-depth for the kind split).
+describe("reconcileDeniedToolCalls — non-approval kinds never gate", () => {
+  it("returns no gates and leaves the transcript untouched for secret/capture-error/fail-closed entries", async () => {
+    const secretRow = toolCall({
+      id: "e1", name: "edit", status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "blocked by a hook", args: { path: ".env" },
+    });
+    const messages = [aiMessageWith([secretRow])];
+    const denied = await reconcileDeniedToolCalls(messages, [
+      { toolName: "Write", token: toolCallIdentityToken(secretRow), kind: "secret" },
+      { toolName: "Write", token: grantToken("write", "app.log"), kind: "capture-error" },
+      { toolName: "Shell", token: grantToken("shell", "make"), kind: "fail-closed" },
+    ]);
+    expect(denied).toEqual([]);
+    // No overlay, no collapse, no synthesized placeholder appended.
+    expect(secretRow.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(messages).toHaveLength(1);
+    expect(messages[0].toolCalls).toHaveLength(1);
+  });
+
+  it("gates the approval entry while ignoring a non-approval sibling in the same ledger", async () => {
+    const gated = toolCall({
+      id: "g1", name: "edit", status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "blocked by a hook", args: { path: "gated.txt" },
+    });
+    const secretRow = toolCall({
+      id: "e1", name: "edit", status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "blocked by a hook", args: { path: ".env" },
+    });
+    const messages = [aiMessageWith([gated, secretRow])];
+    const denied = await reconcileDeniedToolCalls(messages, [
+      // Ledger order puts the secret FIRST: the anchor must still be the first
+      // APPROVAL entry, never a non-approval kind.
+      { toolName: "Write", token: toolCallIdentityToken(secretRow), kind: "secret" },
+      { toolName: "Write", token: toolCallIdentityToken(gated), kind: "approval" },
+    ]);
+    expect(denied).toHaveLength(1);
+    expect(gated.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(secretRow.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+  });
+});
+
 describe("generateHookScript ledger wiring", () => {
-  it("bakes the active-turn pointer, derives the ledger from it, and records denials in both deny branches", () => {
+  it("bakes the active-turn pointer, derives the ledger from it, and records on EVERY deny arm", () => {
     const script = generateHookScript("/gate/active.json");
 
     // Stable script: it bakes the pointer path (not per-turn state/ledger), and
@@ -1604,9 +1853,18 @@ describe("generateHookScript ledger wiring", () => {
     expect(script).not.toContain('LEDGER_FILE="/');
     expect(script).toContain('>> "$LEDGER_FILE"');
     expect(script).toContain("record_denial()");
-    // One definition + a call in the gated-built-in branch + a call in the MCP
-    // branch = 3 occurrences.
-    const occurrences = script.split("record_denial").length - 1;
-    expect(occurrences).toBeGreaterThanOrEqual(3);
+    // Every deny arm records a kind-tagged entry (issue #205 attribution):
+    // the approval gates (built-in + MCP), both secret hard-block arms, the
+    // CAS staging-error fail-closed deny, and the missing-state-file failsafe.
+    expect(script).toContain('record_denial "$PRIMARY_TOKEN" "approval"');
+    expect(script).toContain('record_denial "$MCP_TOKEN" "approval"');
+    expect(script.split('"secret"').length - 1).toBeGreaterThanOrEqual(2);
+    expect(script).toContain('record_denial "$PRIMARY_TOKEN" "capture-error"');
+    expect(script).toContain('record_denial "$PRIMARY_TOKEN" "fail-closed"');
+    expect(script).toContain('record_denial "$MCP_TOKEN" "fail-closed"');
+    // The hoisting guard: under `set -euo pipefail` with our failClosed
+    // hooks.json registration, a call-before-define would emit no decision and
+    // block EVERY tool — so the definition must precede the first call.
+    expect(script.indexOf("record_denial()")).toBeLessThan(script.indexOf('record_denial "'));
   });
 });

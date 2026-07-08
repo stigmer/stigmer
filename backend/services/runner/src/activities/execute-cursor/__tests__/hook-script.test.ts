@@ -58,6 +58,8 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       // Byte-identical to the runner's primaryToken: content-exact when the hook
       // can compute an edit digest (the write), else the coarse grantToken.
       expect(ledger[0].token).toBe(primaryToken(category, salient, contentDigest(args)));
+      // The normal gate is the APPROVAL kind — the only kind that pauses.
+      expect(ledger[0].kind).toBe("approval");
     }
   });
 
@@ -88,9 +90,17 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
   // through the Cursor substrate adapter alongside the deep-agent substrate. See
   // src/__tests__/approval-gateway-contract.test.ts.
 
-  it("fails closed (deny) when the state file is missing", () => {
+  it("fails closed (deny) when the state file is missing, recorded as kind fail-closed", () => {
     const h = setup({ noStateFile: true });
     expect(h.decide(hookWrite("/x/a.txt")).permission).toBe("deny");
+    // The broken-gate deny is ATTRIBUTABLE (issue #205): recorded under the
+    // primary token with kind "fail-closed" and — like every non-approval
+    // kind — content-free (no input field, DD-26).
+    const ledger = h.ledger();
+    expect(ledger).toHaveLength(1);
+    expect(ledger[0].kind).toBe("fail-closed");
+    expect(ledger[0].token).toBe(primaryToken("write", "/x/a.txt", contentDigest({ content: "x" })));
+    expect(ledger[0]).not.toHaveProperty("input");
   });
 
   // MCP gating runs ONLY on the beforeMCPExecution event (preToolUse does not
@@ -105,6 +115,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(res.raw).toContain("Approve click?");
       expect(h.ledger()).toHaveLength(1);
       expect(h.ledger()[0].token).toBe(grantToken("click", ""));
+      expect(h.ledger()[0].kind).toBe("approval");
     });
 
     it("denial agent_message frames approval as automatic and never trains ask-in-prose", () => {
@@ -149,9 +160,16 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(h.decide(hookMcp("click")).permission).toBe("allow");
     });
 
-    it("fails closed (deny) when the state file is missing", () => {
+    it("fails closed (deny) when the state file is missing, recorded as kind fail-closed", () => {
       const h = setup({ noStateFile: true });
       expect(h.decide(hookMcp("click")).permission).toBe("deny");
+      // Attributable under the MCP name-token (the identity the stream row
+      // computes for an MCP call), content-free like every non-approval kind.
+      const ledger = h.ledger();
+      expect(ledger).toHaveLength(1);
+      expect(ledger[0].kind).toBe("fail-closed");
+      expect(ledger[0].token).toBe(grantToken("click", ""));
+      expect(ledger[0]).not.toHaveProperty("input");
     });
 
     it("does NOT gate the same MCP tool delivered on preToolUse (no double-gating)", () => {
@@ -422,11 +440,14 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
   // Deny-gate secret hard-block (DD-26 #2): with no capture substrate for a write
   // (capture off — the classic deny-gate — or captureIgnored off in a git-no-
   // storage workspace) a secret-like WRITE must NOT surface its content for
-  // approval. The hook hard-blocks it with the security message and records NO
-  // ledger entry, so it never becomes an approvable WAITING row; a non-secret
-  // write still deny-gates, and a delete (content-less) stays gated.
+  // approval. The hook hard-blocks it with the security message and records a
+  // kind:"secret" ledger entry — ATTRIBUTABLE (issue #205: the runner must know
+  // this block was ours) but non-pausing (approvalDenials filters it out, so it
+  // never becomes an approvable WAITING row) and content-free (DD-26: only the
+  // identity token, never the proposed bytes). A non-secret write still
+  // deny-gates as kind:"approval", and a delete (content-less) stays gated.
   describe("deny-gate secret hard-block (DD-26 #2)", () => {
-    it("hard-blocks a secret-like write and records NO ledger entry", () => {
+    it("hard-blocks a secret-like write; records an attributable, content-free secret entry", () => {
       const h = setup({}); // captureMode off — the classic deny-gate
       const dec = h.decide(hookWrite(".env", "API_KEY=abc"));
       expect(dec.permission).toBe("deny");
@@ -434,7 +455,12 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       // SECRET_BLOCKED, not APPROVAL_REQUIRED: the model is told to move on.
       expect(dec.raw.toLowerCase()).toContain("nothing was written");
       expect(dec.raw).not.toContain("submitted to the user for approval");
-      expect(h.ledger()).toEqual([]); // never recorded → never approvable
+      const ledger = h.ledger();
+      expect(ledger).toHaveLength(1);
+      expect(ledger[0].kind).toBe("secret");
+      // DD-26 on the raw ledger bytes: no input field, no trace of the content.
+      expect(ledger[0]).not.toHaveProperty("input");
+      expect(JSON.stringify(ledger[0])).not.toContain("API_KEY");
     });
 
     it("hard-blocks a secret-like edit (path-fragment match)", () => {
@@ -442,7 +468,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       const dec = h.decide(hookEdit(".ssh/id_rsa"));
       expect(dec.permission).toBe("deny");
       expect(dec.raw).toContain("blocked for security");
-      expect(h.ledger()).toEqual([]);
+      expect(h.ledger().map((e) => e.kind)).toEqual(["secret"]);
     });
 
     it("still deny-gates a NON-secret write and records its content for approval", () => {
@@ -451,6 +477,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(dec.permission).toBe("deny");
       expect(dec.raw).toContain("submitted to the user for approval"); // APPROVAL_REQUIRED
       expect(h.ledger().map((e) => e.toolName)).toContain("Write");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["approval"]);
     });
 
     it("a write-category lease does NOT bypass the secret block", () => {
@@ -459,7 +486,8 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       const dec = h.decide(hookWrite(".env", "SECRET")); // secret is still hard-blocked
       expect(dec.permission).toBe("deny");
       expect(dec.raw).toContain("blocked for security");
-      expect(h.ledger()).toEqual([]);
+      expect(h.ledger().map((e) => e.kind)).toEqual(["secret"]);
+      expect(JSON.stringify(h.ledger())).not.toContain("SECRET");
     });
 
     it("hard-blocks a secret write in a git workspace with captureIgnored off (no storage)", () => {
@@ -467,7 +495,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       const dec = h.decide(hookWrite(".env", "API_KEY=abc"));
       expect(dec.permission).toBe("deny");
       expect(dec.raw).toContain("blocked for security");
-      expect(h.ledger()).toEqual([]);
+      expect(h.ledger().map((e) => e.kind)).toEqual(["secret"]);
     });
 
     it("does NOT hard-block a secret DELETE (no content; stays deny-gated)", () => {
@@ -517,17 +545,41 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(Buffer.from(obs.captured[0].before!).toString("utf8")).toBe("ORIGINAL");
     });
 
-    it("hard-blocks a secret-like gitignored write and records NO denial-ledger entry", async () => {
+    it("hard-blocks a secret-like gitignored write; records a non-pausing secret entry", async () => {
       const h = setup({ captureMode: true, captureIgnored: true, gitignored: [".env"] });
       const d = h.decide(hookWrite(".env", "API_KEY=abc"));
       expect(d.permission).toBe("deny");
       expect(d.raw).toContain("blocked for security");
-      // A secret is NOT approvable: it must never enter the denial ledger (which
-      // drives WAITING_APPROVAL) — it surfaces as DIFF_UNREVIEWABLE instead.
-      expect(h.ledger()).toEqual([]);
+      // A secret is NOT approvable: its kind:"secret" entry attributes the block
+      // to our own gate (issue #205) but is filtered out of the pause path — it
+      // surfaces as DIFF_UNREVIEWABLE instead, and carries no content (DD-26).
+      const ledger = h.ledger();
+      expect(ledger.map((e) => e.kind)).toEqual(["secret"]);
+      expect(ledger[0]).not.toHaveProperty("input");
+      expect(JSON.stringify(ledger[0])).not.toContain("API_KEY");
       const obs = await h.observations();
       expect(obs.captured).toEqual([]);
       expect(obs.secretPaths).toEqual([".env"]);
+    });
+
+    it("a CAS staging error fails closed and records a content-free capture-error entry", async () => {
+      const h = setup({ captureMode: true, captureIgnored: true, gitignored: ["*.log"] });
+      // Force the staging script's "error" result: the sidecar dir path is
+      // occupied by a regular FILE, so mkdir fails and the blob write throws.
+      // (The harness keeps state/ledger/sidecar in .cursor/hooks — its hitlDir
+      // analog; see setupCursorHookHarness.)
+      writeFileSync(join(h.root, ".cursor", "hooks", "cas-observations"), "not a dir", "utf-8");
+      const d = h.decide(hookWrite("app.log", "payload"));
+      expect(d.permission).toBe("deny");
+      // Denied with the approval message (fail-closed, today's deny-gate text)
+      // but recorded as kind "capture-error": attributable, NON-pausing (there
+      // is no approval that could make the write reviewable), and content-free
+      // (the staging error means secret classification may never have run).
+      expect(d.raw).toContain("submitted to the user for approval");
+      const ledger = h.ledger();
+      expect(ledger.map((e) => e.kind)).toEqual(["capture-error"]);
+      expect(ledger[0]).not.toHaveProperty("input");
+      expect(JSON.stringify(ledger[0])).not.toContain("payload");
     });
 
     it("captures under auto_approve_all too (capture is a turn property, not authorization)", async () => {
@@ -594,12 +646,14 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       expect(obs.captured[0].before).toBeNull();
     });
 
-    it("hard-blocks a secret-like write and records NO denial-ledger entry", async () => {
+    it("hard-blocks a secret-like write; records a non-pausing, content-free secret entry", async () => {
       const h = setup({ captureMode: true, captureIgnored: true, gitWorkspace: false });
       const dcn = h.decide(hookWrite(".env", "API_KEY=abc"));
       expect(dcn.permission).toBe("deny");
       expect(dcn.raw).toContain("blocked for security");
-      expect(h.ledger()).toEqual([]);
+      const ledger = h.ledger();
+      expect(ledger.map((e) => e.kind)).toEqual(["secret"]);
+      expect(JSON.stringify(ledger[0])).not.toContain("API_KEY");
       const obs = await h.observations();
       expect(obs.captured).toEqual([]);
       expect(obs.secretPaths).toEqual([".env"]);
@@ -657,5 +711,7 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     const ledger = readFileSync(ledgerPath, "utf-8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
     expect(ledger).toHaveLength(1);
     expect(ledger[0].token).toBe(grantToken("write", "/x/a.txt"));
+    // record_denial is pure bash, so the kind tag survives the Node outage too.
+    expect(ledger[0].kind).toBe("approval");
   });
 });

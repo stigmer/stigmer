@@ -45,7 +45,14 @@ import {
   resolveApprovalProvenance,
   toProtoPolicySource,
 } from "../../shared/approval-policy.js";
-import { grantToken, primaryToken, toolIdentity, type DeniedLedgerEntry } from "./approval-state.js";
+import {
+  approvalDenials,
+  denialKindOf,
+  grantToken,
+  primaryToken,
+  toolIdentity,
+  type DeniedLedgerEntry,
+} from "./approval-state.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { hideToolCallRow, isToolCallRowHidden } from "../../shared/tool-row.js";
 import { classifyTool, toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
@@ -1217,6 +1224,13 @@ export async function reconcileDeniedToolCalls(
   mergedPolicies?: Map<string, MergedToolPolicy>,
   workspaceBackend?: WorkspaceBackend,
 ): Promise<ToolCall[]> {
+  // Defense-in-depth: only APPROVAL-kind denials may become approval gates.
+  // The turn boundary already passes the filtered subset; re-filtering here
+  // makes it structurally impossible for a secret/capture-error/fail-closed
+  // entry to manufacture a pause the user cannot meaningfully grant, no matter
+  // what a future caller passes (an absent kind is the pre-kind format and
+  // counts as approval).
+  ledger = approvalDenials(ledger);
   if (ledger.length === 0) return [];
 
   // The workspace the gated files live in; its rootDir normalizes paths for the
@@ -1791,6 +1805,102 @@ export function clearProvisionalPostDenialNarration(
     redacted.unshift(msg);
   }
   return redacted;
+}
+
+/**
+ * Substrings of the error text Cursor stamps onto a tool call blocked by a
+ * `preToolUse`/`beforeMCPExecution` hook (its generic replacement for the
+ * hook's own agent_message — confirmed by the Phase 0 ground-truth capture in
+ * cursor_hitl_test.go). The SDK has NO structured "denied by hook" signal, so
+ * this marker family is the only stream-side trace of a hook block and is
+ * single-sourced here for every consumer (the issue #205 attribution detector
+ * below; tests). Matched case-insensitively against the FAILED call's error.
+ */
+export const HOOK_BLOCK_ERROR_MARKERS: readonly string[] = ["blocked by a hook"];
+
+/** True when a tool call's error text reads as a hook block. */
+function isHookBlockError(errorText: string): boolean {
+  if (!errorText) return false;
+  const lowered = errorText.toLowerCase();
+  return HOOK_BLOCK_ERROR_MARKERS.some((marker) => lowered.includes(marker));
+}
+
+/** One hook-blocked tool call that no ledger entry accounts for (issue #205). */
+export interface UnattributedHookBlock {
+  toolCallId: string;
+  toolName: string;
+  /** The hook-block error text Cursor stamped on the call. */
+  error: string;
+}
+
+/**
+ * Detect tool calls blocked by a hook that STIGMER'S OWN hook did not deny —
+ * the issue #205 invariant check "a blocked tool must never silently complete".
+ *
+ * Cursor runs EVERY hook registered in the workspace's `.cursor/hooks.json`
+ * and a deny from any of them blocks the tool. Our hook records every deny it
+ * issues to the denial ledger (all kinds — see {@link DeniedLedgerEntry}), so a
+ * FAILED tool call carrying Cursor's hook-block error text with NO matching
+ * ledger entry was blocked by a FOREIGN hook (a user/team `preToolUse` policy
+ * hook the merge deliberately preserves) — or, equally fatally, by our own
+ * hook whose best-effort ledger append failed. Either way the runner cannot
+ * pause for approval (an approval grants a token only OUR hook reads; the
+ * foreign hook would deny the re-attempt forever), so the caller surfaces an
+ * explicit failure instead of completing with the work silently undone.
+ *
+ * Attribution, in order:
+ *  1. Any `fail-closed` ledger entry → the gate itself was broken this turn and
+ *     denied EVERYTHING it saw; per-call correlation is meaningless, so every
+ *     hook block is attributed to our own (broken) gate. Nothing is reported.
+ *  2. Exact identity: the call's {@link toolCallIdentityToken} appears in the
+ *     ledger (any kind — approval gates were overlaid to WAITING_APPROVAL or
+ *     collapsed by the reconcile that runs first, so a still-FAILED row here is
+ *     typically a secret/capture-error deny, correctly attributed as ours).
+ *  3. Normalized-path fallback: the same abs-vs-rel drift the reconcile's
+ *     second pass handles — a FILE call matches a ledger entry by (category,
+ *     workspace-normalized path) even when the raw tokens differ.
+ *
+ * Scoped to THIS turn's messages (from `turnStartMessageIndex`): seeded
+ * prior-turn rows were already adjudicated and must never re-trigger.
+ * Deliberately conservative: an ordinary tool failure (no hook-block text)
+ * is never reported, and a foreign hook denying with fully custom text evades
+ * the marker match (the documented residual — the install-time
+ * foreignGatingHooks warning still fires for diagnosability).
+ */
+export function detectUnattributedHookBlocks(
+  messages: readonly AgentMessage[],
+  turnStartMessageIndex: number,
+  ledger: readonly DeniedLedgerEntry[],
+  workspaceRoot?: string,
+): UnattributedHookBlock[] {
+  if (ledger.some((e) => denialKindOf(e) === "fail-closed")) return [];
+
+  const ledgerTokens = new Set(ledger.map((e) => e.token));
+  const ledgerNormalizedSalients = new Set<string>();
+  if (workspaceRoot) {
+    for (const entry of ledger) {
+      const decoded = decodeIdentityToken(entry.token);
+      if (!decoded) continue;
+      const normalized = normalizedFileSalient(decoded.key, decoded.salient, workspaceRoot);
+      if (normalized) ledgerNormalizedSalients.add(normalized);
+    }
+  }
+
+  const blocks: UnattributedHookBlock[] = [];
+  for (const msg of messages.slice(Math.max(0, turnStartMessageIndex))) {
+    for (const tc of msg.toolCalls) {
+      if (tc.status !== ToolCallStatus.TOOL_CALL_FAILED) continue;
+      if (!isHookBlockError(tc.error)) continue;
+      if (ledgerTokens.has(toolCallIdentityToken(tc))) continue;
+      if (workspaceRoot) {
+        const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
+        const normalized = normalizedFileSalient(id.key, id.salient, workspaceRoot);
+        if (normalized && ledgerNormalizedSalients.has(normalized)) continue;
+      }
+      blocks.push({ toolCallId: tc.id, toolName: tc.name, error: tc.error });
+    }
+  }
+  return blocks;
 }
 
 /**

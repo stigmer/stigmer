@@ -2,12 +2,17 @@
  * The Cursor harness's turn boundary — the single post-run pipeline that turns
  * a finished agent run into the durable review surfaces:
  *
- *  1. read the denial ledger the preToolUse hook appended this turn;
+ *  1. read the denial ledger the preToolUse hook appended this turn (ALL
+ *     kinds — every entry means "this action did not execute"; only the
+ *     approval-kind subset may pause, see approval-state.ts);
  *  2. derive the approved-command provenance (DD-28 auto-keep facts);
  *  3. capture the turn's net file change set to the file_review ledger
  *     (CANDIDATE_CAPTURED) and stamp the flowed edit rows;
- *  4. reconcile denied tool calls to WAITING_APPROVAL gate rows and redact the
- *     model's provisional post-denial narration.
+ *  4. reconcile denied (approval-kind) tool calls to WAITING_APPROVAL gate rows
+ *     and redact the model's provisional post-denial narration;
+ *  5. detect UNATTRIBUTED hook blocks (issue #205) — a tool blocked by a hook
+ *     with no ledger entry of any kind was denied by a FOREIGN hook the merge
+ *     preserved, and the caller fails the run rather than completing silently.
  *
  * Extracted from the activity entry point (index.ts Phase 12) so it is directly
  * unit-testable AND re-enterable: the poisoned-handle / transport-timeout
@@ -32,12 +37,20 @@ import { collectSubAgentToolCallIds } from "../../shared/tool-row.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import type { MergedToolPolicy } from "../../shared/approval-policy.js";
-import { primaryToken, readDenialLedger, type ApprovalGrant } from "./approval-state.js";
+import {
+  approvalDenials,
+  denialKindOf,
+  primaryToken,
+  readDenialLedger,
+  type ApprovalGrant,
+} from "./approval-state.js";
 import { deriveTurnCommandProvenance } from "./command-provenance.js";
 import { captureTurnToLedger } from "./capture-flow.js";
 import {
   clearProvisionalPostDenialNarration,
+  detectUnattributedHookBlocks,
   reconcileDeniedToolCalls,
+  type UnattributedHookBlock,
 } from "./message-translator.js";
 
 // How long the boundary waits for the first-denial-stop's run.cancel() to
@@ -96,6 +109,13 @@ export interface TurnBoundaryOptions {
    * normal completion path and the recovery retries, which have no early stop).
    */
   readonly denialCancelSettled?: Promise<void>;
+  /**
+   * Foreign (non-Stigmer) hook commands the gate install preserved on the
+   * gating events (see HitlGateHandle.foreignGatingHooks). Used only for
+   * diagnostics: when an unattributed hook block is detected, these name the
+   * likely culprit in the logs and the caller's failure message.
+   */
+  readonly foreignGatingHooks?: readonly string[];
 }
 
 export interface TurnBoundaryResult {
@@ -109,6 +129,15 @@ export interface TurnBoundaryResult {
   readonly capturedChangeCount: number;
   /** Denied tool calls reconciled to WAITING_APPROVAL gate rows this call. */
   readonly deniedToolCallCount: number;
+  /**
+   * Hook-blocked tool calls this turn that NO denial-ledger entry accounts for
+   * (issue #205): a foreign `.cursor/hooks.json` hook — or our own hook with a
+   * failed ledger append — denied them, and Stigmer cannot approve on its
+   * behalf. When the turn is not otherwise pausing, the caller must surface an
+   * explicit EXECUTION_FAILED instead of completing with the work silently
+   * undone (a pausing turn is not silent — the caller logs and pauses as usual).
+   */
+  readonly unattributedHookBlocks: readonly UnattributedHookBlock[];
 }
 
 /**
@@ -140,6 +169,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     artifactStorage,
     mergedPolicies,
     denialCancelSettled,
+    foreignGatingHooks,
   } = opts;
 
   // The timebox keeps a wedged cancel from hanging the pause; the reconcile
@@ -153,7 +183,13 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
       }),
     ]);
   }
+  // The FULL ledger (all kinds) vs its APPROVAL subset — the kind split:
+  // every ledger entry means "this action did NOT execute", so the full set
+  // feeds capture stamping, DD-28 provenance, and foreign-hook attribution;
+  // only approval-kind entries may become WAITING_APPROVAL gates (a secret
+  // hard-block or fail-closed deny is attributable but never pausable).
   const deniedLedger = await readDenialLedger(hitlDir ?? "");
+  const approvalLedger = approvalDenials(deniedLedger);
 
   // Capture mode: author the net change set to the file_review ledger as the
   // CANDIDATE_CAPTURED event (projected server-side to a file_change_set
@@ -230,7 +266,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   const gateWorkspaceBackend = new LocalWorkspaceBackend(primaryWorkspaceDir);
   const deniedToolCalls = await reconcileDeniedToolCalls(
     status.messages,
-    deniedLedger,
+    approvalLedger,
     mergedPolicies,
     gateWorkspaceBackend,
   );
@@ -266,9 +302,46 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
     }
   }
 
+  // Issue #205 invariant: a blocked tool must never silently complete. Match
+  // this turn's hook-blocked FAILED rows against the FULL ledger (all kinds) —
+  // anything left over was denied by a hook that is not ours (or by our hook
+  // with a failed ledger append). The reconcile above ran first, so our own
+  // approval gates are already WAITING_APPROVAL/collapsed and cannot appear
+  // here as false positives.
+  const unattributedHookBlocks = detectUnattributedHookBlocks(
+    status.messages,
+    turnStartMessageIndex,
+    deniedLedger,
+    primaryWorkspaceDir,
+  );
+  const waiting = deniedToolCalls.length > 0 || capturedChangeCount > 0;
+  if (unattributedHookBlocks.length > 0) {
+    const culprits = (foreignGatingHooks?.length ?? 0) > 0
+      ? ` — likely foreign workspace hook(s): ${foreignGatingHooks!.join(", ")}`
+      : "";
+    console.warn(
+      `ExecuteCursor turn boundary: ${unattributedHookBlocks.length} tool call(s) blocked ` +
+      `by a hook with NO matching denial-ledger entry ` +
+      `[${unattributedHookBlocks.map((b) => b.toolName).join(", ")}]${culprits} ` +
+      `(execution=${executionId})${waiting ? " — turn pauses anyway; not failing" : ""}`,
+    );
+  }
+  // Diagnosability for the broken-gate shape: fail-closed entries mean the
+  // approval state file was missing and the gate denied everything it saw.
+  // Attribution treats those blocks as ours (never a foreign-hook failure),
+  // but the condition itself deserves a loud log.
+  if (deniedLedger.some((e) => denialKindOf(e) === "fail-closed")) {
+    console.warn(
+      `ExecuteCursor turn boundary: fail-closed denial(s) in the ledger — the approval ` +
+      `state file was missing during this turn and gated tools were denied ` +
+      `(execution=${executionId})`,
+    );
+  }
+
   return {
-    waiting: deniedToolCalls.length > 0 || capturedChangeCount > 0,
+    waiting,
     capturedChangeCount,
     deniedToolCallCount: deniedToolCalls.length,
+    unattributedHookBlocks,
   };
 }

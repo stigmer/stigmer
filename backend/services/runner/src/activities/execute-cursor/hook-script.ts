@@ -19,10 +19,23 @@
  *    by event — gated built-in tools (preToolUse) or MCP require-approval
  *    policies (beforeMCPExecution)
  * 4. On a deny, appends the call's identity token to the denial ledger
- *    (stigmer-denials.jsonl) so the runner can mark the gated tool call as
- *    WAITING_APPROVAL — the hook is the only place the deny decision is made,
- *    so its ledger is the authoritative record of what was gated this turn
+ *    (denials.jsonl) — EVERY deny path records, each tagged with a `kind`
+ *    (see below), so the ledger is the complete, authoritative record of what
+ *    this hook blocked this turn. The runner marks approval-kind denials as
+ *    WAITING_APPROVAL; the full ledger is its attribution set for
+ *    distinguishing our denials from a FOREIGN hook's (issue #205): a
+ *    hook-blocked tool with NO ledger entry of any kind was not blocked by us.
  * 5. Returns { "permission": "allow" } or { "permission": "deny" } on stdout
+ *
+ * Denial kinds (the attribution taxonomy, mirrored in approval-state.ts):
+ *   - "approval"      — the normal gate: pauses the run for user approval.
+ *   - "secret"        — DD-26 secret hard-block: the agent continues, no pause.
+ *   - "capture-error" — CAS staging failed, write kept on the deny-gate.
+ *   - "fail-closed"   — approval state file missing, everything gated denies.
+ * Only approval-kind records carry the captured tool_input: a secret write's
+ * content must never be persisted (DD-26), a capture-error's content is
+ * UNCLASSIFIED (the staging error means secret classification may never have
+ * run), and fail-closed has no state to classify against.
  *
  * Identity extraction runs on the SAME Node.js binary as the runner (its
  * absolute path — process.execPath — is baked into the script at generation
@@ -436,9 +449,47 @@ ${categoryCaseArms}
   INPUT_B64=""
   CONTENT_TOKEN=""
 fi
+# The single identity a deny is recorded under: content-exact when the input
+# carried edit content, else coarse — the same PRIMARY-token choice the runner
+# grants on approval (approval-state.ts primaryToken).
+if [ -n "$CONTENT_TOKEN" ]; then
+  PRIMARY_TOKEN="$CONTENT_TOKEN"
+else
+  PRIMARY_TOKEN="$TOKEN"
+fi
+
+# Append a denial record to the ledger: $1 = identity token, $2 = kind (the
+# attribution taxonomy — see the module doc in hook-script.ts). EVERY deny arm
+# below records, so the ledger is the complete record of what THIS hook blocked
+# and the runner can tell its own denials from a foreign hook's (issue #205).
+# Best-effort: a ledger write failure must never abort the decision (the deny
+# still goes out on stdout). ONLY approval-kind records carry the captured
+# tool_input (DD-26: secret / unclassified content must never be persisted);
+# input is base64(JSON(tool_input)) — the authoritative pre-execution args the
+# runner overlays for the approval preview (empty on the grep fallback path).
+# Written with printf (a builtin, so no ARG_MAX limit) because the input can be
+# a large multi-MB file body. Defined BEFORE the first deny arm: bash resolves
+# function calls at execution time, and under 'set -euo pipefail' with our
+# failClosed hooks.json registration a call-before-define would abort with no
+# decision and block EVERY tool.
+record_denial() {
+  if [ "$2" = "approval" ]; then
+    printf '{"toolName":"%s","token":"%s","kind":"%s","input":"%s"}\\n' "$TOOL_NAME" "$1" "$2" "$INPUT_B64" >> "$LEDGER_FILE" 2>/dev/null || true
+  else
+    printf '{"toolName":"%s","token":"%s","kind":"%s"}\\n' "$TOOL_NAME" "$1" "$2" >> "$LEDGER_FILE" 2>/dev/null || true
+  fi
+}
 
 # --- Failsafe: missing state file → deny (fail-closed) ---
+# Recorded as kind "fail-closed" so the runner attributes the blocked call to
+# its own (broken) gate instead of misdiagnosing a foreign hook. The ledger
+# path comes from the POINTER, not the state file, so it is recordable here.
 if [ ! -f "$STATE_FILE" ]; then
+  if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
+    record_denial "$MCP_TOKEN" "fail-closed"
+  else
+    record_denial "$PRIMARY_TOKEN" "fail-closed"
+  fi
   echo '{"permission":"deny","agent_message":"${APPROVAL_REQUIRED_AGENT_MESSAGE}","user_message":"Tool requires approval: '"$TOOL_NAME"'"}'
   exit 0
 fi
@@ -494,12 +545,18 @@ if [ "$CAPTURE_IGNORED" = "true" ] && [ "$CATEGORY" = "write" ] && [ -n "$SALIEN
     echo '{"permission":"allow"}'
     exit 0
   elif [ "$OBS_RESULT" = "secret" ]; then
+    # Kind "secret": attributable but deliberately non-pausing (the agent moves
+    # on) and content-free (DD-26 — the token is the only identity recorded).
+    record_denial "$PRIMARY_TOKEN" "secret"
     echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written or captured for review."}'
     exit 0
   else
     # Node unavailable or a staging error: fail closed. A gitignored write we
     # cannot stage cannot be captured for review, so keep gating it (today's
-    # behavior) rather than letting unreviewable bytes flow.
+    # behavior) rather than letting unreviewable bytes flow. Kind
+    # "capture-error" and content-free: the staging error means secret
+    # classification may never have run, so the content is UNCLASSIFIED.
+    record_denial "$PRIMARY_TOKEN" "capture-error"
     echo '{"permission":"deny","agent_message":"${APPROVAL_REQUIRED_AGENT_MESSAGE}","user_message":"Tool requires approval: '"$TOOL_NAME"'"}'
     exit 0
   fi
@@ -510,17 +567,6 @@ if echo "$STATE" | grep -q '"autoApproveAll":true'; then
   echo '{"permission":"allow"}'
   exit 0
 fi
-
-# Append a denial record to the ledger. Best-effort: a ledger write failure must
-# never abort the decision (the deny still goes out on stdout). toolName is raw
-# for human-readable debugging; token drives correlation in the runner; input is
-# base64(JSON(tool_input)) — the authoritative pre-execution args the runner
-# overlays for the approval preview (empty on the grep fallback path). Written
-# with printf (a builtin, so no ARG_MAX limit) because the input can be a large
-# multi-MB file body.
-record_denial() {
-  printf '{"toolName":"%s","token":"%s","input":"%s"}\\n' "$TOOL_NAME" "$1" "$INPUT_B64" >> "$LEDGER_FILE" 2>/dev/null || true
-}
 
 # --- 2. MCP tools (beforeMCPExecution event) ---
 # preToolUse does NOT enforce gating for MCP calls — beforeMCPExecution does — so
@@ -542,7 +588,7 @@ if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
       if [ -z "$MSG" ]; then
         MSG="Tool requires approval: $TOOL_NAME"
       fi
-      record_denial "$MCP_TOKEN"
+      record_denial "$MCP_TOKEN" "approval"
       echo '{"permission":"deny","agent_message":"${APPROVAL_REQUIRED_AGENT_MESSAGE}","user_message":"'"$MSG"'"}'
       exit 0
     fi
@@ -583,6 +629,9 @@ if [ -n "$CATEGORY" ]; then
   if [ "$CATEGORY" = "write" ] && [ -n "$SALIENT" ]; then
     SECRET_RESULT=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${secretClassifyScript}' 2>/dev/null || echo ok)
     if [ "$SECRET_RESULT" = "secret" ]; then
+      # Kind "secret": attributable but non-pausing and content-free (DD-26 —
+      # only the identity token is recorded, never the proposed content).
+      record_denial "$PRIMARY_TOKEN" "secret"
       echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
       exit 0
     fi
@@ -606,11 +655,7 @@ if [ -n "$CATEGORY" ]; then
   fi
   # Record the PRIMARY token (content-exact when available, else coarse) so the
   # runner's denial correlation keys on the SAME identity it grants on approval.
-  if [ -n "$CONTENT_TOKEN" ]; then
-    record_denial "$CONTENT_TOKEN"
-  else
-    record_denial "$TOKEN"
-  fi
+  record_denial "$PRIMARY_TOKEN" "approval"
   echo '{"permission":"deny","agent_message":"${APPROVAL_REQUIRED_AGENT_MESSAGE}","user_message":"Tool requires approval: '"$TOOL_NAME"'"}'
   exit 0
 fi
