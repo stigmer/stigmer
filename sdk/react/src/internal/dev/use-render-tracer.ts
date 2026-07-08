@@ -1,6 +1,5 @@
 import { useRef } from "react";
-
-const DEV = process.env.NODE_ENV !== "production";
+import { isPerfLoggingEnabled } from "./enabled.js";
 
 /**
  * Sampling interval: log every Nth render to avoid flooding the
@@ -12,8 +11,8 @@ const LOG_EVERY = 10;
  * Dev-only hook that tracks render count and reports which props
  * changed (by shallow referential equality) since the last render.
  *
- * In production builds the function body is dead-code-eliminated by
- * bundlers that replace `process.env.NODE_ENV` with `"production"`.
+ * Off by default in every environment (and always in production) — enable via
+ * {@link isPerfLoggingEnabled}'s opt-in flags.
  *
  * @param componentName - Stable label for console output.
  * @param props - Key/value map of props to track. Pass only the props
@@ -26,7 +25,7 @@ export function useRenderTracer(
   const countRef = useRef(0);
   const prevRef = useRef<Record<string, unknown> | null>(null);
 
-  if (!DEV) return;
+  if (!isPerfLoggingEnabled()) return;
 
   countRef.current += 1;
   const count = countRef.current;

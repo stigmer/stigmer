@@ -1,6 +1,5 @@
 import { useRef } from "react";
-
-const DEV = process.env.NODE_ENV !== "production";
+import { isPerfLoggingEnabled } from "./enabled.js";
 
 /** Minimal shape expected from a keyed thread item. */
 interface KeyedItem {
@@ -25,7 +24,7 @@ interface KeyedItem {
 export function useKeyStability(items: readonly KeyedItem[]): void {
   const prevRef = useRef<readonly KeyedItem[] | null>(null);
 
-  if (!DEV) return;
+  if (!isPerfLoggingEnabled()) return;
 
   // Detect duplicate keys within the current render.
   const seen = new Map<string, number>();
