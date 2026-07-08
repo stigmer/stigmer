@@ -93,15 +93,19 @@ func TestValidateSpec_CrossRefTypoSuggestion(t *testing.T) {
 
 	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
 
-	// Assert the #189 contract both editions honor: validateSpec never throws for
-	// a user-fixable spec and always returns a structured verdict. Detecting a
-	// switch cases[].then cross-reference is currently Go-only — the Java service
-	// backing this integration harness validates only flow.then and unique names
-	// (a separate Go/Java parity gap, tracked as #219). The strict
-	// "INVALID + 'did you mean?' suggestion" assertion for the Go validator lives
-	// in the controller unit test (TestValidateSpec_Layer2CrossRefTypo).
+	// #189 contract: validateSpec never throws for a user-fixable spec and always
+	// returns a structured verdict. With #219 closed, the Java service backing
+	// this harness now detects switch cases[].then cross-references at parity with
+	// the Go validator, so we assert the strict INVALID + "did you mean?" outcome
+	// here (the Go-side equivalent lives in TestValidateSpec_Layer2CrossRefTypo).
 	require.NoError(t, err, "validateSpec must not throw for a cross-ref typo")
 	require.NotNil(t, result, "validateSpec must return a structured result")
+	assert.Equal(t, serverless.ValidationState_INVALID, result.GetState(),
+		"a dangling switch cases[].then must be INVALID")
+	joined := strings.Join(result.GetErrors(), " ")
+	assert.Contains(t, joined, "handleCriticl", "error should name the dangling target")
+	assert.Contains(t, joined, "did you mean", "error should offer a Levenshtein suggestion")
+	assert.Contains(t, joined, "handleCritical", "suggestion should point at the intended task")
 }
 
 // TestValidateSpec_BudgetWithoutCostTasks verifies that ValidateSpec produces
@@ -229,12 +233,15 @@ func TestValidateSpec_HumanInputCrossRef(t *testing.T) {
 
 	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
 
-	// #189 contract: no throw, structured result. Detecting a human_input
-	// outcomes[].then cross-reference is currently Go-only — the Java service
-	// backing this harness validates only flow.then (separate parity gap, #219).
-	// The strict Go assertion lives in the controller unit tests.
+	// #189 contract: no throw, structured result. With #219 closed, the Java
+	// service now detects human_input outcomes[].then cross-references at parity
+	// with the Go validator, so we assert the strict INVALID outcome here.
 	require.NoError(t, err, "validateSpec must not throw for an invalid outcome.then")
 	require.NotNil(t, result, "validateSpec must return a structured result")
+	assert.Equal(t, serverless.ValidationState_INVALID, result.GetState(),
+		"a dangling human_input outcomes[].then must be INVALID")
+	assert.Contains(t, strings.Join(result.GetErrors(), " "), "nonExistentTask",
+		"error should name the dangling outcome target")
 }
 
 // TestValidateSpec_EvalTaskAccepted verifies that ValidateSpec accepts the
