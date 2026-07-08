@@ -16,6 +16,7 @@ export class LocalGoTarget implements TargetProfile {
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
     externalOrgLookup: false,
+    organizationEnumeration: true,
     versionTagging: true,
     secretRedaction: false,
     workflowChildApprovalForwarding: false,

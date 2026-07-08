@@ -37,6 +37,7 @@ export class CloudTarget implements TargetProfile {
   readonly capabilities: CapabilityFlags = {
     multiTenant: true,
     externalOrgLookup: true,
+    organizationEnumeration: false,
     versionTagging: true,
     secretRedaction: true,
     workflowChildApprovalForwarding: true,

@@ -17,6 +17,12 @@ export interface CapabilityFlags {
   multiTenant: boolean;
   // OrganizationQuery.getByExternalOrgId is implemented. False for local OSS.
   externalOrgLookup: boolean;
+  // OrganizationQuery.find enumerates every organization. True for local OSS,
+  // which is single-tenant and returns them all. False for cloud, where
+  // enumerating every tenant's org is not a tenant capability — cloud leaves
+  // find unrouted and answers Unimplemented; tenants use findMyOrganizations
+  // (proto documents find as platform-admin/administrative use only).
+  organizationEnumeration: boolean;
   // The dedicated WorkflowCommandController.tagVersion mutation RPC is
   // implemented. False for local OSS, which has no handler (it answers
   // Unimplemented) — version tags are instead set at apply time via

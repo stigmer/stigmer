@@ -115,7 +115,12 @@ describe("Organization conformance", () => {
     await expectGrpcCode(() => clients.organizationQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("find lists created organizations with correct pagination", async () => {
+  it("find enumerates all organizations with correct pagination when supported", async () => {
+    // find enumerates every organization regardless of caller — a single-tenant
+    // (OSS) capability. Cloud does not expose tenant-facing org enumeration; its
+    // contract is asserted by the Unimplemented case below.
+    if (!target.capabilities.organizationEnumeration) return;
+
     const baseline = await countOrganizations();
     const added = 3;
     for (let i = 0; i < added; i++) {
@@ -129,6 +134,16 @@ describe("Organization conformance", () => {
     const firstPage = await clients.organizationQuery.find({ org: FIND_ORG, pageSize });
     expect(firstPage.entries.length).toBeLessThanOrEqual(pageSize);
     expect(firstPage.totalPages).toBe(Math.ceil(total / pageSize));
+  });
+
+  it("find is unavailable without org enumeration (Unimplemented)", async () => {
+    if (target.capabilities.organizationEnumeration) return;
+
+    await expectGrpcCode(
+      () => clients.organizationQuery.find({ org: FIND_ORG, pageSize: 100 }),
+      Code.Unimplemented,
+      "find without org enumeration",
+    );
   });
 
   it("findMyOrganizations returns all organizations when multi-tenancy is off", async () => {
