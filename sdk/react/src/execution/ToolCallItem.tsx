@@ -454,7 +454,7 @@ const REVIEW_BADGE: Record<FileReviewRowState, ApprovalBadgeInfo> = {
 // Status mapping
 // ---------------------------------------------------------------------------
 
-type ItemStatus = "running" | "waiting" | "failed" | "completed" | "pending";
+type ItemStatus = "running" | "waiting" | "failed" | "completed" | "pending" | "interrupted";
 
 function mapToolCallStatus(toolCall: ToolCall): ItemStatus {
   switch (toolCall.status) {
@@ -474,6 +474,12 @@ function mapToolCallStatus(toolCall: ToolCall): ItemStatus {
     case ToolCallStatus.TOOL_CALL_COMPLETED:
     case ToolCallStatus.TOOL_CALL_SKIPPED:
       return "completed";
+    // Platform-settled when the execution terminalized mid-call (issue #207).
+    // A settled, neutral state: not a spinner (nothing is running), not a
+    // failure (the tool never errored), not a grey pending dot (it will never
+    // start).
+    case ToolCallStatus.TOOL_CALL_INTERRUPTED:
+      return "interrupted";
     default:
       return "pending";
   }
@@ -485,6 +491,7 @@ const STATUS_COLOR: Record<ItemStatus, string> = {
   failed: "text-destructive",
   completed: "text-success",
   pending: "text-muted-foreground",
+  interrupted: "text-muted-foreground",
 };
 
 // ---------------------------------------------------------------------------
@@ -626,6 +633,7 @@ const STATUS_ICON: Record<ItemStatus, () => React.JSX.Element> = {
   failed: XCircleIcon,
   completed: CheckCircleIcon,
   pending: DotIcon,
+  interrupted: SlashCircleIcon,
 };
 
 function SpinnerIcon() {
@@ -667,6 +675,16 @@ function DotIcon() {
   return (
     <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
       <circle cx="4" cy="4" r="2.5" />
+    </svg>
+  );
+}
+
+/** Slashed circle for an interrupted call — settled, neutral, visibly "cut short". */
+function SlashCircleIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="6" cy="6" r="4.5" />
+      <path d="M2.8 9.2L9.2 2.8" />
     </svg>
   );
 }

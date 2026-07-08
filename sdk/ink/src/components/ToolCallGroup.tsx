@@ -33,10 +33,15 @@ function deriveAggregateStatus(toolCalls: readonly ToolCall[]): AggregateStatus 
 
   if (hasRunning) return "running";
   if (hasFailed) return "failed";
+  // Every terminal status counts as done — SKIPPED (user decision) and
+  // INTERRUPTED (platform-settled at terminalization, issue #207) included —
+  // so a settled group never pins to a live-looking "pending".
   const allDone = toolCalls.every(
     (tc) =>
       tc.status === ToolCallStatus.TOOL_CALL_COMPLETED ||
-      tc.status === ToolCallStatus.TOOL_CALL_FAILED,
+      tc.status === ToolCallStatus.TOOL_CALL_FAILED ||
+      tc.status === ToolCallStatus.TOOL_CALL_SKIPPED ||
+      tc.status === ToolCallStatus.TOOL_CALL_INTERRUPTED,
   );
   return allDone ? "completed" : "pending";
 }

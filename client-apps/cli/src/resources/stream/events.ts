@@ -15,7 +15,7 @@ import type { JsonObject } from "@bufbuild/protobuf";
 export interface ToolCallInfo {
   readonly id: string;
   readonly name: string;
-  /** Mapped status: pending|running|completed|failed|waiting_approval|skipped|unknown. */
+  /** Mapped status: pending|running|completed|failed|waiting_approval|skipped|interrupted|unknown. */
   readonly status: string;
   readonly args?: JsonObject;
   readonly result: string;
@@ -80,6 +80,19 @@ export interface ToolRunningEvent {
 
 export interface ToolCompletedEvent {
   readonly kind: "toolCompleted";
+  readonly toolCallId: string;
+  readonly toolCall: ToolCallInfo;
+  readonly subAgentId: string;
+}
+
+/**
+ * A tool call the platform settled to INTERRUPTED because its execution
+ * terminalized mid-call (issue #207). A distinct terminal event — routing it
+ * through toolCompleted would print a dishonest checkmark for a tool that
+ * never finished.
+ */
+export interface ToolInterruptedEvent {
+  readonly kind: "toolInterrupted";
   readonly toolCallId: string;
   readonly toolCall: ToolCallInfo;
   readonly subAgentId: string;
@@ -175,6 +188,7 @@ export type StreamEvent =
   | ToolResultEvent
   | ToolRunningEvent
   | ToolCompletedEvent
+  | ToolInterruptedEvent
   | ToolWaitingApprovalEvent
   | ToolStreamDeltaEvent
   | SystemMessageEvent

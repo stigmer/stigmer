@@ -105,9 +105,13 @@ const (
 	// - User must call SubmitApproval RPC to continue
 	//
 	// This is NOT a terminal state - execution resumes after approval decision:
-	// - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS
-	// - SKIP: Tool returns skip message, phase returns to EXECUTION_IN_PROGRESS
-	// - REJECT: Execution fails, phase transitions to EXECUTION_FAILED
+	//   - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS
+	//   - SKIP: Tool returns a neutral "skipped" message, phase returns to EXECUTION_IN_PROGRESS
+	//   - REJECT: Tool is denied and the user's objection is fed back to the model;
+	//     the tool does NOT execute and phase returns to EXECUTION_IN_PROGRESS. REJECT
+	//     denies a single tool call, it does NOT fail the run — the model adapts and
+	//     the execution continues to EXECUTION_COMPLETED. To stop the whole execution,
+	//     use Cancel (EXECUTION_CANCELLED) or Terminate (EXECUTION_TERMINATED).
 	//
 	// UI should show distinct treatment for this phase (e.g., approval dialog).
 	ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL ExecutionPhase = 6
@@ -278,10 +282,15 @@ func (MessageType) EnumDescriptor() ([]byte, []int) {
 //
 //	↘ TOOL_CALL_SKIPPED (if user skips)
 //
+// Interruption flow (execution terminalizes with the call unfinished):
+// TOOL_CALL_PENDING / TOOL_CALL_RUNNING / TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_INTERRUPTED
+//
 // Terminal States:
-// - TOOL_CALL_COMPLETED: Tool executed successfully
-// - TOOL_CALL_FAILED: Tool execution failed
-// - TOOL_CALL_SKIPPED: User chose to skip this tool (HITL)
+//   - TOOL_CALL_COMPLETED: Tool executed successfully
+//   - TOOL_CALL_FAILED: Tool execution failed
+//   - TOOL_CALL_SKIPPED: User chose to skip this tool (HITL)
+//   - TOOL_CALL_INTERRUPTED: Execution terminalized before the tool finished
+//     (platform-authored; see the value's doc for the recovery supersede rule)
 type ToolCallStatus int32
 
 const (
@@ -307,9 +316,13 @@ const (
 	// - ExecutionPhase is EXECUTION_WAITING_FOR_APPROVAL
 	//
 	// Transitions:
-	// - APPROVE → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED/FAILED
-	// - SKIP → TOOL_CALL_SKIPPED
-	// - REJECT → Execution fails (tool remains in WAITING_APPROVAL)
+	//   - APPROVE → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED/FAILED
+	//   - SKIP → TOOL_CALL_SKIPPED
+	//   - REJECT → TOOL_CALL_SKIPPED (the tool is denied, not executed; the run
+	//     continues). REJECT and SKIP share this terminal tool status — the two are
+	//     distinguished by ToolCall.approval_action (REJECT vs SKIP) and by the
+	//     append-only approval-event stream (REJECTED vs SKIPPED). REJECT does NOT
+	//     fail the execution.
 	ToolCallStatus_TOOL_CALL_WAITING_APPROVAL ToolCallStatus = 5
 	// User skipped this tool (HITL Phase 1).
 	//
@@ -322,6 +335,37 @@ const (
 	// This is a terminal state - the tool will not be retried.
 	// Unlike FAILED, SKIPPED is an intentional user decision, not an error.
 	ToolCallStatus_TOOL_CALL_SKIPPED ToolCallStatus = 6
+	// The execution terminalized before this tool call finished (issue #207).
+	//
+	// PLATFORM-AUTHORED, never user- or tool-authored: the control plane settles
+	// any tool call still in PENDING / RUNNING / WAITING_APPROVAL to this value
+	// whenever its execution reaches a terminal phase (COMPLETED / FAILED /
+	// CANCELLED / TERMINATED). Enforced at the server's persistence seams — the
+	// updateStatus merge chokepoint and the whole-resource terminal writers
+	// (Cancel/Terminate cascade, stale-workflow reconciliation) — so no runner
+	// exit path has to remember it. This is what makes the invariant total:
+	// a terminal execution carries zero non-terminal tool calls.
+	//
+	// Honesty semantics (why the existing terminal values would lie):
+	// - Not FAILED: the tool never ran to an error — the run around it died.
+	// - Not SKIPPED: no user made a decision about this call.
+	// - Not COMPLETED: the tool produced no result.
+	//
+	// A settled call keeps its args, result-so-far, and approval provenance
+	// (requires_approval, approval_requested_at, ...) for the audit trail. A
+	// gated call settled here authors NO approval event — terminal-execution
+	// gate-exits are deliberately not modeled as per-call events (see
+	// ApprovalEventType: a terminal execution simply projects to zero pending
+	// approvals; RETRACTED is reserved for in-flight withdrawals).
+	//
+	// Recovery supersede rule: terminal for every consumer (clients render a
+	// neutral "interrupted" state; projections never gate on it), with ONE
+	// exception — when a FAILED execution is recovered (Recover RPC) and the
+	// harness checkpoint re-executes the call under its original call id, the
+	// runner may advance the row in place to the call's true outcome. Live
+	// execution evidence outranks the interruption marker; every other terminal
+	// status remains immovable.
+	ToolCallStatus_TOOL_CALL_INTERRUPTED ToolCallStatus = 7
 )
 
 // Enum value maps for ToolCallStatus.
@@ -334,6 +378,7 @@ var (
 		4: "TOOL_CALL_FAILED",
 		5: "TOOL_CALL_WAITING_APPROVAL",
 		6: "TOOL_CALL_SKIPPED",
+		7: "TOOL_CALL_INTERRUPTED",
 	}
 	ToolCallStatus_value = map[string]int32{
 		"TOOL_CALL_STATUS_UNSPECIFIED": 0,
@@ -343,6 +388,7 @@ var (
 		"TOOL_CALL_FAILED":             4,
 		"TOOL_CALL_WAITING_APPROVAL":   5,
 		"TOOL_CALL_SKIPPED":            6,
+		"TOOL_CALL_INTERRUPTED":        7,
 	}
 )
 
@@ -906,15 +952,25 @@ func (ExecutionControlSignal) EnumDescriptor() ([]byte, []int) {
 //
 // ## Action Semantics
 //
-// - APPROVE: Execute the tool normally, continue execution
-// - SKIP: Return "skipped by user" message to LLM, continue execution
-// - REJECT: Fail the execution immediately with rejection error
+//   - APPROVE: Execute the tool normally, continue execution
+//   - SKIP: Return a neutral "skipped by user" message to the LLM, continue execution
+//   - REJECT: Deny the tool and feed the user's reasoned objection back to the LLM,
+//     continue execution. REJECT denies a single tool call — it does NOT fail the
+//     run. To stop the whole execution, use Cancel or Terminate.
 //
-// ## LLM Behavior on Skip
+// ## SKIP vs REJECT
+//
+// Both continue the execution without running the tool; they differ only in the
+// signal fed to the model. SKIP is neutral ("skip this one, move on"); REJECT
+// carries the user's objection ("I'm denying this, and here's why") so the model
+// factors that reasoning into what it does next. Neither is a failure.
+//
+// ## LLM Behavior on Skip/Reject
 //
 // When a tool is skipped, the LLM receives a message like:
 // "Tool 'delete_repository' was skipped by user. Please proceed without this operation."
-// This allows the LLM to adapt its plan while preserving execution continuity.
+// When a tool is rejected, the LLM receives the user's objection instead. Either
+// way the LLM adapts its plan while preserving execution continuity.
 //
 // ## Usage
 //
@@ -936,9 +992,22 @@ const (
 	// LLM receives: "Tool '{name}' was skipped by user. Please proceed without this operation."
 	// Execution continues - this is NOT a failure.
 	ApprovalAction_APPROVAL_ACTION_SKIP ApprovalAction = 2
-	// Reject tool execution, fail the entire execution.
-	// Execution phase transitions to FAILED.
-	// Error message includes rejection reason from user's comment.
+	// Deny this tool call and continue the execution.
+	//
+	// The tool is NOT executed. The user's objection (the submitted comment) is
+	// fed back to the model as the tool result, so the model adapts its plan with
+	// that reasoning in mind. The tool call transitions to TOOL_CALL_SKIPPED with
+	// approval_action=REJECT recorded (and a REJECTED approval-event authored), and
+	// the execution phase returns to EXECUTION_IN_PROGRESS and continues to
+	// EXECUTION_COMPLETED.
+	//
+	// REJECT denies a SINGLE tool call — it does NOT fail the run. This mirrors how
+	// interactive agent tools (Cursor, Cline, Claude Code) treat a denied tool: the
+	// agent is told and continues, rather than the whole session dying. To stop the
+	// entire execution, use Cancel (EXECUTION_CANCELLED, graceful user stop) or
+	// Terminate (EXECUTION_TERMINATED, platform stop) — the dedicated hard-stop
+	// verbs. The distinction from SKIP is the strength of the signal, not the
+	// outcome: SKIP is a neutral skip, REJECT carries the user's reasoned denial.
 	ApprovalAction_APPROVAL_ACTION_REJECT ApprovalAction = 3
 	// Approve this tool call AND grant a run-lifetime lease that auto-approves
 	// every subsequent tool call of the SAME class for the rest of this execution
@@ -2232,7 +2301,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"MESSAGE_AI\x10\x02\x12\x10\n" +
 	"\fMESSAGE_TOOL\x10\x03\x12\x12\n" +
 	"\x0eMESSAGE_SYSTEM\x10\x04\x12\x14\n" +
-	"\x10MESSAGE_THINKING\x10\x05*\xc6\x01\n" +
+	"\x10MESSAGE_THINKING\x10\x05*\xe1\x01\n" +
 	"\x0eToolCallStatus\x12 \n" +
 	"\x1cTOOL_CALL_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11TOOL_CALL_PENDING\x10\x01\x12\x15\n" +
@@ -2240,7 +2309,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x13TOOL_CALL_COMPLETED\x10\x03\x12\x14\n" +
 	"\x10TOOL_CALL_FAILED\x10\x04\x12\x1e\n" +
 	"\x1aTOOL_CALL_WAITING_APPROVAL\x10\x05\x12\x15\n" +
-	"\x11TOOL_CALL_SKIPPED\x10\x06*\xce\x02\n" +
+	"\x11TOOL_CALL_SKIPPED\x10\x06\x12\x19\n" +
+	"\x15TOOL_CALL_INTERRUPTED\x10\a*\xce\x02\n" +
 	"\bToolKind\x12\x19\n" +
 	"\x15TOOL_KIND_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13TOOL_KIND_FILE_READ\x10\x01\x12\x18\n" +

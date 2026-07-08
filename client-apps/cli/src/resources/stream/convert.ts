@@ -18,7 +18,15 @@ import {
 import type { ToolCallInfo, TodoItemView } from "./events.js";
 
 /** Mapped tool-call status strings. */
-export type ToolStatus = "pending" | "running" | "completed" | "failed" | "waiting_approval" | "skipped" | "unknown";
+export type ToolStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "waiting_approval"
+  | "skipped"
+  | "interrupted"
+  | "unknown";
 
 /** Convert a proto ToolCall to render info. Mirrors Go's convertToolCall. */
 export function convertToolCall(tc: ToolCall): ToolCallInfo {
@@ -110,6 +118,8 @@ export function mapToolCallStatus(status: ToolCallStatus): ToolStatus {
       return "waiting_approval";
     case ToolCallStatus.TOOL_CALL_SKIPPED:
       return "skipped";
+    case ToolCallStatus.TOOL_CALL_INTERRUPTED:
+      return "interrupted";
     default:
       return "unknown";
   }
@@ -148,9 +158,13 @@ export function subAgentStatusName(status: SubAgentStatus): string {
   return SubAgentStatus[status] ?? "SUB_AGENT_STATUS_UNSPECIFIED";
 }
 
-/** True for tool statuses that mean the tool is no longer executing. Mirrors Go's isTerminalToolStatus. */
+/**
+ * True for tool statuses that mean the tool is no longer executing.
+ * "interrupted" (platform-settled at terminalization, issue #207) is terminal:
+ * without it, a settled call replays as a live running block forever.
+ */
 export function isTerminalToolStatus(status: string): boolean {
-  return status === "completed" || status === "failed" || status === "skipped";
+  return status === "completed" || status === "failed" || status === "skipped" || status === "interrupted";
 }
 
 /** True for terminal agent phases. Mirrors Go's isTerminalAgentPhase. */

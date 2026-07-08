@@ -55,14 +55,14 @@ export class ToolStateTracker {
       // First sight, already terminal (e.g. re-attach): synthesize completion so
       // the block exists — otherwise its MESSAGE_TOOL is suppressed and it vanishes.
       if (!seen && isTerminalToolStatus(current)) {
-        pending.push(this.completed(tc, subAgentId));
+        pending.push(this.terminal(tc, current, subAgentId));
         this.states.set(tc.id, current);
         continue;
       }
 
       // running/waiting -> terminal: close the block.
       if (seen && (prev === "running" || prev === "waiting_approval") && isTerminalToolStatus(current)) {
-        pending.push(this.completed(tc, subAgentId));
+        pending.push(this.terminal(tc, current, subAgentId));
         this.states.set(tc.id, current);
         this.results.delete(tc.id);
         continue;
@@ -113,8 +113,16 @@ export class ToolStateTracker {
     return { kind: "toolWaitingApproval", toolCallId: tc.id, toolCall: convertToolCall(tc), subAgentId };
   }
 
-  private completed(tc: ToolCall, subAgentId: string): StreamEvent {
-    return { kind: "toolCompleted", toolCallId: tc.id, toolCall: convertToolCall(tc), subAgentId };
+  // The terminal-close event for a settled status: interrupted gets its own
+  // kind (issue #207) so renderers never print a checkmark for a tool the
+  // platform cut short; every other terminal status closes as completed.
+  private terminal(tc: ToolCall, status: string, subAgentId: string): StreamEvent {
+    return {
+      kind: status === "interrupted" ? "toolInterrupted" : "toolCompleted",
+      toolCallId: tc.id,
+      toolCall: convertToolCall(tc),
+      subAgentId,
+    };
   }
 }
 
@@ -123,6 +131,7 @@ export function toolEventId(event: StreamEvent): string {
   switch (event.kind) {
     case "toolRunning":
     case "toolCompleted":
+    case "toolInterrupted":
     case "toolWaitingApproval":
     case "toolStreamDelta":
       return event.toolCallId;

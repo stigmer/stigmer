@@ -818,6 +818,13 @@ func applyLifecyclePhaseTransition(
 		// is best-effort and can be lost to the cancellation race.
 		cancelInProgressSubAgents(execution.GetStatus().GetSubAgentExecutions(), now)
 
+		// Same cascade for in-flight tool calls (issue #207): with the workflow
+		// gone, a PENDING/RUNNING call will never receive its terminal event and
+		// a gated call can never be decided — settle them to INTERRUPTED so the
+		// final snapshot never shows a permanently "running" zombie tool call.
+		// Authoritative for force-kill, where the runner never gets a finalize.
+		settleInterruptedToolCalls(execution.GetStatus(), now)
+
 		// A terminal execution has no actionable approvals (the workflow that
 		// would resume a gated call is gone), so it must never carry
 		// pending_approvals. This blind clear bypasses the phase-aware

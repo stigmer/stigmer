@@ -187,11 +187,24 @@ export function collectSubAgentToolCallIds(
   return ids;
 }
 
-/** Terminal tool-call statuses — a row that has finished (however it finished). */
+/**
+ * Terminal tool-call statuses — a row that has finished (however it finished).
+ *
+ * Includes TOOL_CALL_INTERRUPTED (server-authored when an execution
+ * terminalized with the call in flight): for the provenance scoping below, a
+ * settled row from a prior (failed, then recovered) invocation is PRIOR-turn
+ * history and must not be attributed to the resuming turn. This is the
+ * opposite call from the Cursor translator's isTerminalToolStatus, which
+ * EXCLUDES interrupted so a recovery-replayed event can advance the row in
+ * place (the enum's recovery supersede rule) — that guard asks "may this row
+ * still move?", this set asks "had this row finished before the turn?", and an
+ * interrupted row answers yes to both.
+ */
 const TERMINAL_TOOL_CALL_STATUSES: ReadonlySet<ToolCallStatus> = new Set([
   ToolCallStatus.TOOL_CALL_COMPLETED,
   ToolCallStatus.TOOL_CALL_FAILED,
   ToolCallStatus.TOOL_CALL_SKIPPED,
+  ToolCallStatus.TOOL_CALL_INTERRUPTED,
 ]);
 
 /**

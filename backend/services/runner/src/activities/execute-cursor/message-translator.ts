@@ -323,6 +323,19 @@ function mapSubAgentStatus(cursorStatus: string): SubAgentStatus {
   }
 }
 
+/**
+ * Terminal for the MONOTONIC status guard in {@link mergeToolCallEvent}: once a
+ * row reaches one of these, a later event re-emit must not regress it.
+ *
+ * TOOL_CALL_INTERRUPTED is deliberately NOT here, even though it is terminal
+ * everywhere else (server, clients, provenance scoping — see the shared
+ * TERMINAL_TOOL_CALL_STATUSES in tool-row.ts). INTERRUPTED is server-authored
+ * when an execution terminalizes with the call in flight; if that FAILED
+ * execution is later RECOVERED, the harness checkpoint can re-execute the call
+ * under its original call id — and live execution evidence outranks the
+ * interruption marker, so the replayed event must advance the row to its true
+ * outcome (the enum's documented recovery supersede rule).
+ */
 function isTerminalToolStatus(status: ToolCallStatus): boolean {
   return (
     status === ToolCallStatus.TOOL_CALL_COMPLETED ||

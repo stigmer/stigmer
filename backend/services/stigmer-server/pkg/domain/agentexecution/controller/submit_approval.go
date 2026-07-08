@@ -532,6 +532,12 @@ func (s *signalWorkflowStep) reconcileStaleExecution(ctx context.Context, execut
 		Content: "The workflow backing this execution is no longer running. This can happen due to infrastructure issues or manual termination. The execution has been marked as failed.",
 	})
 
+	// The messages were preserved verbatim, so the gated call that brought the
+	// user here — plus any other in-flight call — is still non-terminal. This
+	// write terminalizes the execution, so settle them (issue #207): the dead
+	// workflow will never deliver their terminal events or decisions.
+	settleInterruptedToolCalls(reconciledExecution.Status, time.Now().Format(time.RFC3339))
+
 	// Whole-resource save is intentional here (exempt from the atomic UpdateStatus
 	// path): this writes a TERMINAL (FAILED) state because the backing workflow is
 	// gone, so there is no live appender racing the approval_event_stream — which is

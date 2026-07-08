@@ -49,6 +49,9 @@ export class PlaintextRenderer implements HeadlessRenderer {
             : `  ✓ ${event.toolCall.name}\n`,
         );
         return;
+      case "toolInterrupted":
+        status.write(`  ⊘ ${event.toolCall.name} (interrupted)\n`);
+        return;
       case "approvalNeeded":
         status.write(`  ⚠ Approval needed: ${event.toolName} (auto-skipped in non-TTY mode)\n`);
         return;

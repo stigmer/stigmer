@@ -21,10 +21,15 @@ package ai.stigmer.agentic.agentexecution.v1;
  * TOOL_CALL_PENDING → TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED
  * ↘ TOOL_CALL_SKIPPED (if user skips)
  *
+ * Interruption flow (execution terminalizes with the call unfinished):
+ * TOOL_CALL_PENDING / TOOL_CALL_RUNNING / TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_INTERRUPTED
+ *
  * Terminal States:
  * - TOOL_CALL_COMPLETED: Tool executed successfully
  * - TOOL_CALL_FAILED: Tool execution failed
  * - TOOL_CALL_SKIPPED: User chose to skip this tool (HITL)
+ * - TOOL_CALL_INTERRUPTED: Execution terminalized before the tool finished
+ * (platform-authored; see the value's doc for the recovery supersede rule)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentexecution.v1.ToolCallStatus}
@@ -115,6 +120,43 @@ public enum ToolCallStatus
    * <code>TOOL_CALL_SKIPPED = 6;</code>
    */
   TOOL_CALL_SKIPPED(6),
+  /**
+   * <pre>
+   * The execution terminalized before this tool call finished (issue #207).
+   *
+   * PLATFORM-AUTHORED, never user- or tool-authored: the control plane settles
+   * any tool call still in PENDING / RUNNING / WAITING_APPROVAL to this value
+   * whenever its execution reaches a terminal phase (COMPLETED / FAILED /
+   * CANCELLED / TERMINATED). Enforced at the server's persistence seams — the
+   * updateStatus merge chokepoint and the whole-resource terminal writers
+   * (Cancel/Terminate cascade, stale-workflow reconciliation) — so no runner
+   * exit path has to remember it. This is what makes the invariant total:
+   * a terminal execution carries zero non-terminal tool calls.
+   *
+   * Honesty semantics (why the existing terminal values would lie):
+   * - Not FAILED: the tool never ran to an error — the run around it died.
+   * - Not SKIPPED: no user made a decision about this call.
+   * - Not COMPLETED: the tool produced no result.
+   *
+   * A settled call keeps its args, result-so-far, and approval provenance
+   * (requires_approval, approval_requested_at, ...) for the audit trail. A
+   * gated call settled here authors NO approval event — terminal-execution
+   * gate-exits are deliberately not modeled as per-call events (see
+   * ApprovalEventType: a terminal execution simply projects to zero pending
+   * approvals; RETRACTED is reserved for in-flight withdrawals).
+   *
+   * Recovery supersede rule: terminal for every consumer (clients render a
+   * neutral "interrupted" state; projections never gate on it), with ONE
+   * exception — when a FAILED execution is recovered (Recover RPC) and the
+   * harness checkpoint re-executes the call under its original call id, the
+   * runner may advance the row in place to the call's true outcome. Live
+   * execution evidence outranks the interruption marker; every other terminal
+   * status remains immovable.
+   * </pre>
+   *
+   * <code>TOOL_CALL_INTERRUPTED = 7;</code>
+   */
+  TOOL_CALL_INTERRUPTED(7),
   UNRECOGNIZED(-1),
   ;
 
@@ -210,6 +252,43 @@ public enum ToolCallStatus
    * <code>TOOL_CALL_SKIPPED = 6;</code>
    */
   public static final int TOOL_CALL_SKIPPED_VALUE = 6;
+  /**
+   * <pre>
+   * The execution terminalized before this tool call finished (issue #207).
+   *
+   * PLATFORM-AUTHORED, never user- or tool-authored: the control plane settles
+   * any tool call still in PENDING / RUNNING / WAITING_APPROVAL to this value
+   * whenever its execution reaches a terminal phase (COMPLETED / FAILED /
+   * CANCELLED / TERMINATED). Enforced at the server's persistence seams — the
+   * updateStatus merge chokepoint and the whole-resource terminal writers
+   * (Cancel/Terminate cascade, stale-workflow reconciliation) — so no runner
+   * exit path has to remember it. This is what makes the invariant total:
+   * a terminal execution carries zero non-terminal tool calls.
+   *
+   * Honesty semantics (why the existing terminal values would lie):
+   * - Not FAILED: the tool never ran to an error — the run around it died.
+   * - Not SKIPPED: no user made a decision about this call.
+   * - Not COMPLETED: the tool produced no result.
+   *
+   * A settled call keeps its args, result-so-far, and approval provenance
+   * (requires_approval, approval_requested_at, ...) for the audit trail. A
+   * gated call settled here authors NO approval event — terminal-execution
+   * gate-exits are deliberately not modeled as per-call events (see
+   * ApprovalEventType: a terminal execution simply projects to zero pending
+   * approvals; RETRACTED is reserved for in-flight withdrawals).
+   *
+   * Recovery supersede rule: terminal for every consumer (clients render a
+   * neutral "interrupted" state; projections never gate on it), with ONE
+   * exception — when a FAILED execution is recovered (Recover RPC) and the
+   * harness checkpoint re-executes the call under its original call id, the
+   * runner may advance the row in place to the call's true outcome. Live
+   * execution evidence outranks the interruption marker; every other terminal
+   * status remains immovable.
+   * </pre>
+   *
+   * <code>TOOL_CALL_INTERRUPTED = 7;</code>
+   */
+  public static final int TOOL_CALL_INTERRUPTED_VALUE = 7;
 
 
   public final int getNumber() {
@@ -243,6 +322,7 @@ public enum ToolCallStatus
       case 4: return TOOL_CALL_FAILED;
       case 5: return TOOL_CALL_WAITING_APPROVAL;
       case 6: return TOOL_CALL_SKIPPED;
+      case 7: return TOOL_CALL_INTERRUPTED;
       default: return null;
     }
   }

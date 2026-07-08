@@ -34,6 +34,7 @@ class ToolCallStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_CALL_FAILED: _ClassVar[ToolCallStatus]
     TOOL_CALL_WAITING_APPROVAL: _ClassVar[ToolCallStatus]
     TOOL_CALL_SKIPPED: _ClassVar[ToolCallStatus]
+    TOOL_CALL_INTERRUPTED: _ClassVar[ToolCallStatus]
 
 class ToolKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -250,6 +251,7 @@ TOOL_CALL_COMPLETED: ToolCallStatus
 TOOL_CALL_FAILED: ToolCallStatus
 TOOL_CALL_WAITING_APPROVAL: ToolCallStatus
 TOOL_CALL_SKIPPED: ToolCallStatus
+TOOL_CALL_INTERRUPTED: ToolCallStatus
 TOOL_KIND_UNSPECIFIED: ToolKind
 TOOL_KIND_FILE_READ: ToolKind
 TOOL_KIND_FILE_WRITE: ToolKind

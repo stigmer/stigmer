@@ -77,6 +77,8 @@ function mapToNdjson(event: StreamEvent): MappedEvent | undefined {
       return { type: "tool_running", payload: toolEventPayload(event.toolCallId, event.toolCall, event.subAgentId) };
     case "toolCompleted":
       return { type: "tool_completed", payload: toolEventPayload(event.toolCallId, event.toolCall, event.subAgentId) };
+    case "toolInterrupted":
+      return { type: "tool_interrupted", payload: toolEventPayload(event.toolCallId, event.toolCall, event.subAgentId) };
     case "toolWaitingApproval":
       return {
         type: "tool_waiting_approval",

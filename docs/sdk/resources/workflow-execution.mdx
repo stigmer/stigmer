@@ -1659,7 +1659,7 @@ ApprovalAction represents the user's decision on an approval request.
 |-------|-------------|
 | `APPROVAL_ACTION_APPROVE` | Execute the tool normally. |
 | `APPROVAL_ACTION_SKIP` | Skip tool execution, continue without it. |
-| `APPROVAL_ACTION_REJECT` | Reject tool execution, fail the entire execution. |
+| `APPROVAL_ACTION_REJECT` | Deny this tool call and continue the execution. |
 | `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND grant a run-lifetime lease that auto-approves every subsequent tool call of the SAME class for the rest of this execution ("approve all of this kind, don't ask again"). |
 
 ### FileDecisionScope

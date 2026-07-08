@@ -190,6 +190,28 @@ describe("tool call interleaving", () => {
     expect(kindsFor(seq)).toContain("toolCompleted");
   });
 
+  it("running → interrupted closes the block with toolInterrupted, not toolCompleted", () => {
+    // Issue #207: the platform settles an in-flight call to INTERRUPTED when
+    // the execution terminalizes; the live differ must close its running block
+    // with the honest event (a checkmark would claim the tool finished).
+    const seq = [
+      snapshot({ messages: [aiMsg("calling", { toolCalls: [tool("t1", "shell", ToolCallStatus.TOOL_CALL_RUNNING)] })] }),
+      snapshot({ messages: [aiMsg("calling", { toolCalls: [tool("t1", "shell", ToolCallStatus.TOOL_CALL_INTERRUPTED)] })] }),
+    ];
+    const kinds = kindsFor(seq);
+    expect(kinds).toContain("toolInterrupted");
+    expect(kinds).not.toContain("toolCompleted");
+  });
+
+  it("first-sight interrupted tool (re-attach) synthesizes toolInterrupted", () => {
+    const seq = [
+      snapshot({
+        messages: [toolMsg("", [tool("t1", "read", ToolCallStatus.TOOL_CALL_INTERRUPTED)])],
+      }),
+    ];
+    expect(kindsFor(seq)).toContain("toolInterrupted");
+  });
+
   it("emits a streaming delta when a running tool's result grows", () => {
     const seq = [
       snapshot({

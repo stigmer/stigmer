@@ -282,10 +282,15 @@ func (MessageType) EnumDescriptor() ([]byte, []int) {
 //
 //	↘ TOOL_CALL_SKIPPED (if user skips)
 //
+// Interruption flow (execution terminalizes with the call unfinished):
+// TOOL_CALL_PENDING / TOOL_CALL_RUNNING / TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_INTERRUPTED
+//
 // Terminal States:
-// - TOOL_CALL_COMPLETED: Tool executed successfully
-// - TOOL_CALL_FAILED: Tool execution failed
-// - TOOL_CALL_SKIPPED: User chose to skip this tool (HITL)
+//   - TOOL_CALL_COMPLETED: Tool executed successfully
+//   - TOOL_CALL_FAILED: Tool execution failed
+//   - TOOL_CALL_SKIPPED: User chose to skip this tool (HITL)
+//   - TOOL_CALL_INTERRUPTED: Execution terminalized before the tool finished
+//     (platform-authored; see the value's doc for the recovery supersede rule)
 type ToolCallStatus int32
 
 const (
@@ -330,6 +335,37 @@ const (
 	// This is a terminal state - the tool will not be retried.
 	// Unlike FAILED, SKIPPED is an intentional user decision, not an error.
 	ToolCallStatus_TOOL_CALL_SKIPPED ToolCallStatus = 6
+	// The execution terminalized before this tool call finished (issue #207).
+	//
+	// PLATFORM-AUTHORED, never user- or tool-authored: the control plane settles
+	// any tool call still in PENDING / RUNNING / WAITING_APPROVAL to this value
+	// whenever its execution reaches a terminal phase (COMPLETED / FAILED /
+	// CANCELLED / TERMINATED). Enforced at the server's persistence seams — the
+	// updateStatus merge chokepoint and the whole-resource terminal writers
+	// (Cancel/Terminate cascade, stale-workflow reconciliation) — so no runner
+	// exit path has to remember it. This is what makes the invariant total:
+	// a terminal execution carries zero non-terminal tool calls.
+	//
+	// Honesty semantics (why the existing terminal values would lie):
+	// - Not FAILED: the tool never ran to an error — the run around it died.
+	// - Not SKIPPED: no user made a decision about this call.
+	// - Not COMPLETED: the tool produced no result.
+	//
+	// A settled call keeps its args, result-so-far, and approval provenance
+	// (requires_approval, approval_requested_at, ...) for the audit trail. A
+	// gated call settled here authors NO approval event — terminal-execution
+	// gate-exits are deliberately not modeled as per-call events (see
+	// ApprovalEventType: a terminal execution simply projects to zero pending
+	// approvals; RETRACTED is reserved for in-flight withdrawals).
+	//
+	// Recovery supersede rule: terminal for every consumer (clients render a
+	// neutral "interrupted" state; projections never gate on it), with ONE
+	// exception — when a FAILED execution is recovered (Recover RPC) and the
+	// harness checkpoint re-executes the call under its original call id, the
+	// runner may advance the row in place to the call's true outcome. Live
+	// execution evidence outranks the interruption marker; every other terminal
+	// status remains immovable.
+	ToolCallStatus_TOOL_CALL_INTERRUPTED ToolCallStatus = 7
 )
 
 // Enum value maps for ToolCallStatus.
@@ -342,6 +378,7 @@ var (
 		4: "TOOL_CALL_FAILED",
 		5: "TOOL_CALL_WAITING_APPROVAL",
 		6: "TOOL_CALL_SKIPPED",
+		7: "TOOL_CALL_INTERRUPTED",
 	}
 	ToolCallStatus_value = map[string]int32{
 		"TOOL_CALL_STATUS_UNSPECIFIED": 0,
@@ -351,6 +388,7 @@ var (
 		"TOOL_CALL_FAILED":             4,
 		"TOOL_CALL_WAITING_APPROVAL":   5,
 		"TOOL_CALL_SKIPPED":            6,
+		"TOOL_CALL_INTERRUPTED":        7,
 	}
 )
 
@@ -2263,7 +2301,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"MESSAGE_AI\x10\x02\x12\x10\n" +
 	"\fMESSAGE_TOOL\x10\x03\x12\x12\n" +
 	"\x0eMESSAGE_SYSTEM\x10\x04\x12\x14\n" +
-	"\x10MESSAGE_THINKING\x10\x05*\xc6\x01\n" +
+	"\x10MESSAGE_THINKING\x10\x05*\xe1\x01\n" +
 	"\x0eToolCallStatus\x12 \n" +
 	"\x1cTOOL_CALL_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11TOOL_CALL_PENDING\x10\x01\x12\x15\n" +
@@ -2271,7 +2309,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x13TOOL_CALL_COMPLETED\x10\x03\x12\x14\n" +
 	"\x10TOOL_CALL_FAILED\x10\x04\x12\x1e\n" +
 	"\x1aTOOL_CALL_WAITING_APPROVAL\x10\x05\x12\x15\n" +
-	"\x11TOOL_CALL_SKIPPED\x10\x06*\xce\x02\n" +
+	"\x11TOOL_CALL_SKIPPED\x10\x06\x12\x19\n" +
+	"\x15TOOL_CALL_INTERRUPTED\x10\a*\xce\x02\n" +
 	"\bToolKind\x12\x19\n" +
 	"\x15TOOL_KIND_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13TOOL_KIND_FILE_READ\x10\x01\x12\x18\n" +

@@ -79,6 +79,20 @@ describe("snapshotToEvents", () => {
     expect(events[0]).toMatchObject({ kind: "toolCompleted", toolCallId: "tc1" });
   });
 
+  it("replays a platform-interrupted call as toolInterrupted — never a live running block", () => {
+    // Issue #207: before the fix an INTERRUPTED status fell through to
+    // "unknown" (non-terminal) and replayed as toolRunning, a block that never
+    // closes. It must replay as its own settled event.
+    const events = snapshotToEvents([
+      exec({
+        phase: ExecutionPhase.EXECUTION_CANCELLED,
+        messages: [toolMsg(tool("tc1", ToolCallStatus.TOOL_CALL_INTERRUPTED))],
+      }),
+    ]);
+    expect(kinds(events)).toEqual(["toolInterrupted", "done"]);
+    expect(events[0]).toMatchObject({ kind: "toolInterrupted", toolCallId: "tc1" });
+  });
+
   it("only the final execution emits done", () => {
     const events = snapshotToEvents([
       exec({ message: "first", messages: [aiMsg("a")] }),

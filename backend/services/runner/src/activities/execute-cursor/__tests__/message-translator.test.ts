@@ -867,6 +867,71 @@ describe("MessageAccumulator tool call status transitions", () => {
     });
   });
 
+  // The recovery supersede rule (issue #207): TOOL_CALL_INTERRUPTED is
+  // server-authored when an execution terminalizes with the call in flight. If
+  // that FAILED execution is recovered, the harness checkpoint can re-execute
+  // the call under its original call id — so INTERRUPTED is the one settled
+  // status the monotonic guard lets live execution evidence supersede in
+  // place. Every other terminal status stays immovable.
+  describe("recovery supersede of TOOL_CALL_INTERRUPTED", () => {
+    function seededInterruptedTranscript(callId: string): AgentMessage[] {
+      return [
+        create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_AI,
+          content: "Running a command.",
+          toolCalls: [
+            create(ToolCallSchema, {
+              id: callId,
+              name: "Shell",
+              status: ToolCallStatus.TOOL_CALL_INTERRUPTED,
+              completedAt: "2026-07-08T00:00:00Z",
+            }),
+          ],
+        }),
+      ];
+    }
+
+    it("a replayed lifecycle event advances a seeded INTERRUPTED row to its true outcome", () => {
+      const messages = seededInterruptedTranscript("tc-replayed");
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(toolCallEvent("tc-replayed", "Shell", "running"));
+      expect(findToolCallById(messages, "tc-replayed")!.status).toBe(
+        ToolCallStatus.TOOL_CALL_RUNNING,
+      );
+
+      acc.processEvent(toolCallEvent("tc-replayed", "Shell", "completed", "run-1", { result: "OK" }));
+
+      expect(countToolCallsWithId(messages, "tc-replayed")).toBe(1);
+      const tc = findToolCallById(messages, "tc-replayed")!;
+      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+      expect(tc.result).toBe("OK");
+    });
+
+    it("a genuinely terminal seeded row (COMPLETED) still refuses to regress", () => {
+      const messages: AgentMessage[] = [
+        create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_AI,
+          toolCalls: [
+            create(ToolCallSchema, {
+              id: "tc-done",
+              name: "Shell",
+              status: ToolCallStatus.TOOL_CALL_COMPLETED,
+              result: "final",
+            }),
+          ],
+        }),
+      ];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(toolCallEvent("tc-done", "Shell", "running"));
+
+      expect(findToolCallById(messages, "tc-done")!.status).toBe(
+        ToolCallStatus.TOOL_CALL_COMPLETED,
+      );
+    });
+  });
+
   // Issue #179: the live thinking/tool-call trace was starved because the Cursor
   // loop's persist cadence had no force-flush for tool-call lifecycle. The
   // accumulator's isDirty signal is now the force-flush source: it MUST fire on
