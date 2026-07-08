@@ -1,0 +1,30 @@
+// Dev-only run-config for executing the CLI from TypeScript source via `tsx`
+// (the `make local` wrapper: `tsx --tsconfig tsconfig.tsx.json ...`).
+//
+// Why this exists: `tsx` applies a single tsconfig's `compilerOptions` only to
+// files matched by that config's `include`. The `stigmer` CLI imports JSX source
+// from sibling packages (@stigmer/ink, @stigmer/react), and no per-package
+// tsconfig's `include` covers those cross-package files — so they fall back to
+// esbuild's classic JSX runtime (`React.createElement`), which crashes with
+// "React is not defined" because those components are authored for the automatic
+// runtime and never import `React` as a value.
+//
+// With no `include`, TypeScript defaults to the entire tree under this root
+// (excluding node_modules), so every from-source package gets `jsx: react-jsx`.
+//
+// Deliberately NOT named `tsconfig.json`: this must stay opt-in (via --tsconfig)
+// so IDE/tsc project discovery never adopts it as an ambient root config. The
+// published CLI is unaffected — it ships from `dist/` compiled by per-package
+// `tsc`, which already honors `react-jsx`.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
+  }
+}
