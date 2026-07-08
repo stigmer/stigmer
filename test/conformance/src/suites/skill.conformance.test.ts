@@ -21,6 +21,7 @@
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
@@ -314,6 +315,13 @@ describe("Skill conformance — getByReference resolution", () => {
       "getByReference unknown slug",
     );
   });
+
+  it("getByReference rejects a kind that does not match the service", () =>
+    expectGrpcCode(
+      () => clients.skillQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
+      Code.InvalidArgument,
+      "getByReference kind mismatch",
+    ));
 });
 
 describe("Skill conformance — artifact download (getArtifact)", () => {

@@ -22,6 +22,7 @@
 // secretRedaction); the is_secret flag is edition-agnostic.
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { Code } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
@@ -125,6 +126,13 @@ describe("ExecutionContext conformance — CRUD & identity", () => {
       "getByReference unknown slug",
     );
   });
+
+  it("getByReference rejects a kind that does not match the service", () =>
+    expectGrpcCode(
+      () => clients.executionContextQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
+      Code.InvalidArgument,
+      "getByReference kind mismatch",
+    ));
 
   it("derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
