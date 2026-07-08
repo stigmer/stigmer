@@ -5,19 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows"
-	commonpb "go.temporal.io/api/common/v1"
-	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
-	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -597,31 +595,45 @@ func (s *TerminateTemporalWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[
 }
 
 // =============================================================================
-// Reset Temporal Workflow Step (for Recover)
+// Terminate Existing Temporal Workflow Step (for Recover)
 // =============================================================================
 
-// ResetTemporalWorkflowStep resets a failed workflow to its last checkpoint
-type ResetTemporalWorkflowStep[T LifecycleInput] struct {
+// TerminateExistingWorkflowStep terminates the previous Temporal workflow for a
+// FAILED execution before recovery starts a fresh one.
+//
+// Recovery deliberately does NOT use Temporal's ResetWorkflowExecution: the
+// runner activity RETURNS its FAILED result (it does not throw), so the failure
+// is recorded in history as a *completed* activity. A reset to the last
+// WorkflowTaskCompleted replays that preserved result instead of re-dispatching
+// the activity — no fresh LLM call is ever made and the execution is orphaned
+// at IN_PROGRESS (issue #200). Terminate-and-start-fresh — the strategy
+// WorkflowExecution.recover already uses — re-dispatches for real; continuity
+// of completed work is carried by the LangGraph thread checkpoint (deep-agent)
+// / the session's harness_state_id (Cursor), not by Temporal history.
+//
+// A FAILED execution's workflow has normally already completed, so NOT_FOUND is
+// treated as success. Termination matters for the rarer inconsistent state
+// where the DB says FAILED but the workflow is still live (e.g. the runner
+// persisted FAILED while the orchestrator was still unwinding): the workflow ID
+// must be terminal before StartFreshWorkflow reuses it. Unlike
+// WorkflowExecution there is no child TS workflow to terminate — the agent
+// runner executes activities on this workflow, not child workflows.
+type TerminateExistingWorkflowStep[T LifecycleInput] struct {
 	temporalClient client.Client
-	namespace      string
 }
 
-// NewResetTemporalWorkflowStep creates a new ResetTemporalWorkflowStep
-func NewResetTemporalWorkflowStep[T LifecycleInput](tc client.Client, namespace string) *ResetTemporalWorkflowStep[T] {
-	return &ResetTemporalWorkflowStep[T]{
-		temporalClient: tc,
-		namespace:      namespace,
-	}
+// NewTerminateExistingWorkflowStep creates a new TerminateExistingWorkflowStep
+func NewTerminateExistingWorkflowStep[T LifecycleInput](tc client.Client) *TerminateExistingWorkflowStep[T] {
+	return &TerminateExistingWorkflowStep[T]{temporalClient: tc}
 }
 
 // Name returns the step name
-func (s *ResetTemporalWorkflowStep[T]) Name() string {
-	return "ResetTemporalWorkflow"
+func (s *TerminateExistingWorkflowStep[T]) Name() string {
+	return "TerminateExistingWorkflow"
 }
 
-// Execute resets the workflow in Temporal
-func (s *ResetTemporalWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
-	// Skip if already in target state
+// Execute terminates the previous workflow, treating NOT_FOUND as success.
+func (s *TerminateExistingWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	if ctx.Get("alreadyInTargetState") == true {
 		return nil
 	}
@@ -633,76 +645,127 @@ func (s *ResetTemporalWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) 
 	execution := ctx.Get(LoadedExecutionKey).(*agentexecutionv1.AgentExecution)
 	executionID := execution.GetMetadata().GetId()
 
-	// Build Temporal workflow ID
 	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeAgentExecutionWorkflowName, executionID)
 
 	log.Info().
 		Str("execution_id", executionID).
 		Str("workflow_id", workflowID).
-		Msg("Resetting Temporal workflow")
+		Msg("Terminating previous workflow before recovery")
 
-	// Get the workflow service for lower-level operations
-	workflowService := s.temporalClient.WorkflowService()
-
-	// 1. Get workflow history to find reset point
-	historyResp, err := workflowService.GetWorkflowExecutionHistory(ctx.Context(), &workflowservice.GetWorkflowExecutionHistoryRequest{
-		Namespace: s.namespace,
-		Execution: &commonpb.WorkflowExecution{
-			WorkflowId: workflowID,
-		},
-	})
+	err := s.temporalClient.TerminateWorkflow(ctx.Context(), workflowID, "",
+		"Recovery: terminating before fresh workflow start")
 	if err != nil {
 		if _, ok := err.(*serviceerror.NotFound); ok {
-			return grpclib.NotFoundError("temporal_workflow", workflowID)
+			log.Info().
+				Str("execution_id", executionID).
+				Str("workflow_id", workflowID).
+				Msg("Previous workflow already completed/terminated (NOT_FOUND). Proceeding.")
+			return nil
 		}
-		return grpclib.InternalError(err, "failed to get workflow history")
-	}
-
-	// 2. Find the last WorkflowTaskCompleted event (reset point)
-	var resetEventId int64 = 0
-	for _, event := range historyResp.History.Events {
-		if event.EventType == enums.EVENT_TYPE_WORKFLOW_TASK_COMPLETED {
-			resetEventId = event.EventId
-		}
-	}
-
-	if resetEventId == 0 {
-		return grpclib.FailedPreconditionError(
-			"no reset point found in workflow history; workflow may not have started executing",
-		)
-	}
-
-	log.Debug().
-		Str("execution_id", executionID).
-		Str("workflow_id", workflowID).
-		Int64("reset_event_id", resetEventId).
-		Msg("Found reset point in workflow history")
-
-	// 3. Reset the workflow. Temporal requires a RequestId for idempotent dedupe of
-	// the reset; without it the service rejects the call with "RequestId is not set
-	// on request". A fresh UUID per recover attempt is the intended semantics (each
-	// recover is a distinct reset).
-	_, err = workflowService.ResetWorkflowExecution(ctx.Context(), &workflowservice.ResetWorkflowExecutionRequest{
-		Namespace: s.namespace,
-		WorkflowExecution: &commonpb.WorkflowExecution{
-			WorkflowId: workflowID,
-		},
-		WorkflowTaskFinishEventId: resetEventId,
-		Reason:                    "Recovered by user",
-		RequestId:                 uuid.NewString(),
-	})
-	if err != nil {
-		if _, ok := err.(*serviceerror.NotFound); ok {
-			return grpclib.NotFoundError("temporal_workflow", workflowID)
-		}
-		return grpclib.InternalError(err, "failed to reset workflow")
+		return grpclib.InternalError(err, "failed to terminate previous workflow during recovery")
 	}
 
 	log.Info().
 		Str("execution_id", executionID).
 		Str("workflow_id", workflowID).
-		Int64("reset_event_id", resetEventId).
-		Msg("Temporal workflow reset successfully")
+		Msg("Successfully terminated previous workflow")
+
+	return nil
+}
+
+// =============================================================================
+// Start Fresh Temporal Workflow Step (for Recover)
+// =============================================================================
+
+// StartFreshWorkflowStep starts a brand-new Temporal workflow for the recovered
+// execution, reusing InvokeAgentExecutionWorkflowCreator — the same path the
+// create pipeline uses. Temporal allows workflow ID reuse after the previous
+// run reached a terminal state (default ALLOW_DUPLICATE reuse policy).
+//
+// Dispatch is re-resolved from the session with an EMPTY activity_task_queue
+// override, and the parent-coupled coordinates are deliberately NOT carried
+// into the fresh input — a recovered execution is a standalone rerun:
+//   - callback_token is single-use and was already completed (with the failure)
+//     by the failed run; carrying it forward would fail the workflow's final
+//     completeExternalActivity and re-fail the recovered run.
+//   - parent_workflow_id only drives the child_execution_started signal to a
+//     parent that already observed the failure and moved on.
+//   - spec.activity_task_queue points at the parent's wfexec:{id} sandbox
+//     queue, which loses its poller when the parent completes; honoring it
+//     would dead-end the recovered run on a ScheduleToStart timeout.
+//
+// Known limitation (documented, deliberately not handled here): with a durable
+// (http) LangGraph checkpointer whose thread checkpoint already holds the user
+// message, the fresh run re-sends spec.message and duplicates it in the
+// thread. The OSS default is the memory checkpointer, which replays from
+// scratch each invocation, so this is moot here; a durable-path follow-up
+// should start from this note.
+type StartFreshWorkflowStep[T LifecycleInput] struct {
+	workflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
+	temporalConfig  *agentexecutiontemporal.Config
+	store           store.Store
+}
+
+// NewStartFreshWorkflowStep creates a new StartFreshWorkflowStep
+func NewStartFreshWorkflowStep[T LifecycleInput](
+	creator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator,
+	config *agentexecutiontemporal.Config,
+	s store.Store,
+) *StartFreshWorkflowStep[T] {
+	return &StartFreshWorkflowStep[T]{
+		workflowCreator: creator,
+		temporalConfig:  config,
+		store:           s,
+	}
+}
+
+// Name returns the step name
+func (s *StartFreshWorkflowStep[T]) Name() string {
+	return "StartFreshWorkflow"
+}
+
+// Execute starts a fresh workflow for the recovered execution.
+func (s *StartFreshWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
+	if ctx.Get("alreadyInTargetState") == true {
+		return nil
+	}
+
+	if s.workflowCreator == nil {
+		return grpclib.FailedPreconditionError("Temporal is not available (workflow creator not set)")
+	}
+
+	execution := ctx.Get(LoadedExecutionKey).(*agentexecutionv1.AgentExecution)
+	executionID := execution.GetMetadata().GetId()
+
+	// Empty activity_task_queue override: routing is re-resolved from the
+	// session (global queue or session:{id}, per config) — see the step doc for
+	// why the persisted sandbox-affinity override must not be honored.
+	dispatch, err := agentexecutiontemporal.ResolveActivityTaskQueue(
+		ctx.Context(), s.store, execution.GetSpec().GetSessionId(), s.temporalConfig, "")
+	if err != nil {
+		return grpclib.WrapError(err, codes.FailedPrecondition, err.Error())
+	}
+
+	// Slim input mirroring the create pipeline's startWorkflowStep, minus the
+	// parent-coupled coordinates (see the step doc). InvokerIdentityAccountID
+	// stays unset, matching the OSS create path.
+	workflowInput := &workflows.InvokeAgentExecutionWorkflowInput{
+		ExecutionID:     executionID,
+		SessionID:       execution.GetSpec().GetSessionId(),
+		AgentID:         execution.GetSpec().GetAgentId(),
+		AutoApproveAll:  execution.GetSpec().GetAutoApproveAll(),
+		Harness:         int32(dispatch.Harness),
+		ExecutionTarget: int32(dispatch.ExecutionTarget),
+	}
+
+	if err := s.workflowCreator.Create(workflowInput, &dispatch); err != nil {
+		return grpclib.InternalError(err, "failed to start fresh Temporal workflow for recovered execution")
+	}
+
+	log.Info().
+		Str("execution_id", executionID).
+		Str("task_queue", dispatch.TaskQueue).
+		Msg("Started fresh Temporal workflow for recovered execution")
 
 	return nil
 }
@@ -925,16 +988,6 @@ func (s *LifecycleBroadcastStep[T]) Execute(ctx *pipeline.RequestContext[T]) err
 		Msg("Broadcast execution update to subscribers")
 
 	return nil
-}
-
-// =============================================================================
-// Utility function to get namespace from config
-// =============================================================================
-
-// GetTemporalNamespace returns the Temporal namespace from environment or default
-func GetTemporalNamespace() string {
-	// This would typically come from config, but for now use default
-	return "default"
 }
 
 // cancelInProgressSubAgents transitions any non-terminal sub-agent (IN_PROGRESS
