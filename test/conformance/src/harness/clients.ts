@@ -10,6 +10,8 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
+import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
@@ -24,6 +26,8 @@ import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/wo
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
+import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
@@ -38,8 +42,12 @@ export interface ConformanceClients {
   workflowQuery: Client<typeof WorkflowQueryController>;
   workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
   workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
+  workflowInstanceCommand: Client<typeof WorkflowInstanceCommandController>;
+  workflowInstanceQuery: Client<typeof WorkflowInstanceQueryController>;
   agentExecutionCommand: Client<typeof AgentExecutionCommandController>;
   agentExecutionQuery: Client<typeof AgentExecutionQueryController>;
+  agentInstanceCommand: Client<typeof AgentInstanceCommandController>;
+  agentInstanceQuery: Client<typeof AgentInstanceQueryController>;
   agentCommand: Client<typeof AgentCommandController>;
   agentQuery: Client<typeof AgentQueryController>;
   environmentCommand: Client<typeof EnvironmentCommandController>;
@@ -71,8 +79,12 @@ export function makeClients(transport: Transport): ConformanceClients {
     workflowQuery: createClient(WorkflowQueryController, transport),
     workflowExecutionCommand: createClient(WorkflowExecutionCommandController, transport),
     workflowExecutionQuery: createClient(WorkflowExecutionQueryController, transport),
+    workflowInstanceCommand: createClient(WorkflowInstanceCommandController, transport),
+    workflowInstanceQuery: createClient(WorkflowInstanceQueryController, transport),
     agentExecutionCommand: createClient(AgentExecutionCommandController, transport),
     agentExecutionQuery: createClient(AgentExecutionQueryController, transport),
+    agentInstanceCommand: createClient(AgentInstanceCommandController, transport),
+    agentInstanceQuery: createClient(AgentInstanceQueryController, transport),
     agentCommand: createClient(AgentCommandController, transport),
     agentQuery: createClient(AgentQueryController, transport),
     environmentCommand: createClient(EnvironmentCommandController, transport),

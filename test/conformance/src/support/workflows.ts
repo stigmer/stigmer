@@ -14,6 +14,7 @@ import type { JsonObject, MessageInitShape } from "@bufbuild/protobuf";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
+import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./environments";
 
 export const WORKFLOW_API_VERSION = "agentic.stigmer.ai/v1";
 export const WORKFLOW_KIND = "Workflow";
@@ -27,6 +28,10 @@ export interface WorkflowSpecOptions {
   // YAML and therefore the version hash — used to force a new version, or keep
   // it identical to assert idempotency.
   taskVar?: string;
+  // Blueprint env-var declarations projected into spec.env — the least-privilege
+  // key whitelist the execution engine filters the merged environment against.
+  // Declarations carry no value (that is the instance/runtime job); see envmerge.
+  env?: Record<string, EnvVarDeclarationInit>;
 }
 
 // A valid single-task WorkflowSpec: one `set_vars` task whose config is a
@@ -49,6 +54,7 @@ export function makeWorkflowSpec(opts: WorkflowSpecOptions = {}): MessageInitSha
         export: { as: "${ . }" },
       },
     ],
+    ...(opts.env !== undefined ? { env: makeEnvDeclarations(opts.env) } : {}),
   };
 }
 
@@ -111,6 +117,43 @@ export function makeWaitWorkflow(opts: WaitWorkflowOptions): MessageInitShape<ty
           taskConfig: { duration: { seconds: waitSeconds } },
         },
       ],
+    },
+  };
+}
+
+export interface EnvMergeWorkflowOptions {
+  org: string;
+  name: string;
+  // Blueprint env-var declarations (the whitelist the merged env is filtered to).
+  env: Record<string, EnvVarDeclarationInit>;
+  // How long the single wait task sleeps. The envmerge suite reads the merged
+  // ExecutionContext while the run is non-terminal, so the timer only needs to
+  // outlast one read; a test that reads then cancels never waits this long.
+  waitSeconds?: number;
+}
+
+// A Workflow that declares an env whitelist (spec.env) and whose only task is a
+// `wait`. The wait keeps the execution non-terminal so the ephemeral
+// ExecutionContext (created synchronously at create-time, deleted on completion)
+// is observable via getByExecutionId. Kept separate from makeWaitWorkflow, which
+// the lifecycle suite uses untouched and without env declarations.
+export function makeEnvMergeWorkflow(opts: EnvMergeWorkflowOptions): MessageInitShape<typeof WorkflowSchema> {
+  const { org, name, env, waitSeconds = 30 } = opts;
+  return {
+    apiVersion: WORKFLOW_API_VERSION,
+    kind: WORKFLOW_KIND,
+    metadata: { name, org },
+    spec: {
+      description: "conformance envmerge fixture",
+      document: { dsl: "1.0.0", namespace: org, name, version: "1.0.0" },
+      tasks: [
+        {
+          name: "waitTask",
+          kind: WorkflowTaskKind.wait,
+          taskConfig: { duration: { seconds: waitSeconds } },
+        },
+      ],
+      env: makeEnvDeclarations(env),
     },
   };
 }

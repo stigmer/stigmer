@@ -17,10 +17,57 @@
 // support/skills.ts.
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import type { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { EnvironmentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 export const ENVIRONMENT_API_VERSION = "agentic.stigmer.ai/v1";
 export const ENVIRONMENT_KIND = "Environment";
+
+// A single blueprint env-var *declaration* — the whitelist entry a Workflow or
+// Agent puts in its spec.env. Unlike EnvironmentValue it carries no value: the
+// blueprint layer is a key whitelist + required/optional schema, never a value
+// source (see backend/libs/go/envmerge). `optional` defaults to false, meaning
+// the key is required (its absence after merge is a warn-only path, not a hard
+// failure). Lives here because EnvVarDeclaration is defined in environment/v1.
+export interface EnvVarDeclarationInit {
+  isSecret?: boolean;
+  optional?: boolean;
+  description?: string;
+}
+
+// Projects a keyed map of declarations into the proto map<string, EnvVarDeclaration>
+// init shape, applying the same defaults on every field so blueprint env maps are
+// composed identically by the Workflow and Agent builders.
+export function makeEnvDeclarations(
+  env: Record<string, EnvVarDeclarationInit>,
+): Record<string, MessageInitShape<typeof EnvVarDeclarationSchema>> {
+  return Object.fromEntries(
+    Object.entries(env).map(([key, decl]) => [
+      key,
+      { isSecret: decl.isSecret ?? false, optional: decl.optional ?? false, description: decl.description ?? "" },
+    ]),
+  );
+}
+
+// A reference to an Environment resource by org + slug, as carried in an
+// instance's environment_refs. An explicit org is required because the execution
+// engine resolves each ref via GetByReference on org/slug (see resolveEnvironments
+// in create_execution_context_step.go) rather than normalizing an empty org.
+export interface EnvironmentRefInit {
+  org: string;
+  slug: string;
+}
+
+// Projects environment references into the proto ApiResourceReference init shape,
+// fixing kind to environment (the CEL constraint on WorkflowInstanceSpec /
+// AgentInstanceSpec environment_refs). Shared by both instance builders.
+export function makeEnvironmentRefs(
+  refs: EnvironmentRefInit[],
+): MessageInitShape<typeof ApiResourceReferenceSchema>[] {
+  return refs.map((ref) => ({ org: ref.org, slug: ref.slug, kind: ApiResourceKind.environment }));
+}
 
 // A single spec.data entry. `value` is the configuration or secret string;
 // `isSecret` flips secret handling; `description` is optional human context.

@@ -21,10 +21,24 @@ import { ExecutionContextSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/e
 export const EXECUTION_CONTEXT_API_VERSION = "agentic.stigmer.ai/v1";
 export const EXECUTION_CONTEXT_KIND = "ExecutionContext";
 
-// A single spec.data entry: the runtime value and whether it is a secret.
+// A single ExecutionValue entry: the runtime value and whether it is a secret.
+// Used both for ExecutionContext.spec.data and for the runtime_env maps on
+// WorkflowExecution/AgentExecution (all three are map<string, ExecutionValue>).
 export interface ExecutionValueInit {
   value: string;
   isSecret?: boolean;
+}
+
+// Projects a keyed map of ExecutionValueInit into the proto
+// map<string, ExecutionValue> init shape, defaulting is_secret to false. Shared
+// by the ExecutionContext fixture and the execution runtime_env builders so the
+// same value semantics are applied everywhere ExecutionValue appears.
+export function makeExecutionValues(
+  data: Record<string, ExecutionValueInit>,
+): Record<string, { value: string; isSecret: boolean }> {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, entry]) => [key, { value: entry.value, isSecret: entry.isSecret ?? false }]),
+  );
 }
 
 export interface ExecutionContextSpecOptions {
@@ -43,9 +57,7 @@ export function makeExecutionContextSpec(
   const data = opts.data ?? { PLAIN_KEY: { value: "plain-value" } };
   return {
     executionId: opts.executionId ?? "aex_conformance_fixture",
-    data: Object.fromEntries(
-      Object.entries(data).map(([key, entry]) => [key, { value: entry.value, isSecret: entry.isSecret ?? false }]),
-    ),
+    data: makeExecutionValues(data),
   };
 }
 
