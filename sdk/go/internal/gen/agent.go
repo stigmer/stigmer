@@ -159,7 +159,16 @@ type EnvVarDeclarationInput struct {
 
 // AgentSharingInput is the SDK input type for AgentSharing.
 type AgentSharingInput struct {
-	Enabled bool
+	Enabled        bool
+	AllowedOrigins []string
+	Messages       *AgentSharingMessagesInput
+}
+
+// AgentSharingMessagesInput is the SDK input type for AgentSharingMessages.
+type AgentSharingMessagesInput struct {
+	RateLimited       string
+	Unavailable       string
+	ConversationEnded string
 }
 
 func (i *AgentInput) toProto() *agentv1.Agent {
@@ -254,8 +263,20 @@ func (i *EnvVarDeclarationInput) toProto() *environmentv1.EnvVarDeclaration {
 }
 
 func (i *AgentSharingInput) toProto() *agentv1.AgentSharing {
-	return &agentv1.AgentSharing{
-		Enabled: i.Enabled,
+	p := &agentv1.AgentSharing{}
+	p.Enabled = i.Enabled
+	p.AllowedOrigins = i.AllowedOrigins
+	if i.Messages != nil {
+		p.Messages = i.Messages.toProto()
+	}
+	return p
+}
+
+func (i *AgentSharingMessagesInput) toProto() *agentv1.AgentSharingMessages {
+	return &agentv1.AgentSharingMessages{
+		RateLimited:       i.RateLimited,
+		Unavailable:       i.Unavailable,
+		ConversationEnded: i.ConversationEnded,
 	}
 }
 
@@ -365,5 +386,18 @@ func agentSharingInputFromProto(p *agentv1.AgentSharing) *AgentSharingInput {
 	}
 	input := &AgentSharingInput{}
 	input.Enabled = p.GetEnabled()
+	input.AllowedOrigins = p.GetAllowedOrigins()
+	input.Messages = agentSharingMessagesInputFromProto(p.GetMessages())
+	return input
+}
+
+func agentSharingMessagesInputFromProto(p *agentv1.AgentSharingMessages) *AgentSharingMessagesInput {
+	if p == nil {
+		return nil
+	}
+	input := &AgentSharingMessagesInput{}
+	input.RateLimited = p.GetRateLimited()
+	input.Unavailable = p.GetUnavailable()
+	input.ConversationEnded = p.GetConversationEnded()
 	return input
 }

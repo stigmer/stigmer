@@ -42,6 +42,8 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private AgentSharing() {
+    allowedOrigins_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -62,6 +64,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.agent.v1.AgentSharing.class, ai.stigmer.agentic.agent.v1.AgentSharing.Builder.class);
   }
 
+  private int bitField0_;
   public static final int ENABLED_FIELD_NUMBER = 1;
   private boolean enabled_ = false;
   /**
@@ -75,6 +78,154 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public boolean getEnabled() {
     return enabled_;
+  }
+
+  public static final int ALLOWED_ORIGINS_FIELD_NUMBER = 2;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList allowedOrigins_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Origins permitted to embed this agent's chat widget.
+   *
+   * Each entry is an exact web origin (scheme://host[:port]) with no path,
+   * for example "https://docs.example.com". The first-party hosted chat
+   * page is always exempt.
+   *
+   * &#64;internal
+   * Storage-only in T01: enforcement (server-side Origin checks on session
+   * calls) lands with the T04 script embed. Exact origins only — loosening
+   * to wildcards later is a non-breaking change, tightening would not be.
+   * </pre>
+   *
+   * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the allowedOrigins.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getAllowedOriginsList() {
+    return allowedOrigins_;
+  }
+  /**
+   * <pre>
+   * Origins permitted to embed this agent's chat widget.
+   *
+   * Each entry is an exact web origin (scheme://host[:port]) with no path,
+   * for example "https://docs.example.com". The first-party hosted chat
+   * page is always exempt.
+   *
+   * &#64;internal
+   * Storage-only in T01: enforcement (server-side Origin checks on session
+   * calls) lands with the T04 script embed. Exact origins only — loosening
+   * to wildcards later is a non-breaking change, tightening would not be.
+   * </pre>
+   *
+   * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+   * @return The count of allowedOrigins.
+   */
+  public int getAllowedOriginsCount() {
+    return allowedOrigins_.size();
+  }
+  /**
+   * <pre>
+   * Origins permitted to embed this agent's chat widget.
+   *
+   * Each entry is an exact web origin (scheme://host[:port]) with no path,
+   * for example "https://docs.example.com". The first-party hosted chat
+   * page is always exempt.
+   *
+   * &#64;internal
+   * Storage-only in T01: enforcement (server-side Origin checks on session
+   * calls) lands with the T04 script embed. Exact origins only — loosening
+   * to wildcards later is a non-breaking change, tightening would not be.
+   * </pre>
+   *
+   * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The allowedOrigins at the given index.
+   */
+  public java.lang.String getAllowedOrigins(int index) {
+    return allowedOrigins_.get(index);
+  }
+  /**
+   * <pre>
+   * Origins permitted to embed this agent's chat widget.
+   *
+   * Each entry is an exact web origin (scheme://host[:port]) with no path,
+   * for example "https://docs.example.com". The first-party hosted chat
+   * page is always exempt.
+   *
+   * &#64;internal
+   * Storage-only in T01: enforcement (server-side Origin checks on session
+   * calls) lands with the T04 script embed. Exact origins only — loosening
+   * to wildcards later is a non-breaking change, tightening would not be.
+   * </pre>
+   *
+   * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the allowedOrigins at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getAllowedOriginsBytes(int index) {
+    return allowedOrigins_.getByteString(index);
+  }
+
+  public static final int MESSAGES_FIELD_NUMBER = 3;
+  private ai.stigmer.agentic.agent.v1.AgentSharingMessages messages_;
+  /**
+   * <pre>
+   * Owner-customizable copy shown to visitors when a launch-gate limit
+   * refuses their message. Unset fields fall back to platform defaults.
+   *
+   * &#64;internal
+   * Resolved server-side at the refusal point and carried in the gRPC
+   * status description — deliberately NOT surfaced on SharedAgentProfile
+   * and NOT mapped client-side, so the copy reaches every client (web,
+   * embed, CLI) through the existing error-message path.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+   * @return Whether the messages field is set.
+   */
+  @java.lang.Override
+  public boolean hasMessages() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Owner-customizable copy shown to visitors when a launch-gate limit
+   * refuses their message. Unset fields fall back to platform defaults.
+   *
+   * &#64;internal
+   * Resolved server-side at the refusal point and carried in the gRPC
+   * status description — deliberately NOT surfaced on SharedAgentProfile
+   * and NOT mapped client-side, so the copy reaches every client (web,
+   * embed, CLI) through the existing error-message path.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+   * @return The messages.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.AgentSharingMessages getMessages() {
+    return messages_ == null ? ai.stigmer.agentic.agent.v1.AgentSharingMessages.getDefaultInstance() : messages_;
+  }
+  /**
+   * <pre>
+   * Owner-customizable copy shown to visitors when a launch-gate limit
+   * refuses their message. Unset fields fall back to platform defaults.
+   *
+   * &#64;internal
+   * Resolved server-side at the refusal point and carried in the gRPC
+   * status description — deliberately NOT surfaced on SharedAgentProfile
+   * and NOT mapped client-side, so the copy reaches every client (web,
+   * embed, CLI) through the existing error-message path.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.AgentSharingMessagesOrBuilder getMessagesOrBuilder() {
+    return messages_ == null ? ai.stigmer.agentic.agent.v1.AgentSharingMessages.getDefaultInstance() : messages_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -94,6 +245,12 @@ private static final long serialVersionUID = 0L;
     if (enabled_ != false) {
       output.writeBool(1, enabled_);
     }
+    for (int i = 0; i < allowedOrigins_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, allowedOrigins_.getRaw(i));
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(3, getMessages());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -106,6 +263,18 @@ private static final long serialVersionUID = 0L;
     if (enabled_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(1, enabled_);
+    }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < allowedOrigins_.size(); i++) {
+        dataSize += computeStringSizeNoTag(allowedOrigins_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getAllowedOriginsList().size();
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(3, getMessages());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -124,6 +293,13 @@ private static final long serialVersionUID = 0L;
 
     if (getEnabled()
         != other.getEnabled()) return false;
+    if (!getAllowedOriginsList()
+        .equals(other.getAllowedOriginsList())) return false;
+    if (hasMessages() != other.hasMessages()) return false;
+    if (hasMessages()) {
+      if (!getMessages()
+          .equals(other.getMessages())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -138,6 +314,14 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + ENABLED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getEnabled());
+    if (getAllowedOriginsCount() > 0) {
+      hash = (37 * hash) + ALLOWED_ORIGINS_FIELD_NUMBER;
+      hash = (53 * hash) + getAllowedOriginsList().hashCode();
+    }
+    if (hasMessages()) {
+      hash = (37 * hash) + MESSAGES_FIELD_NUMBER;
+      hash = (53 * hash) + getMessages().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -271,19 +455,32 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.agentic.agent.v1.AgentSharing.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetMessagesFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
       enabled_ = false;
+      allowedOrigins_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
+      messages_ = null;
+      if (messagesBuilder_ != null) {
+        messagesBuilder_.dispose();
+        messagesBuilder_ = null;
+      }
       return this;
     }
 
@@ -320,6 +517,18 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.enabled_ = enabled_;
       }
+      if (((from_bitField0_ & 0x00000002) != 0)) {
+        allowedOrigins_.makeImmutable();
+        result.allowedOrigins_ = allowedOrigins_;
+      }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.messages_ = messagesBuilder_ == null
+            ? messages_
+            : messagesBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -336,6 +545,19 @@ private static final long serialVersionUID = 0L;
       if (other == ai.stigmer.agentic.agent.v1.AgentSharing.getDefaultInstance()) return this;
       if (other.getEnabled() != false) {
         setEnabled(other.getEnabled());
+      }
+      if (!other.allowedOrigins_.isEmpty()) {
+        if (allowedOrigins_.isEmpty()) {
+          allowedOrigins_ = other.allowedOrigins_;
+          bitField0_ |= 0x00000002;
+        } else {
+          ensureAllowedOriginsIsMutable();
+          allowedOrigins_.addAll(other.allowedOrigins_);
+        }
+        onChanged();
+      }
+      if (other.hasMessages()) {
+        mergeMessages(other.getMessages());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -368,6 +590,18 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 8
+            case 18: {
+              ensureAllowedOriginsIsMutable();
+              allowedOrigins_.add(input.readStringRequireUtf8());
+              break;
+            } // case 18
+            case 26: {
+              input.readMessage(
+                  internalGetMessagesFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -427,6 +661,454 @@ private static final long serialVersionUID = 0L;
       enabled_ = false;
       onChanged();
       return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList allowedOrigins_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureAllowedOriginsIsMutable() {
+      if (!allowedOrigins_.isModifiable()) {
+        allowedOrigins_ = new com.google.protobuf.LazyStringArrayList(allowedOrigins_);
+      }
+      bitField0_ |= 0x00000002;
+    }
+    /**
+     * <pre>
+     * Origins permitted to embed this agent's chat widget.
+     *
+     * Each entry is an exact web origin (scheme://host[:port]) with no path,
+     * for example "https://docs.example.com". The first-party hosted chat
+     * page is always exempt.
+     *
+     * &#64;internal
+     * Storage-only in T01: enforcement (server-side Origin checks on session
+     * calls) lands with the T04 script embed. Exact origins only — loosening
+     * to wildcards later is a non-breaking change, tightening would not be.
+     * </pre>
+     *
+     * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the allowedOrigins.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getAllowedOriginsList() {
+      allowedOrigins_.makeImmutable();
+      return allowedOrigins_;
+    }
+    /**
+     * <pre>
+     * Origins permitted to embed this agent's chat widget.
+     *
+     * Each entry is an exact web origin (scheme://host[:port]) with no path,
+     * for example "https://docs.example.com". The first-party hosted chat
+     * page is always exempt.
+     *
+     * &#64;internal
+     * Storage-only in T01: enforcement (server-side Origin checks on session
+     * calls) lands with the T04 script embed. Exact origins only — loosening
+     * to wildcards later is a non-breaking change, tightening would not be.
+     * </pre>
+     *
+     * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+     * @return The count of allowedOrigins.
+     */
+    public int getAllowedOriginsCount() {
+      return allowedOrigins_.size();
+    }
+    /**
+     * <pre>
+     * Origins permitted to embed this agent's chat widget.
+     *
+     * Each entry is an exact web origin (scheme://host[:port]) with no path,
+     * for example "https://docs.example.com". The first-party hosted chat
+     * page is always exempt.
+     *
+     * &#64;internal
+     * Storage-only in T01: enforcement (server-side Origin checks on session
+     * calls) lands with the T04 script embed. Exact origins only — loosening
+     * to wildcards later is a non-breaking change, tightening would not be.
+     * </pre>
+     *
+     * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The allowedOrigins at the given index.
+     */
+    public java.lang.String getAllowedOrigins(int index) {
+      return allowedOrigins_.get(index);
+    }
+    /**
+     * <pre>
+     * Origins permitted to embed this agent's chat widget.
+     *
+     * Each entry is an exact web origin (scheme://host[:port]) with no path,
+     * for example "https://docs.example.com". The first-party hosted chat
+     * page is always exempt.
+     *
+     * &#64;internal
+     * Storage-only in T01: enforcement (server-side Origin checks on session
+     * calls) lands with the T04 script embed. Exact origins only — loosening
+     * to wildcards later is a non-breaking change, tightening would not be.
+     * </pre>
+     *
+     * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the allowedOrigins at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getAllowedOriginsBytes(int index) {
+      return allowedOrigins_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Origins permitted to embed this agent's chat widget.
+     *
+     * Each entry is an exact web origin (scheme://host[:port]) with no path,
+     * for example "https://docs.example.com". The first-party hosted chat
+     * page is always exempt.
+     *
+     * &#64;internal
+     * Storage-only in T01: enforcement (server-side Origin checks on session
+     * calls) lands with the T04 script embed. Exact origins only — loosening
+     * to wildcards later is a non-breaking change, tightening would not be.
+     * </pre>
+     *
+     * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The allowedOrigins to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAllowedOrigins(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureAllowedOriginsIsMutable();
+      allowedOrigins_.set(index, value);
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Origins permitted to embed this agent's chat widget.
+     *
+     * Each entry is an exact web origin (scheme://host[:port]) with no path,
+     * for example "https://docs.example.com". The first-party hosted chat
+     * page is always exempt.
+     *
+     * &#64;internal
+     * Storage-only in T01: enforcement (server-side Origin checks on session
+     * calls) lands with the T04 script embed. Exact origins only — loosening
+     * to wildcards later is a non-breaking change, tightening would not be.
+     * </pre>
+     *
+     * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+     * @param value The allowedOrigins to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllowedOrigins(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureAllowedOriginsIsMutable();
+      allowedOrigins_.add(value);
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Origins permitted to embed this agent's chat widget.
+     *
+     * Each entry is an exact web origin (scheme://host[:port]) with no path,
+     * for example "https://docs.example.com". The first-party hosted chat
+     * page is always exempt.
+     *
+     * &#64;internal
+     * Storage-only in T01: enforcement (server-side Origin checks on session
+     * calls) lands with the T04 script embed. Exact origins only — loosening
+     * to wildcards later is a non-breaking change, tightening would not be.
+     * </pre>
+     *
+     * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+     * @param values The allowedOrigins to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllAllowedOrigins(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureAllowedOriginsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, allowedOrigins_);
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Origins permitted to embed this agent's chat widget.
+     *
+     * Each entry is an exact web origin (scheme://host[:port]) with no path,
+     * for example "https://docs.example.com". The first-party hosted chat
+     * page is always exempt.
+     *
+     * &#64;internal
+     * Storage-only in T01: enforcement (server-side Origin checks on session
+     * calls) lands with the T04 script embed. Exact origins only — loosening
+     * to wildcards later is a non-breaking change, tightening would not be.
+     * </pre>
+     *
+     * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAllowedOrigins() {
+      allowedOrigins_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000002);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Origins permitted to embed this agent's chat widget.
+     *
+     * Each entry is an exact web origin (scheme://host[:port]) with no path,
+     * for example "https://docs.example.com". The first-party hosted chat
+     * page is always exempt.
+     *
+     * &#64;internal
+     * Storage-only in T01: enforcement (server-side Origin checks on session
+     * calls) lands with the T04 script embed. Exact origins only — loosening
+     * to wildcards later is a non-breaking change, tightening would not be.
+     * </pre>
+     *
+     * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the allowedOrigins to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllowedOriginsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureAllowedOriginsIsMutable();
+      allowedOrigins_.add(value);
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private ai.stigmer.agentic.agent.v1.AgentSharingMessages messages_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agent.v1.AgentSharingMessages, ai.stigmer.agentic.agent.v1.AgentSharingMessages.Builder, ai.stigmer.agentic.agent.v1.AgentSharingMessagesOrBuilder> messagesBuilder_;
+    /**
+     * <pre>
+     * Owner-customizable copy shown to visitors when a launch-gate limit
+     * refuses their message. Unset fields fall back to platform defaults.
+     *
+     * &#64;internal
+     * Resolved server-side at the refusal point and carried in the gRPC
+     * status description — deliberately NOT surfaced on SharedAgentProfile
+     * and NOT mapped client-side, so the copy reaches every client (web,
+     * embed, CLI) through the existing error-message path.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+     * @return Whether the messages field is set.
+     */
+    public boolean hasMessages() {
+      return ((bitField0_ & 0x00000004) != 0);
+    }
+    /**
+     * <pre>
+     * Owner-customizable copy shown to visitors when a launch-gate limit
+     * refuses their message. Unset fields fall back to platform defaults.
+     *
+     * &#64;internal
+     * Resolved server-side at the refusal point and carried in the gRPC
+     * status description — deliberately NOT surfaced on SharedAgentProfile
+     * and NOT mapped client-side, so the copy reaches every client (web,
+     * embed, CLI) through the existing error-message path.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+     * @return The messages.
+     */
+    public ai.stigmer.agentic.agent.v1.AgentSharingMessages getMessages() {
+      if (messagesBuilder_ == null) {
+        return messages_ == null ? ai.stigmer.agentic.agent.v1.AgentSharingMessages.getDefaultInstance() : messages_;
+      } else {
+        return messagesBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Owner-customizable copy shown to visitors when a launch-gate limit
+     * refuses their message. Unset fields fall back to platform defaults.
+     *
+     * &#64;internal
+     * Resolved server-side at the refusal point and carried in the gRPC
+     * status description — deliberately NOT surfaced on SharedAgentProfile
+     * and NOT mapped client-side, so the copy reaches every client (web,
+     * embed, CLI) through the existing error-message path.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+     */
+    public Builder setMessages(ai.stigmer.agentic.agent.v1.AgentSharingMessages value) {
+      if (messagesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        messages_ = value;
+      } else {
+        messagesBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Owner-customizable copy shown to visitors when a launch-gate limit
+     * refuses their message. Unset fields fall back to platform defaults.
+     *
+     * &#64;internal
+     * Resolved server-side at the refusal point and carried in the gRPC
+     * status description — deliberately NOT surfaced on SharedAgentProfile
+     * and NOT mapped client-side, so the copy reaches every client (web,
+     * embed, CLI) through the existing error-message path.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+     */
+    public Builder setMessages(
+        ai.stigmer.agentic.agent.v1.AgentSharingMessages.Builder builderForValue) {
+      if (messagesBuilder_ == null) {
+        messages_ = builderForValue.build();
+      } else {
+        messagesBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Owner-customizable copy shown to visitors when a launch-gate limit
+     * refuses their message. Unset fields fall back to platform defaults.
+     *
+     * &#64;internal
+     * Resolved server-side at the refusal point and carried in the gRPC
+     * status description — deliberately NOT surfaced on SharedAgentProfile
+     * and NOT mapped client-side, so the copy reaches every client (web,
+     * embed, CLI) through the existing error-message path.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+     */
+    public Builder mergeMessages(ai.stigmer.agentic.agent.v1.AgentSharingMessages value) {
+      if (messagesBuilder_ == null) {
+        if (((bitField0_ & 0x00000004) != 0) &&
+          messages_ != null &&
+          messages_ != ai.stigmer.agentic.agent.v1.AgentSharingMessages.getDefaultInstance()) {
+          getMessagesBuilder().mergeFrom(value);
+        } else {
+          messages_ = value;
+        }
+      } else {
+        messagesBuilder_.mergeFrom(value);
+      }
+      if (messages_ != null) {
+        bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Owner-customizable copy shown to visitors when a launch-gate limit
+     * refuses their message. Unset fields fall back to platform defaults.
+     *
+     * &#64;internal
+     * Resolved server-side at the refusal point and carried in the gRPC
+     * status description — deliberately NOT surfaced on SharedAgentProfile
+     * and NOT mapped client-side, so the copy reaches every client (web,
+     * embed, CLI) through the existing error-message path.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+     */
+    public Builder clearMessages() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      messages_ = null;
+      if (messagesBuilder_ != null) {
+        messagesBuilder_.dispose();
+        messagesBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Owner-customizable copy shown to visitors when a launch-gate limit
+     * refuses their message. Unset fields fall back to platform defaults.
+     *
+     * &#64;internal
+     * Resolved server-side at the refusal point and carried in the gRPC
+     * status description — deliberately NOT surfaced on SharedAgentProfile
+     * and NOT mapped client-side, so the copy reaches every client (web,
+     * embed, CLI) through the existing error-message path.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentSharingMessages.Builder getMessagesBuilder() {
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return internalGetMessagesFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Owner-customizable copy shown to visitors when a launch-gate limit
+     * refuses their message. Unset fields fall back to platform defaults.
+     *
+     * &#64;internal
+     * Resolved server-side at the refusal point and carried in the gRPC
+     * status description — deliberately NOT surfaced on SharedAgentProfile
+     * and NOT mapped client-side, so the copy reaches every client (web,
+     * embed, CLI) through the existing error-message path.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentSharingMessagesOrBuilder getMessagesOrBuilder() {
+      if (messagesBuilder_ != null) {
+        return messagesBuilder_.getMessageOrBuilder();
+      } else {
+        return messages_ == null ?
+            ai.stigmer.agentic.agent.v1.AgentSharingMessages.getDefaultInstance() : messages_;
+      }
+    }
+    /**
+     * <pre>
+     * Owner-customizable copy shown to visitors when a launch-gate limit
+     * refuses their message. Unset fields fall back to platform defaults.
+     *
+     * &#64;internal
+     * Resolved server-side at the refusal point and carried in the gRPC
+     * status description — deliberately NOT surfaced on SharedAgentProfile
+     * and NOT mapped client-side, so the copy reaches every client (web,
+     * embed, CLI) through the existing error-message path.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agent.v1.AgentSharingMessages, ai.stigmer.agentic.agent.v1.AgentSharingMessages.Builder, ai.stigmer.agentic.agent.v1.AgentSharingMessagesOrBuilder> 
+        internalGetMessagesFieldBuilder() {
+      if (messagesBuilder_ == null) {
+        messagesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agent.v1.AgentSharingMessages, ai.stigmer.agentic.agent.v1.AgentSharingMessages.Builder, ai.stigmer.agentic.agent.v1.AgentSharingMessagesOrBuilder>(
+                getMessages(),
+                getParentForChildren(),
+                isClean());
+        messages_ = null;
+      }
+      return messagesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentSharing)

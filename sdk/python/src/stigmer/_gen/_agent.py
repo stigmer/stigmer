@@ -276,10 +276,33 @@ class AgentSharingInput:
     """SDK input type for AgentSharing."""
 
     enabled: bool = False
+    allowed_origins: list[str] = field(default_factory=list)
+    messages: AgentSharingMessagesInput | None = None
 
     def _to_proto(self) -> spec_pb2.AgentSharing:
         msg = spec_pb2.AgentSharing(
             enabled=self.enabled,
+        )
+        if self.allowed_origins:
+            msg.allowed_origins.extend(self.allowed_origins)
+        if self.messages is not None:
+            msg.messages.CopyFrom(self.messages._to_proto())
+        return msg
+
+
+@dataclass
+class AgentSharingMessagesInput:
+    """SDK input type for AgentSharingMessages."""
+
+    rate_limited: str = ""
+    unavailable: str = ""
+    conversation_ended: str = ""
+
+    def _to_proto(self) -> spec_pb2.AgentSharingMessages:
+        msg = spec_pb2.AgentSharingMessages(
+            rate_limited=self.rate_limited,
+            unavailable=self.unavailable,
+            conversation_ended=self.conversation_ended,
         )
         return msg
 

@@ -98,6 +98,7 @@ PlatformClient supports three provisioning modes:
 - **System-managed client**: the first mint in an org lazily provisions a system-managed PlatformClient (reserved slug `system-share-client`, labeled `stigmer.ai/system-managed`). Its secret is discarded at creation — it exists only so guest JWTs carry a valid `platform_client_id`. User deletion and secret rotation on it are rejected.
 - **Guest identity**: all visitors in an org share one guest identity account (bounded cardinality). Per-visitor identity is the `guest_cookie_id` — a high-entropy bearer secret generated server-side on first mint, persisted by the hosted page in an httpOnly cookie, and echoed on subsequent mints. It scopes session/execution reads and continuation to the visitor who created them.
 - **Containment**: a guest token can only create sessions and executions against shared agents in the token's org. All other RPCs are denied, and disabling sharing immediately stops both new mints and new guest sessions.
+- **Launch-gate limits**: guest traffic is bounded by platform rate limits (per-visitor and per-org, including mints on this endpoint), a per-conversation turn limit and inactivity timeout, and a fail-closed credit check on the sharing org. A refused request carries a visitor-friendly message in the error — owners customize the copy per agent via `spec.sharing.messages`.
 
 ## Resource Definition
 

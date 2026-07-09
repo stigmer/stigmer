@@ -9,7 +9,7 @@ import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentIdSchema, UpdateAgentSharingInputSchema, GetDefaultAgentRequestSchema, SharedAgentProfileSchema, type UpdateAgentSharingInput, type GetDefaultAgentRequest, type SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, AgentSharingSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, AgentSharingMessagesSchema, AgentSharingSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -167,6 +167,15 @@ export interface EnvVarDeclarationInput {
 /** SDK input type for AgentSharing. */
 export interface AgentSharingInput {
   enabled?: boolean;
+  allowedOrigins?: string[];
+  messages?: AgentSharingMessagesInput;
+}
+
+/** SDK input type for AgentSharingMessages. */
+export interface AgentSharingMessagesInput {
+  rateLimited?: string;
+  unavailable?: string;
+  conversationEnded?: string;
 }
 
 function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
@@ -211,10 +220,20 @@ function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
   }));
 }
 
-function buildAgentSharingProto(input: AgentSharingInput) {
-  return Object.assign(create(AgentSharingSchema), stripUndefined({
-    enabled: input.enabled,
+function buildAgentSharingMessagesProto(input: AgentSharingMessagesInput) {
+  return Object.assign(create(AgentSharingMessagesSchema), stripUndefined({
+    rateLimited: input.rateLimited,
+    unavailable: input.unavailable,
+    conversationEnded: input.conversationEnded,
   }));
+}
+
+function buildAgentSharingProto(input: AgentSharingInput) {
+  const msg = create(AgentSharingSchema);
+  if (input.enabled !== undefined) msg.enabled = input.enabled;
+  if (input.allowedOrigins) msg.allowedOrigins = input.allowedOrigins;
+  if (input.messages) msg.messages = buildAgentSharingMessagesProto(input.messages);
+  return msg;
 }
 
 export function buildAgentProto(input: AgentInput): Agent {

@@ -732,6 +732,20 @@ AgentSharing controls public, anyone-with-link access to an agent's hosted chat 
 <TypeTable
   type={{
     enabled: { type: "boolean", description: "Whether anyone-with-link access to the hosted chat is enabled." },
+    allowedOrigins: { type: "string[]", description: "Origins permitted to embed this agent's chat widget." },
+    messages: { type: "AgentSharingMessagesInput", description: "Owner-customizable copy shown to visitors when a launch-gate limit refuses their message.", typeDescriptionLink: "#agentsharingmessagesinput" },
+  }}
+/>
+
+### AgentSharingMessagesInput
+
+AgentSharingMessages holds owner-customizable visitor-facing copy for shared-agent limit refusals.
+
+<TypeTable
+  type={{
+    rateLimited: { type: "string", description: "Shown when a visitor or the org exceeds the message rate limit." },
+    unavailable: { type: "string", description: "Shown when the org's credits are exhausted (sharing fails closed)." },
+    conversationEnded: { type: "string", description: "Shown when a conversation hits its turn limit or inactivity timeout." },
   }}
 />
 

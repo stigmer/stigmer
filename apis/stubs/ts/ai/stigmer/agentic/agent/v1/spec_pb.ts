@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIuwFCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkSOgoHc2hhcmluZxgIIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNoYXJpbmcaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4ASIfCgxBZ2VudFNoYXJpbmcSDwoHZW5hYmxlZBgBIAEoCCLbAgoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChI6CgptY3BfYWNjZXNzGAQgAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcEFjY2VzcxKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJItUBCg5NY3BTZXJ2ZXJVc2FnZRJYCg5tY3Bfc2VydmVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsLBIVCg1lbmFibGVkX3Rvb2xzGAIgAygJElIKF3Rvb2xfYXBwcm92YWxfb3ZlcnJpZGVzGAMgAygLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlRvb2xBcHByb3ZhbE92ZXJyaWRlIj4KCU1jcEFjY2VzcxIaCgptY3Bfc2VydmVyGAEgASgJQga6SAPIAQESFQoNZW5hYmxlZF90b29scxgCIAMoCSJeChRUb29sQXBwcm92YWxPdmVycmlkZRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESGQoRcmVxdWlyZXNfYXBwcm92YWwYAiABKAgSDwoHbWVzc2FnZRgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIuwFCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkSOgoHc2hhcmluZxgIIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNoYXJpbmcaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4ASKXAwoMQWdlbnRTaGFyaW5nEg8KB2VuYWJsZWQYASABKAgSsAIKD2FsbG93ZWRfb3JpZ2lucxgCIAMoCUKWArpIkgKSAY4CECAiiQK6AYUCChZhbGxvd2VkX29yaWdpbnMuZm9ybWF0Em5hbGxvd2VkX29yaWdpbnMgZW50cmllcyBtdXN0IGJlIGV4YWN0IHdlYiBvcmlnaW5zIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRp7dGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEkMKCG1lc3NhZ2VzGAMgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U2hhcmluZ01lc3NhZ2VzInsKFEFnZW50U2hhcmluZ01lc3NhZ2VzEh4KDHJhdGVfbGltaXRlZBgBIAEoCUIIukgFcgMYrAISHQoLdW5hdmFpbGFibGUYAiABKAlCCLpIBXIDGKwCEiQKEmNvbnZlcnNhdGlvbl9lbmRlZBgDIAEoCUIIukgFcgMYrAIi2wIKCFN1YkFnZW50EhQKBG5hbWUYASABKAlCBrpIA8gBARITCgtkZXNjcmlwdGlvbhgCIAEoCRIdCgxpbnN0cnVjdGlvbnMYAyABKAlCB7pIBHICEAoSOgoKbWNwX2FjY2VzcxgEIAMoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BBY2Nlc3MSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxIWCg5tb2RlbF9vdmVycmlkZRgGIAEoCSLVAQoOTWNwU2VydmVyVXNhZ2USWAoObWNwX3NlcnZlcl9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCCrpIA8gBAeCFLCwSFQoNZW5hYmxlZF90b29scxgCIAMoCRJSChd0b29sX2FwcHJvdmFsX292ZXJyaWRlcxgDIAMoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5Ub29sQXBwcm92YWxPdmVycmlkZSI+CglNY3BBY2Nlc3MSGgoKbWNwX3NlcnZlchgBIAEoCUIGukgDyAEBEhUKDWVuYWJsZWRfdG9vbHMYAiADKAkiXgoUVG9vbEFwcHJvdmFsT3ZlcnJpZGUSGgoJdG9vbF9uYW1lGAEgASgJQge6SARyAhABEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAIgASgIEg8KB21lc3NhZ2UYAyABKAliBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -137,6 +137,36 @@ export type AgentSharing = Message<"ai.stigmer.agentic.agent.v1.AgentSharing"> &
    * @generated from field: bool enabled = 1;
    */
   enabled: boolean;
+
+  /**
+   * Origins permitted to embed this agent's chat widget.
+   *
+   * Each entry is an exact web origin (scheme://host[:port]) with no path,
+   * for example "https://docs.example.com". The first-party hosted chat
+   * page is always exempt.
+   *
+   * @internal
+   * Storage-only in T01: enforcement (server-side Origin checks on session
+   * calls) lands with the T04 script embed. Exact origins only — loosening
+   * to wildcards later is a non-breaking change, tightening would not be.
+   *
+   * @generated from field: repeated string allowed_origins = 2;
+   */
+  allowedOrigins: string[];
+
+  /**
+   * Owner-customizable copy shown to visitors when a launch-gate limit
+   * refuses their message. Unset fields fall back to platform defaults.
+   *
+   * @internal
+   * Resolved server-side at the refusal point and carried in the gRPC
+   * status description — deliberately NOT surfaced on SharedAgentProfile
+   * and NOT mapped client-side, so the copy reaches every client (web,
+   * embed, CLI) through the existing error-message path.
+   *
+   * @generated from field: ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3;
+   */
+  messages?: AgentSharingMessages;
 };
 
 /**
@@ -145,6 +175,45 @@ export type AgentSharing = Message<"ai.stigmer.agentic.agent.v1.AgentSharing"> &
  */
 export const AgentSharingSchema: GenMessage<AgentSharing> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
+
+/**
+ * AgentSharingMessages holds owner-customizable visitor-facing copy for
+ * shared-agent limit refusals.
+ *
+ * Empty fields mean "use the platform default". Plain text only; rendered
+ * verbatim in the visitor's chat surface.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.AgentSharingMessages
+ */
+export type AgentSharingMessages = Message<"ai.stigmer.agentic.agent.v1.AgentSharingMessages"> & {
+  /**
+   * Shown when a visitor or the org exceeds the message rate limit.
+   *
+   * @generated from field: string rate_limited = 1;
+   */
+  rateLimited: string;
+
+  /**
+   * Shown when the org's credits are exhausted (sharing fails closed).
+   *
+   * @generated from field: string unavailable = 2;
+   */
+  unavailable: string;
+
+  /**
+   * Shown when a conversation hits its turn limit or inactivity timeout.
+   *
+   * @generated from field: string conversation_ended = 3;
+   */
+  conversationEnded: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.AgentSharingMessages.
+ * Use `create(AgentSharingMessagesSchema)` to create a new message.
+ */
+export const AgentSharingMessagesSchema: GenMessage<AgentSharingMessages> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
 
 /**
  * SubAgent defines a specialized agent that the parent can delegate to.
@@ -211,7 +280,7 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
  * Use `create(SubAgentSchema)` to create a new message.
  */
 export const SubAgentSchema: GenMessage<SubAgent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 3);
 
 /**
  * McpServerUsage declares that this agent uses a McpServer resource.
@@ -264,7 +333,7 @@ export type McpServerUsage = Message<"ai.stigmer.agentic.agent.v1.McpServerUsage
  * Use `create(McpServerUsageSchema)` to create a new message.
  */
 export const McpServerUsageSchema: GenMessage<McpServerUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 3);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 4);
 
 /**
  * McpAccess grants a sub-agent access to one of the parent's MCP servers.
@@ -300,7 +369,7 @@ export type McpAccess = Message<"ai.stigmer.agentic.agent.v1.McpAccess"> & {
  * Use `create(McpAccessSchema)` to create a new message.
  */
 export const McpAccessSchema: GenMessage<McpAccess> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 4);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 5);
 
 /**
  * ToolApprovalOverride allows per-agent customization of approval requirements.
@@ -354,5 +423,5 @@ export type ToolApprovalOverride = Message<"ai.stigmer.agentic.agent.v1.ToolAppr
  * Use `create(ToolApprovalOverrideSchema)` to create a new message.
  */
 export const ToolApprovalOverrideSchema: GenMessage<ToolApprovalOverride> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 5);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 6);
 

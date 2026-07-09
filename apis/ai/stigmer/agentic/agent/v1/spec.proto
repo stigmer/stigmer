@@ -86,6 +86,51 @@ message AgentSpec {
 message AgentSharing {
   // Whether anyone-with-link access to the hosted chat is enabled.
   bool enabled = 1;
+
+  // Origins permitted to embed this agent's chat widget.
+  //
+  // Each entry is an exact web origin (scheme://host[:port]) with no path,
+  // for example "https://docs.example.com". The first-party hosted chat
+  // page is always exempt.
+  //
+  // @internal
+  // Storage-only in T01: enforcement (server-side Origin checks on session
+  // calls) lands with the T04 script embed. Exact origins only — loosening
+  // to wildcards later is a non-breaking change, tightening would not be.
+  repeated string allowed_origins = 2 [
+    (buf.validate.field).repeated.max_items = 32,
+    (buf.validate.field).repeated.items.cel = {
+      id: "allowed_origins.format"
+      message: "allowed_origins entries must be exact web origins like https://example.com (no path, query, or trailing slash)"
+      expression: "this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')"
+    }
+  ];
+
+  // Owner-customizable copy shown to visitors when a launch-gate limit
+  // refuses their message. Unset fields fall back to platform defaults.
+  //
+  // @internal
+  // Resolved server-side at the refusal point and carried in the gRPC
+  // status description — deliberately NOT surfaced on SharedAgentProfile
+  // and NOT mapped client-side, so the copy reaches every client (web,
+  // embed, CLI) through the existing error-message path.
+  AgentSharingMessages messages = 3;
+}
+
+// AgentSharingMessages holds owner-customizable visitor-facing copy for
+// shared-agent limit refusals.
+//
+// Empty fields mean "use the platform default". Plain text only; rendered
+// verbatim in the visitor's chat surface.
+message AgentSharingMessages {
+  // Shown when a visitor or the org exceeds the message rate limit.
+  string rate_limited = 1 [(buf.validate.field).string.max_len = 300];
+
+  // Shown when the org's credits are exhausted (sharing fails closed).
+  string unavailable = 2 [(buf.validate.field).string.max_len = 300];
+
+  // Shown when a conversation hits its turn limit or inactivity timeout.
+  string conversation_ended = 3 [(buf.validate.field).string.max_len = 300];
 }
 
 // SubAgent defines a specialized agent that the parent can delegate to.

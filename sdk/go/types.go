@@ -35,6 +35,7 @@ type SubAgentInput = gen.SubAgentInput
 type McpAccessInput = gen.McpAccessInput
 type EnvVarDeclarationInput = gen.EnvVarDeclarationInput
 type AgentSharingInput = gen.AgentSharingInput
+type AgentSharingMessagesInput = gen.AgentSharingMessagesInput
 type AgentExecutionInput = gen.AgentExecutionInput
 type ExecutionConfigInput = gen.ExecutionConfigInput
 type ContextManagementConfigInput = gen.ContextManagementConfigInput

@@ -13,6 +13,33 @@
       },
       "description": "Whether anyone-with-link access to the hosted chat is enabled.",
       "required": false
+    },
+    {
+      "name": "AllowedOrigins",
+      "jsonName": "allowedOrigins",
+      "protoField": "allowed_origins",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Origins permitted to embed this agent's chat widget.\n\n Each entry is an exact web origin (scheme://host[:port]) with no path,\n for example \"https://docs.example.com\". The first-party hosted chat\n page is always exempt.\n\n @internal\n Storage-only in T01: enforcement (server-side Origin checks on session\n calls) lands with the T04 script embed. Exact origins only — loosening\n to wildcards later is a non-breaking change, tightening would not be.",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    },
+    {
+      "name": "Messages",
+      "jsonName": "messages",
+      "protoField": "messages",
+      "type": {
+        "kind": "message",
+        "messageType": "AgentSharingMessages"
+      },
+      "description": "Owner-customizable copy shown to visitors when a launch-gate limit\n refuses their message. Unset fields fall back to platform defaults.\n\n @internal\n Resolved server-side at the refusal point and carried in the gRPC\n status description — deliberately NOT surfaced on SharedAgentProfile\n and NOT mapped client-side, so the copy reaches every client (web,\n embed, CLI) through the existing error-message path.",
+      "required": false
     }
   ]
 }

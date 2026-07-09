@@ -6,7 +6,7 @@
 import { generateSlug, visibilityFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, AgentSharingSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, AgentSharingMessagesSchema, AgentSharingSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -84,8 +84,17 @@ const EnvVarDeclarationInputSchema = z.object({
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 
+const AgentSharingMessagesInputSchema = z.object({
+  rate_limited: z.string().optional().describe("Shown when a visitor or the org exceeds the message rate limit."),
+  unavailable: z.string().optional().describe("Shown when the org's credits are exhausted (sharing fails closed)."),
+  conversation_ended: z.string().optional().describe("Shown when a conversation hits its turn limit or inactivity timeout."),
+});
+type AgentSharingMessagesInput = z.infer<typeof AgentSharingMessagesInputSchema>;
+
 const AgentSharingInputSchema = z.object({
   enabled: z.boolean().optional().describe("Whether anyone-with-link access to the hosted chat is enabled."),
+  allowed_origins: z.array(z.string()).optional().describe("Origins permitted to embed this agent's chat widget. Each entry is an exact web origin (scheme://host[:port]) with no path, for example 'https://docs.example.com'. The first-party hosted chat page is always exempt. @internal Storage-only in T01: enforcement (server-side Origin checks on session calls) lands with the T04 script embed. Exact origins only — loosening to wildcards later is a non-breaking change, tightening would not be."),
+  messages: z.lazy(() => AgentSharingMessagesInputSchema).optional().describe("Owner-customizable copy shown to visitors when a launch-gate limit refuses their message. Unset fields fall back to platform defaults. @internal Resolved server-side at the refusal point and carried in the gRPC status description — deliberately NOT surfaced on SharedAgentProfile and NOT mapped client-side, so the copy reaches every client (web, embed, CLI) through the existing error-message path."),
 });
 type AgentSharingInput = z.infer<typeof AgentSharingInputSchema>;
 
@@ -178,9 +187,19 @@ function envVarDeclarationInputToProto(input: EnvVarDeclarationInput) {
   return result;
 }
 
+function agentSharingMessagesInputToProto(input: AgentSharingMessagesInput) {
+  const result = create(AgentSharingMessagesSchema);
+  if (input.rate_limited !== undefined) result.rateLimited = input.rate_limited;
+  if (input.unavailable !== undefined) result.unavailable = input.unavailable;
+  if (input.conversation_ended !== undefined) result.conversationEnded = input.conversation_ended;
+  return result;
+}
+
 function agentSharingInputToProto(input: AgentSharingInput) {
   const result = create(AgentSharingSchema);
   if (input.enabled !== undefined) result.enabled = input.enabled;
+  if (input.allowed_origins !== undefined) result.allowedOrigins = input.allowed_origins;
+  if (input.messages !== undefined) result.messages = agentSharingMessagesInputToProto(input.messages);
   return result;
 }
 

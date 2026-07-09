@@ -19,4 +19,129 @@ public interface AgentSharingOrBuilder extends
    * @return The enabled.
    */
   boolean getEnabled();
+
+  /**
+   * <pre>
+   * Origins permitted to embed this agent's chat widget.
+   *
+   * Each entry is an exact web origin (scheme://host[:port]) with no path,
+   * for example "https://docs.example.com". The first-party hosted chat
+   * page is always exempt.
+   *
+   * &#64;internal
+   * Storage-only in T01: enforcement (server-side Origin checks on session
+   * calls) lands with the T04 script embed. Exact origins only — loosening
+   * to wildcards later is a non-breaking change, tightening would not be.
+   * </pre>
+   *
+   * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the allowedOrigins.
+   */
+  java.util.List<java.lang.String>
+      getAllowedOriginsList();
+  /**
+   * <pre>
+   * Origins permitted to embed this agent's chat widget.
+   *
+   * Each entry is an exact web origin (scheme://host[:port]) with no path,
+   * for example "https://docs.example.com". The first-party hosted chat
+   * page is always exempt.
+   *
+   * &#64;internal
+   * Storage-only in T01: enforcement (server-side Origin checks on session
+   * calls) lands with the T04 script embed. Exact origins only — loosening
+   * to wildcards later is a non-breaking change, tightening would not be.
+   * </pre>
+   *
+   * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+   * @return The count of allowedOrigins.
+   */
+  int getAllowedOriginsCount();
+  /**
+   * <pre>
+   * Origins permitted to embed this agent's chat widget.
+   *
+   * Each entry is an exact web origin (scheme://host[:port]) with no path,
+   * for example "https://docs.example.com". The first-party hosted chat
+   * page is always exempt.
+   *
+   * &#64;internal
+   * Storage-only in T01: enforcement (server-side Origin checks on session
+   * calls) lands with the T04 script embed. Exact origins only — loosening
+   * to wildcards later is a non-breaking change, tightening would not be.
+   * </pre>
+   *
+   * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The allowedOrigins at the given index.
+   */
+  java.lang.String getAllowedOrigins(int index);
+  /**
+   * <pre>
+   * Origins permitted to embed this agent's chat widget.
+   *
+   * Each entry is an exact web origin (scheme://host[:port]) with no path,
+   * for example "https://docs.example.com". The first-party hosted chat
+   * page is always exempt.
+   *
+   * &#64;internal
+   * Storage-only in T01: enforcement (server-side Origin checks on session
+   * calls) lands with the T04 script embed. Exact origins only — loosening
+   * to wildcards later is a non-breaking change, tightening would not be.
+   * </pre>
+   *
+   * <code>repeated string allowed_origins = 2 [json_name = "allowedOrigins", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the allowedOrigins at the given index.
+   */
+  com.google.protobuf.ByteString
+      getAllowedOriginsBytes(int index);
+
+  /**
+   * <pre>
+   * Owner-customizable copy shown to visitors when a launch-gate limit
+   * refuses their message. Unset fields fall back to platform defaults.
+   *
+   * &#64;internal
+   * Resolved server-side at the refusal point and carried in the gRPC
+   * status description — deliberately NOT surfaced on SharedAgentProfile
+   * and NOT mapped client-side, so the copy reaches every client (web,
+   * embed, CLI) through the existing error-message path.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+   * @return Whether the messages field is set.
+   */
+  boolean hasMessages();
+  /**
+   * <pre>
+   * Owner-customizable copy shown to visitors when a launch-gate limit
+   * refuses their message. Unset fields fall back to platform defaults.
+   *
+   * &#64;internal
+   * Resolved server-side at the refusal point and carried in the gRPC
+   * status description — deliberately NOT surfaced on SharedAgentProfile
+   * and NOT mapped client-side, so the copy reaches every client (web,
+   * embed, CLI) through the existing error-message path.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+   * @return The messages.
+   */
+  ai.stigmer.agentic.agent.v1.AgentSharingMessages getMessages();
+  /**
+   * <pre>
+   * Owner-customizable copy shown to visitors when a launch-gate limit
+   * refuses their message. Unset fields fall back to platform defaults.
+   *
+   * &#64;internal
+   * Resolved server-side at the refusal point and carried in the gRPC
+   * status description — deliberately NOT surfaced on SharedAgentProfile
+   * and NOT mapped client-side, so the copy reaches every client (web,
+   * embed, CLI) through the existing error-message path.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
+   */
+  ai.stigmer.agentic.agent.v1.AgentSharingMessagesOrBuilder getMessagesOrBuilder();
 }

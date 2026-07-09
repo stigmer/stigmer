@@ -38,10 +38,24 @@ class AgentSpec(_message.Message):
     def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., sharing: _Optional[_Union[AgentSharing, _Mapping]] = ...) -> None: ...
 
 class AgentSharing(_message.Message):
-    __slots__ = ("enabled",)
+    __slots__ = ("enabled", "allowed_origins", "messages")
     ENABLED_FIELD_NUMBER: _ClassVar[int]
+    ALLOWED_ORIGINS_FIELD_NUMBER: _ClassVar[int]
+    MESSAGES_FIELD_NUMBER: _ClassVar[int]
     enabled: bool
-    def __init__(self, enabled: bool = ...) -> None: ...
+    allowed_origins: _containers.RepeatedScalarFieldContainer[str]
+    messages: AgentSharingMessages
+    def __init__(self, enabled: bool = ..., allowed_origins: _Optional[_Iterable[str]] = ..., messages: _Optional[_Union[AgentSharingMessages, _Mapping]] = ...) -> None: ...
+
+class AgentSharingMessages(_message.Message):
+    __slots__ = ("rate_limited", "unavailable", "conversation_ended")
+    RATE_LIMITED_FIELD_NUMBER: _ClassVar[int]
+    UNAVAILABLE_FIELD_NUMBER: _ClassVar[int]
+    CONVERSATION_ENDED_FIELD_NUMBER: _ClassVar[int]
+    rate_limited: str
+    unavailable: str
+    conversation_ended: str
+    def __init__(self, rate_limited: _Optional[str] = ..., unavailable: _Optional[str] = ..., conversation_ended: _Optional[str] = ...) -> None: ...
 
 class SubAgent(_message.Message):
     __slots__ = ("name", "description", "instructions", "mcp_access", "skill_refs", "model_override")

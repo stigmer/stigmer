@@ -2,7 +2,7 @@
 
 from ._bidi import BidiStream
 from ._client import GeneratedClient
-from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput, AgentSharingInput
+from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput, AgentSharingInput, AgentSharingMessagesInput
 from ._agentexecution import AgentExecutionClient, AgentExecutionInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
 from ._apikey import ApiKeyClient, ApiKeyInput
@@ -52,6 +52,7 @@ __all__ = [
     "McpAccessInput",
     "EnvVarDeclarationInput",
     "AgentSharingInput",
+    "AgentSharingMessagesInput",
     "AgentExecutionClient",
     "AgentExecutionInput",
     "ExecutionConfigInput",

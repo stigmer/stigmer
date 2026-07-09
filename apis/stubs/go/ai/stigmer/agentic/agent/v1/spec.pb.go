@@ -174,7 +174,27 @@ func (x *AgentSpec) GetSharing() *AgentSharing {
 type AgentSharing struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether anyone-with-link access to the hosted chat is enabled.
-	Enabled       bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// Origins permitted to embed this agent's chat widget.
+	//
+	// Each entry is an exact web origin (scheme://host[:port]) with no path,
+	// for example "https://docs.example.com". The first-party hosted chat
+	// page is always exempt.
+	//
+	// @internal
+	// Storage-only in T01: enforcement (server-side Origin checks on session
+	// calls) lands with the T04 script embed. Exact origins only — loosening
+	// to wildcards later is a non-breaking change, tightening would not be.
+	AllowedOrigins []string `protobuf:"bytes,2,rep,name=allowed_origins,json=allowedOrigins,proto3" json:"allowed_origins,omitempty"`
+	// Owner-customizable copy shown to visitors when a launch-gate limit
+	// refuses their message. Unset fields fall back to platform defaults.
+	//
+	// @internal
+	// Resolved server-side at the refusal point and carried in the gRPC
+	// status description — deliberately NOT surfaced on SharedAgentProfile
+	// and NOT mapped client-side, so the copy reaches every client (web,
+	// embed, CLI) through the existing error-message path.
+	Messages      *AgentSharingMessages `protobuf:"bytes,3,opt,name=messages,proto3" json:"messages,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -216,6 +236,88 @@ func (x *AgentSharing) GetEnabled() bool {
 	return false
 }
 
+func (x *AgentSharing) GetAllowedOrigins() []string {
+	if x != nil {
+		return x.AllowedOrigins
+	}
+	return nil
+}
+
+func (x *AgentSharing) GetMessages() *AgentSharingMessages {
+	if x != nil {
+		return x.Messages
+	}
+	return nil
+}
+
+// AgentSharingMessages holds owner-customizable visitor-facing copy for
+// shared-agent limit refusals.
+//
+// Empty fields mean "use the platform default". Plain text only; rendered
+// verbatim in the visitor's chat surface.
+type AgentSharingMessages struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Shown when a visitor or the org exceeds the message rate limit.
+	RateLimited string `protobuf:"bytes,1,opt,name=rate_limited,json=rateLimited,proto3" json:"rate_limited,omitempty"`
+	// Shown when the org's credits are exhausted (sharing fails closed).
+	Unavailable string `protobuf:"bytes,2,opt,name=unavailable,proto3" json:"unavailable,omitempty"`
+	// Shown when a conversation hits its turn limit or inactivity timeout.
+	ConversationEnded string `protobuf:"bytes,3,opt,name=conversation_ended,json=conversationEnded,proto3" json:"conversation_ended,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *AgentSharingMessages) Reset() {
+	*x = AgentSharingMessages{}
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentSharingMessages) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentSharingMessages) ProtoMessage() {}
+
+func (x *AgentSharingMessages) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentSharingMessages.ProtoReflect.Descriptor instead.
+func (*AgentSharingMessages) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *AgentSharingMessages) GetRateLimited() string {
+	if x != nil {
+		return x.RateLimited
+	}
+	return ""
+}
+
+func (x *AgentSharingMessages) GetUnavailable() string {
+	if x != nil {
+		return x.Unavailable
+	}
+	return ""
+}
+
+func (x *AgentSharingMessages) GetConversationEnded() string {
+	if x != nil {
+		return x.ConversationEnded
+	}
+	return ""
+}
+
 // SubAgent defines a specialized agent that the parent can delegate to.
 //
 // A sub-agent can only access MCP servers that the parent has in
@@ -248,7 +350,7 @@ type SubAgent struct {
 
 func (x *SubAgent) Reset() {
 	*x = SubAgent{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -260,7 +362,7 @@ func (x *SubAgent) String() string {
 func (*SubAgent) ProtoMessage() {}
 
 func (x *SubAgent) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -273,7 +375,7 @@ func (x *SubAgent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubAgent.ProtoReflect.Descriptor instead.
 func (*SubAgent) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SubAgent) GetName() string {
@@ -351,7 +453,7 @@ type McpServerUsage struct {
 
 func (x *McpServerUsage) Reset() {
 	*x = McpServerUsage{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -363,7 +465,7 @@ func (x *McpServerUsage) String() string {
 func (*McpServerUsage) ProtoMessage() {}
 
 func (x *McpServerUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -376,7 +478,7 @@ func (x *McpServerUsage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use McpServerUsage.ProtoReflect.Descriptor instead.
 func (*McpServerUsage) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *McpServerUsage) GetMcpServerRef() *apiresource.ApiResourceReference {
@@ -421,7 +523,7 @@ type McpAccess struct {
 
 func (x *McpAccess) Reset() {
 	*x = McpAccess{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -433,7 +535,7 @@ func (x *McpAccess) String() string {
 func (*McpAccess) ProtoMessage() {}
 
 func (x *McpAccess) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -446,7 +548,7 @@ func (x *McpAccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use McpAccess.ProtoReflect.Descriptor instead.
 func (*McpAccess) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *McpAccess) GetMcpServer() string {
@@ -497,7 +599,7 @@ type ToolApprovalOverride struct {
 
 func (x *ToolApprovalOverride) Reset() {
 	*x = ToolApprovalOverride{}
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -509,7 +611,7 @@ func (x *ToolApprovalOverride) String() string {
 func (*ToolApprovalOverride) ProtoMessage() {}
 
 func (x *ToolApprovalOverride) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -522,7 +624,7 @@ func (x *ToolApprovalOverride) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolApprovalOverride.ProtoReflect.Descriptor instead.
 func (*ToolApprovalOverride) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ToolApprovalOverride) GetToolName() string {
@@ -567,9 +669,16 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\asharing\x18\b \x01(\v2).ai.stigmer.agentic.agent.v1.AgentSharingR\asharing\x1al\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
-	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01\"(\n" +
+	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01\"\xba\x03\n" +
 	"\fAgentSharing\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\"\xa1\x03\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\xc0\x02\n" +
+	"\x0fallowed_origins\x18\x02 \x03(\tB\x96\x02\xbaH\x92\x02\x92\x01\x8e\x02\x10 \"\x89\x02\xba\x01\x85\x02\n" +
+	"\x16allowed_origins.format\x12nallowed_origins entries must be exact web origins like https://example.com (no path, query, or trailing slash)\x1a{this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\x0eallowedOrigins\x12M\n" +
+	"\bmessages\x18\x03 \x01(\v21.ai.stigmer.agentic.agent.v1.AgentSharingMessagesR\bmessages\"\xa8\x01\n" +
+	"\x14AgentSharingMessages\x12+\n" +
+	"\frate_limited\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\vrateLimited\x12*\n" +
+	"\vunavailable\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\vunavailable\x127\n" +
+	"\x12conversation_ended\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\x11conversationEnded\"\xa1\x03\n" +
 	"\bSubAgent\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12+\n" +
@@ -608,34 +717,36 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*AgentSpec)(nil),                        // 0: ai.stigmer.agentic.agent.v1.AgentSpec
 	(*AgentSharing)(nil),                     // 1: ai.stigmer.agentic.agent.v1.AgentSharing
-	(*SubAgent)(nil),                         // 2: ai.stigmer.agentic.agent.v1.SubAgent
-	(*McpServerUsage)(nil),                   // 3: ai.stigmer.agentic.agent.v1.McpServerUsage
-	(*McpAccess)(nil),                        // 4: ai.stigmer.agentic.agent.v1.McpAccess
-	(*ToolApprovalOverride)(nil),             // 5: ai.stigmer.agentic.agent.v1.ToolApprovalOverride
-	nil,                                      // 6: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
-	(*apiresource.ApiResourceReference)(nil), // 7: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvVarDeclaration)(nil),             // 8: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*AgentSharingMessages)(nil),             // 2: ai.stigmer.agentic.agent.v1.AgentSharingMessages
+	(*SubAgent)(nil),                         // 3: ai.stigmer.agentic.agent.v1.SubAgent
+	(*McpServerUsage)(nil),                   // 4: ai.stigmer.agentic.agent.v1.McpServerUsage
+	(*McpAccess)(nil),                        // 5: ai.stigmer.agentic.agent.v1.McpAccess
+	(*ToolApprovalOverride)(nil),             // 6: ai.stigmer.agentic.agent.v1.ToolApprovalOverride
+	nil,                                      // 7: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	(*apiresource.ApiResourceReference)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvVarDeclaration)(nil),             // 9: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
-	3,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
-	7,  // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2,  // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
-	6,  // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	4,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
+	8,  // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3,  // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
+	7,  // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
 	1,  // 4: ai.stigmer.agentic.agent.v1.AgentSpec.sharing:type_name -> ai.stigmer.agentic.agent.v1.AgentSharing
-	4,  // 5: ai.stigmer.agentic.agent.v1.SubAgent.mcp_access:type_name -> ai.stigmer.agentic.agent.v1.McpAccess
-	7,  // 6: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	7,  // 7: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5,  // 8: ai.stigmer.agentic.agent.v1.McpServerUsage.tool_approval_overrides:type_name -> ai.stigmer.agentic.agent.v1.ToolApprovalOverride
-	8,  // 9: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	2,  // 5: ai.stigmer.agentic.agent.v1.AgentSharing.messages:type_name -> ai.stigmer.agentic.agent.v1.AgentSharingMessages
+	5,  // 6: ai.stigmer.agentic.agent.v1.SubAgent.mcp_access:type_name -> ai.stigmer.agentic.agent.v1.McpAccess
+	8,  // 7: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	8,  // 8: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	6,  // 9: ai.stigmer.agentic.agent.v1.McpServerUsage.tool_approval_overrides:type_name -> ai.stigmer.agentic.agent.v1.ToolApprovalOverride
+	9,  // 10: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }
@@ -649,7 +760,7 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

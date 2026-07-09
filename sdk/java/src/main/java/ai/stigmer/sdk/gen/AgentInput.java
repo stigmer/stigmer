@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentSharing;
+import ai.stigmer.agentic.agent.v1.AgentSharingMessages;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
 import ai.stigmer.agentic.agent.v1.McpAccess;
 import ai.stigmer.agentic.agent.v1.McpServerUsage;
@@ -371,14 +372,24 @@ public final class AgentInput {
     /** SDK input type for AgentSharing. */
     public static final class AgentSharingInput {
         private final boolean enabled;
+        private final java.util.List<String> allowedOrigins;
+        private final AgentSharingMessagesInput messages;
 
         private AgentSharingInput(Builder builder) {
             this.enabled = builder.enabled;
+            this.allowedOrigins = builder.allowedOrigins;
+            this.messages = builder.messages;
         }
 
         AgentSharing toProto() {
             AgentSharing.Builder builder = AgentSharing.newBuilder();
             builder.setEnabled(this.enabled);
+            if (this.allowedOrigins != null) {
+                builder.addAllAllowedOrigins(this.allowedOrigins);
+            }
+            if (this.messages != null) {
+                builder.setMessages(this.messages.toProto());
+            }
             return builder.build();
         }
 
@@ -386,12 +397,59 @@ public final class AgentInput {
 
         public static final class Builder {
             private boolean enabled;
+            private java.util.List<String> allowedOrigins;
+            private AgentSharingMessagesInput messages;
 
             private Builder() {}
 
             public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
+            public Builder allowedOrigins(java.util.List<String> allowedOrigins) { this.allowedOrigins = allowedOrigins; return this; }
+            public Builder messages(AgentSharingMessagesInput messages) { this.messages = messages; return this; }
 
             public AgentSharingInput build() { return new AgentSharingInput(this); }
+        }
+    }
+
+    /** SDK input type for AgentSharingMessages. */
+    public static final class AgentSharingMessagesInput {
+        private final String rateLimited;
+        private final String unavailable;
+        private final String conversationEnded;
+
+        private AgentSharingMessagesInput(Builder builder) {
+            this.rateLimited = builder.rateLimited;
+            this.unavailable = builder.unavailable;
+            this.conversationEnded = builder.conversationEnded;
+        }
+
+        AgentSharingMessages toProto() {
+            AgentSharingMessages.Builder builder = AgentSharingMessages.newBuilder();
+            if (this.rateLimited != null) {
+                builder.setRateLimited(this.rateLimited);
+            }
+            if (this.unavailable != null) {
+                builder.setUnavailable(this.unavailable);
+            }
+            if (this.conversationEnded != null) {
+                builder.setConversationEnded(this.conversationEnded);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String rateLimited;
+            private String unavailable;
+            private String conversationEnded;
+
+            private Builder() {}
+
+            public Builder rateLimited(String rateLimited) { this.rateLimited = rateLimited; return this; }
+            public Builder unavailable(String unavailable) { this.unavailable = unavailable; return this; }
+            public Builder conversationEnded(String conversationEnded) { this.conversationEnded = conversationEnded; return this; }
+
+            public AgentSharingMessagesInput build() { return new AgentSharingMessagesInput(this); }
         }
     }
 }
