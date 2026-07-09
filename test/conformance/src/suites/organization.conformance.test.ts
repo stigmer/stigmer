@@ -57,10 +57,13 @@ async function countOrganizations(): Promise<number> {
 }
 
 describe("Organization conformance", () => {
-  it("create assigns an org_ id and records a created audit event", async () => {
+  it("create sets id equal to slug and records a created audit event", async () => {
     const created = await createOrg(uniqueName("org"));
 
-    expect(created.metadata?.id, "create should assign a prefixed id").toMatch(/^org_[0-9a-z]+$/);
+    // Organization is the one resource whose id is its slug (the globally unique
+    // tenancy root is addressed by slug, not a minted id). This holds uniformly
+    // across local-go and cloud targets.
+    expect(created.metadata?.id, "org id should equal its slug").toBe(created.metadata?.slug);
     expect(created.status?.audit?.specAudit?.event).toBe("created");
   });
 

@@ -37,6 +37,10 @@ type ApiResourceMetadata struct {
 	// the server derives the slug from the name.
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
 	// System-generated unique identifier.
+	//
+	// For every kind this is a generated, prefixed id (e.g. agt_<ulid>). The one
+	// exception is Organization: its id equals its slug (the globally unique
+	// tenancy root is addressed by slug, not a minted id).
 	Id string `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
 	// Organization that owns this resource.
 	// In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).

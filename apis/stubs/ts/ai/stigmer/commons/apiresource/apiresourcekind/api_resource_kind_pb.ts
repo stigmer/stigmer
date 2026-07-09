@@ -253,6 +253,13 @@ export enum ApiResourceKind {
   /**
    * Top-level tenant that owns and manages resources.
    *
+   * Organization is the one resource whose metadata.id equals its metadata.slug
+   * (set by the create pipeline), not a minted org_<ulid>. It is the immutable,
+   * globally unique tenancy root that every child resource references by slug
+   * (metadata.org), so its slug is globally unique and doubles as its id.
+   * id_prefix below is retained deliberately: it still anchors legacy org_<ulid>
+   * records and the CLI's id-vs-slug detection — it is not used to mint new ids.
+   *
    * @generated from enum value: organization = 30;
    */
   organization = 30,

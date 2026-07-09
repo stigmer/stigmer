@@ -65,6 +65,10 @@ public interface ApiResourceMetadataOrBuilder extends
   /**
    * <pre>
    * System-generated unique identifier.
+   *
+   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
+   * exception is Organization: its id equals its slug (the globally unique
+   * tenancy root is addressed by slug, not a minted id).
    * </pre>
    *
    * <code>string id = 3 [json_name = "id"];</code>
@@ -74,6 +78,10 @@ public interface ApiResourceMetadataOrBuilder extends
   /**
    * <pre>
    * System-generated unique identifier.
+   *
+   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
+   * exception is Organization: its id equals its slug (the globally unique
+   * tenancy root is addressed by slug, not a minted id).
    * </pre>
    *
    * <code>string id = 3 [json_name = "id"];</code>

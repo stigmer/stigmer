@@ -45,6 +45,10 @@ export type ApiResourceMetadata = Message<"ai.stigmer.commons.apiresource.ApiRes
   /**
    * System-generated unique identifier.
    *
+   * For every kind this is a generated, prefixed id (e.g. agt_<ulid>). The one
+   * exception is Organization: its id equals its slug (the globally unique
+   * tenancy root is addressed by slug, not a minted id).
+   *
    * @generated from field: string id = 3;
    */
   id: string;
