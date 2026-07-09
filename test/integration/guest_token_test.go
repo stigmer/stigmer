@@ -464,6 +464,56 @@ func TestGuestToken_Malformed(t *testing.T) {
 		"tampered token must never act as a guest, got %s", st.Code())
 }
 
+// swapRunnerForGuestSandbox restarts the suite's shared static runner with a
+// session-scoped sandbox token, reproducing what the production
+// EnsureSessionSandboxStep injects into a provisioned sandbox: the runner
+// authenticates as the session creator (here, the per-org guest identity
+// account) with `session_id` + `token_type=sandbox` claims.
+//
+// This fidelity matters for guest sessions: the shared runner's fixed
+// test-identity token holds no FGA tuples on guest-owned executions, so
+// without the swap every status read/update — and the decision-004
+// blueprint-read elevation, which requires a sandbox token — is denied.
+// The shared runner is restored on cleanup so later tests are unaffected.
+func swapRunnerForGuestSandbox(t *testing.T, guestAccountID, sessionID string) {
+	t.Helper()
+	require.NotNil(t, testHarness.UnifiedRunner, "shared unified runner must be available")
+
+	sandboxToken, err := harness.MintSandboxToken(guestAccountID, sessionID)
+	require.NoError(t, err, "mint sandbox token for guest session")
+
+	shared := testHarness.UnifiedRunner
+	queue := shared.TaskQueue()
+	baseCfg := shared.Cfg()
+
+	require.NoError(t, shared.Stop(), "stop shared runner")
+	testHarness.UnifiedRunner = nil
+
+	guestCfg := baseCfg
+	// ExtraEnv entries are appended last and win over the defaults —
+	// including the proxy branch's own STIGMER_TOKEN (the fixed runner
+	// identity), which is exactly what this swap must displace.
+	guestCfg.ExtraEnv = append(append([]string{}, baseCfg.ExtraEnv...),
+		"STIGMER_TOKEN="+sandboxToken)
+
+	startCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	guestRunner, err := harness.StartUnifiedRunnerStatic(startCtx, guestCfg, queue, suiteLogger)
+	require.NoError(t, err, "start guest-sandbox runner")
+
+	t.Cleanup(func() {
+		_ = guestRunner.Stop()
+		restoreCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		restored, restoreErr := harness.StartUnifiedRunnerStatic(restoreCtx, baseCfg, queue, suiteLogger)
+		if restoreErr != nil {
+			t.Logf("WARNING: failed to restore shared unified runner: %v", restoreErr)
+			return
+		}
+		testHarness.UnifiedRunner = restored
+	})
+}
+
 // TestGuestToken_EndToEnd_SkillCitedAnswer is the full-runtime proof: a
 // guest mints a token, creates a session and execution against a shared
 // knowledge agent, and receives a completed, skill-informed answer. This
@@ -511,6 +561,12 @@ func TestGuestToken_EndToEnd_SkillCitedAnswer(t *testing.T) {
 				},
 			})
 			require.NoError(t, err, "guest session create should succeed")
+
+			// The guest token's sub IS the per-org guest identity account —
+			// production sandboxes for this session run as that account.
+			guestAccountID, _ := jwtClaims(t, minted.GetAccessToken())["sub"].(string)
+			require.NotEmpty(t, guestAccountID, "guest JWT must carry the guest account as sub")
+			swapRunnerForGuestSandbox(t, guestAccountID, session.GetMetadata().GetId())
 
 			exec, err := guest.AgentExecutionCommand.Create(ctx, &agentexecv1.AgentExecution{
 				ApiVersion: "agentic.stigmer.ai/v1",

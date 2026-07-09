@@ -25,7 +25,7 @@ import { loadRuntimeConfig } from "@/config/runtime-config";
  * Each public page creates its own StigmerProvider (unauthenticated for
  * the initial load, optionally authenticated after an OIDC return).
  */
-const PUBLIC_ROUTES = ["/login", "/invite/"] as const;
+const PUBLIC_ROUTES = ["/login", "/invite/", "/chat/"] as const;
 
 const queryClient = new QueryClient({
   defaultOptions: {

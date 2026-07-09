@@ -13,6 +13,14 @@ export {
 // Configuration
 export { type StigmerConfig, type TokenProvider } from "./config.js";
 
+// Guest auth (shared-agent pages and embeds; browser-safe, credential-free)
+export {
+  createGuestAuth,
+  GuestAuth,
+  type GuestAuthConfig,
+  type GuestIdStorage,
+} from "./guest-auth.js";
+
 // Error handling
 export {
   StigmerError,

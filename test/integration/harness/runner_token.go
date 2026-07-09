@@ -53,6 +53,32 @@ func MintStigmerToken(keyBase64, kid, sub string) (string, error) {
 // drive the audience-binding paths: a matching aud verifies, while an aud naming
 // another environment is rejected as a misrouted (foreign) token.
 func MintStigmerTokenWithAudience(keyBase64, kid, sub, audience string) (string, error) {
+	return mintStigmerToken(keyBase64, kid, sub, audience, nil)
+}
+
+// MintSandboxToken signs a session-scoped sandbox JWT, matching what the Java
+// service's SandboxTokenService.mintForSession injects into a provisioned
+// sandbox in production: sub = the session creator's identity account,
+// session_id = the session the sandbox serves, token_type = "sandbox".
+//
+// The static-mode unified runner boots with one fixed identity token, which
+// is fine when the test identity account owns every execution but wrong for
+// guest sessions — those are FGA-owned by the per-org guest account, so the
+// runner must present this sandbox identity (ownership grants the execution
+// reads/updates; the session-scoped elevation grants the blueprint reads).
+// Guest runtime tests restart the static runner with this token to reproduce
+// the production sandbox faithfully.
+func MintSandboxToken(sub, sessionID string) (string, error) {
+	return mintStigmerToken(StigmerJWTSigningKeyBase64, "stigmer-signing-key-1", sub, "",
+		map[string]any{
+			"session_id": sessionID,
+			"token_type": "sandbox",
+		})
+}
+
+// mintStigmerToken is the shared signing core: base claims (iss/sub/org/exp)
+// plus an optional audience and arbitrary extra claims.
+func mintStigmerToken(keyBase64, kid, sub, audience string, extraClaims map[string]any) (string, error) {
 	keyBytes, err := base64.StdEncoding.DecodeString(keyBase64)
 	if err != nil {
 		return "", fmt.Errorf("decode signing key: %w", err)
@@ -75,6 +101,9 @@ func MintStigmerTokenWithAudience(keyBase64, kid, sub, audience string) (string,
 	}
 	if audience != "" {
 		claims["aud"] = audience
+	}
+	for k, v := range extraClaims {
+		claims[k] = v
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)

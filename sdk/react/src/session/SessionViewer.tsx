@@ -209,8 +209,15 @@ export interface SessionViewerProps {
    * session-variable configuration in both the composer and the
    * inspector's Setup tab — for product-embedded chat where the agent
    * is configured upstream by the platform. The model selector,
-   * interaction mode, attachments, and workspace picker remain. See
-   * {@link SessionAudience}.
+   * interaction mode, attachments, and workspace picker remain.
+   *
+   * `"guest"` (anonymous visitor with a guest token) is pure chat: it
+   * additionally hides the model/mode pickers, attachments, the
+   * workspace picker, and the session panel, and skips the org-level
+   * reads a guest principal cannot make — follow-ups simply continue
+   * on the session's bound agent instance.
+   *
+   * See {@link SessionAudience}.
    *
    * @default "integrator"
    */
@@ -303,9 +310,12 @@ export function SessionViewer({
   threadSlots,
   className,
 }: SessionViewerProps) {
-  const flow = useSessionPageFlow({ sessionId, org, getRuntimeEnv });
+  const flow = useSessionPageFlow({ sessionId, org, getRuntimeEnv, audience });
   const { conv } = flow;
-  const isEndUser = audience === "endUser";
+  const isGuest = audience === "guest";
+  // Both curated audiences (endUser, guest) lock the agent and hide the
+  // integrator configuration; guest adds its own restrictions below.
+  const isCurated = audience !== "integrator";
 
   const [modelId, setModelId] = flow.model;
   const [interactionMode, setInteractionMode] = flow.interactionMode;
@@ -391,7 +401,9 @@ export function SessionViewer({
   const panel = useSessionPanel({
     phase: hasPhase ? phase : null,
     hasChanges: hasWriteBacks,
-    planKey: panelPlanKey,
+    // A streaming plan auto-opens the panel via its key — but guests have
+    // no panel, so the trigger is suppressed along with the chip.
+    planKey: isGuest ? null : panelPlanKey,
   });
 
   const handleBuildFromPlan = useCallback(() => {
@@ -504,6 +516,10 @@ export function SessionViewer({
   // (which subscribes), never this streaming column.
   const handleTranscriptFilePathClick = useCallback(
     (path: string): boolean => {
+      // Guests have no panel (and no file viewer), so paths keep their
+      // default copy behavior instead of opening a surface that cannot
+      // render.
+      if (isGuest) return false;
       const selection = resolveWorkspaceFileSelection(
         path,
         flow.workspace.entries,
@@ -513,7 +529,7 @@ export function SessionViewer({
       panel.openFile(selection.entryId, selection.path);
       return true;
     },
-    [flow.workspace.entries, flow.sandboxWorkspaceRoot, panel.openFile],
+    [isGuest, flow.workspace.entries, flow.sandboxWorkspaceRoot, panel.openFile],
   );
 
   if (conv.isLoading) {
@@ -537,14 +553,18 @@ export function SessionViewer({
       {/* Top-right controls: host actions + the panel chip. The chip is the
           panel's always-mounted toggle; while collapsed it carries only the
           pending-item count. Execution status is never surfaced as header
-          chrome — the thread itself communicates run state. */}
+          chrome — the thread itself communicates run state. Guests get no
+          chip: the panel exposes session configuration a visitor has no
+          business with, so its only toggle is simply absent. */}
       <div className="absolute top-2 right-6 z-10 flex items-center gap-2">
         {headerActions}
-        <SessionPanelChip
-          isOpen={panel.isOpen}
-          onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
-          badgeCount={writeBackCount + artifactCount}
-        />
+        {!isGuest && (
+          <SessionPanelChip
+            isOpen={panel.isOpen}
+            onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
+            badgeCount={writeBackCount + artifactCount}
+          />
+        )}
       </div>
 
       <ThreadSelectionContext.Provider value={selectionStore}>
@@ -583,12 +603,13 @@ export function SessionViewer({
               planAttachFailed={planAttachFailed}
               onDismissPlanAttachFailed={() => setPlanAttachFailed(false)}
               onFilePathClick={handleTranscriptFilePathClick}
-              isEndUser={isEndUser}
+              isCurated={isCurated}
+              isGuest={isGuest}
               threadSlots={threadSlots}
             />
           }
           secondary={
-            panel.isOpen ? (
+            panel.isOpen && !isGuest ? (
               <SessionPanelRegion
                 flow={flow}
                 org={org}
@@ -609,7 +630,7 @@ export function SessionViewer({
                 workspaceFileLister={workspaceFileLister}
                 workspaceFileReader={workspaceFileReader}
                 workspaceContentSearcher={workspaceContentSearcher}
-                isEndUser={isEndUser}
+                isCurated={isCurated}
               />
             ) : null
           }
@@ -649,7 +670,10 @@ interface ConversationColumnProps {
    * let the path keep its copy / GitHub-link behavior.
    */
   readonly onFilePathClick: (path: string) => boolean;
-  readonly isEndUser: boolean;
+  /** Curated audience (endUser or guest): locked agent, no integrator pickers. */
+  readonly isCurated: boolean;
+  /** Guest audience: pure chat — additionally no model picker, mode picker, attachments, or workspace. */
+  readonly isGuest: boolean;
   readonly threadSlots?: MessageThreadSlots;
 }
 
@@ -671,7 +695,8 @@ const ConversationColumn = memo(function ConversationColumn({
   planAttachFailed,
   onDismissPlanAttachFailed,
   onFilePathClick,
-  isEndUser,
+  isCurated,
+  isGuest,
   threadSlots,
 }: ConversationColumnProps) {
   const { conv } = flow;
@@ -839,22 +864,27 @@ const ConversationColumn = memo(function ConversationColumn({
           onModelChange={setModelId}
           interactionMode={interactionMode}
           onInteractionModeChange={setInteractionMode}
-          showInteractionModePicker
-          workspace={flow.workspace}
-          gitHubConnection={gitHubConnection}
-          enableGitHub={enableGitHub}
-          enableLocal={enableLocal}
+          showInteractionModePicker={!isGuest}
+          showModelSelector={!isGuest}
+          enableAttachments={!isGuest}
+          workspace={isGuest ? undefined : flow.workspace}
+          gitHubConnection={isGuest ? undefined : gitHubConnection}
+          enableGitHub={enableGitHub && !isGuest}
+          enableLocal={enableLocal && !isGuest}
           onBrowseLocalFolder={onBrowseLocalFolder}
           agentRef={flow.agentRef}
-          onAgentRefChange={flow.setAgentRef}
-          onAgentResolutionChange={flow.setResolution}
+          // Guests get no agent machinery: the session's agent is already
+          // bound server-side, and the picker's resolution path performs
+          // org reads a guest token cannot make.
+          onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
+          onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
           isDefaultAgent={flow.isDefaultAgent}
-          lockAgent={isEndUser}
-          mcpServerUsages={isEndUser ? undefined : flow.mcpServerUsages}
-          onMcpServerUsagesChange={isEndUser ? undefined : flow.setMcpServerUsages}
-          skillRefs={isEndUser ? undefined : flow.skillRefs}
-          onSkillRefsChange={isEndUser ? undefined : flow.setSkillRefs}
-          sessionVariables={isEndUser ? undefined : flow.sessionVariables}
+          lockAgent={isCurated}
+          mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}
+          onMcpServerUsagesChange={isCurated ? undefined : flow.setMcpServerUsages}
+          skillRefs={isCurated ? undefined : flow.skillRefs}
+          onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
+          sessionVariables={isCurated ? undefined : flow.sessionVariables}
           className="px-4 py-3"
         />
       </div>
@@ -909,7 +939,8 @@ interface SessionPanelRegionProps {
   readonly workspaceFileLister?: WorkspaceFileLister;
   readonly workspaceFileReader?: WorkspaceFileReader;
   readonly workspaceContentSearcher?: WorkspaceContentSearcher;
-  readonly isEndUser: boolean;
+  /** Curated audience (endUser or guest): the Setup facet renders read-only. */
+  readonly isCurated: boolean;
 }
 
 function SessionPanelRegion({
@@ -932,7 +963,7 @@ function SessionPanelRegion({
   workspaceFileLister,
   workspaceFileReader,
   workspaceContentSearcher,
-  isEndUser,
+  isCurated,
 }: SessionPanelRegionProps) {
   const selectedItem = useSelectedThreadItem();
   const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
@@ -1108,9 +1139,9 @@ function SessionPanelRegion({
       harness: flow.harness,
       executionTarget: flow.executionTarget,
       modelId: flow.model[0],
-      // End users see the configuration but cannot strip it — the Config
-      // facet renders read-only without mutation callbacks (DD-011).
-      mutations: isEndUser
+      // Curated audiences see the configuration but cannot strip it — the
+      // Config facet renders read-only without mutation callbacks (DD-011).
+      mutations: isCurated
         ? undefined
         : {
             onRemoveAgent: flow.isDefaultAgent ? undefined : handleRemoveAgent,
@@ -1122,7 +1153,7 @@ function SessionPanelRegion({
     [
       flow.agentRef, flow.isDefaultAgent, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.executionTarget, flow.model,
-      isEndUser, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+      isCurated, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
       accessSlot,
     ],
   );

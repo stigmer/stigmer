@@ -984,6 +984,13 @@ export type {
   InvitationRedemptionProps,
 } from "./invitation/index.js";
 
+// Sharing — shared-agent public profile and the anonymous-visitor chat organism
+export { useSharedAgentProfile, SharedAgentChat } from "./sharing/index.js";
+export type {
+  UseSharedAgentProfileReturn,
+  SharedAgentChatProps,
+} from "./sharing/index.js";
+
 // Error — structured error display with classification, retry, and contextual guidance
 export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error/index.js";
 export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error/index.js";

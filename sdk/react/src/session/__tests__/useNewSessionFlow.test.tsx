@@ -36,8 +36,9 @@ const mockDefaultAgent = {
   refetch: vi.fn(),
   waitForResolution: vi.fn<() => Promise<unknown>>(),
 };
+const useDefaultAgentSpy = vi.fn((_org: string | null) => mockDefaultAgent);
 vi.mock("../../agent", () => ({
-  useDefaultAgent: () => mockDefaultAgent,
+  useDefaultAgent: (org: string | null) => useDefaultAgentSpy(org),
 }));
 
 const mockWorkspace = {
@@ -681,6 +682,54 @@ describe("useNewSessionFlow", () => {
       expect(opts.onError).toHaveBeenCalled();
       expect(mockCreateSession).not.toHaveBeenCalled();
       expect(mockDefaultAgent.waitForResolution).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("guest audience", () => {
+    it("disables the default-agent lookup (a read guests cannot make)", () => {
+      const opts = { ...defaultOptions(), audience: "guest" as const };
+      renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      expect(useDefaultAgentSpy).toHaveBeenCalledWith(null);
+    });
+
+    it("keeps the default-agent lookup for other audiences", () => {
+      renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
+
+      expect(useDefaultAgentSpy).toHaveBeenCalledWith("acme");
+    });
+
+    it("creates the session against the pinned resolution", async () => {
+      const opts = { ...defaultOptions(), audience: "guest" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "support-bot" });
+        result.current.setResolution({ mode: "saved", instanceId: "shared-inst" });
+      });
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession).toHaveBeenCalledOnce();
+      expect(mockCreateSession.mock.calls[0][0].agentInstanceId).toBe("shared-inst");
+      expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
+    });
+
+    it("fails closed on submit without a resolution — never the default agent", async () => {
+      // A default agent exists (the beforeEach seeds one); a guest must
+      // still never fall back to it.
+      const opts = { ...defaultOptions(), audience: "guest" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateSession).not.toHaveBeenCalled();
+      expect(mockCreateExecution).not.toHaveBeenCalled();
+      expect(result.current.submitError).toContain("still loading");
+      expect(opts.onError).toHaveBeenCalled();
     });
   });
 });
