@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetRunnerBootstrapConfigInput, GetRunnerBootstrapConfigOutput, GetServerInfoInput, GetServerInfoOutput } from "./server_info_pbjs";
+import { GetRunnerBootstrapConfigInput, GetRunnerBootstrapConfigOutput, GetRunnerScopedTokenInput, GetRunnerScopedTokenOutput, GetServerInfoInput, GetServerInfoOutput } from "./server_info_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -69,6 +69,46 @@ export const PlatformQueryController = {
       name: "getRunnerBootstrapConfig",
       I: GetRunnerBootstrapConfigInput,
       O: GetRunnerBootstrapConfigOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Exchanges an embedded runner's bootstrap credential for a token scoped to
+     * one unit of dispatched work.
+     *
+     * The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+     * is minted before any execution exists, so it carries no session or
+     * execution scope. Secrets are only released to runner credentials bound to
+     * the exact work they serve. At task start the runner presents its bootstrap
+     * token and names the execution it was dispatched; the control plane verifies
+     * the caller and returns a short-lived token scoped to that work, which the
+     * runner then uses for its ExecutionContext fetch. This makes a desktop
+     * runner indistinguishable, at the secret-release gate, from a
+     * server-provisioned sandbox runner.
+     *
+     * The token fields are empty when the server cannot mint (OSS, or no signing
+     * key configured) — the runner falls back to its existing credential.
+     *
+     * @internal
+     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
+     * token_type=sandbox token carrying the execution's parent session_id (one
+     * session sandbox serves multi-turn executions); a workflow_execution_id
+     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
+     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+     *
+     * is_skip_authorization because the FGA target is derived from the input
+     * oneof, which the declarative interceptor cannot express — the handler
+     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+     * the caller must present a runner-class token_type=embedded_runner
+     * credential AND pass the same can_view check getByExecutionId performs on
+     * the named execution.
+     *
+     * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken
+     */
+    getRunnerScopedToken: {
+      name: "getRunnerScopedToken",
+      I: GetRunnerScopedTokenInput,
+      O: GetRunnerScopedTokenOutput,
       kind: MethodKind.Unary,
     },
   }

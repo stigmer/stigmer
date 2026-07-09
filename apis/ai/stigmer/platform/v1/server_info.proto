@@ -71,6 +71,40 @@ service PlatformQueryController {
   rpc getRunnerBootstrapConfig(GetRunnerBootstrapConfigInput) returns (GetRunnerBootstrapConfigOutput) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
+
+  // Exchanges an embedded runner's bootstrap credential for a token scoped to
+  // one unit of dispatched work.
+  //
+  // The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+  // is minted before any execution exists, so it carries no session or
+  // execution scope. Secrets are only released to runner credentials bound to
+  // the exact work they serve. At task start the runner presents its bootstrap
+  // token and names the execution it was dispatched; the control plane verifies
+  // the caller and returns a short-lived token scoped to that work, which the
+  // runner then uses for its ExecutionContext fetch. This makes a desktop
+  // runner indistinguishable, at the secret-release gate, from a
+  // server-provisioned sandbox runner.
+  //
+  // The token fields are empty when the server cannot mint (OSS, or no signing
+  // key configured) — the runner falls back to its existing credential.
+  //
+  // @internal
+  // Cloud mints via SandboxTokenService: an agent_execution_id yields a
+  // token_type=sandbox token carrying the execution's parent session_id (one
+  // session sandbox serves multi-turn executions); a workflow_execution_id
+  // yields token_type=workflow_sandbox carrying that id. Both are then bound by
+  // RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+  // cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+  //
+  // is_skip_authorization because the FGA target is derived from the input
+  // oneof, which the declarative interceptor cannot express — the handler
+  // enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+  // the caller must present a runner-class token_type=embedded_runner
+  // credential AND pass the same can_view check getByExecutionId performs on
+  // the named execution.
+  rpc getRunnerScopedToken(GetRunnerScopedTokenInput) returns (GetRunnerScopedTokenOutput) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
 }
 
 // Empty request — no parameters needed.
@@ -123,4 +157,47 @@ message GetRunnerBootstrapConfigOutput {
   // Lifetime of runner_access_token in seconds from issuance. 0 when no token
   // is present. The runner uses this to schedule a refresh before expiry.
   int32 runner_access_token_expires_in_seconds = 5;
+}
+
+// Names the unit of dispatched work a runner wants a scoped token for.
+message GetRunnerScopedTokenInput {
+  // The dispatched work the token will serve. The runner names only the id it
+  // was dispatched; the server derives the token's scope from the resource
+  // itself (an agent execution scopes to its parent session).
+  oneof scope {
+    option (buf.validate.oneof).required = true;
+
+    // AgentExecution id — yields a token scoped to the execution's parent
+    // session, valid for every ExecutionContext in that session (multi-turn).
+    string agent_execution_id = 1;
+
+    // WorkflowExecution id — yields a token scoped to exactly that workflow
+    // execution's ExecutionContext.
+    string workflow_execution_id = 2;
+  }
+}
+
+// A runner token scoped to one unit of work, or empty when the server cannot
+// mint one.
+//
+// Mirrors the token fields of GetRunnerBootstrapConfigOutput: presence-based —
+// an empty token means "not minted" (OSS, or no signing key), and the runner
+// keeps using its existing credential.
+message GetRunnerScopedTokenOutput {
+  // Stigmer-signed token scoped to the requested work. The runner presents it
+  // for ExecutionContext reads in place of its unscoped bootstrap token.
+  //
+  // @internal
+  // iss=stigmer, sub=caller identity account, token_type=sandbox (with
+  // session_id claim) or workflow_sandbox (with workflow_execution_id claim),
+  // minted by the same SandboxTokenService that provisions cloud sandboxes.
+  string runner_scoped_token = 1;
+
+  // Token type for runner_scoped_token. "Bearer" when a token is present,
+  // empty otherwise.
+  string token_type = 2;
+
+  // Lifetime of runner_scoped_token in seconds from issuance. 0 when no token
+  // is present.
+  int32 expires_in_seconds = 3;
 }

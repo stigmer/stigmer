@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLJAQoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBSpDCg1TZXJ2ZXJFZGl0aW9uEh4KGnNlcnZlcl9lZGl0aW9uX3Vuc3BlY2lmaWVkEAASBwoDb3NzEAESCQoFY2xvdWQQAjKbAgoXUGxhdGZvcm1RdWVyeUNvbnRyb2xsZXISbgoNZ2V0U2VydmVySW5mbxIqLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb0lucHV0GisuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvT3V0cHV0IgTIuBgBEo8BChhnZXRSdW5uZXJCb290c3RyYXBDb25maWcSNS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ0lucHV0GjYuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQiBNC4GAFCEUIPU2VydmVySW5mb1Byb3RvYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLJAQoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBSJqChlHZXRSdW5uZXJTY29wZWRUb2tlbklucHV0EhwKEmFnZW50X2V4ZWN1dGlvbl9pZBgBIAEoCUgAEh8KFXdvcmtmbG93X2V4ZWN1dGlvbl9pZBgCIAEoCUgAQg4KBXNjb3BlEgW6SAIIASJpChpHZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dBIbChNydW5uZXJfc2NvcGVkX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSGgoSZXhwaXJlc19pbl9zZWNvbmRzGAMgASgFKkMKDVNlcnZlckVkaXRpb24SHgoac2VydmVyX2VkaXRpb25fdW5zcGVjaWZpZWQQABIHCgNvc3MQARIJCgVjbG91ZBACMqEDChdQbGF0Zm9ybVF1ZXJ5Q29udHJvbGxlchJuCg1nZXRTZXJ2ZXJJbmZvEiouYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvSW5wdXQaKy5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9PdXRwdXQiBMi4GAESjwEKGGdldFJ1bm5lckJvb3RzdHJhcENvbmZpZxI1LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQaNi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dCIE0LgYARKDAQoUZ2V0UnVubmVyU2NvcGVkVG9rZW4SMS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQaMi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0IgTQuBgBQhFCD1NlcnZlckluZm9Qcm90b2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Empty request — no parameters needed.
@@ -141,6 +141,95 @@ export const GetRunnerBootstrapConfigOutputSchema: GenMessage<GetRunnerBootstrap
   messageDesc(file_ai_stigmer_platform_v1_server_info, 3);
 
 /**
+ * Names the unit of dispatched work a runner wants a scoped token for.
+ *
+ * @generated from message ai.stigmer.platform.v1.GetRunnerScopedTokenInput
+ */
+export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunnerScopedTokenInput"> & {
+  /**
+   * The dispatched work the token will serve. The runner names only the id it
+   * was dispatched; the server derives the token's scope from the resource
+   * itself (an agent execution scopes to its parent session).
+   *
+   * @generated from oneof ai.stigmer.platform.v1.GetRunnerScopedTokenInput.scope
+   */
+  scope: {
+    /**
+     * AgentExecution id — yields a token scoped to the execution's parent
+     * session, valid for every ExecutionContext in that session (multi-turn).
+     *
+     * @generated from field: string agent_execution_id = 1;
+     */
+    value: string;
+    case: "agentExecutionId";
+  } | {
+    /**
+     * WorkflowExecution id — yields a token scoped to exactly that workflow
+     * execution's ExecutionContext.
+     *
+     * @generated from field: string workflow_execution_id = 2;
+     */
+    value: string;
+    case: "workflowExecutionId";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message ai.stigmer.platform.v1.GetRunnerScopedTokenInput.
+ * Use `create(GetRunnerScopedTokenInputSchema)` to create a new message.
+ */
+export const GetRunnerScopedTokenInputSchema: GenMessage<GetRunnerScopedTokenInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 4);
+
+/**
+ * A runner token scoped to one unit of work, or empty when the server cannot
+ * mint one.
+ *
+ * Mirrors the token fields of GetRunnerBootstrapConfigOutput: presence-based —
+ * an empty token means "not minted" (OSS, or no signing key), and the runner
+ * keeps using its existing credential.
+ *
+ * @generated from message ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
+ */
+export type GetRunnerScopedTokenOutput = Message<"ai.stigmer.platform.v1.GetRunnerScopedTokenOutput"> & {
+  /**
+   * Stigmer-signed token scoped to the requested work. The runner presents it
+   * for ExecutionContext reads in place of its unscoped bootstrap token.
+   *
+   * @internal
+   * iss=stigmer, sub=caller identity account, token_type=sandbox (with
+   * session_id claim) or workflow_sandbox (with workflow_execution_id claim),
+   * minted by the same SandboxTokenService that provisions cloud sandboxes.
+   *
+   * @generated from field: string runner_scoped_token = 1;
+   */
+  runnerScopedToken: string;
+
+  /**
+   * Token type for runner_scoped_token. "Bearer" when a token is present,
+   * empty otherwise.
+   *
+   * @generated from field: string token_type = 2;
+   */
+  tokenType: string;
+
+  /**
+   * Lifetime of runner_scoped_token in seconds from issuance. 0 when no token
+   * is present.
+   *
+   * @generated from field: int32 expires_in_seconds = 3;
+   */
+  expiresInSeconds: number;
+};
+
+/**
+ * Describes the message ai.stigmer.platform.v1.GetRunnerScopedTokenOutput.
+ * Use `create(GetRunnerScopedTokenOutputSchema)` to create a new message.
+ */
+export const GetRunnerScopedTokenOutputSchema: GenMessage<GetRunnerScopedTokenOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 5);
+
+/**
  * Edition of the Stigmer server binary.
  *
  * Indicates whether the server is the open-source Go edition
@@ -239,6 +328,45 @@ export const PlatformQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetRunnerBootstrapConfigInputSchema;
     output: typeof GetRunnerBootstrapConfigOutputSchema;
+  },
+  /**
+   * Exchanges an embedded runner's bootstrap credential for a token scoped to
+   * one unit of dispatched work.
+   *
+   * The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+   * is minted before any execution exists, so it carries no session or
+   * execution scope. Secrets are only released to runner credentials bound to
+   * the exact work they serve. At task start the runner presents its bootstrap
+   * token and names the execution it was dispatched; the control plane verifies
+   * the caller and returns a short-lived token scoped to that work, which the
+   * runner then uses for its ExecutionContext fetch. This makes a desktop
+   * runner indistinguishable, at the secret-release gate, from a
+   * server-provisioned sandbox runner.
+   *
+   * The token fields are empty when the server cannot mint (OSS, or no signing
+   * key configured) — the runner falls back to its existing credential.
+   *
+   * @internal
+   * Cloud mints via SandboxTokenService: an agent_execution_id yields a
+   * token_type=sandbox token carrying the execution's parent session_id (one
+   * session sandbox serves multi-turn executions); a workflow_execution_id
+   * yields token_type=workflow_sandbox carrying that id. Both are then bound by
+   * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+   * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+   *
+   * is_skip_authorization because the FGA target is derived from the input
+   * oneof, which the declarative interceptor cannot express — the handler
+   * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+   * the caller must present a runner-class token_type=embedded_runner
+   * credential AND pass the same can_view check getByExecutionId performs on
+   * the named execution.
+   *
+   * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken
+   */
+  getRunnerScopedToken: {
+    methodKind: "unary";
+    input: typeof GetRunnerScopedTokenInputSchema;
+    output: typeof GetRunnerScopedTokenOutputSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_platform_v1_server_info, 0);

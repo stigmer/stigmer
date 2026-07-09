@@ -83,6 +83,37 @@ public final class PlatformQueryControllerGrpc {
     return getGetRunnerBootstrapConfigMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetRunnerScopedTokenInput,
+      ai.stigmer.platform.v1.GetRunnerScopedTokenOutput> getGetRunnerScopedTokenMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getRunnerScopedToken",
+      requestType = ai.stigmer.platform.v1.GetRunnerScopedTokenInput.class,
+      responseType = ai.stigmer.platform.v1.GetRunnerScopedTokenOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetRunnerScopedTokenInput,
+      ai.stigmer.platform.v1.GetRunnerScopedTokenOutput> getGetRunnerScopedTokenMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetRunnerScopedTokenInput, ai.stigmer.platform.v1.GetRunnerScopedTokenOutput> getGetRunnerScopedTokenMethod;
+    if ((getGetRunnerScopedTokenMethod = PlatformQueryControllerGrpc.getGetRunnerScopedTokenMethod) == null) {
+      synchronized (PlatformQueryControllerGrpc.class) {
+        if ((getGetRunnerScopedTokenMethod = PlatformQueryControllerGrpc.getGetRunnerScopedTokenMethod) == null) {
+          PlatformQueryControllerGrpc.getGetRunnerScopedTokenMethod = getGetRunnerScopedTokenMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.platform.v1.GetRunnerScopedTokenInput, ai.stigmer.platform.v1.GetRunnerScopedTokenOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getRunnerScopedToken"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.platform.v1.GetRunnerScopedTokenInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.platform.v1.GetRunnerScopedTokenOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new PlatformQueryControllerMethodDescriptorSupplier("getRunnerScopedToken"))
+              .build();
+        }
+      }
+    }
+    return getGetRunnerScopedTokenMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -197,6 +228,41 @@ public final class PlatformQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetRunnerBootstrapConfigMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Exchanges an embedded runner's bootstrap credential for a token scoped to
+     * one unit of dispatched work.
+     * The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+     * is minted before any execution exists, so it carries no session or
+     * execution scope. Secrets are only released to runner credentials bound to
+     * the exact work they serve. At task start the runner presents its bootstrap
+     * token and names the execution it was dispatched; the control plane verifies
+     * the caller and returns a short-lived token scoped to that work, which the
+     * runner then uses for its ExecutionContext fetch. This makes a desktop
+     * runner indistinguishable, at the secret-release gate, from a
+     * server-provisioned sandbox runner.
+     * The token fields are empty when the server cannot mint (OSS, or no signing
+     * key configured) — the runner falls back to its existing credential.
+     * &#64;internal
+     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
+     * token_type=sandbox token carrying the execution's parent session_id (one
+     * session sandbox serves multi-turn executions); a workflow_execution_id
+     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
+     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+     * is_skip_authorization because the FGA target is derived from the input
+     * oneof, which the declarative interceptor cannot express — the handler
+     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+     * the caller must present a runner-class token_type=embedded_runner
+     * credential AND pass the same can_view check getByExecutionId performs on
+     * the named execution.
+     * </pre>
+     */
+    default void getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetRunnerScopedTokenOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetRunnerScopedTokenMethod(), responseObserver);
+    }
   }
 
   /**
@@ -288,6 +354,42 @@ public final class PlatformQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetRunnerBootstrapConfigMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Exchanges an embedded runner's bootstrap credential for a token scoped to
+     * one unit of dispatched work.
+     * The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+     * is minted before any execution exists, so it carries no session or
+     * execution scope. Secrets are only released to runner credentials bound to
+     * the exact work they serve. At task start the runner presents its bootstrap
+     * token and names the execution it was dispatched; the control plane verifies
+     * the caller and returns a short-lived token scoped to that work, which the
+     * runner then uses for its ExecutionContext fetch. This makes a desktop
+     * runner indistinguishable, at the secret-release gate, from a
+     * server-provisioned sandbox runner.
+     * The token fields are empty when the server cannot mint (OSS, or no signing
+     * key configured) — the runner falls back to its existing credential.
+     * &#64;internal
+     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
+     * token_type=sandbox token carrying the execution's parent session_id (one
+     * session sandbox serves multi-turn executions); a workflow_execution_id
+     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
+     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+     * is_skip_authorization because the FGA target is derived from the input
+     * oneof, which the declarative interceptor cannot express — the handler
+     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+     * the caller must present a runner-class token_type=embedded_runner
+     * credential AND pass the same can_view check getByExecutionId performs on
+     * the named execution.
+     * </pre>
+     */
+    public void getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetRunnerScopedTokenOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetRunnerScopedTokenMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -357,6 +459,41 @@ public final class PlatformQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetRunnerBootstrapConfigMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Exchanges an embedded runner's bootstrap credential for a token scoped to
+     * one unit of dispatched work.
+     * The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+     * is minted before any execution exists, so it carries no session or
+     * execution scope. Secrets are only released to runner credentials bound to
+     * the exact work they serve. At task start the runner presents its bootstrap
+     * token and names the execution it was dispatched; the control plane verifies
+     * the caller and returns a short-lived token scoped to that work, which the
+     * runner then uses for its ExecutionContext fetch. This makes a desktop
+     * runner indistinguishable, at the secret-release gate, from a
+     * server-provisioned sandbox runner.
+     * The token fields are empty when the server cannot mint (OSS, or no signing
+     * key configured) — the runner falls back to its existing credential.
+     * &#64;internal
+     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
+     * token_type=sandbox token carrying the execution's parent session_id (one
+     * session sandbox serves multi-turn executions); a workflow_execution_id
+     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
+     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+     * is_skip_authorization because the FGA target is derived from the input
+     * oneof, which the declarative interceptor cannot express — the handler
+     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+     * the caller must present a runner-class token_type=embedded_runner
+     * credential AND pass the same can_view check getByExecutionId performs on
+     * the named execution.
+     * </pre>
+     */
+    public ai.stigmer.platform.v1.GetRunnerScopedTokenOutput getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetRunnerScopedTokenMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -425,6 +562,41 @@ public final class PlatformQueryControllerGrpc {
     public ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput getRunnerBootstrapConfig(ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetRunnerBootstrapConfigMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Exchanges an embedded runner's bootstrap credential for a token scoped to
+     * one unit of dispatched work.
+     * The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+     * is minted before any execution exists, so it carries no session or
+     * execution scope. Secrets are only released to runner credentials bound to
+     * the exact work they serve. At task start the runner presents its bootstrap
+     * token and names the execution it was dispatched; the control plane verifies
+     * the caller and returns a short-lived token scoped to that work, which the
+     * runner then uses for its ExecutionContext fetch. This makes a desktop
+     * runner indistinguishable, at the secret-release gate, from a
+     * server-provisioned sandbox runner.
+     * The token fields are empty when the server cannot mint (OSS, or no signing
+     * key configured) — the runner falls back to its existing credential.
+     * &#64;internal
+     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
+     * token_type=sandbox token carrying the execution's parent session_id (one
+     * session sandbox serves multi-turn executions); a workflow_execution_id
+     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
+     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+     * is_skip_authorization because the FGA target is derived from the input
+     * oneof, which the declarative interceptor cannot express — the handler
+     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+     * the caller must present a runner-class token_type=embedded_runner
+     * credential AND pass the same can_view check getByExecutionId performs on
+     * the named execution.
+     * </pre>
+     */
+    public ai.stigmer.platform.v1.GetRunnerScopedTokenOutput getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetRunnerScopedTokenMethod(), getCallOptions(), request);
     }
   }
 
@@ -497,10 +669,47 @@ public final class PlatformQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetRunnerBootstrapConfigMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Exchanges an embedded runner's bootstrap credential for a token scoped to
+     * one unit of dispatched work.
+     * The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+     * is minted before any execution exists, so it carries no session or
+     * execution scope. Secrets are only released to runner credentials bound to
+     * the exact work they serve. At task start the runner presents its bootstrap
+     * token and names the execution it was dispatched; the control plane verifies
+     * the caller and returns a short-lived token scoped to that work, which the
+     * runner then uses for its ExecutionContext fetch. This makes a desktop
+     * runner indistinguishable, at the secret-release gate, from a
+     * server-provisioned sandbox runner.
+     * The token fields are empty when the server cannot mint (OSS, or no signing
+     * key configured) — the runner falls back to its existing credential.
+     * &#64;internal
+     * Cloud mints via SandboxTokenService: an agent_execution_id yields a
+     * token_type=sandbox token carrying the execution's parent session_id (one
+     * session sandbox serves multi-turn executions); a workflow_execution_id
+     * yields token_type=workflow_sandbox carrying that id. Both are then bound by
+     * RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+     * cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+     * is_skip_authorization because the FGA target is derived from the input
+     * oneof, which the declarative interceptor cannot express — the handler
+     * enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+     * the caller must present a runner-class token_type=embedded_runner
+     * credential AND pass the same can_view check getByExecutionId performs on
+     * the named execution.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.v1.GetRunnerScopedTokenOutput> getRunnerScopedToken(
+        ai.stigmer.platform.v1.GetRunnerScopedTokenInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetRunnerScopedTokenMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_SERVER_INFO = 0;
   private static final int METHODID_GET_RUNNER_BOOTSTRAP_CONFIG = 1;
+  private static final int METHODID_GET_RUNNER_SCOPED_TOKEN = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -526,6 +735,10 @@ public final class PlatformQueryControllerGrpc {
         case METHODID_GET_RUNNER_BOOTSTRAP_CONFIG:
           serviceImpl.getRunnerBootstrapConfig((ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput>) responseObserver);
+          break;
+        case METHODID_GET_RUNNER_SCOPED_TOKEN:
+          serviceImpl.getRunnerScopedToken((ai.stigmer.platform.v1.GetRunnerScopedTokenInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetRunnerScopedTokenOutput>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -559,6 +772,13 @@ public final class PlatformQueryControllerGrpc {
               ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput,
               ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput>(
                 service, METHODID_GET_RUNNER_BOOTSTRAP_CONFIG)))
+        .addMethod(
+          getGetRunnerScopedTokenMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.platform.v1.GetRunnerScopedTokenInput,
+              ai.stigmer.platform.v1.GetRunnerScopedTokenOutput>(
+                service, METHODID_GET_RUNNER_SCOPED_TOKEN)))
         .build();
   }
 
@@ -609,6 +829,7 @@ public final class PlatformQueryControllerGrpc {
               .setSchemaDescriptor(new PlatformQueryControllerFileDescriptorSupplier())
               .addMethod(getGetServerInfoMethod())
               .addMethod(getGetRunnerBootstrapConfigMethod())
+              .addMethod(getGetRunnerScopedTokenMethod())
               .build();
         }
       }

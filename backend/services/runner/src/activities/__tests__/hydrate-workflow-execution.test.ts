@@ -57,6 +57,8 @@ function makeMockClient(opts: {
       : vi.fn().mockResolvedValue(opts.workflowInstance ?? {
           spec: { workflowId: "wfl_resolved-from-instance" },
         }),
+    // No scoped token — the OSS/local shape (no runner credential to exchange).
+    acquireScopedRunnerToken: vi.fn().mockResolvedValue(undefined),
     getExecutionContextByExecutionId: opts.executionContextError
       ? vi.fn().mockRejectedValue(opts.executionContextError)
       : vi.fn().mockResolvedValue(opts.executionContext ?? {

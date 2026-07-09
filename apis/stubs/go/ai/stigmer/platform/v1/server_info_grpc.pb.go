@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PlatformQueryController_GetServerInfo_FullMethodName            = "/ai.stigmer.platform.v1.PlatformQueryController/getServerInfo"
 	PlatformQueryController_GetRunnerBootstrapConfig_FullMethodName = "/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig"
+	PlatformQueryController_GetRunnerScopedToken_FullMethodName     = "/ai.stigmer.platform.v1.PlatformQueryController/getRunnerScopedToken"
 )
 
 // PlatformQueryControllerClient is the client API for PlatformQueryController service.
@@ -68,6 +69,37 @@ type PlatformQueryControllerClient interface {
 	// (signing key unconfigured, or no caller identity), it returns the Temporal
 	// coordinates with an empty token rather than failing the runner's boot.
 	GetRunnerBootstrapConfig(ctx context.Context, in *GetRunnerBootstrapConfigInput, opts ...grpc.CallOption) (*GetRunnerBootstrapConfigOutput, error)
+	// Exchanges an embedded runner's bootstrap credential for a token scoped to
+	// one unit of dispatched work.
+	//
+	// The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+	// is minted before any execution exists, so it carries no session or
+	// execution scope. Secrets are only released to runner credentials bound to
+	// the exact work they serve. At task start the runner presents its bootstrap
+	// token and names the execution it was dispatched; the control plane verifies
+	// the caller and returns a short-lived token scoped to that work, which the
+	// runner then uses for its ExecutionContext fetch. This makes a desktop
+	// runner indistinguishable, at the secret-release gate, from a
+	// server-provisioned sandbox runner.
+	//
+	// The token fields are empty when the server cannot mint (OSS, or no signing
+	// key configured) — the runner falls back to its existing credential.
+	//
+	// @internal
+	// Cloud mints via SandboxTokenService: an agent_execution_id yields a
+	// token_type=sandbox token carrying the execution's parent session_id (one
+	// session sandbox serves multi-turn executions); a workflow_execution_id
+	// yields token_type=workflow_sandbox carrying that id. Both are then bound by
+	// RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+	// cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+	//
+	// is_skip_authorization because the FGA target is derived from the input
+	// oneof, which the declarative interceptor cannot express — the handler
+	// enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+	// the caller must present a runner-class token_type=embedded_runner
+	// credential AND pass the same can_view check getByExecutionId performs on
+	// the named execution.
+	GetRunnerScopedToken(ctx context.Context, in *GetRunnerScopedTokenInput, opts ...grpc.CallOption) (*GetRunnerScopedTokenOutput, error)
 }
 
 type platformQueryControllerClient struct {
@@ -92,6 +124,16 @@ func (c *platformQueryControllerClient) GetRunnerBootstrapConfig(ctx context.Con
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetRunnerBootstrapConfigOutput)
 	err := c.cc.Invoke(ctx, PlatformQueryController_GetRunnerBootstrapConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *platformQueryControllerClient) GetRunnerScopedToken(ctx context.Context, in *GetRunnerScopedTokenInput, opts ...grpc.CallOption) (*GetRunnerScopedTokenOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRunnerScopedTokenOutput)
+	err := c.cc.Invoke(ctx, PlatformQueryController_GetRunnerScopedToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +185,37 @@ type PlatformQueryControllerServer interface {
 	// (signing key unconfigured, or no caller identity), it returns the Temporal
 	// coordinates with an empty token rather than failing the runner's boot.
 	GetRunnerBootstrapConfig(context.Context, *GetRunnerBootstrapConfigInput) (*GetRunnerBootstrapConfigOutput, error)
+	// Exchanges an embedded runner's bootstrap credential for a token scoped to
+	// one unit of dispatched work.
+	//
+	// The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+	// is minted before any execution exists, so it carries no session or
+	// execution scope. Secrets are only released to runner credentials bound to
+	// the exact work they serve. At task start the runner presents its bootstrap
+	// token and names the execution it was dispatched; the control plane verifies
+	// the caller and returns a short-lived token scoped to that work, which the
+	// runner then uses for its ExecutionContext fetch. This makes a desktop
+	// runner indistinguishable, at the secret-release gate, from a
+	// server-provisioned sandbox runner.
+	//
+	// The token fields are empty when the server cannot mint (OSS, or no signing
+	// key configured) — the runner falls back to its existing credential.
+	//
+	// @internal
+	// Cloud mints via SandboxTokenService: an agent_execution_id yields a
+	// token_type=sandbox token carrying the execution's parent session_id (one
+	// session sandbox serves multi-turn executions); a workflow_execution_id
+	// yields token_type=workflow_sandbox carrying that id. Both are then bound by
+	// RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+	// cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+	//
+	// is_skip_authorization because the FGA target is derived from the input
+	// oneof, which the declarative interceptor cannot express — the handler
+	// enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+	// the caller must present a runner-class token_type=embedded_runner
+	// credential AND pass the same can_view check getByExecutionId performs on
+	// the named execution.
+	GetRunnerScopedToken(context.Context, *GetRunnerScopedTokenInput) (*GetRunnerScopedTokenOutput, error)
 }
 
 // UnimplementedPlatformQueryControllerServer should be embedded to have
@@ -157,6 +230,9 @@ func (UnimplementedPlatformQueryControllerServer) GetServerInfo(context.Context,
 }
 func (UnimplementedPlatformQueryControllerServer) GetRunnerBootstrapConfig(context.Context, *GetRunnerBootstrapConfigInput) (*GetRunnerBootstrapConfigOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRunnerBootstrapConfig not implemented")
+}
+func (UnimplementedPlatformQueryControllerServer) GetRunnerScopedToken(context.Context, *GetRunnerScopedTokenInput) (*GetRunnerScopedTokenOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRunnerScopedToken not implemented")
 }
 func (UnimplementedPlatformQueryControllerServer) testEmbeddedByValue() {}
 
@@ -214,6 +290,24 @@ func _PlatformQueryController_GetRunnerBootstrapConfig_Handler(srv interface{}, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PlatformQueryController_GetRunnerScopedToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRunnerScopedTokenInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformQueryControllerServer).GetRunnerScopedToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformQueryController_GetRunnerScopedToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformQueryControllerServer).GetRunnerScopedToken(ctx, req.(*GetRunnerScopedTokenInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PlatformQueryController_ServiceDesc is the grpc.ServiceDesc for PlatformQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +322,10 @@ var PlatformQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getRunnerBootstrapConfig",
 			Handler:    _PlatformQueryController_GetRunnerBootstrapConfig_Handler,
+		},
+		{
+			MethodName: "getRunnerScopedToken",
+			Handler:    _PlatformQueryController_GetRunnerScopedToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
