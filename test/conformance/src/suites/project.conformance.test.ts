@@ -150,14 +150,22 @@ describe("Project conformance", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
   });
 
-  it("getByReference with empty org returns the slug match", async () => {
+  it("getByReference without an org is rejected (org-scoped slug is per-org-unique)", async () => {
     const { org } = await target.provisionTenancy();
-    // A unique slug guarantees a single global match for the empty-org lookup.
+    // A real match exists, yet an empty-org reference must still be rejected:
+    // Project is org-scoped, so its slug is unique only within an org and a
+    // bare-slug reference is under-specified. Resolving it globally would cross
+    // tenant boundaries, so both editions reject it with InvalidArgument (rather
+    // than silently resolving an arbitrary match). See the proto reference
+    // contract: stored references are absolute; empty org is a write-time
+    // relative form, never a read-time global search.
     const created = await createProject(org, uniqueName("solo"));
 
-    const fetched = await clients.projectQuery.getByReference({ slug: created.metadata!.slug });
-
-    expect(fetched.metadata?.id).toBe(created.metadata?.id);
+    await expectGrpcCode(
+      () => clients.projectQuery.getByReference({ slug: created.metadata!.slug }),
+      Code.InvalidArgument,
+      "getByReference without org",
+    );
   });
 
   it("getByReference rejects a kind that does not match the service", () =>

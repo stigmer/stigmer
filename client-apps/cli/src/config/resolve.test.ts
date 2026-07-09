@@ -77,6 +77,26 @@ describe("resolveOrganization", () => {
   it("falls back to legacy cloud org_id", () => {
     expect(resolveContextOrganization(cloudConfig({ org_id: "legacy" }))).toBe("legacy");
   });
+
+  it("defaults to the seedpack org in local mode when nothing is configured", () => {
+    expect(resolveOrganization({ backend: { type: "local" } })).toBe("stigmer");
+  });
+
+  it("prefers an explicit context org over the local default", () => {
+    const config: Config = { backend: { type: "local" }, context: { organization: "my-local-org" } };
+    expect(resolveOrganization(config)).toBe("my-local-org");
+  });
+
+  it("does not apply the local default in cloud mode (org stays empty)", () => {
+    expect(resolveOrganization({ backend: { type: "cloud" } })).toBe("");
+  });
+
+  it("reports an unset local org as empty via resolveContextOrganization (no implicit default)", () => {
+    // The implicit local default lives only in resolveOrganization (effective
+    // org for operations); the context query must stay faithful so config/context
+    // display can show "(not set)".
+    expect(resolveContextOrganization({ backend: { type: "local" } })).toBe("");
+  });
 });
 
 describe("ensureAuthenticated", () => {

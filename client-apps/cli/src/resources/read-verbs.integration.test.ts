@@ -38,7 +38,7 @@ const knownAgent = create(AgentSchema, {
 const knownOrg = create(OrganizationSchema, {
   apiVersion: "tenancy.stigmer.ai/v1",
   kind: "Organization",
-  metadata: { name: "Acme", slug: "acme", org: "acme", id: "org_1" },
+  metadata: { name: "Acme", slug: "acme", org: "acme", id: "acme" },
 });
 
 const knownApiKey = create(ApiKeySchema, {

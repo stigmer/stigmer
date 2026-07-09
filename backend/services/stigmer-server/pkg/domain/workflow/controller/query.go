@@ -57,6 +57,20 @@ func (c *WorkflowController) GetByReference(ctx context.Context, ref *apiresourc
 		return nil, grpclib.InvalidArgumentError("slug is required in reference")
 	}
 
+	// Workflow is org-scoped: its slug is unique only within an org, so an
+	// empty-org reference is under-specified (see steps.RequireOrgForReference).
+	if err := steps.RequireOrgForReference(apiresourcekind.ApiResourceKind_workflow, ref.Org); err != nil {
+		return nil, err
+	}
+
+	if ref.Kind.Number() != 0 && ref.Kind != apiresourcekind.ApiResourceKind_workflow {
+		return nil, grpclib.InvalidArgumentError(
+			"kind mismatch: expected %s, got %s",
+			apiresourcekind.ApiResourceKind_workflow.String(),
+			ref.Kind.String(),
+		)
+	}
+
 	// Step 1: Find main workflow by slug
 	mainWorkflow, found, err := c.findMainWorkflowBySlug(ctx, ref.Slug, ref.Org)
 	if err != nil {

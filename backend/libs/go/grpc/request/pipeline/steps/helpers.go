@@ -5,9 +5,47 @@ import (
 	"fmt"
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"google.golang.org/protobuf/proto"
 )
+
+// RequireOrgForReference enforces that a getByReference lookup carries an org
+// when the resource kind is organization-scoped.
+//
+// For AUTHORIZATION_SCOPE_TYPE_ORGANIZATION kinds a slug is unique only WITHIN
+// an org (the same slug can exist in many orgs), so a reference with no org is
+// under-specified — resolving it globally would cross tenant boundaries. The
+// proto contract already treats stored references as absolute (org populated);
+// an empty org is a write-time relative form, never a read-time global search.
+// This mirrors the cloud edition (which rejects the same input) and derives the
+// rule from the same kind_meta authorization config both editions share — the
+// same single-source-of-truth pattern as apiresource.DefaultVisibilityFor.
+//
+// Non-org-scoped kinds (execution_context, organization — OWNER_ONLY) are
+// exempt: their slugs are owner- or globally-unique, so an empty org is valid.
+//
+// This guard belongs at the getByReference request boundary. It deliberately
+// does NOT live in the low-level slug finders (FindResourceBySlug and the
+// per-step findBySlug helpers), which internal resolvers legitimately call with
+// a relative (possibly empty) org — e.g. resolving an MCP-server reference while
+// building an agent's execution context.
+func RequireOrgForReference(kind apiresourcekind.ApiResourceKind, org string) error {
+	if org != "" {
+		return nil
+	}
+	meta, err := apiresource.GetKindMeta(kind)
+	if err != nil {
+		return grpclib.InternalError(err, "failed to resolve kind metadata for reference org check")
+	}
+	if meta.GetAuthorization().GetScopeType() == apiresourcekind.AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_ORGANIZATION {
+		// Match the cloud edition's message verbatim (e.g. "org is required for
+		// Project lookup") so the cross-edition error contract is identical.
+		return grpclib.InvalidArgumentError("org is required for %s lookup", meta.GetName())
+	}
+	return nil
+}
 
 // FindResourceBySlug searches for a resource by slug within an organization.
 //

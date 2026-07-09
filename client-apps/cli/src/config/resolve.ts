@@ -8,6 +8,13 @@ import { type Config, isCloudMode } from "./config.js";
 const DEFAULT_CLOUD_ENDPOINT = "api.stigmer.ai:443";
 const DEFAULT_LOCAL_ENDPOINT = "localhost:7234";
 
+// Local mode is single-tenant: the seedpack bootstraps resources into the
+// "stigmer" org (see client-apps/cli/src/local/seedpack/apply.ts DEFAULT_ORG).
+// Org-scoped getByReference now requires an org, so bare-slug `get`/`run`/`apply`
+// in local mode fall back to this default when nothing else is configured. Cloud
+// mode has no implicit org — the caller must select one (flag/env/context/login).
+const DEFAULT_LOCAL_ORG = "stigmer";
+
 /**
  * Resolve the server endpoint.
  *   STIGMER_SERVER_ADDRESS  (explicit override, either backend)
@@ -52,10 +59,21 @@ export function resolveOrganization(config: Config, flagOrg?: string): string {
   if (env !== undefined && env !== "") {
     return env;
   }
-  return resolveContextOrganization(config);
+  const context = resolveContextOrganization(config);
+  if (context !== "") {
+    return context;
+  }
+  // Nothing configured: local mode falls back to its single-tenant default org
+  // so bare-slug operations resolve without ceremony; cloud stays empty (the
+  // caller must select an org, e.g. apply raises a clear "organization not set").
+  return isCloudMode(config) ? "" : DEFAULT_LOCAL_ORG;
 }
 
-/** The configured organization, with the legacy cloud.org_id fallback. */
+/**
+ * The configured organization, with the legacy cloud.org_id fallback. Reports
+ * only what is explicitly set (no implicit local default) so config/context
+ * display can faithfully show "(not set)".
+ */
 export function resolveContextOrganization(config: Config): string {
   if (config.context?.organization !== undefined && config.context.organization !== "") {
     return config.context.organization;

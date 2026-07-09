@@ -54,6 +54,7 @@ go_test(
         "load_target_test.go",
         "normalize_references_test.go",
         "persist_test.go",
+        "require_org_for_reference_test.go",
         "slug_test.go",
         "validate_references_test.go",
         "validation_test.go",

@@ -74,6 +74,20 @@ func (s *LoadSkillByReferenceStep) Execute(ctx *pipeline.RequestContext[*apireso
 		return grpclib.InvalidArgumentError("slug is required in reference")
 	}
 
+	// Skill is org-scoped: its slug is unique only within an org, so an
+	// empty-org reference is under-specified (see steps.RequireOrgForReference).
+	if err := steps.RequireOrgForReference(apiresourcekind.ApiResourceKind_skill, ref.Org); err != nil {
+		return err
+	}
+
+	if ref.Kind.Number() != 0 && ref.Kind != apiresourcekind.ApiResourceKind_skill {
+		return grpclib.InvalidArgumentError(
+			"kind mismatch: expected %s, got %s",
+			apiresourcekind.ApiResourceKind_skill.String(),
+			ref.Kind.String(),
+		)
+	}
+
 	// Step 1: Find skill by slug in main collection
 	mainSkill, found, err := s.findMainSkillBySlug(ctx.Context(), ref.Slug, ref.Org)
 	if err != nil {
