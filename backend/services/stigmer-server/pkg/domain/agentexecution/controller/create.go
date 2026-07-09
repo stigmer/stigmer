@@ -36,23 +36,23 @@ const (
 // Create creates a new agent execution using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. ResolveDefaultAgent - If no session_id or agent_id, resolve platform default agent
-// 3. EnsureSessionOrAgentResolved - Post-condition guard: a session or agent
-//    reference must be resolved by this point (see step doc for why this is an
-//    invariant, not input validation)
-// 4. ResolveSlug - Generate slug from metadata.name
-// 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
-// 6. NormalizeReferences - Resolve cross-references (slugs to IDs)
-// 7. EnsureEngineAvailable - Fail fast with Unavailable if the agent execution engine is not connected (before the first side effect)
-// 8. CreateDefaultInstanceIfNeeded - Create default agent instance if missing
-// 9. CreateSessionIfNeeded - Create session if session_id not provided (uses caller's org)
-// 10. SetInitialPhase - Set execution phase to PENDING
-// 11. CreateExecutionContext - Merge environment into execution context
-// 12. ProcessAttachments - Validate pre-uploaded attachments
-// 13. Persist - Save execution to repository
-// 14. IndexSearch - Update search index
-// 15. StartWorkflow - Start Temporal workflow
+//  1. ValidateFieldConstraints - Validate proto field constraints using buf validate
+//  2. ResolveDefaultAgent - If no session_id or agent_id, resolve platform default agent
+//  3. EnsureSessionOrAgentResolved - Post-condition guard: a session or agent
+//     reference must be resolved by this point (see step doc for why this is an
+//     invariant, not input validation)
+//  4. ResolveSlug - Generate slug from metadata.name
+//  5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+//  6. NormalizeReferences - Resolve cross-references (slugs to IDs)
+//  7. EnsureEngineAvailable - Fail fast with Unavailable if the agent execution engine is not connected (before the first side effect)
+//  8. CreateDefaultInstanceIfNeeded - Create default agent instance if missing
+//  9. CreateSessionIfNeeded - Create session if session_id not provided (uses caller's org)
+//  10. SetInitialPhase - Set execution phase to PENDING
+//  11. CreateExecutionContext - Merge environment into execution context
+//  12. ProcessAttachments - Validate pre-uploaded attachments
+//  13. Persist - Save execution to repository
+//  14. IndexSearch - Update search index
+//  15. StartWorkflow - Start Temporal workflow
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)

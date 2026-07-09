@@ -1055,7 +1055,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
 
 <TypeTable
   type={{
-    audience: { type: "SessionAudience", description: "Presentation audience for the launcher. `\"endUser\"` locks the pinned agent (when `initialAgentRef` is set) and hides the MCP server, skill, and session-variable pickers — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, harness selector, attachments, and workspace picker remain. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
+    audience: { type: "SessionAudience", description: "Presentation audience for the launcher. `\"endUser\"` locks the pinned agent (when `initialAgentRef` is set) and hides the MCP server, skill, and session-variable pickers — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, harness selector, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/harness/mode pickers, attachments, the workspace picker, and the session panel, binds the session to `initialAgentRef` + `initialInstanceId` without any picker machinery, and skips the org-level reads a guest principal cannot make. Requires both `initialAgentRef` and `initialInstanceId` — a guest launcher never falls back to the org default agent.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     autoFocus: { type: "boolean", description: "Auto-focus the textarea on mount." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultHarness: { type: "HarnessOption", description: "Harness pre-selected for new sessions when the user has not made an explicit choice yet. The user can still switch before starting the session, and their explicit choice wins on subsequent visits.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
@@ -1202,7 +1202,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
 <TypeTable
   type={{
     accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton` with its own permission gating). Rendered inside the panel's Config facet rather than the header — access is session configuration, not a moment-to-moment action (DD-004 slot injection)." },
-    audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the MCP server, skill, and session-variable configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
+    audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the MCP server, skill, and session-variable configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, attachments, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the session's bound agent instance.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace features in the composer." },
     enableLocal: { type: "boolean", description: "Whether to enable local workspace features in the composer. Web passes `deploymentMode === \"local\"`, desktop passes `true`." },
@@ -1623,10 +1623,18 @@ presented to.
   Agent/Plan mode, and attaches workspaces, but never reconfigures
   the agent. The organisms lock the agent and hide the integrator
   pickers, in both the composer and the inspector's Setup tab.
+- `"guest"` — an anonymous visitor of a shared agent's public page or
+  embed, authenticated by a guest token. Pure chat: everything
+  `"endUser"` hides plus the model, harness, and Agent/Plan pickers,
+  attachments, the workspace picker, and the session panel. Guest is
+  behavioral, not just cosmetic — the organisms also skip the
+  org-level reads a guest principal cannot make (default-agent
+  resolution, session→agent derivation, personal environments) and
+  never fall back to the org's default agent.
 
-A preset rather than individual flags: "end user" is a product intent,
-and keeping it in one place lets the SDK evolve what that presentation
-means without breaking embedders.
+A preset rather than individual flags: each audience is a product
+intent, and keeping it in one place lets the SDK evolve what that
+presentation means without breaking embedders.
 
 
 ### SessionGroup
@@ -1732,6 +1740,7 @@ Options for [`useNewSessionFlow`](#usenewsessionflow).
 
 <TypeTable
   type={{
+    audience: { type: "SessionAudience", description: "Who this flow serves. `\"guest\"` adapts the orchestration to the guest principal's permission model: the org default-agent lookup (which a guest token cannot read) is skipped, and submission requires an explicit agent resolution instead of falling back to the org's default agent — a shared-agent page must never run anything but the pinned shared agent. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     defaultHarness: { type: "HarnessOption", description: "Harness pre-selected for new sessions when the user has not made an explicit choice yet (e.g. an embedder whose agents primarily run coding tasks defaults to `\"cursor\"`).  Read once on mount. The user's own selection — persisted to localStorage on explicit change — always takes precedence on subsequent visits.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities should execute.", typeDescriptionLink: "#executiontargetoption" },
     getRuntimeEnv: { type: "RuntimeEnvProvider", description: "Supplies host-app environment variables for the session's first execution. Evaluated once per submission, at submit time, so short-lived credentials stay fresh; evaluated **before** the session is created so a credential failure never strands an empty session.  Host values win over composer-collected env on key collisions. If the provider throws, the submission fails and the error surfaces via UseNewSessionFlowReturn.submitError / onError. See RuntimeEnvProvider.", typeDescriptionLink: "#runtimeenvprovider" },
@@ -1776,6 +1785,7 @@ Options for [`useSessionPageFlow`](#usesessionpageflow).
 
 <TypeTable
   type={{
+    audience: { type: "SessionAudience", description: "Who this flow serves. `\"guest\"` adapts the orchestration to the guest principal's permission model: the session→agent derivation (`agentInstance.get` → `agent.get`) and the org default-agent lookup — reads a guest token cannot make — are skipped. Follow-ups then carry no agent override and simply continue on the session's bound instance, which is exactly right for a shared-agent page. See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     getRuntimeEnv: { type: "RuntimeEnvProvider", description: "Supplies host-app environment variables for every follow-up execution. Evaluated once per follow-up, at send time, so short-lived credentials stay fresh.  Host values win over composer-collected env on key collisions. If the provider throws, the follow-up is aborted before any optimistic UI or session mutation and the error surfaces via UseSessionPageFlowReturn.submitError. See RuntimeEnvProvider.", typeDescriptionLink: "#runtimeenvprovider" },
     org: { type: "string", description: "Organization slug.", required: true },
     sessionId: { type: "string", description: "Session ID to load and manage.", required: true },
