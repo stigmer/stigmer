@@ -14,6 +14,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	billingv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	platformclientv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/platformclient/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
@@ -430,6 +431,241 @@ func TestGuestToken_Denials(t *testing.T) {
 	st, ok = status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.NotFound, st.Code())
+}
+
+// guestCreateExecution creates an execution as the guest in an existing
+// session. Deliberately leaves metadata.org empty: the backend forces it.
+func guestCreateExecution(ctx context.Context, guest *harness.Clients, sessionID, message string) (*agentexecv1.AgentExecution, error) {
+	return guest.AgentExecutionCommand.Create(ctx, &agentexecv1.AgentExecution{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "AgentExecution",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "guest-exec-" + message,
+		},
+		Spec: &agentexecv1.AgentExecutionSpec{
+			SessionId: sessionID,
+			Message:   message,
+		},
+	})
+}
+
+// Platform-default refusal copy — mirrors GuestLimitReason in the cloud
+// stigmer-service. These tests pin the wire contract: the copy travels in
+// the gRPC status description and the SDK renders it verbatim.
+const (
+	defaultRateLimitedCopy       = "You\u2019re sending messages too quickly. Please wait a moment before sending another."
+	defaultConversationEndedCopy = "This conversation has ended. Please start a new conversation to continue."
+)
+
+// TestGuestToken_LaunchGate_SessionRateLimit trips the per-guest
+// new-conversation rate limit (5/min by default): the same cookie creating a
+// sixth session inside the window is refused RESOURCE_EXHAUSTED with the
+// platform-default rate-limit copy on the wire. A second visitor (fresh
+// cookie) is unaffected — the bucket isolates per visitor.
+func TestGuestToken_LaunchGate_SessionRateLimit(t *testing.T) {
+	requireGuestPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := createSharedAgent(t, ctx, clients, "test-guest-session-rate")
+	org := agent.GetMetadata().GetOrg()
+	slug := agent.GetMetadata().GetSlug()
+
+	minted := mintGuestToken(t, ctx, clients, org, slug, "")
+	guest := guestClients(t, minted.GetAccessToken())
+
+	// The default window allows 5 sessions per cookie; the 6th must trip.
+	var refusal error
+	for i := 0; i < 6; i++ {
+		_, err := guestCreateSession(t, ctx, guest, agent, "rate-"+string(rune('a'+i)))
+		if err != nil {
+			refusal = err
+			require.Equal(t, 5, i, "the rate limit must trip on the 6th create, not earlier")
+			break
+		}
+	}
+	require.Error(t, refusal, "the 6th session create inside the window must be rate limited")
+	st, ok := status.FromError(refusal)
+	require.True(t, ok)
+	assert.Equal(t, codes.ResourceExhausted, st.Code(),
+		"rate-limit refusals are RESOURCE_EXHAUSTED (retryable-by-waiting)")
+	assert.Equal(t, defaultRateLimitedCopy, st.Message(),
+		"the wire-visible message must be the platform-default rate-limit copy, verbatim")
+
+	// A different visitor (fresh cookie) is not collateral damage.
+	otherMinted := mintGuestToken(t, ctx, clients, org, slug, "")
+	otherGuest := guestClients(t, otherMinted.GetAccessToken())
+	_, err := guestCreateSession(t, ctx, otherGuest, agent, "other-visitor")
+	assert.NoError(t, err, "the per-guest bucket must not throttle other visitors")
+}
+
+// TestGuestToken_LaunchGate_TurnLimit trips the per-session turn limit
+// (lowered to 5 via STIGMER_SHARING_MAX_TURNS_PER_SESSION in the harness):
+// the 6th message in one conversation is refused FAILED_PRECONDITION with
+// the conversation-ended copy, and the same visitor can immediately start a
+// fresh conversation.
+func TestGuestToken_LaunchGate_TurnLimit(t *testing.T) {
+	requireGuestPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := createSharedAgent(t, ctx, clients, "test-guest-turn-limit")
+	org := agent.GetMetadata().GetOrg()
+	slug := agent.GetMetadata().GetSlug()
+
+	minted := mintGuestToken(t, ctx, clients, org, slug, "")
+	guest := guestClients(t, minted.GetAccessToken())
+
+	session, err := guestCreateSession(t, ctx, guest, agent, "turn-limit")
+	require.NoError(t, err)
+	sessionID := session.GetMetadata().GetId()
+
+	for i := 0; i < 5; i++ {
+		_, err := guestCreateExecution(ctx, guest, sessionID, "turn-"+string(rune('a'+i)))
+		require.NoError(t, err, "turn %d is within the limit and must be accepted", i+1)
+	}
+
+	_, err = guestCreateExecution(ctx, guest, sessionID, "turn-over")
+	require.Error(t, err, "the 6th turn must exceed the harness's turn limit of 5")
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.FailedPrecondition, st.Code(),
+		"bounds refusals are FAILED_PRECONDITION (not retryable as-is)")
+	assert.Equal(t, defaultConversationEndedCopy, st.Message(),
+		"the wire-visible message must be the conversation-ended copy, verbatim")
+
+	// The visitor is not locked out — a fresh conversation works immediately.
+	// (This is also the 2nd session for this cookie, well under the session
+	// bucket of 5.)
+	_, err = guestCreateSession(t, ctx, guest, agent, "turn-limit-fresh")
+	assert.NoError(t, err, "a fresh conversation must be available after a turn-limit refusal")
+}
+
+// TestGuestToken_LaunchGate_FailClosed_CustomCopy drains the org's credits
+// below the minimum start threshold and verifies (1) a guest message is
+// refused synchronously at create — never an accepted message followed by an
+// async EXECUTION_FAILED — and (2) the owner's custom unavailable copy from
+// spec.sharing.messages is carried verbatim in the status description.
+// Credits are restored on cleanup so later tests keep a funded org.
+func TestGuestToken_LaunchGate_FailClosed_CustomCopy(t *testing.T) {
+	requireGuestPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+
+	agent := harness.CreateAgent(t, ctx, clients, "test-guest-fail-closed",
+		"You are a test agent for fail-closed verification.")
+	customCopy := "Acme's helper is napping — come back soon!"
+	_, err := clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
+		ResourceId: agent.GetMetadata().GetId(),
+		Sharing: &agentv1.AgentSharing{
+			Enabled: true,
+			Messages: &agentv1.AgentSharingMessages{
+				Unavailable: customCopy,
+			},
+		},
+	})
+	require.NoError(t, err)
+	org := agent.GetMetadata().GetOrg()
+	slug := agent.GetMetadata().GetSlug()
+
+	minted := mintGuestToken(t, ctx, clients, org, slug, "")
+	guest := guestClients(t, minted.GetAccessToken())
+
+	// Session first, while the org is still funded (the session itself is free;
+	// the billing pre-flight guards execution create — the spend event).
+	session, err := guestCreateSession(t, ctx, guest, agent, "fail-closed")
+	require.NoError(t, err)
+
+	// Drain the org to zero available balance; restore on cleanup.
+	balance, err := clients.BillingQuery.GetCreditBalance(ctx, &billingv1.GetCreditBalanceInput{OrgId: org})
+	require.NoError(t, err, "reading the org balance should succeed")
+	drained := balance.GetAvailableMicros()
+	require.Greater(t, drained, int64(0), "the test org must start funded")
+
+	_, err = clients.BillingCommand.AdjustCredits(ctx, &billingv1.AdjustCreditsInput{
+		OrgId:          org,
+		AmountMicros:   -drained,
+		Reason:         "launch-gate fail-closed test drain",
+		IdempotencyKey: "launch-gate-drain-" + session.GetMetadata().GetId(),
+	})
+	require.NoError(t, err, "draining the org balance should succeed")
+	t.Cleanup(func() {
+		restoreCtx, restoreCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer restoreCancel()
+		_, restoreErr := clients.BillingCommand.AdjustCredits(restoreCtx, &billingv1.AdjustCreditsInput{
+			OrgId:          org,
+			AmountMicros:   drained,
+			Reason:         "launch-gate fail-closed test restore",
+			IdempotencyKey: "launch-gate-restore-" + session.GetMetadata().GetId(),
+		})
+		require.NoError(t, restoreErr, "restoring org credits must succeed or later tests will fail")
+	})
+
+	_, err = guestCreateExecution(ctx, guest, session.GetMetadata().GetId(), "fail-closed-attempt")
+	require.Error(t, err, "an exhausted org must refuse the guest message at create (fail closed)")
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.FailedPrecondition, st.Code())
+	assert.Equal(t, customCopy, st.Message(),
+		"the owner's custom unavailable copy must reach the wire verbatim")
+}
+
+// TestGuestToken_Sharing_AllowedOriginsRoundTrip pins cloud-edition
+// persistence of the T04-ahead allowed_origins config: stored via
+// updateSharing, surfaced on get, with zero enforcement side effects in T01
+// (the guest runtime must keep working with origins configured).
+func TestGuestToken_Sharing_AllowedOriginsRoundTrip(t *testing.T) {
+	requireGuestPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := harness.CreateAgent(t, ctx, clients, "test-guest-origins",
+		"You are a test agent for allowed-origins verification.")
+
+	origins := []string{"https://docs.example.com", "http://localhost:3000"}
+	updated, err := clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
+		ResourceId: agent.GetMetadata().GetId(),
+		Sharing: &agentv1.AgentSharing{
+			Enabled:        true,
+			AllowedOrigins: origins,
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, origins, updated.GetSpec().GetSharing().GetAllowedOrigins())
+
+	fetched, err := clients.AgentQuery.Get(ctx, &agentv1.AgentId{Value: agent.GetMetadata().GetId()})
+	require.NoError(t, err)
+	assert.Equal(t, origins, fetched.GetSpec().GetSharing().GetAllowedOrigins(),
+		"allowed_origins must persist and round-trip")
+
+	// Malformed origins are rejected by shared proto validation.
+	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
+		ResourceId: agent.GetMetadata().GetId(),
+		Sharing: &agentv1.AgentSharing{
+			Enabled:        true,
+			AllowedOrigins: []string{"https://example.com/path"},
+		},
+	})
+	require.Error(t, err, "an origin with a path must be rejected")
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.InvalidArgument, st.Code())
+
+	// Storage-only in T01: configured origins must not affect the guest runtime.
+	minted := mintGuestToken(t, ctx, clients,
+		agent.GetMetadata().GetOrg(), agent.GetMetadata().GetSlug(), "")
+	guest := guestClients(t, minted.GetAccessToken())
+	_, err = guestCreateSession(t, ctx, guest, agent, "origins-no-enforcement")
+	assert.NoError(t, err, "allowed_origins must have zero enforcement side effects in T01")
 }
 
 // TestGuestToken_Malformed verifies malformed and tampered tokens are

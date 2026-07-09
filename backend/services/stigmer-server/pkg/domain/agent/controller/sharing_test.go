@@ -96,6 +96,90 @@ func TestAgentController_UpdateSharing(t *testing.T) {
 	})
 }
 
+// TestAgentController_UpdateSharing_LaunchGateConfig pins persistence and
+// validation of the T01 launch-gate config fields (allowed_origins, messages).
+// The Go edition stores the config; enforcement is cloud-only.
+func TestAgentController_UpdateSharing_LaunchGateConfig(t *testing.T) {
+	controller := newSharingTestController(t)
+
+	t.Run("allowed_origins and messages persist and round-trip", func(t *testing.T) {
+		created := createSharingTestAgent(t, controller, "Launch Gate Config Agent")
+
+		updated, err := controller.UpdateSharing(contextWithAgentKind(), &agentv1.UpdateAgentSharingInput{
+			ResourceId: created.Metadata.Id,
+			Sharing: &agentv1.AgentSharing{
+				Enabled:        true,
+				AllowedOrigins: []string{"https://docs.example.com", "http://localhost:3000"},
+				Messages: &agentv1.AgentSharingMessages{
+					RateLimited:       "Custom rate copy",
+					Unavailable:       "Custom unavailable copy",
+					ConversationEnded: "Custom ended copy",
+				},
+			},
+		})
+		if err != nil {
+			t.Fatalf("UpdateSharing with config failed: %v", err)
+		}
+		if got := updated.GetSpec().GetSharing().GetAllowedOrigins(); len(got) != 2 {
+			t.Errorf("expected 2 allowed origins, got %v", got)
+		}
+
+		fetched, err := controller.Get(contextWithAgentKind(), &agentv1.AgentId{Value: created.Metadata.Id})
+		if err != nil {
+			t.Fatalf("Get failed: %v", err)
+		}
+		sharing := fetched.GetSpec().GetSharing()
+		if sharing.GetAllowedOrigins()[0] != "https://docs.example.com" {
+			t.Errorf("allowed_origins did not round-trip: %v", sharing.GetAllowedOrigins())
+		}
+		if sharing.GetMessages().GetRateLimited() != "Custom rate copy" ||
+			sharing.GetMessages().GetUnavailable() != "Custom unavailable copy" ||
+			sharing.GetMessages().GetConversationEnded() != "Custom ended copy" {
+			t.Errorf("messages did not round-trip: %+v", sharing.GetMessages())
+		}
+	})
+
+	t.Run("malformed origins are INVALID_ARGUMENT", func(t *testing.T) {
+		created := createSharingTestAgent(t, controller, "Origin Validation Agent")
+
+		for _, origin := range []string{
+			"docs.example.com",         // missing scheme
+			"https://example.com/path", // path not allowed
+			"https://example.com/",     // trailing slash not allowed
+			"ftp://example.com",        // wrong scheme
+			"https://example.com?q=1",  // query not allowed
+		} {
+			_, err := controller.UpdateSharing(contextWithAgentKind(), &agentv1.UpdateAgentSharingInput{
+				ResourceId: created.Metadata.Id,
+				Sharing: &agentv1.AgentSharing{
+					Enabled:        true,
+					AllowedOrigins: []string{origin},
+				},
+			})
+			if status.Code(err) != codes.InvalidArgument {
+				t.Errorf("origin %q: expected INVALID_ARGUMENT, got %s (%v)", origin, status.Code(err), err)
+			}
+		}
+	})
+
+	t.Run("overlong custom message is INVALID_ARGUMENT", func(t *testing.T) {
+		created := createSharingTestAgent(t, controller, "Message Length Agent")
+
+		_, err := controller.UpdateSharing(contextWithAgentKind(), &agentv1.UpdateAgentSharingInput{
+			ResourceId: created.Metadata.Id,
+			Sharing: &agentv1.AgentSharing{
+				Enabled: true,
+				Messages: &agentv1.AgentSharingMessages{
+					RateLimited: strings.Repeat("x", 301),
+				},
+			},
+		})
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected INVALID_ARGUMENT for overlong message, got %s (%v)", status.Code(err), err)
+		}
+	})
+}
+
 func TestAgentController_GetSharedProfile(t *testing.T) {
 	controller := newSharingTestController(t)
 

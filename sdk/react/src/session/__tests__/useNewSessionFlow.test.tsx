@@ -731,5 +731,30 @@ describe("useNewSessionFlow", () => {
       expect(result.current.submitError).toContain("still loading");
       expect(opts.onError).toHaveBeenCalled();
     });
+
+    it("surfaces launch-gate refusal copy verbatim from the status description", async () => {
+      // The backend resolves owner-customizable refusal copy server-side and
+      // carries it in the gRPC status description — the flow must hand it to
+      // onError untouched (no client-side mapping exists by design).
+      const ownerCopy = "This agent is currently unavailable. Please check back later.";
+      const { ConnectError, Code } = await import("@connectrpc/connect");
+      mockCreateExecution.mockRejectedValueOnce(
+        new ConnectError(ownerCopy, Code.FailedPrecondition),
+      );
+
+      const opts = { ...defaultOptions(), audience: "guest" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "support-bot" });
+        result.current.setResolution({ mode: "saved", instanceId: "shared-inst" });
+      });
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(result.current.submitError).toBe(ownerCopy);
+      expect(opts.onError).toHaveBeenCalledWith(ownerCopy);
+    });
   });
 });
