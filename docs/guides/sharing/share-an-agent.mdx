@@ -1,0 +1,93 @@
+---
+title: Share an Agent
+description:
+  Turn an Agent into a public chat page anyone can use — no account, no setup —
+  and embed it on your own site.
+---
+
+Sharing gives your Agent a public chat link. Anyone who opens the link can chat
+with the Agent right away — they don't need a Stigmer account. This guide shows
+you how to turn sharing on, send the link, and embed the chat on your own
+website.
+
+<Callout type="warn">
+  Shared links can be forwarded and indexed by search engines. Only share Agents
+  whose knowledge is safe to show to anyone on the internet.
+</Callout>
+
+<DemoShareAgentDialog />
+
+## Turn on sharing
+
+1. Open your Agent in the web console under **Library → Agents**.
+2. Open the actions menu (⋯) and choose **Share**.
+3. Turn on **Anyone with the link can chat**.
+
+The dialog shows the public chat link as soon as sharing is on. The link has the
+form:
+
+```
+https://app.stigmer.ai/chat/<org>/<agent>
+```
+
+Click **Copy** to copy the link, or **Open** to try it yourself.
+
+## Who pays for visitor chats
+
+Visitor conversations use your Organization's credits. The dialog shows your
+current balance next to the sharing toggle, so you always know what is at stake
+before you share.
+
+Stigmer protects your balance automatically:
+
+- Visitors are rate limited, per visitor and across your whole Organization.
+- Each conversation has a turn limit and an inactivity timeout.
+- If your Organization runs out of credits, shared chats stop — they never
+  overdraw your balance.
+
+## Customize visitor messages
+
+When a visitor hits a limit, Stigmer shows a short explanation. You can replace
+the default wording in the **Link** tab under **Customize visitor messages**.
+There are three messages:
+
+| Message                | Shown when                                    |
+| ---------------------- | --------------------------------------------- |
+| **Rate limited**       | A visitor sends messages faster than allowed  |
+| **Unavailable**        | The Agent is temporarily unavailable          |
+| **Conversation ended** | A conversation reaches its turn or time limit |
+
+Leave a message empty to keep the platform default.
+
+## Embed the chat on your site
+
+The **Embed** tab gives you an `<iframe>` snippet you can paste into any web
+page:
+
+```html
+<iframe
+  src="https://app.stigmer.ai/chat/acme/support-agent"
+  title="Support Agent"
+  width="400"
+  height="600"
+  style="border: 0; border-radius: 12px;"
+></iframe>
+```
+
+Under **Allowed embed origins**, list the websites that may embed your Agent
+(for example `https://acme.com`). The list is saved with your Agent and will be
+enforced when the one-line script embed ships.
+
+## Turn off sharing
+
+Turn the toggle off to revoke the link. The public page stops working
+immediately — visitors see the same "not found" page as for an Agent that never
+existed.
+
+## Go further with the SDK
+
+The **Developer** tab shows the path beyond the hosted page: create a platform
+client and mint tokens for your own users with the Stigmer SDK. That gives you
+your own authentication, branding, and UI on the same Agent runtime. See the
+[platform client guide](/docs/guides/authentication/platform-client/overview) to
+get started.

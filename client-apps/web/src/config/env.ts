@@ -15,6 +15,17 @@ export function getApiBaseUrl(): string {
   return getRuntimeConfig().apiUrl;
 }
 
+/**
+ * Public web app base URL for externally shareable links (no trailing
+ * slash). Falls back to the browser's own origin when not configured —
+ * correct whenever the app is served at its public URL.
+ */
+export function getAppBaseUrl(): string {
+  const configured = getRuntimeConfig().appUrl;
+  if (configured) return configured.replace(/\/$/, "");
+  return window.location.origin;
+}
+
 export function getIamApiAudience(): string {
   return getRuntimeConfig().oidcAudience;
 }

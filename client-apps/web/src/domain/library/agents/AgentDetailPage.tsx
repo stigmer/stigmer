@@ -20,6 +20,7 @@ import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinst
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { getAgentSessionUrl } from "@/domain/session/draft-session";
+import { getAppBaseUrl } from "@/config/env";
 
 interface AgentDetailPageInnerProps {
   readonly org: string;
@@ -80,6 +81,12 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
       onAction: () => router.push(getAgentSessionUrl(org, slug)),
     }),
     [router, org, slug],
+  );
+
+  const buildShareUrl = useCallback(
+    (shareOrg: string, shareSlug: string) =>
+      `${getAppBaseUrl()}/chat/${shareOrg}/${shareSlug}`,
+    [],
   );
 
   const handleInstanceStartSession = useCallback(
@@ -178,6 +185,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         editable
         primaryAction={primaryAction}
         actions={actions}
+        buildShareUrl={buildShareUrl}
         onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
         onInstanceStartSessionClick={handleInstanceStartSession}
         onInstanceDeleteClick={handleInstanceDelete}

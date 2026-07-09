@@ -17,6 +17,7 @@ import { agentToInput } from "./internal/agentToInput.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
+import { useShareAgent } from "../sharing/useShareAgent.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
 import { Section } from "../resource-detail/Section.js";
 import { useDetailTabs } from "../resource-detail/useDetailTabs.js";
@@ -128,6 +129,14 @@ export interface AgentDetailViewProps {
    */
   readonly onCreateInstanceClick?: () => void;
   /**
+   * Builds the absolute public chat URL shown in the Share dialog.
+   * The host application owns URL construction — its configured public
+   * origin may differ from the rendering origin (e.g. the desktop app).
+   * When omitted, the dialog falls back to the relative
+   * `/chat/<org>/<slug>` path.
+   */
+  readonly buildShareUrl?: (org: string, slug: string) => string;
+  /**
    * Called when the user clicks an instance row in the Instances tab.
    * Typically opens an instance detail panel.
    */
@@ -204,6 +213,7 @@ export function AgentDetailView({
   defaultTab,
   editable = false,
   onResourceUpdated,
+  buildShareUrl,
   onCreateInstanceClick,
   onInstanceClick,
   onInstanceStartSessionClick,
@@ -306,6 +316,15 @@ export function AgentDetailView({
       : undefined,
   });
 
+  // Share — the sibling consent to Manage access: visibility governs who
+  // can read the blueprint; sharing governs who can chat with the running
+  // agent (billed to the owning org). Same null-until-ready contract.
+  const share = useShareAgent({
+    agent,
+    buildShareUrl,
+    onSharingChanged: refetch,
+  });
+
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
     return <ErrorMessage error={error} retry={refetch} className={className} />;
@@ -344,9 +363,14 @@ export function AgentDetailView({
     <VisibilityBadge visibility={meta.visibility} />
   ) : undefined;
 
-  const mergedActions = access.action
-    ? [...(actions ?? []), access.action]
-    : actions;
+  // Share precedes Manage access within the "sharing" group.
+  const injectedActions = [share.action, access.action].filter(
+    (a): a is NonNullable<typeof a> => a != null,
+  );
+  const mergedActions =
+    injectedActions.length > 0
+      ? [...(actions ?? []), ...injectedActions]
+      : actions;
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
@@ -402,6 +426,7 @@ export function AgentDetailView({
         {tabContent}
       </ResourceDetailShell>
       {access.dialog}
+      {share.dialog}
     </>
   );
 }

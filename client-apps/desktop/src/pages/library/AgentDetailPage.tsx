@@ -15,6 +15,15 @@ import {
   type DetailAction,
 } from "@stigmer/react";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import { CONSOLE_URL } from "../../config";
+
+/**
+ * Share links must be reachable by anyone, so they point at the public
+ * web console — never the desktop app's own Tauri origin.
+ */
+function buildShareUrl(org: string, slug: string): string {
+  return `${CONSOLE_URL}/chat/${org}/${slug}`;
+}
 
 /**
  * Build the home-route URL that opens the new-session screen with the agent
@@ -200,6 +209,7 @@ export default function AgentDetailPage() {
         }
         primaryAction={primaryAction}
         actions={actions}
+        buildShareUrl={buildShareUrl}
         onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
         onInstanceStartSessionClick={handleInstanceStartSession}
         onInstanceDeleteClick={handleInstanceDelete}

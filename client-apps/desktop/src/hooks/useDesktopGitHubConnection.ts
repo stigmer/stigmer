@@ -7,9 +7,7 @@ import {
   type UseGitHubConnectionReturn,
   type UseGitHubConnectionConfig,
 } from "@stigmer/react";
-
-const CONSOLE_URL =
-  import.meta.env.VITE_STIGMER_CONSOLE_URL ?? "https://app.stigmer.ai";
+import { CONSOLE_URL } from "../config";
 
 /**
  * Payload emitted by the `github-callback` Tauri event.
