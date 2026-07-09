@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PlatformClientTokenController_MintUserToken_FullMethodName = "/ai.stigmer.iam.platformclient.v1.PlatformClientTokenController/mintUserToken"
+	PlatformClientTokenController_MintUserToken_FullMethodName  = "/ai.stigmer.iam.platformclient.v1.PlatformClientTokenController/mintUserToken"
+	PlatformClientTokenController_MintGuestToken_FullMethodName = "/ai.stigmer.iam.platformclient.v1.PlatformClientTokenController/mintGuestToken"
 )
 
 // PlatformClientTokenControllerClient is the client API for PlatformClientTokenController service.
@@ -37,6 +38,10 @@ const (
 // The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
 // chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
 // that checks the Stigmer-issued signature and resolves the identity account.
+//
+// mintGuestToken is the credential-free exception: no client_id/client_secret.
+// It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+// hosted page, gated on spec.sharing.enabled.
 type PlatformClientTokenControllerClient interface {
 	// Mint a user-scoped JWT for browser-based access to Stigmer resources.
 	//
@@ -65,6 +70,16 @@ type PlatformClientTokenControllerClient interface {
 	// by providing client_id + client_secret in the request body. The handler
 	// validates these credentials as business logic, not via the auth interceptor.
 	MintUserToken(ctx context.Context, in *MintUserTokenRequest, opts ...grpc.CallOption) (*MintUserTokenResponse, error)
+	// Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+	//
+	// Resolves org+slug to a shared agent, provisions the org's system-managed
+	// PlatformClient and guest identity account lazily, and returns a short-lived
+	// Stigmer-signed JWT scoped to that org.
+	//
+	// @internal
+	// Public — no Bearer token. No PlatformClient credentials. The handler gates
+	// on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+	MintGuestToken(ctx context.Context, in *MintGuestTokenRequest, opts ...grpc.CallOption) (*MintGuestTokenResponse, error)
 }
 
 type platformClientTokenControllerClient struct {
@@ -79,6 +94,16 @@ func (c *platformClientTokenControllerClient) MintUserToken(ctx context.Context,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MintUserTokenResponse)
 	err := c.cc.Invoke(ctx, PlatformClientTokenController_MintUserToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *platformClientTokenControllerClient) MintGuestToken(ctx context.Context, in *MintGuestTokenRequest, opts ...grpc.CallOption) (*MintGuestTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MintGuestTokenResponse)
+	err := c.cc.Invoke(ctx, PlatformClientTokenController_MintGuestToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +125,10 @@ func (c *platformClientTokenControllerClient) MintUserToken(ctx context.Context,
 // The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
 // chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
 // that checks the Stigmer-issued signature and resolves the identity account.
+//
+// mintGuestToken is the credential-free exception: no client_id/client_secret.
+// It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+// hosted page, gated on spec.sharing.enabled.
 type PlatformClientTokenControllerServer interface {
 	// Mint a user-scoped JWT for browser-based access to Stigmer resources.
 	//
@@ -128,6 +157,16 @@ type PlatformClientTokenControllerServer interface {
 	// by providing client_id + client_secret in the request body. The handler
 	// validates these credentials as business logic, not via the auth interceptor.
 	MintUserToken(context.Context, *MintUserTokenRequest) (*MintUserTokenResponse, error)
+	// Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+	//
+	// Resolves org+slug to a shared agent, provisions the org's system-managed
+	// PlatformClient and guest identity account lazily, and returns a short-lived
+	// Stigmer-signed JWT scoped to that org.
+	//
+	// @internal
+	// Public — no Bearer token. No PlatformClient credentials. The handler gates
+	// on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+	MintGuestToken(context.Context, *MintGuestTokenRequest) (*MintGuestTokenResponse, error)
 }
 
 // UnimplementedPlatformClientTokenControllerServer should be embedded to have
@@ -139,6 +178,9 @@ type UnimplementedPlatformClientTokenControllerServer struct{}
 
 func (UnimplementedPlatformClientTokenControllerServer) MintUserToken(context.Context, *MintUserTokenRequest) (*MintUserTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MintUserToken not implemented")
+}
+func (UnimplementedPlatformClientTokenControllerServer) MintGuestToken(context.Context, *MintGuestTokenRequest) (*MintGuestTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MintGuestToken not implemented")
 }
 func (UnimplementedPlatformClientTokenControllerServer) testEmbeddedByValue() {}
 
@@ -178,6 +220,24 @@ func _PlatformClientTokenController_MintUserToken_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PlatformClientTokenController_MintGuestToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MintGuestTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformClientTokenControllerServer).MintGuestToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformClientTokenController_MintGuestToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformClientTokenControllerServer).MintGuestToken(ctx, req.(*MintGuestTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PlatformClientTokenController_ServiceDesc is the grpc.ServiceDesc for PlatformClientTokenController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -188,6 +248,10 @@ var PlatformClientTokenController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "mintUserToken",
 			Handler:    _PlatformClientTokenController_MintUserToken_Handler,
+		},
+		{
+			MethodName: "mintGuestToken",
+			Handler:    _PlatformClientTokenController_MintGuestToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

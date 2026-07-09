@@ -85,6 +85,14 @@
           "outputType": "MintUserTokenResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.MintUserTokenResponse",
           "description": "Mint a user-scoped JWT for browser-based access to Stigmer resources.\n\n The platform builder's backend calls this RPC with its PlatformClient\n credentials (client_id + client_secret) and the end user's identity.\n Stigmer validates the credentials, optionally JIT-provisions the user's\n identity account, and returns a Stigmer-signed JWT.\n\n The returned JWT can be used by the React SDK (via StigmerProvider's\n getAccessToken callback) to authenticate API calls from the browser.\n\n Authentication flow:\n 1. Validate client_id + client_secret against stored hash\n 2. Resolve or JIT-provision the identity account for user_id\n 3. If auto_grant_on_org is enabled, grant the configured role\n 4. Sign a JWT with Stigmer's private key containing the user's identity\n\n Error scenarios:\n - UNAUTHENTICATED: Invalid client_id or client_secret\n - NOT_FOUND: user_id does not exist and auto_provision_accounts is false\n - FAILED_PRECONDITION: PlatformClient secret has expired\n - PERMISSION_DENIED: Origin not in allowed_origins (when configured)\n\n @internal\n This RPC is public — no Bearer token is required. The caller authenticates\n by providing client_id + client_secret in the request body. The handler\n validates these credentials as business logic, not via the auth interceptor."
+        },
+        {
+          "name": "MintGuestToken",
+          "inputType": "MintGuestTokenRequest",
+          "inputFullType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest",
+          "outputType": "MintGuestTokenResponse",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse",
+          "description": "Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.\n\n Resolves org+slug to a shared agent, provisions the org's system-managed\n PlatformClient and guest identity account lazily, and returns a short-lived\n Stigmer-signed JWT scoped to that org.\n\n @internal\n Public — no Bearer token. No PlatformClient credentials. The handler gates\n on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing)."
         }
       ]
     }
@@ -360,6 +368,98 @@
             "kind": "int32"
           },
           "description": "Token lifetime in seconds from the time of issuance.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "MintGuestTokenRequest",
+      "description": "MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.",
+      "protoType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest",
+      "protoFile": "apis/ai/stigmer/iam/platformclient/v1/token.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug from the share URL (required).",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent slug from the share URL (required).",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "GuestCookieId",
+          "jsonName": "guestCookieId",
+          "protoField": "guest_cookie_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Per-browser visitor cookie id from a prior mint (optional).\n\n When empty, the server generates a high-entropy id and returns it so the\n hosted page can persist it in an httpOnly cookie. When supplied, it must\n be the value previously returned by this RPC for the same visitor.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "MintGuestTokenResponse",
+      "description": "MintGuestTokenResponse contains the guest JWT and the visitor cookie id.",
+      "protoType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse",
+      "protoFile": "apis/ai/stigmer/iam/platformclient/v1/token.proto",
+      "fields": [
+        {
+          "name": "AccessToken",
+          "jsonName": "accessToken",
+          "protoField": "access_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stigmer-signed JWT for authenticating shared-agent chat API calls.",
+          "required": false
+        },
+        {
+          "name": "TokenType",
+          "jsonName": "tokenType",
+          "protoField": "token_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token type. Always \"Bearer\".",
+          "required": false
+        },
+        {
+          "name": "ExpiresIn",
+          "jsonName": "expiresIn",
+          "protoField": "expires_in",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Token lifetime in seconds from the time of issuance.",
+          "required": false
+        },
+        {
+          "name": "GuestCookieId",
+          "jsonName": "guestCookieId",
+          "protoField": "guest_cookie_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Visitor cookie id to persist client-side (httpOnly cookie in item 3).\n\n Echoes guest_cookie_id from the request when provided; otherwise a newly\n generated high-entropy value.",
           "required": false
         }
       ]

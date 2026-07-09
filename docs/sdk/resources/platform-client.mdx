@@ -94,6 +94,16 @@ PlatformClient supports three provisioning modes:
 | View | `get` | `can_view` | PlatformClient |
 | List | `listByOrg` | `can_view` | Organization |
 | Mint token | `mintUserToken` | N/A (client_id + client_secret auth) | N/A |
+| Mint guest token | `mintGuestToken` | N/A (public; gated on agent `spec.sharing.enabled`) | N/A |
+
+## Guest Tokens (Shared Agents)
+
+`mintGuestToken` is the credential-free exception to the client-credential model. It powers the hosted chat page for shared agents: an anonymous visitor resolves a share URL (`org` + agent `slug`) into a short-lived guest JWT without a Stigmer account and without PlatformClient credentials.
+
+- **Gate**: the target agent must have `spec.sharing.enabled`. Unshared and nonexistent agents return an identical `NOT_FOUND`, so the endpoint leaks nothing about agent existence.
+- **System-managed client**: the first mint in an org lazily provisions a system-managed PlatformClient (reserved slug `system-share-client`, labeled `stigmer.ai/system-managed`). Its secret is discarded at creation — it exists only so guest JWTs carry a valid `platform_client_id`. User deletion and secret rotation on it are rejected.
+- **Guest identity**: all visitors in an org share one guest identity account (bounded cardinality). Per-visitor identity is the `guest_cookie_id` — a high-entropy bearer secret generated server-side on first mint, persisted by the hosted page in an httpOnly cookie, and echoed on subsequent mints. It scopes session/execution reads and continuation to the visitor who created them.
+- **Containment**: a guest token can only create sessions and executions against shared agents in the token's org. All other RPCs are denied, and disabling sharing immediately stops both new mints and new guest sessions.
 
 ## Resource Definition
 
@@ -148,6 +158,7 @@ PlatformClient platformClient = client.platformclients().get("pcl_01j5q3k7m8r2s4
 | [`create`](#create) | Create a platform client. |
 | [`update`](#update) | Update an existing platform client. |
 | [`delete`](#delete) | Delete a platform client. |
+| [`mintGuestToken`](#mintguesttoken) | Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page. |
 | [`mintUserToken`](#mintusertoken) | Mint a user-scoped JWT for browser-based access to Stigmer resources. |
 | [`rotateSecret`](#rotatesecret) | Rotate the client secret. |
 
@@ -503,6 +514,55 @@ PlatformClient platformClient = client.platformclients().delete(DeleteResourceIn
 
 **Returns**: [`PlatformClient`](#platformclient)
 
+### mintGuestToken
+
+Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+
+Resolves org+slug to a shared agent, provisions the org's system-managed PlatformClient and guest identity account lazily, and returns a short-lived Stigmer-signed JWT scoped to that org.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const mintGuestTokenResponse = await stigmer.platformclient.mintGuestToken({
+  org: "...",
+  slug: "...",
+  guestCookieId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+mintGuestTokenResponse, err := client.PlatformClient.MintGuestToken(ctx, &stigmer.MintGuestTokenRequest{
+  Org:           "...",
+  Slug:          "...",
+  GuestCookieId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+mint_guest_token_response = client.platformclients.mint_guest_token(MintGuestTokenRequest(
+    org="...",
+    slug="...",
+    guest_cookie_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+MintGuestTokenResponse mintGuestTokenResponse = client.platformclients().mintGuestToken(MintGuestTokenRequest.builder()
+    .org("...")
+    .slug("...")
+    .guestCookieId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`MintGuestTokenRequest`](#mintguesttokenrequest)
+
+**Returns**: [`MintGuestTokenResponse`](#mintguesttokenresponse)
+
 ### mintUserToken
 
 Mint a user-scoped JWT for browser-based access to Stigmer resources.
@@ -699,6 +759,31 @@ MintUserTokenResponse contains the Stigmer-signed JWT and its metadata.
     accessToken: { type: "string", description: "Stigmer-signed JWT for authenticating browser-based API calls." },
     tokenType: { type: "string", description: "Token type." },
     expiresIn: { type: "number", description: "Token lifetime in seconds from the time of issuance." },
+  }}
+/>
+
+### MintGuestTokenRequest
+
+MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization slug from the share URL (required)." },
+    slug: { type: "string", description: "Agent slug from the share URL (required)." },
+    guestCookieId: { type: "string", description: "Per-browser visitor cookie id from a prior mint (optional)." },
+  }}
+/>
+
+### MintGuestTokenResponse
+
+MintGuestTokenResponse contains the guest JWT and the visitor cookie id.
+
+<TypeTable
+  type={{
+    accessToken: { type: "string", description: "Stigmer-signed JWT for authenticating shared-agent chat API calls." },
+    tokenType: { type: "string", description: "Token type." },
+    expiresIn: { type: "number", description: "Token lifetime in seconds from the time of issuance." },
+    guestCookieId: { type: "string", description: "Visitor cookie id to persist client-side (httpOnly cookie in item 3)." },
   }}
 />
 

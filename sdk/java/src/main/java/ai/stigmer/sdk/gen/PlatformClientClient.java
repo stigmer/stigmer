@@ -6,6 +6,8 @@ import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput;
+import ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest;
+import ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse;
 import ai.stigmer.iam.platformclient.v1.MintUserTokenRequest;
 import ai.stigmer.iam.platformclient.v1.MintUserTokenResponse;
 import ai.stigmer.iam.platformclient.v1.PlatformClient;
@@ -81,6 +83,12 @@ public final class PlatformClientClient {
     public MintUserTokenResponse mintUserToken(MintUserTokenRequest input) {
         try {
             return token.mintUserToken(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public MintGuestTokenResponse mintGuestToken(MintGuestTokenRequest input) {
+        try {
+            return token.mintGuestToken(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

@@ -13,6 +13,9 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
  * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
  * that checks the Stigmer-issued signature and resolves the identity account.
+ * mintGuestToken is the credential-free exception: no client_id/client_secret.
+ * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+ * hosted page, gated on spec.sharing.enabled.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -52,6 +55,37 @@ public final class PlatformClientTokenControllerGrpc {
       }
     }
     return getMintUserTokenMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest,
+      ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse> getMintGuestTokenMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "mintGuestToken",
+      requestType = ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest.class,
+      responseType = ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest,
+      ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse> getMintGuestTokenMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest, ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse> getMintGuestTokenMethod;
+    if ((getMintGuestTokenMethod = PlatformClientTokenControllerGrpc.getMintGuestTokenMethod) == null) {
+      synchronized (PlatformClientTokenControllerGrpc.class) {
+        if ((getMintGuestTokenMethod = PlatformClientTokenControllerGrpc.getMintGuestTokenMethod) == null) {
+          PlatformClientTokenControllerGrpc.getMintGuestTokenMethod = getMintGuestTokenMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest, ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "mintGuestToken"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new PlatformClientTokenControllerMethodDescriptorSupplier("mintGuestToken"))
+              .build();
+        }
+      }
+    }
+    return getMintGuestTokenMethod;
   }
 
   /**
@@ -124,6 +158,9 @@ public final class PlatformClientTokenControllerGrpc {
    * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
    * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
    * that checks the Stigmer-issued signature and resolves the identity account.
+   * mintGuestToken is the credential-free exception: no client_id/client_secret.
+   * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+   * hosted page, gated on spec.sharing.enabled.
    * </pre>
    */
   public interface AsyncService {
@@ -157,6 +194,22 @@ public final class PlatformClientTokenControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.MintUserTokenResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getMintUserTokenMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * PlatformClient and guest identity account lazily, and returns a short-lived
+     * Stigmer-signed JWT scoped to that org.
+     * &#64;internal
+     * Public — no Bearer token. No PlatformClient credentials. The handler gates
+     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * </pre>
+     */
+    default void mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getMintGuestTokenMethod(), responseObserver);
+    }
   }
 
   /**
@@ -171,6 +224,9 @@ public final class PlatformClientTokenControllerGrpc {
    * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
    * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
    * that checks the Stigmer-issued signature and resolves the identity account.
+   * mintGuestToken is the credential-free exception: no client_id/client_secret.
+   * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+   * hosted page, gated on spec.sharing.enabled.
    * </pre>
    */
   public static abstract class PlatformClientTokenControllerImplBase
@@ -193,6 +249,9 @@ public final class PlatformClientTokenControllerGrpc {
    * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
    * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
    * that checks the Stigmer-issued signature and resolves the identity account.
+   * mintGuestToken is the credential-free exception: no client_id/client_secret.
+   * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+   * hosted page, gated on spec.sharing.enabled.
    * </pre>
    */
   public static final class PlatformClientTokenControllerStub
@@ -238,6 +297,23 @@ public final class PlatformClientTokenControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getMintUserTokenMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * PlatformClient and guest identity account lazily, and returns a short-lived
+     * Stigmer-signed JWT scoped to that org.
+     * &#64;internal
+     * Public — no Bearer token. No PlatformClient credentials. The handler gates
+     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * </pre>
+     */
+    public void mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getMintGuestTokenMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -252,6 +328,9 @@ public final class PlatformClientTokenControllerGrpc {
    * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
    * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
    * that checks the Stigmer-issued signature and resolves the identity account.
+   * mintGuestToken is the credential-free exception: no client_id/client_secret.
+   * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+   * hosted page, gated on spec.sharing.enabled.
    * </pre>
    */
   public static final class PlatformClientTokenControllerBlockingV2Stub
@@ -296,6 +375,22 @@ public final class PlatformClientTokenControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getMintUserTokenMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * PlatformClient and guest identity account lazily, and returns a short-lived
+     * Stigmer-signed JWT scoped to that org.
+     * &#64;internal
+     * Public — no Bearer token. No PlatformClient credentials. The handler gates
+     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * </pre>
+     */
+    public ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getMintGuestTokenMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -310,6 +405,9 @@ public final class PlatformClientTokenControllerGrpc {
    * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
    * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
    * that checks the Stigmer-issued signature and resolves the identity account.
+   * mintGuestToken is the credential-free exception: no client_id/client_secret.
+   * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+   * hosted page, gated on spec.sharing.enabled.
    * </pre>
    */
   public static final class PlatformClientTokenControllerBlockingStub
@@ -354,6 +452,22 @@ public final class PlatformClientTokenControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getMintUserTokenMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * PlatformClient and guest identity account lazily, and returns a short-lived
+     * Stigmer-signed JWT scoped to that org.
+     * &#64;internal
+     * Public — no Bearer token. No PlatformClient credentials. The handler gates
+     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * </pre>
+     */
+    public ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getMintGuestTokenMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -368,6 +482,9 @@ public final class PlatformClientTokenControllerGrpc {
    * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
    * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
    * that checks the Stigmer-issued signature and resolves the identity account.
+   * mintGuestToken is the credential-free exception: no client_id/client_secret.
+   * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+   * hosted page, gated on spec.sharing.enabled.
    * </pre>
    */
   public static final class PlatformClientTokenControllerFutureStub
@@ -413,9 +530,27 @@ public final class PlatformClientTokenControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getMintUserTokenMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * PlatformClient and guest identity account lazily, and returns a short-lived
+     * Stigmer-signed JWT scoped to that org.
+     * &#64;internal
+     * Public — no Bearer token. No PlatformClient credentials. The handler gates
+     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse> mintGuestToken(
+        ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getMintGuestTokenMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_MINT_USER_TOKEN = 0;
+  private static final int METHODID_MINT_GUEST_TOKEN = 1;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -437,6 +572,10 @@ public final class PlatformClientTokenControllerGrpc {
         case METHODID_MINT_USER_TOKEN:
           serviceImpl.mintUserToken((ai.stigmer.iam.platformclient.v1.MintUserTokenRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.MintUserTokenResponse>) responseObserver);
+          break;
+        case METHODID_MINT_GUEST_TOKEN:
+          serviceImpl.mintGuestToken((ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -463,6 +602,13 @@ public final class PlatformClientTokenControllerGrpc {
               ai.stigmer.iam.platformclient.v1.MintUserTokenRequest,
               ai.stigmer.iam.platformclient.v1.MintUserTokenResponse>(
                 service, METHODID_MINT_USER_TOKEN)))
+        .addMethod(
+          getMintGuestTokenMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest,
+              ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse>(
+                service, METHODID_MINT_GUEST_TOKEN)))
         .build();
   }
 
@@ -512,6 +658,7 @@ public final class PlatformClientTokenControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new PlatformClientTokenControllerFileDescriptorSupplier())
               .addMethod(getMintUserTokenMethod())
+              .addMethod(getMintGuestTokenMethod())
               .build();
         }
       }

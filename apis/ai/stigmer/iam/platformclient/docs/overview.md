@@ -88,6 +88,16 @@ PlatformClient supports three provisioning modes:
 | View | `get` | `can_view` | PlatformClient |
 | List | `listByOrg` | `can_view` | Organization |
 | Mint token | `mintUserToken` | N/A (client_id + client_secret auth) | N/A |
+| Mint guest token | `mintGuestToken` | N/A (public; gated on agent `spec.sharing.enabled`) | N/A |
+
+## Guest Tokens (Shared Agents)
+
+`mintGuestToken` is the credential-free exception to the client-credential model. It powers the hosted chat page for shared agents: an anonymous visitor resolves a share URL (`org` + agent `slug`) into a short-lived guest JWT without a Stigmer account and without PlatformClient credentials.
+
+- **Gate**: the target agent must have `spec.sharing.enabled`. Unshared and nonexistent agents return an identical `NOT_FOUND`, so the endpoint leaks nothing about agent existence.
+- **System-managed client**: the first mint in an org lazily provisions a system-managed PlatformClient (reserved slug `system-share-client`, labeled `stigmer.ai/system-managed`). Its secret is discarded at creation — it exists only so guest JWTs carry a valid `platform_client_id`. User deletion and secret rotation on it are rejected.
+- **Guest identity**: all visitors in an org share one guest identity account (bounded cardinality). Per-visitor identity is the `guest_cookie_id` — a high-entropy bearer secret generated server-side on first mint, persisted by the hosted page in an httpOnly cookie, and echoed on subsequent mints. It scopes session/execution reads and continuation to the visitor who created them.
+- **Containment**: a guest token can only create sessions and executions against shared agents in the token's org. All other RPCs are denied, and disabling sharing immediately stops both new mints and new guest sessions.
 
 ## Resource Definition
 

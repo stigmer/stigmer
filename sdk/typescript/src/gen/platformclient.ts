@@ -14,7 +14,7 @@ import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/
 import { PlatformClientCreateResponseSchema, PlatformClientIdSchema, ListPlatformClientsByOrgInputSchema, PlatformClientsSchema, type PlatformClientCreateResponse, type ListPlatformClientsByOrgInput, type PlatformClients } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
 import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
-import { PlatformClientTokenController, MintUserTokenRequestSchema, MintUserTokenResponseSchema, type MintUserTokenRequest, type MintUserTokenResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
+import { PlatformClientTokenController, MintUserTokenRequestSchema, MintUserTokenResponseSchema, MintGuestTokenRequestSchema, MintGuestTokenResponseSchema, type MintUserTokenRequest, type MintUserTokenResponse, type MintGuestTokenRequest, type MintGuestTokenResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 /** Provides operations on platformclient resources. */
@@ -78,6 +78,12 @@ export class PlatformClientClient {
   async mintUserToken(input: MintUserTokenRequest): Promise<MintUserTokenResponse> {
     try {
       return await this.token.mintUserToken(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async mintGuestToken(input: MintGuestTokenRequest): Promise<MintGuestTokenResponse> {
+    try {
+      return await this.token.mintGuestToken(input);
     } catch (e) { throw wrapError(e); }
   }
 }
