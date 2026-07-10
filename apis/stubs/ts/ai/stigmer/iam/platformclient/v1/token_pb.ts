@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/token.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_token: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiowEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhgKB3VzZXJfaWQYAyABKAlCB7pIBHICEAESEgoKdXNlcl9lbWFpbBgEIAEoCRIRCgl1c2VyX25hbWUYBSABKAkSDgoGb3JnX2lkGAYgASgJIlUKFU1pbnRVc2VyVG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFIl0KFU1pbnRHdWVzdFRva2VuUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESFQoEc2x1ZxgCIAEoCUIHukgEcgIQARIXCg9ndWVzdF9jb29raWVfaWQYAyABKAkibwoWTWludEd1ZXN0VG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFEhcKD2d1ZXN0X2Nvb2tpZV9pZBgEIAEoCTK0AgodUGxhdGZvcm1DbGllbnRUb2tlbkNvbnRyb2xsZXIShgEKDW1pbnRVc2VyVG9rZW4SNi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50VXNlclRva2VuUmVxdWVzdBo3LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRVc2VyVG9rZW5SZXNwb25zZSIEyLgYARKJAQoObWludEd1ZXN0VG9rZW4SNy5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50R3Vlc3RUb2tlblJlcXVlc3QaOC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5NaW50R3Vlc3RUb2tlblJlc3BvbnNlIgTIuBgBYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiowEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhgKB3VzZXJfaWQYAyABKAlCB7pIBHICEAESEgoKdXNlcl9lbWFpbBgEIAEoCRIRCgl1c2VyX25hbWUYBSABKAkSDgoGb3JnX2lkGAYgASgJIlUKFU1pbnRVc2VyVG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFIqsDChVNaW50R3Vlc3RUb2tlblJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhUKBHNsdWcYAiABKAlCB7pIBHICEAESFwoPZ3Vlc3RfY29va2llX2lkGAMgASgJEssCCgxlbWJlZF9vcmlnaW4YBCABKAlCtAK6SLACugGsAgoTZW1iZWRfb3JpZ2luLmZvcm1hdBJ3ZW1iZWRfb3JpZ2luIG11c3QgYmUgZW1wdHksICJudWxsIiwgb3IgYW4gZXhhY3Qgd2ViIG9yaWdpbiBsaWtlIGh0dHBzOi8vZXhhbXBsZS5jb20gKG5vIHBhdGgsIHF1ZXJ5LCBvciB0cmFpbGluZyBzbGFzaCkamwF0aGlzID09ICcnIHx8IHRoaXMgPT0gJ251bGwnIHx8IHRoaXMubWF0Y2hlcygnXmh0dHBzPzovL1tBLVphLXowLTldKFtBLVphLXowLTktXSpbQS1aYS16MC05XSk/KFxcLltBLVphLXowLTldKFtBLVphLXowLTktXSpbQS1aYS16MC05XSk/KSooOlswLTldezEsNX0pPyQnKSJvChZNaW50R3Vlc3RUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhIKCmV4cGlyZXNfaW4YAyABKAUSFwoPZ3Vlc3RfY29va2llX2lkGAQgASgJMrQCCh1QbGF0Zm9ybUNsaWVudFRva2VuQ29udHJvbGxlchKGAQoNbWludFVzZXJUb2tlbhI2LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRVc2VyVG9rZW5SZXF1ZXN0GjcuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludFVzZXJUb2tlblJlc3BvbnNlIgTIuBgBEokBCg5taW50R3Vlc3RUb2tlbhI3LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRHdWVzdFRva2VuUmVxdWVzdBo4LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRHdWVzdFRva2VuUmVzcG9uc2UiBMi4GAFiBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * MintUserTokenRequest contains the credentials and user identity needed
@@ -154,6 +154,31 @@ export type MintGuestTokenRequest = Message<"ai.stigmer.iam.platformclient.v1.Mi
    * @generated from field: string guest_cookie_id = 3;
    */
   guestCookieId: string;
+
+  /**
+   * Web origin of the page embedding the shared agent (optional).
+   *
+   * Set by the hosted chat page when it runs inside an iframe (the embedding
+   * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+   * (their own page origin). Leave empty on the unframed hosted page. The
+   * literal value "null" reports a framed page whose parent origin could not
+   * be determined (opaque origin).
+   *
+   * @internal
+   * Validated at mint against the agent's spec.sharing.allowed_origins:
+   * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+   * for unlisted origins and for "null". An empty field always passes (the
+   * anyone-with-link hosted page). The validated value is stamped into the
+   * guest JWT as the embed_origin claim and re-validated against the live
+   * list by the guest create-time gate. Self-reported by design: the widget
+   * code inside the iframe derives it from browser-authentic sources the
+   * embedder cannot alter; non-browser callers gain nothing by omitting it
+   * since the hosted link is anyone-with-link (decision 001) — rate limits
+   * and the billing gate remain the API guards.
+   *
+   * @generated from field: string embed_origin = 4;
+   */
+  embedOrigin: string;
 };
 
 /**

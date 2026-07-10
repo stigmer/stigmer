@@ -99,6 +99,7 @@ PlatformClient supports three provisioning modes:
 - **Guest identity**: all visitors in an org share one guest identity account (bounded cardinality). Per-visitor identity is the `guest_cookie_id` — a high-entropy bearer secret generated server-side on first mint, persisted by the hosted page in an httpOnly cookie, and echoed on subsequent mints. It scopes session/execution reads and continuation to the visitor who created them.
 - **Containment**: a guest token can only create sessions and executions against shared agents in the token's org. All other RPCs are denied, and disabling sharing immediately stops both new mints and new guest sessions.
 - **Launch-gate limits**: guest traffic is bounded by platform rate limits (per-visitor and per-org, including mints on this endpoint), a per-conversation turn limit and inactivity timeout, and a fail-closed credit check on the sharing org. A refused request carries a visitor-friendly message in the error — owners customize the copy per agent via `spec.sharing.messages`.
+- **Embed origins**: when the widget runs inside an iframe (or a direct SDK embed), the mint request carries the embedding page's `embed_origin`. It is validated against the agent's `spec.sharing.allowed_origins` — an empty list admits any origin; a non-empty list refuses unlisted origins with `PERMISSION_DENIED` — then stamped into the guest JWT and re-validated against the live list on every session and execution create. The unframed hosted page sends no origin and is always exempt.
 
 ## Resource Definition
 

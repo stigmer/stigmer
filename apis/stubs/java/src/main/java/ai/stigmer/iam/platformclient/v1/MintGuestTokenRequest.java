@@ -35,6 +35,7 @@ private static final long serialVersionUID = 0L;
     org_ = "";
     slug_ = "";
     guestCookieId_ = "";
+    embedOrigin_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -204,6 +205,89 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int EMBED_ORIGIN_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object embedOrigin_ = "";
+  /**
+   * <pre>
+   * Web origin of the page embedding the shared agent (optional).
+   *
+   * Set by the hosted chat page when it runs inside an iframe (the embedding
+   * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+   * (their own page origin). Leave empty on the unframed hosted page. The
+   * literal value "null" reports a framed page whose parent origin could not
+   * be determined (opaque origin).
+   *
+   * &#64;internal
+   * Validated at mint against the agent's spec.sharing.allowed_origins:
+   * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+   * for unlisted origins and for "null". An empty field always passes (the
+   * anyone-with-link hosted page). The validated value is stamped into the
+   * guest JWT as the embed_origin claim and re-validated against the live
+   * list by the guest create-time gate. Self-reported by design: the widget
+   * code inside the iframe derives it from browser-authentic sources the
+   * embedder cannot alter; non-browser callers gain nothing by omitting it
+   * since the hosted link is anyone-with-link (decision 001) — rate limits
+   * and the billing gate remain the API guards.
+   * </pre>
+   *
+   * <code>string embed_origin = 4 [json_name = "embedOrigin", (.buf.validate.field) = { ... }</code>
+   * @return The embedOrigin.
+   */
+  @java.lang.Override
+  public java.lang.String getEmbedOrigin() {
+    java.lang.Object ref = embedOrigin_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      embedOrigin_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Web origin of the page embedding the shared agent (optional).
+   *
+   * Set by the hosted chat page when it runs inside an iframe (the embedding
+   * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+   * (their own page origin). Leave empty on the unframed hosted page. The
+   * literal value "null" reports a framed page whose parent origin could not
+   * be determined (opaque origin).
+   *
+   * &#64;internal
+   * Validated at mint against the agent's spec.sharing.allowed_origins:
+   * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+   * for unlisted origins and for "null". An empty field always passes (the
+   * anyone-with-link hosted page). The validated value is stamped into the
+   * guest JWT as the embed_origin claim and re-validated against the live
+   * list by the guest create-time gate. Self-reported by design: the widget
+   * code inside the iframe derives it from browser-authentic sources the
+   * embedder cannot alter; non-browser callers gain nothing by omitting it
+   * since the hosted link is anyone-with-link (decision 001) — rate limits
+   * and the billing gate remain the API guards.
+   * </pre>
+   *
+   * <code>string embed_origin = 4 [json_name = "embedOrigin", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for embedOrigin.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getEmbedOriginBytes() {
+    java.lang.Object ref = embedOrigin_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      embedOrigin_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -227,6 +311,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(guestCookieId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, guestCookieId_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(embedOrigin_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, embedOrigin_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -244,6 +331,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(guestCookieId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, guestCookieId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(embedOrigin_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, embedOrigin_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -266,6 +356,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getSlug())) return false;
     if (!getGuestCookieId()
         .equals(other.getGuestCookieId())) return false;
+    if (!getEmbedOrigin()
+        .equals(other.getEmbedOrigin())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -283,6 +375,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getSlug().hashCode();
     hash = (37 * hash) + GUEST_COOKIE_ID_FIELD_NUMBER;
     hash = (53 * hash) + getGuestCookieId().hashCode();
+    hash = (37 * hash) + EMBED_ORIGIN_FIELD_NUMBER;
+    hash = (53 * hash) + getEmbedOrigin().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -421,6 +515,7 @@ private static final long serialVersionUID = 0L;
       org_ = "";
       slug_ = "";
       guestCookieId_ = "";
+      embedOrigin_ = "";
       return this;
     }
 
@@ -463,6 +558,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.guestCookieId_ = guestCookieId_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.embedOrigin_ = embedOrigin_;
+      }
     }
 
     @java.lang.Override
@@ -490,6 +588,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getGuestCookieId().isEmpty()) {
         guestCookieId_ = other.guestCookieId_;
         bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      if (!other.getEmbedOrigin().isEmpty()) {
+        embedOrigin_ = other.embedOrigin_;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -533,6 +636,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 34: {
+              embedOrigin_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -842,6 +950,188 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       guestCookieId_ = value;
       bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object embedOrigin_ = "";
+    /**
+     * <pre>
+     * Web origin of the page embedding the shared agent (optional).
+     *
+     * Set by the hosted chat page when it runs inside an iframe (the embedding
+     * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+     * (their own page origin). Leave empty on the unframed hosted page. The
+     * literal value "null" reports a framed page whose parent origin could not
+     * be determined (opaque origin).
+     *
+     * &#64;internal
+     * Validated at mint against the agent's spec.sharing.allowed_origins:
+     * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+     * for unlisted origins and for "null". An empty field always passes (the
+     * anyone-with-link hosted page). The validated value is stamped into the
+     * guest JWT as the embed_origin claim and re-validated against the live
+     * list by the guest create-time gate. Self-reported by design: the widget
+     * code inside the iframe derives it from browser-authentic sources the
+     * embedder cannot alter; non-browser callers gain nothing by omitting it
+     * since the hosted link is anyone-with-link (decision 001) — rate limits
+     * and the billing gate remain the API guards.
+     * </pre>
+     *
+     * <code>string embed_origin = 4 [json_name = "embedOrigin", (.buf.validate.field) = { ... }</code>
+     * @return The embedOrigin.
+     */
+    public java.lang.String getEmbedOrigin() {
+      java.lang.Object ref = embedOrigin_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        embedOrigin_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Web origin of the page embedding the shared agent (optional).
+     *
+     * Set by the hosted chat page when it runs inside an iframe (the embedding
+     * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+     * (their own page origin). Leave empty on the unframed hosted page. The
+     * literal value "null" reports a framed page whose parent origin could not
+     * be determined (opaque origin).
+     *
+     * &#64;internal
+     * Validated at mint against the agent's spec.sharing.allowed_origins:
+     * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+     * for unlisted origins and for "null". An empty field always passes (the
+     * anyone-with-link hosted page). The validated value is stamped into the
+     * guest JWT as the embed_origin claim and re-validated against the live
+     * list by the guest create-time gate. Self-reported by design: the widget
+     * code inside the iframe derives it from browser-authentic sources the
+     * embedder cannot alter; non-browser callers gain nothing by omitting it
+     * since the hosted link is anyone-with-link (decision 001) — rate limits
+     * and the billing gate remain the API guards.
+     * </pre>
+     *
+     * <code>string embed_origin = 4 [json_name = "embedOrigin", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for embedOrigin.
+     */
+    public com.google.protobuf.ByteString
+        getEmbedOriginBytes() {
+      java.lang.Object ref = embedOrigin_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        embedOrigin_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Web origin of the page embedding the shared agent (optional).
+     *
+     * Set by the hosted chat page when it runs inside an iframe (the embedding
+     * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+     * (their own page origin). Leave empty on the unframed hosted page. The
+     * literal value "null" reports a framed page whose parent origin could not
+     * be determined (opaque origin).
+     *
+     * &#64;internal
+     * Validated at mint against the agent's spec.sharing.allowed_origins:
+     * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+     * for unlisted origins and for "null". An empty field always passes (the
+     * anyone-with-link hosted page). The validated value is stamped into the
+     * guest JWT as the embed_origin claim and re-validated against the live
+     * list by the guest create-time gate. Self-reported by design: the widget
+     * code inside the iframe derives it from browser-authentic sources the
+     * embedder cannot alter; non-browser callers gain nothing by omitting it
+     * since the hosted link is anyone-with-link (decision 001) — rate limits
+     * and the billing gate remain the API guards.
+     * </pre>
+     *
+     * <code>string embed_origin = 4 [json_name = "embedOrigin", (.buf.validate.field) = { ... }</code>
+     * @param value The embedOrigin to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEmbedOrigin(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      embedOrigin_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Web origin of the page embedding the shared agent (optional).
+     *
+     * Set by the hosted chat page when it runs inside an iframe (the embedding
+     * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+     * (their own page origin). Leave empty on the unframed hosted page. The
+     * literal value "null" reports a framed page whose parent origin could not
+     * be determined (opaque origin).
+     *
+     * &#64;internal
+     * Validated at mint against the agent's spec.sharing.allowed_origins:
+     * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+     * for unlisted origins and for "null". An empty field always passes (the
+     * anyone-with-link hosted page). The validated value is stamped into the
+     * guest JWT as the embed_origin claim and re-validated against the live
+     * list by the guest create-time gate. Self-reported by design: the widget
+     * code inside the iframe derives it from browser-authentic sources the
+     * embedder cannot alter; non-browser callers gain nothing by omitting it
+     * since the hosted link is anyone-with-link (decision 001) — rate limits
+     * and the billing gate remain the API guards.
+     * </pre>
+     *
+     * <code>string embed_origin = 4 [json_name = "embedOrigin", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearEmbedOrigin() {
+      embedOrigin_ = getDefaultInstance().getEmbedOrigin();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Web origin of the page embedding the shared agent (optional).
+     *
+     * Set by the hosted chat page when it runs inside an iframe (the embedding
+     * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+     * (their own page origin). Leave empty on the unframed hosted page. The
+     * literal value "null" reports a framed page whose parent origin could not
+     * be determined (opaque origin).
+     *
+     * &#64;internal
+     * Validated at mint against the agent's spec.sharing.allowed_origins:
+     * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+     * for unlisted origins and for "null". An empty field always passes (the
+     * anyone-with-link hosted page). The validated value is stamped into the
+     * guest JWT as the embed_origin claim and re-validated against the live
+     * list by the guest create-time gate. Self-reported by design: the widget
+     * code inside the iframe derives it from browser-authentic sources the
+     * embedder cannot alter; non-browser callers gain nothing by omitting it
+     * since the hosted link is anyone-with-link (decision 001) — rate limits
+     * and the billing gate remain the API guards.
+     * </pre>
+     *
+     * <code>string embed_origin = 4 [json_name = "embedOrigin", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for embedOrigin to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEmbedOriginBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      embedOrigin_ = value;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }

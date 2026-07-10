@@ -93,6 +93,46 @@ describe("GuestAuth.getAccessToken", () => {
       org: "acme",
       slug: "support-agent",
       guestCookieId: "",
+      // No embedOrigin configured (the unframed hosted page): the field
+      // must stay empty so the server's absence-means-exempt rule applies.
+      embedOrigin: "",
+    });
+  });
+
+  it("passes the configured embedOrigin through to every mint", async () => {
+    mintGuestToken.mockResolvedValue(mintResponse());
+    const auth = createGuestAuth({
+      ...CONFIG,
+      storage: createMemoryStorage(),
+      embedOrigin: "https://docs.example.com",
+    });
+
+    await auth.getAccessToken();
+    // Expire the cached token, forcing a re-mint — the origin must persist.
+    vi.advanceTimersByTime(900_000);
+    await auth.getAccessToken();
+
+    expect(mintGuestToken).toHaveBeenCalledTimes(2);
+    for (const call of mintGuestToken.mock.calls) {
+      expect(call[0]).toMatchObject({ embedOrigin: "https://docs.example.com" });
+    }
+  });
+
+  it("rejects with permission-denied when the embed origin is refused", async () => {
+    mintGuestToken.mockRejectedValue(
+      new ConnectError(
+        "This agent can\u2019t be embedded on this site.",
+        Code.PermissionDenied,
+      ),
+    );
+    const auth = createGuestAuth({
+      ...CONFIG,
+      storage: createMemoryStorage(),
+      embedOrigin: "https://evil.example.com",
+    });
+
+    await expect(auth.getAccessToken()).rejects.toMatchObject({
+      code: "permission-denied",
     });
   });
 

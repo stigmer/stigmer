@@ -77,4 +77,60 @@ public interface MintGuestTokenRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getGuestCookieIdBytes();
+
+  /**
+   * <pre>
+   * Web origin of the page embedding the shared agent (optional).
+   *
+   * Set by the hosted chat page when it runs inside an iframe (the embedding
+   * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+   * (their own page origin). Leave empty on the unframed hosted page. The
+   * literal value "null" reports a framed page whose parent origin could not
+   * be determined (opaque origin).
+   *
+   * &#64;internal
+   * Validated at mint against the agent's spec.sharing.allowed_origins:
+   * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+   * for unlisted origins and for "null". An empty field always passes (the
+   * anyone-with-link hosted page). The validated value is stamped into the
+   * guest JWT as the embed_origin claim and re-validated against the live
+   * list by the guest create-time gate. Self-reported by design: the widget
+   * code inside the iframe derives it from browser-authentic sources the
+   * embedder cannot alter; non-browser callers gain nothing by omitting it
+   * since the hosted link is anyone-with-link (decision 001) — rate limits
+   * and the billing gate remain the API guards.
+   * </pre>
+   *
+   * <code>string embed_origin = 4 [json_name = "embedOrigin", (.buf.validate.field) = { ... }</code>
+   * @return The embedOrigin.
+   */
+  java.lang.String getEmbedOrigin();
+  /**
+   * <pre>
+   * Web origin of the page embedding the shared agent (optional).
+   *
+   * Set by the hosted chat page when it runs inside an iframe (the embedding
+   * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+   * (their own page origin). Leave empty on the unframed hosted page. The
+   * literal value "null" reports a framed page whose parent origin could not
+   * be determined (opaque origin).
+   *
+   * &#64;internal
+   * Validated at mint against the agent's spec.sharing.allowed_origins:
+   * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+   * for unlisted origins and for "null". An empty field always passes (the
+   * anyone-with-link hosted page). The validated value is stamped into the
+   * guest JWT as the embed_origin claim and re-validated against the live
+   * list by the guest create-time gate. Self-reported by design: the widget
+   * code inside the iframe derives it from browser-authentic sources the
+   * embedder cannot alter; non-browser callers gain nothing by omitting it
+   * since the hosted link is anyone-with-link (decision 001) — rate limits
+   * and the billing gate remain the API guards.
+   * </pre>
+   *
+   * <code>string embed_origin = 4 [json_name = "embedOrigin", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for embedOrigin.
+   */
+  com.google.protobuf.ByteString
+      getEmbedOriginBytes();
 }

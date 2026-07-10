@@ -1,0 +1,95 @@
+---
+title: Embed an Agent
+description:
+  Put a shared Agent's chat on your own website with a two-line snippet.
+---
+
+Embedding puts a shared Agent's chat directly on your website. Visitors chat in
+place — they don't need a Stigmer account, and they never leave your page.
+
+Before you start, [turn on sharing](/docs/guides/sharing/share-an-agent) for the
+Agent. Embedding uses the same public chat that powers the shared link.
+
+## Paste the snippet
+
+Open the Agent's **Share** dialog and copy the code from the **Embed** tab:
+
+```html
+<script src="https://app.stigmer.ai/embed.js" async></script>
+<stigmer-agent org="acme" agent="support-agent"></stigmer-agent>
+```
+
+Paste it where you want the chat to appear. The `<script>` tag loads once per
+page, even if you embed several Agents. The `<stigmer-agent>` tag marks the spot
+where the chat renders.
+
+If you run your own Stigmer server, the dialog fills in your server's address
+automatically — the snippet works the same way.
+
+## Size and theme
+
+The widget renders at 400×600 px by default. Set `width` and `height` to change
+that — a plain number is px, or use any CSS length with a unit:
+
+```html
+<stigmer-agent
+  org="acme"
+  agent="support-agent"
+  width="320"
+  height="80vh"
+  theme="dark"
+></stigmer-agent>
+```
+
+`theme` accepts `light`, `dark`, or `auto` (match the visitor's system
+preference). Without it, the chat uses its own default. The theme is chosen when
+the widget loads — it does not switch mid-conversation.
+
+## Control which sites can embed
+
+By default, anyone can embed a shared Agent — the same "anyone with the link"
+deal as the shared page itself. To restrict embedding to your own sites, add
+them under **Allowed embed origins** in the Share dialog's **Embed** tab (for
+example `https://acme.com`).
+
+Once the list has at least one entry:
+
+- The widget works only on the listed sites.
+- On any other site, the widget hides itself instead of showing an error.
+- Removing a site takes effect on the visitor's next message.
+
+The shared link keeps working for everyone either way — the list only controls
+embedding.
+
+<Callout type="info">
+  Visitor chats in the widget use your Organization's credits, with the same
+  rate limits and protections as the shared link. See [who pays for visitor
+  chats](/docs/guides/sharing/share-an-agent#who-pays-for-visitor-chats).
+</Callout>
+
+## If your site can't run scripts
+
+Some platforms strip `<script>` tags. The **Embed** tab's **No-JavaScript
+alternative** gives you a plain `<iframe>` snippet instead. It shows the same
+chat, with one difference: on a site that isn't allowed to embed the Agent, the
+iframe shows an empty frame instead of hiding.
+
+## React and custom integrations
+
+The widget also works from a bundler — install `@stigmer/embed` and register the
+element:
+
+```typescript
+import "@stigmer/embed/define";
+```
+
+Then render
+`<stigmer-agent org="acme" agent="support-agent" app-origin="https://app.stigmer.ai" />`
+anywhere in your markup. The `app-origin` attribute replaces what the script
+tag's URL normally provides.
+
+For full control — your own UI, your own users, your own authentication — use
+the SDK directly instead of the widget. The Share dialog's **Developer** tab and
+the
+[platform client guide](/docs/guides/authentication/platform-client/overview)
+show the way.

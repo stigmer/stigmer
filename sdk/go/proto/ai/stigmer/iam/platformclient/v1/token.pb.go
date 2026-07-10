@@ -210,6 +210,26 @@ type MintGuestTokenRequest struct {
 	// hosted page can persist it in an httpOnly cookie. When supplied, it must
 	// be the value previously returned by this RPC for the same visitor.
 	GuestCookieId string `protobuf:"bytes,3,opt,name=guest_cookie_id,json=guestCookieId,proto3" json:"guest_cookie_id,omitempty"`
+	// Web origin of the page embedding the shared agent (optional).
+	//
+	// Set by the hosted chat page when it runs inside an iframe (the embedding
+	// page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+	// (their own page origin). Leave empty on the unframed hosted page. The
+	// literal value "null" reports a framed page whose parent origin could not
+	// be determined (opaque origin).
+	//
+	// @internal
+	// Validated at mint against the agent's spec.sharing.allowed_origins:
+	// empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+	// for unlisted origins and for "null". An empty field always passes (the
+	// anyone-with-link hosted page). The validated value is stamped into the
+	// guest JWT as the embed_origin claim and re-validated against the live
+	// list by the guest create-time gate. Self-reported by design: the widget
+	// code inside the iframe derives it from browser-authentic sources the
+	// embedder cannot alter; non-browser callers gain nothing by omitting it
+	// since the hosted link is anyone-with-link (decision 001) — rate limits
+	// and the billing gate remain the API guards.
+	EmbedOrigin   string `protobuf:"bytes,4,opt,name=embed_origin,json=embedOrigin,proto3" json:"embed_origin,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -261,6 +281,13 @@ func (x *MintGuestTokenRequest) GetSlug() string {
 func (x *MintGuestTokenRequest) GetGuestCookieId() string {
 	if x != nil {
 		return x.GuestCookieId
+	}
+	return ""
+}
+
+func (x *MintGuestTokenRequest) GetEmbedOrigin() string {
+	if x != nil {
+		return x.EmbedOrigin
 	}
 	return ""
 }
@@ -359,11 +386,13 @@ const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\n" +
 	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n" +
 	"\n" +
-	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"w\n" +
+	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"\xd2\x03\n" +
 	"\x15MintGuestTokenRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\x1b\n" +
 	"\x04slug\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04slug\x12&\n" +
-	"\x0fguest_cookie_id\x18\x03 \x01(\tR\rguestCookieId\"\xa1\x01\n" +
+	"\x0fguest_cookie_id\x18\x03 \x01(\tR\rguestCookieId\x12\xd8\x02\n" +
+	"\fembed_origin\x18\x04 \x01(\tB\xb4\x02\xbaH\xb0\x02\xba\x01\xac\x02\n" +
+	"\x13embed_origin.format\x12wembed_origin must be empty, \"null\", or an exact web origin like https://example.com (no path, query, or trailing slash)\x1a\x9b\x01this == '' || this == 'null' || this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\vembedOrigin\"\xa1\x01\n" +
 	"\x16MintGuestTokenResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x1d\n" +
 	"\n" +

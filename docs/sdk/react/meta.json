@@ -38,6 +38,7 @@
     "user",
     "activity",
     "file-reference",
-    "sharing"
+    "sharing",
+    "switch"
   ]
 }

@@ -178,13 +178,19 @@ type AgentSharing struct {
 	// Origins permitted to embed this agent's chat widget.
 	//
 	// Each entry is an exact web origin (scheme://host[:port]) with no path,
-	// for example "https://docs.example.com". The first-party hosted chat
-	// page is always exempt.
+	// for example "https://docs.example.com". An empty list allows embedding
+	// from any site; listing origins restricts embedding to those sites. The
+	// first-party hosted chat page is always exempt.
 	//
 	// @internal
-	// Storage-only in T01: enforcement (server-side Origin checks on session
-	// calls) lands with the T04 script embed. Exact origins only — loosening
-	// to wildcards later is a non-breaking change, tightening would not be.
+	// Enforced since T04 against the embed_origin the widget reports at
+	// mintGuestToken time (stamped into the guest JWT as a claim) and
+	// re-validated against this live list by the guest create-time gate
+	// (SharedSessionBlueprintAccess) on every session/execution create — the
+	// same gate that re-checks sharing.enabled, so revocation latency is
+	// identical (immediate). Unframed hosted-page visitors report no origin
+	// and are exempt by construction. Exact origins only — loosening to
+	// wildcards later is a non-breaking change, tightening would not be.
 	AllowedOrigins []string `protobuf:"bytes,2,rep,name=allowed_origins,json=allowedOrigins,proto3" json:"allowed_origins,omitempty"`
 	// Owner-customizable copy shown to visitors when a launch-gate limit
 	// refuses their message. Unset fields fall back to platform defaults.

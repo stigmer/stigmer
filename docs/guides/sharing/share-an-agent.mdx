@@ -61,22 +61,18 @@ Leave a message empty to keep the platform default.
 
 ## Embed the chat on your site
 
-The **Embed** tab gives you an `<iframe>` snippet you can paste into any web
-page:
+The **Embed** tab gives you a two-line snippet you can paste into any web page:
 
 ```html
-<iframe
-  src="https://app.stigmer.ai/chat/acme/support-agent"
-  title="Support Agent"
-  width="400"
-  height="600"
-  style="border: 0; border-radius: 12px;"
-></iframe>
+<script src="https://app.stigmer.ai/embed.js" async></script>
+<stigmer-agent org="acme" agent="support-agent"></stigmer-agent>
 ```
 
 Under **Allowed embed origins**, list the websites that may embed your Agent
-(for example `https://acme.com`). The list is saved with your Agent and will be
-enforced when the one-line script embed ships.
+(for example `https://acme.com`). An empty list allows any site; adding origins
+restricts embedding to those sites. See
+[Embed an Agent](/docs/guides/sharing/embed-an-agent) for sizing, theming, and
+how origin restrictions behave.
 
 ## Turn off sharing
 

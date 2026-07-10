@@ -217,7 +217,7 @@ describe("ShareAgentDialog", () => {
   });
 
   describe("Embed tab", () => {
-    it("shows a working iframe snippet for the share URL", () => {
+    it("shows the one-line script snippet: loader from the app origin + <stigmer-agent>", () => {
       render(
         <Providers client={createMockStigmer()}>
           <ShareAgentDialog
@@ -230,6 +230,42 @@ describe("ShareAgentDialog", () => {
       );
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
+      // The loader must be served from the SAME origin as the share URL —
+      // embed.js derives the chat-page origin from its own script URL.
+      expect(
+        screen.getByText(
+          /<script src="https:\/\/app\.example\.com\/embed\.js" async><\/script>/,
+        ),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(
+          /<stigmer-agent org="acme" agent="support-agent"><\/stigmer-agent>/,
+        ),
+      ).toBeTruthy();
+    });
+
+    it("keeps the iframe snippet available as the collapsed no-JavaScript alternative", () => {
+      render(
+        <Providers client={createMockStigmer()}>
+          <ShareAgentDialog
+            open
+            onOpenChange={() => {}}
+            agent={makeAgent({ enabled: true })}
+            buildShareUrl={buildShareUrl}
+          />
+        </Providers>,
+      );
+
+      fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
+      // Collapsed by default — the script snippet is the primary path.
+      expect(screen.queryByText(/<iframe/)).toBeNull();
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: /No-JavaScript alternative/,
+          hidden: true,
+        }),
+      );
       expect(
         screen.getByText(
           /src="https:\/\/app\.example\.com\/chat\/acme\/support-agent"/,

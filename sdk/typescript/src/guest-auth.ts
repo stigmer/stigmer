@@ -59,6 +59,20 @@ export interface GuestAuthConfig {
    * credential — that keys this browser's session read-isolation.
    */
   readonly storage?: GuestIdStorage;
+
+  /**
+   * Web origin of the page embedding the shared agent.
+   *
+   * Set this when the chat runs embedded — inside an iframe (the
+   * embedding page's origin, discovered via `@stigmer/embed`'s
+   * `resolveParentOrigin`) or directly in your own app
+   * (`window.location.origin`). Leave unset on the unframed hosted
+   * page. The server validates it against the agent's
+   * `spec.sharing.allowed_origins` at mint (an empty list admits any
+   * origin) and refuses with `"permission-denied"` when the origin is
+   * not allowed.
+   */
+  readonly embedOrigin?: string;
 }
 
 /**
@@ -110,6 +124,7 @@ export class GuestAuth {
   private readonly slug: string;
   private readonly storage: GuestIdStorage;
   private readonly storageKey: string;
+  private readonly embedOrigin: string;
 
   private cached: { accessToken: string; expiresAt: number } | null = null;
   private pendingMint: Promise<string> | null = null;
@@ -120,6 +135,7 @@ export class GuestAuth {
     this.slug = config.slug;
     this.storage = config.storage ?? resolveDefaultStorage();
     this.storageKey = `${GUEST_ID_STORAGE_PREFIX}${config.org}`;
+    this.embedOrigin = config.embedOrigin ?? "";
 
     const transport = createGrpcWebTransport({
       baseUrl: config.baseUrl,
@@ -150,6 +166,9 @@ export class GuestAuth {
    * @throws {StigmerError} with code `"not-found"` when the agent is
    *   not shared (or sharing was revoked — the server keeps the two
    *   indistinguishable by design)
+   * @throws {StigmerError} with code `"permission-denied"` when
+   *   `embedOrigin` is not in the agent's `allowed_origins` — embeds
+   *   should hide the widget on this code rather than surface an error
    * @throws {StigmerError} with code `"invalid-argument"` when org or
    *   slug is malformed
    */
@@ -176,6 +195,7 @@ export class GuestAuth {
           org: this.org,
           slug: this.slug,
           guestCookieId: safeGetItem(this.storage, this.storageKey) ?? "",
+          embedOrigin: this.embedOrigin,
         }),
       );
 

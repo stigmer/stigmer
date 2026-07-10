@@ -33,14 +33,16 @@ class MintUserTokenResponse(_message.Message):
     def __init__(self, access_token: _Optional[str] = ..., token_type: _Optional[str] = ..., expires_in: _Optional[int] = ...) -> None: ...
 
 class MintGuestTokenRequest(_message.Message):
-    __slots__ = ("org", "slug", "guest_cookie_id")
+    __slots__ = ("org", "slug", "guest_cookie_id", "embed_origin")
     ORG_FIELD_NUMBER: _ClassVar[int]
     SLUG_FIELD_NUMBER: _ClassVar[int]
     GUEST_COOKIE_ID_FIELD_NUMBER: _ClassVar[int]
+    EMBED_ORIGIN_FIELD_NUMBER: _ClassVar[int]
     org: str
     slug: str
     guest_cookie_id: str
-    def __init__(self, org: _Optional[str] = ..., slug: _Optional[str] = ..., guest_cookie_id: _Optional[str] = ...) -> None: ...
+    embed_origin: str
+    def __init__(self, org: _Optional[str] = ..., slug: _Optional[str] = ..., guest_cookie_id: _Optional[str] = ..., embed_origin: _Optional[str] = ...) -> None: ...
 
 class MintGuestTokenResponse(_message.Message):
     __slots__ = ("access_token", "token_type", "expires_in", "guest_cookie_id")

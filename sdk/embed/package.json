@@ -1,0 +1,67 @@
+{
+  "name": "@stigmer/embed",
+  "version": "0.0.0-dev",
+  "description": "One-line script embed for shared Stigmer agents — a framework-free <stigmer-agent> web component that bootstraps the hosted chat page in an iframe",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": [
+    "./src/define.ts",
+    "./dist/define.js",
+    "./dist/embed.global.js"
+  ],
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./define": "./src/define.ts",
+    "./loader": "./dist/embed.global.js"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json && vite build",
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "stigmer",
+    "embed",
+    "iframe",
+    "web-component",
+    "chat-widget",
+    "ai-agents"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./define": {
+        "types": "./dist/define.d.ts",
+        "import": "./dist/define.js"
+      },
+      "./loader": "./dist/embed.global.js"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "sdk/embed"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.8.4",
+    "vite": "^6",
+    "vitest": "^3.2.4"
+  }
+}

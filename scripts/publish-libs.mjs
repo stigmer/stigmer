@@ -45,6 +45,9 @@ export const PACKAGES = [
   "sdk/typescript",
   "sdk/theme",
   "sdk/react",
+  // @stigmer/embed has no @stigmer/* deps (the loader must stay dependency-free
+  // so the IIFE bundles nothing but itself), so its position is order-free.
+  "sdk/embed",
   "sdk/ink",
   // mcp-server depends only on @stigmer/protos + @stigmer/sdk, both above it,
   // so the publish DAG stays ordered. Mirrors the build:libs order in package.json.

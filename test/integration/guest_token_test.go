@@ -455,6 +455,9 @@ func guestCreateExecution(ctx context.Context, guest *harness.Clients, sessionID
 const (
 	defaultRateLimitedCopy       = "You\u2019re sending messages too quickly. Please wait a moment before sending another."
 	defaultConversationEndedCopy = "This conversation has ended. Please start a new conversation to continue."
+	// Deliberately not owner-customizable: the widget hides on this refusal
+	// rather than rendering copy (T04).
+	defaultOriginRefusedCopy = "This agent can\u2019t be embedded on this site."
 )
 
 // TestGuestToken_LaunchGate_SessionRateLimit trips the per-guest
@@ -618,9 +621,12 @@ func TestGuestToken_LaunchGate_FailClosed_CustomCopy(t *testing.T) {
 }
 
 // TestGuestToken_Sharing_AllowedOriginsRoundTrip pins cloud-edition
-// persistence of the T04-ahead allowed_origins config: stored via
-// updateSharing, surfaced on get, with zero enforcement side effects in T01
-// (the guest runtime must keep working with origins configured).
+// persistence of the allowed_origins config — stored via updateSharing,
+// surfaced on get, malformed entries rejected by shared proto validation —
+// and the hosted-page exemption: a mint that reports NO embed origin must
+// keep working even when the agent restricts embed origins (the hosted link
+// is anyone-with-link by design; enforcement is embed-only, see
+// TestGuestToken_EmbedOriginEnforcement).
 func TestGuestToken_Sharing_AllowedOriginsRoundTrip(t *testing.T) {
 	requireGuestPrereqs(t)
 
@@ -660,12 +666,118 @@ func TestGuestToken_Sharing_AllowedOriginsRoundTrip(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
 
-	// Storage-only in T01: configured origins must not affect the guest runtime.
+	// Hosted-page exemption: no embed origin reported -> mint and chat work
+	// even though the agent restricts embed origins.
 	minted := mintGuestToken(t, ctx, clients,
 		agent.GetMetadata().GetOrg(), agent.GetMetadata().GetSlug(), "")
+	claims := jwtClaims(t, minted.GetAccessToken())
+	assert.NotContains(t, claims, "embed_origin",
+		"a hosted-page mint must not stamp an embed_origin claim")
 	guest := guestClients(t, minted.GetAccessToken())
-	_, err = guestCreateSession(t, ctx, guest, agent, "origins-no-enforcement")
-	assert.NoError(t, err, "allowed_origins must have zero enforcement side effects in T01")
+	_, err = guestCreateSession(t, ctx, guest, agent, "hosted-page-exempt")
+	assert.NoError(t, err, "the hosted page must stay anyone-with-link regardless of allowed_origins")
+}
+
+// mintGuestTokenWithOrigin drives the public mint with an embed_origin, the
+// way the embedded hosted page does after discovering its parent's origin.
+func mintGuestTokenWithOrigin(ctx context.Context, clients *harness.Clients, org, slug, embedOrigin string) (*platformclientv1.MintGuestTokenResponse, error) {
+	return clients.PlatformClientToken.MintGuestToken(ctx, &platformclientv1.MintGuestTokenRequest{
+		Org:         org,
+		Slug:        slug,
+		EmbedOrigin: embedOrigin,
+	})
+}
+
+// TestGuestToken_EmbedOriginEnforcement covers the T04 allowlist end to end
+// through production code paths: the embed origin is validated at mint
+// (PERMISSION_DENIED + default copy verbatim on the wire), stamped into the
+// guest JWT as the embed_origin claim, and re-validated against the LIVE
+// allowed_origins by the guest create-time gate on session and execution
+// creates — so revoking an origin takes effect on the visitor's next
+// message, exactly like disabling sharing.
+func TestGuestToken_EmbedOriginEnforcement(t *testing.T) {
+	requireGuestPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := createSharedAgent(t, ctx, clients, "test-guest-embed-origin")
+	org := agent.GetMetadata().GetOrg()
+	slug := agent.GetMetadata().GetSlug()
+
+	setOrigins := func(origins ...string) {
+		t.Helper()
+		_, err := clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
+			ResourceId: agent.GetMetadata().GetId(),
+			Sharing: &agentv1.AgentSharing{
+				Enabled:        true,
+				AllowedOrigins: origins,
+			},
+		})
+		require.NoError(t, err)
+	}
+
+	requireOriginRefusal := func(err error, when string) {
+		t.Helper()
+		require.Error(t, err, when)
+		st, ok := status.FromError(err)
+		require.True(t, ok)
+		assert.Equal(t, codes.PermissionDenied, st.Code(), when)
+		assert.Equal(t, defaultOriginRefusedCopy, st.Message(),
+			"the default origin-refusal copy must reach the wire verbatim")
+	}
+
+	// 1. Open mode (empty list): any embed origin mints, and the validated
+	//    origin is stamped into the JWT.
+	openMint, err := mintGuestTokenWithOrigin(ctx, clients, org, slug, "https://anywhere.example.com")
+	require.NoError(t, err, "an empty allowed_origins list must admit any embed origin")
+	assert.Equal(t, "https://anywhere.example.com",
+		jwtClaims(t, openMint.GetAccessToken())["embed_origin"],
+		"the embed origin must ride the guest JWT as a claim")
+
+	// 2. Strict mode: listed origin mints and chats; unlisted origin and the
+	//    opaque-origin sentinel ("null" — a framed page whose parent could
+	//    not be discovered) are refused at mint.
+	setOrigins("https://docs.example.com")
+
+	allowedMint, err := mintGuestTokenWithOrigin(ctx, clients, org, slug, "https://docs.example.com")
+	require.NoError(t, err, "a listed origin must mint in strict mode")
+	allowedGuest := guestClients(t, allowedMint.GetAccessToken())
+	session, err := guestCreateSession(t, ctx, allowedGuest, agent, "embed-allowed")
+	require.NoError(t, err, "a guest minted under a listed origin must chat normally")
+
+	_, err = mintGuestTokenWithOrigin(ctx, clients, org, slug, "https://evil.example.com")
+	requireOriginRefusal(err, "an unlisted origin must be refused at mint")
+
+	_, err = mintGuestTokenWithOrigin(ctx, clients, org, slug, "null")
+	requireOriginRefusal(err, "an undiscoverable parent origin must fail closed in strict mode")
+
+	// Malformed embed origins never reach the allowlist logic (shared CEL).
+	_, err = mintGuestTokenWithOrigin(ctx, clients, org, slug, "https://example.com/path")
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.InvalidArgument, st.Code(),
+		"a malformed embed_origin must be INVALID_ARGUMENT, not a policy refusal")
+
+	// 3. Revocation mid-token: the guest minted under docs.example.com holds
+	//    a still-valid JWT, but removing the origin must refuse the next
+	//    create — proving the create-time gate re-checks the LIVE list, not
+	//    just the mint-time snapshot.
+	setOrigins("https://other.example.com")
+
+	_, err = guestCreateExecution(ctx, allowedGuest, session.GetMetadata().GetId(), "embed-revoked-turn")
+	requireOriginRefusal(err, "an in-flight conversation must stop when its origin is revoked")
+
+	_, err = guestCreateSession(t, ctx, allowedGuest, agent, "embed-revoked-session")
+	requireOriginRefusal(err, "new conversations must stop when the origin is revoked")
+
+	// 4. Restoring the origin immediately restores the same token — the gate
+	//    reads config, not per-token state, so nothing needs re-minting.
+	setOrigins("https://docs.example.com")
+	_, err = guestCreateSession(t, ctx, allowedGuest, agent, "embed-restored")
+	assert.NoError(t, err, "restoring the origin must restore the existing token's access")
 }
 
 // TestGuestToken_Malformed verifies malformed and tampered tokens are

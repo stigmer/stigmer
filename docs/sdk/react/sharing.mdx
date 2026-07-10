@@ -6,6 +6,54 @@ title: sharing
 
 ## Hooks
 
+### useShareAgent
+
+Wires the Share dialog to a kebab/overflow menu — the same trigger
+shape as [`useManageAccess`](/docs/sdk/react/access#usemanageaccess), its conceptual sibling: Manage access
+governs who can *read* the blueprint; Share governs who can *chat* with
+the running agent (billed to the owning org).
+
+Owns the open-state and the `can_edit` gate — the same permission the
+`updateSharing` RPC enforces, so the action never appears to a user
+whose changes would be rejected. Returns a `null` action while the
+agent is loading or the user cannot edit, so the host can
+unconditionally fold `action` into its actions array.
+
+**Signature**
+
+```tsx
+function useShareAgent(options: UseShareAgentArgs): UseShareAgentReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseShareAgentArgs", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseShareAgentReturn`
+
+<TypeTable
+  type={{
+    action: { type: "DetailAction | null", description: "A ready-to-spread DetailAction for a kebab/overflow menu, or `null` when the agent is unavailable or the user lacks `can_edit`. Lives in the `\"sharing\"` group, beside \"Manage access\"." },
+    dialog: { type: "ReactNode", description: "The ShareAgentDialog node — render it once in the host tree." },
+    isOpen: { type: "boolean", description: "Whether the dialog is currently open." },
+    open: { type: "() => void", description: "Imperatively open the dialog." },
+  }}
+/>
+
+```tsx
+const share = useShareAgent({
+  agent,
+  buildShareUrl: (org, slug) => `${appOrigin}/chat/${org}/${slug}`,
+  onSharingChanged: refetch,
+});
+// ...
+<ResourceDetailShell actions={share.action ? [...actions, share.action] : actions} ... />
+{share.dialog}
+```
+
+
 ### useSharedAgentProfile
 
 Data hook that fetches a shared agent's public profile by
@@ -69,7 +117,92 @@ return <h1>{profile.name}</h1>;
 ```
 
 
+### useUpdateAgentSharing
+
+Behavior hook that updates an agent's sharing configuration.
+
+Wraps the targeted `stigmer.agent.updateSharing()` RPC (authorized by
+`can_edit`) with loading and error state management. The hook is
+stateless with respect to the agent — the caller refreshes the resource
+after a successful update (e.g. via `refetch` from `useAgent`), matching
+the [`useUpdateVisibility`](/docs/sdk/react/library#useupdatevisibility) convention.
+
+Pass `null` for `agentId` to produce a stable no-op (useful while the
+agent is still loading).
+
+**Signature**
+
+```tsx
+function useUpdateAgentSharing(agentId: string | null): UseUpdateAgentSharingReturn
+```
+
+<TypeTable
+  type={{
+    agentId: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseUpdateAgentSharingReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "The last error from the RPC, or `null`." },
+    isPending: { type: "boolean", description: "`true` while the RPC is in flight." },
+    updateSharing: { type: "(draft: AgentSharingDraft) => Promise<Agent | undefined>", description: "Persist the complete sharing configuration via the `updateSharing` RPC. Resolves with the updated agent." },
+  }}
+/>
+
+```tsx
+const { updateSharing, isPending } = useUpdateAgentSharing(agent.metadata.id);
+
+await updateSharing({
+  enabled: true,
+  allowedOrigins: ["https://example.com"],
+  messages: { rateLimited: "", unavailable: "", conversationEnded: "" },
+});
+refetch();
+```
+
+
 ## Components
+
+### ShareAgentDialog
+
+The Share dialog for an agent: toggle public sharing, copy the hosted
+chat link, copy an embeddable iframe snippet, manage allowed embed
+origins, customize visitor refusal messages, and discover the
+PlatformClient SDK path.
+
+Sharing is a distinct consent from marketplace visibility: visibility
+governs who can *read* the blueprint; sharing governs who can *chat*
+with the running agent — billed to the owning org. The dialog states
+who pays next to the toggle so enabling sharing never surprises.
+
+Every save sends the complete sharing configuration (the RPC replaces
+`spec.sharing` wholesale — see [`AgentSharingDraft`](#agentsharingdraft)), and the
+local draft is refreshed from the RPC's returned agent, so the dialog
+never drifts from the server.
+
+Built on the native `<dialog>` element for focus trapping and escape
+handling, matching the SDK's modal convention ([`ManageAccessDialog`](/docs/sdk/react/access#manageaccessdialog)).
+All visual properties flow through `--stgm-*` design tokens.
+
+Most hosts mount it via [`useShareAgent`](#useshareagent) (a kebab-menu action).
+Render it directly only when you own the open-state.
+
+**Props** — `ShareAgentDialogProps`
+
+<TypeTable
+  type={{
+    agent: { type: "Agent", description: "The agent whose sharing is managed.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
+    buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for the shared agent. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). When omitted, falls back to the relative path `/chat/<org>/<slug>`." },
+    modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — no `showModal()`, no backdrop, no focus trap. For embedding the dialog in a constrained surface (documentation demos, visual tests). Interactive hosts keep the default." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
+    onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted. Hosts typically pass the agent data hook's `refetch`." },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+  }}
+/>
+
 
 ### SharedAgentChat
 
@@ -116,5 +249,57 @@ const client = useMemo(
 <StigmerProvider client={client} colorMode="system">
   <SharedAgentChat org={org} slug={slug} />
 </StigmerProvider>
+```
+
+
+## Types
+
+### AgentSharingDraft
+
+A complete sharing configuration to persist.
+
+Every field is required by design: the `updateSharing` RPC **replaces**
+the agent's whole `spec.sharing` block, so a caller must always supply
+the full configuration. A partial type here would let a toggle change
+silently wipe `allowedOrigins` or `messages` — the required shape makes
+that mistake unrepresentable.
+
+<TypeTable
+  type={{
+    allowedOrigins: { type: "readonly string[]", description: "Exact web origins allowed to embed the shared agent (e.g. `https://example.com`). Stored now; enforced by the embed widget's Origin check.", required: true },
+    enabled: { type: "boolean", description: "Whether anyone with the link can chat with this agent.", required: true },
+    messages: { type: "{ conversationEnded: string; rateLimited: string; unavailable: string }", description: "Owner-customized visitor refusal copy. Empty strings mean platform defaults.", required: true },
+  }}
+/>
+
+
+### MAX_ALLOWED_ORIGINS
+
+Maximum number of allowed origins (proto: `repeated.max_items = 32`).
+
+
+### UseShareAgentArgs
+
+Arguments for [`useShareAgent`](#useshareagent).
+
+<TypeTable
+  type={{
+    agent: { type: "Agent | null", description: "The agent whose sharing is managed, or `null` while it is still loading. When `null`, UseShareAgentReturn.action is `null` and the dialog renders nothing — safe to call before the resource is ready.", required: true },
+    buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for the shared agent. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). When omitted, the dialog falls back to the relative `/chat/<org>/<slug>`." },
+    label: { type: "string", description: "Menu-item label." },
+    onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted. Hosts typically pass the agent data hook's `refetch`." },
+  }}
+/>
+
+
+### validateOrigin
+
+Validate a single origin entry.
+
+Returns `null` when valid, or a user-facing message explaining what
+to fix (DD-006: errors state what happened and what to do).
+
+```tsx
+function validateOrigin(value: string): string | null
 ```
 

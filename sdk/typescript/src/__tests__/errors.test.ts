@@ -32,11 +32,13 @@ describe("guest launch-gate refusal copy passthrough", () => {
     "You\u2019re sending messages too quickly. Please wait a moment before sending another.",
     "This agent is currently unavailable. Please check back later.",
     "This conversation has ended. Please start a new conversation to continue.",
+    "This agent can\u2019t be embedded on this site.",
   ];
 
   const refusalCodes: Array<[string, Code]> = [
     ["ResourceExhausted (rate limit)", Code.ResourceExhausted],
     ["FailedPrecondition (fail-closed / bounds)", Code.FailedPrecondition],
+    ["PermissionDenied (embed origin)", Code.PermissionDenied],
   ];
 
   it.each(refusalCodes)(

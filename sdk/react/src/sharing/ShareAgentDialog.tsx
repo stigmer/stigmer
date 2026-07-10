@@ -281,6 +281,8 @@ function ShareAgentDialogBody({
             {activeTab === "embed" && (
               <EmbedTab
                 shareUrl={shareUrl}
+                org={org}
+                slug={slug}
                 agentName={agentName}
                 enabled={draft.enabled}
                 draft={draft}
@@ -379,6 +381,36 @@ function LinkTab({
 // Embed tab
 // ---------------------------------------------------------------------------
 
+/**
+ * The one-line loader snippet: a script tag (served from the same origin as
+ * the hosted chat page — the loader derives that origin from its own URL)
+ * plus the `<stigmer-agent>` element where the widget should render.
+ */
+function buildScriptSnippet(
+  shareUrl: string,
+  org: string,
+  slug: string,
+): string {
+  return [
+    `<script src="${loaderUrlFrom(shareUrl)}" async></script>`,
+    `<stigmer-agent org="${org}" agent="${slug}"></stigmer-agent>`,
+  ].join("\n");
+}
+
+/**
+ * `embed.js` lives at the root of the app origin. Falls back to a relative
+ * path when the host never wired `buildShareUrl` — same degradation as the
+ * relative share link itself.
+ */
+function loaderUrlFrom(shareUrl: string): string {
+  try {
+    return `${new URL(shareUrl).origin}/embed.js`;
+  } catch {
+    return "/embed.js";
+  }
+}
+
+/** The no-JavaScript alternative: a plain iframe onto the hosted page. */
 function buildIframeSnippet(shareUrl: string, agentName: string): string {
   return [
     `<iframe`,
@@ -393,6 +425,8 @@ function buildIframeSnippet(shareUrl: string, agentName: string): string {
 
 function EmbedTab({
   shareUrl,
+  org,
+  slug,
   agentName,
   enabled,
   draft,
@@ -400,6 +434,8 @@ function EmbedTab({
   commit,
 }: {
   readonly shareUrl: string;
+  readonly org: string;
+  readonly slug: string;
   readonly agentName: string;
   readonly enabled: boolean;
   readonly draft: AgentSharingDraft;
@@ -409,26 +445,90 @@ function EmbedTab({
     successMessage: string,
   ) => Promise<boolean>;
 }) {
-  const snippet = useMemo(
-    () => buildIframeSnippet(shareUrl, agentName),
-    [shareUrl, agentName],
+  const scriptSnippet = useMemo(
+    () => buildScriptSnippet(shareUrl, org, slug),
+    [shareUrl, org, slug],
   );
 
   return (
     <div className="flex flex-col gap-4">
       <CopyField
         label="Embed on your site"
-        value={snippet}
+        value={scriptSnippet}
         copyLabel="Embed code"
         disabled={!enabled}
         multiline
       />
       <p className="text-xs text-muted-foreground">
-        Free embeds show a &quot;Powered by Stigmer&quot; badge.
+        The widget hides itself on sites that aren&apos;t allowed to embed
+        this agent. Free embeds show a &quot;Powered by Stigmer&quot; badge.
       </p>
 
       <OriginsEditor draft={draft} isPending={isPending} commit={commit} />
+
+      <IframeAlternative
+        shareUrl={shareUrl}
+        agentName={agentName}
+        enabled={enabled}
+      />
     </div>
+  );
+}
+
+/**
+ * Collapsible fallback for hosts that cannot run scripts (locked-down CMSes,
+ * strict sanitizers). Same widget, same origin enforcement — minus the
+ * hide-on-refusal behavior the loader provides.
+ */
+function IframeAlternative({
+  shareUrl,
+  agentName,
+  enabled,
+}: {
+  readonly shareUrl: string;
+  readonly agentName: string;
+  readonly enabled: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const snippet = useMemo(
+    () => buildIframeSnippet(shareUrl, agentName),
+    [shareUrl, agentName],
+  );
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className={cn(
+          "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground",
+          "hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+        )}
+      >
+        <ChevronIcon
+          className={cn("size-3 transition-transform", expanded && "rotate-90")}
+        />
+        No-JavaScript alternative
+      </button>
+
+      {expanded && (
+        <div className="mt-2 flex flex-col gap-2">
+          <p className="text-[0.65rem] text-muted-foreground">
+            For sites that can&apos;t run scripts. A blocked embed shows an
+            empty frame instead of hiding.
+          </p>
+          <CopyField
+            label="Iframe embed"
+            value={snippet}
+            copyLabel="Iframe code"
+            disabled={!enabled}
+            multiline
+          />
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -493,8 +593,9 @@ function OriginsEditor({
         Allowed embed origins
       </h3>
       <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
-        Sites allowed to embed this agent. Enforced when the script embed
-        ships; the list is saved now.
+        Sites allowed to embed this agent. An empty list allows any site;
+        adding origins restricts embedding to those sites. The hosted link
+        works either way.
       </p>
 
       {draft.allowedOrigins.length > 0 && (

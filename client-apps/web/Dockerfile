@@ -12,19 +12,24 @@ COPY apis/stubs/ts/package.json apis/stubs/ts/
 COPY sdk/typescript/package.json sdk/typescript/
 COPY sdk/theme/package.json sdk/theme/
 COPY sdk/react/package.json sdk/react/
+COPY sdk/embed/package.json sdk/embed/
 
 # Copy workspace packages the web app depends on
 COPY apis/stubs/ts/ apis/stubs/ts/
 COPY sdk/typescript/ sdk/typescript/
 COPY sdk/theme/ sdk/theme/
 COPY sdk/react/ sdk/react/
+COPY sdk/embed/ sdk/embed/
 
 # Copy the web console source
 COPY client-apps/web/ client-apps/web/
 
-# Install dependencies and build
+# Install dependencies and build. @stigmer/embed is built explicitly
+# because its IIFE loader (copied to public/embed.js by the web build)
+# is a Vite bundle that transpilePackages does not cover.
 RUN npm ci && \
     npm run build -w @stigmer/protos && \
+    npm run build -w @stigmer/embed && \
     npm run build -w client-apps/web
 
 # Runtime stage — nginx serves the static export + runtime config
