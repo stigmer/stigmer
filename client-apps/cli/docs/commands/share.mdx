@@ -1,0 +1,75 @@
+Share an Agent with anyone via a hosted link.
+
+`stigmer share` turns an Agent into a public chat page that anyone with the
+link can use — no Stigmer account needed. It prints the hosted chat link and a
+two-line embed snippet you can paste into any website. Visitors chat on the
+sharing Organization's credits.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Share an Agent and print its public chat link + embed snippet
+stigmer share agent support-agent
+
+# Share, then open the chat page in your browser
+stigmer share agent acme-corp/support-agent --open
+
+# Stop sharing — the link stops working immediately
+stigmer share agent support-agent --off
+```
+
+## Examples
+
+### Share an Agent
+
+```bash
+stigmer share agent acme-corp/support-agent
+```
+
+The command enables sharing and prints the public chat link
+(`https://app.stigmer.ai/chat/acme-corp/support-agent`) plus an embed snippet
+for your website. Sharing is idempotent — running it again reports the link
+without another write.
+
+Any embed origins or visitor messages you configured in the console's Share
+dialog are preserved; the CLI only flips the sharing switch.
+
+### Revoke a shared link
+
+```bash
+stigmer share agent acme-corp/support-agent --off
+```
+
+Disabling sharing is the kill switch: the hosted link and any embeds stop
+working on the visitor's next message. Your origin and message settings are
+kept for the next time you enable sharing.
+
+## Notes
+
+- Anyone with the link can chat, and usage bills the sharing Organization's
+  credits. Public links can be forwarded and indexed by search engines — don't
+  share Agents that know confidential information.
+- Guest chat is served by Stigmer Cloud. Against a local backend the command
+  still records the sharing flag, but the local link won't serve visitors.
+- To restrict which websites may embed the Agent, or to customize visitor
+  messages, use the Share dialog in the web console.
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer get`](./get) | Inspect an Agent and its configuration |
+| [`stigmer run`](./run) | Run an Agent from the terminal |
+| [`stigmer apply`](./apply) | Create or update Agents declaratively |
+
+## See also
+
+- [Share an Agent](/docs/guides/sharing/share-an-agent) — the full sharing guide
+- [Embed an Agent](/docs/guides/sharing/embed-an-agent) — the embed widget guide
+- [Command Reference](./) — All available commands

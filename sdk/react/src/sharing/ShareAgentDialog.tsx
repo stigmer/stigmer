@@ -2,7 +2,13 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import {
+  MAX_ALLOWED_ORIGINS,
+  buildEmbedSnippet,
+  chatPath,
+  getUserMessage,
+  validateOrigin,
+} from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { Switch } from "../switch/Switch.js";
 import { Tabs, type TabItem } from "../tabs/Tabs.js";
@@ -15,7 +21,6 @@ import {
   useUpdateAgentSharing,
   type AgentSharingDraft,
 } from "./useUpdateAgentSharing.js";
-import { validateOrigin, MAX_ALLOWED_ORIGINS } from "./shareOrigin.js";
 
 /** Maximum length of each visitor message (proto: `string.max_len = 300`). */
 const MAX_MESSAGE_LENGTH = 300;
@@ -208,9 +213,7 @@ function ShareAgentDialogBody({
     [commit, draft],
   );
 
-  const shareUrl = buildShareUrl
-    ? buildShareUrl(org, slug)
-    : `/chat/${org}/${slug}`;
+  const shareUrl = buildShareUrl ? buildShareUrl(org, slug) : chatPath(org, slug);
 
   return (
     <div className="flex flex-col">
@@ -382,31 +385,16 @@ function LinkTab({
 // ---------------------------------------------------------------------------
 
 /**
- * The one-line loader snippet: a script tag (served from the same origin as
- * the hosted chat page — the loader derives that origin from its own URL)
- * plus the `<stigmer-agent>` element where the widget should render.
+ * The app origin the loader is served from — derived from the share URL
+ * the host built. Empty when the host never wired `buildShareUrl` (a
+ * relative share URL), which degrades {@link buildEmbedSnippet} to a
+ * relative `/embed.js` — same degradation as the relative link itself.
  */
-function buildScriptSnippet(
-  shareUrl: string,
-  org: string,
-  slug: string,
-): string {
-  return [
-    `<script src="${loaderUrlFrom(shareUrl)}" async></script>`,
-    `<stigmer-agent org="${org}" agent="${slug}"></stigmer-agent>`,
-  ].join("\n");
-}
-
-/**
- * `embed.js` lives at the root of the app origin. Falls back to a relative
- * path when the host never wired `buildShareUrl` — same degradation as the
- * relative share link itself.
- */
-function loaderUrlFrom(shareUrl: string): string {
+function appOriginFrom(shareUrl: string): string {
   try {
-    return `${new URL(shareUrl).origin}/embed.js`;
+    return new URL(shareUrl).origin;
   } catch {
-    return "/embed.js";
+    return "";
   }
 }
 
@@ -446,7 +434,7 @@ function EmbedTab({
   ) => Promise<boolean>;
 }) {
   const scriptSnippet = useMemo(
-    () => buildScriptSnippet(shareUrl, org, slug),
+    () => buildEmbedSnippet(appOriginFrom(shareUrl), org, slug),
     [shareUrl, org, slug],
   );
 

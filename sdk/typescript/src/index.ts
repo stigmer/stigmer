@@ -21,6 +21,16 @@ export {
   type GuestIdStorage,
 } from "./guest-auth.js";
 
+// Agent sharing (hosted link + embed snippet; framework-free)
+export {
+  MAX_ALLOWED_ORIGINS,
+  validateOrigin,
+  chatPath,
+  buildChatUrl,
+  buildEmbedLoaderUrl,
+  buildEmbedSnippet,
+} from "./sharing.js";
+
 // Error handling
 export {
   StigmerError,

@@ -12,7 +12,9 @@ export {
   save,
 } from "./config.js";
 export {
+  DEFAULT_CLOUD_CONSOLE_URL,
   ensureAuthenticated,
+  resolveConsoleURL,
   resolveContextOrganization,
   resolveEndpoint,
   resolveOrganization,

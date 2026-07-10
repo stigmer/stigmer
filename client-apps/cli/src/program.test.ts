@@ -43,6 +43,13 @@ describe("buildProgram", () => {
     expect(message?.required).toBe(true);
   });
 
+  it("exposes the share subcommands", () => {
+    const program = buildProgram();
+    const share = program.commands.find((command) => command.name() === "share");
+    const subs = share?.commands.map((command) => command.name());
+    expect(subs).toEqual(["agent"]);
+  });
+
   it("exposes the usage subcommands", () => {
     const program = buildProgram();
     const usage = program.commands.find((command) => command.name() === "usage");

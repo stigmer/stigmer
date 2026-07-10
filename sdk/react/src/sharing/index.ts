@@ -14,4 +14,6 @@ export type {
   UseShareAgentArgs,
   UseShareAgentReturn,
 } from "./useShareAgent.js";
-export { validateOrigin, MAX_ALLOWED_ORIGINS } from "./shareOrigin.js";
+// Origin validation moved to @stigmer/sdk (framework-free, shared with the
+// CLI); re-exported here so existing @stigmer/react importers keep working.
+export { validateOrigin, MAX_ALLOWED_ORIGINS } from "@stigmer/sdk";

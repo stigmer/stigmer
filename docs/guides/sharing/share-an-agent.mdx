@@ -80,6 +80,23 @@ Turn the toggle off to revoke the link. The public page stops working
 immediately — visitors see the same "not found" page as for an Agent that never
 existed.
 
+## Share from the CLI
+
+You can also toggle sharing from the terminal:
+
+```bash
+# Share and print the chat link + embed snippet
+stigmer share agent acme-corp/support-agent
+
+# Revoke the link
+stigmer share agent acme-corp/support-agent --off
+```
+
+The CLI flips only the sharing switch — your allowed origins and visitor
+messages stay as you set them here. Visitor chat is served by Stigmer Cloud, so
+a link from a local backend won't serve visitors. See the
+[`stigmer share` reference](/docs/cli/commands/share) for all flags.
+
 ## Go further with the SDK
 
 The **Developer** tab shows the path beyond the hosted page: create a platform

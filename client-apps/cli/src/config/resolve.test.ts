@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { CliExitError } from "../errors/index.js";
 import type { Config } from "./config.js";
 import {
+  DEFAULT_CLOUD_CONSOLE_URL,
   ensureAuthenticated,
+  resolveConsoleURL,
   resolveContextOrganization,
   resolveEndpoint,
   resolveOrganization,
@@ -96,6 +98,22 @@ describe("resolveOrganization", () => {
     // org for operations); the context query must stay faithful so config/context
     // display can show "(not set)".
     expect(resolveContextOrganization({ backend: { type: "local" } })).toBe("");
+  });
+});
+
+describe("resolveConsoleURL", () => {
+  it("prefers the STIGMER_CONSOLE_URL override", () => {
+    expect(resolveConsoleURL("cloud", { STIGMER_CONSOLE_URL: "https://console.example" } as NodeJS.ProcessEnv)).toBe(
+      "https://console.example",
+    );
+  });
+
+  it("uses the local web-console port for the local backend", () => {
+    expect(resolveConsoleURL("local", {} as NodeJS.ProcessEnv)).toBe("http://localhost:8234");
+  });
+
+  it("uses the cloud console URL for the cloud backend", () => {
+    expect(resolveConsoleURL("cloud", {} as NodeJS.ProcessEnv)).toBe(DEFAULT_CLOUD_CONSOLE_URL);
   });
 });
 

@@ -23,6 +23,7 @@
     "get",
     "list",
     "search",
+    "share",
     "tag",
     "validate",
     "---Artifact Commands---",
