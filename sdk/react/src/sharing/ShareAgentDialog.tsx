@@ -515,6 +515,21 @@ function WhoPaysLine({
 // Link tab
 // ---------------------------------------------------------------------------
 
+/**
+ * Names the reason the copy fields above are grayed out: sharing is off, so
+ * the link/embed would lead to NOT_FOUND (the fields stay disabled — handing
+ * out a dead link is worse than a disabled button). Points at the master
+ * switch as the remedy.
+ */
+function SharingOffHint({ subject }: { readonly subject: string }) {
+  return (
+    <p className="text-xs text-muted-foreground" role="status">
+      Sharing is off, so {subject} doesn&apos;t work yet — turn on the switch
+      above to activate it.
+    </p>
+  );
+}
+
 function LinkTab({
   shareUrl,
   org,
@@ -550,6 +565,7 @@ function LinkTab({
         disabled={!enabled}
         openHref={enabled ? shareUrl : undefined}
       />
+      {!enabled && <SharingOffHint subject="this link" />}
 
       {isOrgAudience ? (
         <p className="text-xs text-muted-foreground">
@@ -713,6 +729,7 @@ function EmbedTab({
         disabled={!enabled}
         multiline
       />
+      {!enabled && <SharingOffHint subject="this embed" />}
       <p className="text-xs text-muted-foreground">
         The widget hides itself on sites that aren&apos;t allowed to embed
         this agent. Free embeds show a &quot;Powered by Stigmer&quot; badge.

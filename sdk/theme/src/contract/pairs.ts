@@ -167,4 +167,6 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
 export const SURFACE_PAIRS: readonly ContrastPair[] = [
   pair("--stgm-muted-subtle", "--stgm-background", "surface", "user message bubble on thread background (borderless)", ["dark"]),
   pair("--stgm-muted", "--stgm-background", "surface", "code blocks, muted panels on the page (borderless)", ["dark"]),
+  pair("--stgm-input", "--stgm-popover", "surface", "Switch off-state track on dialog surface (ShareAgentDialog)", ["dark"]),
+  pair("--stgm-primary", "--stgm-popover", "surface", "Switch on-state track on dialog surface (ShareAgentDialog)", ["dark"]),
 ];

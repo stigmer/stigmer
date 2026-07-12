@@ -77,7 +77,10 @@
   --stgm-accent: oklch(0.25 0 0);
   --stgm-accent-foreground: oklch(0.96 0 0);
   --stgm-border: oklch(0.27 0 0);
-  --stgm-input: oklch(0.27 0 0);
+  /* Sits above border: --stgm-input also fills the Switch off-track, which
+     must clear the surface-separation floor against popover (0.24) — see the
+     contract surface pair in contract/pairs.ts. */
+  --stgm-input: oklch(0.32 0 0);
   --stgm-input-bg: oklch(0.21 0 0);
   --stgm-ring: oklch(0.96 0 0);
   --stgm-chart-1: oklch(0.85 0 0);

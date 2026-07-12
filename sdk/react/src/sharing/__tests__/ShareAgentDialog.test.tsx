@@ -148,6 +148,68 @@ describe("ShareAgentDialog", () => {
     expect(screen.getByText("/chat/acme/support-agent")).toBeTruthy();
   });
 
+  describe("Sharing-off state", () => {
+    it("disables the link copy affordance and names the reason", () => {
+      render(
+        <Providers client={createMockStigmer()}>
+          <ShareAgentDialog
+            open
+            onOpenChange={() => {}}
+            agent={makeAgent({ enabled: false })}
+            buildShareUrl={buildShareUrl}
+          />
+        </Providers>,
+      );
+
+      const copy = screen.getByRole("button", {
+        name: "Copy",
+        hidden: true,
+      }) as HTMLButtonElement;
+      expect(copy.disabled).toBe(true);
+      expect(
+        screen.getByText(/sharing is off, so this link doesn't work yet/i),
+      ).toBeTruthy();
+    });
+
+    it("shows the reason on the Embed tab too", () => {
+      render(
+        <Providers client={createMockStigmer()}>
+          <ShareAgentDialog
+            open
+            onOpenChange={() => {}}
+            agent={makeAgent({ enabled: false })}
+            buildShareUrl={buildShareUrl}
+          />
+        </Providers>,
+      );
+
+      fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
+      expect(
+        screen.getByText(/sharing is off, so this embed doesn't work yet/i),
+      ).toBeTruthy();
+    });
+
+    it("drops the hint and enables copy once sharing is on", () => {
+      render(
+        <Providers client={createMockStigmer()}>
+          <ShareAgentDialog
+            open
+            onOpenChange={() => {}}
+            agent={makeAgent({ enabled: true })}
+            buildShareUrl={buildShareUrl}
+          />
+        </Providers>,
+      );
+
+      const copy = screen.getByRole("button", {
+        name: "Copy",
+        hidden: true,
+      }) as HTMLButtonElement;
+      expect(copy.disabled).toBe(false);
+      expect(screen.queryByText(/sharing is off/i)).toBeNull();
+    });
+  });
+
   it("shows the indexability warning", () => {
     render(
       <Providers client={createMockStigmer()}>

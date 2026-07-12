@@ -48,6 +48,19 @@ describe("lightnessDelta", () => {
     expect(lightnessDelta("oklch(0.21 0 0)", "oklch(0.145 0 0)")).toBeCloseTo(0.065, 3);
     expect(lightnessDelta("white", "white")).toBeCloseTo(0, 5);
   });
+
+  it("composites a translucent fill over the surface first", () => {
+    // The default dark --stgm-input (20% white) over the popover surface:
+    // raw white would report a delta near 0.73; the painted fill is far
+    // dimmer but still clearly separated.
+    const delta = lightnessDelta("oklch(1 0 0 / 20%)", "oklch(0.269 0 0)");
+    expect(delta).toBeGreaterThan(0.045);
+    expect(delta).toBeLessThan(0.5);
+  });
+
+  it("rejects a translucent surface (nothing to composite onto)", () => {
+    expect(() => lightnessDelta("white", "oklch(1 0 0 / 14%)")).toThrow(/opaque surface/);
+  });
 });
 
 describe("isColorValue", () => {

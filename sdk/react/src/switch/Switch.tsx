@@ -69,9 +69,14 @@ export function Switch({
       onClick={() => onCheckedChange(!checked)}
       className={cn(
         // Track. `relative` anchors both the thumb and the expanded hit area.
+        // Off state uses the form-control token (`--stgm-input`), NOT
+        // `bg-muted`: muted matches the popover surface in dark presets, which
+        // made the track invisible inside dialogs. Both track fills are
+        // registered as surface pairs in the theme contrast contract
+        // (@stigmer/theme contract/pairs.ts), so every preset is audited.
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
         "motion-reduce:transition-none",
-        checked ? "bg-primary" : "bg-muted",
+        checked ? "bg-primary" : "bg-input",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         "disabled:pointer-events-none disabled:opacity-50",
         // Expanded invisible hit area (~44px tall) for touch targets.

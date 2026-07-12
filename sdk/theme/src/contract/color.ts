@@ -70,10 +70,24 @@ export function contrastRatio(
 }
 
 /**
- * Perceptual lightness difference (OKLCH L, 0..1) between two opaque token
- * values. Used for surface-separation checks where WCAG has no defined
- * threshold.
+ * Perceptual lightness difference (OKLCH L, 0..1) between a fill and the
+ * surface it renders over. Used for surface-separation checks where WCAG
+ * has no defined threshold.
+ *
+ * A translucent fill (e.g. the default dark `--stgm-input: oklch(1 0 0 / 20%)`)
+ * is composited over the surface first, so the delta measures what the user
+ * actually sees — a raw translucent white would otherwise report L=1. The
+ * surface must be opaque; a translucent surface would itself need a backdrop
+ * to resolve, and no declared surface pair renders on one (caller error,
+ * matching {@link contrastRatio}'s posture).
  */
-export function lightnessDelta(valueA: string, valueB: string): number {
-  return Math.abs(toOklch(parseColor(valueA)).l - toOklch(parseColor(valueB)).l);
+export function lightnessDelta(fillValue: string, surfaceValue: string): number {
+  const surface = parseColor(surfaceValue);
+  if ((surface.alpha ?? 1) < 1) {
+    throw new Error(
+      `Surface "${surfaceValue}" is translucent — surface pairs must render on an opaque surface`,
+    );
+  }
+  const fill = compositeOver(parseColor(fillValue), surface);
+  return Math.abs(toOklch(fill).l - toOklch(surface).l);
 }

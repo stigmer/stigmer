@@ -69,6 +69,25 @@ describe("Switch", () => {
     expect(onCheckedChange).not.toHaveBeenCalled();
   });
 
+  it("fills the track with the contract-audited surface tokens", () => {
+    // bg-input (off) / bg-primary (on) are registered as surface pairs in
+    // the @stigmer/theme contrast contract — bg-muted is NOT valid here (it
+    // matches the popover surface in dark presets, making the track
+    // invisible inside dialogs).
+    const { rerender } = render(
+      <Switch checked={false} onCheckedChange={() => {}} aria-label="Enable sharing" />,
+    );
+
+    const el = screen.getByRole("switch");
+    expect(el.className).toContain("bg-input");
+    expect(el.className).not.toContain("bg-muted");
+
+    rerender(
+      <Switch checked onCheckedChange={() => {}} aria-label="Enable sharing" />,
+    );
+    expect(el.className).toContain("bg-primary");
+  });
+
   it("supports aria-labelledby for external labels", () => {
     render(
       <>
