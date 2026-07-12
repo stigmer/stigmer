@@ -6,13 +6,33 @@
 // only when it is actually going to push. `--dry-run` discovers locally and must
 // stay usable with no org configured.
 //
-// Runs in standalone mode so `load()` returns the default (local, org-less)
-// config without reading the user's real config file. The guard runs before any
-// network call, so the non-dry-run case is fully deterministic and offline.
+// Local mode always resolves an org (the single-tenant DEFAULT_LOCAL_ORG
+// fallback in resolveOrganization), so the guard can only fire in cloud mode
+// with no org selected. The guard test injects that shape by overriding
+// `load()`; everything else stays real. The guard runs before any network
+// call, so both cases are fully deterministic and offline.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Config } from "../config/index.js";
 import { classify, ExitCode } from "../errors/index.js";
 import { buildProgram } from "../program.js";
+
+// When set, `load()` returns this config instead of reading disk/defaults.
+// Reset in beforeEach so each test opts in explicitly.
+let configOverride: Config | undefined;
+
+vi.mock("../config/index.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../config/index.js")>();
+  return {
+    ...actual,
+    load: (path?: string) => configOverride ?? actual.load(path),
+  };
+});
+
+/** An authenticated cloud config with no org selected — the guard's target shape. */
+function cloudConfigWithoutOrg(): Config {
+  return { backend: { type: "cloud", cloud: { token: "test-token" } } };
+}
 
 interface RunOutcome {
   readonly exitCode: number;
@@ -43,6 +63,7 @@ let savedOrg: string | undefined;
 let savedApiKey: string | undefined;
 
 beforeEach(() => {
+  configOverride = undefined;
   savedOrg = process.env.STIGMER_ORG_ID;
   savedApiKey = process.env.STIGMER_API_KEY;
   delete process.env.STIGMER_ORG_ID;
@@ -57,7 +78,8 @@ afterEach(() => {
 });
 
 describe("connect mcp-server org guard", () => {
-  it("fails fast with actionable guidance when no org is set (non-dry-run)", async () => {
+  it("fails fast with actionable guidance when cloud mode has no org (non-dry-run)", async () => {
+    configOverride = cloudConfigWithoutOrg();
     const outcome = await runConnect("mcp_test");
     expect(outcome.message).toContain("organization not set");
     expect(outcome.exitCode).toBe(ExitCode.Usage);
