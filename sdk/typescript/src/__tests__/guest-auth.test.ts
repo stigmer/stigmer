@@ -118,6 +118,35 @@ describe("GuestAuth.getAccessToken", () => {
     }
   });
 
+  it("passes the configured linkToken through to every mint", async () => {
+    mintGuestToken.mockResolvedValue(mintResponse());
+    const auth = createGuestAuth({
+      ...CONFIG,
+      storage: createMemoryStorage(),
+      linkToken: "tok123",
+    });
+
+    await auth.getAccessToken();
+    // Expire the cached token, forcing a re-mint — the token must persist
+    // so a locked link keeps working across silent re-mints.
+    vi.advanceTimersByTime(900_000);
+    await auth.getAccessToken();
+
+    expect(mintGuestToken).toHaveBeenCalledTimes(2);
+    for (const call of mintGuestToken.mock.calls) {
+      expect(call[0]).toMatchObject({ linkToken: "tok123" });
+    }
+  });
+
+  it("sends an empty linkToken when none is configured (plain link)", async () => {
+    mintGuestToken.mockResolvedValue(mintResponse());
+    const auth = createGuestAuth({ ...CONFIG, storage: createMemoryStorage() });
+
+    await auth.getAccessToken();
+
+    expect(mintGuestToken.mock.calls[0][0]).toMatchObject({ linkToken: "" });
+  });
+
   it("rejects with permission-denied when the embed origin is refused", async () => {
     mintGuestToken.mockRejectedValue(
       new ConnectError(

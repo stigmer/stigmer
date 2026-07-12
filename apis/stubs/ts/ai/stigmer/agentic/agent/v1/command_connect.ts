@@ -6,7 +6,7 @@
 import { Agent } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
-import { AgentId, UpdateAgentSharingInput } from "./io_pbjs";
+import { AgentId, RotateShareLinkInput, UpdateAgentSharingInput } from "./io_pbjs";
 
 /**
  * AgentCommandController handles write operations for AI agents.
@@ -101,6 +101,33 @@ export const AgentCommandController = {
     updateSharing: {
       name: "updateSharing",
       I: UpdateAgentSharingInput,
+      O: Agent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Rotate the share-link token of an existing agent.
+     *
+     * Generates a fresh server-side token for the agent's hosted chat link.
+     * The share URL becomes `/chat/<org>/<slug>?k=<token>` and the previous
+     * link (tokened or plain) stops working immediately — including for
+     * visitors mid-conversation. Use this to kill a leaked or over-shared
+     * public link without disabling sharing or renaming the agent.
+     *
+     * The token lives in status.share_link_token, so manifest applies never
+     * reset it. Rotation affects public-audience shares only; org-audience
+     * access is governed by live org membership instead.
+     *
+     * @internal
+     * Authorization: requires can_edit on the agent — the same bar as
+     * updateSharing, since both control shared-link access. The handler is
+     * the sole writer of status.share_link_token (server-generated entropy;
+     * clients never supply the token).
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.rotateShareLink
+     */
+    rotateShareLink: {
+      name: "rotateShareLink",
+      I: RotateShareLinkInput,
       O: Agent,
       kind: MethodKind.Unary,
     },

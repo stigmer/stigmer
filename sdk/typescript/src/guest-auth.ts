@@ -73,6 +73,17 @@ export interface GuestAuthConfig {
    * not allowed.
    */
   readonly embedOrigin?: string;
+
+  /**
+   * Share-link token from the URL's `?k=` parameter.
+   *
+   * Required when the agent's share link has been locked with a
+   * rotatable token; harmless (ignored server-side) on plain links.
+   * On a locked link a missing or rotated-away token refuses the mint
+   * with `"not-found"` — deliberately indistinguishable from an agent
+   * that does not exist.
+   */
+  readonly linkToken?: string;
 }
 
 /**
@@ -125,6 +136,7 @@ export class GuestAuth {
   private readonly storage: GuestIdStorage;
   private readonly storageKey: string;
   private readonly embedOrigin: string;
+  private readonly linkToken: string;
 
   private cached: { accessToken: string; expiresAt: number } | null = null;
   private pendingMint: Promise<string> | null = null;
@@ -136,6 +148,7 @@ export class GuestAuth {
     this.storage = config.storage ?? resolveDefaultStorage();
     this.storageKey = `${GUEST_ID_STORAGE_PREFIX}${config.org}`;
     this.embedOrigin = config.embedOrigin ?? "";
+    this.linkToken = config.linkToken ?? "";
 
     const transport = createGrpcWebTransport({
       baseUrl: config.baseUrl,
@@ -196,6 +209,7 @@ export class GuestAuth {
           slug: this.slug,
           guestCookieId: safeGetItem(this.storage, this.storageKey) ?? "",
           embedOrigin: this.embedOrigin,
+          linkToken: this.linkToken,
         }),
       );
 

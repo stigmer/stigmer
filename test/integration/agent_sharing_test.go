@@ -8,7 +8,6 @@ import (
 	"time"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -101,7 +100,7 @@ func TestAgent_GetSharedProfile(t *testing.T) {
 	org := agent.GetMetadata().GetOrg()
 	slug := agent.GetMetadata().GetSlug()
 
-	ref := &apiresource.ApiResourceReference{Org: org, Slug: slug}
+	ref := &agentv1.GetSharedProfileRequest{Org: org, Slug: slug}
 
 	// 1. Unshared: NOT_FOUND, capturing the exact error for comparison below.
 	_, err := clients.AgentQuery.GetSharedProfile(ctx, ref)
@@ -168,7 +167,7 @@ func TestAgent_GetSharedProfile(t *testing.T) {
 		"nonexistent and unshared errors must be indistinguishable")
 
 	// 5. Empty org: INVALID_ARGUMENT, never a cross-org slug search.
-	_, err = clients.AgentQuery.GetSharedProfile(ctx, &apiresource.ApiResourceReference{
+	_, err = clients.AgentQuery.GetSharedProfile(ctx, &agentv1.GetSharedProfileRequest{
 		Org:  "",
 		Slug: slug,
 	})
@@ -213,7 +212,7 @@ func TestAgent_Update_OmittingSharing_Revokes(t *testing.T) {
 	assert.False(t, updated.GetSpec().GetSharing().GetEnabled(),
 		"an update omitting spec.sharing must revoke the share (fails closed)")
 
-	ref := &apiresource.ApiResourceReference{
+	ref := &agentv1.GetSharedProfileRequest{
 		Org:  agent.GetMetadata().GetOrg(),
 		Slug: agent.GetMetadata().GetSlug(),
 	}

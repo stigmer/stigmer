@@ -9,6 +9,8 @@ export {
   sharingAudienceFromProto,
   useUpdateAgentSharing,
 } from "./useUpdateAgentSharing.js";
+export { useRotateShareLink } from "./useRotateShareLink.js";
+export type { UseRotateShareLinkReturn } from "./useRotateShareLink.js";
 export type {
   AgentSharingDraft,
   SharingAudience,

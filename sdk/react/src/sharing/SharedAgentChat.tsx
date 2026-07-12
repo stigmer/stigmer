@@ -47,6 +47,14 @@ export interface SharedAgentChatProps {
    * @default "public"
    */
   readonly sharingAudience?: SharingAudience;
+  /**
+   * Share-link token from the URL's `?k=` parameter (public audience
+   * only). Required when the share link has been locked with a
+   * rotatable token; harmless on plain links. Pair it with the same
+   * `linkToken` on `createGuestAuth` so profile resolution and token
+   * minting present the same credentialing.
+   */
+  readonly linkToken?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -94,10 +102,12 @@ export function SharedAgentChat({
   showPoweredBy = true,
   onSessionCreated,
   sharingAudience = "public",
+  linkToken,
   className,
 }: SharedAgentChatProps) {
   const { profile, isLoading, error, refetch } = useSharedAgentProfile(org, slug, {
     audience: sharingAudience,
+    linkToken,
   });
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);

@@ -229,7 +229,21 @@ type MintGuestTokenRequest struct {
 	// embedder cannot alter; non-browser callers gain nothing by omitting it
 	// since the hosted link is anyone-with-link (decision 001) — rate limits
 	// and the billing gate remain the API guards.
-	EmbedOrigin   string `protobuf:"bytes,4,opt,name=embed_origin,json=embedOrigin,proto3" json:"embed_origin,omitempty"`
+	EmbedOrigin string `protobuf:"bytes,4,opt,name=embed_origin,json=embedOrigin,proto3" json:"embed_origin,omitempty"`
+	// Link token from the share URL's `?k=` parameter (optional).
+	//
+	// Required when the agent's share link has been locked with
+	// rotateShareLink; ignored for plain share links.
+	//
+	// @internal
+	// Validated at mint against the agent's live status.share_link_token
+	// (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+	// so a killed link is indistinguishable from a nonexistent one). The
+	// validated value is stamped into the guest JWT as the link_token claim
+	// and re-validated against the live value by the guest create-time gate
+	// on every session/execution create — rotation therefore revokes live
+	// guest tokens on their next message, exactly like disabling sharing.
+	LinkToken     string `protobuf:"bytes,5,opt,name=link_token,json=linkToken,proto3" json:"link_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -288,6 +302,13 @@ func (x *MintGuestTokenRequest) GetGuestCookieId() string {
 func (x *MintGuestTokenRequest) GetEmbedOrigin() string {
 	if x != nil {
 		return x.EmbedOrigin
+	}
+	return ""
+}
+
+func (x *MintGuestTokenRequest) GetLinkToken() string {
+	if x != nil {
+		return x.LinkToken
 	}
 	return ""
 }
@@ -386,13 +407,15 @@ const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\n" +
 	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n" +
 	"\n" +
-	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"\xd2\x03\n" +
+	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"\xfb\x03\n" +
 	"\x15MintGuestTokenRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\x1b\n" +
 	"\x04slug\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04slug\x12&\n" +
 	"\x0fguest_cookie_id\x18\x03 \x01(\tR\rguestCookieId\x12\xd8\x02\n" +
 	"\fembed_origin\x18\x04 \x01(\tB\xb4\x02\xbaH\xb0\x02\xba\x01\xac\x02\n" +
-	"\x13embed_origin.format\x12wembed_origin must be empty, \"null\", or an exact web origin like https://example.com (no path, query, or trailing slash)\x1a\x9b\x01this == '' || this == 'null' || this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\vembedOrigin\"\xa1\x01\n" +
+	"\x13embed_origin.format\x12wembed_origin must be empty, \"null\", or an exact web origin like https://example.com (no path, query, or trailing slash)\x1a\x9b\x01this == '' || this == 'null' || this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\vembedOrigin\x12'\n" +
+	"\n" +
+	"link_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkToken\"\xa1\x01\n" +
 	"\x16MintGuestTokenResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x1d\n" +
 	"\n" +

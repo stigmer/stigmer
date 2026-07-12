@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import {
   MAX_ALLOWED_ORIGINS,
+  appendLinkToken,
   buildEmbedSnippet,
   chatPath,
   getUserMessage,
@@ -23,6 +24,7 @@ import {
   type AgentSharingDraft,
   type SharingAudience,
 } from "./useUpdateAgentSharing.js";
+import { useRotateShareLink } from "./useRotateShareLink.js";
 import { useShareToolReadiness } from "./useShareToolReadiness.js";
 
 /** Maximum length of each visitor message (proto: `string.max_len = 300`). */
@@ -183,9 +185,18 @@ function ShareAgentDialogBody({
   const [draft, setDraft] = useState<AgentSharingDraft>(() =>
     draftFromAgent(agent),
   );
+  // The share-link token is server-owned status (never part of the sharing
+  // draft — rotateShareLink is its sole writer); track it separately and
+  // adopt it from every returned agent so the shown link never goes stale.
+  const [linkToken, setLinkToken] = useState(
+    () => agent.status?.shareLinkToken ?? "",
+  );
   const [activeTab, setActiveTab] = useState("link");
 
   const { updateSharing, isPending } = useUpdateAgentSharing(
+    agent.metadata?.id ?? null,
+  );
+  const { rotateShareLink, isPending: isRotating } = useRotateShareLink(
     agent.metadata?.id ?? null,
   );
 
@@ -196,6 +207,9 @@ function ShareAgentDialogBody({
       try {
         const updated = await updateSharing(next);
         setDraft(updated ? draftFromAgent(updated) : next);
+        if (updated) {
+          setLinkToken(updated.status?.shareLinkToken ?? "");
+        }
         toast.success(successMessage);
         onSharingChanged?.();
         return true;
@@ -206,6 +220,19 @@ function ShareAgentDialogBody({
     },
     [updateSharing, onSharingChanged],
   );
+
+  const handleRotateLink = useCallback(async () => {
+    try {
+      const updated = await rotateShareLink();
+      if (updated) {
+        setLinkToken(updated.status?.shareLinkToken ?? "");
+      }
+      toast.success("Link reset — the old link no longer works");
+      onSharingChanged?.();
+    } catch (err) {
+      toast.error(getUserMessage(err));
+    }
+  }, [rotateShareLink, onSharingChanged]);
 
   const handleToggle = useCallback(
     (enabled: boolean) => {
@@ -231,7 +258,14 @@ function ShareAgentDialogBody({
   );
 
   const isOrgAudience = draft.audience === "org";
-  const shareUrl = buildShareUrl ? buildShareUrl(org, slug) : chatPath(org, slug);
+  // Hosts build the base URL; the token rides it only on public shares
+  // (org-audience access is gated by membership, not the link token).
+  const baseShareUrl = buildShareUrl
+    ? buildShareUrl(org, slug)
+    : chatPath(org, slug);
+  const shareUrl = isOrgAudience
+    ? baseShareUrl
+    : appendLinkToken(baseShareUrl, linkToken);
 
   return (
     <div className="flex flex-col">
@@ -308,6 +342,9 @@ function ShareAgentDialogBody({
                 draft={draft}
                 isPending={isPending}
                 commit={commit}
+                hasLinkToken={linkToken !== ""}
+                isRotating={isRotating}
+                onResetLink={handleRotateLink}
               />
             )}
             {activeTab === "embed" && (
@@ -316,6 +353,7 @@ function ShareAgentDialogBody({
                 org={org}
                 slug={slug}
                 agentName={agentName}
+                linkToken={linkToken}
                 enabled={draft.enabled}
                 draft={draft}
                 isPending={isPending}
@@ -484,6 +522,9 @@ function LinkTab({
   draft,
   isPending,
   commit,
+  hasLinkToken,
+  isRotating,
+  onResetLink,
 }: {
   readonly shareUrl: string;
   readonly org: string;
@@ -494,6 +535,9 @@ function LinkTab({
     next: AgentSharingDraft,
     successMessage: string,
   ) => Promise<boolean>;
+  readonly hasLinkToken: boolean;
+  readonly isRotating: boolean;
+  readonly onResetLink: () => void;
 }) {
   const isOrgAudience = draft.audience === "org";
 
@@ -522,8 +566,64 @@ function LinkTab({
         </p>
       )}
 
+      {!isOrgAudience && (
+        <ResetLinkControl
+          enabled={enabled}
+          hasLinkToken={hasLinkToken}
+          isRotating={isRotating}
+          onResetLink={onResetLink}
+        />
+      )}
+
       <MessagesEditor draft={draft} isPending={isPending} commit={commit} />
     </div>
+  );
+}
+
+/**
+ * The "kill a leaked link" lever: rotating generates a fresh `?k=` token
+ * so the old URL stops working immediately — sharing stays on, the agent
+ * keeps its name. Public audience only; org shares revoke via membership.
+ */
+function ResetLinkControl({
+  enabled,
+  hasLinkToken,
+  isRotating,
+  onResetLink,
+}: {
+  readonly enabled: boolean;
+  readonly hasLinkToken: boolean;
+  readonly isRotating: boolean;
+  readonly onResetLink: () => void;
+}) {
+  return (
+    <section className={cn(!enabled && "opacity-50")}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="text-xs font-medium text-muted-foreground">
+            Reset link
+          </h3>
+          <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
+            {hasLinkToken
+              ? "Generates a new link and kills the current one immediately — even mid-conversation. Re-share the new link with the people who should keep access."
+              : "Got forwarded further than you wanted? Resetting locks the link behind a secret and kills the plain address immediately."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onResetLink}
+          disabled={!enabled || isRotating}
+          className={cn(
+            "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
+            "border border-border text-foreground hover:bg-accent-hover",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          {isRotating ? "Resetting…" : "Reset link"}
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -563,6 +663,7 @@ function EmbedTab({
   org,
   slug,
   agentName,
+  linkToken,
   enabled,
   draft,
   isPending,
@@ -572,6 +673,7 @@ function EmbedTab({
   readonly org: string;
   readonly slug: string;
   readonly agentName: string;
+  readonly linkToken: string;
   readonly enabled: boolean;
   readonly draft: AgentSharingDraft;
   readonly isPending: boolean;
@@ -581,8 +683,9 @@ function EmbedTab({
   ) => Promise<boolean>;
 }) {
   const scriptSnippet = useMemo(
-    () => buildEmbedSnippet(appOriginFrom(shareUrl), org, slug),
-    [shareUrl, org, slug],
+    () =>
+      buildEmbedSnippet(appOriginFrom(shareUrl), org, slug, linkToken || undefined),
+    [shareUrl, org, slug, linkToken],
   );
 
   // Embedding serves anonymous visitors via guest tokens, which an

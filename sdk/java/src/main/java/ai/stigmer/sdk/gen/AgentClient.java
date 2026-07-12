@@ -7,6 +7,8 @@ import ai.stigmer.agentic.agent.v1.AgentCommandControllerGrpc;
 import ai.stigmer.agentic.agent.v1.AgentId;
 import ai.stigmer.agentic.agent.v1.AgentQueryControllerGrpc;
 import ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest;
+import ai.stigmer.agentic.agent.v1.GetSharedProfileRequest;
+import ai.stigmer.agentic.agent.v1.RotateShareLinkInput;
 import ai.stigmer.agentic.agent.v1.SharedAgentProfile;
 import ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
@@ -60,6 +62,12 @@ public final class AgentClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public Agent rotateShareLink(RotateShareLinkInput input) {
+        try {
+            return command.rotateShareLink(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public Agent delete(String id) {
         try {
             return command.delete(AgentId.newBuilder().setValue(id).build());
@@ -84,9 +92,9 @@ public final class AgentClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public SharedAgentProfile getSharedProfile(ResourceRef ref) {
+    public SharedAgentProfile getSharedProfile(GetSharedProfileRequest input) {
         try {
-            return query.getSharedProfile(ref.toProto().toBuilder().setKind(ApiResourceKind.agent).build());
+            return query.getSharedProfile(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

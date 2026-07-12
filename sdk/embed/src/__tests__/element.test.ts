@@ -65,6 +65,22 @@ describe("<stigmer-agent>", () => {
     );
   });
 
+  it("forwards the token attribute as ?k= on the iframe URL (locked link)", () => {
+    setDefaultAppOrigin(APP_ORIGIN);
+    const element = mount({
+      org: "acme",
+      agent: "support-bot",
+      token: "tok123",
+      theme: "dark",
+    });
+
+    // The hosted page reads ?k= and forwards it on its guest mint; the
+    // token must ride BEFORE theme so the URL matches the SDK's shape.
+    expect(iframeOf(element)!.src).toBe(
+      `${APP_ORIGIN}/chat/acme/support-bot?k=tok123&theme=dark`,
+    );
+  });
+
   it("prefers the app-origin attribute over the loader default", () => {
     setDefaultAppOrigin(APP_ORIGIN);
     const element = mount({

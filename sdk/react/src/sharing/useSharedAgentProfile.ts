@@ -1,6 +1,10 @@
 "use client";
 
-import type { SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { create } from "@bufbuild/protobuf";
+import {
+  GetSharedProfileRequestSchema,
+  type SharedAgentProfile,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -19,6 +23,16 @@ export interface UseSharedAgentProfileOptions {
    *   whose client carries the member's token.
    */
   readonly audience?: SharingAudience;
+
+  /**
+   * Share-link token from the URL's `?k=` parameter (public path only).
+   *
+   * Required when the share link has been locked with a rotatable token;
+   * harmless on plain links. On a locked link a missing or rotated-away
+   * token resolves to `profile === null`, indistinguishable from an
+   * agent that does not exist.
+   */
+  readonly linkToken?: string;
 }
 
 /** Return value of {@link useSharedAgentProfile}. */
@@ -86,14 +100,20 @@ export function useSharedAgentProfile(
 ): UseSharedAgentProfileReturn {
   const stigmer = useStigmer();
   const audience = options?.audience ?? "public";
+  const linkToken = options?.linkToken ?? "";
 
   const fetchFn =
     org && slug
       ? async () => {
           try {
+            // The member path is tokenless by contract: org-audience access
+            // is gated by live membership, and token-locked public shares
+            // deliberately refuse there (see getSharedProfileForMember).
             return audience === "org"
               ? await stigmer.agent.getSharedProfileForMember({ org, slug })
-              : await stigmer.agent.getSharedProfile({ org, slug });
+              : await stigmer.agent.getSharedProfile(
+                  create(GetSharedProfileRequestSchema, { org, slug, linkToken }),
+                );
           } catch (err) {
             if (isNotFound(err)) return null;
             throw err;
@@ -103,7 +123,7 @@ export function useSharedAgentProfile(
 
   const { data: profile, isLoading, isRefetching, error, refetch } = useFetch(
     fetchFn,
-    [org, slug, audience, stigmer],
+    [org, slug, audience, linkToken, stigmer],
     null as SharedAgentProfile | null,
   );
 

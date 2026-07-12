@@ -4,7 +4,9 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  LINK_TOKEN_PARAM,
   MAX_ALLOWED_ORIGINS,
+  appendLinkToken,
   buildChatUrl,
   buildEmbedLoaderUrl,
   buildEmbedSnippet,
@@ -78,6 +80,44 @@ describe("chatPath / buildChatUrl", () => {
       "http://localhost:8234/chat/stigmer/helper",
     );
   });
+
+  it("appends ?k= when the share link is locked with a token", () => {
+    expect(chatPath("acme", "support-agent", "tok123")).toBe(
+      "/chat/acme/support-agent?k=tok123",
+    );
+    expect(
+      buildChatUrl("https://app.stigmer.ai", "acme", "support-agent", "tok123"),
+    ).toBe("https://app.stigmer.ai/chat/acme/support-agent?k=tok123");
+  });
+
+  it("url-encodes the token (defense in depth; generated tokens are url-safe)", () => {
+    expect(chatPath("acme", "bot", "a+b/c")).toBe("/chat/acme/bot?k=a%2Bb%2Fc");
+  });
+
+  it("omits ?k= for an empty/undefined token (plain link)", () => {
+    expect(chatPath("acme", "bot", "")).toBe("/chat/acme/bot");
+    expect(chatPath("acme", "bot", undefined)).toBe("/chat/acme/bot");
+  });
+});
+
+describe("appendLinkToken", () => {
+  it("appends the identical ?k= shape chatPath emits", () => {
+    expect(appendLinkToken("https://app.stigmer.ai/chat/acme/bot", "tok123")).toBe(
+      buildChatUrl("https://app.stigmer.ai", "acme", "bot", "tok123"),
+    );
+  });
+
+  it("uses & when the URL already carries a query", () => {
+    expect(appendLinkToken("/chat/acme/bot?theme=dark", "tok123")).toBe(
+      `/chat/acme/bot?theme=dark&${LINK_TOKEN_PARAM}=tok123`,
+    );
+  });
+
+  it("returns the URL unchanged for a null/empty token", () => {
+    expect(appendLinkToken("/chat/acme/bot", null)).toBe("/chat/acme/bot");
+    expect(appendLinkToken("/chat/acme/bot", undefined)).toBe("/chat/acme/bot");
+    expect(appendLinkToken("/chat/acme/bot", "")).toBe("/chat/acme/bot");
+  });
 });
 
 describe("buildEmbedLoaderUrl", () => {
@@ -97,6 +137,23 @@ describe("buildEmbedSnippet", () => {
         `<script src="https://app.stigmer.ai/embed.js" async></script>`,
         `<stigmer-agent org="acme" agent="support-agent"></stigmer-agent>`,
       ].join("\n"),
+    );
+  });
+
+  it("adds the token attribute when the share link is locked", () => {
+    expect(
+      buildEmbedSnippet("https://app.stigmer.ai", "acme", "support-agent", "tok123"),
+    ).toBe(
+      [
+        `<script src="https://app.stigmer.ai/embed.js" async></script>`,
+        `<stigmer-agent org="acme" agent="support-agent" token="tok123"></stigmer-agent>`,
+      ].join("\n"),
+    );
+  });
+
+  it("omits the token attribute for an empty token (plain link)", () => {
+    expect(buildEmbedSnippet("https://app.stigmer.ai", "acme", "bot", "")).toBe(
+      buildEmbedSnippet("https://app.stigmer.ai", "acme", "bot"),
     );
   });
 });

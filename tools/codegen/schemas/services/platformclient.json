@@ -423,6 +423,19 @@
           },
           "description": "Web origin of the page embedding the shared agent (optional).\n\n Set by the hosted chat page when it runs inside an iframe (the embedding\n page's origin, e.g. \"https://docs.example.com\") and by direct SDK embeds\n (their own page origin). Leave empty on the unframed hosted page. The\n literal value \"null\" reports a framed page whose parent origin could not\n be determined (opaque origin).\n\n @internal\n Validated at mint against the agent's spec.sharing.allowed_origins:\n empty list admits any origin; a non-empty list refuses PERMISSION_DENIED\n for unlisted origins and for \"null\". An empty field always passes (the\n anyone-with-link hosted page). The validated value is stamped into the\n guest JWT as the embed_origin claim and re-validated against the live\n list by the guest create-time gate. Self-reported by design: the widget\n code inside the iframe derives it from browser-authentic sources the\n embedder cannot alter; non-browser callers gain nothing by omitting it\n since the hosted link is anyone-with-link (decision 001) — rate limits\n and the billing gate remain the API guards.",
           "required": false
+        },
+        {
+          "name": "LinkToken",
+          "jsonName": "linkToken",
+          "protoField": "link_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Link token from the share URL's `?k=` parameter (optional).\n\n Required when the agent's share link has been locked with\n rotateShareLink; ignored for plain share links.\n\n @internal\n Validated at mint against the agent's live status.share_link_token\n (mismatch or absence answers the same NOT_FOUND as an unshared agent,\n so a killed link is indistinguishable from a nonexistent one). The\n validated value is stamped into the guest JWT as the link_token claim\n and re-validated against the live value by the guest create-time gate\n on every session/execution create — rotation therefore revokes live\n guest tokens on their next message, exactly like disabling sharing.",
+          "required": false,
+          "validation": {
+            "maxLength": 128
+          }
         }
       ]
     },

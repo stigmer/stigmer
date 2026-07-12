@@ -44,26 +44,59 @@ export function validateOrigin(value: string): string | null {
 }
 
 /**
- * The hosted chat page path for a shared agent: `/chat/<org>/<slug>`.
+ * Query parameter carrying the share-link token on a locked link:
+ * `/chat/<org>/<slug>?k=<token>`. Short by design — the token rides every
+ * copied link, and `k` (for "key") is the platform's one-character
+ * convention, mirrored by the hosted page and the embed widget.
+ */
+export const LINK_TOKEN_PARAM = "k";
+
+/**
+ * The hosted chat page path for a shared agent: `/chat/<org>/<slug>`,
+ * plus `?k=<token>` when the share link is locked with a rotatable token
+ * (`agent.status.shareLinkToken`).
  *
  * Useful on its own when the caller renders relative to the current
  * origin (e.g. a host that never configured an absolute app URL).
  */
-export function chatPath(org: string, slug: string): string {
-  return `/chat/${org}/${slug}`;
+export function chatPath(org: string, slug: string, linkToken?: string): string {
+  const path = `/chat/${org}/${slug}`;
+  return linkToken
+    ? `${path}?${LINK_TOKEN_PARAM}=${encodeURIComponent(linkToken)}`
+    : path;
 }
 
 /**
  * The absolute hosted chat URL for a shared agent:
- * `<appOrigin>/chat/<org>/<slug>`.
+ * `<appOrigin>/chat/<org>/<slug>[?k=<token>]`.
  *
  * A trailing slash on `appOrigin` is tolerated so callers can pass
  * user-configured values verbatim. An empty `appOrigin` degrades to the
  * relative {@link chatPath} — the same graceful fallback a host without a
  * configured public origin gets in the share dialog.
  */
-export function buildChatUrl(appOrigin: string, org: string, slug: string): string {
-  return stripTrailingSlash(appOrigin) + chatPath(org, slug);
+export function buildChatUrl(
+  appOrigin: string,
+  org: string,
+  slug: string,
+  linkToken?: string,
+): string {
+  return stripTrailingSlash(appOrigin) + chatPath(org, slug, linkToken);
+}
+
+/**
+ * Append the share-link token to an already-built chat URL.
+ *
+ * For hosts that construct the base URL through their own callback (the
+ * share dialog's `buildShareUrl` prop) rather than {@link buildChatUrl}.
+ * A `null`/empty token returns the URL unchanged, so callers can pass
+ * `agent.status?.shareLinkToken` straight through. Emits the identical
+ * `?k=` shape as {@link chatPath} — one URL grammar across every surface.
+ */
+export function appendLinkToken(url: string, linkToken: string | null | undefined): string {
+  if (!linkToken) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}${LINK_TOKEN_PARAM}=${encodeURIComponent(linkToken)}`;
 }
 
 /**
@@ -79,12 +112,20 @@ export function buildEmbedLoaderUrl(appOrigin: string): string {
 /**
  * The two-line embed snippet an owner pastes into any website: the
  * loader script plus the `<stigmer-agent>` element where the widget
- * renders. Every surface (share dialog, CLI, docs) emits exactly this.
+ * renders. A locked share link adds the `token` attribute, which the
+ * widget forwards as `?k=` on its iframe URL. Every surface (share
+ * dialog, CLI, docs) emits exactly this.
  */
-export function buildEmbedSnippet(appOrigin: string, org: string, slug: string): string {
+export function buildEmbedSnippet(
+  appOrigin: string,
+  org: string,
+  slug: string,
+  linkToken?: string,
+): string {
+  const tokenAttribute = linkToken ? ` token="${linkToken}"` : "";
   return [
     `<script src="${buildEmbedLoaderUrl(appOrigin)}" async></script>`,
-    `<stigmer-agent org="${org}" agent="${slug}"></stigmer-agent>`,
+    `<stigmer-agent org="${org}" agent="${slug}"${tokenAttribute}></stigmer-agent>`,
   ].join("\n");
 }
 

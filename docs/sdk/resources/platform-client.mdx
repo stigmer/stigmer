@@ -530,6 +530,7 @@ const mintGuestTokenResponse = await stigmer.platformclient.mintGuestToken({
   slug: "...",
   guestCookieId: "...",
   embedOrigin: "...",
+  linkToken: "...",
 });
 ```
 </Tab>
@@ -540,6 +541,7 @@ mintGuestTokenResponse, err := client.PlatformClient.MintGuestToken(ctx, &stigme
   Slug:          "...",
   GuestCookieId: "...",
   EmbedOrigin:   "...",
+  LinkToken:     "...",
 })
 ```
 </Tab>
@@ -550,6 +552,7 @@ mint_guest_token_response = client.platformclients.mint_guest_token(MintGuestTok
     slug="...",
     guest_cookie_id="...",
     embed_origin="...",
+    link_token="...",
 ))
 ```
 </Tab>
@@ -560,6 +563,7 @@ MintGuestTokenResponse mintGuestTokenResponse = client.platformclients().mintGue
     .slug("...")
     .guestCookieId("...")
     .embedOrigin("...")
+    .linkToken("...")
     .build());
 ```
 </Tab>
@@ -778,6 +782,7 @@ MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
     slug: { type: "string", description: "Agent slug from the share URL (required)." },
     guestCookieId: { type: "string", description: "Per-browser visitor cookie id from a prior mint (optional)." },
     embedOrigin: { type: "string", description: "Web origin of the page embedding the shared agent (optional)." },
+    linkToken: { type: "string", description: "Link token from the share URL's `?k=` parameter (optional)." },
   }}
 />
 

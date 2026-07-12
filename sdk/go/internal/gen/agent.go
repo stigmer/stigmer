@@ -54,6 +54,11 @@ func (a *AgentClient) UpdateSharing(ctx context.Context, input *agentv1.UpdateAg
 	return resp, wrapErr(err)
 }
 
+func (a *AgentClient) RotateShareLink(ctx context.Context, input *agentv1.RotateShareLinkInput) (*agentv1.Agent, error) {
+	resp, err := a.command.RotateShareLink(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentClient) Delete(ctx context.Context, id string) (*agentv1.Agent, error) {
 	resp, err := a.command.Delete(ctx, &agentv1.AgentId{Value: id})
 	return resp, wrapErr(err)
@@ -75,9 +80,8 @@ func (a *AgentClient) GetDefault(ctx context.Context, input *agentv1.GetDefaultA
 	return resp, wrapErr(err)
 }
 
-func (a *AgentClient) GetSharedProfile(ctx context.Context, ref ResourceRef) (*agentv1.SharedAgentProfile, error) {
-	ref.Kind = apiresourcekind.ApiResourceKind_agent
-	resp, err := a.query.GetSharedProfile(ctx, ref.toProto())
+func (a *AgentClient) GetSharedProfile(ctx context.Context, input *agentv1.GetSharedProfileRequest) (*agentv1.SharedAgentProfile, error) {
+	resp, err := a.query.GetSharedProfile(ctx, input)
 	return resp, wrapErr(err)
 }
 

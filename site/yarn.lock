@@ -2622,16 +2622,16 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=97ff8f&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=80befb&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/c8f5104d599b4307c4e1029f9da653322e7bb69becba4be31d486427509acabc3a7a176e4ac0ae656366174826ca626765f9cdca1f0debfa17cf04b1980534bc
+  checksum: 10c0/df72baa4597a8ead0d5eae7eb440228338ed72953a49b83bdd0deaf778bf626962b5ee4aac10d346de2544fce4b44c16b0aec85be640e3ad98690c5a53c001ac
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=eebec4&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=9f3938&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@dagrejs/dagre": "npm:^1.1.4"
@@ -2699,13 +2699,13 @@ __metadata:
       optional: true
     recharts:
       optional: true
-  checksum: 10c0/78408e80af37dc3993809896afbc3283a6516c91e1f233320f780409fb809dd086273db77e70b7f8d99d23b477f22ec23377cd9e73519396087a7af8309271e9
+  checksum: 10c0/758e9f7e4183772f783d0c9518e292401387d521192df3ed9ca713750318791aeccb5ae284063f51520ff8deb41878d8729d9920556db183752adf2edc30e436
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=124287&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=87ded4&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2716,7 +2716,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/9870b855e5749de6051f8c651343d98972d269ff93ddc763ce3557f746c1af667c9503370d476503387504fbc5fa5f508be0acd2e464b2da5926220394bf1460
+  checksum: 10c0/3ff65080b85eb923008ddbfc7a186e6de7099324bed1f75192ed7b82aa9e26782c17cd9a02872aae748e40d20a353c0972715074b6d2daab435b028455c514c6
   languageName: node
   linkType: hard
 

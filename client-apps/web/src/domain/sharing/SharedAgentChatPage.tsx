@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
+import { create } from "@bufbuild/protobuf";
+import { GetSharedProfileRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import {
+  LINK_TOKEN_PARAM,
   Stigmer,
   createGuestAuth,
   isNotFound,
@@ -38,11 +41,16 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
  * Audience routing (standalone page): the page probes the anonymous
  * `getSharedProfile` once. A hit means a public share — the current
  * guest flow, zero login. A NOT_FOUND is deliberately ambiguous (no such
- * agent, unshared, or org-members-only), so the page offers "sign in if
- * you have access": a signed-in member's `SharedAgentChat
- * sharingAudience="org"` resolves through the authenticated
- * `getSharedProfileForMember` and chats with the member's own token —
- * membership is re-checked server-side on every turn.
+ * agent, unshared, org-members-only, or a token-locked link without its
+ * `?k=` token), so the page offers "sign in if you have access": a
+ * signed-in member's `SharedAgentChat sharingAudience="org"` resolves
+ * through the authenticated `getSharedProfileForMember` and chats with
+ * the member's own token — membership is re-checked server-side on
+ * every turn.
+ *
+ * Locked links: when the share URL carries `?k=<token>` (an owner reset
+ * the link), the token rides the probe, the guest mint, and the profile
+ * fetch. The server validates it everywhere; the page just forwards it.
  *
  * Embedded flow (public shares only — org shares refuse the guest mint):
  * the discovered parent origin rides the mint request, where the server
@@ -70,6 +78,7 @@ type AccessPath = "probing" | "guest" | "member";
 export default function SharedAgentChatPage() {
   const org = useStaticRouteParam("org", 2);
   const slug = useStaticRouteParam("slug", 1);
+  const linkToken = useLinkTokenParam();
   const colorMode = usePageColorMode();
   const auth = useAuth();
 
@@ -100,22 +109,28 @@ export default function SharedAgentChatPage() {
       baseUrl: getApiBaseUrl(),
       getAccessToken: () => null,
     });
-    anon.agent.getSharedProfile({ org, slug }).then(
-      () => {
-        if (!cancelled) setAccessPath("guest");
-      },
-      (error: unknown) => {
-        if (cancelled) return;
-        // NOT_FOUND is deliberately ambiguous server-side; the member
-        // path resolves it for anyone with access. Transient errors take
-        // the guest path so SharedAgentChat's retry surface handles them.
-        setAccessPath(isNotFound(error) ? "member" : "guest");
-      },
-    );
+    anon.agent
+      .getSharedProfile(
+        create(GetSharedProfileRequestSchema, { org, slug, linkToken }),
+      )
+      .then(
+        () => {
+          if (!cancelled) setAccessPath("guest");
+        },
+        (error: unknown) => {
+          if (cancelled) return;
+          // NOT_FOUND is deliberately ambiguous server-side (missing,
+          // unshared, org-members-only, or a locked link without its
+          // token); the member path resolves it for anyone with access.
+          // Transient errors take the guest path so SharedAgentChat's
+          // retry surface handles them.
+          setAccessPath(isNotFound(error) ? "member" : "guest");
+        },
+      );
     return () => {
       cancelled = true;
     };
-  }, [phase.kind, org, slug]);
+  }, [phase.kind, org, slug, linkToken]);
 
   // One guest-auth manager + client per resolved org/slug (+ embed
   // context). Standalone pages mint lazily on the first RPC, so nothing
@@ -128,6 +143,8 @@ export default function SharedAgentChatPage() {
       baseUrl,
       org,
       slug,
+      // Required on locked links; harmless (ignored server-side) on plain ones.
+      ...(linkToken ? { linkToken } : {}),
       // Absent on the standalone page — the server's absence-means-exempt
       // rule is what keeps the hosted link anyone-with-link.
       ...(phase.kind === "active" ? { embedOrigin: phase.parentOrigin } : {}),
@@ -137,7 +154,7 @@ export default function SharedAgentChatPage() {
       getAccessToken: guestAuth.getAccessToken,
     });
     return { client, guestAuth };
-  }, [org, slug, phase]);
+  }, [org, slug, linkToken, phase]);
 
   // The member client carries the signed-in member's own token. Rebuilt
   // on token renewal, mirroring StigmerTransportBridge on authenticated
@@ -232,10 +249,25 @@ export default function SharedAgentChatPage() {
       preset="monochrome"
     >
       <div className="h-screen bg-background text-foreground">
-        <SharedAgentChat org={org} slug={slug} />
+        <SharedAgentChat org={org} slug={slug} linkToken={linkToken} />
       </div>
     </StigmerProvider>
   );
+}
+
+/**
+ * The share-link token from the URL's `?k=` parameter, or empty for plain
+ * links. Read once on mount (like the theme param): the token is part of
+ * the link's identity, and a mid-session change is not a supported flow.
+ */
+function useLinkTokenParam(): string {
+  const [linkToken] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return (
+      new URLSearchParams(window.location.search).get(LINK_TOKEN_PARAM) ?? ""
+    );
+  });
+  return linkToken;
 }
 
 /**

@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
-import type { AgentIdSchema, UpdateAgentSharingInputSchema } from "./io_pb.js";
+import type { AgentIdSchema, RotateShareLinkInputSchema, UpdateAgentSharingInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_io } from "./io_pb.js";
 import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agent/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxMvIGChZBZ2VudENvbW1hbmRDb250cm9sbGVyEk8KBWFwcGx5EiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50EpsBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiScK4GEUIBhAeIgxtZXRhZGF0YS5vcmcqMXVuYXV0aG9yaXplZCB0byBjcmVhdGUgYWdlbnQgaW4gdGhpcyBvcmdhbml6YXRpb24ShQEKBnVwZGF0ZRIiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIzwrgYLwgCECgiC21ldGFkYXRhLmlkKhx1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50Eq0BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCI+wrgYOggCECgiC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50IHZpc2liaWxpdHkSpgEKDXVwZGF0ZVNoYXJpbmcSNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuVXBkYXRlQWdlbnRTaGFyaW5nSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiO8K4GDcIAhAoIgtyZXNvdXJjZV9pZCokdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBhZ2VudCBzaGFyaW5nEoEBCgZkZWxldGUSJC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRJZBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCItwrgYKQgDECgiBXZhbHVlKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGFnZW50GgSg/ysoYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxMp0IChZBZ2VudENvbW1hbmRDb250cm9sbGVyEk8KBWFwcGx5EiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50EpsBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiScK4GEUIBhAeIgxtZXRhZGF0YS5vcmcqMXVuYXV0aG9yaXplZCB0byBjcmVhdGUgYWdlbnQgaW4gdGhpcyBvcmdhbml6YXRpb24ShQEKBnVwZGF0ZRIiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIzwrgYLwgCECgiC21ldGFkYXRhLmlkKhx1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50Eq0BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCI+wrgYOggCECgiC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50IHZpc2liaWxpdHkSpgEKDXVwZGF0ZVNoYXJpbmcSNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuVXBkYXRlQWdlbnRTaGFyaW5nSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiO8K4GDcIAhAoIgtyZXNvdXJjZV9pZCokdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBhZ2VudCBzaGFyaW5nEqgBCg9yb3RhdGVTaGFyZUxpbmsSMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuUm90YXRlU2hhcmVMaW5rSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiPsK4GDoIAhAoIgtyZXNvdXJjZV9pZCondW5hdXRob3JpemVkIHRvIHJvdGF0ZSBhZ2VudCBzaGFyZSBsaW5rEoEBCgZkZWxldGUSJC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRJZBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCItwrgYKQgDECgiBXZhbHVlKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGFnZW50GgSg/ysoYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentCommandController handles write operations for AI agents.
@@ -106,6 +106,32 @@ export const AgentCommandController: GenService<{
   updateSharing: {
     methodKind: "unary";
     input: typeof UpdateAgentSharingInputSchema;
+    output: typeof AgentSchema;
+  },
+  /**
+   * Rotate the share-link token of an existing agent.
+   *
+   * Generates a fresh server-side token for the agent's hosted chat link.
+   * The share URL becomes `/chat/<org>/<slug>?k=<token>` and the previous
+   * link (tokened or plain) stops working immediately — including for
+   * visitors mid-conversation. Use this to kill a leaked or over-shared
+   * public link without disabling sharing or renaming the agent.
+   *
+   * The token lives in status.share_link_token, so manifest applies never
+   * reset it. Rotation affects public-audience shares only; org-audience
+   * access is governed by live org membership instead.
+   *
+   * @internal
+   * Authorization: requires can_edit on the agent — the same bar as
+   * updateSharing, since both control shared-link access. The handler is
+   * the sole writer of status.share_link_token (server-generated entropy;
+   * clients never supply the token).
+   *
+   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.rotateShareLink
+   */
+  rotateShareLink: {
+    methodKind: "unary";
+    input: typeof RotateShareLinkInputSchema;
     output: typeof AgentSchema;
   },
   /**

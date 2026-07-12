@@ -62,10 +62,32 @@ describe("useSharedAgentProfile", () => {
 
     expect(result.current.profile).toBe(PROFILE);
     expect(result.current.error).toBeNull();
-    expect(getSharedProfile).toHaveBeenCalledWith({
-      org: "acme",
-      slug: "support-agent",
-    });
+    // The hook builds a GetSharedProfileRequest message; a plain link
+    // carries an empty link token.
+    expect(getSharedProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        org: "acme",
+        slug: "support-agent",
+        linkToken: "",
+      }),
+    );
+  });
+
+  it("threads the linkToken option into the public request", async () => {
+    const getSharedProfile = vi.fn().mockResolvedValue(PROFILE);
+    const client = createMockStigmer({ getSharedProfile });
+
+    const { result } = renderHook(
+      () =>
+        useSharedAgentProfile("acme", "support-agent", { linkToken: "tok123" }),
+      { wrapper: wrapper(client) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(getSharedProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ linkToken: "tok123" }),
+    );
   });
 
   it("resolves through getSharedProfileForMember for the org audience", async () => {

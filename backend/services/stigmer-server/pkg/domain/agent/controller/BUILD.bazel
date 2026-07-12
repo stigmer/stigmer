@@ -12,6 +12,7 @@ go_library(
         "get_default.go",
         "get_shared_profile.go",
         "merge_mcp_env_specs.go",
+        "rotate_share_link.go",
         "update.go",
         "update_sharing.go",
         "update_visibility.go",
@@ -34,6 +35,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/query/search/extractor",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//codes",
+        "@org_golang_google_protobuf//proto",
     ],
 )
 

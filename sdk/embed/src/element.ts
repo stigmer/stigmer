@@ -20,6 +20,7 @@ import { createEmbedHost, type EmbedHost } from "./host.js";
 const OBSERVED_ATTRIBUTES = [
   "org",
   "agent",
+  "token",
   "theme",
   "width",
   "height",
@@ -89,7 +90,13 @@ export class StigmerAgentElement extends HTMLElement {
     this.style.height = cssLength(this.getAttribute("height"), DEFAULT_HEIGHT);
 
     const iframe = document.createElement("iframe");
-    iframe.src = buildChatUrl(appOrigin, org, agent, this.getAttribute("theme"));
+    iframe.src = buildChatUrl(
+      appOrigin,
+      org,
+      agent,
+      this.getAttribute("token"),
+      this.getAttribute("theme"),
+    );
     iframe.title = `Chat with ${agent}`;
     iframe.setAttribute("loading", "lazy");
     iframe.style.cssText =
@@ -122,12 +129,20 @@ function buildChatUrl(
   appOrigin: string,
   org: string,
   agent: string,
+  token: string | null,
   theme: string | null,
 ): string {
   const url = new URL(
     `/chat/${encodeURIComponent(org)}/${encodeURIComponent(agent)}`,
     appOrigin,
   );
+  // `k` is the platform's link-token parameter (see @stigmer/sdk's
+  // LINK_TOKEN_PARAM — not imported: this loader stays dependency-free).
+  // Required when the share link is locked; the hosted page forwards it
+  // on its guest mint, where the server validates it.
+  if (token) {
+    url.searchParams.set("k", token);
+  }
   const resolved = resolveTheme(theme);
   if (resolved) {
     url.searchParams.set("theme", resolved);

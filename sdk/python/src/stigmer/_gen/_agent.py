@@ -61,6 +61,12 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def rotate_share_link(self, input: io_pb2.RotateShareLinkInput) -> api_pb2.Agent:
+        try:
+            return self._command.rotateShareLink(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.Agent:
         try:
             return self._command.delete(io_pb2.AgentId(value=id))
@@ -87,11 +93,9 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_shared_profile(self, ref: ResourceRef) -> io_pb2.SharedAgentProfile:
+    def get_shared_profile(self, input: io_pb2.GetSharedProfileRequest) -> io_pb2.SharedAgentProfile:
         try:
-            proto = ref._to_proto()
-            proto.kind = api_resource_kind_pb2.agent
-            return self._query.getSharedProfile(proto)
+            return self._query.getSharedProfile(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

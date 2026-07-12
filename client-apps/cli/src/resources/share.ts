@@ -15,7 +15,10 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { UpdateAgentSharingInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import {
+  RotateShareLinkInputSchema,
+  UpdateAgentSharingInputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import {
   AgentSharingAudience,
   AgentSharingMessagesSchema,
@@ -41,6 +44,13 @@ export interface ShareAgentOptions {
    * public (or vice versa).
    */
   readonly audience?: ShareAudience;
+  /**
+   * Rotate the share-link token: the server generates a fresh `?k=`
+   * secret and the current link (tokened or plain) stops working
+   * immediately. The token is server-owned status — never part of the
+   * sharing block this module merges.
+   */
+  readonly resetLink?: boolean;
   /** The app origin serving the hosted chat page and `embed.js`. */
   readonly appOrigin: string;
   /**
@@ -78,25 +88,51 @@ export async function shareAgent(
 
   const currentAudience = audienceFromProto(current?.audience);
   const targetAudience = options.audience ?? currentAudience;
+
+  // Resetting the link is meaningless for org-members-only shares: their
+  // access is gated by live membership, and the member link never carries
+  // the token. Refuse rather than silently rotating an unused secret —
+  // the share dialog hides its Reset control for org audience for the
+  // same reason.
+  if (options.resetLink === true && targetAudience === "org") {
+    throw new UsageError(
+      "--reset-link only applies to public links\n\n" +
+        "This share is restricted to organization members, whose access is\n" +
+        "checked on every message. To cut someone off, remove them from the\n" +
+        "organization.",
+    );
+  }
+
   const alreadyInState =
     (current?.enabled ?? false) === options.enabled &&
     currentAudience === targetAudience;
 
-  if (alreadyInState) {
-    return describeOutcome(agent, options, targetAudience, /* alreadyInState */ true);
+  if (!alreadyInState) {
+    // Send the COMPLETE sharing block with only the requested fields changed,
+    // so a CLI toggle can never wipe console-configured origins, visitor
+    // messages, or an org-members-only audience.
+    await client.agent.updateSharing(
+      create(UpdateAgentSharingInputSchema, {
+        resourceId: agent.metadata?.id ?? "",
+        sharing: preservingSharing(current, options.enabled, targetAudience),
+      }),
+    );
   }
 
-  // Send the COMPLETE sharing block with only the requested fields changed,
-  // so a CLI toggle can never wipe console-configured origins, visitor
-  // messages, or an org-members-only audience.
-  await client.agent.updateSharing(
-    create(UpdateAgentSharingInputSchema, {
-      resourceId: agent.metadata?.id ?? "",
-      sharing: preservingSharing(current, options.enabled, targetAudience),
-    }),
-  );
+  // The rotation is a separate targeted RPC (the token is server-owned
+  // status, not part of the sharing block). The returned agent carries the
+  // fresh token, so the link printed below is the new one.
+  let linkToken = agent.status?.shareLinkToken ?? "";
+  if (options.resetLink === true) {
+    const rotated = await client.agent.rotateShareLink(
+      create(RotateShareLinkInputSchema, {
+        resourceId: agent.metadata?.id ?? "",
+      }),
+    );
+    linkToken = rotated.status?.shareLinkToken ?? "";
+  }
 
-  return describeOutcome(agent, options, targetAudience, /* alreadyInState */ false);
+  return describeOutcome(agent, options, targetAudience, linkToken, alreadyInState && options.resetLink !== true);
 }
 
 // Unspecified means public by contract (pre-audience shares keep their
@@ -131,11 +167,14 @@ function preservingSharing(
 
 // Build the user-facing result. Org/slug come from the RESOLVED agent's
 // metadata (authoritative even when the user passed an ID), matching how the
-// web share dialog derives them.
+// web share dialog derives them. The link token comes from the agent's
+// status (post-rotation when --reset-link ran) and rides the printed URL
+// and snippet — public audience only (org access is gated by membership).
 function describeOutcome(
   agent: Agent,
   options: ShareAgentOptions,
   audience: ShareAudience,
+  linkToken: string,
   alreadyInState: boolean,
 ): CommandResult {
   const org = agent.metadata?.org ?? "";
@@ -152,12 +191,17 @@ function describeOutcome(
   }
 
   const result = CommandResult.success(
-    alreadyInState ? `Sharing is already on for '${name}'` : `Sharing enabled for '${name}'`,
+    options.resetLink === true
+      ? `Share link reset for '${name}' — the old link no longer works`
+      : alreadyInState
+        ? `Sharing is already on for '${name}'`
+        : `Sharing enabled for '${name}'`,
   );
 
+  const publicLinkToken = audience === "org" ? undefined : linkToken || undefined;
   result
     .addSection(audience === "org" ? "Member chat link" : "Public chat link")
-    .item(buildChatUrl(options.appOrigin, org, slug));
+    .item(buildChatUrl(options.appOrigin, org, slug, publicLinkToken));
 
   if (audience === "org") {
     // Embeds serve anonymous guests, which org-members-only shares refuse
@@ -166,12 +210,15 @@ function describeOutcome(
     result.hint(`Members chat on ${org}'s credits.`);
   } else {
     const snippetSection = result.addSection("Embed on your site");
-    for (const line of buildEmbedSnippet(options.appOrigin, org, slug).split("\n")) {
+    for (const line of buildEmbedSnippet(options.appOrigin, org, slug, publicLinkToken).split("\n")) {
       snippetSection.item(line);
     }
 
     result.hint(`Visitors chat on ${org}'s credits.`);
     result.hint("Public links can be forwarded and indexed by search engines.");
+    if (options.resetLink === true) {
+      result.hint("Re-share the new link with the people who should keep access.");
+    }
   }
   if (options.isLocal) {
     result.hint("Guest chat is a Stigmer Cloud capability — this local link won't serve visitors.");

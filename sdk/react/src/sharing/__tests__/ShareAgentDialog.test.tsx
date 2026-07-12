@@ -27,6 +27,7 @@ afterEach(cleanup);
 
 interface MockOverrides {
   updateSharing?: (input: UpdateAgentSharingInput) => Promise<unknown>;
+  rotateShareLink?: (input: unknown) => Promise<unknown>;
   getOrCreateBillingAccount?: (orgId: string) => Promise<unknown>;
 }
 
@@ -34,6 +35,8 @@ function createMockStigmer(overrides: MockOverrides = {}) {
   return {
     agent: {
       updateSharing: overrides.updateSharing ?? vi.fn().mockResolvedValue({}),
+      rotateShareLink:
+        overrides.rotateShareLink ?? vi.fn().mockResolvedValue({}),
     },
     billing: {
       getOrCreateBillingAccount:
@@ -63,16 +66,19 @@ function Providers({
   );
 }
 
-function makeAgent(sharing?: {
-  enabled?: boolean;
-  audience?: AgentSharingAudience;
-  allowedOrigins?: string[];
-  messages?: {
-    rateLimited?: string;
-    unavailable?: string;
-    conversationEnded?: string;
-  };
-}) {
+function makeAgent(
+  sharing?: {
+    enabled?: boolean;
+    audience?: AgentSharingAudience;
+    allowedOrigins?: string[];
+    messages?: {
+      rateLimited?: string;
+      unavailable?: string;
+      conversationEnded?: string;
+    };
+  },
+  shareLinkToken?: string,
+) {
   return {
     metadata: {
       id: "agt_1",
@@ -81,6 +87,9 @@ function makeAgent(sharing?: {
       name: "Support Agent",
     },
     spec: { sharing },
+    ...(shareLinkToken !== undefined
+      ? { status: { shareLinkToken } }
+      : {}),
   } as never;
 }
 
@@ -646,5 +655,91 @@ describe("ShareAgentDialog", () => {
     onOpenChange.mockClear();
     screen.getByLabelText("Close").click();
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  describe("Reset link (rotatable share token)", () => {
+    it("appends the status token to the shown link and embed snippet", () => {
+      render(
+        <Providers client={createMockStigmer()}>
+          <ShareAgentDialog
+            open
+            onOpenChange={() => {}}
+            agent={makeAgent({ enabled: true }, "tok123")}
+            buildShareUrl={buildShareUrl}
+          />
+        </Providers>,
+      );
+
+      expect(
+        screen.getByText("https://app.example.com/chat/acme/support-agent?k=tok123"),
+      ).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
+      expect(screen.getByText(/token="tok123"/)).toBeTruthy();
+    });
+
+    it("rotates on Reset link, adopts the fresh token, and notifies the host", async () => {
+      const rotateShareLink = vi.fn().mockResolvedValue({
+        metadata: { id: "agt_1" },
+        status: { shareLinkToken: "fresh-token" },
+      });
+      const onSharingChanged = vi.fn();
+      render(
+        <Providers client={createMockStigmer({ rotateShareLink })}>
+          <ShareAgentDialog
+            open
+            onOpenChange={() => {}}
+            agent={makeAgent({ enabled: true })}
+            buildShareUrl={buildShareUrl}
+            onSharingChanged={onSharingChanged}
+          />
+        </Providers>,
+      );
+
+      // A plain link shows no token before the reset.
+      expect(
+        screen.getByText("https://app.example.com/chat/acme/support-agent"),
+      ).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("button", { name: "Reset link", hidden: true }));
+
+      await waitFor(() =>
+        expect(
+          screen.getByText(
+            "https://app.example.com/chat/acme/support-agent?k=fresh-token",
+          ),
+        ).toBeTruthy(),
+      );
+      expect(rotateShareLink).toHaveBeenCalledTimes(1);
+      expect(onSharingChanged).toHaveBeenCalled();
+    });
+
+    it("hides the Reset control and the token for org-members-only shares", () => {
+      render(
+        <Providers client={createMockStigmer()}>
+          <ShareAgentDialog
+            open
+            onOpenChange={() => {}}
+            agent={makeAgent(
+              {
+                enabled: true,
+                audience: AgentSharingAudience.org,
+              },
+              "tok123",
+            )}
+            buildShareUrl={buildShareUrl}
+          />
+        </Providers>,
+      );
+
+      // Org access is gated by membership, not the link token: the member
+      // link stays clean and the Reset lever is not offered.
+      expect(
+        screen.getByText("https://app.example.com/chat/acme/support-agent"),
+      ).toBeTruthy();
+      expect(
+        screen.queryByRole("button", { name: "Reset link", hidden: true }),
+      ).toBeNull();
+    });
   });
 });

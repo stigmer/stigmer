@@ -34,7 +34,7 @@ class AgentQueryControllerStub(object):
                 _registered_method=True)
         self.getSharedProfile = channel.unary_unary(
                 '/ai.stigmer.agentic.agent.v1.AgentQueryController/getSharedProfile',
-                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.GetSharedProfileRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.FromString,
                 _registered_method=True)
         self.getSharedProfileForMember = channel.unary_unary(
@@ -93,15 +93,17 @@ class AgentQueryControllerServicer(object):
         the system prompt, environment declarations, and MCP wiring.
 
         Returns NOT_FOUND when the agent does not exist, is not shared
-        (spec.sharing.enabled is false/unset), or is shared with the org
+        (spec.sharing.enabled is false/unset), is shared with the org
         audience (spec.sharing.audience is org — anonymous callers must not be
         able to distinguish an org-internal share from a nonexistent agent; use
-        getSharedProfileForMember instead). The cases are deliberately
-        indistinguishable so an unshared agent's URL leaks nothing — unlike
-        getByReference, which returns PERMISSION_DENIED for an existing but
-        unauthorized agent. Returns INVALID_ARGUMENT when org is empty:
-        org+slug is the shared URL's identity, and cross-org slug matching on a
-        public endpoint would enable enumeration.
+        getSharedProfileForMember instead), or the share link is locked and
+        link_token does not match the agent's current
+        status.share_link_token. The cases are deliberately
+        indistinguishable so an unshared, revoked, or rotated agent URL leaks
+        nothing — unlike getByReference, which returns PERMISSION_DENIED for
+        an existing but unauthorized agent. Returns INVALID_ARGUMENT when org
+        is empty: org+slug is the shared URL's identity, and cross-org slug
+        matching on a public endpoint would enable enumeration.
 
         @internal
         Public by design (no authentication): enforcement is the app-level
@@ -122,10 +124,12 @@ class AgentQueryControllerServicer(object):
         this authenticated RPC instead. Also resolves public-audience shares,
         so an authenticated caller can use one resolution path for any share.
 
-        Returns NOT_FOUND when the agent does not exist, is not shared, or the
-        caller is not a member of the owning organization — the cases are
-        deliberately indistinguishable so a share URL leaks nothing to
-        non-members. Returns INVALID_ARGUMENT when org is empty.
+        Returns NOT_FOUND when the agent does not exist, is not shared, the
+        caller is not a member of the owning organization, or the share is a
+        public-audience share locked with a link token (this tokenless path
+        must not reveal a killed link's profile) — the cases are deliberately
+        indistinguishable so a share URL leaks nothing to non-members.
+        Returns INVALID_ARGUMENT when org is empty.
 
         @internal
         Custom authorization in handler — requires authentication (not
@@ -159,7 +163,7 @@ def add_AgentQueryControllerServicer_to_server(servicer, server):
             ),
             'getSharedProfile': grpc.unary_unary_rpc_method_handler(
                     servicer.getSharedProfile,
-                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.GetSharedProfileRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.SerializeToString,
             ),
             'getSharedProfileForMember': grpc.unary_unary_rpc_method_handler(
@@ -275,7 +279,7 @@ class AgentQueryController(object):
             request,
             target,
             '/ai.stigmer.agentic.agent.v1.AgentQueryController/getSharedProfile',
-            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.GetSharedProfileRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.FromString,
             options,
             channel_credentials,

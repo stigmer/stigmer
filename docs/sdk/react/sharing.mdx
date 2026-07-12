@@ -6,6 +6,55 @@ title: sharing
 
 ## Hooks
 
+### useRotateShareLink
+
+Behavior hook that rotates an agent's share-link token.
+
+Wraps the `stigmer.agent.rotateShareLink()` RPC (authorized by
+`can_edit`) with loading and error state management. The server
+generates the token — there is nothing to supply — and the previous
+link stops working the moment the call resolves, including for
+visitors mid-conversation. The token lives in `status.shareLinkToken`
+(server-owned), so it is never part of a sharing draft and survives
+manifest applies.
+
+The hook is stateless with respect to the agent — adopt the returned
+agent (or refetch) so the UI shows the new tokened link, matching the
+[`useUpdateAgentSharing`](#useupdateagentsharing) convention.
+
+Pass `null` for `agentId` to produce a stable no-op (useful while the
+agent is still loading).
+
+**Signature**
+
+```tsx
+function useRotateShareLink(agentId: string | null): UseRotateShareLinkReturn
+```
+
+<TypeTable
+  type={{
+    agentId: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseRotateShareLinkReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "The last error from the RPC, or `null`." },
+    isPending: { type: "boolean", description: "`true` while the RPC is in flight." },
+    rotateShareLink: { type: "() => Promise<Agent | undefined>", description: "Rotate the agent's share-link token via the `rotateShareLink` RPC. Resolves with the updated agent, whose `status.shareLinkToken` carries the new token for building the fresh share URL." },
+  }}
+/>
+
+```tsx
+const { rotateShareLink, isPending } = useRotateShareLink(agent.metadata.id);
+
+const updated = await rotateShareLink();
+// updated.status.shareLinkToken is the new token
+```
+
+
 ### useShareAgent
 
 Wires the Share dialog to a kebab/overflow menu — the same trigger
@@ -239,6 +288,7 @@ member's own token; the presentation stays the same pure chat.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     heading: { type: "string", description: "Heading above the composer before the first message. Defaults to a prompt built from the agent's name." },
+    linkToken: { type: "string", description: "Share-link token from the URL's `?k=` parameter (public audience only). Required when the share link has been locked with a rotatable token; harmless on plain links. Pair it with the same `linkToken` on `createGuestAuth` so profile resolution and token minting present the same credentialing." },
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after the visitor's session and first execution are created — e.g. to reflect the session in the host page's URL." },
     org: { type: "string", description: "Organization slug from the share URL.", required: true },
     placeholder: { type: "string", description: "Placeholder for the composer textarea." },
@@ -325,6 +375,7 @@ Options for [`useSharedAgentProfile`](#usesharedagentprofile).
 <TypeTable
   type={{
     audience: { type: "SharingAudience", description: "Which resolution path to use.  - `\"public\"` (default) — the anonymous `getSharedProfile` RPC. An   org-audience share answers NOT_FOUND here by design. - `\"org\"` — the authenticated `getSharedProfileForMember` RPC, which   resolves org-audience shares for signed-in members of the owning   organization (and public shares too). Requires a `StigmerProvider`   whose client carries the member's token.", typeDescriptionLink: "#sharingaudience" },
+    linkToken: { type: "string", description: "Share-link token from the URL's `?k=` parameter (public path only).  Required when the share link has been locked with a rotatable token; harmless on plain links. On a locked link a missing or rotated-away token resolves to `profile === null`, indistinguishable from an agent that does not exist." },
   }}
 />
 

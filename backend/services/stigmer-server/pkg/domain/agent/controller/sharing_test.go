@@ -184,7 +184,7 @@ func TestAgentController_GetSharedProfile(t *testing.T) {
 	controller := newSharingTestController(t)
 
 	created := createSharingTestAgent(t, controller, "Shared Profile Agent")
-	ref := &apiresource.ApiResourceReference{
+	ref := &agentv1.GetSharedProfileRequest{
 		Org:  created.Metadata.Org,
 		Slug: created.Metadata.Slug,
 	}
@@ -272,7 +272,7 @@ func TestAgentController_GetSharedProfile(t *testing.T) {
 	})
 
 	t.Run("empty org is INVALID_ARGUMENT", func(t *testing.T) {
-		_, err := controller.GetSharedProfile(contextWithAgentKind(), &apiresource.ApiResourceReference{
+		_, err := controller.GetSharedProfile(contextWithAgentKind(), &agentv1.GetSharedProfileRequest{
 			Org:  "",
 			Slug: "any-slug",
 		})
@@ -392,12 +392,172 @@ func TestAgentController_Update_OmittingSharing_Revokes(t *testing.T) {
 		t.Error("an update omitting spec.sharing must revoke the share (fails closed)")
 	}
 
-	_, err = controller.GetSharedProfile(contextWithAgentKind(), &apiresource.ApiResourceReference{
+	_, err = controller.GetSharedProfile(contextWithAgentKind(), &agentv1.GetSharedProfileRequest{
 		Org:  created.Metadata.Org,
 		Slug: created.Metadata.Slug,
 	})
 	if status.Code(err) != codes.NotFound {
 		t.Errorf("shared link must stop working after the omitting update, got %s (%v)",
 			status.Code(err), err)
+	}
+}
+
+// TestAgentController_RotateShareLink pins the rotatable-share-token
+// behavior: rotation locks the link behind a fresh server-generated token,
+// re-rotation kills the previous token, and a full update preserves the
+// token (it lives in status, which every update preserves verbatim — the
+// design's core guarantee against declarative clobber).
+func TestAgentController_RotateShareLink(t *testing.T) {
+	controller := newSharingTestController(t)
+
+	created := createSharingTestAgent(t, controller, "Rotate Link Agent")
+	request := func(token string) *agentv1.GetSharedProfileRequest {
+		return &agentv1.GetSharedProfileRequest{
+			Org:       created.Metadata.Org,
+			Slug:      created.Metadata.Slug,
+			LinkToken: token,
+		}
+	}
+
+	// Capture the unshared NOT_FOUND for this URL before enabling sharing —
+	// the locked-link refusal must be byte-identical to it (the NOT_FOUND
+	// message embeds the slug, so same-URL comparison is the meaningful one).
+	_, unsharedErr := controller.GetSharedProfile(contextWithAgentKind(), request(""))
+
+	if _, err := controller.UpdateSharing(contextWithAgentKind(), &agentv1.UpdateAgentSharingInput{
+		ResourceId: created.Metadata.Id,
+		Sharing:    &agentv1.AgentSharing{Enabled: true},
+	}); err != nil {
+		t.Fatalf("UpdateSharing failed: %v", err)
+	}
+
+	t.Run("plain link ignores a stray token and resolves", func(t *testing.T) {
+		if _, err := controller.GetSharedProfile(contextWithAgentKind(), request("stray-token")); err != nil {
+			t.Fatalf("a stray ?k= on an unlocked link must be harmless, got %v", err)
+		}
+	})
+
+	var firstToken string
+
+	t.Run("rotation generates a token and locks the link", func(t *testing.T) {
+		rotated, err := controller.RotateShareLink(contextWithAgentKind(), &agentv1.RotateShareLinkInput{
+			ResourceId: created.Metadata.Id,
+		})
+		if err != nil {
+			t.Fatalf("RotateShareLink failed: %v", err)
+		}
+		firstToken = rotated.GetStatus().GetShareLinkToken()
+		if firstToken == "" {
+			t.Fatal("rotation must set status.share_link_token")
+		}
+		if rotated.GetStatus().GetDefaultInstanceId() != created.GetStatus().GetDefaultInstanceId() {
+			t.Error("rotation must preserve the rest of status (default_instance_id)")
+		}
+
+		// Tokenless resolution now refuses, indistinguishable from unshared.
+		_, err = controller.GetSharedProfile(contextWithAgentKind(), request(""))
+		if status.Code(err) != codes.NotFound {
+			t.Fatalf("expected NOT_FOUND without token on a locked link, got %v", err)
+		}
+		if status.Convert(err).Message() != status.Convert(unsharedErr).Message() {
+			t.Errorf("locked-link and unshared wire errors must be indistinguishable:\n  locked:   %v\n  unshared: %v",
+				status.Convert(err).Message(), status.Convert(unsharedErr).Message())
+		}
+
+		// The correct token resolves.
+		if _, err := controller.GetSharedProfile(contextWithAgentKind(), request(firstToken)); err != nil {
+			t.Fatalf("GetSharedProfile with the rotated token failed: %v", err)
+		}
+	})
+
+	t.Run("re-rotation kills the previous token", func(t *testing.T) {
+		rotated, err := controller.RotateShareLink(contextWithAgentKind(), &agentv1.RotateShareLinkInput{
+			ResourceId: created.Metadata.Id,
+		})
+		if err != nil {
+			t.Fatalf("RotateShareLink failed: %v", err)
+		}
+		secondToken := rotated.GetStatus().GetShareLinkToken()
+		if secondToken == firstToken {
+			t.Fatal("re-rotation must generate a different token")
+		}
+
+		if _, err := controller.GetSharedProfile(contextWithAgentKind(), request(firstToken)); status.Code(err) != codes.NotFound {
+			t.Errorf("the previous token must be dead after re-rotation, got %v", err)
+		}
+		if _, err := controller.GetSharedProfile(contextWithAgentKind(), request(secondToken)); err != nil {
+			t.Errorf("the new token must resolve, got %v", err)
+		}
+	})
+
+	t.Run("member path refuses a token-locked public share", func(t *testing.T) {
+		_, err := controller.GetSharedProfileForMember(contextWithAgentKind(), &apiresource.ApiResourceReference{
+			Org:  created.Metadata.Org,
+			Slug: created.Metadata.Slug,
+		})
+		if status.Code(err) != codes.NotFound {
+			t.Errorf("the tokenless member path must not reveal a token-locked public share, got %v", err)
+		}
+	})
+
+	t.Run("full update preserves the token (status survives apply)", func(t *testing.T) {
+		current, err := controller.Get(contextWithAgentKind(), &agentv1.AgentId{Value: created.Metadata.Id})
+		if err != nil {
+			t.Fatalf("Get failed: %v", err)
+		}
+		tokenBefore := current.GetStatus().GetShareLinkToken()
+		if tokenBefore == "" {
+			t.Fatal("precondition: link must be locked")
+		}
+
+		// A full-resource update as a manifest apply would send: no status.
+		current.Status = nil
+		updated, err := controller.Update(contextWithAgentKind(), current)
+		if err != nil {
+			t.Fatalf("Update failed: %v", err)
+		}
+		if got := updated.GetStatus().GetShareLinkToken(); got != tokenBefore {
+			t.Errorf("a full update must preserve status.share_link_token: before %q, after %q",
+				tokenBefore, got)
+		}
+	})
+
+	t.Run("nonexistent agent is NOT_FOUND", func(t *testing.T) {
+		_, err := controller.RotateShareLink(contextWithAgentKind(), &agentv1.RotateShareLinkInput{
+			ResourceId: "agt-does-not-exist",
+		})
+		if status.Code(err) != codes.NotFound {
+			t.Errorf("expected NOT_FOUND, got %s (%v)", status.Code(err), err)
+		}
+	})
+}
+
+// TestAgentController_RotateShareLink_OrgAudienceMemberPath pins that the
+// member path stays open for org-audience shares even when a token exists:
+// the org gate is membership, not the link token.
+func TestAgentController_RotateShareLink_OrgAudienceMemberPath(t *testing.T) {
+	controller := newSharingTestController(t)
+
+	created := createSharingTestAgent(t, controller, "Org Audience Rotate Agent")
+	if _, err := controller.UpdateSharing(contextWithAgentKind(), &agentv1.UpdateAgentSharingInput{
+		ResourceId: created.Metadata.Id,
+		Sharing: &agentv1.AgentSharing{
+			Enabled:  true,
+			Audience: agentv1.AgentSharingAudience_agent_sharing_audience_org,
+		},
+	}); err != nil {
+		t.Fatalf("UpdateSharing failed: %v", err)
+	}
+	if _, err := controller.RotateShareLink(contextWithAgentKind(), &agentv1.RotateShareLinkInput{
+		ResourceId: created.Metadata.Id,
+	}); err != nil {
+		t.Fatalf("RotateShareLink failed: %v", err)
+	}
+
+	if _, err := controller.GetSharedProfileForMember(contextWithAgentKind(), &apiresource.ApiResourceReference{
+		Org:  created.Metadata.Org,
+		Slug: created.Metadata.Slug,
+	}); err != nil {
+		t.Errorf("org-audience member resolution must ignore the link token, got %v", err)
 	}
 }

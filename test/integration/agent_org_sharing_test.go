@@ -143,7 +143,7 @@ func TestOrgAudienceSharing_GuestPathsExcluded(t *testing.T) {
 		"an org-audience share must be indistinguishable from a nonexistent agent at the mint endpoint")
 
 	// 2. Anonymous getSharedProfile: NOT_FOUND too.
-	_, err = clients.AgentQuery.GetSharedProfile(ctx, &apiresource.ApiResourceReference{
+	_, err = clients.AgentQuery.GetSharedProfile(ctx, &agentv1.GetSharedProfileRequest{
 		Org: org, Slug: slug,
 	})
 	require.Error(t, err, "the anonymous profile path must not resolve an org-audience share")

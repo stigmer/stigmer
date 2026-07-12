@@ -24,9 +24,11 @@ export {
 // Agent sharing (hosted link + embed snippet; framework-free)
 export {
   MAX_ALLOWED_ORIGINS,
+  LINK_TOKEN_PARAM,
   validateOrigin,
   chatPath,
   buildChatUrl,
+  appendLinkToken,
   buildEmbedLoaderUrl,
   buildEmbedSnippet,
 } from "./sharing.js";

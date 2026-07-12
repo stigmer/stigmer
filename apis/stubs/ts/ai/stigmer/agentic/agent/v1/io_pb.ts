@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiegoXVXBkYXRlQWdlbnRTaGFyaW5nSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARJCCgdzaGFyaW5nGAIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U2hhcmluZ0IGukgDyAEBIoEBChJTaGFyZWRBZ2VudFByb2ZpbGUSCwoDb3JnGAEgASgJEgwKBHNsdWcYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRIbChNkZWZhdWx0X2luc3RhbmNlX2lkGAYgASgJIi4KFkdldERlZmF1bHRBZ2VudFJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_buf_validate_validate]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiMwoUUm90YXRlU2hhcmVMaW5rSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBASJSChdHZXRTaGFyZWRQcm9maWxlUmVxdWVzdBILCgNvcmcYASABKAkSDAoEc2x1ZxgCIAEoCRIcCgpsaW5rX3Rva2VuGAMgASgJQgi6SAVyAxiAASJ6ChdVcGRhdGVBZ2VudFNoYXJpbmdJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEkIKB3NoYXJpbmcYAiABKAsyKS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRTaGFyaW5nQga6SAPIAQEigQEKElNoYXJlZEFnZW50UHJvZmlsZRILCgNvcmcYASABKAkSDAoEc2x1ZxgCIAEoCRIMCgRuYW1lGAMgASgJEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhAKCGljb25fdXJsGAUgASgJEhsKE2RlZmF1bHRfaW5zdGFuY2VfaWQYBiABKAkiLgoWR2V0RGVmYXVsdEFnZW50UmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_spec, file_buf_validate_validate]);
 
 /**
  * AgentId wraps an agent identifier.
@@ -33,6 +33,78 @@ export type AgentId = Message<"ai.stigmer.agentic.agent.v1.AgentId"> & {
  */
 export const AgentIdSchema: GenMessage<AgentId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_io, 0);
+
+/**
+ * Input for rotating an agent's share-link token.
+ *
+ * Used by the rotateShareLink RPC. The server generates the new token —
+ * callers never supply one — and the previous link stops working the
+ * moment the rotation persists.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.RotateShareLinkInput
+ */
+export type RotateShareLinkInput = Message<"ai.stigmer.agentic.agent.v1.RotateShareLinkInput"> & {
+  /**
+   * ID of the agent whose share link is being rotated.
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.RotateShareLinkInput.
+ * Use `create(RotateShareLinkInputSchema)` to create a new message.
+ */
+export const RotateShareLinkInputSchema: GenMessage<RotateShareLinkInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 1);
+
+/**
+ * Input for resolving a shared agent's public profile.
+ *
+ * Identifies the shared agent by the org and slug from the hosted chat
+ * URL, plus the link token when the share URL carries one.
+ *
+ * @internal
+ * Replaces the generic ApiResourceReference on getSharedProfile so the
+ * anonymous resolution path can carry the link token. org emptiness is
+ * validated in the handler (INVALID_ARGUMENT) rather than the proto to
+ * keep the existing error contract.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.GetSharedProfileRequest
+ */
+export type GetSharedProfileRequest = Message<"ai.stigmer.agentic.agent.v1.GetSharedProfileRequest"> & {
+  /**
+   * Organization slug from the share URL.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Agent slug from the share URL.
+   *
+   * @generated from field: string slug = 2;
+   */
+  slug: string;
+
+  /**
+   * Link token from the share URL's `?k=` parameter.
+   *
+   * Required (and validated) only when the agent's share link has been
+   * locked with rotateShareLink; ignored for plain share links.
+   *
+   * @generated from field: string link_token = 3;
+   */
+  linkToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.GetSharedProfileRequest.
+ * Use `create(GetSharedProfileRequestSchema)` to create a new message.
+ */
+export const GetSharedProfileRequestSchema: GenMessage<GetSharedProfileRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 2);
 
 /**
  * Input for updating the sharing configuration of an agent.
@@ -68,7 +140,7 @@ export type UpdateAgentSharingInput = Message<"ai.stigmer.agentic.agent.v1.Updat
  * Use `create(UpdateAgentSharingInputSchema)` to create a new message.
  */
 export const UpdateAgentSharingInputSchema: GenMessage<UpdateAgentSharingInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 1);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 3);
 
 /**
  * SharedAgentProfile is the public projection of a shared agent.
@@ -134,7 +206,7 @@ export type SharedAgentProfile = Message<"ai.stigmer.agentic.agent.v1.SharedAgen
  * Use `create(SharedAgentProfileSchema)` to create a new message.
  */
 export const SharedAgentProfileSchema: GenMessage<SharedAgentProfile> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 2);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 4);
 
 /**
  * GetDefaultAgentRequest is the input for retrieving the platform default agent.
@@ -159,5 +231,5 @@ export type GetDefaultAgentRequest = Message<"ai.stigmer.agentic.agent.v1.GetDef
  * Use `create(GetDefaultAgentRequestSchema)` to create a new message.
  */
 export const GetDefaultAgentRequestSchema: GenMessage<GetDefaultAgentRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 3);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 5);
 

@@ -18,6 +18,7 @@ interface ShareAgentFlags extends OutputFlags {
   off?: boolean;
   open?: boolean;
   audience?: string;
+  resetLink?: boolean;
 }
 
 export function registerShare(program: Command): void {
@@ -30,6 +31,10 @@ export function registerShare(program: Command): void {
     .option(
       "--audience <audience>",
       "who can chat: 'public' (anyone with the link) or 'org' (signed-in organization members only); omit to keep the current audience",
+    )
+    .option(
+      "--reset-link",
+      "generate a new share link and kill the current one immediately (public audience)",
     )
     .option("--open", "open the chat link in your browser")
     .action((ref: string, options: ShareAgentFlags, command: Command) => runShareAgent(ref, options, command));
@@ -60,10 +65,19 @@ async function runShareAgent(ref: string, options: ShareAgentFlags, command: Com
   const appOrigin = resolveConsoleURL(backendType);
   const enabled = options.off !== true;
   const audience = parseAudience(options.audience);
+  const resetLink = options.resetLink === true;
+  if (resetLink && !enabled) {
+    throw new UsageError(
+      "--reset-link cannot be combined with --off\n\n" +
+        "Disabling sharing already kills the link. Reset is for keeping\n" +
+        "sharing on while invalidating the current URL.",
+    );
+  }
 
   const result = await shareAgent(client.stigmer, ref, org, {
     enabled,
     ...(audience !== undefined ? { audience } : {}),
+    resetLink,
     appOrigin,
     isLocal: backendType === "local",
   });

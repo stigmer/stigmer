@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentIdSchema, UpdateAgentSharingInputSchema, GetDefaultAgentRequestSchema, SharedAgentProfileSchema, type UpdateAgentSharingInput, type GetDefaultAgentRequest, type SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentIdSchema, UpdateAgentSharingInputSchema, RotateShareLinkInputSchema, GetDefaultAgentRequestSchema, GetSharedProfileRequestSchema, SharedAgentProfileSchema, type UpdateAgentSharingInput, type RotateShareLinkInput, type GetDefaultAgentRequest, type GetSharedProfileRequest, type SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSpecSchema, AgentSharingAudience, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, AgentSharingMessagesSchema, AgentSharingSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
@@ -61,6 +61,12 @@ export class AgentClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async rotateShareLink(input: RotateShareLinkInput): Promise<Agent> {
+    try {
+      return await this.command.rotateShareLink(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async delete(id: string): Promise<Agent> {
     try {
       return await this.command.delete(create(AgentIdSchema, { value: id }));
@@ -85,9 +91,9 @@ export class AgentClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async getSharedProfile(ref: ResourceRef): Promise<SharedAgentProfile> {
+  async getSharedProfile(input: GetSharedProfileRequest): Promise<SharedAgentProfile> {
     try {
-      return await this.query.getSharedProfile(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.agent }));
+      return await this.query.getSharedProfile(input);
     } catch (e) { throw wrapError(e); }
   }
 

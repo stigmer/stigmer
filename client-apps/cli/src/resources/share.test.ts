@@ -2,8 +2,9 @@
 // merge-preservation: `updateSharing` replaces `spec.sharing` wholesale, so a
 // CLI toggle must never wipe console-configured origins or visitor messages.
 
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import type { UpdateAgentSharingInput } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentSharingAudience } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { buildEmbedSnippet, type Stigmer } from "@stigmer/sdk";
@@ -14,22 +15,32 @@ import { shareAgent } from "./share.js";
 const CLOUD = { appOrigin: "https://app.stigmer.ai", isLocal: false };
 const LOCAL = { appOrigin: "http://localhost:8234", isLocal: true };
 
-function makeAgent(sharing?: {
-  enabled?: boolean;
-  audience?: AgentSharingAudience;
-  allowedOrigins?: string[];
-  messages?: { rateLimited?: string; unavailable?: string; conversationEnded?: string };
-}): Agent {
+function makeAgent(
+  sharing?: {
+    enabled?: boolean;
+    audience?: AgentSharingAudience;
+    allowedOrigins?: string[];
+    messages?: { rateLimited?: string; unavailable?: string; conversationEnded?: string };
+  },
+  shareLinkToken?: string,
+): Agent {
   return create(AgentSchema, {
     metadata: { id: "agt_01ARZ3NDEKTSV4RRFFQ69G5FAV", org: "acme", slug: "support-agent", name: "Support Agent" },
     spec: sharing !== undefined ? { sharing } : {},
+    ...(shareLinkToken !== undefined ? { status: { shareLinkToken } } : {}),
   });
 }
 
 // A minimal fake of the SDK surface shareAgent touches: agent.getByReference /
-// agent.get + a call-recording agent.updateSharing (skill.test.ts convention).
-function fakeClient(agent: Agent, opts: { failWith?: Error } = {}) {
+// agent.get + call-recording agent.updateSharing / agent.rotateShareLink
+// (skill.test.ts convention). Rotation answers with the agent re-stamped
+// with `rotatedToken`, mirroring the server's fresh-entropy response.
+function fakeClient(
+  agent: Agent,
+  opts: { failWith?: Error; rotatedToken?: string } = {},
+) {
   const calls: UpdateAgentSharingInput[] = [];
+  let rotations = 0;
   const client = {
     agent: {
       async get() {
@@ -43,9 +54,17 @@ function fakeClient(agent: Agent, opts: { failWith?: Error } = {}) {
         calls.push(input);
         return agent;
       },
+      async rotateShareLink() {
+        rotations += 1;
+        const rotated = clone(AgentSchema, agent);
+        rotated.status = create(AgentStatusSchema, {
+          shareLinkToken: opts.rotatedToken ?? "fresh-token",
+        });
+        return rotated;
+      },
     },
   } as unknown as Stigmer;
-  return { client, calls };
+  return { client, calls, rotationCount: () => rotations };
 }
 
 describe("shareAgent merge-preservation (fails closed)", () => {
@@ -255,6 +274,87 @@ describe("shareAgent output", () => {
     const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(result.hints.some((h) => h.includes("Stigmer Cloud"))).toBe(false);
+  });
+});
+
+describe("shareAgent --reset-link (rotatable share token)", () => {
+  it("rotates and prints the fresh tokened link and snippet", async () => {
+    const { client, calls, rotationCount } = fakeClient(
+      makeAgent({ enabled: true }),
+      { rotatedToken: "fresh-token" },
+    );
+
+    const result = await shareAgent(client, "acme/support-agent", "acme", {
+      enabled: true,
+      resetLink: true,
+      ...CLOUD,
+    });
+
+    // Already enabled: no sharing write, exactly one rotation.
+    expect(calls).toHaveLength(0);
+    expect(rotationCount()).toBe(1);
+    expect(result.message).toContain("Share link reset");
+
+    const link = result.sections.find((s) => s.title === "Public chat link");
+    expect(link?.items).toEqual([
+      "https://app.stigmer.ai/chat/acme/support-agent?k=fresh-token",
+    ]);
+    const embed = result.sections.find((s) => s.title === "Embed on your site");
+    expect(embed?.items.join("\n")).toBe(
+      buildEmbedSnippet("https://app.stigmer.ai", "acme", "support-agent", "fresh-token"),
+    );
+    expect(result.hints.some((h) => h.includes("Re-share the new link"))).toBe(true);
+  });
+
+  it("a plain toggle on a locked link keeps printing the existing tokened URL", async () => {
+    const { client, rotationCount } = fakeClient(
+      makeAgent({ enabled: true }, "existing-token"),
+    );
+
+    const result = await shareAgent(client, "acme/support-agent", "acme", {
+      enabled: true,
+      ...CLOUD,
+    });
+
+    // No rotation was requested: the current token must ride the link
+    // verbatim, or the printed URL would be dead.
+    expect(rotationCount()).toBe(0);
+    const link = result.sections.find((s) => s.title === "Public chat link");
+    expect(link?.items).toEqual([
+      "https://app.stigmer.ai/chat/acme/support-agent?k=existing-token",
+    ]);
+  });
+
+  it("refuses --reset-link for an org-members-only share with actionable guidance", async () => {
+    const { client, rotationCount } = fakeClient(
+      makeAgent({ enabled: true, audience: AgentSharingAudience.org }),
+    );
+
+    const err = await shareAgent(client, "acme/support-agent", "acme", {
+      enabled: true,
+      resetLink: true,
+      ...CLOUD,
+    }).catch((e: unknown) => e);
+
+    // Org access is gated by live membership — the token is never consulted,
+    // so rotating it would be a silent no-op the user did not get.
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as Error).message).toContain("public links");
+    expect(rotationCount()).toBe(0);
+  });
+
+  it("the member link never carries a token, even when one exists in status", async () => {
+    const { client } = fakeClient(
+      makeAgent({ enabled: true, audience: AgentSharingAudience.org }, "existing-token"),
+    );
+
+    const result = await shareAgent(client, "acme/support-agent", "acme", {
+      enabled: true,
+      ...CLOUD,
+    });
+
+    const link = result.sections.find((s) => s.title === "Member chat link");
+    expect(link?.items).toEqual(["https://app.stigmer.ai/chat/acme/support-agent"]);
   });
 });
 

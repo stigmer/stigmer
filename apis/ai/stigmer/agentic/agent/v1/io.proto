@@ -10,6 +10,40 @@ message AgentId {
   string value = 1 [(buf.validate.field).required = true];
 }
 
+// Input for rotating an agent's share-link token.
+//
+// Used by the rotateShareLink RPC. The server generates the new token —
+// callers never supply one — and the previous link stops working the
+// moment the rotation persists.
+message RotateShareLinkInput {
+  // ID of the agent whose share link is being rotated.
+  string resource_id = 1 [(buf.validate.field).required = true];
+}
+
+// Input for resolving a shared agent's public profile.
+//
+// Identifies the shared agent by the org and slug from the hosted chat
+// URL, plus the link token when the share URL carries one.
+//
+// @internal
+// Replaces the generic ApiResourceReference on getSharedProfile so the
+// anonymous resolution path can carry the link token. org emptiness is
+// validated in the handler (INVALID_ARGUMENT) rather than the proto to
+// keep the existing error contract.
+message GetSharedProfileRequest {
+  // Organization slug from the share URL.
+  string org = 1;
+
+  // Agent slug from the share URL.
+  string slug = 2;
+
+  // Link token from the share URL's `?k=` parameter.
+  //
+  // Required (and validated) only when the agent's share link has been
+  // locked with rotateShareLink; ignored for plain share links.
+  string link_token = 3 [(buf.validate.field).string.max_len = 128];
+}
+
 // Input for updating the sharing configuration of an agent.
 //
 // Used by the updateSharing RPC for a targeted update — it only modifies

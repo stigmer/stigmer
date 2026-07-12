@@ -25,6 +25,7 @@ const (
 	AgentCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/update"
 	AgentCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentCommandController/updateVisibility"
 	AgentCommandController_UpdateSharing_FullMethodName    = "/ai.stigmer.agentic.agent.v1.AgentCommandController/updateSharing"
+	AgentCommandController_RotateShareLink_FullMethodName  = "/ai.stigmer.agentic.agent.v1.AgentCommandController/rotateShareLink"
 	AgentCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/delete"
 )
 
@@ -77,6 +78,24 @@ type AgentCommandControllerClient interface {
 	// No FGA tuples are written on share; enforcement is app-level in the
 	// getSharedProfile handler (see AgentSharing in spec.proto).
 	UpdateSharing(ctx context.Context, in *UpdateAgentSharingInput, opts ...grpc.CallOption) (*Agent, error)
+	// Rotate the share-link token of an existing agent.
+	//
+	// Generates a fresh server-side token for the agent's hosted chat link.
+	// The share URL becomes `/chat/<org>/<slug>?k=<token>` and the previous
+	// link (tokened or plain) stops working immediately — including for
+	// visitors mid-conversation. Use this to kill a leaked or over-shared
+	// public link without disabling sharing or renaming the agent.
+	//
+	// The token lives in status.share_link_token, so manifest applies never
+	// reset it. Rotation affects public-audience shares only; org-audience
+	// access is governed by live org membership instead.
+	//
+	// @internal
+	// Authorization: requires can_edit on the agent — the same bar as
+	// updateSharing, since both control shared-link access. The handler is
+	// the sole writer of status.share_link_token (server-generated entropy;
+	// clients never supply the token).
+	RotateShareLink(ctx context.Context, in *RotateShareLinkInput, opts ...grpc.CallOption) (*Agent, error)
 	// Delete an agent.
 	Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
 }
@@ -133,6 +152,16 @@ func (c *agentCommandControllerClient) UpdateSharing(ctx context.Context, in *Up
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Agent)
 	err := c.cc.Invoke(ctx, AgentCommandController_UpdateSharing_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentCommandControllerClient) RotateShareLink(ctx context.Context, in *RotateShareLinkInput, opts ...grpc.CallOption) (*Agent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Agent)
+	err := c.cc.Invoke(ctx, AgentCommandController_RotateShareLink_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -198,6 +227,24 @@ type AgentCommandControllerServer interface {
 	// No FGA tuples are written on share; enforcement is app-level in the
 	// getSharedProfile handler (see AgentSharing in spec.proto).
 	UpdateSharing(context.Context, *UpdateAgentSharingInput) (*Agent, error)
+	// Rotate the share-link token of an existing agent.
+	//
+	// Generates a fresh server-side token for the agent's hosted chat link.
+	// The share URL becomes `/chat/<org>/<slug>?k=<token>` and the previous
+	// link (tokened or plain) stops working immediately — including for
+	// visitors mid-conversation. Use this to kill a leaked or over-shared
+	// public link without disabling sharing or renaming the agent.
+	//
+	// The token lives in status.share_link_token, so manifest applies never
+	// reset it. Rotation affects public-audience shares only; org-audience
+	// access is governed by live org membership instead.
+	//
+	// @internal
+	// Authorization: requires can_edit on the agent — the same bar as
+	// updateSharing, since both control shared-link access. The handler is
+	// the sole writer of status.share_link_token (server-generated entropy;
+	// clients never supply the token).
+	RotateShareLink(context.Context, *RotateShareLinkInput) (*Agent, error)
 	// Delete an agent.
 	Delete(context.Context, *AgentId) (*Agent, error)
 }
@@ -223,6 +270,9 @@ func (UnimplementedAgentCommandControllerServer) UpdateVisibility(context.Contex
 }
 func (UnimplementedAgentCommandControllerServer) UpdateSharing(context.Context, *UpdateAgentSharingInput) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateSharing not implemented")
+}
+func (UnimplementedAgentCommandControllerServer) RotateShareLink(context.Context, *RotateShareLinkInput) (*Agent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RotateShareLink not implemented")
 }
 func (UnimplementedAgentCommandControllerServer) Delete(context.Context, *AgentId) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -337,6 +387,24 @@ func _AgentCommandController_UpdateSharing_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentCommandController_RotateShareLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RotateShareLinkInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentCommandControllerServer).RotateShareLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentCommandController_RotateShareLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentCommandControllerServer).RotateShareLink(ctx, req.(*RotateShareLinkInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AgentId)
 	if err := dec(in); err != nil {
@@ -381,6 +449,10 @@ var AgentCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "updateSharing",
 			Handler:    _AgentCommandController_UpdateSharing_Handler,
+		},
+		{
+			MethodName: "rotateShareLink",
+			Handler:    _AgentCommandController_RotateShareLink_Handler,
 		},
 		{
 			MethodName: "delete",

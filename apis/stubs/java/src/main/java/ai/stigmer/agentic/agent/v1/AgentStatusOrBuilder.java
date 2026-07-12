@@ -62,4 +62,62 @@ public interface AgentStatusOrBuilder extends
    */
   com.google.protobuf.ByteString
       getDefaultInstanceIdBytes();
+
+  /**
+   * <pre>
+   * Rotatable token protecting the agent's public share link.
+   *
+   * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
+   * the behavior of every share created before this field existed. When
+   * set, the link only resolves with the matching `?k=&lt;token&gt;` query
+   * parameter; the rotateShareLink RPC generates a fresh value, killing
+   * the old link immediately. Applies to public-audience shares only
+   * (org-audience access is governed by live membership instead).
+   *
+   * &#64;internal
+   * Server-generated (rotateShareLink is the sole writer) and deliberately
+   * in status, not spec.sharing: status survives every apply/update
+   * verbatim in both editions, so a routine manifest apply can never wipe
+   * the token and silently fail open to the guessable URL. Enforced with
+   * the allowed_origins pattern — validated at guest mint, stamped into
+   * the guest JWT, and re-validated against this live value on every
+   * session/execution create, so rotation revokes live guest tokens on
+   * their next message. Not a security boundary: rate limits and the org
+   * credit cap remain the abuse controls; this is a traffic lever for
+   * over-shared links.
+   * </pre>
+   *
+   * <code>string share_link_token = 2 [json_name = "shareLinkToken"];</code>
+   * @return The shareLinkToken.
+   */
+  java.lang.String getShareLinkToken();
+  /**
+   * <pre>
+   * Rotatable token protecting the agent's public share link.
+   *
+   * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
+   * the behavior of every share created before this field existed. When
+   * set, the link only resolves with the matching `?k=&lt;token&gt;` query
+   * parameter; the rotateShareLink RPC generates a fresh value, killing
+   * the old link immediately. Applies to public-audience shares only
+   * (org-audience access is governed by live membership instead).
+   *
+   * &#64;internal
+   * Server-generated (rotateShareLink is the sole writer) and deliberately
+   * in status, not spec.sharing: status survives every apply/update
+   * verbatim in both editions, so a routine manifest apply can never wipe
+   * the token and silently fail open to the guessable URL. Enforced with
+   * the allowed_origins pattern — validated at guest mint, stamped into
+   * the guest JWT, and re-validated against this live value on every
+   * session/execution create, so rotation revokes live guest tokens on
+   * their next message. Not a security boundary: rate limits and the org
+   * credit cap remain the abuse controls; this is a traffic lever for
+   * over-shared links.
+   * </pre>
+   *
+   * <code>string share_link_token = 2 [json_name = "shareLinkToken"];</code>
+   * @return The bytes for shareLinkToken.
+   */
+  com.google.protobuf.ByteString
+      getShareLinkTokenBytes();
 }

@@ -52,8 +52,8 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "etDefault\0223.ai.stigmer.agentic.agent.v1." +
       "GetDefaultAgentRequest\032\".ai.stigmer.agen" +
       "tic.agent.v1.Agent\"\004\320\270\030\001\022\177\n\020getSharedPro" +
-      "file\0224.ai.stigmer.commons.apiresource.Ap" +
-      "iResourceReference\032/.ai.stigmer.agentic." +
+      "file\0224.ai.stigmer.agentic.agent.v1.GetSh" +
+      "aredProfileRequest\032/.ai.stigmer.agentic." +
       "agent.v1.SharedAgentProfile\"\004\310\270\030\001\022\210\001\n\031ge" +
       "tSharedProfileForMember\0224.ai.stigmer.com" +
       "mons.apiresource.ApiResourceReference\032/." +

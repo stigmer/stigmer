@@ -36,6 +36,7 @@ private static final long serialVersionUID = 0L;
     slug_ = "";
     guestCookieId_ = "";
     embedOrigin_ = "";
+    linkToken_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -288,6 +289,77 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int LINK_TOKEN_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object linkToken_ = "";
+  /**
+   * <pre>
+   * Link token from the share URL's `?k=` parameter (optional).
+   *
+   * Required when the agent's share link has been locked with
+   * rotateShareLink; ignored for plain share links.
+   *
+   * &#64;internal
+   * Validated at mint against the agent's live status.share_link_token
+   * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+   * so a killed link is indistinguishable from a nonexistent one). The
+   * validated value is stamped into the guest JWT as the link_token claim
+   * and re-validated against the live value by the guest create-time gate
+   * on every session/execution create — rotation therefore revokes live
+   * guest tokens on their next message, exactly like disabling sharing.
+   * </pre>
+   *
+   * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
+   * @return The linkToken.
+   */
+  @java.lang.Override
+  public java.lang.String getLinkToken() {
+    java.lang.Object ref = linkToken_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      linkToken_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Link token from the share URL's `?k=` parameter (optional).
+   *
+   * Required when the agent's share link has been locked with
+   * rotateShareLink; ignored for plain share links.
+   *
+   * &#64;internal
+   * Validated at mint against the agent's live status.share_link_token
+   * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+   * so a killed link is indistinguishable from a nonexistent one). The
+   * validated value is stamped into the guest JWT as the link_token claim
+   * and re-validated against the live value by the guest create-time gate
+   * on every session/execution create — rotation therefore revokes live
+   * guest tokens on their next message, exactly like disabling sharing.
+   * </pre>
+   *
+   * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for linkToken.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getLinkTokenBytes() {
+    java.lang.Object ref = linkToken_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      linkToken_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -314,6 +386,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(embedOrigin_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, embedOrigin_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(linkToken_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, linkToken_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -334,6 +409,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(embedOrigin_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, embedOrigin_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(linkToken_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, linkToken_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -358,6 +436,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getGuestCookieId())) return false;
     if (!getEmbedOrigin()
         .equals(other.getEmbedOrigin())) return false;
+    if (!getLinkToken()
+        .equals(other.getLinkToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -377,6 +457,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getGuestCookieId().hashCode();
     hash = (37 * hash) + EMBED_ORIGIN_FIELD_NUMBER;
     hash = (53 * hash) + getEmbedOrigin().hashCode();
+    hash = (37 * hash) + LINK_TOKEN_FIELD_NUMBER;
+    hash = (53 * hash) + getLinkToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -516,6 +598,7 @@ private static final long serialVersionUID = 0L;
       slug_ = "";
       guestCookieId_ = "";
       embedOrigin_ = "";
+      linkToken_ = "";
       return this;
     }
 
@@ -561,6 +644,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.embedOrigin_ = embedOrigin_;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.linkToken_ = linkToken_;
+      }
     }
 
     @java.lang.Override
@@ -593,6 +679,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getEmbedOrigin().isEmpty()) {
         embedOrigin_ = other.embedOrigin_;
         bitField0_ |= 0x00000008;
+        onChanged();
+      }
+      if (!other.getLinkToken().isEmpty()) {
+        linkToken_ = other.linkToken_;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -641,6 +732,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 34
+            case 42: {
+              linkToken_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1132,6 +1228,158 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       embedOrigin_ = value;
       bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object linkToken_ = "";
+    /**
+     * <pre>
+     * Link token from the share URL's `?k=` parameter (optional).
+     *
+     * Required when the agent's share link has been locked with
+     * rotateShareLink; ignored for plain share links.
+     *
+     * &#64;internal
+     * Validated at mint against the agent's live status.share_link_token
+     * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+     * so a killed link is indistinguishable from a nonexistent one). The
+     * validated value is stamped into the guest JWT as the link_token claim
+     * and re-validated against the live value by the guest create-time gate
+     * on every session/execution create — rotation therefore revokes live
+     * guest tokens on their next message, exactly like disabling sharing.
+     * </pre>
+     *
+     * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
+     * @return The linkToken.
+     */
+    public java.lang.String getLinkToken() {
+      java.lang.Object ref = linkToken_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        linkToken_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Link token from the share URL's `?k=` parameter (optional).
+     *
+     * Required when the agent's share link has been locked with
+     * rotateShareLink; ignored for plain share links.
+     *
+     * &#64;internal
+     * Validated at mint against the agent's live status.share_link_token
+     * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+     * so a killed link is indistinguishable from a nonexistent one). The
+     * validated value is stamped into the guest JWT as the link_token claim
+     * and re-validated against the live value by the guest create-time gate
+     * on every session/execution create — rotation therefore revokes live
+     * guest tokens on their next message, exactly like disabling sharing.
+     * </pre>
+     *
+     * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for linkToken.
+     */
+    public com.google.protobuf.ByteString
+        getLinkTokenBytes() {
+      java.lang.Object ref = linkToken_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        linkToken_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Link token from the share URL's `?k=` parameter (optional).
+     *
+     * Required when the agent's share link has been locked with
+     * rotateShareLink; ignored for plain share links.
+     *
+     * &#64;internal
+     * Validated at mint against the agent's live status.share_link_token
+     * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+     * so a killed link is indistinguishable from a nonexistent one). The
+     * validated value is stamped into the guest JWT as the link_token claim
+     * and re-validated against the live value by the guest create-time gate
+     * on every session/execution create — rotation therefore revokes live
+     * guest tokens on their next message, exactly like disabling sharing.
+     * </pre>
+     *
+     * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
+     * @param value The linkToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setLinkToken(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      linkToken_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Link token from the share URL's `?k=` parameter (optional).
+     *
+     * Required when the agent's share link has been locked with
+     * rotateShareLink; ignored for plain share links.
+     *
+     * &#64;internal
+     * Validated at mint against the agent's live status.share_link_token
+     * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+     * so a killed link is indistinguishable from a nonexistent one). The
+     * validated value is stamped into the guest JWT as the link_token claim
+     * and re-validated against the live value by the guest create-time gate
+     * on every session/execution create — rotation therefore revokes live
+     * guest tokens on their next message, exactly like disabling sharing.
+     * </pre>
+     *
+     * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearLinkToken() {
+      linkToken_ = getDefaultInstance().getLinkToken();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Link token from the share URL's `?k=` parameter (optional).
+     *
+     * Required when the agent's share link has been locked with
+     * rotateShareLink; ignored for plain share links.
+     *
+     * &#64;internal
+     * Validated at mint against the agent's live status.share_link_token
+     * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+     * so a killed link is indistinguishable from a nonexistent one). The
+     * validated value is stamped into the guest JWT as the link_token claim
+     * and re-validated against the live value by the guest create-time gate
+     * on every session/execution create — rotation therefore revokes live
+     * guest tokens on their next message, exactly like disabling sharing.
+     * </pre>
+     *
+     * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for linkToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setLinkTokenBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      linkToken_ = value;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }

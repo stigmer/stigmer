@@ -78,13 +78,14 @@ enable sharing for an agent and print its chat link and embed snippet
 stigmer share agent <ref> [flags]
 ```
 
-| Flag         | Type     | Default | Description                                                                                                                     |
-| ------------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `--audience` | `string` |         | who can chat: 'public' (anyone with the link) or 'org' (signed-in organization members only); omit to keep the current audience |
-| `--json`     | `bool`   |         | emit the result as JSON                                                                                                         |
-| `--off`      | `bool`   |         | disable sharing (the link stops working immediately)                                                                            |
-| `--open`     | `bool`   |         | open the chat link in your browser                                                                                              |
-| `--quiet`    | `bool`   |         | print only the status line                                                                                                      |
+| Flag           | Type     | Default | Description                                                                                                                     |
+| -------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `--audience`   | `string` |         | who can chat: 'public' (anyone with the link) or 'org' (signed-in organization members only); omit to keep the current audience |
+| `--json`       | `bool`   |         | emit the result as JSON                                                                                                         |
+| `--off`        | `bool`   |         | disable sharing (the link stops working immediately)                                                                            |
+| `--open`       | `bool`   |         | open the chat link in your browser                                                                                              |
+| `--quiet`      | `bool`   |         | print only the status line                                                                                                      |
+| `--reset-link` | `bool`   |         | generate a new share link and kill the current one immediately (public audience)                                                |
 
 ## Global Flags
 

@@ -13,6 +13,22 @@ class AgentId(_message.Message):
     value: str
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
+class RotateShareLinkInput(_message.Message):
+    __slots__ = ("resource_id",)
+    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
+    resource_id: str
+    def __init__(self, resource_id: _Optional[str] = ...) -> None: ...
+
+class GetSharedProfileRequest(_message.Message):
+    __slots__ = ("org", "slug", "link_token")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    SLUG_FIELD_NUMBER: _ClassVar[int]
+    LINK_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    slug: str
+    link_token: str
+    def __init__(self, org: _Optional[str] = ..., slug: _Optional[str] = ..., link_token: _Optional[str] = ...) -> None: ...
+
 class UpdateAgentSharingInput(_message.Message):
     __slots__ = ("resource_id", "sharing")
     RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]

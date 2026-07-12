@@ -133,4 +133,48 @@ public interface MintGuestTokenRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getEmbedOriginBytes();
+
+  /**
+   * <pre>
+   * Link token from the share URL's `?k=` parameter (optional).
+   *
+   * Required when the agent's share link has been locked with
+   * rotateShareLink; ignored for plain share links.
+   *
+   * &#64;internal
+   * Validated at mint against the agent's live status.share_link_token
+   * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+   * so a killed link is indistinguishable from a nonexistent one). The
+   * validated value is stamped into the guest JWT as the link_token claim
+   * and re-validated against the live value by the guest create-time gate
+   * on every session/execution create — rotation therefore revokes live
+   * guest tokens on their next message, exactly like disabling sharing.
+   * </pre>
+   *
+   * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
+   * @return The linkToken.
+   */
+  java.lang.String getLinkToken();
+  /**
+   * <pre>
+   * Link token from the share URL's `?k=` parameter (optional).
+   *
+   * Required when the agent's share link has been locked with
+   * rotateShareLink; ignored for plain share links.
+   *
+   * &#64;internal
+   * Validated at mint against the agent's live status.share_link_token
+   * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+   * so a killed link is indistinguishable from a nonexistent one). The
+   * validated value is stamped into the guest JWT as the link_token claim
+   * and re-validated against the live value by the guest create-time gate
+   * on every session/execution create — rotation therefore revokes live
+   * guest tokens on their next message, exactly like disabling sharing.
+   * </pre>
+   *
+   * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for linkToken.
+   */
+  com.google.protobuf.ByteString
+      getLinkTokenBytes();
 }

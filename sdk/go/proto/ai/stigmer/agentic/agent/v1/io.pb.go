@@ -67,6 +67,132 @@ func (x *AgentId) GetValue() string {
 	return ""
 }
 
+// Input for rotating an agent's share-link token.
+//
+// Used by the rotateShareLink RPC. The server generates the new token —
+// callers never supply one — and the previous link stops working the
+// moment the rotation persists.
+type RotateShareLinkInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the agent whose share link is being rotated.
+	ResourceId    string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RotateShareLinkInput) Reset() {
+	*x = RotateShareLinkInput{}
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RotateShareLinkInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RotateShareLinkInput) ProtoMessage() {}
+
+func (x *RotateShareLinkInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RotateShareLinkInput.ProtoReflect.Descriptor instead.
+func (*RotateShareLinkInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *RotateShareLinkInput) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+// Input for resolving a shared agent's public profile.
+//
+// Identifies the shared agent by the org and slug from the hosted chat
+// URL, plus the link token when the share URL carries one.
+//
+// @internal
+// Replaces the generic ApiResourceReference on getSharedProfile so the
+// anonymous resolution path can carry the link token. org emptiness is
+// validated in the handler (INVALID_ARGUMENT) rather than the proto to
+// keep the existing error contract.
+type GetSharedProfileRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization slug from the share URL.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Agent slug from the share URL.
+	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
+	// Link token from the share URL's `?k=` parameter.
+	//
+	// Required (and validated) only when the agent's share link has been
+	// locked with rotateShareLink; ignored for plain share links.
+	LinkToken     string `protobuf:"bytes,3,opt,name=link_token,json=linkToken,proto3" json:"link_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSharedProfileRequest) Reset() {
+	*x = GetSharedProfileRequest{}
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSharedProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSharedProfileRequest) ProtoMessage() {}
+
+func (x *GetSharedProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSharedProfileRequest.ProtoReflect.Descriptor instead.
+func (*GetSharedProfileRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetSharedProfileRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *GetSharedProfileRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *GetSharedProfileRequest) GetLinkToken() string {
+	if x != nil {
+		return x.LinkToken
+	}
+	return ""
+}
+
 // Input for updating the sharing configuration of an agent.
 //
 // Used by the updateSharing RPC for a targeted update — it only modifies
@@ -88,7 +214,7 @@ type UpdateAgentSharingInput struct {
 
 func (x *UpdateAgentSharingInput) Reset() {
 	*x = UpdateAgentSharingInput{}
-	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -100,7 +226,7 @@ func (x *UpdateAgentSharingInput) String() string {
 func (*UpdateAgentSharingInput) ProtoMessage() {}
 
 func (x *UpdateAgentSharingInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -113,7 +239,7 @@ func (x *UpdateAgentSharingInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAgentSharingInput.ProtoReflect.Descriptor instead.
 func (*UpdateAgentSharingInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *UpdateAgentSharingInput) GetResourceId() string {
@@ -161,7 +287,7 @@ type SharedAgentProfile struct {
 
 func (x *SharedAgentProfile) Reset() {
 	*x = SharedAgentProfile{}
-	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -173,7 +299,7 @@ func (x *SharedAgentProfile) String() string {
 func (*SharedAgentProfile) ProtoMessage() {}
 
 func (x *SharedAgentProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -186,7 +312,7 @@ func (x *SharedAgentProfile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SharedAgentProfile.ProtoReflect.Descriptor instead.
 func (*SharedAgentProfile) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SharedAgentProfile) GetOrg() string {
@@ -246,7 +372,7 @@ type GetDefaultAgentRequest struct {
 
 func (x *GetDefaultAgentRequest) Reset() {
 	*x = GetDefaultAgentRequest{}
-	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -258,7 +384,7 @@ func (x *GetDefaultAgentRequest) String() string {
 func (*GetDefaultAgentRequest) ProtoMessage() {}
 
 func (x *GetDefaultAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -271,7 +397,7 @@ func (x *GetDefaultAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDefaultAgentRequest.ProtoReflect.Descriptor instead.
 func (*GetDefaultAgentRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetDefaultAgentRequest) GetOrg() string {
@@ -287,7 +413,15 @@ const file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"$ai/stigmer/agentic/agent/v1/io.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
 	"\aAgentId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8f\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"?\n" +
+	"\x14RotateShareLinkInput\x12'\n" +
+	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"resourceId\"h\n" +
+	"\x17GetSharedProfileRequest\x12\x10\n" +
+	"\x03org\x18\x01 \x01(\tR\x03org\x12\x12\n" +
+	"\x04slug\x18\x02 \x01(\tR\x04slug\x12'\n" +
+	"\n" +
+	"link_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkToken\"\x8f\x01\n" +
 	"\x17UpdateAgentSharingInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"resourceId\x12K\n" +
@@ -315,16 +449,18 @@ func file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_agent_v1_io_proto_goTypes = []any{
 	(*AgentId)(nil),                 // 0: ai.stigmer.agentic.agent.v1.AgentId
-	(*UpdateAgentSharingInput)(nil), // 1: ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput
-	(*SharedAgentProfile)(nil),      // 2: ai.stigmer.agentic.agent.v1.SharedAgentProfile
-	(*GetDefaultAgentRequest)(nil),  // 3: ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest
-	(*AgentSharing)(nil),            // 4: ai.stigmer.agentic.agent.v1.AgentSharing
+	(*RotateShareLinkInput)(nil),    // 1: ai.stigmer.agentic.agent.v1.RotateShareLinkInput
+	(*GetSharedProfileRequest)(nil), // 2: ai.stigmer.agentic.agent.v1.GetSharedProfileRequest
+	(*UpdateAgentSharingInput)(nil), // 3: ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput
+	(*SharedAgentProfile)(nil),      // 4: ai.stigmer.agentic.agent.v1.SharedAgentProfile
+	(*GetDefaultAgentRequest)(nil),  // 5: ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest
+	(*AgentSharing)(nil),            // 6: ai.stigmer.agentic.agent.v1.AgentSharing
 }
 var file_ai_stigmer_agentic_agent_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput.sharing:type_name -> ai.stigmer.agentic.agent.v1.AgentSharing
+	6, // 0: ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput.sharing:type_name -> ai.stigmer.agentic.agent.v1.AgentSharing
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -344,7 +480,7 @@ func file_ai_stigmer_agentic_agent_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

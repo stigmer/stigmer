@@ -130,6 +130,38 @@ private. Your personal Environment and OAuth-connected credentials can't be
 shared — create a dedicated Environment with only the credentials the Agent
 needs.
 
+## Reset a public link
+
+A public link sometimes travels further than you meant it to — a forwarded
+email, a message pasted into the wrong channel, a page a search engine picked
+up. **Reset link** in the **Link** tab kills the current link and gives you a
+new one, without turning sharing off or renaming the Agent.
+
+After a reset, the link carries a secret key:
+
+```
+https://app.stigmer.ai/chat/<org>/<agent>?k=<key>
+```
+
+- The old link — including the plain one without a key — stops working
+  immediately. Visitors in the middle of a conversation are cut off on their
+  next message.
+- A dead link shows the same "not found" page as an Agent that never existed.
+- Reset again at any time to issue a fresh key and kill the previous one.
+- The embed snippet changes too: re-copy it from the **Embed** tab after a reset
+  so your website keeps working.
+
+Stigmer stores the key on the server side, outside your Agent's spec — applying
+a YAML manifest never removes or changes it. Resetting is only offered for
+public links; an org-members-only share needs no reset, because access ends with
+membership.
+
+<Callout>
+  A reset link is still a public link: anyone who has the new URL can chat.
+  Reset cuts off the audience the old link reached; it does not add
+  authentication. For that, switch the audience to **Org members**.
+</Callout>
+
 ## Turn off sharing
 
 Turn the toggle off to revoke the link. The public page stops working
@@ -146,6 +178,9 @@ stigmer share agent acme-corp/support-agent
 
 # Share with your organization's members only
 stigmer share agent acme-corp/internal-helper --audience org
+
+# Reset the public link (the old link stops working immediately)
+stigmer share agent acme-corp/support-agent --reset-link
 
 # Revoke the link
 stigmer share agent acme-corp/support-agent --off

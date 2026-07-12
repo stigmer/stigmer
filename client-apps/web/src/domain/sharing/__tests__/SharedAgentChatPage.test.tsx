@@ -46,8 +46,9 @@ vi.mock("@stigmer/embed", () => ({
 }));
 
 // The anonymous probe goes through `new Stigmer().agent.getSharedProfile`.
-const getSharedProfileMock = vi.fn<() => Promise<unknown>>();
+const getSharedProfileMock = vi.fn<(request?: unknown) => Promise<unknown>>();
 const stigmerConfigs: unknown[] = [];
+const guestAuthConfigs: Record<string, unknown>[] = [];
 vi.mock("@stigmer/sdk", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@stigmer/sdk")>();
   return {
@@ -58,7 +59,10 @@ vi.mock("@stigmer/sdk", async (importOriginal) => {
         stigmerConfigs.push(config);
       }
     },
-    createGuestAuth: () => ({ getAccessToken: vi.fn() }),
+    createGuestAuth: (config: Record<string, unknown>) => {
+      guestAuthConfigs.push(config);
+      return { getAccessToken: vi.fn() };
+    },
   };
 });
 
@@ -89,7 +93,9 @@ function setAuth(overrides: Partial<(typeof authState)["current"]>) {
 beforeEach(() => {
   sharedAgentChatProps.length = 0;
   stigmerConfigs.length = 0;
+  guestAuthConfigs.length = 0;
   getSharedProfileMock.mockReset();
+  window.history.replaceState(null, "", "/chat/acme/support-bot");
   setAuth({
     isAuthenticated: false,
     isLoading: false,
@@ -161,5 +167,39 @@ describe("SharedAgentChatPage audience routing", () => {
     // flash the sign-in card at a member who is about to be recognized.
     await waitFor(() => expect(getSharedProfileMock).toHaveBeenCalled());
     expect(container.querySelector("button")).toBeNull();
+  });
+});
+
+describe("SharedAgentChatPage locked links (?k= token)", () => {
+  it("threads the ?k= token through the probe, the guest mint, and the chat", async () => {
+    window.history.replaceState(null, "", "/chat/acme/support-bot?k=tok123");
+    getSharedProfileMock.mockResolvedValue({ org: "acme", slug: "support-bot" });
+
+    render(<SharedAgentChatPage />);
+
+    await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
+    // Probe: the request message carries the token so a locked link
+    // resolves as public instead of falling to the member path.
+    expect(getSharedProfileMock.mock.calls[0][0]).toMatchObject({
+      org: "acme",
+      slug: "support-bot",
+      linkToken: "tok123",
+    });
+    // Guest mint: the same token rides mintGuestToken, where the server
+    // validates it against the live status.share_link_token.
+    expect(guestAuthConfigs[0]).toMatchObject({ linkToken: "tok123" });
+    // Chat: the profile fetch inside SharedAgentChat needs it too.
+    expect(sharedAgentChatProps[0].linkToken).toBe("tok123");
+  });
+
+  it("plain links carry no token anywhere", async () => {
+    getSharedProfileMock.mockResolvedValue({ org: "acme", slug: "support-bot" });
+
+    render(<SharedAgentChatPage />);
+
+    await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
+    expect(getSharedProfileMock.mock.calls[0][0]).toMatchObject({ linkToken: "" });
+    expect(guestAuthConfigs[0]).not.toHaveProperty("linkToken");
+    expect(sharedAgentChatProps[0].linkToken).toBe("");
   });
 });

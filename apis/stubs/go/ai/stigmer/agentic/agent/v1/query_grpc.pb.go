@@ -62,21 +62,23 @@ type AgentQueryControllerClient interface {
 	// the system prompt, environment declarations, and MCP wiring.
 	//
 	// Returns NOT_FOUND when the agent does not exist, is not shared
-	// (spec.sharing.enabled is false/unset), or is shared with the org
+	// (spec.sharing.enabled is false/unset), is shared with the org
 	// audience (spec.sharing.audience is org — anonymous callers must not be
 	// able to distinguish an org-internal share from a nonexistent agent; use
-	// getSharedProfileForMember instead). The cases are deliberately
-	// indistinguishable so an unshared agent's URL leaks nothing — unlike
-	// getByReference, which returns PERMISSION_DENIED for an existing but
-	// unauthorized agent. Returns INVALID_ARGUMENT when org is empty:
-	// org+slug is the shared URL's identity, and cross-org slug matching on a
-	// public endpoint would enable enumeration.
+	// getSharedProfileForMember instead), or the share link is locked and
+	// link_token does not match the agent's current
+	// status.share_link_token. The cases are deliberately
+	// indistinguishable so an unshared, revoked, or rotated agent URL leaks
+	// nothing — unlike getByReference, which returns PERMISSION_DENIED for
+	// an existing but unauthorized agent. Returns INVALID_ARGUMENT when org
+	// is empty: org+slug is the shared URL's identity, and cross-org slug
+	// matching on a public endpoint would enable enumeration.
 	//
 	// @internal
 	// Public by design (no authentication): enforcement is the app-level
 	// sharing gate in the handler, not FGA — see AgentSharing in spec.proto
 	// for why sharing writes no visibility tuples.
-	GetSharedProfile(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*SharedAgentProfile, error)
+	GetSharedProfile(ctx context.Context, in *GetSharedProfileRequest, opts ...grpc.CallOption) (*SharedAgentProfile, error)
 	// Get the profile of a shared agent as a signed-in organization member.
 	//
 	// This is the resolution path for the hosted chat page when an agent is
@@ -86,10 +88,12 @@ type AgentQueryControllerClient interface {
 	// this authenticated RPC instead. Also resolves public-audience shares,
 	// so an authenticated caller can use one resolution path for any share.
 	//
-	// Returns NOT_FOUND when the agent does not exist, is not shared, or the
-	// caller is not a member of the owning organization — the cases are
-	// deliberately indistinguishable so a share URL leaks nothing to
-	// non-members. Returns INVALID_ARGUMENT when org is empty.
+	// Returns NOT_FOUND when the agent does not exist, is not shared, the
+	// caller is not a member of the owning organization, or the share is a
+	// public-audience share locked with a link token (this tokenless path
+	// must not reveal a killed link's profile) — the cases are deliberately
+	// indistinguishable so a share URL leaks nothing to non-members.
+	// Returns INVALID_ARGUMENT when org is empty.
 	//
 	// @internal
 	// Custom authorization in handler — requires authentication (not
@@ -139,7 +143,7 @@ func (c *agentQueryControllerClient) GetDefault(ctx context.Context, in *GetDefa
 	return out, nil
 }
 
-func (c *agentQueryControllerClient) GetSharedProfile(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*SharedAgentProfile, error) {
+func (c *agentQueryControllerClient) GetSharedProfile(ctx context.Context, in *GetSharedProfileRequest, opts ...grpc.CallOption) (*SharedAgentProfile, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SharedAgentProfile)
 	err := c.cc.Invoke(ctx, AgentQueryController_GetSharedProfile_FullMethodName, in, out, cOpts...)
@@ -194,21 +198,23 @@ type AgentQueryControllerServer interface {
 	// the system prompt, environment declarations, and MCP wiring.
 	//
 	// Returns NOT_FOUND when the agent does not exist, is not shared
-	// (spec.sharing.enabled is false/unset), or is shared with the org
+	// (spec.sharing.enabled is false/unset), is shared with the org
 	// audience (spec.sharing.audience is org — anonymous callers must not be
 	// able to distinguish an org-internal share from a nonexistent agent; use
-	// getSharedProfileForMember instead). The cases are deliberately
-	// indistinguishable so an unshared agent's URL leaks nothing — unlike
-	// getByReference, which returns PERMISSION_DENIED for an existing but
-	// unauthorized agent. Returns INVALID_ARGUMENT when org is empty:
-	// org+slug is the shared URL's identity, and cross-org slug matching on a
-	// public endpoint would enable enumeration.
+	// getSharedProfileForMember instead), or the share link is locked and
+	// link_token does not match the agent's current
+	// status.share_link_token. The cases are deliberately
+	// indistinguishable so an unshared, revoked, or rotated agent URL leaks
+	// nothing — unlike getByReference, which returns PERMISSION_DENIED for
+	// an existing but unauthorized agent. Returns INVALID_ARGUMENT when org
+	// is empty: org+slug is the shared URL's identity, and cross-org slug
+	// matching on a public endpoint would enable enumeration.
 	//
 	// @internal
 	// Public by design (no authentication): enforcement is the app-level
 	// sharing gate in the handler, not FGA — see AgentSharing in spec.proto
 	// for why sharing writes no visibility tuples.
-	GetSharedProfile(context.Context, *apiresource.ApiResourceReference) (*SharedAgentProfile, error)
+	GetSharedProfile(context.Context, *GetSharedProfileRequest) (*SharedAgentProfile, error)
 	// Get the profile of a shared agent as a signed-in organization member.
 	//
 	// This is the resolution path for the hosted chat page when an agent is
@@ -218,10 +224,12 @@ type AgentQueryControllerServer interface {
 	// this authenticated RPC instead. Also resolves public-audience shares,
 	// so an authenticated caller can use one resolution path for any share.
 	//
-	// Returns NOT_FOUND when the agent does not exist, is not shared, or the
-	// caller is not a member of the owning organization — the cases are
-	// deliberately indistinguishable so a share URL leaks nothing to
-	// non-members. Returns INVALID_ARGUMENT when org is empty.
+	// Returns NOT_FOUND when the agent does not exist, is not shared, the
+	// caller is not a member of the owning organization, or the share is a
+	// public-audience share locked with a link token (this tokenless path
+	// must not reveal a killed link's profile) — the cases are deliberately
+	// indistinguishable so a share URL leaks nothing to non-members.
+	// Returns INVALID_ARGUMENT when org is empty.
 	//
 	// @internal
 	// Custom authorization in handler — requires authentication (not
@@ -249,7 +257,7 @@ func (UnimplementedAgentQueryControllerServer) GetByReference(context.Context, *
 func (UnimplementedAgentQueryControllerServer) GetDefault(context.Context, *GetDefaultAgentRequest) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDefault not implemented")
 }
-func (UnimplementedAgentQueryControllerServer) GetSharedProfile(context.Context, *apiresource.ApiResourceReference) (*SharedAgentProfile, error) {
+func (UnimplementedAgentQueryControllerServer) GetSharedProfile(context.Context, *GetSharedProfileRequest) (*SharedAgentProfile, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSharedProfile not implemented")
 }
 func (UnimplementedAgentQueryControllerServer) GetSharedProfileForMember(context.Context, *apiresource.ApiResourceReference) (*SharedAgentProfile, error) {
@@ -330,7 +338,7 @@ func _AgentQueryController_GetDefault_Handler(srv interface{}, ctx context.Conte
 }
 
 func _AgentQueryController_GetSharedProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(apiresource.ApiResourceReference)
+	in := new(GetSharedProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -342,7 +350,7 @@ func _AgentQueryController_GetSharedProfile_Handler(srv interface{}, ctx context
 		FullMethod: AgentQueryController_GetSharedProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentQueryControllerServer).GetSharedProfile(ctx, req.(*apiresource.ApiResourceReference))
+		return srv.(AgentQueryControllerServer).GetSharedProfile(ctx, req.(*GetSharedProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
