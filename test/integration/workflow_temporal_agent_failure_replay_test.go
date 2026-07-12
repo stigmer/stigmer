@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -18,8 +17,6 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
-	workflowservicepb "go.temporal.io/api/workflowservice/v1"
-	"go.temporal.io/sdk/client"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -144,9 +141,13 @@ func TestAgentExecution_FailureReplayDeterminism(t *testing.T) {
 
 	// --- CRITICAL ASSERTIONS: Agent Execution Temporal Health ---
 	//
-	// Find the child agent execution workflow(s) that ran during this test.
-	// Use Temporal's ListWorkflow with the agent execution prefix.
-	agentWorkflowIDs := findAgentExecutionWorkflows(t, ctx, inspector, executionID)
+	// Find the child agent execution workflow(s) spawned by THIS test's
+	// parent execution, from the task snapshot metadata. Discovery must stay
+	// scoped to this execution: the Temporal dev server is shared across the
+	// whole suite, and a broad WorkflowId-prefix list would pick up agent
+	// executions from unrelated tests, failing this test on their transient
+	// WorkflowTaskFailed events.
+	agentWorkflowIDs := findAgentExecutionWorkflows(t, result)
 	require.NotEmpty(t, agentWorkflowIDs,
 		"should find at least one agent execution workflow for this test")
 
@@ -169,62 +170,33 @@ func TestAgentExecution_FailureReplayDeterminism(t *testing.T) {
 	exportAgentHistories(t, ctx, inspector, agentWorkflowIDs)
 }
 
-// findAgentExecutionWorkflows discovers agent execution workflow IDs associated
-// with the given parent workflow execution. It queries Temporal directly for
-// workflows matching the agent execution ID pattern.
-func findAgentExecutionWorkflows(t *testing.T, ctx context.Context, inspector *harness.TemporalInspector, parentExecutionID string) []string {
+// findAgentExecutionWorkflows discovers the agent execution workflow IDs
+// spawned by the given (terminal) parent workflow execution. The source of
+// truth is the task snapshot metadata: the do-executor records
+// `agent_execution_id` on agent_call tasks for both success and failure
+// paths (failure via AgentCallError.childExecutionId).
+//
+// A broad Temporal visibility query (WorkflowId STARTS_WITH the agent
+// execution prefix) must NOT be used here: the dev server is shared across
+// the whole integration suite, so such a query returns agent executions
+// from unrelated earlier tests, and a single transient WorkflowTaskFailed
+// event in any of them would fail this test.
+func findAgentExecutionWorkflows(t *testing.T, result *workflowexecutionv1.WorkflowExecution) []string {
 	t.Helper()
-
-	tc, err := testHarness.Temporal.Client()
-	require.NoError(t, err)
-	defer tc.Close()
-
-	// List workflows with the agent execution prefix via Temporal's visibility API.
-	query := `WorkflowId STARTS_WITH "stigmer/agent-execution/invoke/"`
-	resp, err := tc.ListWorkflow(ctx, &workflowservicepb.ListWorkflowExecutionsRequest{
-		Namespace: "default",
-		Query:     query,
-	})
-	if err != nil {
-		t.Logf("ListWorkflow query failed (advanced visibility may not be available): %v", err)
-		return findAgentWorkflowsByHistory(t, ctx, tc, parentExecutionID)
-	}
 
 	var workflowIDs []string
-	for _, exec := range resp.GetExecutions() {
-		wfID := exec.GetExecution().GetWorkflowId()
-		workflowIDs = append(workflowIDs, wfID)
+	seen := map[string]bool{}
+	for _, task := range result.GetStatus().GetTasks() {
+		aexID := task.GetMetadata().GetFields()["agent_execution_id"].GetStringValue()
+		if aexID == "" || seen[aexID] {
+			continue
+		}
+		seen[aexID] = true
+		workflowIDs = append(workflowIDs, harness.AgentOrchestratorWorkflowID(aexID))
 	}
 
-	t.Logf("found %d agent execution workflows via Temporal list", len(workflowIDs))
+	t.Logf("found %d agent execution workflows via task snapshot metadata", len(workflowIDs))
 	return workflowIDs
-}
-
-// findAgentWorkflowsByHistory is a fallback that finds agent execution workflow IDs
-// by scanning the parent orchestrator's child workflow events.
-func findAgentWorkflowsByHistory(t *testing.T, ctx context.Context, tc client.Client, parentExecutionID string) []string {
-	t.Helper()
-
-	orchID := harness.OrchestratorWorkflowID(parentExecutionID)
-	iter := tc.GetWorkflowHistory(ctx, orchID, "", false, 0)
-
-	var childWorkflowIDs []string
-	for iter.HasNext() {
-		event, err := iter.Next()
-		if err != nil {
-			break
-		}
-		// Look for ChildWorkflowExecutionStarted events
-		if started := event.GetChildWorkflowExecutionStartedEventAttributes(); started != nil {
-			childWfID := started.GetWorkflowExecution().GetWorkflowId()
-			if strings.HasPrefix(childWfID, "stigmer/agent-execution/invoke/") {
-				childWorkflowIDs = append(childWorkflowIDs, childWfID)
-			}
-		}
-	}
-
-	t.Logf("found %d agent execution workflows via parent history scan", len(childWorkflowIDs))
-	return childWorkflowIDs
 }
 
 // exportAgentHistories writes the agent execution workflow histories to the
