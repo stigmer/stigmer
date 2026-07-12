@@ -19,6 +19,8 @@ import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { type AgentInstance, AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
+import { type AgentShare, AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { type Environment, EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { type McpServer, McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -113,6 +115,15 @@ export const APPLY_HANDLERS: ReadonlyMap<ApiResourceKind, ApplyHandler> = new Ma
       displayName: "OAuth App",
       schema: OAuthAppSchema,
       apply: (c, m) => c(OAuthAppCommandController).apply(m as OAuthApp),
+    },
+  ],
+  [
+    ApiResourceKind.agent_share,
+    {
+      kind: ApiResourceKind.agent_share,
+      displayName: "Agent Share",
+      schema: AgentShareSchema,
+      apply: (c, m) => c(AgentShareCommandController).apply(m as AgentShare),
     },
   ],
   [

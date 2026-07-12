@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
 import { create } from "@bufbuild/protobuf";
-import { GetSharedProfileRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { GetSharedProfileRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import {
   LINK_TOKEN_PARAM,
   Stigmer,
@@ -54,7 +54,7 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
  *
  * Embedded flow (public shares only — org shares refuse the guest mint):
  * the discovered parent origin rides the mint request, where the server
- * validates it against the agent's `allowed_origins` and stamps it into
+ * validates it against the share's `allowed_origins` and stamps it into
  * the guest JWT. The mint is eager (unlike the standalone page's lazy
  * first-RPC mint) so a disallowed or unavailable embed hides before the
  * visitor types anything, instead of failing on their first message.
@@ -109,7 +109,7 @@ export default function SharedAgentChatPage() {
       baseUrl: getApiBaseUrl(),
       getAccessToken: () => null,
     });
-    anon.agent
+    anon.agentShare
       .getSharedProfile(
         create(GetSharedProfileRequestSchema, { org, slug, linkToken }),
       )

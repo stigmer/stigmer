@@ -54,10 +54,11 @@ export interface UseShareAgentReturn {
  * the running agent (billed to the owning org).
  *
  * Owns the open-state and the `can_edit` gate — the same permission the
- * `updateSharing` RPC enforces, so the action never appears to a user
- * whose changes would be rejected. Returns a `null` action while the
- * agent is loading or the user cannot edit, so the host can
- * unconditionally fold `action` into its actions array.
+ * AgentShare create/apply handlers enforce on the referenced agent, so
+ * the action never appears to a user whose changes would be rejected.
+ * Returns a `null` action while the agent is loading or the user cannot
+ * edit, so the host can unconditionally fold `action` into its actions
+ * array.
  *
  * @example
  * ```tsx

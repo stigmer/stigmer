@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { RotateShareLinkInput } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import type { RotateShareLinkInput } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { useRotateShareLink } from "../useRotateShareLink";
 
@@ -9,7 +9,7 @@ function createMockStigmer(overrides: {
   rotateShareLink?: (input: RotateShareLinkInput) => Promise<unknown>;
 } = {}) {
   return {
-    agent: {
+    agentShare: {
       rotateShareLink:
         overrides.rotateShareLink ?? vi.fn().mockResolvedValue({}),
     },
@@ -31,15 +31,15 @@ describe("useRotateShareLink", () => {
     vi.restoreAllMocks();
   });
 
-  it("calls rotateShareLink with the agent id and returns the updated agent", async () => {
+  it("calls rotateShareLink with the share id and returns the updated share", async () => {
     const rotated = {
-      metadata: { id: "agt_1" },
+      metadata: { id: "ash_1" },
       status: { shareLinkToken: "fresh-token" },
     };
     const rotateShareLink = vi.fn().mockResolvedValue(rotated);
     const client = createMockStigmer({ rotateShareLink });
 
-    const { result } = renderHook(() => useRotateShareLink("agt_1"), {
+    const { result } = renderHook(() => useRotateShareLink("ash_1"), {
       wrapper: wrapper(client),
     });
 
@@ -50,7 +50,7 @@ describe("useRotateShareLink", () => {
 
     expect(rotateShareLink).toHaveBeenCalledTimes(1);
     const input = rotateShareLink.mock.calls[0][0] as RotateShareLinkInput;
-    expect(input.resourceId).toBe("agt_1");
+    expect(input.resourceId).toBe("ash_1");
     // The server generates the token — the request carries nothing but the id.
     expect(Object.keys(input)).not.toContain("linkToken");
     expect(returned).toBe(rotated);
@@ -58,7 +58,7 @@ describe("useRotateShareLink", () => {
     expect(result.current.isPending).toBe(false);
   });
 
-  it("is a stable no-op while agentId is null", async () => {
+  it("is a stable no-op while shareId is null (agent never shared)", async () => {
     const rotateShareLink = vi.fn();
     const client = createMockStigmer({ rotateShareLink });
 
@@ -80,7 +80,7 @@ describe("useRotateShareLink", () => {
     const rotateShareLink = vi.fn().mockRejectedValue(failure);
     const client = createMockStigmer({ rotateShareLink });
 
-    const { result } = renderHook(() => useRotateShareLink("agt_1"), {
+    const { result } = renderHook(() => useRotateShareLink("ash_1"), {
       wrapper: wrapper(client),
     });
 

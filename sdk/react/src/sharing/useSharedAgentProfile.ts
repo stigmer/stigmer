@@ -4,11 +4,11 @@ import { create } from "@bufbuild/protobuf";
 import {
   GetSharedProfileRequestSchema,
   type SharedAgentProfile,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
-import type { SharingAudience } from "./useUpdateAgentSharing.js";
+import type { SharingAudience } from "./useSaveAgentShare.js";
 
 /** Options for {@link useSharedAgentProfile}. */
 export interface UseSharedAgentProfileOptions {
@@ -53,8 +53,9 @@ export interface UseSharedAgentProfileReturn {
 }
 
 /**
- * Data hook that fetches a shared agent's public profile by
- * organization and agent slug.
+ * Data hook that fetches a shared agent's public profile by the org and
+ * slug from the share URL (the share's slug — it defaults to the
+ * agent's, so existing links resolve unchanged).
  *
  * By default this hook calls the `getSharedProfile` endpoint, which is
  * **public** — it requires no authentication. The server returns a
@@ -110,8 +111,8 @@ export function useSharedAgentProfile(
             // is gated by live membership, and token-locked public shares
             // deliberately refuse there (see getSharedProfileForMember).
             return audience === "org"
-              ? await stigmer.agent.getSharedProfileForMember({ org, slug })
-              : await stigmer.agent.getSharedProfile(
+              ? await stigmer.agentShare.getSharedProfileForMember({ org, slug })
+              : await stigmer.agentShare.getSharedProfile(
                   create(GetSharedProfileRequestSchema, { org, slug, linkToken }),
                 );
           } catch (err) {

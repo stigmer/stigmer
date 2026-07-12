@@ -49,7 +49,8 @@ test.describe("Share agent flow", () => {
     // Fresh agent: sharing starts disabled.
     await expect(shareSwitch).toHaveAttribute("aria-checked", "false");
 
-    // Enable sharing — persisted via updateSharing against the real server.
+    // Enable sharing — persisted by creating the canonical AgentShare
+    // (agentShare.apply) against the real server.
     await shareSwitch.click();
     await expect(shareSwitch).toHaveAttribute("aria-checked", "true", {
       timeout: 10_000,

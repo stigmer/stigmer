@@ -39,6 +39,9 @@ export const VERB_SUPPORT: ReadonlyMap<ApiResourceKind, ReadonlySet<Verb>> = new
   [ApiResourceKind.identity_provider, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
   [ApiResourceKind.oauth_app, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
   [ApiResourceKind.environment, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
+  // Enable/disable flows through `stigmer share agent`; the generic verbs
+  // cover the declarative path (apply a manifest, inspect, tear down).
+  [ApiResourceKind.agent_share, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
   [ApiResourceKind.agent_instance, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
   // No list: proto exposes getByWorkflow (requires workflow_id), not a generic list.
   [ApiResourceKind.workflow_instance, new Set<Verb>([Verb.Apply, Verb.Get, Verb.Delete])],

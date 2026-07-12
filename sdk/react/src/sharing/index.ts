@@ -5,17 +5,19 @@ export type {
 } from "./useSharedAgentProfile.js";
 export { SharedAgentChat } from "./SharedAgentChat.js";
 export type { SharedAgentChatProps } from "./SharedAgentChat.js";
+export { useAgentShare } from "./useAgentShare.js";
+export type { UseAgentShareReturn } from "./useAgentShare.js";
 export {
   sharingAudienceFromProto,
-  useUpdateAgentSharing,
-} from "./useUpdateAgentSharing.js";
+  useSaveAgentShare,
+} from "./useSaveAgentShare.js";
+export type {
+  AgentShareDraft,
+  SharingAudience,
+  UseSaveAgentShareReturn,
+} from "./useSaveAgentShare.js";
 export { useRotateShareLink } from "./useRotateShareLink.js";
 export type { UseRotateShareLinkReturn } from "./useRotateShareLink.js";
-export type {
-  AgentSharingDraft,
-  SharingAudience,
-  UseUpdateAgentSharingReturn,
-} from "./useUpdateAgentSharing.js";
 export { ShareAgentDialog } from "./ShareAgentDialog.js";
 export type { ShareAgentDialogProps } from "./ShareAgentDialog.js";
 export { useShareAgent } from "./useShareAgent.js";
