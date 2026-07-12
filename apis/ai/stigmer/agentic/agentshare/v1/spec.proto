@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentshare.v1;
+
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "buf/validate/validate.proto";
+
+// AgentShareSpec defines the configurable properties of an agent share.
+//
+// A share is a distribution channel for an agent's hosted chat experience.
+// It carries its own audience, embed origins, visitor-facing messages, and
+// tool credentials — all independent of the agent blueprint it references.
+//
+// @internal
+// Sharing is channel configuration, not agent behavior (decision 011):
+// applying an agent manifest never touches a share, and the share has its
+// own writer, lifecycle, and change cadence. Guest admission is enforced
+// app-level in the shared-profile/mint/create-time gates — a share writes
+// NO FGA visibility tuples, because a public wildcard viewer tuple would
+// expose the referenced agent's full blueprint (instructions included) to
+// any authenticated account, conflating blueprint visibility with chat
+// access. The overview.md file provides the SDK-facing description and
+// example YAML.
+message AgentShareSpec {
+  option (buf.validate.message).cel = {
+    id: "agent_share.environment_refs_public_only"
+    message: "environment_refs can only be set on public-audience shares"
+    expression: "this.audience != 2 || this.environment_refs.size() == 0"
+  };
+
+  // Reference to the agent this share distributes.
+  //
+  // @internal
+  // Phase A invariant: agent_ref.org must equal metadata.org — the sharing
+  // org is the billing org (decision 001 generalized), and guest tool
+  // credentials resolve in the share's org (secrets never cross orgs).
+  // Enforced in the create/update/apply handlers of both editions;
+  // cross-org shares are Phase B (decision 012).
+  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
+    (ai.stigmer.commons.apiresource.reference_kind) = agent,
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "agent_ref.kind"
+      message: "agent_ref must reference a resource with kind=agent"
+      expression: "this.kind == 40"
+    }
+  ];
+
+  // Whether hosted-chat access for the configured audience is enabled.
+  //
+  // Disabling is a config-preserving pause: the share keeps its origins,
+  // messages, credentials, and link token, but the hosted link answers
+  // NOT_FOUND until re-enabled. Delete the share instead for a full
+  // teardown.
+  bool enabled = 2;
+
+  // Who can chat over this share. Unspecified means public (anyone with
+  // the link), so a manifest that omits audience creates a public share.
+  //
+  // To keep a share org-only, audience must be present in every apply:
+  // update/apply replace the spec wholesale, so a manifest that sets
+  // enabled without audience resets the share to public.
+  //
+  // @internal
+  // Org audience is enforced cloud-side only (org membership is a
+  // multi-tenant IAM concept): the guest mint and public profile handlers
+  // treat audience=org as NOT_FOUND, and the create-time blueprint gate
+  // admits authenticated org members via an app-level FGA member check
+  // (no visibility tuples written). The OSS single-user server stores and
+  // echoes the field.
+  AgentShareAudience audience = 3;
+
+  // Origins permitted to embed this share's chat widget.
+  //
+  // Each entry is an exact web origin (scheme://host[:port]) with no path,
+  // for example "https://docs.example.com". An empty list allows embedding
+  // from any site; listing origins restricts embedding to those sites. The
+  // first-party hosted chat page is always exempt.
+  //
+  // @internal
+  // Enforced since T04 against the embed_origin the widget reports at
+  // mintGuestToken time (stamped into the guest JWT as a claim) and
+  // re-validated against this live list by the guest create-time gate
+  // (SharedSessionBlueprintAccess) on every session/execution create — the
+  // same gate that re-checks enabled, so revocation latency is identical
+  // (immediate). Unframed hosted-page visitors report no origin and are
+  // exempt by construction. Exact origins only — loosening to wildcards
+  // later is a non-breaking change, tightening would not be.
+  repeated string allowed_origins = 4 [
+    (buf.validate.field).repeated.max_items = 32,
+    (buf.validate.field).repeated.items.cel = {
+      id: "allowed_origins.format"
+      message: "allowed_origins entries must be exact web origins like https://example.com (no path, query, or trailing slash)"
+      expression: "this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')"
+    }
+  ];
+
+  // Owner-customizable copy shown to visitors when a launch-gate limit
+  // refuses their message. Unset fields fall back to platform defaults.
+  //
+  // @internal
+  // Resolved server-side at the refusal point and carried in the gRPC
+  // status description — deliberately NOT surfaced on SharedAgentProfile
+  // and NOT mapped client-side, so the copy reaches every client (web,
+  // embed, CLI) through the existing error-message path.
+  AgentShareMessages messages = 5;
+
+  // References to Environment resources whose values are provided to guest
+  // conversations on this share.
+  //
+  // This is how a tool-using agent becomes chattable over a share link:
+  // bind an org-shared environment holding the needed credentials (for
+  // example a read-only API token), and guest executions receive its
+  // values at runtime. The agent and its default instance stay untouched.
+  // Valid on public-audience shares only.
+  //
+  // @internal
+  // Resolved in the share's org through the org-shared environment
+  // resolution seam (EnvironmentRuntimeResolutionService /
+  // OrgSharedEnvironmentPolicy — decision 006): each referenced environment
+  // must be visibility_org in the share's org, or the merge skips it with
+  // a diagnostic. Merged at guest execution-context build time only —
+  // never bound to the agent's system-managed default instance, which is
+  // recreated empty on lifecycle events and shared by every org member's
+  // casual chat (decision 011). Org-audience shares reject this field via
+  // the message-level CEL rule: member sessions carry no share linkage in
+  // Phase A, so bound credentials would silently never apply.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [
+    (ai.stigmer.commons.apiresource.reference_kind) = environment,
+    (buf.validate.field).repeated.items.cel = {
+      id: "environment_refs.kind"
+      message: "environment_refs must reference resources with kind=environment"
+      expression: "this.kind == 53"
+    }
+  ];
+}
+
+// AgentShareAudience selects who can chat over a share's hosted link.
+//
+// Unspecified is treated as public: a share created without an explicit
+// audience is an anyone-with-link share.
+enum AgentShareAudience {
+  // Treated as public (audience omitted).
+  agent_share_audience_unspecified = 0;
+
+  // Anyone with the link can chat — no Stigmer account required.
+  // Visitors are anonymous guests; suitable only for knowledge that is
+  // safe to expose to the entire internet.
+  agent_share_audience_public = 1;
+
+  // Only signed-in members of the sharing organization can chat.
+  // Membership is checked on every conversation turn, so access ends the
+  // moment a member leaves the organization. The right mode for
+  // org-internal knowledge agents.
+  agent_share_audience_org = 2;
+}
+
+// AgentShareMessages holds owner-customizable visitor-facing copy for
+// shared-agent limit refusals.
+//
+// Empty fields mean "use the platform default". Plain text only; rendered
+// verbatim in the visitor's chat surface.
+message AgentShareMessages {
+  // Shown when a visitor or the org exceeds the message rate limit.
+  string rate_limited = 1 [(buf.validate.field).string.max_len = 300];
+
+  // Shown when the share cannot serve the conversation — the org's credits
+  // are exhausted or the agent's tools are not ready (fails closed).
+  string unavailable = 2 [(buf.validate.field).string.max_len = 300];
+
+  // Shown when a conversation hits its turn limit or inactivity timeout.
+  string conversation_ended = 3 [(buf.validate.field).string.max_len = 300];
+}

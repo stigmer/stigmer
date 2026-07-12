@@ -216,6 +216,8 @@ const (
 	ApiResourceKind_mcp_server ApiResourceKind = 44
 	// Configured deployment of an agent with environment-specific overrides.
 	ApiResourceKind_agent_instance ApiResourceKind = 45
+	// Hosted chat link for an agent with its own audience, origins, and credentials.
+	ApiResourceKind_agent_share ApiResourceKind = 46
 	// Multi-step orchestration defining how agents collaborate on a task.
 	ApiResourceKind_workflow ApiResourceKind = 50
 	// Configured deployment of a workflow with environment-specific bindings.
@@ -252,6 +254,7 @@ var (
 		43: "skill",
 		44: "mcp_server",
 		45: "agent_instance",
+		46: "agent_share",
 		50: "workflow",
 		51: "workflow_instance",
 		52: "workflow_execution",
@@ -278,6 +281,7 @@ var (
 		"skill":                     43,
 		"mcp_server":                44,
 		"agent_instance":            45,
+		"agent_share":               46,
 		"workflow":                  50,
 		"workflow_instance":         51,
 		"workflow_execution":        52,
@@ -475,7 +479,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"cloud_only\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xe2\x0e\n" +
+	"\astigmer\x10\x01*\xa9\x0f\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -505,7 +509,9 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"mcp_server\x10,\x1a:\xaa\xff+6\b\x01\x10\x01\x1a\tMcpServer\"\n" +
 	"MCP Server*\x03mcp@\x01J\x12\b\x02\x10\x01*\b\b\x01\x10\x01\x18\x01 \x01:\x02\x01\x04\x12l\n" +
 	"\x0eagent_instance\x10-\x1aX\xaa\xff+T\b\x01\x10\x01\x1a\rAgentInstance\"\x0eAgent Instance*\x03ain@\x01J(\b\x02\x10\x01\"\x18\n" +
-	"\x05agent\x12\x05agent\x1a\bagent_id*\x04\b\x01\x18\x01:\x02\x01\x04\x12G\n" +
+	"\x05agent\x12\x05agent\x1a\bagent_id*\x04\b\x01\x18\x01:\x02\x01\x04\x12E\n" +
+	"\vagent_share\x10.\x1a4\xaa\xff+0\b\x01\x10\x01\x1a\n" +
+	"AgentShare\"\vAgent Share*\x03ash8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12G\n" +
 	"\bworkflow\x102\x1a9\xaa\xff+5\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl0\x01@\x01J\x12\b\x02\x10\x01*\b\b\x01\x10\x01\x18\x01 \x01:\x02\x01\x04\x12~\n" +
 	"\x11workflow_instance\x103\x1ag\xaa\xff+c\b\x01\x10\x01\x1a\x10WorkflowInstance\"\x11Workflow Instance*\x03win@\x01J1\b\x02\x10\x01\"!\n" +
 	"\bworkflow\x12\bworkflow\x1a\vworkflow_id*\x04\b\x01\x18\x01:\x02\x01\x04\x12\x96\x01\n" +

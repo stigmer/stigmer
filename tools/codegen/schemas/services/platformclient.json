@@ -92,7 +92,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest",
           "outputType": "MintGuestTokenResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse",
-          "description": "Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.\n\n Resolves org+slug to a shared agent, provisions the org's system-managed\n PlatformClient and guest identity account lazily, and returns a short-lived\n Stigmer-signed JWT scoped to that org.\n\n @internal\n Public — no Bearer token. No PlatformClient credentials. The handler gates\n on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing)."
+          "description": "Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.\n\n Resolves org+slug to an AgentShare, provisions the org's system-managed\n PlatformClient and guest identity account lazily, and returns a short-lived\n Stigmer-signed JWT scoped to that org.\n\n @internal\n Public — no Bearer token. No PlatformClient credentials. The handler gates\n on an enabled public-audience share (NOT_FOUND when disabled or missing)\n and stamps the resolved share's id into the guest JWT as the share_id\n claim — the create-time gate re-reads the live share by that id on every\n session/execution create (decision 011 D6)."
         }
       ]
     }
@@ -171,6 +171,7 @@
               "skill",
               "mcp_server",
               "agent_instance",
+              "agent_share",
               "workflow",
               "workflow_instance",
               "workflow_execution",
@@ -398,7 +399,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Agent slug from the share URL (required).",
+          "description": "Share slug from the share URL (required).",
           "required": false,
           "validation": {
             "minLength": 1
@@ -421,7 +422,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Web origin of the page embedding the shared agent (optional).\n\n Set by the hosted chat page when it runs inside an iframe (the embedding\n page's origin, e.g. \"https://docs.example.com\") and by direct SDK embeds\n (their own page origin). Leave empty on the unframed hosted page. The\n literal value \"null\" reports a framed page whose parent origin could not\n be determined (opaque origin).\n\n @internal\n Validated at mint against the agent's spec.sharing.allowed_origins:\n empty list admits any origin; a non-empty list refuses PERMISSION_DENIED\n for unlisted origins and for \"null\". An empty field always passes (the\n anyone-with-link hosted page). The validated value is stamped into the\n guest JWT as the embed_origin claim and re-validated against the live\n list by the guest create-time gate. Self-reported by design: the widget\n code inside the iframe derives it from browser-authentic sources the\n embedder cannot alter; non-browser callers gain nothing by omitting it\n since the hosted link is anyone-with-link (decision 001) — rate limits\n and the billing gate remain the API guards.",
+          "description": "Web origin of the page embedding the shared agent (optional).\n\n Set by the hosted chat page when it runs inside an iframe (the embedding\n page's origin, e.g. \"https://docs.example.com\") and by direct SDK embeds\n (their own page origin). Leave empty on the unframed hosted page. The\n literal value \"null\" reports a framed page whose parent origin could not\n be determined (opaque origin).\n\n @internal\n Validated at mint against the share's spec.allowed_origins: empty list\n admits any origin; a non-empty list refuses PERMISSION_DENIED for\n unlisted origins and for \"null\". An empty field always passes (the\n anyone-with-link hosted page). The validated value is stamped into the\n guest JWT as the embed_origin claim and re-validated against the live\n list by the guest create-time gate. Self-reported by design: the widget\n code inside the iframe derives it from browser-authentic sources the\n embedder cannot alter; non-browser callers gain nothing by omitting it\n since the hosted link is anyone-with-link (decision 001) — rate limits\n and the billing gate remain the API guards.",
           "required": false
         },
         {
@@ -431,7 +432,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Link token from the share URL's `?k=` parameter (optional).\n\n Required when the agent's share link has been locked with\n rotateShareLink; ignored for plain share links.\n\n @internal\n Validated at mint against the agent's live status.share_link_token\n (mismatch or absence answers the same NOT_FOUND as an unshared agent,\n so a killed link is indistinguishable from a nonexistent one). The\n validated value is stamped into the guest JWT as the link_token claim\n and re-validated against the live value by the guest create-time gate\n on every session/execution create — rotation therefore revokes live\n guest tokens on their next message, exactly like disabling sharing.",
+          "description": "Link token from the share URL's `?k=` parameter (optional).\n\n Required when the share link has been locked with rotateShareLink;\n ignored for plain share links.\n\n @internal\n Validated at mint against the share's live status.share_link_token\n (mismatch or absence answers the same NOT_FOUND as a disabled share,\n so a killed link is indistinguishable from a nonexistent one). The\n validated value is stamped into the guest JWT as the link_token claim\n and re-validated against the live value by the guest create-time gate\n on every session/execution create — rotation therefore revokes live\n guest tokens on their next message, exactly like disabling the share.",
           "required": false,
           "validation": {
             "maxLength": 128
@@ -573,6 +574,11 @@
           "name": "agent_instance",
           "number": 45,
           "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
         },
         {
           "name": "workflow",

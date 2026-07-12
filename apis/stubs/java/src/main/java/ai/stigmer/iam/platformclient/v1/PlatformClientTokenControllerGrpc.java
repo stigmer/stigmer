@@ -15,7 +15,8 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * that checks the Stigmer-issued signature and resolves the identity account.
  * mintGuestToken is the credential-free exception: no client_id/client_secret.
  * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
- * hosted page, gated on spec.sharing.enabled.
+ * hosted page, gated on an enabled public-audience AgentShare
+ * (ai.stigmer.agentic.agentshare.v1).
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -160,7 +161,8 @@ public final class PlatformClientTokenControllerGrpc {
    * that checks the Stigmer-issued signature and resolves the identity account.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
-   * hosted page, gated on spec.sharing.enabled.
+   * hosted page, gated on an enabled public-audience AgentShare
+   * (ai.stigmer.agentic.agentshare.v1).
    * </pre>
    */
   public interface AsyncService {
@@ -198,12 +200,15 @@ public final class PlatformClientTokenControllerGrpc {
     /**
      * <pre>
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
-     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
      * &#64;internal
      * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
+     * and stamps the resolved share's id into the guest JWT as the share_id
+     * claim — the create-time gate re-reads the live share by that id on every
+     * session/execution create (decision 011 D6).
      * </pre>
      */
     default void mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request,
@@ -226,7 +231,8 @@ public final class PlatformClientTokenControllerGrpc {
    * that checks the Stigmer-issued signature and resolves the identity account.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
-   * hosted page, gated on spec.sharing.enabled.
+   * hosted page, gated on an enabled public-audience AgentShare
+   * (ai.stigmer.agentic.agentshare.v1).
    * </pre>
    */
   public static abstract class PlatformClientTokenControllerImplBase
@@ -251,7 +257,8 @@ public final class PlatformClientTokenControllerGrpc {
    * that checks the Stigmer-issued signature and resolves the identity account.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
-   * hosted page, gated on spec.sharing.enabled.
+   * hosted page, gated on an enabled public-audience AgentShare
+   * (ai.stigmer.agentic.agentshare.v1).
    * </pre>
    */
   public static final class PlatformClientTokenControllerStub
@@ -301,12 +308,15 @@ public final class PlatformClientTokenControllerGrpc {
     /**
      * <pre>
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
-     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
      * &#64;internal
      * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
+     * and stamps the resolved share's id into the guest JWT as the share_id
+     * claim — the create-time gate re-reads the live share by that id on every
+     * session/execution create (decision 011 D6).
      * </pre>
      */
     public void mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request,
@@ -330,7 +340,8 @@ public final class PlatformClientTokenControllerGrpc {
    * that checks the Stigmer-issued signature and resolves the identity account.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
-   * hosted page, gated on spec.sharing.enabled.
+   * hosted page, gated on an enabled public-audience AgentShare
+   * (ai.stigmer.agentic.agentshare.v1).
    * </pre>
    */
   public static final class PlatformClientTokenControllerBlockingV2Stub
@@ -379,12 +390,15 @@ public final class PlatformClientTokenControllerGrpc {
     /**
      * <pre>
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
-     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
      * &#64;internal
      * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
+     * and stamps the resolved share's id into the guest JWT as the share_id
+     * claim — the create-time gate re-reads the live share by that id on every
+     * session/execution create (decision 011 D6).
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request) throws io.grpc.StatusException {
@@ -407,7 +421,8 @@ public final class PlatformClientTokenControllerGrpc {
    * that checks the Stigmer-issued signature and resolves the identity account.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
-   * hosted page, gated on spec.sharing.enabled.
+   * hosted page, gated on an enabled public-audience AgentShare
+   * (ai.stigmer.agentic.agentshare.v1).
    * </pre>
    */
   public static final class PlatformClientTokenControllerBlockingStub
@@ -456,12 +471,15 @@ public final class PlatformClientTokenControllerGrpc {
     /**
      * <pre>
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
-     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
      * &#64;internal
      * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
+     * and stamps the resolved share's id into the guest JWT as the share_id
+     * claim — the create-time gate re-reads the live share by that id on every
+     * session/execution create (decision 011 D6).
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse mintGuestToken(ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest request) {
@@ -484,7 +502,8 @@ public final class PlatformClientTokenControllerGrpc {
    * that checks the Stigmer-issued signature and resolves the identity account.
    * mintGuestToken is the credential-free exception: no client_id/client_secret.
    * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
-   * hosted page, gated on spec.sharing.enabled.
+   * hosted page, gated on an enabled public-audience AgentShare
+   * (ai.stigmer.agentic.agentshare.v1).
    * </pre>
    */
   public static final class PlatformClientTokenControllerFutureStub
@@ -534,12 +553,15 @@ public final class PlatformClientTokenControllerGrpc {
     /**
      * <pre>
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
-     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
      * &#64;internal
      * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
+     * and stamps the resolved share's id into the guest JWT as the share_id
+     * claim — the create-time gate re-reads the live share by that id on every
+     * session/execution create (decision 011 D6).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse> mintGuestToken(

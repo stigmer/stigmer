@@ -160,6 +160,14 @@ public enum ApiResourceKind
   agent_instance(45),
   /**
    * <pre>
+   * Hosted chat link for an agent with its own audience, origins, and credentials.
+   * </pre>
+   *
+   * <code>agent_share = 46 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  agent_share(46),
+  /**
+   * <pre>
    * Multi-step orchestration defining how agents collaborate on a task.
    * </pre>
    *
@@ -371,6 +379,14 @@ public enum ApiResourceKind
   public static final int agent_instance_VALUE = 45;
   /**
    * <pre>
+   * Hosted chat link for an agent with its own audience, origins, and credentials.
+   * </pre>
+   *
+   * <code>agent_share = 46 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int agent_share_VALUE = 46;
+  /**
+   * <pre>
    * Multi-step orchestration defining how agents collaborate on a task.
    * </pre>
    *
@@ -468,6 +484,7 @@ public enum ApiResourceKind
       case 43: return skill;
       case 44: return mcp_server;
       case 45: return agent_instance;
+      case 46: return agent_share;
       case 50: return workflow;
       case 51: return workflow_instance;
       case 52: return workflow_execution;

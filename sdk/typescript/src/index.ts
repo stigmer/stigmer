@@ -145,6 +145,11 @@ export {
   AgentInstanceClient,
   type AgentInstanceInput,
 } from "./gen/agentinstance.js";
+export {
+  AgentShareClient,
+  type AgentShareInput,
+  type AgentShareMessagesInput,
+} from "./gen/agentshare.js";
 export { ApiKeyClient, type ApiKeyInput } from "./gen/apikey.js";
 export {
   EnvironmentClient,

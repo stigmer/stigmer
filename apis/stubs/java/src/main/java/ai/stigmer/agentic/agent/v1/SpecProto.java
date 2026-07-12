@@ -37,16 +37,6 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_EnvEntry_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agent_v1_AgentSharing_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agent_v1_AgentSharing_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agent_v1_AgentSharingMessages_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agent_v1_AgentSharingMessages_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agent_v1_SubAgent_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -80,7 +70,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "r/agentic/environment/v1/spec.proto\0322ai/" +
       "stigmer/commons/apiresource/field_option" +
       "s.proto\032\'ai/stigmer/commons/apiresource/" +
-      "io.proto\032\033buf/validate/validate.proto\"\321\006" +
+      "io.proto\032\033buf/validate/validate.proto\"\233\006" +
       "\n\tAgentSpec\022 \n\013description\030\001 \001(\tR\013descri" +
       "ption\022\031\n\010icon_url\030\002 \001(\tR\007iconUrl\022+\n\014inst" +
       "ructions\030\003 \001(\tB\007\272H\004r\002\020\nR\014instructions\022\337\001" +
@@ -97,59 +87,37 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       ",+R\tskillRefs\022D\n\nsub_agents\030\006 \003(\0132%.ai.s" +
       "tigmer.agentic.agent.v1.SubAgentR\tsubAge" +
       "nts\022A\n\003env\030\007 \003(\0132/.ai.stigmer.agentic.ag" +
-      "ent.v1.AgentSpec.EnvEntryR\003env\022C\n\007sharin" +
-      "g\030\010 \001(\0132).ai.stigmer.agentic.agent.v1.Ag" +
-      "entSharingR\007sharing\032l\n\010EnvEntry\022\020\n\003key\030\001" +
-      " \001(\tR\003key\022J\n\005value\030\002 \001(\01324.ai.stigmer.ag" +
-      "entic.environment.v1.EnvVarDeclarationR\005" +
-      "value:\0028\001\"\211\004\n\014AgentSharing\022\030\n\007enabled\030\001 " +
-      "\001(\010R\007enabled\022\300\002\n\017allowed_origins\030\002 \003(\tB\226" +
-      "\002\272H\222\002\222\001\216\002\020 \"\211\002\272\001\205\002\n\026allowed_origins.form" +
-      "at\022nallowed_origins entries must be exac" +
-      "t web origins like https://example.com (" +
-      "no path, query, or trailing slash)\032{this" +
-      ".matches(\'^https?://[A-Za-z0-9]([A-Za-z0" +
-      "-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-" +
-      "z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$\')R" +
-      "\016allowedOrigins\022M\n\010messages\030\003 \001(\01321.ai.s" +
-      "tigmer.agentic.agent.v1.AgentSharingMess" +
-      "agesR\010messages\022M\n\010audience\030\004 \001(\01621.ai.st" +
-      "igmer.agentic.agent.v1.AgentSharingAudie" +
-      "nceR\010audience\"\250\001\n\024AgentSharingMessages\022+" +
-      "\n\014rate_limited\030\001 \001(\tB\010\272H\005r\003\030\254\002R\013rateLimi" +
-      "ted\022*\n\013unavailable\030\002 \001(\tB\010\272H\005r\003\030\254\002R\013unav" +
-      "ailable\0227\n\022conversation_ended\030\003 \001(\tB\010\272H\005" +
-      "r\003\030\254\002R\021conversationEnded\"\241\003\n\010SubAgent\022\032\n" +
-      "\004name\030\001 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\013description" +
-      "\030\002 \001(\tR\013description\022+\n\014instructions\030\003 \001(" +
-      "\tB\007\272H\004r\002\020\nR\014instructions\022E\n\nmcp_access\030\004" +
-      " \003(\0132&.ai.stigmer.agentic.agent.v1.McpAc" +
-      "cessR\tmcpAccess\022\273\001\n\nskill_refs\030\005 \003(\01324.a" +
-      "i.stigmer.commons.apiresource.ApiResourc" +
-      "eReferenceBf\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind" +
-      "\0223skill_refs must reference resources wi" +
-      "th kind=skill\032\017this.kind == 43\340\205,+R\tskil" +
-      "lRefs\022%\n\016model_override\030\006 \001(\tR\rmodelOver" +
-      "ride\"\210\002\n\016McpServerUsage\022f\n\016mcp_server_re" +
-      "f\030\001 \001(\01324.ai.stigmer.commons.apiresource" +
-      ".ApiResourceReferenceB\n\272H\003\310\001\001\340\205,,R\014mcpSe" +
-      "rverRef\022#\n\renabled_tools\030\002 \003(\tR\014enabledT" +
-      "ools\022i\n\027tool_approval_overrides\030\003 \003(\01321." +
-      "ai.stigmer.agentic.agent.v1.ToolApproval" +
-      "OverrideR\025toolApprovalOverrides\"W\n\tMcpAc" +
-      "cess\022%\n\nmcp_server\030\001 \001(\tB\006\272H\003\310\001\001R\tmcpSer" +
-      "ver\022#\n\renabled_tools\030\002 \003(\tR\014enabledTools" +
-      "\"\203\001\n\024ToolApprovalOverride\022$\n\ttool_name\030\001" +
-      " \001(\tB\007\272H\004r\002\020\001R\010toolName\022+\n\021requires_appr" +
-      "oval\030\002 \001(\010R\020requiresApproval\022\030\n\007message\030" +
-      "\003 \001(\tR\007message*\201\001\n\024AgentSharingAudience\022" +
-      "&\n\"agent_sharing_audience_unspecified\020\000\022" +
-      "!\n\035agent_sharing_audience_public\020\001\022\036\n\032ag" +
-      "ent_sharing_audience_org\020\002B\234\001B\tSpecProto" +
-      "P\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312" +
-      "\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigm" +
-      "er\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::St" +
-      "igmer::Agentic::Agent::V1b\006proto3"
+      "ent.v1.AgentSpec.EnvEntryR\003env\032l\n\010EnvEnt" +
+      "ry\022\020\n\003key\030\001 \001(\tR\003key\022J\n\005value\030\002 \001(\01324.ai" +
+      ".stigmer.agentic.environment.v1.EnvVarDe" +
+      "clarationR\005value:\0028\001J\004\010\010\020\tR\007sharing\"\241\003\n\010" +
+      "SubAgent\022\032\n\004name\030\001 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\013" +
+      "description\030\002 \001(\tR\013description\022+\n\014instru" +
+      "ctions\030\003 \001(\tB\007\272H\004r\002\020\nR\014instructions\022E\n\nm" +
+      "cp_access\030\004 \003(\0132&.ai.stigmer.agentic.age" +
+      "nt.v1.McpAccessR\tmcpAccess\022\273\001\n\nskill_ref" +
+      "s\030\005 \003(\01324.ai.stigmer.commons.apiresource" +
+      ".ApiResourceReferenceBf\272H_\222\001\\\"Z\272\001W\n\017skil" +
+      "l_refs.kind\0223skill_refs must reference r" +
+      "esources with kind=skill\032\017this.kind == 4" +
+      "3\340\205,+R\tskillRefs\022%\n\016model_override\030\006 \001(\t" +
+      "R\rmodelOverride\"\210\002\n\016McpServerUsage\022f\n\016mc" +
+      "p_server_ref\030\001 \001(\01324.ai.stigmer.commons." +
+      "apiresource.ApiResourceReferenceB\n\272H\003\310\001\001" +
+      "\340\205,,R\014mcpServerRef\022#\n\renabled_tools\030\002 \003(" +
+      "\tR\014enabledTools\022i\n\027tool_approval_overrid" +
+      "es\030\003 \003(\01321.ai.stigmer.agentic.agent.v1.T" +
+      "oolApprovalOverrideR\025toolApprovalOverrid" +
+      "es\"W\n\tMcpAccess\022%\n\nmcp_server\030\001 \001(\tB\006\272H\003" +
+      "\310\001\001R\tmcpServer\022#\n\renabled_tools\030\002 \003(\tR\014e" +
+      "nabledTools\"\203\001\n\024ToolApprovalOverride\022$\n\t" +
+      "tool_name\030\001 \001(\tB\007\272H\004r\002\020\001R\010toolName\022+\n\021re" +
+      "quires_approval\030\002 \001(\010R\020requiresApproval\022" +
+      "\030\n\007message\030\003 \001(\tR\007messageB\234\001B\tSpecProtoP" +
+      "\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002" +
+      "\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigme" +
+      "r\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Sti" +
+      "gmer::Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -164,45 +132,33 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_descriptor,
-        new java.lang.String[] { "Description", "IconUrl", "Instructions", "McpServerUsages", "SkillRefs", "SubAgents", "Env", "Sharing", });
+        new java.lang.String[] { "Description", "IconUrl", "Instructions", "McpServerUsages", "SkillRefs", "SubAgents", "Env", });
     internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_EnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_EnvEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentSpec_EnvEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
-    internal_static_ai_stigmer_agentic_agent_v1_AgentSharing_descriptor =
-      getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_agentic_agent_v1_AgentSharing_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agent_v1_AgentSharing_descriptor,
-        new java.lang.String[] { "Enabled", "AllowedOrigins", "Messages", "Audience", });
-    internal_static_ai_stigmer_agentic_agent_v1_AgentSharingMessages_descriptor =
-      getDescriptor().getMessageType(2);
-    internal_static_ai_stigmer_agentic_agent_v1_AgentSharingMessages_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agent_v1_AgentSharingMessages_descriptor,
-        new java.lang.String[] { "RateLimited", "Unavailable", "ConversationEnded", });
     internal_static_ai_stigmer_agentic_agent_v1_SubAgent_descriptor =
-      getDescriptor().getMessageType(3);
+      getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agent_v1_SubAgent_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_SubAgent_descriptor,
         new java.lang.String[] { "Name", "Description", "Instructions", "McpAccess", "SkillRefs", "ModelOverride", });
     internal_static_ai_stigmer_agentic_agent_v1_McpServerUsage_descriptor =
-      getDescriptor().getMessageType(4);
+      getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agent_v1_McpServerUsage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_McpServerUsage_descriptor,
         new java.lang.String[] { "McpServerRef", "EnabledTools", "ToolApprovalOverrides", });
     internal_static_ai_stigmer_agentic_agent_v1_McpAccess_descriptor =
-      getDescriptor().getMessageType(5);
+      getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_agent_v1_McpAccess_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_McpAccess_descriptor,
         new java.lang.String[] { "McpServer", "EnabledTools", });
     internal_static_ai_stigmer_agentic_agent_v1_ToolApprovalOverride_descriptor =
-      getDescriptor().getMessageType(6);
+      getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_agent_v1_ToolApprovalOverride_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_ToolApprovalOverride_descriptor,

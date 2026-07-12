@@ -32,6 +32,7 @@ func tsClientFieldName(resource string) string {
 	replacements := map[string]string{
 		"agentexecution":    "agentExecution",
 		"agentinstance":     "agentInstance",
+		"agentshare":        "agentShare",
 		"executioncontext":  "executionContext",
 		"mcpserver":         "mcpServer",
 		"workflowexecution": "workflowExecution",

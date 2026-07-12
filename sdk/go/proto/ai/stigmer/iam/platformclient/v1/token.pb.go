@@ -202,7 +202,7 @@ type MintGuestTokenRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug from the share URL (required).
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Agent slug from the share URL (required).
+	// Share slug from the share URL (required).
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
 	// Per-browser visitor cookie id from a prior mint (optional).
 	//
@@ -219,9 +219,9 @@ type MintGuestTokenRequest struct {
 	// be determined (opaque origin).
 	//
 	// @internal
-	// Validated at mint against the agent's spec.sharing.allowed_origins:
-	// empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
-	// for unlisted origins and for "null". An empty field always passes (the
+	// Validated at mint against the share's spec.allowed_origins: empty list
+	// admits any origin; a non-empty list refuses PERMISSION_DENIED for
+	// unlisted origins and for "null". An empty field always passes (the
 	// anyone-with-link hosted page). The validated value is stamped into the
 	// guest JWT as the embed_origin claim and re-validated against the live
 	// list by the guest create-time gate. Self-reported by design: the widget
@@ -232,17 +232,17 @@ type MintGuestTokenRequest struct {
 	EmbedOrigin string `protobuf:"bytes,4,opt,name=embed_origin,json=embedOrigin,proto3" json:"embed_origin,omitempty"`
 	// Link token from the share URL's `?k=` parameter (optional).
 	//
-	// Required when the agent's share link has been locked with
-	// rotateShareLink; ignored for plain share links.
+	// Required when the share link has been locked with rotateShareLink;
+	// ignored for plain share links.
 	//
 	// @internal
-	// Validated at mint against the agent's live status.share_link_token
-	// (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+	// Validated at mint against the share's live status.share_link_token
+	// (mismatch or absence answers the same NOT_FOUND as a disabled share,
 	// so a killed link is indistinguishable from a nonexistent one). The
 	// validated value is stamped into the guest JWT as the link_token claim
 	// and re-validated against the live value by the guest create-time gate
 	// on every session/execution create — rotation therefore revokes live
-	// guest tokens on their next message, exactly like disabling sharing.
+	// guest tokens on their next message, exactly like disabling the share.
 	LinkToken     string `protobuf:"bytes,5,opt,name=link_token,json=linkToken,proto3" json:"link_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

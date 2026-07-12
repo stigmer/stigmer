@@ -1,0 +1,47 @@
+{
+  "name": "AgentShareMessages",
+  "description": "AgentShareMessages holds owner-customizable visitor-facing copy for\n shared-agent limit refusals.\n\n Empty fields mean \"use the platform default\". Plain text only; rendered\n verbatim in the visitor's chat surface.",
+  "protoType": "ai.stigmer.agentic.agentshare.v1.AgentShareMessages",
+  "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/spec.proto",
+  "fields": [
+    {
+      "name": "RateLimited",
+      "jsonName": "rateLimited",
+      "protoField": "rate_limited",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Shown when a visitor or the org exceeds the message rate limit.",
+      "required": false,
+      "validation": {
+        "maxLength": 300
+      }
+    },
+    {
+      "name": "Unavailable",
+      "jsonName": "unavailable",
+      "protoField": "unavailable",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Shown when the share cannot serve the conversation — the org's credits\n are exhausted or the agent's tools are not ready (fails closed).",
+      "required": false,
+      "validation": {
+        "maxLength": 300
+      }
+    },
+    {
+      "name": "ConversationEnded",
+      "jsonName": "conversationEnded",
+      "protoField": "conversation_ended",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Shown when a conversation hits its turn limit or inactivity timeout.",
+      "required": false,
+      "validation": {
+        "maxLength": 300
+      }
+    }
+  ]
+}

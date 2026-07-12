@@ -3,10 +3,10 @@
 // Flattened apply-input zod schema + toProto bridge for the Agent resource.
 // Source proto package: ai.stigmer.agentic.agent.v1
 
-import { generateSlug, visibilityFromString, enumFromString } from "./apply-runtime.js";
+import { generateSlug, visibilityFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, AgentSharingMessagesSchema, AgentSharingSchema, AgentSharingAudience } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -28,7 +28,6 @@ export const AgentInputShape = {
   skill_refs: z.array(z.lazy(() => SkillRefInputSchema)).optional().describe("Skill resources providing additional knowledge to the agent."),
   sub_agents: z.array(z.lazy(() => SubAgentInputSchema)).optional().describe("Sub-agents that can be delegated to. Sub-agents can access a subset of the parent's MCP servers and tools."),
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality."),
-  sharing: z.lazy(() => AgentSharingInputSchema).optional().describe("Sharing configuration for the agent's hosted chat experience. Controls who can chat with the running agent over its hosted link: anyone with the link (public audience) or signed-in members of the owning organization (org audience). This is a distinct consent from metadata.visibility: visibility governs who can READ the agent blueprint (marketplace), while sharing governs who can CHAT with the agent runtime. Conversations over a shared link consume the owning organization's credits, so enabling sharing is an explicit, billing-affecting decision. Unset is equivalent to sharing disabled. @internal Declarative spec semantics apply: update/apply replace this field like any other spec field, so a manifest that omits sharing revokes an active share (fails closed). Console and CLI toggle it via the targeted updateSharing RPC instead of a full-resource write. Enforcement is app-level in the getSharedProfile handler — sharing deliberately writes NO FGA visibility tuples, because a public wildcard viewer tuple would expose the full blueprint (instructions included) to any authenticated account via getByReference, conflating the two consents."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -84,21 +83,6 @@ const EnvVarDeclarationInputSchema = z.object({
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 
-const AgentSharingMessagesInputSchema = z.object({
-  rate_limited: z.string().optional().describe("Shown when a visitor or the org exceeds the message rate limit."),
-  unavailable: z.string().optional().describe("Shown when the org's credits are exhausted (sharing fails closed)."),
-  conversation_ended: z.string().optional().describe("Shown when a conversation hits its turn limit or inactivity timeout."),
-});
-type AgentSharingMessagesInput = z.infer<typeof AgentSharingMessagesInputSchema>;
-
-const AgentSharingInputSchema = z.object({
-  enabled: z.boolean().optional().describe("Whether hosted-chat access for the configured audience is enabled."),
-  allowed_origins: z.array(z.string()).optional().describe("Origins permitted to embed this agent's chat widget. Each entry is an exact web origin (scheme://host[:port]) with no path, for example 'https://docs.example.com'. An empty list allows embedding from any site; listing origins restricts embedding to those sites. The first-party hosted chat page is always exempt. @internal Enforced since T04 against the embed_origin the widget reports at mintGuestToken time (stamped into the guest JWT as a claim) and re-validated against this live list by the guest create-time gate (SharedSessionBlueprintAccess) on every session/execution create — the same gate that re-checks sharing.enabled, so revocation latency is identical (immediate). Unframed hosted-page visitors report no origin and are exempt by construction. Exact origins only — loosening to wildcards later is a non-breaking change, tightening would not be."),
-  messages: z.lazy(() => AgentSharingMessagesInputSchema).optional().describe("Owner-customizable copy shown to visitors when a launch-gate limit refuses their message. Unset fields fall back to platform defaults. @internal Resolved server-side at the refusal point and carried in the gRPC status description — deliberately NOT surfaced on SharedAgentProfile and NOT mapped client-side, so the copy reaches every client (web, embed, CLI) through the existing error-message path."),
-  audience: z.string().optional().describe("Who can chat with the shared agent. Unspecified means public (anyone with the link), so pre-existing shares keep their behavior. To keep an agent org-only, audience must be present in every apply: update/apply replace spec.sharing wholesale, so a manifest that sets enabled without audience resets the share to public. @internal Org audience is enforced cloud-side only (org membership is a multi-tenant IAM concept): the guest mint and public profile handlers treat audience=org as NOT_FOUND, and the create-time blueprint gate admits authenticated org members via an app-level FGA member check (no visibility tuples written — same posture as the sharing flag). The OSS single-user server stores and echoes the field. Allowed values: agent_sharing_audience_public, agent_sharing_audience_org."),
-});
-type AgentSharingInput = z.infer<typeof AgentSharingInputSchema>;
-
 
 /** Build the fully-formed Agent proto from the flat MCP apply input. */
 export function agentInputToProto(input: AgentInput): Agent {
@@ -113,7 +97,6 @@ export function agentInputToProto(input: AgentInput): Agent {
   if (input.env !== undefined) {
     for (const [k, v] of Object.entries(input.env)) spec.env[k] = envVarDeclarationInputToProto(v);
   }
-  if (input.sharing !== undefined) spec.sharing = agentSharingInputToProto(input.sharing);
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -185,23 +168,6 @@ function envVarDeclarationInputToProto(input: EnvVarDeclarationInput) {
   if (input.is_secret !== undefined) result.isSecret = input.is_secret;
   if (input.description !== undefined) result.description = input.description;
   if (input.optional !== undefined) result.optional = input.optional;
-  return result;
-}
-
-function agentSharingMessagesInputToProto(input: AgentSharingMessagesInput) {
-  const result = create(AgentSharingMessagesSchema);
-  if (input.rate_limited !== undefined) result.rateLimited = input.rate_limited;
-  if (input.unavailable !== undefined) result.unavailable = input.unavailable;
-  if (input.conversation_ended !== undefined) result.conversationEnded = input.conversation_ended;
-  return result;
-}
-
-function agentSharingInputToProto(input: AgentSharingInput) {
-  const result = create(AgentSharingSchema);
-  if (input.enabled !== undefined) result.enabled = input.enabled;
-  if (input.allowed_origins !== undefined) result.allowedOrigins = input.allowed_origins;
-  if (input.messages !== undefined) result.messages = agentSharingMessagesInputToProto(input.messages);
-  result.audience = enumFromString(AgentSharingAudience, input.audience) as AgentSharingAudience;
   return result;
 }
 

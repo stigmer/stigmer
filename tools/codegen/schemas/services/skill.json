@@ -294,6 +294,7 @@
               "skill",
               "mcp_server",
               "agent_instance",
+              "agent_share",
               "workflow",
               "workflow_instance",
               "workflow_execution",
@@ -585,6 +586,11 @@
           "name": "agent_instance",
           "number": 45,
           "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
         },
         {
           "name": "workflow",

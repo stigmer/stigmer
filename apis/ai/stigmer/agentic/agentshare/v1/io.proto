@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentshare.v1;
+
+import "ai/stigmer/agentic/agentshare/v1/api.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+
+// AgentShareId wraps an agent share identifier.
+message AgentShareId {
+  // Unique identifier of the agent share.
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// Input for retrieving all shares of a specific agent.
+message GetAgentSharesByAgentRequest {
+  // Identifier of the agent whose shares to retrieve.
+  string agent_id = 1 [(buf.validate.field).required = true];
+
+  // Pagination options.
+  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+}
+
+// Response containing a paginated list of agent shares.
+message AgentShareList {
+  // Total number of agent shares matching the query.
+  int32 total_count = 1;
+
+  // Agent shares in the current page.
+  repeated AgentShare items = 2;
+}
+
+// Input for listing agent shares within an organization.
+message ListAgentSharesRequest {
+  // Organization slug to scope the listing.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Filter by metadata labels. AND semantics: all labels must match.
+  map<string, string> labels = 2;
+
+  // Pagination options.
+  ai.stigmer.commons.rpc.PageInfo page_info = 3;
+}
+
+// Input for rotating a share's link token.
+//
+// Used by the rotateShareLink RPC. The server generates the new token —
+// callers never supply one — and the previous link stops working the
+// moment the rotation persists.
+message RotateShareLinkInput {
+  // ID of the agent share whose link token is being rotated.
+  string resource_id = 1 [(buf.validate.field).required = true];
+}
+
+// Input for resolving a share's public profile.
+//
+// Identifies the share by the org and slug from the hosted chat URL, plus
+// the link token when the share URL carries one.
+//
+// @internal
+// org emptiness is validated in the handler (INVALID_ARGUMENT) rather than
+// the proto to keep the anonymous path's existing error contract: org+slug
+// is the shared URL's identity, and cross-org slug matching on a public
+// endpoint would enable enumeration.
+message GetSharedProfileRequest {
+  // Organization slug from the share URL.
+  string org = 1;
+
+  // Share slug from the share URL.
+  string slug = 2;
+
+  // Link token from the share URL's `?k=` parameter.
+  //
+  // Required (and validated) only when the share link has been locked with
+  // rotateShareLink; ignored for plain share links.
+  string link_token = 3 [(buf.validate.field).string.max_len = 128];
+}
+
+// SharedAgentProfile is the public projection of a shared agent.
+//
+// Returned by the getSharedProfile RPC to anonymous visitors of the hosted
+// chat page. It is deliberately trimmed: the full Agent resource carries the
+// system prompt (spec.instructions), environment declarations, and MCP
+// server wiring — none of which may leak to anyone-with-link callers. The
+// profile carries only what the hosted chat page needs to render a header
+// and start a session.
+message SharedAgentProfile {
+  // Organization that owns the share.
+  string org = 1;
+
+  // Slug of the share (unique within the org).
+  // Together with org, this is the identity in the hosted chat URL.
+  string slug = 2;
+
+  // Human-readable agent name for the chat page header.
+  string name = 3;
+
+  // Human-readable description for the chat page header.
+  string description = 4;
+
+  // Icon URL for the chat page header.
+  string icon_url = 5;
+
+  // ID of the referenced agent's default instance, used by the hosted chat
+  // page to create sessions. This is an identifier, not a capability —
+  // session creation still requires an authorized token.
+  string default_instance_id = 6;
+}
